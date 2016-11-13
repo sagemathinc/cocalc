@@ -75,6 +75,66 @@ class TestBasic:
         assert mesg['completions'] == ["ctor","ctorial"]
         assert mesg['target'] == "fa"
 
+    # https://github.com/sagemathinc/smc/issues/1107
+    def test_sage_underscore_1(self, exec2):
+        exec2("2/5","2/5\n")
+    def test_sage_underscore_2(self, exec2):
+        exec2("_","2/5\n")
+
+    # https://github.com/sagemathinc/smc/issues/978
+    def test_mode_comments_1(self, exec2):
+        exec2(dedent("""
+        def f(s):
+            print "s='%s'"%s"""))
+    def test_mode_comments_2(self, exec2):
+        exec2(dedent("""
+        %f
+        123
+        # foo
+        456"""), dedent("""
+        s='123
+        # foo
+        456'
+        """).lstrip())
+
+    def test_block_parser(self, exec2):
+        """
+        .. NOTE::
+
+            This function supplies a list of expected outputs to `exec2`.
+        """
+        exec2(dedent("""
+        pi.n().round()
+        [x for x in [1,2,3] if x<3]
+        for z in ['a','b']:
+            z
+        else:
+            z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
+
+class TestAttach:
+    def test_define_paf(self, exec2):
+        exec2(dedent(r"""
+        def paf():
+            print("attached files: %d"%len(attached_files()))
+            print("\n".join(attached_files()))
+        paf()"""),"attached files: 0\n\n")
+    def test_attach_sage_1(self, exec2):
+        exec2("%attach a.sage\npaf()", pattern="attached files: 1\n.*/a.sage\n")
+    def test_attach_sage_2(self, exec2):
+        exec2("f1('foo')","f1 arg = 'foo'\ntest f1 1\n")
+    def test_attach_py_1(self, exec2):
+        exec2("%attach a.py\npaf()", pattern="attached files: 2\n.*/a.py\n.*/a.sage\n")
+    def test_attach_py_2(self, exec2):
+        exec2("f2('foo')","test f2 1\n")
+    def test_attach_html_1(self, execblob):
+        execblob("%attach a.html", want_html=False, want_javascript=True, file_type='html')
+    def test_attach_html_2(self, exec2):
+        exec2("paf()", pattern="attached files: 3\n.*/a.html\n.*/a.py\n.*/a.sage\n")
+    def test_detach_1(self, exec2):
+        exec2("detach(attached_files())")
+    def test_detach_2(self, exec2):
+        exec2("paf()","attached files: 0\n\n")
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

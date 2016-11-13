@@ -28,6 +28,7 @@ misc                 = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text}       = require('./misc_page')
 {alert_message}      = require('./alerts')
+{project_tasks}      = require('./project_tasks')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
@@ -43,7 +44,7 @@ misc                 = require('smc-util/misc')
 URLBox = rclass
     displayName : 'URLBox'
 
-    render : ->
+    render: ->
         url = document.URL
         i   = url.lastIndexOf('/settings')
         if i != -1
@@ -58,10 +59,10 @@ ProjectSettingsPanel = rclass
         icon  : rtypes.string.isRequired
         title : rtypes.string.isRequired
 
-    render_header : ->
+    render_header: ->
         <h3><Icon name={@props.icon} /> {@props.title}</h3>
 
-    render : ->
+    render: ->
         <Panel header={@render_header()}>
             {@props.children}
         </Panel>
@@ -75,7 +76,7 @@ TitleDescriptionPanel = rclass
         description   : rtypes.string.isRequired
         actions       : rtypes.object.isRequired # projects actions
 
-    render : ->
+    render: ->
         <ProjectSettingsPanel title='Title and description' icon='header'>
             <LabeledRow label='Title'>
                 <TextInput
@@ -106,10 +107,10 @@ QuotaConsole = rclass
         total_project_quotas         : rtypes.object            # undefined if viewing as admin
         all_upgrades_to_this_project : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         all_upgrades_to_this_project : {}
 
-    getInitialState : ->
+    getInitialState: ->
         state =
             editing   : false # admin is currently editing
             upgrading : false # user is currently upgrading
@@ -122,7 +123,7 @@ QuotaConsole = rclass
 
         return state
 
-    componentWillReceiveProps : (next_props) ->
+    componentWillReceiveProps: (next_props) ->
         settings = next_props.project_settings
         if not immutable.is(@props.project_settings, settings)
             if settings?
@@ -131,7 +132,7 @@ QuotaConsole = rclass
                     new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
-    render_quota_row : (quota, base_value=0, upgrades, params_data) ->
+    render_quota_row: (quota, base_value=0, upgrades, params_data) ->
         factor = params_data.display_factor
         unit   = params_data.display_unit
 
@@ -157,10 +158,10 @@ QuotaConsole = rclass
             </ul>
         </LabeledRow>
 
-    start_admin_editing : ->
+    start_admin_editing: ->
         @setState(editing: true)
 
-    save_admin_editing : ->
+    save_admin_editing: ->
         salvus_client.project_set_quotas
             project_id  : @props.project_id
             cores       : @state.cores
@@ -179,7 +180,7 @@ QuotaConsole = rclass
                     alert_message(type:'success', message: 'Project quotas updated.')
         @setState(editing : false)
 
-    cancel_admin_editing : ->
+    cancel_admin_editing: ->
         settings = @props.project_settings
         if settings?
             # reset user input states
@@ -195,7 +196,7 @@ QuotaConsole = rclass
     #    - at least one has changed
     #    - none are negative
     #    - none are empty
-    valid_admin_inputs : ->
+    valid_admin_inputs: ->
         settings = @props.project_settings
         if not settings?
             return false
@@ -212,7 +213,7 @@ QuotaConsole = rclass
                 changed = true
         return changed
 
-    render_admin_edit_buttons : ->
+    render_admin_edit_buttons: ->
         if 'admin' in @props.account_groups
             if @state.editing
                 <Row>
@@ -236,7 +237,7 @@ QuotaConsole = rclass
                     </Col>
                 </Row>
 
-    admin_input_validation_styles : (input) ->
+    admin_input_validation_styles: (input) ->
         if not misc.parse_number_input(input)?
             style =
                 outline     : 'none'
@@ -244,7 +245,7 @@ QuotaConsole = rclass
                 boxShadow   : '0 0 10px red'
         return style
 
-    render_input : (label) ->
+    render_input: (label) ->
         if label is 'network' or label is 'member_host'
             <Checkbox
                 ref      = {label}
@@ -263,7 +264,7 @@ QuotaConsole = rclass
                 style    = {@admin_input_validation_styles(@state[label])}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
-    render : ->
+    render: ->
         settings     = @props.project_settings
         if not settings?
             return <Loading/>
@@ -334,14 +335,14 @@ UsagePanel = rclass
         all_upgrades_to_this_project         : rtypes.object
         actions                              : rtypes.object.isRequired # projects actions
 
-    getInitialState : ->
+    getInitialState: ->
         show_adjustor : false
 
-    submit_upgrade_quotas : (new_quotas) ->
+    submit_upgrade_quotas: (new_quotas) ->
         @props.actions.apply_upgrades_to_project(@props.project_id, new_quotas)
         @setState(show_adjustor : false)
 
-    render_upgrades_button : ->
+    render_upgrades_button: ->
         <Row>
             <Col sm=12>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
@@ -350,7 +351,7 @@ UsagePanel = rclass
             </Col>
         </Row>
 
-    render : ->
+    render: ->
         if not require('./customize').commercial
             return null
         <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
@@ -396,25 +397,25 @@ SharePanel = rclass ({name}) ->
         "#{name}" :
             get_public_path_id : rtypes.func
 
-    getInitialState : ->
+    getInitialState: ->
         state : 'view'    # view --> edit --> view
         desc  : @props.desc
 
-    componentWillReceiveProps : (nextProps) ->
+    componentWillReceiveProps: (nextProps) ->
         if @state.desc isnt nextProps.desc
             @setState
                 desc  : nextProps.desc
                 state : 'view'
 
-    cancel : ->
+    cancel: ->
         @setState(state : 'view')
 
-    save : ->
+    save: ->
         actions = @actions(name)
         actions.set_public_path('', ReactDOM.findDOMNode(@refs.share_project).value)
         @setState(state : 'view')
 
-    render_share_cancel_buttons : ->
+    render_share_cancel_buttons: ->
         <ButtonToolbar style={paddingBottom:'5px'}>
             <Button bsStyle='primary' onClick={@save}>
                 <Icon name='share-square-o' /> Share
@@ -422,14 +423,14 @@ SharePanel = rclass ({name}) ->
             <Button onClick={@cancel}>Cancel</Button>
         </ButtonToolbar>
 
-    render_update_desc_button : ->
+    render_update_desc_button: ->
         <ButtonToolbar style={paddingBottom:'5px'}>
             <Button bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
                 <Icon name='share-square-o' /> Change description
             </Button>
         </ButtonToolbar>
 
-    render_share : (shared) ->
+    render_share: (shared) ->
         if @state.state == 'edit' or shared
             <form onSubmit={(e)=>e.preventDefault(); @save()}>
                 <FormGroup>
@@ -444,14 +445,14 @@ SharePanel = rclass ({name}) ->
                 {@render_update_desc_button() if shared}
             </form>
 
-    toggle_share : (shared) ->
+    toggle_share: (shared) ->
         actions = @actions(name)
         if shared
             actions.disable_public_path('')
         else
             @setState(state : 'edit')
 
-    render_share_unshare_button : (shared) ->
+    render_share_unshare_button: (shared) ->
         <Button
             bsStyle = {if shared then 'warning' else 'primary'}
             onClick = {=>@toggle_share(shared)}
@@ -459,7 +460,7 @@ SharePanel = rclass ({name}) ->
             <Icon name={if shared then 'shield' else 'share-square-o'} /> {if shared then 'Unshare' else 'Share'} Project...
         </Button>
 
-    render : ->
+    render: ->
         if not @props.public_paths?
             return <Loading />
         project_id = @props.project.get('project_id')
@@ -491,34 +492,34 @@ HideDeletePanel = rclass
     propTypes :
         project : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         show_delete_conf : false
 
-    show_delete_conf : ->
+    show_delete_conf: ->
         @setState(show_delete_conf : true)
 
-    hide_delete_conf : ->
+    hide_delete_conf: ->
         @setState(show_delete_conf : false)
 
-    toggle_delete_project : ->
+    toggle_delete_project: ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
         @hide_delete_conf()
 
-    toggle_hide_project : ->
+    toggle_hide_project: ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
 
     # account_id : String
     # project    : immutable.Map
-    user_has_applied_upgrades : (account_id, project) ->
+    user_has_applied_upgrades: (account_id, project) ->
          project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
 
-    delete_message : ->
+    delete_message: ->
         if @props.project.get('deleted')
             <DeletedProjectWarning/>
         else
             <span>Delete this project for everyone. You can undo this.</span>
 
-    hide_message : ->
+    hide_message: ->
         user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
@@ -533,7 +534,7 @@ HideDeletePanel = rclass
                 This only impacts you, not your collaborators, and you can easily unhide it.
             </span>
 
-    render_delete_undelete_button : (is_deleted, is_expanded) ->
+    render_delete_undelete_button: (is_deleted, is_expanded) ->
         if is_deleted
             text = "Undelete Project"
             onClick = @toggle_delete_project
@@ -547,7 +548,7 @@ HideDeletePanel = rclass
             <Icon name='trash' /> {text}
         </Button>
 
-    render_expanded_delete_info : ->
+    render_expanded_delete_info: ->
         has_upgrades = @user_has_applied_upgrades(salvus_client.account_id, @props.project)
         <Well style={textAlign:'center'} >
             {<Alert bsStyle="info" style={padding:'8px'} >
@@ -568,7 +569,7 @@ HideDeletePanel = rclass
             </ButtonToolbar>
         </Well>
 
-    render : ->
+    render: ->
         user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
@@ -603,14 +604,14 @@ HideDeletePanel = rclass
 SageWorksheetPanel = rclass
     displayName : 'ProjectSettings-SageWorksheetPanel'
 
-    getInitialState : ->
+    getInitialState: ->
         loading : false
         message : ''
 
     propTypes :
         project : rtypes.object.isRequired
 
-    restart_worksheet : ->
+    restart_worksheet: ->
         @setState(loading : true)
         salvus_client.exec
             project_id : @props.project.get('project_id')
@@ -623,11 +624,11 @@ SageWorksheetPanel = rclass
                 else
                     @setState(message:'Worksheet server restarted. Restarted worksheets will use a new Sage session.')
 
-    render_message : ->
+    render_message: ->
         if @state.message
             <MessageDisplay message={@state.message} onClose={=>@setState(message:'')} />
 
-    render : ->
+    render: ->
         <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
             <Row>
                 <Col sm=8>
@@ -650,18 +651,18 @@ SageWorksheetPanel = rclass
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
-    getInitialState : ->
+    getInitialState: ->
         restart  : false
         show_ssh : false
 
     propTypes :
         project : rtypes.object.isRequired
 
-    open_authorized_keys : (e) ->
+    open_authorized_keys: (e) ->
         e.preventDefault()
         async.series([
             (cb) =>
-                @actions(project_id: @props.project.get('project_id')).ensure_directory_exists
+                project_tasks(@project_id).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>
@@ -671,7 +672,7 @@ ProjectControlPanel = rclass
                 cb()
         ])
 
-    ssh_notice : ->
+    ssh_notice: ->
         project_id = @props.project.get('project_id')
         host = @props.project.get('host')?.get('host')
         if host?
@@ -692,21 +693,21 @@ ProjectControlPanel = rclass
                     </Col>
                 </Row>
 
-    render_state : ->
+    render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
             <ProjectState state={@props.project.get('state')?.get('state')} />
         </span>
 
-    restart_project : ->
+    restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
 
-    save_project : ->
+    save_project: ->
         @actions('projects').save_project(@props.project.get('project_id'))
 
-    stop_project : ->
+    stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
 
-    render_confirm_restart : ->
+    render_confirm_restart: ->
         if @state.restart
             <LabeledRow key='restart' label=''>
                 <Well>
@@ -725,7 +726,7 @@ ProjectControlPanel = rclass
                 </Well>
             </LabeledRow>
 
-    render_action_buttons : ->
+    render_action_buttons: ->
         {COMPUTE_STATES} = require('smc-util/schema')
         state = @props.project.get('state')?.get('state')
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
@@ -741,7 +742,7 @@ ProjectControlPanel = rclass
             </Button>
         </ButtonToolbar>
 
-    render : ->
+    render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
             <LabeledRow key='state' label='State'>
                 {@render_state()}
@@ -771,7 +772,7 @@ CollaboratorsSearch = rclass
         account :
             get_fullname : rtypes.func
 
-    getInitialState : ->
+    getInitialState: ->
         search           : ''          # search that user has typed in so far
         select           : undefined   # list of results for doing the search -- turned into a selector
         selected_entries : undefined   # list of actually selected entries in the selector list
@@ -780,10 +781,10 @@ CollaboratorsSearch = rclass
         email_to         : ''          # if set, adding user via email to this address
         email_body       : ''          # with this body.
 
-    reset : ->
+    reset: ->
         @setState(@getInitialState())
 
-    do_search : (search) ->
+    do_search: (search) ->
         search = search.trim()
         @setState(search: search, selected_entries : undefined)  # this gets used in write_email_invite, and whether to render the selection list.
         if @state.searching
@@ -799,15 +800,15 @@ CollaboratorsSearch = rclass
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
 
-    render_options : (select) ->
+    render_options: (select) ->
         for r in select
             name = r.first_name + ' ' + r.last_name
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
-    invite_collaborator : (account_id) ->
+    invite_collaborator: (account_id) ->
         @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
-    add_selected : (select) ->
+    add_selected: (select) ->
         @reset()
         # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
         if (not @state.selected_entries? or @state.selected_entries?.length == 0) and select?.length == 1
@@ -816,11 +817,11 @@ CollaboratorsSearch = rclass
             for option in @state.selected_entries
                 @invite_collaborator(option.getAttribute('value'))
 
-    select_list_clicked : ->
+    select_list_clicked: ->
         selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
         @setState(selected_entries: selected_names)
 
-    write_email_invite : ->
+    write_email_invite: ->
         name = @props.get_fullname()
         project_id = @props.project.get('project_id')
         title = @props.project.get('title')
@@ -829,7 +830,7 @@ CollaboratorsSearch = rclass
         body = "Hello!\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
-    send_email_invite : ->
+    send_email_invite: ->
         subject = "SageMathCloud Invitation to #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
@@ -837,7 +838,7 @@ CollaboratorsSearch = rclass
                                                                          subject)
         @setState(email_to:'',email_body:'')
 
-    render_send_email : ->
+    render_send_email: ->
         if not @state.email_to
             return
         <div>
@@ -869,11 +870,11 @@ CollaboratorsSearch = rclass
             </Well>
         </div>
 
-    render_search : ->
+    render_search: ->
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
-    render_select_list : ->
+    render_select_list: ->
         if @state.searching
             return <Loading />
         if @state.err
@@ -908,7 +909,7 @@ CollaboratorsSearch = rclass
             </div>
 
 
-    render_select_list_button : (select) ->
+    render_select_list_button: (select) ->
         nb_selected = @state.selected_entries?.length ? 0
         btn_text = switch select.length
             when 0 then "No user found"
@@ -921,7 +922,7 @@ CollaboratorsSearch = rclass
         <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
 
-    render : ->
+    render: ->
         <div>
             <LabeledRow label='Add collaborators'>
                 <SearchInput
@@ -951,17 +952,17 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         projects :
             sort_by_activity : rtypes.func
 
-    getInitialState : ->
+    getInitialState: ->
         removing : undefined  # id's of account that we are currently confirming to remove
 
-    remove_collaborator : (account_id) ->
+    remove_collaborator: (account_id) ->
         project_id = @props.project.get('project_id')
         @actions('projects').remove_collaborator(project_id, account_id)
         @setState(removing:undefined)
         if account_id == @props.get_account_id()
             @actions('page').close_project_tab(project_id)
 
-    render_user_remove_confirm : (account_id) ->
+    render_user_remove_confirm: (account_id) ->
         if account_id == @props.get_account_id()
             <Well style={background:'white'}>
                 Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
@@ -982,7 +983,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
                 </ButtonToolbar>
             </Well>
 
-    user_remove_button : (account_id, group) ->
+    user_remove_button: (account_id, group) ->
         <Button
             disabled = {group is 'owner'}
             style    = {marginBottom: '6px', float: 'right'}
@@ -991,7 +992,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
             <Icon name='user-times' /> Remove...
         </Button>
 
-    render_user : (user) ->
+    render_user: (user) ->
         <div key={user.account_id}>
             <Row>
                 <Col sm=8>
@@ -1005,14 +1006,14 @@ exports.CollaboratorsList = CollaboratorsList = rclass
             {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
         </div>
 
-    render_users : ->
+    render_users: ->
         u = @props.project.get('users')
         if u
             users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
             for user in @props.sort_by_activity(users, @props.project.get('project_id'))
                 @render_user(user)
 
-    render : ->
+    render: ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
             {@render_users()}
         </Well>
@@ -1024,7 +1025,7 @@ CollaboratorsPanel = rclass
         project  : rtypes.object.isRequired
         user_map : rtypes.object
 
-    render : ->
+    render: ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
             <div key='mesg'>
                 <span style={color:'#666'}>
@@ -1064,12 +1065,12 @@ ProjectSettingsBody = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
                 (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
                 @props.project_map != nextProps.project_map
 
-    render : ->
+    render: ->
         # get the description of the share, in case the project is being shared
         share_desc = @props.public_paths.get(@props.get_public_path_id(''))?.get('description') ? ''
         id = @props.project_id
@@ -1143,14 +1144,14 @@ exports.ProjectSettings = rclass ({name}) ->
         project_id : rtypes.string.isRequired
         group      : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         admin_project : undefined  # used in case visitor to project is admin
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         delete @_admin_project
         @_table?.close()  # if admin, stop listening for changes
 
-    init_admin_view : ->
+    init_admin_view: ->
         # try to load it directly for future use
         @_admin_project = 'loading'
         query = {}
@@ -1160,7 +1161,7 @@ exports.ProjectSettings = rclass ({name}) ->
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 
-    render_admin_message : ->
+    render_admin_message: ->
         <Alert bsStyle='warning' style={margin:'10px'}>
             <h4><strong>Warning:</strong> you are editing the project settings as an <strong>administrator</strong>.</h4>
             <ul>
@@ -1169,7 +1170,7 @@ exports.ProjectSettings = rclass ({name}) ->
             </ul>
         </Alert>
 
-    render : ->
+    render: ->
         if not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map

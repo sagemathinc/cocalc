@@ -403,6 +403,7 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
+    filename = exports.path_split(filename).tail
     return filename_extension_re.exec(filename)[1] ? ''
 
 exports.filename_extension_notilde = (filename) ->
@@ -418,6 +419,12 @@ exports.separate_file_extension = (name) ->
     if ext isnt ''
         name = name[0...name.length - ext.length - 1] # remove the ext and the .
     return {name: name, ext: ext}
+
+# change the filename's extension to the new one.
+# if there is no extension, add it.
+exports.change_filename_extension = (name, new_ext) ->
+    {name, ext} = exports.separate_file_extension(name)
+    return "#{name}.#{new_ext}"
 
 # shallow copy of a map
 exports.copy = (obj) ->

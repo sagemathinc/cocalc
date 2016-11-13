@@ -177,7 +177,7 @@ CodemirrorEditor = rclass ({name}) ->
         if @props.value?
             <span>Buffer length: {@props.value.length}</span>
 
-    render : ->
+    render: ->
         <div>
             <h4>A React/Redux/Codemirror Editor</h4>
             {@render_info()}
@@ -187,6 +187,6 @@ CodemirrorEditor = rclass ({name}) ->
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
-    init      : init_redux
-    component : CodemirrorEditor
-    remove    : remove_redux
+    init        : init_redux
+    component   : CodemirrorEditor
+    remove      : remove_redux

@@ -35,6 +35,7 @@ $("#alert-templates").hide()
 exports.alert_message = (opts={}) ->
     opts = defaults opts,
         type    : 'default'
+        title   : undefined
         message : defaults.required
         block   : undefined
         timeout : undefined  # time in seconds
@@ -55,7 +56,7 @@ exports.alert_message = (opts={}) ->
         return
 
     $.pnotify
-        title           : ""
+        title           : opts.title ? ''
         type            : opts.type
         text            : opts.message
         nonblock        : false

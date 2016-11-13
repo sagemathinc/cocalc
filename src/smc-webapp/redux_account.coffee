@@ -19,7 +19,7 @@ class AccountActions extends Actions
     set_user_type: (user_type) ->
         @setState(user_type: user_type)
 
-    sign_in : (email, password) =>
+    sign_in: (email, password) =>
         @setState(signing_in: true)
         salvus_client.sign_in
             email_address : email
@@ -43,7 +43,7 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account : (name, email, password, token) ->
+    create_account: (name, email, password, token) ->
         i = name.lastIndexOf(' ')
         if i == -1
             last_name = ''
@@ -76,7 +76,7 @@ class AccountActions extends Actions
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
     # deletes the account and then signs out everywhere
-    delete_account : =>
+    delete_account: =>
         async.series([
             (cb) =>
                 # cancel any subscriptions
@@ -95,7 +95,7 @@ class AccountActions extends Actions
                 @sign_out(true)
         )
 
-    forgot_password : (email) ->
+    forgot_password: (email) ->
         salvus_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
@@ -110,7 +110,7 @@ class AccountActions extends Actions
                         forgot_password_success : "Password reset message sent to #{email}; if you don't receive it, check your spam folder; if you have further trouble, write to #{help()}."
                         forgot_password_error   : ''
 
-    reset_password : (code, new_password) ->
+    reset_password: (code, new_password) ->
         salvus_client.reset_forgot_password
             reset_code   : code
             new_password : new_password
@@ -126,7 +126,7 @@ class AccountActions extends Actions
                         window.history.pushState("", document.title, window.location.pathname)
                         @setState(reset_key : '', reset_password_error : '')
 
-    sign_out : (everywhere) ->
+    sign_out: (everywhere) ->
         misc.delete_local_storage(remember_me)
         evt = 'sign_out'
         if everywhere
@@ -157,7 +157,7 @@ class AccountActions extends Actions
         @_last_history_state = url
         set_url('/settings' + misc.encode_path(url))
 
-    set_active_tab : (tab) =>
+    set_active_tab: (tab) =>
         @setState(active_page : tab)
 
 # Register account actions
@@ -175,7 +175,7 @@ class AccountStore extends Store
     get_account_id: =>
         return @get('account_id')
 
-    is_logged_in : =>
+    is_logged_in: =>
         return @get_user_type() == 'signed_in'
 
     is_admin: =>

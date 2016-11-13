@@ -49,7 +49,7 @@ print_sagews = (opts) ->
             misc_node.execute_code
                 command     : "smc-sagews2pdf"
                 args        : args
-                err_on_exit : false
+                err_on_exit : true
                 bash        : false
                 timeout     : opts.timeout
                 cb          : cb

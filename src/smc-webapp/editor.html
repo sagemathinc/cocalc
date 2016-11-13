@@ -132,7 +132,7 @@ Editor for files in a project
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
                         <a href="#goto-line" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
-                        <a href="#print" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                        <a href="#print" class="btn btn-default salvus-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                     </span>
 
                     <span class="btn-group salvus-editor-read-only hide">
@@ -169,14 +169,14 @@ Editor for files in a project
 
                     <span class="salvus-editor-latex-buttons hide">
                         <span class="btn-group">
-                           <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
-                           <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
+                           <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
+                           <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
                         </span>
                         <span class="btn-group">
-                            <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                            <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
-                            <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                            <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
+                            <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show preview"><i class="fa fa-building"></i> Preview</a>
+                            <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                            <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
+                            <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
                                 <span class="salvus-latex-build-status"></span></a>
                         </span>
                     </span>
@@ -444,11 +444,11 @@ Editor for files in a project
 
          <div class="salvus-editor-latex-log hide">
             <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
-                <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
-                <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
-                <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
-                <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
-                <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="fa fa-times-circle"></i></a>
+                <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
+                <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
+                <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
+                <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
+                <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Reset build command."><i class="fa fa-times-circle"></i></a>
             </span>
             <input style="width:50%" type="text" class="form-control">
             <textarea rows="20" cols="100" class="well boxsizingBorder" readonly="" style="width:100%;background-color:white;">You have not run LaTeX yet.</textarea>

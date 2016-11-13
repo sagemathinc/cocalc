@@ -57,7 +57,7 @@ DEBUG = false
 #DEBUG = true
 
 class exports.Client extends EventEmitter
-    constructor : (@project_id) ->
+    constructor: (@project_id) ->
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches
@@ -596,7 +596,7 @@ class Watcher extends EventEmitter
     constructor: (@path, @interval) ->
         fs.watchFile(@path, {interval: @interval}, @listen)
 
-    close : () =>
+    close: () =>
         @removeAllListeners()
         fs.unwatchFile(@path, @listener)
 

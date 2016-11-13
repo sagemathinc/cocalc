@@ -26,13 +26,13 @@ redux_name = (project_id, path) ->
 
 class GitActions extends Actions
 
-    init : (@project_id, @filename) =>
+    init: (@project_id, @filename) =>
         @path = misc.path_split(@filename).head
         @setState(git_repo_root : @path)
         @setState(data_file : misc.path_split(@filename).tail)
         @set_tab('configuration')
 
-    exec : (opts) =>
+    exec: (opts) =>
         opts = defaults opts,
             cmd  : required
             args : []
@@ -50,12 +50,12 @@ class GitActions extends Actions
                     opts.cb(err, output)
                 opts.cb(err, output)
 
-    get_github_issues : =>
+    get_github_issues: =>
         url = 'https://api.github.com/repos/sagemathinc/smc/issues'
         callback = (response) => @setState(github_issues: response)
         $.get url, callback
 
-    get_current_github_issue : =>
+    get_current_github_issue: =>
         store = @redux.getStore(@name)
         if store.get('current_branch') and store.get('remotes')
             if store.get('current_branch').startsWith('upstream_issue_')
@@ -69,7 +69,7 @@ class GitActions extends Actions
                 callback = (response) => @setState(current_github_issue: response)
                 $.get url, callback
 
-    save_github_login : =>
+    save_github_login: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -77,7 +77,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    make_upstream_pr_for_current_branch : =>
+    make_upstream_pr_for_current_branch: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -85,7 +85,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    update_github_login : =>
+    update_github_login: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -95,7 +95,7 @@ class GitActions extends Actions
                 @setState(github_username : data['github_username'])
                 @setState(github_access_token : data['github_access_token'])
 
-    set_git_user_name : =>
+    set_git_user_name: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -103,7 +103,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(git_user_name : store.get('git_user_name'))
 
-    get_git_user_name : =>
+    get_git_user_name: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -119,7 +119,7 @@ class GitActions extends Actions
                 else
                     @setState(git_user_name : output.stdout)
 
-    set_git_user_email : =>
+    set_git_user_email: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -127,7 +127,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(git_user_email : store.get('git_user_email'))
 
-    get_git_user_email : =>
+    get_git_user_email: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -143,7 +143,7 @@ class GitActions extends Actions
                 else
                     @setState(git_user_email : output.stdout)
 
-    simple_smc_git : (f_name) =>
+    simple_smc_git: (f_name) =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -151,7 +151,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    set_remotes : =>
+    set_remotes: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -159,7 +159,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(remotes : JSON.parse(output.stdout))
 
-    get_current_branch : =>
+    get_current_branch: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -171,7 +171,7 @@ class GitActions extends Actions
                     t.get_current_github_issue()
                 setTimeout(run(t), 5000)
 
-    get_branches : =>
+    get_branches: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -179,7 +179,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(branches : JSON.parse(output.stdout))
 
-    create_branch_and_reset_to_upstream_master_with_name : (new_branch_name) =>
+    create_branch_and_reset_to_upstream_master_with_name: (new_branch_name) =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -187,7 +187,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(new_branch_name : '')
 
-    create_branch_and_reset_to_upstream_master : =>
+    create_branch_and_reset_to_upstream_master: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -195,7 +195,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(new_branch_name : '')
 
-    checkout_branch : (branch) =>
+    checkout_branch: (branch) =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -203,7 +203,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    get_changed_tracked_files : =>
+    get_changed_tracked_files: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -211,7 +211,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(git_changed_tracked_files : JSON.parse(output.stdout))
 
-    get_changed_untracked_files : =>
+    get_changed_untracked_files: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -221,7 +221,7 @@ class GitActions extends Actions
 
 
 
-    git_add_selected : =>
+    git_add_selected: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -229,7 +229,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    git_add_all : =>
+    git_add_all: =>
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
@@ -237,7 +237,7 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 ''
 
-    run_git_commit : =>
+    run_git_commit: =>
         store = @redux.getStore(@name)
         commit_message = store.get('commit_message')
         if store.get('checked_files')
@@ -257,7 +257,7 @@ class GitActions extends Actions
 
 
 
-    update_diff : =>
+    update_diff: =>
         store = @redux.getStore(@name)
         if store
             args = if store.get('file_to_diff') then ['diff', store.get('file_to_diff')] else ['diff']
@@ -272,7 +272,7 @@ class GitActions extends Actions
                 else
                     @setState(git_diff : output.stdout)
 
-    update_log : () =>
+    update_log: () =>
         @exec
             cmd  : "git"
             args : ['log', '-20']
@@ -282,7 +282,7 @@ class GitActions extends Actions
                 else
                     @setState(git_log : output.stdout)
 
-    run_for_tab : =>
+    run_for_tab: =>
         store = @redux.getStore(@name)
         if store
             tab = store.get('tab')
@@ -291,14 +291,14 @@ class GitActions extends Actions
             for action in actions_to_run
                 @[action]()
 
-    set_tab : (tab) =>
+    set_tab: (tab) =>
         @setState(tab:tab)
         t = @
         run = (t) ->
             t.run_for_tab()
         setTimeout(run(t), 1000)
 
-    add_or_removed_checked_files : (name, listing_type) =>
+    add_or_removed_checked_files: (name, listing_type) =>
         store = @redux.getStore(@name)
         if not store.get('checked_files')
             @setState(checked_files: {"tracked": [], "untracked": []})
@@ -323,10 +323,10 @@ FileCheckbox = rclass
         style        : rtypes.object
         listing_type : rtypes.string
 
-    handle_click : (e) ->
+    handle_click: (e) ->
         @props.actions.add_or_removed_checked_files(@props.name, @props.listing_type)
 
-    render : ->
+    render: ->
         <span onClick={@handle_click} style={@props.style}>
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
@@ -341,7 +341,7 @@ FileRow = rclass
         listing_type : rtypes.string
         key          : rtypes.string
 
-    render : ->
+    render: ->
         <Row key={@props.key} onClick={@handle_click} className={'noselect small'}>
             <FileCheckbox
                     name         = {@props.name}
@@ -363,10 +363,10 @@ FileListing = rclass
         current_path        : rtypes.string
         actions             : rtypes.object.isRequired
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         file_search : ''
 
-    render_row : (name, key) ->
+    render_row: (name, key) ->
         checked = true
 
         return <FileRow
@@ -377,10 +377,10 @@ FileListing = rclass
             current_path = {@props.current_path}
             actions      = {@props.actions} />
 
-    render_rows : ->
+    render_rows: ->
         (@render_row(name, idx) for name, idx in @props.listing)
 
-    render : ->
+    render: ->
         <Col sm=12>
             {@render_rows()}
         </Col>
@@ -430,7 +430,7 @@ Git = (name) -> rclass
         actions : rtypes.object
 
 
-    render_user_name_input : ->
+    render_user_name_input: ->
         <FormGroup>
             <FormControl
                 ref         = 'git_user_name'
@@ -441,7 +441,7 @@ Git = (name) -> rclass
             />
         </FormGroup>
 
-    render_user_name_panel : ->
+    render_user_name_panel: ->
         head =
             <span>
                 git config --global user.name "{@render_user_name_input()}"
@@ -455,19 +455,19 @@ Git = (name) -> rclass
             {<pre>{@props.git_user_name_return}</pre> if @props.git_user_name_return}
         </Panel>
 
-    handle_user_name_keypress : (e) ->
+    handle_user_name_keypress: (e) ->
         if e.keyCode == 13 and @props.git_name_email != ''
             @props.actions.set_git_user_name()
 
-    handle_user_email_keypress : (e) ->
+    handle_user_email_keypress: (e) ->
         if e.keyCode == 13 and @props.git_user_email != ''
             @props.actions.set_git_user_email()
 
-    handle_commit_message_keypress : (e) ->
+    handle_commit_message_keypress: (e) ->
         if e.keyCode == 13 and @props.commit_message != ''
             @props.actions.run_git_commit()
 
-    render_user_email_input : ->
+    render_user_email_input: ->
         <FormGroup>
             <FormControl
                 ref         = 'git_user_email'
@@ -478,7 +478,7 @@ Git = (name) -> rclass
             />
         </FormGroup>
 
-    render_user_email_panel : ->
+    render_user_email_panel: ->
         head =
             <span>
                 git config --global user.email "{@render_user_email_input()}"
@@ -493,7 +493,7 @@ Git = (name) -> rclass
         </Panel>
 
 
-    render_commit_panel : ->
+    render_commit_panel: ->
         window.refs = @refs # SMELL: is this needed?
         head =
             <div>
@@ -527,7 +527,7 @@ Git = (name) -> rclass
             {<pre>{@props.git_commit_return}</pre> if @props.git_commit_return}
         </Panel>
 
-    render_log_panel : ->
+    render_log_panel: ->
         head =
             <span>
                 git log
@@ -537,7 +537,7 @@ Git = (name) -> rclass
             {<pre>{@props.git_log}</pre> if @props.git_log}
         </Panel>
 
-    render_changed_untracked_files : ->
+    render_changed_untracked_files: ->
         head =
             <span>
                 Changed untracked files not covered by .gitignore
@@ -553,12 +553,12 @@ Git = (name) -> rclass
                 actions             = {@props.actions} /> if @props.git_changed_untracked_files}
         </Panel>
 
-    render_diff_files : ->
+    render_diff_files: ->
         if @props.git_changed_tracked_files
             for file, idx in @props.git_changed_tracked_files
                 <MenuItem key={idx} eventKey="{file}" onSelect={(e)=>@props.actions.setState(file_to_diff:e.target.text);@props.actions.update_diff()}>{file}</MenuItem>
 
-    render_diff : ->
+    render_diff: ->
         head =
             <span>
                 git diff
@@ -572,11 +572,11 @@ Git = (name) -> rclass
             {<pre>{@props.git_diff}</pre> if @props.git_diff}
         </Panel>
 
-    handle_github_login_keypress : (e) ->
+    handle_github_login_keypress: (e) ->
         if e.keyCode == 13
             @props.actions.save_github_login()
 
-    render_github_login_panel : ->
+    render_github_login_panel: ->
         head =
             <span>
                 Github login credentials
@@ -627,7 +627,7 @@ Git = (name) -> rclass
             </div>
         </Panel>
 
-    render_configuration : ->
+    render_configuration: ->
         <div>
             <Row>
                 <Col sm=6>
@@ -644,7 +644,7 @@ Git = (name) -> rclass
             </Row>
         </div>
 
-    render_commit : ->
+    render_commit: ->
         <div>
             <Row>
                 <Col sm=6>
@@ -657,7 +657,7 @@ Git = (name) -> rclass
             </Row>
         </div>
 
-    render_log : ->
+    render_log: ->
         <div>
             <Row>
                 <Col sm=12>
@@ -666,10 +666,10 @@ Git = (name) -> rclass
             </Row>
         </div>
 
-    pass_issue : (number) ->
+    pass_issue: (number) ->
         @props.actions.create_branch_and_reset_to_upstream_master_with_name('upstream_issue_'+number)
 
-    list_issues : ->
+    list_issues: ->
         if @props.github_issues
             for issue, idx in @props.github_issues
                 t = @
@@ -685,7 +685,7 @@ Git = (name) -> rclass
                         </Col>
                     </Row>
 
-    render_issues : ->
+    render_issues: ->
         <div>
             <Row>
                 <Col sm=12>
@@ -695,7 +695,7 @@ Git = (name) -> rclass
         </div>
 
 
-    render_tab_header : (name, icon, description)->
+    render_tab_header: (name, icon, description)->
         <Tip delayShow=1300
              title={name} tip={description}>
             <span>
@@ -703,7 +703,7 @@ Git = (name) -> rclass
             </span>
         </Tip>
 
-    render_tab : (idx, name, icon, description) ->
+    render_tab: (idx, name, icon, description) ->
         <Tab key={idx}
              eventKey={name.toLowerCase()}
              title={@render_tab_header(name, icon, description)}>
@@ -711,20 +711,20 @@ Git = (name) -> rclass
                  {@['render_'+name.toLowerCase()]()}
         </Tab>
 
-    render_tabs : ->
+    render_tabs: ->
         for tab, idx in TABS
             @render_tab(idx, tab.name, tab.icon, tab.description)
 
-    render_branches : ->
+    render_branches: ->
         if @props.branches
             for branch, idx in @props.branches
                 <MenuItem key={idx} eventKey="{branch}" onSelect={(e)=>@props.actions.checkout_branch(e.target.text);}>{branch}</MenuItem>
 
-    handle_keypress : (e, input_name, action) ->
+    handle_keypress: (e, input_name, action) ->
         if e.keyCode == 13 and @props[input_name] != ''
             @props.actions[action]()
 
-    componentDidMount : ->
+    componentDidMount: ->
         @props.actions.set_tab('configuration')
         @props.interval = setInterval =>
             @props.actions.run_for_tab()
@@ -733,7 +733,7 @@ Git = (name) -> rclass
     componentWillUnmount: ->
         clearInterval(@props.interval)
 
-    render_current_issue : ->
+    render_current_issue: ->
         if @props.current_github_issue
             head =
                 <span className="small">
@@ -744,7 +744,7 @@ Git = (name) -> rclass
                 <a target="_blank" href={@props.current_github_issue.html_url}>Open on Github</a>
             </Panel>
 
-    render : ->
+    render: ->
         <div>
             <div>
                 <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>

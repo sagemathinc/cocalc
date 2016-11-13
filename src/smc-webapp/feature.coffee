@@ -37,12 +37,12 @@ if navigator?
 $ = window.$
 
 isMobile = exports.isMobile =
-    Android    : () -> !! navigator?.userAgent.match(/Android/i)
-    BlackBerry : () -> !! navigator?.userAgent.match(/BlackBerry/i)
-    iOS        : () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
-    Windows    : () -> !! navigator?.userAgent.match(/IEMobile/i)
-    tablet     : () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
-    any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
+    Android: () -> !! navigator?.userAgent.match(/Android/i)
+    BlackBerry: () -> !! navigator?.userAgent.match(/BlackBerry/i)
+    iOS: () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
+    Windows: () -> !! navigator?.userAgent.match(/IEMobile/i)
+    tablet: () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
+    any: () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
 if not $?
     # don't even have jQuery -- obviously won't have any features -- this happens, e.g., in node.js

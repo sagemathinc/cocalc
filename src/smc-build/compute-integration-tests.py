@@ -148,7 +148,7 @@ PY_SAGE = PY_COMMON + [
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
     'polymake', # https://github.com/videlec/pypolymake/
-    'keras',
+    'keras', 'boolean2',
 ]
 
 # and in anaconda

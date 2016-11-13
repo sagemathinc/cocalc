@@ -39,6 +39,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -461,7 +462,7 @@ class exports.HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true

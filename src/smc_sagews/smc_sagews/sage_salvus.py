@@ -1798,7 +1798,7 @@ def python(code):
     """
     salvus.execute(code, preparse=False)
 
-def python3(code):
+def python3(code,**kwargs):
     """
     Block decorator to run code in a pure Python3 mode session.
 
@@ -1817,9 +1817,16 @@ def python3(code):
     Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
     in the controlling Sage session is in no way impacted.
 
-    NOTE: No state is preserved between calls.  Each call is a separate process.
+    .. note::
+
+        State is preserved between cells.
+        SMC %python3 mode uses the jupyter `anaconda3` kernel.
     """
-    script('sage-native-execute python3 -E')(code)
+    if python3.jupyter_kernel is None:
+        python3.jupyter_kernel = jupyter("anaconda3")
+    return python3.jupyter_kernel(code,**kwargs)
+python3.jupyter_kernel = None
+
 
 def perl(code):
     """
@@ -2083,6 +2090,7 @@ def octave(code=None,**kwargs):
     """
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
+        octave.jupyter_kernel.smc_image_scaling = .66
     return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
@@ -2108,8 +2116,7 @@ def r(code=None,**kwargs):
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
         r.jupyter_kernel('options(repr.plot.res = 240)')
-        #r.jupyter_kernel.smc_image_scaling = .5
-        r.jupyter_kernel.sage_img_style = "width: 50%; height: 50%;"
+        r.jupyter_kernel.smc_image_scaling = .5
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 
@@ -3350,10 +3357,9 @@ def load_html_resource(filename):
     if ext == "css":
         salvus.javascript('''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''%url)
     elif ext == "html":
-        # TODO: opts.element should change to cell.element when more canonical (need to finish some code in syncdoc)!
-        salvus.javascript('opts.element.append($("<div>").load("%s"))'%url)
+        salvus.javascript('element.append($("<div>").load("%s"))'%url)
     elif ext == "coffee":
-        salvus.javascript('$.ajax({url:"%s"}).done(function(data) { eval(CoffeeScript.compile(data)); })'%url)
+        salvus.coffeescript('$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'%url)
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 

@@ -53,7 +53,7 @@ Passports = rclass
             backgroundColor : "black"
             color           : "black"
 
-    render_strategy : (name) ->
+    render_strategy: (name) ->
         if name is 'email'
             return
         url = "#{window.smc_base_url}/auth/#{name}"
@@ -64,7 +64,7 @@ Passports = rclass
             </Icon>
         </a>
 
-    render : ->
+    render: ->
         <div style={textAlign: 'center'}>
             <h3 style={marginTop: 0}>Connect with</h3>
             <div>
@@ -85,7 +85,7 @@ SignUp = rclass
         signing_up    : rtypes.bool
         style         : rtypes.object
 
-    make_account : (e) ->
+    make_account: (e) ->
         e.preventDefault()
         name     = ReactDOM.findDOMNode(@refs.name).value
         email    = ReactDOM.findDOMNode(@refs.email).value
@@ -93,23 +93,23 @@ SignUp = rclass
         token    = ReactDOM.findDOMNode(@refs.token)?.value
         @props.actions.create_account(name, email, password, token)
 
-    display_error : (field)->
+    display_error: (field)->
         if @props.sign_up_error?[field]?
             <div style={color: "red", fontSize: "90%"}>{@props.sign_up_error[field]}</div>
 
-    display_passports : ->
+    display_passports: ->
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
             return <Passports actions={@props.actions} strategies={@props.strategies} />
 
-    display_token_input : ->
+    display_token_input: ->
         if @props.token
             <FormGroup>
                 <FormControl ref='token' type='text' placeholder='Enter the secret token' />
             </FormGroup>
 
-    render : ->
+    render: ->
         <Well style={marginTop:'10px'}>
             {@display_token_input()}
             {@display_error("token")}
@@ -153,29 +153,29 @@ SignIn = rclass
         has_account   : rtypes.bool
         xs            : rtypes.bool
 
-    componentDidMount : ->
+    componentDidMount: ->
         @actions('page').set_sign_in_func(@sign_in)
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         @actions('page').remove_sign_in_func()
 
-    sign_in : (e) ->
+    sign_in: (e) ->
         if e?
             e.preventDefault()
         @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
-    display_forgot_password : ->
+    display_forgot_password: ->
         @props.actions.setState(show_forgot_password : true)
 
-    display_error : ->
+    display_error: ->
         if @props.sign_in_error?
             <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setState(sign_in_error: undefined)} />
 
-    remove_error : ->
+    remove_error: ->
         if @props.sign_in_error
             @props.actions.setState(sign_in_error : undefined)
 
-    render : ->
+    render: ->
         if @props.xs
             <Col xs=12>
                 <form onSubmit={@sign_in} className='form-inline'>
@@ -250,27 +250,27 @@ ForgotPassword = rclass
         forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         email_address  : ''
         is_email_valid : false
 
-    forgot_password : (e) ->
+    forgot_password: (e) ->
         e.preventDefault()
         value = @state.email_address
         if misc.is_valid_email_address(value)
             @props.actions.forgot_password(value)
 
-    set_email : (evt) ->
+    set_email: (evt) ->
         email = evt.target.value
         @setState
             email_address  : email
             is_email_valid : misc.is_valid_email_address(email)
 
-    display_error : ->
+    display_error: ->
         if @props.forgot_password_error?
             <span style={color: "red"}>{@props.forgot_password_error}</span>
 
-    display_success : ->
+    display_success: ->
         if @props.forgot_password_success?
             s = @props.forgot_password_success.split("check your spam folder")
             <span>
@@ -281,12 +281,12 @@ ForgotPassword = rclass
                 {s[1]}
             </span>
 
-    hide_forgot_password : ->
+    hide_forgot_password: ->
         @props.actions.setState(show_forgot_password    : false)
         @props.actions.setState(forgot_password_error   : undefined)
         @props.actions.setState(forgot_password_success : undefined)
 
-    render : ->
+    render: ->
         <Modal show={true} onHide={@hide_forgot_password}>
             <Modal.Body>
                 <div>
@@ -311,27 +311,27 @@ ForgotPassword = rclass
         </Modal>
 
 ResetPassword = rclass
-    propTypes : ->
+    propTypes: ->
         actions : rtypes.object.isRequired
         reset_key : rtypes.string.isRequired
         reset_password_error : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
 
-    reset_password : (e) ->
+    reset_password: (e) ->
         e.preventDefault()
         @props.actions.reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
 
-    hide_reset_password : (e) ->
+    hide_reset_password: (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
         @props.actions.setState(reset_key : '', reset_password_error : '')
 
-    display_error : ->
+    display_error: ->
         if @props.reset_password_error
             <span style={color: "red", fontSize: "90%"}>{@props.reset_password_error}</span>
 
-    render : ->
+    render: ->
         <Modal show={true} onHide={=>x=0}>
             <Modal.Body>
                 <div>
@@ -365,7 +365,7 @@ ContentItem = rclass
         heading: rtypes.string.isRequired
         text: rtypes.string.isRequired
 
-    render : ->
+    render: ->
         <Row>
             <Col sm=2>
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
@@ -408,7 +408,7 @@ LandingPageContent = rclass
 
     mixins: [ImmutablePureRenderMixin]
 
-    render : ->
+    render: ->
         <Well style={color:'#666'}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </Well>
@@ -416,7 +416,7 @@ LandingPageContent = rclass
 SagePreview = rclass
     displayName : "SagePreview"
 
-    render : ->
+    render: ->
         <div className="hidden-xs">
             <Well>
                 <Row>
@@ -471,7 +471,7 @@ ExampleBox = rclass
         title   : rtypes.string.isRequired
         index   : rtypes.number.isRequired
 
-    render : ->
+    render: ->
         <div>
             <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
             <div style={marginBottom:'5px'} >
@@ -505,7 +505,7 @@ exports.LandingPage = rclass
         remember_me             : rtypes.bool
         has_account             : rtypes.bool
 
-    render : ->
+    render: ->
         if not @props.remember_me
             reset_key = reset_password_key()
             <div style={margin: UNIT}>
