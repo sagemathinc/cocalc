@@ -45,6 +45,8 @@ editor_chat = require('./editor_chat')
 
 {redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
+{VideoChatButton} = require('./chat-indicator')
+
 Message = rclass
     displayName: "Message"
 
@@ -609,6 +611,14 @@ ChatRoom = rclass ({name}) ->
         </Button>
 
     render_video_chat_button: ->
+        <Button>
+            <VideoChatButton
+                project_id = {@props.project_id}
+                path       = {@props.path}
+                label      = {"Video Chat"}
+            />
+        </Button>
+        ###
         if @props.video_window
             <Button onClick={@close_video_chat}>
                 <Tip title='Video Chat' tip='Closes up the video chat window'  placement='left'>
@@ -621,6 +631,7 @@ ChatRoom = rclass ({name}) ->
                     <Icon name='video-camera'/> Video Chat
                 </Tip>
             </Button>
+        ###
 
     render_desktop: ->
         chat_log_style =

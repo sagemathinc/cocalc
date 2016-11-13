@@ -20,6 +20,8 @@
 #
 ###############################################################################
 
+{debounce} = require('underscore')
+
 misc = require('misc')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
@@ -55,6 +57,17 @@ class VideoChat
     num_users_chatting: =>
         return misc.len(@get_users())
 
+    get_user_names: =>
+        get_name = redux.getStore('users').get_name
+        v = []
+        for account_id, _ of @get_users()
+            name = get_name(account_id)?.trim()
+            if name
+                name = misc.trunc_middle(name, 25)
+                if name
+                    v.push(name)
+        return v
+
     get_users: =>
         # Users is a map {account_id:timestamp of last chat file marking}
         return redux.getStore('file_use').get_video_chat_users(project_id: @project_id, path: @path, ttl:VIDEO_UPDATE_INTERVAL_MS)
@@ -77,11 +90,14 @@ exports.VideoChatButton = VideoChatButton = rclass
     propTypes :
         project_id : rtypes.string.isRequired
         path       : rtypes.string.isRequired
+        label      : rtypes.string
 
     mixins: [SetIntervalMixin]
 
-    componentDidMount: ->
+    componentWillMount: ->
+        @video_chat = new VideoChat(@props.project_id, @props.path, @props.account_id)
         @setInterval((=> @forceUpdate()), VIDEO_UPDATE_INTERVAL_MS/2)
+        @click_video_button = debounce(@click_video_button, 2500, true)
 
     click_video_button: ->
         if @video_chat.we_are_chatting()    # we are chatting, so stop chatting
@@ -93,7 +109,9 @@ exports.VideoChatButton = VideoChatButton = rclass
         if num_users_chatting
             <span>
                 <hr />
-                There are {num_users_chatting} people using video chat.
+                There following {num_users_chatting} people are using video chat:
+                <br />
+                {@video_chat.get_user_names().join(', ')}
             </span>
 
     render_join: (num_users_chatting) ->
@@ -111,19 +129,26 @@ exports.VideoChatButton = VideoChatButton = rclass
             {@render_num_chatting(num_users_chatting)}
         </span>
 
+    render_label: ->
+        if @props.label
+            <span style={marginLeft:'5px'}>{@props.label}</span>
+
     render: ->
-        @video_chat ?= new VideoChat(@props.project_id, @props.path, @props.account_id)
         num_users_chatting = @video_chat.num_users_chatting()
-        color = if num_users_chatting > 0 then '#c9302c' else '#428bca'
+        if num_users_chatting > 0
+            style = {color: '#c9302c'}
+        else
+            style = {}
         <Tip
             title     = {<span>Toggle Video Chat</span>}
             tip       = {@render_tip(num_users_chatting)}
             placement = 'left'
-            delayShow = 1500
+            delayShow = 1000
             >
-            <span onClick={@click_video_button} style={color:color}>
+            <span onClick={@click_video_button} style={style}>
                 <Icon name='video-camera'/>
                 {<span style={marginLeft:'5px'}>{num_users_chatting}</span> if num_users_chatting}
+                {@render_label()}
             </span>
         </Tip>
 
@@ -157,7 +182,7 @@ exports.ChatIndicator = rclass
         />
 
     render_video_button: ->
-        <span style={marginLeft:'5px', marginRight:'5px'}>
+        <span style={marginLeft:'5px', marginRight:'5px', color:'#428bca'}>
             <VideoChatButton
                 project_id = {@props.project_id}
                 path       = {@props.path}
