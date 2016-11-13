@@ -628,13 +628,19 @@ FileListing = rclass
 
     # upload area config and handling
     show_upload : (e, enter) ->
+        if DEBUG
+            if enter
+                console.log "project_files/dragarea entered", e
+            else
+                console.log "project_files/dragarea left", e
         if e?
+            e.stopPropagation()
             e.preventDefault()
+            # The very first time the event fires, it has a target attached and then it fires again.
+            # This filteres the very first time it is triggered to avoid double-fireing.
+            if target?
+                return
         @props.actions.show_upload(enter)
-        #if enter
-        #    console.log "dragarea entered"#, e
-        #else
-        #    console.log "dragarea left"#, e
 
     dropzone_template : ->
         <div className='dz-preview dz-file-preview'>
@@ -655,8 +661,8 @@ FileListing = rclass
 
     render : ->
         dropzone_handler =
-            dragleave: (e) => @show_upload(e, false)
-            complete: =>@props.actions.set_directory_files(@props.current_path)
+            dragleave : (e) => @show_upload(e, false)
+            complete  : => @props.actions.set_directory_files(@props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
