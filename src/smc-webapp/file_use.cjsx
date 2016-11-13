@@ -83,7 +83,10 @@ class FileUseActions extends Actions
         for x in v
             @mark_file(x.project_id, x.path, action, 0, false)
 
-    mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
+    # Mark the action for the given file with the current timestamp (right now).
+    # If zero is true, instead mark the timestamp as 0, basically indicating removal
+    # of that marking for that user.
+    mark_file: (project_id, path, action, ttl='default', fix_path=true, timestamp=undefined) =>  # ttl in units of ms
         if fix_path
             # This changes .foo.txt.sage-chat to foo.txt.
             path = misc.original_path(path)
@@ -107,15 +110,16 @@ class FileUseActions extends Actions
             setTimeout((()=>delete @_mark_file_lock[key]), ttl)
 
         table = @redux.getTable('file_use')
-        now   = salvus_client.server_time()
+        timestamp ?= salvus_client.server_time()
+        timestamp = new Date(timestamp)
         obj   =
             project_id : project_id
             path       : path
-            users      : {"#{account_id}":{"#{action}":now}}
+            users      : {"#{account_id}":{"#{action}":timestamp}}
         if action == 'edit' or action == 'chat' or action == 'chatseen'
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
-            obj.last_edited = now
+            obj.last_edited = timestamp
         table.set obj, (err)=>
             if err
                 if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
@@ -323,6 +327,18 @@ class FileUseStore extends Store
                         path       : info.path
         return users
 
+    get_video_chat_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            ttl        : 120000    # time in ms; if timestamp of video chat is older than this, ignore
+        users = {}
+        cutoff = salvus_client.server_time() - opts.ttl
+        @getIn(['file_use', sha1(opts.project_id, opts.path), 'users'])?.map (info, account_id) ->
+            timestamp = info.get('video')
+            if timestamp? and timestamp - 0 >= cutoff
+                users[account_id] = timestamp
+        return users
 
 class FileUseTable extends Table
     query: ->
