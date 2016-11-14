@@ -193,7 +193,7 @@ parse_width = (width) ->
         if typeof width == 'number'
             return "#{width}ex"
         else
-            return width1
+            return width
 
 interact_control = (desc, update) ->
     # Create and return a detached DOM element elt that represents
