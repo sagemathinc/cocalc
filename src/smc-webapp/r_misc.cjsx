@@ -1577,7 +1577,7 @@ exports.SMC_Dropzone = rclass
                     className='close-button-x'
                     style={cursor: 'pointer', fontSize: '18px'}><i className="fa fa-times"></i></span>
             </div> if @props.close_button_onclick?}
-            <Tip icon='file' title='Drag and drop files'
+            <Tip icon='file' title='Drag and drop files' placement='top'
                 tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
                 <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
             </Tip>

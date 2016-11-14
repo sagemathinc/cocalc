@@ -82,6 +82,7 @@ PathSegmentLink = rclass
 
     handle_click: ->
         @props.actions.open_directory(@props.path)
+        @props.actions.show_upload(false)
 
     render_link: ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -629,11 +630,11 @@ FileListing = rclass
 
     # upload area config and handling
     show_upload : (e, enter) ->
-        if DEBUG
-            if enter
-                console.log "project_files/dragarea entered", e
-            else
-                console.log "project_files/dragarea left", e
+        #if DEBUG
+        #    if enter
+        #        console.log "project_files/dragarea entered", e
+        #    else
+        #        console.log "project_files/dragarea left", e
         # limit changing events, to avoid flickering during UI update
         change = @props.show_upload != enter
         if change and @_show_upload_last > (+new Date()) - 100
