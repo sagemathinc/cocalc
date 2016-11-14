@@ -544,10 +544,10 @@ ChatRoom = rclass ({name}) ->
         </span>
 
         <Tip title='Use Markdown' tip={tip}>
-            <div style={color: '#767676', fontSize: '12.5px'}>
+            <div style={color: '#767676', fontSize: '12.5px', marginBottom:'5px'}>
                 Shift+Enter to send your message.
                 Double click chat bubbles to edit them.
-                Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+                Format using <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>.
                 Emoticons: {misc.emoticons}.
             </div>
         </Tip>
@@ -616,7 +616,6 @@ ChatRoom = rclass ({name}) ->
         chat_log_style =
             overflowY    : "auto"
             overflowX    : "hidden"
-            height       : "60vh"
             margin       : "0"
             padding      : "0"
             paddingRight : "10px"
@@ -760,7 +759,7 @@ ChatRoom = rclass ({name}) ->
     render: ->
         if not @props.messages? or not @props.redux? or not @props.input.length?
             return <Loading/>
-        <div onMouseMove={@mark_as_read}>
+        <div onMouseMove={@mark_as_read} className="smc-vfill">
             {if IS_MOBILE then @render_mobile() else @render_desktop()}
         </div>
 
