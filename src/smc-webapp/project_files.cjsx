@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -22,8 +22,6 @@
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
-ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone = require('react-dropzone-component')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
@@ -537,6 +535,9 @@ FileListing = rclass
         file_search : ''
         show_upload : false
 
+    componentDidUpdate: ->
+        @_show_upload_last = +new Date()
+
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
@@ -633,57 +634,35 @@ FileListing = rclass
                 console.log "project_files/dragarea entered", e
             else
                 console.log "project_files/dragarea left", e
+        # limit changing events, to avoid flickering during UI update
+        change = @props.show_upload != enter
+        if change and @_show_upload_last > (+new Date()) - 100
+            return
         if e?
             e.stopPropagation()
             e.preventDefault()
             # The very first time the event fires, it has a target attached and then it fires again.
-            # This filteres the very first time it is triggered to avoid double-fireing.
+            # This filteres the very first time it is triggered to avoid double-firing.
             if target?
                 return
         @props.actions.show_upload(enter)
 
-    dropzone_template : ->
-        <div className='dz-preview dz-file-preview'>
-            <div className='dz-details'>
-                <div className='dz-filename'><span data-dz-name></span></div>
-                <img data-dz-thumbnail />
-            </div>
-            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
-            <div className='dz-error-message'><span data-dz-errormessage></span></div>
-        </div>
-
-    postUrl : ->
-        dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
-        return postUrl
-
     render : ->
+        {SMC_Dropzone} = require('./r_misc')
+
         dropzone_handler =
             dragleave : (e) => @show_upload(e, false)
             complete  : => @props.actions.set_directory_files(@props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
-                <div className='close-button pull-right'>
-                    <span
-                        onClick={=>@show_upload(null, false)}
-                        className='close-button-x'
-                        style={cursor: 'pointer', fontSize: '18px'}><i className="fa fa-times"></i></span>
-                </div>
-                <Tip icon='file' title='Drag and drop files'
-                    tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                    <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-                </Tip>
-                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
-                    <Dropzone
-                        config={postUrl: @postUrl }
-                        eventHandlers={dropzone_handler}
-                        djsConfig={previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
-                </div>
+                <SMC_Dropzone
+                    dropzone_handler     = dropzone_handler
+                    project_id           = @props.project_id
+                    current_path         = @props.current_path
+                    close_button_onclick = {=>@show_upload(null, false)} />
             </Col> if @props.show_upload}
-            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)}>
+            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)} onDragLeave={(e) => @show_upload(e, false)}>
                 {@render_terminal_mode()}
                 {@parent_directory()}
                 {@render_rows()}
