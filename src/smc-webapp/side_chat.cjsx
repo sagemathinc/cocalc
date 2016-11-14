@@ -386,9 +386,11 @@ ChatRoom = rclass ({name}) ->
         path        : rtypes.string
 
     mark_as_read: ->
-        f = @props.redux.getActions('file_use').mark_file
-        f(@props.project_id, @props.path, 'read')
-        f(@props.project_id, @props.path, 'chatseen')
+        info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
+        if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
+            f = @props.redux.getActions('file_use').mark_file
+            f(@props.project_id, @props.path, 'read')
+            f(@props.project_id, @props.path, 'chatseen')
 
     on_keydown: (e) ->
         if e.keyCode == 27  # ESC

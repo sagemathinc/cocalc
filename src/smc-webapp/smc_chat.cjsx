@@ -456,9 +456,8 @@ ChatRoom = rclass ({name}) ->
         paddingBottom: '20px'
 
     componentWillMount: ->
-        @set_preview_state = underscore.debounce(@set_preview_state, 500)
-        @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
-        @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        for f in ['set_preview_state', 'set_chat_log_state', 'debounce_bottom', 'mark_as_read']
+            @[f] = underscore.debounce(@[f], 300)
 
     componentDidMount: ->
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
@@ -477,7 +476,9 @@ ChatRoom = rclass ({name}) ->
             scroll_to_bottom(@refs.log_container, @props.actions)
 
     mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+        info = @props.redux.getStore('file_use').get_file_info(@props.project_id, @props.path)
+        if not info? or info.is_unread  # file is unread from *our* point of view, so mark read
+            @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read', 2000)
 
     keydown: (e) ->
         # TODO: Add timeout component to is_typing
@@ -673,8 +674,7 @@ ChatRoom = rclass ({name}) ->
                             onKeyDown   = {@keydown}
                             value       = {@props.input}
                             placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(e)=>@props.actions.set_input(e.target.value)}
+                            onChange    = {(e)=>@props.actions.set_input(e.target.value);  @mark_as_read()}
                             onFocus     = {focus_endpoint}
                             style       = {chat_input_style}
                         />
@@ -744,8 +744,7 @@ ChatRoom = rclass ({name}) ->
                             onKeyDown   = {@keydown}
                             value       = {@props.input}
                             placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(e)=>@props.actions.set_input(e.target.value)}
+                            onChange    = {(e)=>@props.actions.set_input(e.target.value); @mark_as_read()}
                             style       = {mobile_chat_input_style}
                         />
                     </FormGroup>
@@ -761,11 +760,9 @@ ChatRoom = rclass ({name}) ->
     render: ->
         if not @props.messages? or not @props.redux? or not @props.input.length?
             return <Loading/>
-
-        if IS_MOBILE
-            return @render_mobile()
-        else
-            return @render_desktop()
+        <div onMouseMove={@mark_as_read}>
+            {if IS_MOBILE then @render_mobile() else @render_desktop()}
+        </div>
 
 
 ChatEditorGenerator = (path, redux, project_id) ->
