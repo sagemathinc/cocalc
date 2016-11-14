@@ -26,6 +26,7 @@ misc = require('misc')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SAGE_LOGO_COLOR, Loading, SetIntervalMixin, Space} = require('./r_misc')
+{sha1} = require('smc-util/schema').client_db
 
 {UsersViewing} = require('./other-users')
 
@@ -47,6 +48,23 @@ VIDEO_UPDATE_INTERVAL_MS = 30*1000
 
 VIDEO_CHAT_LIMIT = 8
 
+# The pop-up window for video chat
+video_window = (title, url) ->
+    w = window.open("", null, "height=640,width=800")
+    w.document.write """
+<html>
+    <head>
+        <title>#{title}</title>
+    </head>
+    <body style='margin: 0px'>
+        <iframe src='#{url}' width='100%' height='100%' frameborder=0>
+        </iframe>
+    </body>
+</html>
+"""
+    return w
+
+video_windows = {}
 class VideoChat
     constructor: (@project_id, @path, @account_id) ->
 
@@ -70,15 +88,48 @@ class VideoChat
 
     get_users: =>
         # Users is a map {account_id:timestamp of last chat file marking}
-        return redux.getStore('file_use').get_video_chat_users(project_id: @project_id, path: @path, ttl:VIDEO_UPDATE_INTERVAL_MS)
+        return redux.getStore('file_use').get_video_chat_users(project_id: @project_id, path: @path, ttl:1.3*VIDEO_UPDATE_INTERVAL_MS)
 
     stop_chatting: ->
-        redux.getActions('file_use').mark_file(@project_id, @path, 'video', 0, true, 0)
+        @close_video_chat_window()
 
     start_chatting: ->
-        redux.getActions('file_use').mark_file(@project_id, @path, 'video', 0)
         redux.getActions('file_use').mark_file(@project_id, @path, 'chat')
+        @open_video_chat_window()
 
+    # The canonical secret chatroom id.
+    chatroom_id: ->
+        secret_token = redux.getStore('projects').getIn(['project_map', @project_id, 'status', 'secret_token'])
+        return sha1(secret_token, @path)
+
+    # Open the video chat window, if it isn't already opened
+    open_video_chat_window: =>
+        room_id = @chatroom_id()
+        if video_windows[room_id]
+            return
+
+        chat_window_is_open = =>
+            redux.getActions('file_use').mark_file(@project_id, @path, 'video', 0)
+
+        chat_window_is_open()
+        @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
+
+        title = "SageMathCloud Video Chat: #{misc.trunc_middle(@path, 30)}"
+        url   = "https://appear.in/#{room_id}"
+        w     = video_window(title, url)
+        video_windows[room_id] = w
+        w.addEventListener "unload", =>
+            @close_video_chat_window()
+
+    # User wants to close the video chat window, but not via just clicking the
+    # close button on the popup window
+    close_video_chat_window: =>
+        room_id = @chatroom_id()
+        if w = video_windows[room_id]
+            redux.getActions('file_use').mark_file(@project_id, @path, 'video', 0, true, 0)
+            clearInterval(@_video_interval_id)
+            delete video_windows[room_id]
+            w?.close()
 
 exports.VideoChatButton = VideoChatButton = rclass
     reduxProps :

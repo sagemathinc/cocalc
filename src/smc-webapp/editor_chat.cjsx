@@ -248,55 +248,6 @@ class ChatActions extends Actions
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
 
-    save_shared_video_info: (video) =>
-        @setState(video: video)
-        @syncdb.update
-            set :
-                video : video   # actual info
-            where :
-                event : 'video'
-        @syncdb.save()  # so other users will know, and so this persists.
-
-    # Open the video chat window, if it isn't already opened
-    open_video_chat_window: =>
-        if @store.get('video_window')
-            # video chat window already opened
-            return
-
-        # get shared video chat state
-        video = (@store.get('video')?.toJS()) ? {}
-        room_id = video.room_id
-        if not room_id?
-            # the chatroom id hasn't been set yet, so set it
-            room_id = misc.uuid()
-            video.room_id = room_id
-            @save_shared_video_info(video)
-
-        # Create the pop-up window for the chat
-        url = "https://appear.in/" + room_id
-        w = window.open("", null, "height=640,width=800")
-        w.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-        w.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
-        w.document.write('</body></html>')
-
-        w.addEventListener "unload", () =>
-            # The user closes the window, so we unset our pointer to the window
-            @setState(video_window: undefined, video_window_room_id: undefined)
-
-        @_video_window = w   # slight cheat, since we can't store a window in REDUX (contains only immutable js objects)
-        @setState
-            video_window         : true
-            video_window_room_id : room_id  # use to re-open window in case another user changes the room id
-
-    # user wants to close the video chat window, but not via just clicking the close button on the popup window
-    close_video_chat_window: =>
-        w = @store.get('video_window')
-        if w
-            # there is an actual pop-up window, so we close it.
-            @_video_window?.close()
-            delete @_video_window
-            # and record that it is gone.
-            @setState(video_window: undefined, video_window_room_id : undefined)
 
 # Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
 syncdbs = {}
