@@ -28,10 +28,8 @@ misc          = require('smc-util/misc')
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
 
-
 VIDEO_UPDATE_INTERVAL_MS = 30*1000
-
-VIDEO_CHAT_LIMIT = 8
+VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
 
 # The pop-up window for video chat
 video_window = (title, url) ->
@@ -117,7 +115,7 @@ class VideoChat
             delete video_windows[room_id]
             w?.close()
 
-exports.VideoChatButton = VideoChatButton = rclass
+exports.VideoChatButton = rclass
     reduxProps :
         file_use :
             file_use : rtypes.immutable
@@ -143,7 +141,7 @@ exports.VideoChatButton = VideoChatButton = rclass
             @video_chat.start_chatting()    # not chatting, so start
 
     render_num_chatting: (num_users_chatting) ->
-        if num_users_chatting
+        if num_users_chatting > 0
             <span>
                 <hr />
                 There following {num_users_chatting} people are using video chat:
