@@ -45,7 +45,7 @@ editor_chat = require('./editor_chat')
 
 {redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
-{VideoChatButton} = require('./chat-indicator')
+{VideoChatButton} = require('./video-chat')
 
 Message = rclass
     displayName: "Message"
@@ -426,8 +426,6 @@ ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             saved_position     : rtypes.number
             use_saved_position : rtypes.bool
-            video              : rtypes.immutable
-            video_window       : rtypes.bool
 
         users :
             user_map : rtypes.immutable
@@ -529,12 +527,6 @@ ChatRoom = rclass ({name}) ->
         #debounces it so that the preview shows up then calls
         scroll_to_bottom(@refs.log_container, @props.actions)
 
-    open_video_chat: ->
-        @props.actions.open_video_chat_window()
-
-    close_video_chat: ->
-        @props.actions.close_video_chat_window()
-
     show_files: ->
         @props.redux?.getProjectActions(@props.project_id).load_target('files')
 
@@ -618,20 +610,6 @@ ChatRoom = rclass ({name}) ->
                 label      = {"Video Chat"}
             />
         </Button>
-        ###
-        if @props.video_window
-            <Button onClick={@close_video_chat}>
-                <Tip title='Video Chat' tip='Closes up the video chat window'  placement='left'>
-                    <Icon name='video-camera' style={color: "red"}/> Video Chat
-                </Tip>
-            </Button>
-        else
-            <Button onClick={@open_video_chat}>
-                <Tip title='Video Chat' tip='Opens up the video chat window'  placement='left'>
-                    <Icon name='video-camera'/> Video Chat
-                </Tip>
-            </Button>
-        ###
 
     render_desktop: ->
         chat_log_style =

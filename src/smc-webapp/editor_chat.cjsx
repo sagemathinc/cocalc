@@ -94,14 +94,10 @@ class ChatActions extends Actions
             position           : undefined  # more info about where chat editor is located
             saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
             use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
-            video              : undefined  # shared state about video chat: {room_id:'...', users:{account_id:timestamp, ...}}
-            video_window       : undefined  # true if the video window is opened.
-            video_interval     : undefined  # if set, the id of an interval timer that updates video with info about video_window being open
 
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: () =>
         v = {}
-        video = undefined
         for x in @syncdb.select()
             if x.corrupt?
                 continue
@@ -110,7 +106,7 @@ class ChatActions extends Actions
 
                 when 'chat'
                     if x.video_chat?.is_video_chat
-                        # discard/ignore anything related to the old video chat approach
+                        # discard/ignore anything related to the old old video chat approach
                         continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -130,12 +126,8 @@ class ChatActions extends Actions
                         x.editing = {}
                     v[x.date - 0] = x
 
-                when 'video'
-                    video = immutable.fromJS(x.video)
-
         @setState
             messages : immutable.fromJS(v)
-            video    : video
 
     _syncdb_change: (changes) =>
         messages_before = messages = @store.get('messages')
@@ -154,13 +146,6 @@ class ChatActions extends Actions
                         message  = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
                         message  = message.set('editing', immutable.Map(x.insert.editing))
                         messages = messages.set("#{x.insert.date - 0}", message)
-
-                    when 'video'
-                        # got an update to the shared video state...
-                        video = immutable.fromJS(x.insert.video)
-                        if not @store.get('video')?.equals(video)
-                            # and it is really different
-                            @setState(video : video)
 
             else if x.remove
                 if x.remove.event == 'chat'
