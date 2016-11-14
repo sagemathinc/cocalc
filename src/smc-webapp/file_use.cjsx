@@ -489,9 +489,13 @@ FileUseViewer = rclass
             />
         </span>
 
+    click_mark_all_read: ->
+        @actions('file_use').mark_all('read')
+        @actions('page').toggle_show_file_use()
+
     render_mark_all_read_button: ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read'); @actions('page').toggle_show_file_use()}>
+            onClick={@click_mark_all_read}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 

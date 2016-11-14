@@ -88,6 +88,7 @@ exports.ChatIndicator = rclass
         dir      = if @props.is_chat_open then 'down' else 'left'
 
         <div style={cursor: 'pointer', color: color, marginLeft:'5px', marginRight:'5px'}>
+            {@render_video_button() if @props.is_chat_open}
             <Tip
                 title     = {title}
                 tip       = {CHAT_INDICATOR_TIP}
@@ -100,7 +101,6 @@ exports.ChatIndicator = rclass
                     <Icon name='comment' />
                 </span>
             </Tip>
-            {@render_video_button() if @props.is_chat_open}
         </div>
 
     render : ->
