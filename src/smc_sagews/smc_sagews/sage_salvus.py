@@ -2200,6 +2200,7 @@ def prun(code):
     filename = tmp_filename()
     cProfile.runctx(salvus.namespace['preparse'](code), salvus.namespace, locals(), filename)
 
+    # TODO once #1212 is fixed, add `width="100%"` as a parameter to selector(...) below
     @interact
     def f(title = text_control('', "<h1>Salvus Profiler</h1>"),
           sort=("First sort by", selector([('calls', 'number of calls to the function'),
@@ -2207,7 +2208,7 @@ def prun(code):
                                      ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
                                      ('module', 'name of the module that contains the function'),
                                      ('name', 'name of the function')
-                                     ], width="100%", default='time')),
+                                     ], default='time')),
           strip_dirs=True):
         try:
             p = pstats.Stats(filename)
