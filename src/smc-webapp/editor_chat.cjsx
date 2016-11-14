@@ -178,6 +178,11 @@ class ChatActions extends Actions
 
         if messages_before != messages
             @setState(messages: messages)
+            store = @redux.getStore(@name)
+            is_at_bottom_result = is_at_bottom(store.get('saved_position'), store.get('offset'), store.get('height'))
+            is_not_scrollable = store.get('height') == store.get('client_height')
+            if is_at_bottom_result or is_not_scrollable
+                @redux.getActions('file_use').mark_file(store.get('project_id'), store.get('path'), 'seen', 0, false)
 
     send_chat: (mesg) =>
         if not @syncdb?
@@ -253,10 +258,10 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
-    save_scroll_state: (position, height, offset) =>
+    save_scroll_state: (position, height, inner_height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
-            @setState(saved_position:position, height:height, offset:offset)
+            @setState(saved_position:position, height:height, inner_height:inner_height, offset:offset)
 
     save_shared_video_info: (video) =>
         @setState(video: video)
@@ -316,10 +321,9 @@ exports.init_redux = (path, redux, project_id) ->
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name)
+    store   = redux.createStore(name, init={project_id: project_id, path: path})
 
     actions._init()
-
     require('./syncdb').synchronized_db
         project_id    : project_id
         filename      : path
@@ -452,7 +456,7 @@ exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
     if log_container?
         node = ReactDOM.findDOMNode(log_container)
         node.scrollTop = node.scrollHeight
-        actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
         actions.set_use_saved_position(false)
 
 exports.scroll_to_position = scroll_to_position = (log_container, saved_position, offset, height, use_saved_position, actions) ->

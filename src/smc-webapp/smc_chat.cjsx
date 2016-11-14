@@ -467,6 +467,7 @@ ChatRoom = rclass ({name}) ->
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        @on_scroll = underscore.debounce(@on_scroll, 200)
 
     componentDidMount: ->
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
@@ -484,8 +485,8 @@ ChatRoom = rclass ({name}) ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
-    mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+    mark_as_seen: ->
+        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'seen', 0, false)
 
     keydown: (e) ->
         # TODO: Add timeout component to is_typing
@@ -499,8 +500,9 @@ ChatRoom = rclass ({name}) ->
         @props.actions.set_use_saved_position(true)
         #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        e.preventDefault()
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
+        if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
+            @mark_as_seen()
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -508,6 +510,7 @@ ChatRoom = rclass ({name}) ->
 
     button_scroll_to_bottom: ->
         scroll_to_bottom(@refs.log_container, @props.actions)
+        @mark_as_seen()
 
     button_off_click: ->
         @props.actions.set_is_preview(false)
@@ -522,7 +525,7 @@ ChatRoom = rclass ({name}) ->
     set_chat_log_state: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
-            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
 
     set_preview_state: ->
         if @refs.log_container?
@@ -713,7 +716,7 @@ ChatRoom = rclass ({name}) ->
                                 onKeyDown   = {@keydown}
                                 value       = {@props.input}
                                 placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
+                                onClick     = {@mark_as_seen}
                                 onChange    = {(e)=>@props.actions.set_input(e.target.value)}
                                 onFocus     = {focus_endpoint}
                                 style       = {@chat_input_style}
@@ -777,7 +780,7 @@ ChatRoom = rclass ({name}) ->
                                 onKeyDown   = {@keydown}
                                 value       = {@props.input}
                                 placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
+                                onClick     = {@mark_as_seen}
                                 onChange    = {(e)=>@props.actions.set_input(e.target.value)}
                                 style       = {@mobile_chat_input_style}
                             />
