@@ -1787,7 +1787,8 @@ exports.local_storage_length = () ->
     catch e
         return 0
 
-# WARNING: THIS WILL BREAK WHEN UPGRADING TO COFFEE2
+# WARNING: THIS WILL BREAK WHEN UPGRADING TO COFFEE2 because
+# it matches on the text "function". TODO: Find a better parser.
 exports.get_arg_names = (func) ->
     # First match everything inside the function argument parens.
     args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -1800,19 +1801,16 @@ exports.get_arg_names = (func) ->
         arg
     return args
 
-# Takes an object representing a directed graph shaped like
-# Where DAG[node2][0] is an into node2 from node1
+# Takes an object representing a directed graph shaped as follows:
 # DAG =
 #     node1 : []
 #     node2 : ["node1"]
 #     node3 : ["node1", "node2"]
-# Returns
-# object =
-#     top_order : Array<string>
-#     info      : Object
-#         num_sources: number
-# Throws error if cyclic
+# Returns a topological ordering of the DAG
+#     object = ["node1", "node2", "node3"]
+# Throws an error if cyclic
 # Runs in O(N + E) where N is the number of nodes and E the number of edges
+# Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
 exports.top_sort = (DAG, opts={omit_sources:false}) ->
     {omit_sources} = opts
     source_names = []

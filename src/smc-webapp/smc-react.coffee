@@ -212,7 +212,8 @@ harvest_own_functions = (store_def) ->
     delete store_def.stateTypes
     return functions
 
-# Generates selectors based on functions found in own and other
+# Generates selectors based on functions found in `own` and `state_importers`
+# Binds the selectors to `scope` which should be a store with a `getState` function
 # Replaces and returns functions in own with appropriate selectors.
 generate_selectors = (own, state_importers, scope) ->
     all_selectors = Object.assign(own, state_importers)
