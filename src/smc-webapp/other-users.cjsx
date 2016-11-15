@@ -48,7 +48,6 @@ CIRCLE_INNER_STYLE =
     display      : 'block'
     borderRadius : '50%'
     fontFamily   : 'sans-serif'
-    marginTop    : '2px'
 
 exports.Avatar = Avatar = rclass
     displayName: "Avatar"
