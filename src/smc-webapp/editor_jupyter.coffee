@@ -152,12 +152,17 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe class='smc-vfill' name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='position:absolute'>")
             .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
-        @element.html('').append(@iframe)
-        @iframe.maxheight()
+
+        # Unlike a normal DOM element, iframes can't be moved in and out of the DOM or have parents
+        # changed without refreshing like crazy.  Due to react and _wanting_ to do all sizing via CSS,
+        # we hide/show the iframe at the end of the page, and position it fixed on top of the @element
+        # whenever the @element resizes.
+        $("body").append(@iframe)
+
         # wait until connected -- it is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
@@ -213,6 +218,17 @@ class JupyterWrapper extends EventEmitter
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
+    # Position the iframe to exactly match the underlying element; I'm calling this
+    # "refresh" since that's the name of the similar method for CodeMirror.
+    refresh: =>
+        if @element.is(':visible')
+            @iframe.show()
+            @iframe.offset(@element.offset())
+            @iframe.width(@element.width())
+            @iframe.height(@element.height())
+        else
+            @iframe.hide()
+
     close: () =>
         if @state == 'closed'
             return
@@ -220,6 +236,7 @@ class JupyterWrapper extends EventEmitter
             clearInterval(@dirty_interval)
             delete @dirty_interval
         @element.html('')
+        @iframe.remove()
         @removeAllListeners()
         delete @blobs
         delete @blobs_pending
@@ -542,7 +559,7 @@ class JupyterWrapper extends EventEmitter
             if not data?
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})
-                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute', width:'16ex')
+                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.6ex', position:'absolute', width:'16ex')
                 cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', left:'.9ex', position:'absolute')
                 data = x[i] = {cursor: cursor}
             if name != data.name
@@ -1094,6 +1111,11 @@ class JupyterNotebook extends EventEmitter
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
+        @dom?.refresh()
+
+    hide: =>
+        @dom?.refresh()
+
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
