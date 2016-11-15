@@ -23,7 +23,8 @@ WrappedEditor = rclass ({project_name}) ->
         editor : rtypes.object.isRequired
 
     componentDidMount: ->
-        # Use for any (god forbid..) future Iframe editors..
+        # Use for any future Iframe editors...
+        #   (Actually, see how editor_pdf and edtor_jupyter done for the right way to do this -- wstein)
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
         span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")

@@ -2512,6 +2512,8 @@ class PDF_Preview extends FileEditor
 
 exports.PDF_Preview = PDF_Preview
 
+# NOTE: This is *ONLY* used as part of the latex editor now.  There is a rewrite
+# in eidtor_pdf.cjsx in react that is much better.
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@project_id, @filename, contents, @opts) ->
         super(@project_id, @filename)
@@ -2959,7 +2961,6 @@ exports.register_nonreact_editors = () ->
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    register(false, PDF_PreviewEmbed, ['pdf'])
     register(false, TaskList,         ['tasks'])
     register(false, JupyterNotebook,  ['ipynb'])
 

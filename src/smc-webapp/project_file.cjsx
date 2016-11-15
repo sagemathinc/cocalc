@@ -127,11 +127,11 @@ exports.save = (path, redux, project_id, is_public) ->
 require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
+require('./editor_pdf')
 
 # Public editors
 require('./public/editor_md')
 require('./public/editor_image')
-require('./public/editor_pdf')
 
 # require('./editor_codemirror')
 
