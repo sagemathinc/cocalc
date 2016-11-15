@@ -176,6 +176,14 @@ class Console extends EventEmitter
         # Init pausing rendering when user clicks
         @_init_rendering_pause()
 
+        if not IS_MOBILE
+            @textarea.on 'blur', =>
+                if @_focusing?          # see comment in @focus.
+                    delete @_focusing
+                    @textarea.focus()   # steal it back.
+                else
+                    @blur()
+
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
@@ -895,6 +903,11 @@ class Console extends EventEmitter
     focus: (force) =>
         if @is_focused and not force
             return
+
+        # focusing the term blurs the textarea, so we save that fact here,
+        # so that the textarea.on 'blur' knows why it just blured
+        @_focusing = true
+
         focused_console = @
         @is_focused = true
         $(@terminal.element).focus()

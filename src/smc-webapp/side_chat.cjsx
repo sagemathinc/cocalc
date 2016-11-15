@@ -461,7 +461,7 @@ ChatRoom = rclass ({name}) ->
                     </Button>
                 </div>
                 <div style={color:"#888", padding:'5px'}>
-                    Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>, HTML and LaTeX.  Double click chats to edit.
+                    Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.  Double click chats to edit.
                 </div>
             </div>
         </div>

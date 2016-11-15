@@ -547,7 +547,7 @@ ChatRoom = rclass ({name}) ->
             <div style={color: '#767676', fontSize: '12.5px', marginBottom:'5px'}>
                 Shift+Enter to send your message.
                 Double click chat bubbles to edit them.
-                Format using <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>.
+                Format using <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.
                 Emoticons: {misc.emoticons}.
             </div>
         </Tip>
