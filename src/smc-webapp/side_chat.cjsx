@@ -42,7 +42,7 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -64,7 +64,6 @@ Message = rclass
         is_next_sender : rtypes.bool
         actions        : rtypes.object
         show_heads     : rtypes.bool
-        focus_end      : rtypes.func
         saved_mesg     : rtypes.string
         close_input    : rtypes.func
 
@@ -245,7 +244,6 @@ Message = rclass
                     onKeyDown      = {@on_keydown}
                     value          = {@state.edited_message}
                     onChange       = {(e)=>@setState(edited_message: e.target.value)}
-                    onFocus        = {@props.focus_end}
                 />
             </FormGroup>
         </form>
@@ -280,7 +278,6 @@ ChatLog = rclass
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
-        focus_end    : rtypes.func
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
 
@@ -338,7 +335,6 @@ ChatLog = rclass
                      sender_name      = {sender_name}
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
-                     focus_end        = {@props.focus_end}
                      saved_mesg       = {@props.saved_mesg}
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
@@ -423,7 +419,6 @@ ChatRoom = rclass ({name}) ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
-    # All render methods
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -443,28 +438,31 @@ ChatRoom = rclass ({name}) ->
                     font_size    = {@props.font_size}
                     file_path    = {if @props.path? then misc.path_split(@props.path).head}
                     actions      = {@props.actions}
-                    focus_end    = {focus_endpoint}
                     show_heads   = {false} />
             </div>
-            <div style={marginTop:'auto', height:'6em', display:'flex', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
-                <FormControl
-                    style          = {width:'85%', height:'100%'}
-                    autoFocus      = {true}
-                    componentClass = 'textarea'
-                    ref            = 'input'
-                    onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
-                    value          = {@props.input}
-                    placeholder    = {'Type a message, then shift+enter...'}
-                    onChange       = {(e) => @props.actions.set_input(e.target.value);}
-                    onFocus        = {focus_endpoint}
-                />
-                <Button
-                    style    = {width:'15%', height:'100%'}
-                    onClick  = {@button_send_chat}
-                    disabled = {@props.input==''}
-                    bsStyle  = 'primary' >
-                    <Icon name='chevron-circle-right'/>
-                </Button>
+            <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
+                <div style={display:'flex', height:'6em'}>
+                    <FormControl
+                        style          = {width:'85%', height:'100%'}
+                        autoFocus      = {true}
+                        componentClass = 'textarea'
+                        ref            = 'input'
+                        onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
+                        value          = {@props.input}
+                        placeholder    = {'Type a message, then shift+enter...'}
+                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
+                    />
+                    <Button
+                        style    = {width:'15%', height:'100%'}
+                        onClick  = {@button_send_chat}
+                        disabled = {@props.input==''}
+                        bsStyle  = 'primary' >
+                        <Icon name='chevron-circle-right'/>
+                    </Button>
+                </div>
+                <div style={color:"#888", padding:'5px'}>
+                    Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>, HTML and LaTeX.  Double click chats to edit.
+                </div>
             </div>
         </div>
 

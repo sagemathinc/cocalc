@@ -384,11 +384,6 @@ exports.send_chat = send_chat = (e, log_container, mesg, actions) ->
 exports.clear_input = clear_input = (actions) ->
     actions.set_input('')
 
-exports.focus_endpoint = focus_endpoint = (e) ->
-    val = e.target.value
-    e.target.value = ''
-    e.target.value = val
-
 exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     # 20 for covering margin of bottom message
     saved_position + offset + 20 > height

@@ -43,7 +43,7 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+{redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 {VideoChatButton} = require('./video-chat')
 
@@ -655,7 +655,6 @@ ChatRoom = rclass ({name}) ->
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
                             actions      = {@props.actions}
                             saved_mesg   = {@props.saved_mesg}
-                            focus_end    = {focus_endpoint}
                             set_scroll   = {@set_chat_log_state}
                             show_heads   = true />
                         {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
@@ -674,7 +673,6 @@ ChatRoom = rclass ({name}) ->
                             value       = {@props.input}
                             placeholder = {'Type a message...'}
                             onChange    = {(e)=>@props.actions.set_input(e.target.value);  @mark_as_read()}
-                            onFocus     = {focus_endpoint}
                             style       = {chat_input_style}
                         />
                     </FormGroup>
@@ -727,7 +725,6 @@ ChatRoom = rclass ({name}) ->
                             font_size    = {@props.font_size}
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
                             actions      = {@props.actions}
-                            focus_end    = {focus_endpoint}
                             show_heads   = {false} />
                     </Well>
                 </Col>
