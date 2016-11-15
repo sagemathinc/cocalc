@@ -1742,19 +1742,19 @@ exports.ProjectFiles = rclass ({name}) ->
         account :
             other_settings : rtypes.immutable
         "#{name}" :
-            current_path        : rtypes.string
-            activity            : rtypes.object
-            page_number         : rtypes.number
-            file_action         : rtypes.string
-            file_search         : rtypes.string
-            show_hidden         : rtypes.bool
-            sort_by_time        : rtypes.bool
-            error               : rtypes.string
-            checked_files       : rtypes.immutable
-            selected_file_index : rtypes.number
-            directory_listings  : rtypes.object
+            current_path          : rtypes.string
+            activity              : rtypes.object
+            page_number           : rtypes.number
+            file_action           : rtypes.string
+            file_search           : rtypes.string
+            show_hidden           : rtypes.bool
+            sort_by_time          : rtypes.bool
+            error                 : rtypes.string
+            checked_files         : rtypes.immutable
+            selected_file_index   : rtypes.number
+            directory_listings    : rtypes.object
             get_displayed_listing : rtypes.func
-            new_name            : rtypes.string
+            new_name              : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1925,7 +1925,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <div>
                 {e}
                 <br />
-                <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                <Button onClick={@update_current_listing}>
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
@@ -1944,9 +1944,13 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_folder       = {@create_folder}
                 selected_file_index = {@props.selected_file_index} />
         else
+            @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
             </div>
+
+    update_current_listing: ->
+        setTimeout((=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)

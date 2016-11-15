@@ -547,6 +547,8 @@ class ProjectActions extends Actions
             page_number            : 0
             most_recent_file_click : undefined
 
+        @set_directory_files()
+
     set_file_search: (search) =>
         @setState
             file_search            : search
@@ -905,7 +907,6 @@ class ProjectActions extends Actions
                         action : 'deleted'
                         files  : opts.paths[0...3]
                         count  : if opts.paths.length > 3 then opts.paths.length
-
 
     download_file: (opts) =>
         {download_file, open_new_tab} = require('./misc_page')
