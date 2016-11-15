@@ -290,7 +290,7 @@ exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
 
 exports.message_colors = (account_id, message) ->
     if sender_is_viewer(account_id, message)
-        return {background: '#46b1f6', color: '#fff'}
+        return {background: '#46b1f6', color: '#fff', message_class:'smc-message-from-viewer'}
     else
         return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
 
@@ -324,10 +324,10 @@ exports.is_editing = is_editing = (message, account_id) ->
 exports.blank_column = blank_column = ->
     <Col key={2} xs={2} sm={2}></Col>
 
-exports.render_markdown = render_markdown = (value, project_id, file_path) ->
+exports.render_markdown = render_markdown = (value, project_id, file_path, className) ->
     # the marginBottom offsets that markdown wraps everything in a p tag
     <div style={marginBottom:'-10px'}>
-        <Markdown value={value} project_id={project_id} file_path={file_path} />
+        <Markdown value={value} project_id={project_id} file_path={file_path} className={className} />
     </div>
 
 exports.render_history_title = render_history_title =  ->
@@ -347,7 +347,7 @@ exports.render_history = render_history = (history, user_map) ->
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html(value)
-        author = user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name')
+        author = misc.trunc_middle(user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name'), 20)
         if value.trim() == ''
             text = "Message deleted "
         else

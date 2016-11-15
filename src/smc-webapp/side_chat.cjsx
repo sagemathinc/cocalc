@@ -184,7 +184,7 @@ Message = rclass
     content_column: ->
         value = newest_content(@props.message)
 
-        {background, color, lighten} = editor_chat.message_colors(@props.account_id, @props.message)
+        {background, color, lighten, message_class} = editor_chat.message_colors(@props.account_id, @props.message)
 
         # smileys, just for fun.
         value = misc.smiley
@@ -221,7 +221,7 @@ Message = rclass
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message)}
                 </span>
-                {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
+                {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
                 <span style={lighten}>
                     {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
@@ -333,7 +333,7 @@ ChatLog = rclass
                      include_avatar_col = {@props.show_heads}
                      get_user_name    = {get_user_name}
                      sender_name      = {sender_name}
-                     editor_name      = {last_editor_name}
+                     editor_name      = {misc.trunc_middle(last_editor_name,15)}
                      actions          = {@props.actions}
                      saved_mesg       = {@props.saved_mesg}
                      close_input      = {@close_edit_inputs}
