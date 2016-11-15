@@ -157,7 +157,7 @@ PY3_ANACONDA = PY_COMMON + [
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype', 'astropy',
     'plotly', 'geopandas', 'altair', 'simpy', 'keras', 'ccdproc', 'tweepy', 'xarray', 'lxml',
-    'cartopy', 'dask', 'folium', 'gdal', 'gdal', 'geojson', 'geopandas', 'ipyleaflet',
+    'cartopy', 'dask', 'folium', 'gdal', 'gdal', 'geojson', 'geopandas', 'ipyleaflet', 'datashader',
     'mplleaflet', 'mpl_toolkits', 'netCDF4', 'psycopg2', 'rasterio', 'rasterstats', 'shapely',
 ]
 
