@@ -1286,7 +1286,7 @@ describe 'parsing function for argument names', ->
         expect misc.get_arg_names(f1)
         .toEqual ['a', 'b', 'c']
 
-describe 'topological Sort', ->
+describe 'top_sort', ->
     # Initialize DAG
     DAG =
         node1 : []
@@ -1325,7 +1325,7 @@ describe 'topological Sort', ->
         expect () => misc.top_sort(DAG3)
         .toThrow("No sources were detected")
 
-describe 'creating a dependency graph from an object', ->
+describe 'create_dependency_graph', ->
     store_def =
         first_name : => "Joe"
         last_name  : => "Smith"
@@ -1341,3 +1341,41 @@ describe 'creating a dependency graph from an object', ->
     it 'Creates a DAG with the right structure', ->
         expect JSON.stringify(misc.create_dependency_graph(store_def))
         .toEqual DAG_string
+
+describe 'bind_objects', ->
+    scope =
+        get   : () -> "cake"
+        value : "cake"
+
+    obj1 =
+        func11: () -> @get()
+        func12: () -> @value
+
+    obj2 =
+        func21: () -> @get()
+        func22: () -> @value
+
+    result = misc.bind_objects(scope, [obj1, obj2])
+
+    it 'Binds all functions in a list of objects of functions to a scope', ->
+        for obj in result
+            for key, val of obj
+                expect(val()).toEqual("cake")
+
+    it 'Leaves the original object unchanged', ->
+        expect(=> obj1.func11()).toThrow(/get is not a function/)
+
+    it 'Preserves the toString of the original function', ->
+        expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
+
+    it 'Ignores non-function values', ->
+        scope =
+            value : "cake"
+
+        obj1 =
+            val : "lies"
+            func: () -> @value
+        [b_obj1] = misc.bind_objects(scope, [obj1])
+
+        expect(b_obj1.func()).toEqual("cake")
+        expect(b_obj1.val).toEqual("lies")

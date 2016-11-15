@@ -1875,3 +1875,18 @@ exports.create_dependency_graph = (object) =>
     for name, written_func of object
         DAG[name] = exports.get_arg_names(written_func)
     return DAG
+
+# Binds all functions in objects of 'arr_objects' to 'scope'
+# Preserves toString of these functions
+# Returns a new array of objects in the same order given
+# Leaves arr_objects unaltered.
+exports.bind_objects = (scope, arr_objects) ->
+    return underscore.map arr_objects, (object) =>
+        return underscore.mapObject object, (val) =>
+            if typeof val == 'function'
+                original_toString = val.toString()
+                bound_func = val.bind(scope)
+                bound_func.toString = () => original_toString
+                return bound_func
+            else
+                return val

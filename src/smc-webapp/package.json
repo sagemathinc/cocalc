@@ -73,7 +73,7 @@
     "mocha": "^2.3.3"
   },
   "scripts": {
-    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter spec",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
   },

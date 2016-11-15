@@ -109,24 +109,14 @@ class Store extends EventEmitter
         @setMaxListeners(150)
         if not store_def?
             return
-        state_importers = harvest_state_importers(store_def)
-        own_functions   = harvest_own_functions(store_def)
-        # store_def should only contain non-state functions now and name
+        import_functions = harvest_import_functions(store_def)
+        own_functions    = harvest_own_functions(store_def)
         Object.assign(@, store_def)
 
         # Bind all functions to this scope.
         # For example, they importantly get access to @redux, @get, and @getIn
-        bound_own_functions = {}
-        bound_state_importers = {}
-        underscore.map own_functions, (func, name) =>
-            original_toString = func.toString()
-            bound_function = func.bind(@)
-            bound_function.toString = () => original_toString
-            bound_own_functions[name] = bound_function
-        for name, func of state_importers
-            bound_state_importers[name] = func.bind(@)
-
-        selectors = generate_selectors(bound_own_functions, bound_state_importers)
+        [b_own_functions, b_import_functions] = misc.bind_objects(@, [own_functions, import_functions])
+        selectors = generate_selectors(b_own_functions, b_import_functions)
 
         # Bind selectors as properties on this store
         prop_map = {}
@@ -188,7 +178,7 @@ class Store extends EventEmitter
 
 # Parses and removes store_def.reduxState
 # Returns getters for data from other stores
-harvest_state_importers = (store_def) ->
+harvest_import_functions = (store_def) ->
     result = {}
     for store_name, values of store_def.reduxState
         for prop_name, type of values
@@ -211,7 +201,7 @@ harvest_own_functions = (store_def) ->
         # No defined selector, but described in state
         if not store_def[prop_name]
             if type.is_computed
-                throw "Computed value #{prop_name} in #{store_def.name} was declared but no definition was found."
+                throw "Computed value '#{prop_name}' in store '#{store_def.name}' was declared but no definition was found."
             functions[prop_name] = () -> @get(prop_name)
         else
             functions[prop_name] = store_def[prop_name]
@@ -219,13 +209,13 @@ harvest_own_functions = (store_def) ->
     delete store_def.stateTypes
     return functions
 
-# Generates selectors based on functions found in `own` and `state_importers`
-# Replaces and returns functions in own with appropriate selectors.
-generate_selectors = (own, state_importers) ->
-    all_selectors = Object.assign(own, state_importers)
+# Generates selectors based on functions found in `own` and `import_functions`
+# Replaces and returns functions in `own` with appropriate selectors.
+generate_selectors = (own, import_functions) ->
+    all_selectors = Object.assign(own, import_functions)
     DAG = misc.create_dependency_graph(all_selectors)
     ordered_funcs = misc.top_sort(DAG, omit_sources:true)
-    # state_importers contains only sources so all funcs will be in own
+    # import_functions contains only sources so all funcs will be in own
     for func_name in ordered_funcs
         selector = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
         own[func_name] = selector
@@ -441,11 +431,6 @@ rtypes.custom_checker_name<function (
 >
 Check React lib to see if this has changed.
 
-
-NOT IMPLEMENTED, FUTURE:
-rtypes.immutable.Map.has("jim")
-the prop must be an immutable Map and has("jim") must be true
-Use a more generic strategy to chain the checks in that case
 ###
 
 check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
@@ -510,21 +495,6 @@ computed = (rtype) =>
     return clone
 
 ###
-Tests if the categories are working correctly.
-test = () ->
-    a = "q"
-    if (rtypes.immutable.category != "IMMUTABLE" or
-            rtypes.immutable.Map.category != "IMMUTABLE" or
-            rtypes.immutable.List.category != "IMMUTABLE" or
-            rtypes.immutable.isRequired.category != "IMMUTABLE" or
-            rtypes.immutable.Map.isRequired.category != "IMMUTABLE" or
-            rtypes.immutable.List.isRequired.category != "IMMUTABLE")
-        throw "Immutable checkers are broken"
-
-test()
-###
-
-###
 Used by Provider to map app state to component props
 
 rclass
@@ -557,7 +527,6 @@ react_component = (x) ->
     if typeof x == 'function'
         # Enhance the return value of x with an HOC
         cached = React.createClass
-
             # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
@@ -650,4 +619,15 @@ exports.ReactDOM = require('react-dom')
 
 if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
+    exports._internals =
+        AppRedux                : AppRedux
+        harvest_import_functions : harvest_import_functions
+        harvest_own_functions   : harvest_own_functions
+        generate_selectors      : generate_selectors
+        connect_component       : connect_component
+        react_component         : react_component
+
+
+
+
 
