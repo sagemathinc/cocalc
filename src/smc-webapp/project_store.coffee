@@ -33,7 +33,7 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {defaults, required} = misc
 
-{Actions, Store, Table, register_project_store, redux}  = require('./smc-react')
+{Actions, rtypes, computed, Table, register_project_store, redux}  = require('./smc-react')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -329,11 +329,11 @@ class ProjectActions extends Actions
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
                             return
-                        open_files = store.get_open_files()
+                        open_files = store.open_files
 
                         # Only generate the editor component if we don't have it already
                         if not open_files.has(opts.path)
-                            open_files_order = store.get_open_files_order()
+                            open_files_order = store.open_files_order
 
                             # Initialize the file's store and actions
                             name = project_file.initialize(opts.path, @redux, @project_id, is_public)
@@ -416,7 +416,7 @@ class ProjectActions extends Actions
 
     # Closes all files and removes all references
     close_all_files: () =>
-        file_paths = @get_store().get_open_files_order()
+        file_paths = @get_store().open_files
         if file_paths.isEmpty()
             return
 
@@ -432,7 +432,7 @@ class ProjectActions extends Actions
     # Does not update tabs
     close_file: (path) =>
         store = @get_store()
-        x = store.get_open_files_order()
+        x = store.open_files_order
         index = x.indexOf(path)
         if index != -1
             open_files = store.get('open_files')
@@ -540,7 +540,7 @@ class ProjectActions extends Actions
             store = @get_store()
             if not store?
                 return
-            map = store.get_directory_listings().set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
         )
@@ -575,7 +575,7 @@ class ProjectActions extends Actions
         else
             # get the range of files
             current_path = store.get('current_path')
-            names = (misc.path_to_file(current_path, a.name) for a in store.get_displayed_listing().listing)
+            names = (misc.path_to_file(current_path, a.name) for a in store.displayed_listing.listing)
             range = misc.get_array_range(names, most_recent, file)
 
         if checked
@@ -621,7 +621,7 @@ class ProjectActions extends Actions
         # anything about files (highly unlikely).  Unfortunately (for this), our
         # directory listings are stored as (immutable) lists, so we have to make
         # a map out of them.
-        store.get_directory_listings()?.get(store.get('current_path'))?.map (x) ->
+        store.directory_listings?.get(store.current_path)?.map (x) ->
             files_in_dir[x.get('name')] = true
             return
         # This loop will keep trying new names until one isn't in the directory
@@ -1121,15 +1121,12 @@ class ProjectActions extends Actions
         @setState(free_warning_closed : true)
 
 
-class ProjectStore extends Store
-    _init: (project_id) =>
-        @project_id = project_id
-        @on 'change', =>
-            if @_last_public_paths != @get('public_paths')
-                # invalidate the public_paths_cache
-                delete @_public_paths_cache
-                @_last_public_paths = @get('public_paths')
+create_project_store_def = (name, project_id) ->
+    name: name
 
+    project_id: project_id
+
+    _init: ->
         # If we are explicitly listed as a collaborator on this project,
         # watch for this to change, and if it does, close the project.
         # This avoids leaving it open after we are removed, which is confusing,
@@ -1138,24 +1135,144 @@ class ProjectStore extends Store
         if projects.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
             projects.on('change', @_projects_store_collab_check)
 
-    destroy: =>
+    destroy: ->
         @redux.getStore('projects').removeListener('change', @_projects_store_collab_check)
 
-    _projects_store_collab_check: (state) =>
+    _projects_store_collab_check: (state) ->
         if not state.getIn(['project_map', @project_id])?
             # User has been removed from the project!
             @redux.getActions('page').close_project_tab(@project_id)
 
-    get_open_files: =>
-        return @get('open_files')
+    getInitialState: =>
+        current_path       : ''
+        show_hidden        : false
+        checked_files      : immutable.Set()
+        public_paths       : undefined
+        directory_listings : immutable.Map()
+        user_input         : ''
+        active_project_tab : 'files'
+        open_files_order   : immutable.List([])
+        open_files         : immutable.Map({})
+        num_ghost_file_tabs: 0
 
-    is_file_open: (path) =>
+    reduxState:
+        account:
+            other_settings: rtypes.immutable.Map
+
+    stateTypes:
+        # Shared
+        current_path       : rtypes.string
+        open_files         : rtypes.immutable.Map
+        open_files_order   : rtypes.immutable.List
+        public_paths       : rtypes.immutable.List
+        directory_listings : rtypes.immutable
+        displayed_listing  : computed rtypes.object
+
+        # Project Page
+        active_project_tab  : rtypes.string
+        free_warning_closed : rtypes.bool     # Makes bottom height update
+        num_ghost_file_tabs : rtypes.number
+
+        # Project Files
+        activity            : rtypes.immutable
+        page_number         : rtypes.number
+        file_action         : rtypes.string
+        file_search         : rtypes.string
+        show_hidden         : rtypes.bool
+        error               : rtypes.string
+        checked_files       : rtypes.immutable
+        selected_file_index : rtypes.number
+        new_name            : rtypes.string
+        sort_by_time        : computed rtypes.bool
+
+        # Project Log
+        project_log : rtypes.immutable
+        search      : rtypes.string
+        page        : rtypes.number
+
+        # Project New
+        default_filename    : rtypes.string
+        file_creation_error : rtypes.string
+
+        # Project Find
+        user_input         : rtypes.string
+        search_results     : rtypes.immutable.List
+        search_error       : rtypes.string
+        too_many_results   : rtypes.bool
+        command            : rtypes.string
+        most_recent_search : rtypes.string
+        most_recent_path   : rtypes.string
+        subdirectories     : rtypes.bool
+        case_sensitive     : rtypes.bool
+        hidden_files       : rtypes.bool
+        info_visible       : rtypes.bool
+
+        # Project Settings
+        get_public_path_id : rtypes.func
+        stripped_public_paths : computed rtypes.immutable.List
+
+    get_public_path_id: ->
+        project_id = @project_id
+        (path) ->
+            # (this exists because rethinkdb doesn't have compound primary keys)
+            {SCHEMA, client_db} = require('smc-util/schema')
+            return SCHEMA.public_paths.user_query.set.fields.id({project_id:project_id, path:path}, client_db)
+
+    sort_by_time: (other_settings) ->
+        if not @get('sort_by_time')
+            return other_settings.get('default_file_sort') == 'time'
+
+    # search_escape_char may or may not be the right way to escape search
+    displayed_listing: (directory_listings, current_path, stripped_public_paths, file_search, other_settings) ->
+        search_escape_char = '/'
+        # cached pre-processed file listing, which should always be up to date when called, and properly
+        # depends on dependencies.
+        listing = directory_listings.get(current_path)
+        if typeof(listing) == 'string'
+            if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
+                return {error:'no_instance'}  # the host VM is down
+            else if listing.indexOf('o such path') != -1
+                return {error:'no_dir'}
+            else if listing.indexOf('ot a directory') != -1
+                return {error:'not_a_dir'}
+            else if listing.indexOf('not running') != -1  # yes, no underscore.
+                return {error:'not_running'}
+            else
+                return {error:listing}
+        if not listing?
+            return {}
+        if listing?.errno?
+            return {error:misc.to_json(listing)}
+        listing = listing.toJS()
+
+        if other_settings.get('mask_files')
+            @_compute_file_masks(listing)
+
+        if current_path == '.snapshots'
+            @_compute_snapshot_display_names(listing)
+
+        search = file_search?.toLowerCase()
+        if search and search[0] isnt search_escape_char
+            listing = @_matched_files(search, listing)
+
+        map = {}
+        for x in listing
+            map[x.name] = x
+
+        x = {listing: listing, public:{}, path:current_path, file_map:map}
+
+        @_compute_public_files(x, stripped_public_paths, current_path)
+
+        return x
+
+    stripped_public_paths: (public_paths) ->
+        if public_paths?
+            return immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS()))
+
+    is_file_open: (path) ->
         return @getIn(['open_files', path])?
 
-    get_open_files_order: =>
-        return @get('open_files_order')
-
-    _match: (words, s, is_dir) =>
+    _match: (words, s, is_dir) ->
         s = s.toLowerCase()
         for t in words
             if t[t.length - 1] == '/'
@@ -1195,74 +1312,12 @@ class ProjectStore extends Store
             item.display_name = "#{tm}"
             item.mtime = (tm - 0)/1000
 
-    get_directory_listings: =>
-        return @get('directory_listings')
-
-    # search_escape_char may or may not be the right way to escape search
-    get_displayed_listing: (search_escape_char) =>
-        # cached pre-processed file listing, which should always be up to date when called, and properly
-        # depends on dependencies.
-        # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
-        # **ensure** that cache clearing depends on account store changing too, as in file_use.coffee.
-        path = @get('current_path')
-        listing = @get_directory_listings().get(path)
-        if typeof(listing) == 'string'
-            if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
-                return {error:'no_instance'}  # the host VM is down
-            else if listing.indexOf('o such path') != -1
-                return {error:'no_dir'}
-            else if listing.indexOf('ot a directory') != -1
-                return {error:'not_a_dir'}
-            else if listing.indexOf('not running') != -1  # yes, no underscore.
-                return {error:'not_running'}
-            else
-                return {error:listing}
-        if not listing?
-            return {}
-        if listing?.errno?
-            return {error:misc.to_json(listing)}
-        listing = listing.toJS()
-
-        # TODO: make this store update when account store updates.
-        if @redux.getStore('account')?.getIn(["other_settings", "mask_files"])
-            @_compute_file_masks(listing)
-
-        if path == '.snapshots'
-            @_compute_snapshot_display_names(listing)
-
-        search = @get('file_search')?.toLowerCase()
-        if search and search[0] isnt search_escape_char
-            listing = @_matched_files(search, listing)
-
-        map = {}
-        for x in listing
-            map[x.name] = x
-
-        x = {listing: listing, public:{}, path:path, file_map:map}
-
-        @_compute_public_files(x)
-
-        return x
-
-    ###
-    # Store data about PUBLIC PATHS
-    ###
-    # immutable js array of the public paths in this projects
-    get_public_paths: =>
-        if @get('public_paths')?
-            return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @get('public_paths').toJS()))
-
-    get_public_path_id: (path) =>
-        # (this exists because rethinkdb doesn't have compound primary keys)
-        {SCHEMA, client_db} = require('smc-util/schema')
-        return SCHEMA.public_paths.user_query.set.fields.id({project_id:@project_id, path:path}, client_db)
-
-    _compute_public_files: (x) =>
+    _compute_public_files: (x, public_paths, current_path) =>
         listing = x.listing
         pub = x.public
-        v = @get_public_paths()
+        v = public_paths
         if v? and v.size > 0
-            head = if @get('current_path') then @get('current_path') + '/' else ''
+            head = if current_path then current_path + '/' else ''
             paths = []
             map   = {}
             for x in v.toJS()
@@ -1276,6 +1331,7 @@ class ProjectStore extends Store
                     x.is_public = not x.public.disabled
                     pub[x.name] = map[p]
 
+
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)
     name  = key(project_id)
@@ -1284,40 +1340,11 @@ exports.getStore = getStore = (project_id, redux) ->
         return store
 
     # Initialize everything
-
-    # Create actions
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
-
-    set_sort_time = () ->
-        if redux.getStore('account').get('other_settings').get('default_file_sort') == 'time'
-            return true
-        else
-            return false
-
-    # Create store
-    # open_files :
-    #     file_path :
-    #         component    : react_renderable
-    #         has_activity : bool
-    initial_state =
-        current_path       : ''
-        sort_by_time       : set_sort_time() #TODO
-        show_hidden        : false
-        checked_files      : immutable.Set()
-        public_paths       : undefined
-        directory_listings : immutable.Map()
-        user_input         : ''
-        active_project_tab : 'files'
-        open_files_order   : immutable.List([])
-        open_files         : immutable.Map({})
-        num_ghost_file_tabs: 0
-
-    store = redux.createStore(name, ProjectStore, initial_state)
-    store._init(project_id)
+    store = redux.createStore(create_project_store_def(name, project_id))
 
     queries = misc.deep_copy(QUERIES)
-
     create_table = (table_name, q) ->
         #console.log("create_table", table_name)
         class P extends Table

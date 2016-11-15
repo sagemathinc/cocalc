@@ -23,12 +23,13 @@
 # Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
 ###############################################################################
 
-{EventEmitter} = require('events')
-async          = require('async')
-immutable      = require('immutable')
-underscore     = require('underscore')
-React          = require('react')
-redux_lib      = require('redux')
+{EventEmitter}   = require('events')
+async            = require('async')
+immutable        = require('immutable')
+underscore       = require('underscore')
+React            = require('react')
+redux_lib        = require('redux')
+{createSelector} = require('reselect')
 
 
 {Provider, connect}  = require('react-redux')
@@ -102,14 +103,12 @@ store_def =
 
 Note: you cannot name a property "state" or "props"
 ###
-converted_stores = []
 class Store extends EventEmitter
     # TODOJ: remove @name when fully switched over
     constructor: (@name, @redux, store_def) ->
         @setMaxListeners(150)
         if not store_def?
             return
-        converted_stores.push[store_def.name]
         state_importers = harvest_state_importers(store_def)
         own_functions   = harvest_own_functions(store_def)
         # store_def should only contain non-state functions now and name
@@ -119,14 +118,15 @@ class Store extends EventEmitter
         # For example, they importantly get access to @redux, @get, and @getIn
         bound_own_functions = {}
         bound_state_importers = {}
-        for name, func of own_functions
-            bound_own_functions[name] = func.bind(@)
+        underscore.map own_functions, (func, name) =>
+            original_toString = func.toString()
+            bound_function = func.bind(@)
+            bound_function.toString = () => original_toString
+            bound_own_functions[name] = bound_function
         for name, func of state_importers
             bound_state_importers[name] = func.bind(@)
 
-        selectors = generate_selectors(bound_own_functions, bound_state_importers, @)
-
-        # Object.assign(@, selectors)
+        selectors = generate_selectors(bound_own_functions, bound_state_importers)
 
         # Bind selectors as properties on this store
         prop_map = {}
@@ -192,7 +192,14 @@ harvest_state_importers = (store_def) ->
     result = {}
     for store_name, values of store_def.reduxState
         for prop_name, type of values
-            result[prop_name] = () -> @redux.getStore(store_name)?[prop_name]
+            result[prop_name] = () ->
+                store = @redux.getStore(store_name)
+                if store.__converted?
+                    val = store[prop]
+                else # TODOJ: remove when all stores are converted
+                    val = store.get(prop_name)
+                    val ?= store[prop]?()
+                return val
     delete store_def.reduxState
     return result
 
@@ -213,19 +220,16 @@ harvest_own_functions = (store_def) ->
     return functions
 
 # Generates selectors based on functions found in `own` and `state_importers`
-# Binds the selectors to `scope` which should be a store with a `getState` function
 # Replaces and returns functions in own with appropriate selectors.
-generate_selectors = (own, state_importers, scope) ->
+generate_selectors = (own, state_importers) ->
     all_selectors = Object.assign(own, state_importers)
     DAG = misc.create_dependency_graph(all_selectors)
     ordered_funcs = misc.top_sort(DAG, omit_sources:true)
     # state_importers contains only sources so all funcs will be in own
     for func_name in ordered_funcs
-        init_selector = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
-        defaulted_selector = (state=@getState()) -> init_selector(state)
-        bound_selector = defaulted_selector.bind(scope)
-        own[func_name] = bound_selector
-        all_selectors[func_name] = bound_selector
+        selector = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
+        own[func_name] = selector
+        all_selectors[func_name] = selector
     return own
 
 action_set_state = (change) ->
@@ -328,8 +332,11 @@ class AppRedux
             S = @_stores[spec.name]
             if not S?
                     S = @_stores[spec.name] = new Store(spec.name, @, spec)
+                    # TODOJ: REMOVE
+                    S.__converted = true
                 if init?
                     @_set_state({"#{spec.name}":init})
+                S._init?()
         return S
 
     getStore: (name) =>
@@ -477,7 +484,7 @@ create_immutable_type_required_chain = (validate) ->
             else
                 return new Error(
                     "Component '#{componentName}'" +
-                    " expected an immutable.#{T}" +
+                    " expected #{propName} to be an immutable.#{T}" +
                     " but was supplied #{props[propName]}"
                 )
         else
@@ -500,8 +507,6 @@ Object.assign(rtypes, React.PropTypes)
 computed = (rtype) =>
     clone = rtype.bind({})
     clone.is_computed = true
-    if rtype.category == "IMMUTABLE" and clone.category != "IMMUTABLE"
-        throw "this computed don't work.."
     return clone
 
 ###
@@ -534,9 +539,9 @@ connect_component = (spec) =>
             return props
         for store_name, info of spec
             for prop, type of info
-                if store_name in converted_stores
+                if redux.getStore(store_name).__converted?
                     val = redux.getStore(store_name)[prop]
-                else
+                else # TODOJ: remove when all stores are converted
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
                     props[prop] = val

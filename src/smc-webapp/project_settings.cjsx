@@ -1043,14 +1043,14 @@ ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
-        project_id   : rtypes.string.isRequired
-        project      : rtypes.object.isRequired
-        user_map     : rtypes.object.isRequired
-        public_paths : rtypes.object.isRequired
-        customer     : rtypes.object
+        project_id    : rtypes.string.isRequired
+        project       : rtypes.immutable.Map.isRequired
+        user_map      : rtypes.immutable.Map.isRequired
+        public_paths  : rtypes.immutable.List.isRequired
+        customer      : rtypes.object
         email_address : rtypes.string
-        project_map : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
-        name : rtypes.string
+        project_map   : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
+        name          : rtypes.string
 
     reduxProps :
         "#{name}" :
@@ -1138,7 +1138,7 @@ exports.ProjectSettings = rclass ({name}) ->
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
-            public_paths : rtypes.immutable
+            stripped_public_paths : rtypes.immutable
 
     propTypes :
         project_id : rtypes.string.isRequired
@@ -1171,7 +1171,7 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render: ->
-        if not @props.project_map? or not @props.user_map? or not @props.public_paths?
+        if not @props.project_map? or not @props.user_map? or not @props.stripped_public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -1188,13 +1188,13 @@ exports.ProjectSettings = rclass ({name}) ->
             <div style={padding:'15px'}>
                 {@render_admin_message() if @state.admin_project?}
                 <ProjectSettingsBody
-                    project_id   = {@props.project_id}
-                    project      = {project}
-                    user_map     = {@props.user_map}
-                    public_paths = {@props.public_paths}
-                    customer     = {@props.customer}
+                    project_id    = {@props.project_id}
+                    project       = {project}
+                    user_map      = {@props.user_map}
+                    public_paths  = {@props.stripped_public_paths}
+                    customer      = {@props.customer}
                     email_address = {@props.email_address}
-                    project_map  = {@props.project_map}
-                    name         = {name}
+                    project_map   = {@props.project_map}
+                    name          = {name}
                 />
             </div>
