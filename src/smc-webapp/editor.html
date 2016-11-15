@@ -160,13 +160,6 @@ Editor for files in a project
                            <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
                            <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
                         </span>
-                        <span class="btn-group">
-                            <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                            <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
-                            <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                            <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
-                                <span class="salvus-latex-build-status"></span></a>
-                        </span>
                     </span>
 
                     <span class="salvus-editor-codemirror-sync">
@@ -391,6 +384,13 @@ Editor for files in a project
             <div class="salvus-editor-latex-resize-bar">
             </div>
             <div class="salvus-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto">
+                <div class="btn-group">
+                    <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
+                    <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                    <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
+                    <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
+                        <span class="salvus-latex-build-status"></span></a>
+                </div>
                 <div class="salvus-editor-latex-pdf-preview smc-vfill hide">
                 </div>
                 <div class="salvus-editor-latex-png-preview smc-vfill hide" style="border:1px solid grey">
