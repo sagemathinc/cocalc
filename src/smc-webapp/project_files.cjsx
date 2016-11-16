@@ -1903,10 +1903,12 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle={style}
-                onClick={@props.actions.toggle_upload}
-                active={@props.show_upload}
-            ><Icon name='upload' /> Upload</Button>
+                bsStyle = {style}
+                onClick = {@props.actions.toggle_upload}
+                active  = {@props.show_upload}
+                >
+                <Icon name='upload' /> Upload
+            </Button>
         </Col>
 
     render_activity: ->
@@ -2071,7 +2073,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                {<Col sm=4>
+                {<Col sm=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
                         <UsersViewing project_id={@props.project_id} />
                     </div>
