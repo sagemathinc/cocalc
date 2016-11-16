@@ -660,13 +660,14 @@ ProjectControlPanel = rclass
 
     open_authorized_keys: (e) ->
         e.preventDefault()
+        project_id = @props.project.get('project_id')
         async.series([
             (cb) =>
-                project_tasks(@project_id).ensure_directory_exists
+                project_tasks(project_id).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>
-                @actions(project_id: @props.project.get('project_id')).open_file
+                @actions(project_id: project_id).open_file
                     path       : '.ssh/authorized_keys'
                     foreground : true
                 cb()
