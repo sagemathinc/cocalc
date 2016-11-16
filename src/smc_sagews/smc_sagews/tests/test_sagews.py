@@ -132,6 +132,17 @@ class TestIntrospect:
         execintrospect(f, ["next_probable_prime"], f)
     def test_sage_autocomplete_734c(self, execintrospect):
         execintrospect('list.re*e', ["remove", "reverse"], 're*e')
+    def test_sage_autocomplete_1225a(self, execintrospect):
+        execintrospect('z = 12.5 * units.len', ["gth"], 'len')
+    def test_sage_autocomplete_1225b_setup(self, exec2):
+        exec2(dedent("""
+        class TC:
+            def __init__(self, xval):
+                self.x = xval
+        y = TC(49)
+        """))
+    def test_sage_autocomplete_1225b(self, execintrospect):
+        execintrospect('z = 12 * y.', ["x"], '')
 
 class TestAttach:
     def test_define_paf(self, exec2):
