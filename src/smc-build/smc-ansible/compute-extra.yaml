@@ -59,6 +59,7 @@
     - xgboost
     - ipywidgets
     - keras
+    - textblob
 
   - name: "install git trac from github"
     tags: [ pip2, update, install ]
@@ -122,6 +123,7 @@
     - ipywidgets
     - keras
     - tweepy
+    - textblob
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
