@@ -65,16 +65,8 @@ class TestShMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("%sh TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='%sh')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV', '%sh')
 
     def test_bad_command(self, exec2):
         exec2("%sh xyz", pattern="command not found")
@@ -106,16 +98,8 @@ class TestShDefaultMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV')
 
 class TestRMode:
     def test_assignment(self, exec2):

@@ -64,17 +64,6 @@ class TestBasic:
         assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
         conftest.recv_til_done(sagews, test_id)
 
-    def test_sage_autocomplete(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='2016.fa', top='2016.fa')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["ctor","ctorial"]
-        assert mesg['target'] == "fa"
-
     # https://github.com/sagemathinc/smc/issues/1107
     def test_sage_underscore_1(self, exec2):
         exec2("2/5","2/5\n")
@@ -110,6 +99,10 @@ class TestBasic:
             z
         else:
             z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
+
+class TestIntrospect:
+    def test_sage_autocomplete_1188(self, execintrospect):
+        execintrospect('2016.fa', ["ctor","ctorial"], "fa")
 
 class TestAttach:
     def test_define_paf(self, exec2):
