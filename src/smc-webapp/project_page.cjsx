@@ -328,14 +328,16 @@ ProjectMainContent = rclass
 
         editor  = @render_editor(path)
 
+        # WARNING: every CSS style below is hard won.  Don't f!$k with them without knowing what
+        # you are doing and testing on all supported browser.  - wstein
         if is_chat_open
             # 2 column layout with chat
             content =\
                 <div
-                    style = {display:'flex', height:'100%'}
+                    style = {position: 'absolute', height:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', width:0}>
+                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px'}>
                         {editor}
                     </div>
                     {@render_drag_bar(path)}
@@ -348,7 +350,7 @@ ProjectMainContent = rclass
         else
             # just the editor
             content =\
-                <div style={height:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
+                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
                     {editor}
                 </div>
         # Finally render it
