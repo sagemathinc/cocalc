@@ -620,6 +620,7 @@ ChatRoom = rclass ({name}) ->
             padding      : "0"
             paddingRight : "10px"
             background   : 'white'
+            flex         : 1
 
         chat_input_style =
             margin       : "0"
@@ -627,7 +628,7 @@ ChatRoom = rclass ({name}) ->
             marginTop    : "5px"
             fontSize     : @props.font_size
 
-        <Grid fluid={true} style={maxWidth: '1200px', display:'flex', flexDirection:'column'}>
+        <Grid fluid={true} className='smc-vfill' style={maxWidth: '1200px', display:'flex', flexDirection:'column'}>
             <Row style={marginBottom:'5px'}>
                 <Col xs={2} mdHidden>
                     <Button className='smc-small-only'
@@ -643,8 +644,8 @@ ChatRoom = rclass ({name}) ->
                     </ButtonGroup>
                 </Col>
             </Row>
-            <Row className='smc-vflex'>
-                <Col className='smc-vflex' md={12} style={padding:'0px 2px 0px 2px'}>
+            <Row className='smc-vfill'>
+                <Col className='smc-vfill' md={12} style={padding:'0px 2px 0px 2px'}>
                     <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
                         <ChatLog
                             messages     = {@props.messages}
