@@ -101,8 +101,37 @@ class TestBasic:
             z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
 
 class TestIntrospect:
+    # test names end with SMC issue number
     def test_sage_autocomplete_1188(self, execintrospect):
         execintrospect('2016.fa', ["ctor","ctorial"], "fa")
+    def test_sage_autocomplete_295_setup(self, exec2):
+        exec2("aaa=Rings()._super_categories_for_classes;len(aaa[0].axioms())","6\n")
+    def test_sage_autocomplete_295a(self, execintrospect):
+        execintrospect('for a in aa', ["a"], "aa")
+    def test_sage_autocomplete_295b(self, execintrospect):
+        execintrospect('3 * aa', ["a"], "aa")
+    def test_sage_autocomplete_701_setup(self, exec2):
+        exec2(dedent("""
+        class Xyz:
+            numerical_attribute = 42
+        x1 = Xyz()
+        x1.numerical_attribute.next_prime()"""),"43\n")
+    def test_sage_autocomplete_701a(self, execintrospect):
+        execintrospect('3 / x1.nu', ["merical_attribute"], "nu")
+    def test_sage_autocomplete_701b(self, execintrospect):
+        execintrospect('aa', ["a"], "aa")
+    def test_sage_autocomplete_701c(self, execintrospect):
+        execintrospect('[aa', ["a"], "aa")
+    def test_sage_autocomplete_701d(self, execintrospect):
+        execintrospect('( aa', ["a"], "aa")
+    def test_sage_autocomplete_734a(self, execintrospect):
+        f = '*_factors'
+        execintrospect(f, ["cunningham_prime_factors", "prime_factors"], f)
+    def test_sage_autocomplete_734b(self, execintrospect):
+        f = '*le_pr*'
+        execintrospect(f, ["next_probable_prime"], f)
+    def test_sage_autocomplete_734c(self, execintrospect):
+        execintrospect('list.re*e', ["remove", "reverse"], 're*e')
 
 class TestAttach:
     def test_define_paf(self, exec2):
