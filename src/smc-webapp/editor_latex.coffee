@@ -10,8 +10,10 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
-{redux} = require('./smc-react')
-editor = require('./editor')
+{redux}         = require('./smc-react')
+editor          = require('./editor')
+printing        = require('./printing')
+{project_tasks} = require('./project_tasks')
 
 templates = $("#salvus-editor-templates")
 
@@ -20,6 +22,7 @@ MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -51,6 +54,11 @@ class exports.LatexEditor extends editor.FileEditor
             @update_preview()
             @spell_check()
 
+        @latex_editor.print = () =>
+            outfn = misc.change_filename_extension(@filename, 'pdf')
+            printing.Printer(@, outfn).print()
+            return false
+
         v = misc.path_split(@filename)
         @_path = v.head
         @_target = v.tail
@@ -65,7 +73,8 @@ class exports.LatexEditor extends editor.FileEditor
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
+        preview_filename = misc.change_filename_extension(@filename, 'pdf')
+        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
         @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @_pages['pdf-preview'] = @preview_embed
@@ -657,10 +666,10 @@ class exports.LatexEditor extends editor.FileEditor
             elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
         return elt
 
-
-    download_pdf: () =>
+    download_pdf: (print = false) =>
         redux.getProjectActions(@project_id).download_file
-            path : @filename.slice(0,@filename.length-3) + "pdf"
+            path : misc.change_filename_extension(@filename, 'pdf')
+            print: print
 
     _inverse_search: (opts) =>
         active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.

@@ -36,15 +36,18 @@ editor          = require('../editor')
 {IS_MOBILE}     = require('../feature')
 
 {redux}         = require('../smc-react')
+printing        = require('../printing')
 
 templates       = $("#salvus-editor-templates")
 
+
 class exports.HTML_MD_Editor extends editor.FileEditor
+
     constructor: (@project_id, @filename, content, @opts) ->
+        super(@project_id, @filename)
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = misc.filename_extension_notilde(@filename).toLowerCase()   #'html' or 'md'
         # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
@@ -57,8 +60,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else if @ext == 'tex'  # for testing/experimentation
-            @opts.mode = 'stex2'
         else
             throw Error('file must have extension md or html or rst or wiki or tex')
 
@@ -163,7 +164,10 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
         @element.find("a[href=\"#save\"]").click(@click_save_button)
-        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
+        if printing.can_print(@ext)
+            @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
+        else
+            @element.find("a[href=\"#print\"]").remove()
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -283,62 +287,13 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             return
         @_printing = true
         @print_button.icon_spin(start:true, delay:0).addClass("disabled")
-        @convert_to_pdf (err, output) =>
+        printer = printing.Printer(@, @filename + '.pdf')
+        printer.print (err) =>
             @_printing = false
             @print_button.removeClass('disabled')
             @print_button.icon_spin(false)
             if err
                 alert_message(type:"error", message:"Printing error -- #{err}")
-            else
-                salvus_client.read_file_from_project
-                    project_id : @project_id
-                    path       : output.filename
-                    cb         : (err, mesg) =>
-                        if err
-                            cb(err)
-                        else
-                            url = mesg.url + "?nocache=#{Math.random()}"
-                            window.open(url,'_blank')
-
-    convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
-        s = misc.path_split(@filename)
-        target = s.tail + '.pdf'
-        if @ext in ['md', 'html', 'rst', 'mediawiki']
-            # pandoc --latex-engine=xelatex a.wiki -o a.pdf
-            command = 'pandoc'
-            args    = ['--latex-engine=xelatex', s.tail, '-o', target]
-            bash = false
-        else if @ext == 'tex'
-            t = "." + misc.uuid()
-            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{s.tail}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
-            bash = true
-
-        target = @filename + ".pdf"
-        output = undefined
-        async.series([
-            (cb) =>
-                @save(cb)
-            (cb) =>
-                salvus_client.exec
-                    project_id  : @project_id
-                    command     : command
-                    args        : args
-                    err_on_exit : true
-                    bash        : bash
-                    path        : s.head
-                    cb          : (err, o) =>
-                        if err
-                            cb(err)
-                        else
-                            output = o
-                            cb()
-        ], (err) =>
-            if err
-                cb?(err)
-            else
-                output.filename = @filename + ".pdf"
-                cb?(undefined, output)
-        )
 
     misspelled_words: (opts) =>
         opts = defaults opts,

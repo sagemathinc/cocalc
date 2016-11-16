@@ -1023,7 +1023,7 @@ exports.define_codemirror_extensions = () ->
             src = cm.getRange(from, to)
             # trim whitespace
             i = 0
-            while i<src.length and /\s/.test(src[i])
+            while i < src.length and /\s/.test(src[i])
                 i += 1
             j = src.length-1
             while j > 0 and /\s/.test(src[j])
@@ -1092,8 +1092,12 @@ exports.define_codemirror_extensions = () ->
 
             if how?.insert? # to insert the code snippet right below, next line
                 # SMELL: no idea what the strip(...) above is actually doing
-                # if text is selected (is that src?) then there is only some new stuff below it. that's it.
-                src = "#{src}\n#{how.insert}"
+                # no additional newline, if nothing is selected and at start of line
+                if selection.empty() and from.ch == 0
+                    src = how.insert
+                else
+                    # this also inserts a new line, if cursor is inside/end of line
+                    src = "#{src}\n#{how.insert}"
                 done = true
 
             if cmd == 'font_size'
@@ -1151,18 +1155,21 @@ exports.define_codemirror_extensions = () ->
             if src == src0
                 continue
 
+            cm.focus()
             cm.replaceRange(left_white + src + right_white, from, to)
-            if selection.empty()
-                # restore cursor
-                if left?
-                    delta = left.length
+
+            if not how?.insert?
+                if selection.empty()
+                    # restore cursor
+                    if left?
+                        delta = left.length
+                    else
+                        delta = 0
+                    cm.setCursor({line:from.line, ch:to.ch+delta})
                 else
-                    delta = 0
-                cm.setCursor({line:from.line, ch:to.ch+delta})
-            else
-                # now select the new range
-                delta = src.length - src0.length
-                cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+                    # now select the new range
+                    delta = src.length - src0.length
+                    cm.addSelection(from, {line:to.line, ch:to.ch+delta})
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
@@ -1705,3 +1712,16 @@ exports.analytics_pageview = (args...) ->
 
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
+
+# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
+exports.open_new_tab = (url) ->
+    tab = window.open(url)
+    if(!tab || tab.closed || typeof tab.closed=='undefined')
+        {alert_message} = require('./alerts')
+        alert_message
+            title   : "Pop-ups blocked."
+            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+            type    : 'error'
+            timeout : 10
+        return null
+    return tab

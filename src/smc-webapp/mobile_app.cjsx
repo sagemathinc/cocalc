@@ -200,10 +200,9 @@ Page = rclass
             </Sidebar>
         </div>
 
-$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')
 page =
     <Redux redux={redux}>
         <Page />
     </Redux>
 
-exports.render = () => ReactDOM.render(page, $(".smc-react-container")[0])
+exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))
