@@ -91,9 +91,11 @@ html
             //- Sends a pageview hit from the tracker just created.
             google_analytics('send', 'pageview');
 
-        <!-- Sets the `async` attribute to load the script asynchronously. -->
+        //- Sets the `async` attribute to load the script asynchronously.
         script(async src='//www.google-analytics.com/analytics.js')
         //--- End Google Analytics ---
 
     //- Hidden div to accurately determine if page is in responsive mode
     div.salvus-responsive-mode-test
+
+    div#smc-react-container.page-container

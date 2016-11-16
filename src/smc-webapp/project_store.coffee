@@ -94,6 +94,9 @@ class ProjectActions extends Actions
     get_store: =>
         return @redux.getStore(@name)
 
+    get_state: (key) =>
+        return @get_store().get(key)
+
     clear_all_activity: =>
         @setState(activity:undefined)
 
@@ -937,6 +940,12 @@ class ProjectActions extends Actions
         opts.print = true
         @download_file(opts)
 
+    show_upload : (show) =>
+        @setState(show_upload : show)
+
+    toggle_upload: =>
+        @show_upload(not @get_state('show_upload'))
+
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  Throws an Error if the path name is invalid.
@@ -1385,6 +1394,7 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
+        show_upload        : false
         active_project_tab : 'files'
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
