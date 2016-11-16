@@ -179,8 +179,7 @@ class Console extends EventEmitter
         if not IS_MOBILE
             @textarea.on 'blur', =>
                 if @_focusing?          # see comment in @focus.
-                    delete @_focusing
-                    @textarea.focus()   # steal it back.
+                    @_focus_hidden_textarea()
                 else
                     @blur()
 
@@ -417,7 +416,8 @@ class Console extends EventEmitter
 
         e = @element.find(".salvus-console-terminal")
 
-        e.mousedown () => @pause_rendering(false)
+        e.mousedown () =>
+            @pause_rendering(false)
 
         e.mouseup () =>
             if not getSelection().toString()
@@ -428,7 +428,9 @@ class Console extends EventEmitter
                 # nothing in the terminal is selected
                 @unpause_rendering()
 
-        e.on('copy', @unpause_rendering)
+        e.on 'copy', =>
+            @unpause_rendering()
+            setTimeout(@focus, 0)  # must happen in next cycle or copy will not work due to loss of focus.
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
@@ -531,8 +533,7 @@ class Console extends EventEmitter
             $(document).on 'click', @_click
         else
             @_mousedown = (e) =>
-                t = $(e.target)
-                if t.hasParent(@element).length > 0
+                if $(e.target).hasParent(@element).length > 0
                     @focus()
                 else
                     @blur()
@@ -744,7 +745,9 @@ class Console extends EventEmitter
             pb.val('')
             @session?.write_data(data)
 
-        pb.on('paste', (() -> setTimeout(f,0)))
+        pb.on 'paste', =>
+            pb.val('')
+            setTimeout(f,0)
 
     #######################################################################
     # Public API
@@ -910,15 +913,17 @@ class Console extends EventEmitter
 
         focused_console = @
         @is_focused = true
+        @textarea.blur()
         $(@terminal.element).focus()
 
         if IS_MOBILE
             @element.find(".salvus-console-input-line").focus()
         else
-            @terminal.focus()
             @_focus_hidden_textarea()
+            @terminal.focus()
 
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
+        setTimeout((()=>delete @_focusing), 0)   # critical!
 
     set_title: (title) ->
         @opts.set_title?(title)
