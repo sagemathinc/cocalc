@@ -1222,11 +1222,10 @@ create_project_store_def = (name, project_id) ->
         if not @get('sort_by_time')
             return other_settings.get('default_file_sort') == 'time'
 
-    # search_escape_char may or may not be the right way to escape search
+    # cached pre-processed file listing, which should always be up to date when
+    # called, and properly depends on dependencies.
     displayed_listing: (directory_listings, current_path, stripped_public_paths, file_search, other_settings) ->
         search_escape_char = '/'
-        # cached pre-processed file listing, which should always be up to date when called, and properly
-        # depends on dependencies.
         listing = directory_listings.get(current_path)
         if typeof(listing) == 'string'
             if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
