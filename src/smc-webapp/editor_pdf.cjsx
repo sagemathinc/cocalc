@@ -103,19 +103,17 @@ delete_iframe = (project_id, path) ->
     iframes[k].remove()
     delete iframes[k]
 
-require('./project_file').register_file_editor
-    ext       : 'pdf'
-
-    icon      : 'file-pdf-o'
-
-    component : PublicPDF
-
-    # In the init we create the hidden iframe.
-    init      : (path, redux, project_id) ->
-        create_iframe(project_id, path)
-        return undefined
-
-    remove    : (path, redux, project_id) ->
-        delete_iframe(project_id, path)
+for pub in [true, false]
+    require('./project_file').register_file_editor
+        ext       : 'pdf'
+        icon      : 'file-pdf-o'
+        is_public : pub
+        component : PublicPDF
+        # In the init we create the hidden iframe.
+        init      : (path, redux, project_id) ->
+            create_iframe(project_id, path)
+            return undefined
+        remove    : (path, redux, project_id) ->
+            delete_iframe(project_id, path)
 
 
