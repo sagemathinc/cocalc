@@ -522,7 +522,7 @@ def execblob(request, sagews, test_id):
 
 @pytest.fixture()
 def execintrospect(request, sagews, test_id):
-    def execfn(line, completions, top=None):
+    def execfn(line, completions, target, top=None):
         if top is None:
             top = line
         m = message.introspect(test_id, line=line, top=top)
@@ -533,7 +533,7 @@ def execintrospect(request, sagews, test_id):
         assert mesg['id'] == test_id
         assert mesg['event'] == "introspect_completions"
         assert mesg['completions'] == completions
-        assert mesg['target'] == "fa"
+        assert mesg['target'] == target
 
     return execfn
 
