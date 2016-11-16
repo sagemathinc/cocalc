@@ -25,7 +25,7 @@ on ports 5000, 5001, 8080, 28015 and 29015.
 
 From the `src/` directory:
 
-- run `source smv-env && npm run make`
+- run `source smc-env && npm run make`
 
 ## Install the Python libraries
 
