@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -82,6 +82,7 @@ PathSegmentLink = rclass
 
     handle_click: ->
         @props.actions.open_directory(@props.path)
+        @props.actions.show_upload(false)
 
     render_link: ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -528,9 +529,15 @@ FileListing = rclass
         create_folder       : rtypes.func.isRequired
         create_file         : rtypes.func.isRequired
         selected_file_index : rtypes.number
+        project_id          : rtypes.string
+        show_upload         : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
+        show_upload : false
+
+    componentDidUpdate: ->
+        @_show_upload_last = +new Date()
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -621,13 +628,48 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
-    render: ->
-        <Col sm=12>
-            {@render_terminal_mode()}
-            {@parent_directory()}
-            {@render_rows()}
-            {@render_no_files()}
-        </Col>
+    # upload area config and handling
+    show_upload : (e, enter) ->
+        #if DEBUG
+        #    if enter
+        #        console.log "project_files/dragarea entered", e
+        #    else
+        #        console.log "project_files/dragarea left", e
+        # limit changing events, to avoid flickering during UI update
+        change = @props.show_upload != enter
+        if change and @_show_upload_last > (+new Date()) - 100
+            return
+        if e?
+            e.stopPropagation()
+            e.preventDefault()
+            # The very first time the event fires, it has a target attached and then it fires again.
+            # This filteres the very first time it is triggered to avoid double-firing.
+            if target?
+                return
+        @props.actions.show_upload(enter)
+
+    render : ->
+        {SMC_Dropzone} = require('./r_misc')
+
+        dropzone_handler =
+            dragleave : (e) => @show_upload(e, false)
+            complete  : => @props.actions.set_directory_files(@props.current_path)
+
+        <div>
+            {<Col sm=12 key='upload'>
+                <SMC_Dropzone
+                    dropzone_handler     = dropzone_handler
+                    project_id           = @props.project_id
+                    current_path         = @props.current_path
+                    close_button_onclick = {=>@show_upload(null, false)} />
+            </Col> if @props.show_upload}
+            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)} onDragLeave={(e) => @show_upload(e, false)}>
+                {@render_terminal_mode()}
+                {@parent_directory()}
+                {@render_rows()}
+                {@render_no_files()}
+            </Col>
+        </div>
 
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
@@ -1709,7 +1751,7 @@ ProjectFilesNew = rclass
 
     render: ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={width:'111px'}>
+        <div style={width:'111px', display: 'inline-block', marginRight: '20px' }>
             <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1750,6 +1792,7 @@ exports.ProjectFiles = rclass ({name}) ->
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
+            show_upload         : rtypes.bool
             directory_listings  : rtypes.object
             get_displayed_listing : rtypes.func
             new_name            : rtypes.string
@@ -1848,14 +1891,20 @@ exports.ProjectFiles = rclass ({name}) ->
             project_id   = {@props.project_id}
             actions      = {@props.actions} />
 
-    render_new_file: ->
-        <Col sm=2>
+    render_new_file : ->
+        style = if @props.show_upload then 'primary' else 'default'
+        <Col sm=3>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
+            <Button
+                bsStyle={style}
+                onClick={@props.actions.toggle_upload}
+                active={@props.show_upload}
+            ><Icon name='upload' /> Upload</Button>
         </Col>
 
     render_activity: ->
@@ -1940,7 +1989,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 actions             = {@props.actions}
                 create_file         = {@create_file}
                 create_folder       = {@create_folder}
-                selected_file_index = {@props.selected_file_index} />
+                selected_file_index = {@props.selected_file_index}
+                project_id          = {@props.project_id}
+                show_upload         = {@props.show_upload} />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
@@ -2011,7 +2062,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 4}>
+                <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 <Col sm=3>
