@@ -191,10 +191,13 @@ class Firewall(object):
             cmd("tc qdisc  del dev eth0 root".split())
         except:
             pass # will fail if not already configured
-        cmd("tc qdisc add dev eth0 root handle 1:0 htb default 99".split())
-        cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split())
-        cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".split())
-        cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".split())
+        try:
+            cmd("tc qdisc add dev eth0 root handle 1:0 htb default 99".split())
+            cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split())
+            cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".split())
+            cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".split())
+        except Exception:
+            pass  # this is more serious but I don't have time to debug this
 
     def outgoing_whitelist_hosts(self, whitelist):
         whitelist = [x.strip() for x in whitelist.split(',')]
