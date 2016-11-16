@@ -155,7 +155,7 @@ class JupyterWrapper extends EventEmitter
         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='position:absolute'>")
             .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
-            .attr('scrolling', 'no')
+            .attr('scrolling', 'no').hide()
 
         # Unlike a normal DOM element, iframes can't be moved in and out of the DOM or have parents
         # changed without refreshing like crazy.  Due to react and _wanting_ to do all sizing via CSS,

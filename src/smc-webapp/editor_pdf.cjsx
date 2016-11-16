@@ -93,7 +93,7 @@ get_url = (project_id, path) ->
 
 create_iframe = (project_id, path) ->
     src = get_url(project_id, path)
-    frame = $("<iframe style='position:absolute' src=#{src} frameborder=0 scrolling=no>")
+    frame = $("<iframe style='position:absolute' src=#{src} frameborder=0 scrolling=no>").hide()
     iframes[key(project_id, path)] = frame
     $("body").append(frame)
     return
