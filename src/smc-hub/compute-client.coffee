@@ -1934,7 +1934,13 @@ class ProjectClient extends EventEmitter
                         args.push("--hidden")
                     if opts.time
                         args.push("--time")
-                    for k in ['path', 'start', 'limit']
+                    # prefix relative paths with ./ such that names starting with a dash do not confuse parsing arguments
+                    args.push("--path")
+                    if opts.path[0] isnt '/'
+                        args.push("./#{opts.path}")
+                    else
+                        args.push(opts.path)
+                    for k in ['start', 'limit']
                         args.push("--#{k}"); args.push(opts[k])
                     dbg("get listing of files using options #{misc.to_safe_str(args)}")
                     @_action
