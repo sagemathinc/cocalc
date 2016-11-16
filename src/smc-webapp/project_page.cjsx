@@ -334,7 +334,7 @@ ProjectMainContent = rclass
             # 2 column layout with chat
             content =\
                 <div
-                    style = {position: 'absolute', height:'100%', display:'flex'}
+                    style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
                     <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px'}>
