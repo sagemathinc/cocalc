@@ -295,7 +295,10 @@ exports.message_colors = (account_id, message) ->
         return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
 
 exports.render_timeago = (message) ->
-    <span className="pull-right small">
+    <span
+        className = "pull-right small"
+        style     = {maxWidth:'20%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
+        >
         <TimeAgo date={new Date(message.get('date'))} />
     </span>
 

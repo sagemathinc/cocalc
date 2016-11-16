@@ -449,7 +449,7 @@ ChatRoom = rclass ({name}) ->
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
-                        placeholder    = {'Type a message, then shift+enter...'}
+                        placeholder    = {'Type a message...'}
                         onChange       = {(e) => @props.actions.set_input(e.target.value);}
                     />
                     <Button
@@ -461,7 +461,7 @@ ChatRoom = rclass ({name}) ->
                     </Button>
                 </div>
                 <div style={color:"#888", padding:'5px'}>
-                    Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.  Shift+enter to send and double click to edit.
+                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.
                 </div>
             </div>
         </div>
