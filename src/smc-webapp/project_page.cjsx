@@ -488,7 +488,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 >
                     {@file_tabs()}
                 </SortableNav>
-                {@render_chat_indicator()}
+                {@render_chat_indicator() if not is_public}
             </div>
         </div>
 
