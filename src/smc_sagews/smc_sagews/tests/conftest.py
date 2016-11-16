@@ -520,6 +520,21 @@ def execblob(request, sagews, test_id):
 
     return execblobfn
 
+@pytest.fixture()
+def execintrospect(request, sagews, test_id):
+    def execfn(line, completions):
+        m = message.introspect(test_id, line=line, top=line)
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == completions
+        assert mesg['target'] == "fa"
+
+    return execfn
+
 @pytest.fixture(scope = "class")
 def sagews(request):
     r"""
