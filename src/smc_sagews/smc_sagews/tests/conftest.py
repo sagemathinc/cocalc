@@ -522,8 +522,10 @@ def execblob(request, sagews, test_id):
 
 @pytest.fixture()
 def execintrospect(request, sagews, test_id):
-    def execfn(line, completions):
-        m = message.introspect(test_id, line=line, top=line)
+    def execfn(line, completions, top=None):
+        if top is None:
+            top = line
+        m = message.introspect(test_id, line=line, top=top)
         m['preparse'] = True
         sagews.send_json(m)
         typ, mesg = sagews.recv()
