@@ -381,6 +381,43 @@ rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
 Object.assign(rtypes, React.PropTypes)
 
 ###
+Extras for testing with Selenium
+###
+
+_orig_createElement = React.createElement
+_datatest = {}
+React.createElement = (type, props, children) ->
+    _ = require('underscore')
+    props = arguments[1] ? {}
+    if DEBUG
+        {Properties} = require('react/lib/HTMLDOMPropertyConfig.js')
+        data = []
+        if props['data-val']?
+            data.push(props['data-val'])
+        test = props['data-test'] ? props['test']
+        for name, val of props
+            if name == 'test' or name.startsWith('data-')
+                continue
+            if _.has(Properties, name)
+                continue
+            if _.some([_.isString, _.isNumber, _.isBoolean], (test) -> test(val))
+                data.push("#{name}:#{val}")
+        val = data.sort().join('|')
+        key = "#{type}::#{val}"
+        num = _datatest[key] = (_datatest[key] ? -1) + 1
+        props['data-val'] = val
+        props['data-num'] = num
+        if test?
+            props['data-test'] = test
+    else
+        delete props['data-test']
+        delete props['data-val']
+
+    # console.log 'createElement/data-test', props['data-test']
+    arguments[1] = props
+    return _orig_createElement.apply(this, arguments)
+
+###
 Tests if the categories are working correctly.
 test = () ->
     a = "q"
@@ -517,4 +554,5 @@ exports.ReactDOM = require('react-dom')
 
 if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
+    smc?.react = exports
 

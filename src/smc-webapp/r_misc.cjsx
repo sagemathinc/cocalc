@@ -537,6 +537,7 @@ exports.SearchInput = rclass
         on_down         : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
         buttonAfter     : rtypes.object
+        'data-test'     : rtypes.string
 
     getInitialState: ->
         value     : @props.default_value ? ''
@@ -611,6 +612,7 @@ exports.SearchInput = rclass
                     onChange    = {=>@set_value(ReactDOM.findDOMNode(@refs.input).value)}
                     onKeyDown   = {@key_down}
                     onKeyUp     = {@key_up}
+                    data-test   = {@props['data-test']}
                 />
                 <InputGroup.Button>
                     {@search_button()}

@@ -115,7 +115,7 @@ SignUp = rclass
             {@display_error("token")}
             {@display_passports()}
             <AccountCreationEmailInstructions />
-            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
+            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account} data-test='signup'>
                 <FormGroup>
                     {@display_error("first_name")}
                     <FormControl ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
@@ -178,7 +178,7 @@ SignIn = rclass
     render: ->
         if @props.xs
             <Col xs=12>
-                <form onSubmit={@sign_in} className='form-inline'>
+                <form onSubmit={@sign_in} className='form-inline' data-test='signin0'>
                     <Row>
                         <FormGroup>
                             <FormControl ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
@@ -206,7 +206,7 @@ SignIn = rclass
                 </form>
             </Col>
         else
-            <form onSubmit={@sign_in} className='form-inline'>
+            <form onSubmit={@sign_in} className='form-inline' data-test='signin1'>
                 <Grid fluid=true style={padding:0}>
                 <Row>
                     <Col xs=5>
@@ -295,7 +295,7 @@ ForgotPassword = rclass
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
                     <FormGroup>
-                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
+                        <FormControl ref='email' data-test='forgot-email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
                     </FormGroup>
                     {if @props.forgot_password_error then @display_error() else @display_success()}
                     <hr />

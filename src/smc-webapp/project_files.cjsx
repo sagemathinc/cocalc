@@ -1700,6 +1700,7 @@ ProjectFilesSearch = rclass
                 on_up         = {@on_up_press}
                 on_down       = {@on_down_press}
                 on_escape     = {@on_escape}
+                data-test     = 'project_files_filename'
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1752,7 +1753,7 @@ ProjectFilesNew = rclass
     render: ->
         # This div prevents the split button from line-breaking when the page is small
         <div style={width:'111px', display: 'inline-block', marginRight: '20px' }>
-            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
+            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} data-test='project_files_create'>
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>

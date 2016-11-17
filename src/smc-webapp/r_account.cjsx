@@ -50,6 +50,7 @@ TextSetting = rclass
         value    : rtypes.string
         onChange : rtypes.func.isRequired
         onBlur   : rtypes.func
+        test     : rtypes.string
 
     getValue: ->
         ReactDOM.findDOMNode(@refs.input).value
@@ -58,11 +59,12 @@ TextSetting = rclass
         <LabeledRow label={@props.label}>
             <FormGroup>
                 <FormControl
-                    ref      = 'input'
-                    type     = 'text'
-                    value    = {@props.value}
-                    onChange = {@props.onChange}
-                    onBlur   = {@props.onBlur}
+                    ref       = 'input'
+                    type      = 'text'
+                    data-test = {@props.test}
+                    value     = {@props.value}
+                    onChange  = {@props.onChange}
+                    onBlur    = {@props.onBlur}
                 />
             </FormGroup>
         </LabeledRow>
@@ -73,6 +75,7 @@ EmailAddressSetting = rclass
     propTypes :
         email_address : rtypes.string
         redux         : rtypes.object
+        test          : rtypes.string
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -134,6 +137,7 @@ EmailAddressSetting = rclass
                     ref         = 'email_address'
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
+                    test        = {if @props.test then "#{@props.test}-email" else null}
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
                 />
             </FormGroup>
@@ -145,6 +149,7 @@ EmailAddressSetting = rclass
                         ref         = 'password'
                         value       = {@state.password}
                         placeholder = 'Current password'
+                        test        = {if @props.test then "#{@props.test}-password" else null}
                         onChange    = {=>@setState(password : ReactDOM.findDOMNode(@refs.password).value)}
                     />
                 </FormGroup>
@@ -458,6 +463,7 @@ AccountSettings = rclass
                 ref      = 'first_name'
                 onChange = {(e)=>@handle_change(e, 'first_name')}
                 onBlur   = {(e)=>@save_change(e, 'first_name')}
+                test     = 'first_name'
                 />
             <TextSetting
                 label    = 'Last name'
@@ -465,11 +471,13 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
+                test     = 'last_name'
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 redux      = {@props.redux}
                 ref        = 'email_address'
+                test       = 'email_address'
                 />
             <PasswordSetting
                 email_address = {@props.email_address}

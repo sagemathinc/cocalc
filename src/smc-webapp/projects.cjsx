@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -1082,7 +1082,7 @@ ProjectRow = rclass
             cursor          : 'pointer'
             wordWrap        : 'break-word'
 
-        <Well style={project_row_styles} onClick={@open_project_from_list}>
+        <Well style={project_row_styles} onClick={@open_project_from_list} data-test={"project-#{@props.project.title}"}>
             <Row>
                 <Col sm=3 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     <a>{html_to_text(@props.project.title)}</a>
