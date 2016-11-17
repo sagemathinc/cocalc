@@ -87,6 +87,8 @@ src/k8s/smc-webapp-static/image/google_analytics
 src/smc-build/smc-compute-env.html
 smc/src/smc-build/prometheus/alertmanager.yml
 
+e2e.ini
+
 **/octave-workspace
 **/.cache/
 .gitignore
