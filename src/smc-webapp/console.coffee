@@ -180,8 +180,6 @@ class Console extends EventEmitter
             @textarea.on 'blur', =>
                 if @_focusing?          # see comment in @focus.
                     @_focus_hidden_textarea()
-                else
-                    @blur()
 
         # delete scroll buttons except on mobile
         if not IS_MOBILE
