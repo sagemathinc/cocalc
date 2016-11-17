@@ -20,6 +20,8 @@
 #
 ###############################################################################
 
+{debounce} = require('underscore')
+
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
@@ -51,6 +53,10 @@ exports.ChatIndicator = rclass
         project_id   : rtypes.string.isRequired
         path         : rtypes.string.isRequired
         is_chat_open : rtypes.bool
+
+
+    componentWillMount: ->
+        @toggle_chat = debounce(@toggle_chat, 500, true)
 
     toggle_chat: ->
         a = redux.getProjectActions(@props.project_id)
@@ -95,7 +101,7 @@ exports.ChatIndicator = rclass
                 placement = 'left'
                 delayShow = 2500
                 >
-                <span onClick={=>@toggle_chat()}>
+                <span onClick={@toggle_chat}>
                     <Icon name="caret-#{dir}" />
                     <Space />
                     <Icon name='comment' />

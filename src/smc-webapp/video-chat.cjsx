@@ -132,7 +132,7 @@ exports.VideoChatButton = rclass
     componentWillMount: ->
         @video_chat = new VideoChat(@props.project_id, @props.path, @props.account_id)
         @setInterval((=> @forceUpdate()), VIDEO_UPDATE_INTERVAL_MS/2)
-        @click_video_button = debounce(@click_video_button, 2500, true)
+        @click_video_button = debounce(@click_video_button, 750, true)
 
     click_video_button: ->
         if @video_chat.we_are_chatting()    # we are chatting, so stop chatting
@@ -178,7 +178,7 @@ exports.VideoChatButton = rclass
             title     = {<span>Toggle Video Chat</span>}
             tip       = {@render_tip(num_users_chatting)}
             placement = 'left'
-            delayShow = 600
+            delayShow = 1000
             >
             <span onClick={@click_video_button} style={style}>
                 <Icon name='video-camera'/>
