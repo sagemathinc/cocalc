@@ -337,13 +337,13 @@ ProjectMainContent = rclass
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px'}>
+                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%'}>
                         {editor}
                     </div>
                     {@render_drag_bar(path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px'}>
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
                         {@render_side_chat(path)}
                     </div>
                 </div>
