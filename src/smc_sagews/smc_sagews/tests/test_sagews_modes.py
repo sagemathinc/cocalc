@@ -22,6 +22,26 @@ Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
         htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
         exec2(code, html_pattern = htmp)
 
+    def test_p3_pandas(self, exec2):
+        code = dedent('''
+        %python3
+        import pandas as pd
+        from io import StringIO
+
+        df_csv = r"""Item,Category,Quantity,Weight
+        Pack,Pack,1,33.0
+        Tent,Shelter,1,80.0
+        Sleeping Pad,Sleep,0,27.0
+        Sleeping Bag,Sleep,1,20.0
+        Shoes,Clothing,1,12.0
+        Hat,Clothing,1,2.5"""
+        mydata = pd.read_csv(StringIO(df_csv))
+        mydata.shape''').strip()
+        exec2(code,"(6, 4)")
+
+    def test_p3_autocomplete(self, execintrospect):
+        execintrospect('myd', ["ata"], 'myd', '%python3')
+
 class TestPython3DefaultMode:
     def test_set_python3_mode(self, exec2):
         exec2("%default_mode python3")
@@ -65,16 +85,8 @@ class TestShMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("%sh TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='%sh')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV', '%sh')
 
     def test_bad_command(self, exec2):
         exec2("%sh xyz", pattern="command not found")
@@ -106,16 +118,8 @@ class TestShDefaultMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV')
 
 class TestRMode:
     def test_assignment(self, exec2):

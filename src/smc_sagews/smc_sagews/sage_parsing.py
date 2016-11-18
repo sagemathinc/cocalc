@@ -371,10 +371,11 @@ def introspect(code, namespace, preparse=True):
                 get_help = False; get_completions = True; get_source = False
                 i      = expr.rfind('.')
                 target = expr[i+1:]
-                if target == '' or is_valid_identifier(target) or '*' in expr:
-                    # this case includes list.*end<tab>
+                if target == '' or is_valid_identifier(target) or '*' in expr and '* ' not in expr:
+                    # this case includes list.*end[tab]
                     obj    = expr[:i]
                 else:
+                    # this case includes aaa=...;3 * aa[tab]
                     expr = guess_last_expression(target)
                     i = expr.rfind('.')
                     if i != -1:
@@ -386,7 +387,8 @@ def introspect(code, namespace, preparse=True):
         if get_completions and target == expr:
             j      = len(expr)
             if '*' in expr:
-                # this case includes *_factors<TAB>
+                #if '*' in expr and '* ' not in expr:
+                # this case includes *_factors<TAB> and abc =...;3 * ab[tab]
                 try:
                     pattern = expr.replace("*",".*").replace("?",".")
                     reg = re.compile(pattern+"$")
@@ -488,7 +490,8 @@ def introspect(code, namespace, preparse=True):
                         v += O.trait_names()
                     if not target.startswith('_'):
                         v = [x for x in v if x and not x.startswith('_')]
-                    if '*' in expr:
+                    # this case excludes abc = ...;for a in ab[tab]
+                    if '*' in expr and '* ' not in expr:
                         try:
                             pattern = target.replace("*",".*").replace("?",".")
                             reg = re.compile(pattern+"$")
