@@ -29,8 +29,6 @@ project_file = require('./project_file')
 misc = require('misc')
 misc_page = require('./misc_page')
 
-FILE_NAV_HEIGHT = '36px'
-
 DEFAULT_CHAT_WIDTH = 0.3
 
 DEFAULT_FILE_TAB_STYLES =
@@ -462,12 +460,12 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%'}>
             <div style={display:'flex'}>
                 <Nav
                     bsStyle   = "pills"
                     className = "smc-file-tabs-fixed-desktop"
-                    style     = {overflow:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
+                    style     = {overflow:'hidden', float:'left'} >
                     {[<FileTab
                         name       = {k}
                         label      = {v.label}
@@ -487,7 +485,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     lockToContainerEdges = {true}
                     distance             = {3 if not IS_MOBILE}
                     bsStyle              = "pills"
-                    style                = {display:'flex', height:FILE_NAV_HEIGHT, overflow:'hidden', flex: 1}
+                    style                = {display:'flex', overflow:'hidden', flex: 1}
                 >
                     {@file_tabs()}
                 </SortableNav>
