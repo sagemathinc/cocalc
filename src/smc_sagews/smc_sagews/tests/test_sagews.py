@@ -64,17 +64,6 @@ class TestBasic:
         assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
         conftest.recv_til_done(sagews, test_id)
 
-    def test_sage_autocomplete(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='2016.fa', top='2016.fa')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["ctor","ctorial"]
-        assert mesg['target'] == "fa"
-
     # https://github.com/sagemathinc/smc/issues/1107
     def test_sage_underscore_1(self, exec2):
         exec2("2/5","2/5\n")
@@ -110,6 +99,50 @@ class TestBasic:
             z
         else:
             z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
+
+class TestIntrospect:
+    # test names end with SMC issue number
+    def test_sage_autocomplete_1188(self, execintrospect):
+        execintrospect('2016.fa', ["ctor","ctorial"], "fa")
+    def test_sage_autocomplete_295_setup(self, exec2):
+        exec2("aaa=Rings()._super_categories_for_classes;len(aaa[0].axioms())","6\n")
+    def test_sage_autocomplete_295a(self, execintrospect):
+        execintrospect('for a in aa', ["a"], "aa")
+    def test_sage_autocomplete_295b(self, execintrospect):
+        execintrospect('3 * aa', ["a"], "aa")
+    def test_sage_autocomplete_701_setup(self, exec2):
+        exec2(dedent("""
+        class Xyz:
+            numerical_attribute = 42
+        x1 = Xyz()
+        x1.numerical_attribute.next_prime()"""),"43\n")
+    def test_sage_autocomplete_701a(self, execintrospect):
+        execintrospect('3 / x1.nu', ["merical_attribute"], "nu")
+    def test_sage_autocomplete_701b(self, execintrospect):
+        execintrospect('aa', ["a"], "aa")
+    def test_sage_autocomplete_701c(self, execintrospect):
+        execintrospect('[aa', ["a"], "aa")
+    def test_sage_autocomplete_701d(self, execintrospect):
+        execintrospect('( aa', ["a"], "aa")
+    def test_sage_autocomplete_734a(self, execintrospect):
+        f = '*_factors'
+        execintrospect(f, ["cunningham_prime_factors", "prime_factors"], f)
+    def test_sage_autocomplete_734b(self, execintrospect):
+        f = '*le_pr*'
+        execintrospect(f, ["next_probable_prime"], f)
+    def test_sage_autocomplete_734c(self, execintrospect):
+        execintrospect('list.re*e', ["remove", "reverse"], 're*e')
+    def test_sage_autocomplete_1225a(self, execintrospect):
+        execintrospect('z = 12.5 * units.len', ["gth"], 'len')
+    def test_sage_autocomplete_1225b_setup(self, exec2):
+        exec2(dedent("""
+        class TC:
+            def __init__(self, xval):
+                self.x = xval
+        y = TC(49)
+        """))
+    def test_sage_autocomplete_1225b(self, execintrospect):
+        execintrospect('z = 12 * y.', ["x"], '')
 
 class TestAttach:
     def test_define_paf(self, exec2):

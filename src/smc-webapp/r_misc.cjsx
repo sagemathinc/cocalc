@@ -1536,3 +1536,55 @@ exports.UpgradeAdjustor = rclass
                     </Button>
                 </ButtonToolbar>
             </Alert>
+
+
+###
+Drag'n'Drop dropzone area
+###
+ReactDOMServer = require('react-dom/server')   # for dropzone below
+Dropzone       = require('react-dropzone-component')
+
+exports.SMC_Dropzone = rclass
+    displayName: 'SMC_Dropzone'
+
+    propTypes:
+        project_id           : rtypes.string.isRequired
+        current_path         : rtypes.string.isRequired
+        dropzone_handler     : rtypes.object.isRequired
+
+    dropzone_template : ->
+        <div className='dz-preview dz-file-preview'>
+            <div className='dz-details'>
+                <div className='dz-filename'><span data-dz-name></span></div>
+                <img data-dz-thumbnail />
+            </div>
+            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-error-message'><span data-dz-errormessage></span></div>
+        </div>
+
+    postUrl : ->
+        dest_dir = misc.encode_path(@props.current_path)
+        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        return postUrl
+
+    render: ->
+        <div>
+            {<div className='close-button pull-right'>
+                <span
+                    onClick={@props.close_button_onclick}
+                    className='close-button-x'
+                    style={cursor: 'pointer', fontSize: '18px', color:'gray'}><i className="fa fa-times"></i></span>
+            </div> if @props.close_button_onclick?}
+            <Tip icon='file' title='Drag and drop files' placement='top'
+                tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+                <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
+            </Tip>
+            <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
+                <Dropzone
+                    config        = {postUrl: @postUrl()}
+                    eventHandlers = {@props.dropzone_handler}
+                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
+            </div>
+        </div>

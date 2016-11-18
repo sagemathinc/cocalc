@@ -300,6 +300,7 @@
     - glpk-utils
     - glpk-doc
     - gmsh
+    - gnucash
     - gnugo
     - gnu-smalltalk
     - golang-go
@@ -318,6 +319,9 @@
     - hdf5-helpers
     - hexcurse
     - hexer
+    - hledger
+    #- hledger-ui
+    - hledger-web
     - hsbrainfuck
     - htop
     - iceweasel

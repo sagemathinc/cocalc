@@ -296,6 +296,7 @@ SAGE_PIP_PACKAGES = [
     'keras',
     'altair', # https://github.com/ellisonbg/altair
     'BooleanNet', # https://github.com/ialbert/booleannet (called "boolean2")
+    'textblob', # https://textblob.readthedocs.io/en/dev/
     ]
 
 # additional environment settings for specific packages
