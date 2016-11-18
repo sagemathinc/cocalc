@@ -82,9 +82,7 @@ refresh_iframe = (project_id, path, elt, show) ->
         return
     if show
         iframe.show()
-        iframe.offset(elt.offset())
-        iframe.width(elt.width())
-        iframe.height(elt.height())
+        iframe.exactly_cover(elt)
     else
         iframe.hide()
 

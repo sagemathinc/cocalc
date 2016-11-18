@@ -425,7 +425,7 @@ ChatRoom = rclass ({name}) ->
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
-        <div style       = {height:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
+        <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
              onMouseMove = {mark_as_read}>
             <div style   = {log_container_style}
                  ref     = 'log_container'

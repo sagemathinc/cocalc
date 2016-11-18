@@ -99,7 +99,16 @@ $.fn.spin = (opts) ->
             delete data.spinner
         if opts isnt false
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
-    this
+    return this
+
+# jQuery plugin for spinner (/spin/spin.min.js)
+$.fn.exactly_cover = (other) ->
+    @each ->
+        elt = $(this)
+        elt.offset(other.offset())
+        elt.width(other.width())
+        elt.height(other.height())
+    return this
 
 # make all links open internally or in a new tab; etc.
 # opts={project_id:?, file_path:path that contains file}

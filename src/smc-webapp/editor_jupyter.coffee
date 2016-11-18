@@ -152,7 +152,7 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='position:absolute'>")
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='position:fixed'>")
             .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no').hide()
@@ -206,6 +206,7 @@ class JupyterWrapper extends EventEmitter
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
                     @disable_autosave()
+                    @remove_modal_backdrop()
                     @state = 'ready'
                     @emit('ready')
                     cb()
@@ -223,9 +224,7 @@ class JupyterWrapper extends EventEmitter
     refresh: =>
         if @element.is(':visible')
             @iframe.show()
-            @iframe.offset(@element.offset())
-            @iframe.width(@element.width())
-            @iframe.height(@element.height())
+            @iframe.exactly_cover(@element)
         else
             @iframe.hide()
 
@@ -271,6 +270,11 @@ class JupyterWrapper extends EventEmitter
         # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
         @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+
+    remove_modal_backdrop: =>
+        # For mysterious reasons, this modal-backdrop div
+        # gets left on Firefox, which makes it impossible to use.
+        @frame.jQuery(".modal-backdrop").remove()
 
     install_custom_undo_redo: (undo, redo) =>
         @frame.CodeMirror.prototype.undo = undo
