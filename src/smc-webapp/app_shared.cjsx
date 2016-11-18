@@ -153,7 +153,10 @@ exports.ConnectionIndicator = rclass
         if @props.connection_status == 'connected'
             <div>
                 <Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} />
-                {<Tip title={'Most recently recorded roundtrip time to message the server.'}>
+                {<Tip
+                    title     = {'Most recently recorded roundtrip time to the server.'}
+                    placement = {'left'}
+                    >
                     {Math.floor(@props.avgping)}ms
                 </Tip> if @props.avgping?}
             </div>
