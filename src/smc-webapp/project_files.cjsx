@@ -124,19 +124,19 @@ FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
 
     propTypes :
-        name          : rtypes.string.isRequired
-        display_name  : rtypes.string  # if given, will display this, and will show true filename in popover
-        size          : rtypes.number.isRequired
-        time          : rtypes.number
-        checked       : rtypes.bool
-        bordered      : rtypes.bool
-        color         : rtypes.string
-        mask          : rtypes.bool
-        public_data   : rtypes.object
-        is_public     : rtypes.bool
-        current_path  : rtypes.string
-        actions       : rtypes.object.isRequired
-        shift_is_down : rtypes.bool
+        name         : rtypes.string.isRequired
+        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
+        size         : rtypes.number.isRequired
+        time         : rtypes.number
+        checked      : rtypes.bool
+        bordered     : rtypes.bool
+        color        : rtypes.string
+        mask         : rtypes.bool
+        public_data  : rtypes.object
+        is_public    : rtypes.bool
+        current_path : rtypes.string
+        actions      : rtypes.object.isRequired
+        no_select    : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.name != next.name          or
@@ -148,7 +148,7 @@ FileRow = rclass
         @props.public_data != next.public_data   or
         @props.current_path != next.current_path or
         @props.bordered != next.border           or
-        @props.shift_is_down != next.shift_is_down
+        @props.no_select != next.no_select
 
     render_icon: ->
         ext   = misc.filename_extension(@props.name)
@@ -250,7 +250,7 @@ FileRow = rclass
             style={row_styles}
             onMouseDown={@handle_mouse_down}
             onClick={@handle_click}
-            className={'noselect' if @props.shift_is_down}
+            className={'noselect' if @props.no_select}
         >
             <Col sm=2 xs=3>
                 <FileCheckbox
@@ -286,18 +286,18 @@ DirectoryRow = rclass
     displayName : 'ProjectFiles-DirectoryRow'
 
     propTypes :
-        name          : rtypes.string.isRequired
-        display_name  : rtypes.string  # if given, will display this, and will show true filename in popover
-        checked       : rtypes.bool
-        color         : rtypes.string
-        bordered      : rtypes.bool
-        time          : rtypes.number
-        mask          : rtypes.bool
-        public_data   : rtypes.object
-        is_public     : rtypes.bool
-        current_path  : rtypes.string
-        actions       : rtypes.object.isRequired
-        shift_is_down : rtypes.bool
+        name         : rtypes.string.isRequired
+        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
+        checked      : rtypes.bool
+        color        : rtypes.string
+        bordered     : rtypes.bool
+        time         : rtypes.number
+        mask         : rtypes.bool
+        public_data  : rtypes.object
+        is_public    : rtypes.bool
+        current_path : rtypes.string
+        actions      : rtypes.object.isRequired
+        no_select    : rtypes.bool
 
     handle_mouse_down: (e) ->
         @setState
@@ -362,7 +362,7 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onMouseDown={@handle_mouse_down} onClick={@handle_click} className={'noselect' if @props.shift_is_down}>
+        <Row style={row_styles} onMouseDown={@handle_mouse_down} onClick={@handle_click} className={'noselect' if @props.no_select}>
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -534,10 +534,6 @@ pager_range = (page_size, page_number) ->
 FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
-    reduxProps:
-        page :
-            key_is_down : rtypes.immutable.Map
-
     propTypes:
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
@@ -553,6 +549,7 @@ FileListing = rclass
         selected_file_index : rtypes.number
         project_id          : rtypes.string
         show_upload         : rtypes.bool
+        shift_is_down       : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
@@ -574,39 +571,38 @@ FileListing = rclass
         else
             color = 'white'
         apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
-        shift_is_down = @props.key_is_down.get("Shift")
         if isdir
             return <DirectoryRow
-                name          = {name}
-                display_name  = {display_name}
-                time          = {time}
-                key           = {index}
-                color         = {color}
-                bordered      = {apply_border}
-                mask          = {mask}
-                public_data   = {public_data}
-                is_public     = {is_public}
-                checked       = {checked}
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                shift_is_down = {shift_is_down}
+                name         = {name}
+                display_name = {display_name}
+                time         = {time}
+                key          = {index}
+                color        = {color}
+                bordered     = {apply_border}
+                mask         = {mask}
+                public_data  = {public_data}
+                is_public    = {is_public}
+                checked      = {checked}
+                current_path = {@props.current_path}
+                actions      = {@props.actions}
+                no_select    = {@props.shift_is_down}
             />
         else
             return <FileRow
-                name          = {name}
-                display_name  = {display_name}
-                time          = {time}
-                size          = {size}
-                color         = {color}
-                bordered      = {apply_border}
-                mask          = {mask}
-                public_data   = {public_data}
-                is_public     = {is_public}
-                checked       = {checked}
-                key           = {index}
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                shift_is_down = {shift_is_down}
+                name         = {name}
+                display_name = {display_name}
+                time         = {time}
+                size         = {size}
+                color        = {color}
+                bordered     = {apply_border}
+                mask         = {mask}
+                public_data  = {public_data}
+                is_public    = {is_public}
+                checked      = {checked}
+                key          = {index}
+                current_path = {@props.current_path}
+                actions      = {@props.actions}
+                no_select    = {@props.shift_is_down}
             />
 
     handle_parent: (e) ->
@@ -1837,6 +1833,25 @@ exports.ProjectFiles = rclass ({name}) ->
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
 
+    getInitialState: ->
+        shift_is_down : false
+
+    componentDidMount: ->
+        $(window).on("keydown", @handle_files_key_down)
+        $(window).on("keyup", @handle_files_key_up)
+
+    componentWillUnmount: ->
+        $(window).off("keydown", @handle_files_key_down)
+        $(window).off("keyup", @handle_files_key_up)
+
+    handle_files_key_down: (e) ->
+        if e.key == "Shift"
+            @setState(shift_is_down : true)
+
+    handle_files_key_up: (e) ->
+        if e.key == "Shift"
+            @setState(shift_is_down : false)
+
     previous_page: ->
         if @props.page_number > 0
             @actions(name).setState(page_number : @props.page_number - 1)
@@ -2018,7 +2033,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_folder       = {@create_folder}
                 selected_file_index = {@props.selected_file_index}
                 project_id          = {@props.project_id}
-                show_upload         = {@props.show_upload} />
+                show_upload         = {@props.show_upload}
+                shift_is_down       = {@state.shift_is_down}
+            />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
