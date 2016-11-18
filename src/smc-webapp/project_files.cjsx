@@ -116,7 +116,7 @@ FileCheckbox = rclass
         @props.actions.set_most_recent_file_click(full_name)
 
     render: ->
-        <span onClick={@handle_click} onMouseDown={(e)=>e.stopPropagation()} onMouseUp={(e)=>e.stopPropagation()} style={@props.style}>
+        <span onClick={@handle_click} style={@props.style}>
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
