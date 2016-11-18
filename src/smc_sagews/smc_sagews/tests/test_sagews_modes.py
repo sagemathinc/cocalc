@@ -22,6 +22,26 @@ Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
         htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
         exec2(code, html_pattern = htmp)
 
+    def test_p3_pandas(self, exec2):
+        code = dedent('''
+        %python3
+        import pandas as pd
+        from io import StringIO
+
+        df_csv = r"""Item,Category,Quantity,Weight
+        Pack,Pack,1,33.0
+        Tent,Shelter,1,80.0
+        Sleeping Pad,Sleep,0,27.0
+        Sleeping Bag,Sleep,1,20.0
+        Shoes,Clothing,1,12.0
+        Hat,Clothing,1,2.5"""
+        mydata = pd.read_csv(StringIO(df_csv))
+        mydata.shape''').strip()
+        exec2(code,"(6, 4)")
+
+    def test_p3_autocomplete(self, execintrospect):
+        execintrospect('myd', ["ata"], 'myd', '%python3')
+
 class TestPython3DefaultMode:
     def test_set_python3_mode(self, exec2):
         exec2("%default_mode python3")
