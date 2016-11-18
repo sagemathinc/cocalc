@@ -89,6 +89,7 @@ class exports.HistoryEditor extends FileEditor
 
     close: () =>
         @syncstring?.close()
+        @view_doc?.close()
 
     disconnect_from_session: =>
         @close()
@@ -468,7 +469,7 @@ class exports.HistoryEditor extends FileEditor
             @mounted = true
         return @mounted
 
-    show: () =>
+    show: =>
         if not @is_active() or not @element? or not @view_doc?
             return
         top = redux.getProjectStore(@project_id).get('editor_top_position')
@@ -480,6 +481,9 @@ class exports.HistoryEditor extends FileEditor
         @view_doc.show(top:x.offset().top + x.height() + 15)
         if @ext == 'sagews'
             @worksheet?.process_sage_updates()
+
+    hide: =>
+        @view_doc?.hide()
 
     load_full_history: (cb) =>
         n = @syncstring.all_versions().length

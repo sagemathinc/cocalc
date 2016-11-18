@@ -1112,14 +1112,14 @@ class JupyterNotebook extends EventEmitter
             top    : redux.getProjectStore(@project_id).get('editor_top_position')
             width  : $(window).width()
             height : undefined  # not implemented
-        @element.css(top:top)
+        @element.show().css(top:top)
         if top == 0
             @element.css('position':'fixed')
         @dom?.refresh()
 
     hide: =>
+        @element.hide()
         @dom?.refresh()
-
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
