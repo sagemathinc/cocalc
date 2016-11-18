@@ -425,6 +425,8 @@ ChatRoom = rclass ({name}) ->
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
+        # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
+
         <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
              onMouseMove = {mark_as_read}>
             <div style   = {log_container_style}
@@ -444,7 +446,7 @@ ChatRoom = rclass ({name}) ->
                 <div style={display:'flex', height:'6em'}>
                     <FormControl
                         style          = {width:'85%', height:'100%'}
-                        autoFocus      = {true}
+                        autoFocus      = {false}
                         componentClass = 'textarea'
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
