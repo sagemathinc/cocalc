@@ -1062,6 +1062,14 @@ ProjectRow = rclass
                            user_map    = {@props.user_map} />
         return r_join(users)
 
+    handle_mouse_down: (e) ->
+        @setState
+            highlighted_text : window.getSelection().toString()
+
+    handle_click: (e) ->
+        if window.getSelection().toString() == @state.highlighted_text
+            @open_project_from_list(e)
+
     open_project_from_list: (e) ->
         @actions('projects').open_project
             project_id : @props.project.project_id
@@ -1082,7 +1090,7 @@ ProjectRow = rclass
             cursor          : 'pointer'
             wordWrap        : 'break-word'
 
-        <Well style={project_row_styles} onClick={@open_project_from_list}>
+        <Well style={project_row_styles} onClick={@handle_click} onMouseDown={@handle_mouse_down}>
             <Row>
                 <Col sm=3 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     <a>{html_to_text(@props.project.title)}</a>
