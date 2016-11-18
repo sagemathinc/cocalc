@@ -116,7 +116,7 @@ FileCheckbox = rclass
         @props.actions.set_most_recent_file_click(full_name)
 
     render: ->
-        <span onClick={@handle_click} style={@props.style}>
+        <span onClick={@handle_click} onMouseDown={(e)=>e.stopPropagation()} onMouseUp={(e)=>e.stopPropagation()} style={@props.style}>
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
@@ -124,18 +124,19 @@ FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
 
     propTypes :
-        name         : rtypes.string.isRequired
-        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
-        size         : rtypes.number.isRequired
-        time         : rtypes.number
-        checked      : rtypes.bool
-        bordered     : rtypes.bool
-        color        : rtypes.string
-        mask         : rtypes.bool
-        public_data  : rtypes.object
-        is_public    : rtypes.bool
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
+        name          : rtypes.string.isRequired
+        display_name  : rtypes.string  # if given, will display this, and will show true filename in popover
+        size          : rtypes.number.isRequired
+        time          : rtypes.number
+        checked       : rtypes.bool
+        bordered      : rtypes.bool
+        color         : rtypes.string
+        mask          : rtypes.bool
+        public_data   : rtypes.object
+        is_public     : rtypes.bool
+        current_path  : rtypes.string
+        actions       : rtypes.object.isRequired
+        shift_is_down : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.name != next.name          or
@@ -146,7 +147,8 @@ FileRow = rclass
         @props.mask != next.mask                 or
         @props.public_data != next.public_data   or
         @props.current_path != next.current_path or
-        @props.bordered != next.border
+        @props.bordered != next.border           or
+        @props.shift_is_down != next.shift_is_down
 
     render_icon: ->
         ext   = misc.filename_extension(@props.name)
@@ -214,11 +216,16 @@ FileRow = rclass
     fullpath: ->
         misc.path_to_file(@props.current_path, @props.name)
 
+    handle_mouse_down: (e) ->
+        @setState
+            highlighted_text : window.getSelection().toString()
+
     handle_click: (e) ->
-        @props.actions.open_file
-            path       : @fullpath()
-            foreground : misc.should_open_in_foreground(e)
-        @props.actions.set_file_search('')
+        if window.getSelection().toString() == @state.highlighted_text
+            @props.actions.open_file
+                path       : @fullpath()
+                foreground : misc.should_open_in_foreground(e)
+            @props.actions.set_file_search('')
 
     handle_download_click: (e) ->
         e.preventDefault()
@@ -239,7 +246,12 @@ FileRow = rclass
         # support right-click → copy url for the download button
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row
+            style={row_styles}
+            onMouseDown={@handle_mouse_down}
+            onClick={@handle_click}
+            className={'noselect' if @props.shift_is_down}
+        >
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -274,22 +286,28 @@ DirectoryRow = rclass
     displayName : 'ProjectFiles-DirectoryRow'
 
     propTypes :
-        name         : rtypes.string.isRequired
-        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
-        checked      : rtypes.bool
-        color        : rtypes.string
-        bordered     : rtypes.bool
-        time         : rtypes.number
-        mask         : rtypes.bool
-        public_data  : rtypes.object
-        is_public    : rtypes.bool
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
+        name          : rtypes.string.isRequired
+        display_name  : rtypes.string  # if given, will display this, and will show true filename in popover
+        checked       : rtypes.bool
+        color         : rtypes.string
+        bordered      : rtypes.bool
+        time          : rtypes.number
+        mask          : rtypes.bool
+        public_data   : rtypes.object
+        is_public     : rtypes.bool
+        current_path  : rtypes.string
+        actions       : rtypes.object.isRequired
+        shift_is_down : rtypes.bool
 
-    handle_click: ->
-        path = misc.path_to_file(@props.current_path, @props.name)
-        @props.actions.open_directory(path)
-        @props.actions.set_file_search('')
+    handle_mouse_down: (e) ->
+        @setState
+            highlighted_text : window.getSelection().toString()
+
+    handle_click: (e) ->
+        if window.getSelection().toString() == @state.highlighted_text
+            path = misc.path_to_file(@props.current_path, @props.name)
+            @props.actions.open_directory(path)
+            @props.actions.set_file_search('')
 
     render_public_directory_info_popover: ->
         <Popover id={@props.name} title='This folder is being shared publicly' style={wordWrap:'break-word'}>
@@ -344,7 +362,7 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row style={row_styles} onMouseDown={@handle_mouse_down} onClick={@handle_click} className={'noselect' if @props.shift_is_down}>
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -514,9 +532,13 @@ pager_range = (page_size, page_number) ->
     return {start_index: start_index, end_index: start_index + page_size}
 
 FileListing = rclass
-    displayName : 'ProjectFiles-FileListing'
+    displayName: 'ProjectFiles-FileListing'
 
-    propTypes :
+    reduxProps:
+        page :
+            key_is_down : rtypes.immutable.Map
+
+    propTypes:
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -552,35 +574,40 @@ FileListing = rclass
         else
             color = 'white'
         apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
+        shift_is_down = @props.key_is_down.get("Shift")
         if isdir
             return <DirectoryRow
-                name         = {name}
-                display_name = {display_name}
-                time         = {time}
-                key          = {index}
-                color        = {color}
-                bordered     = {apply_border}
-                mask         = {mask}
-                public_data  = {public_data}
-                is_public    = {is_public}
-                checked      = {checked}
-                current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                name          = {name}
+                display_name  = {display_name}
+                time          = {time}
+                key           = {index}
+                color         = {color}
+                bordered      = {apply_border}
+                mask          = {mask}
+                public_data   = {public_data}
+                is_public     = {is_public}
+                checked       = {checked}
+                current_path  = {@props.current_path}
+                actions       = {@props.actions}
+                shift_is_down = {shift_is_down}
+            />
         else
             return <FileRow
-                name         = {name}
-                display_name = {display_name}
-                time         = {time}
-                size         = {size}
-                color        = {color}
-                bordered     = {apply_border}
-                mask         = {mask}
-                public_data  = {public_data}
-                is_public    = {is_public}
-                checked      = {checked}
-                key          = {index}
-                current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                name          = {name}
+                display_name  = {display_name}
+                time          = {time}
+                size          = {size}
+                color         = {color}
+                bordered      = {apply_border}
+                mask          = {mask}
+                public_data   = {public_data}
+                is_public     = {is_public}
+                checked       = {checked}
+                key           = {index}
+                current_path  = {@props.current_path}
+                actions       = {@props.actions}
+                shift_is_down = {shift_is_down}
+            />
 
     handle_parent: (e) ->
         e.preventDefault()

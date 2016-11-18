@@ -1,6 +1,7 @@
 {Actions, Store, redux} = require('./smc-react')
 {salvus_client}         = require('./salvus_client')
 misc                    = require('smc-util/misc')
+immutable               = require('immutable')
 
 {set_url}               = require('./history')
 {set_window_title}      = require('./browser')
@@ -159,8 +160,18 @@ class PageActions extends Actions
     sign_in: =>
         false
 
+    log_keydown: (e) =>
+        key_is_down = @redux.getStore('page').get('key_is_down')
+        @setState(key_is_down: key_is_down.set(e.key, true))
 
-redux.createActions('page', PageActions)
+    log_keyup: (e) =>
+        key_is_down = @redux.getStore('page').get('key_is_down')
+        @setState(key_is_down: key_is_down.set(e.key, false))
+
+actions = redux.createActions('page', PageActions)
+
+$(window).on("keydown", actions.log_keydown)
+$(window).on("keyup", actions.log_keyup)
 
 # FUTURE: Save entire state to database for #450, saved workspaces
 class PageStore extends Store
@@ -169,6 +180,7 @@ class PageStore extends Store
 
 init_store =
     active_top_tab : 'account' # One of: projects, account, about, [project id]
+    key_is_down    : immutable.Map({})
 
 redux.createStore('page', PageStore, init_store)
 
