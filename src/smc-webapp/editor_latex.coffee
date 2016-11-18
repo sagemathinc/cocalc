@@ -430,13 +430,11 @@ class exports.LatexEditor extends editor.FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
-
     _show: (opts={}) =>
+         # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari
+            @element.make_height_defined()
+
         if not @_show_before?
             @show_page('png-preview')
             @_show_before = true

@@ -1470,8 +1470,7 @@ class CodeMirrorEditor extends FileEditor
         if $.browser.safari and @_layout == 1
             # This is only needed for the "split via a horizontal line" layout, since
             # the flex layout with column direction is broken on Safari.
-            c = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}")
-            c.height(c.height())  # make it a **defined** height, so that flexbox can use it even on safari.
+            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
         for cm in @codemirrors()
             cm?.refresh()
@@ -2575,7 +2574,12 @@ class PDF_PreviewEmbed extends FileEditor
                     @output.find("span").text(@filename)
 
     show: =>
+         # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari
+            @element.find(".salvus-editor-pdf-preview-embed-page").make_height_defined()
+
     focus:=>
+
     hide: =>
 
 exports.PDF_PreviewEmbed = PDF_PreviewEmbed

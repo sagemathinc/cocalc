@@ -44,6 +44,14 @@ $.fn.maxheight = (opts={}) ->
         elt.height($(window).height() - elt.offset().top - opts.offset)
     this
 
+# Use to workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+$.fn.make_height_defined = ->
+    @each ->
+        elt = $(this)
+        # Doing this makes the height **defined**, so that flexbox can use it even on safari.
+        elt.height(elt.height())
+    this
+
 $.fn.hasParent = (p) ->
     # Returns a subset of items using jQuery.filter
     @filter ->
