@@ -929,7 +929,6 @@ class CodeMirrorEditor extends FileEditor
                 p   = layout1_bar.offset().top + layout1_bar.height()/2
                 @_layout1_split_pos = (p - top) / ht
                 @local_storage("layout1_split_pos", @_layout1_split_pos)
-                layout1_bar.css(top:0)
                 # redraw, which uses split info
                 @show()
 
@@ -949,7 +948,6 @@ class CodeMirrorEditor extends FileEditor
                 p     = layout2_bar.offset().left
                 @_layout2_split_pos = (p - left) / width
                 @local_storage("layout2_split_pos", @_layout2_split_pos)
-                layout2_bar.css('left', 0)   # otherwise gets set to some crazy value...
                 # redraw, which uses split info
                 @show()
 
@@ -1436,6 +1434,11 @@ class CodeMirrorEditor extends FileEditor
 
         # We set only the default size of the *first* div -- everything else expands accordingly.
         elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+
+        if @_layout == 1
+            @element.find(".salvus-editor-resize-bar-layout-1").css(top:0)
+        else if @_layout == 2
+            @element.find(".salvus-editor-resize-bar-layout-2").css(left:0)
 
         c = elt.find(".salvus-editor-codemirror-input-box")
         if @_layout == 0
