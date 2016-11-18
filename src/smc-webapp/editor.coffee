@@ -1436,7 +1436,12 @@ class CodeMirrorEditor extends FileEditor
 
         # We set only the default size of the *first* div -- everything else expands accordingly.
         elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-        elt.find(".salvus-editor-codemirror-input-box").css('flex-basis', "#{p*100}%")
+
+        c = elt.find(".salvus-editor-codemirror-input-box")
+        if @_layout == 0
+            c.css('flex', 1)   # use the full vertical height
+        else
+            c.css('flex-basis', "#{p*100}%")
 
         if @_last_layout != @_layout
             # The layout has changed
@@ -1456,6 +1461,14 @@ class CodeMirrorEditor extends FileEditor
 
             # Save for next time
             @_last_layout = @_layout
+
+        # Workaround a major and annoying bug in Safari:
+        #     https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari and @_layout == 1
+            # This is only needed for the "split via a horizontal line" layout, since
+            # the flex layout with column direction is broken on Safari.
+            c = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}")
+            c.height(c.height())  # make it a **defined** height, so that flexbox can use it even on safari.
 
         for cm in @codemirrors()
             cm?.refresh()
