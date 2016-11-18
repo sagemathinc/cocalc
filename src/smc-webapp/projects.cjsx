@@ -1064,10 +1064,10 @@ ProjectRow = rclass
 
     handle_mouse_down: (e) ->
         @setState
-            highlighted_text : window.getSelection().toString()
+            selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
-        if window.getSelection().toString() == @state.highlighted_text
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
             @open_project_from_list(e)
 
     open_project_from_list: (e) ->

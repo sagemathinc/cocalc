@@ -218,10 +218,10 @@ FileRow = rclass
 
     handle_mouse_down: (e) ->
         @setState
-            highlighted_text : window.getSelection().toString()
+            selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
-        if window.getSelection().toString() == @state.highlighted_text
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
             @props.actions.open_file
                 path       : @fullpath()
                 foreground : misc.should_open_in_foreground(e)
@@ -301,10 +301,10 @@ DirectoryRow = rclass
 
     handle_mouse_down: (e) ->
         @setState
-            highlighted_text : window.getSelection().toString()
+            selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
-        if window.getSelection().toString() == @state.highlighted_text
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
             path = misc.path_to_file(@props.current_path, @props.name)
             @props.actions.open_directory(path)
             @props.actions.set_file_search('')
