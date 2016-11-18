@@ -110,7 +110,7 @@ exports.ChatIndicator = rclass
         </div>
 
     render : ->
-        style    = misc.copy(CHAT_INDICATOR_STYLE)
+        style = misc.copy(CHAT_INDICATOR_STYLE)
         style.display = 'flex'
         if @props.fullscreen
             style.top   = '1px'

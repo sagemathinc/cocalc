@@ -445,10 +445,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         />
 
     render_chat_indicator: ->
-        path = misc.tab_to_path(@props.active_project_tab)
-        if not path
-            # TODO: This is the case where we would support project-wide side chat.
+        if @props.active_project_tab?.slice(0,7) != 'editor-'
+            # TODO: This is the case where we would support project-wide side chat, or side chats
+            # for each individual Files/Search, etc. page (not clear!)
             return
+        path = misc.tab_to_path(@props.active_project_tab)
         is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
         <div style = {CHAT_INDICATOR_STYLE}>
             <ChatIndicator
