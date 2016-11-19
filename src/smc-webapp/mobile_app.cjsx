@@ -102,7 +102,7 @@ Page = rclass
         @setState(show_right_menu:false)
 
     render_right_menu: ->
-        # HACK: This is the dumbest fuckin' hack ever.
+        # HACK: This is the dumbest hack ever.
         # We should use a better sidemenu in the future.
         if not @state.show_right_menu
             return <div> </div>
@@ -181,6 +181,7 @@ Page = rclass
                 pullRight = {true}
                 shadow    = {false}
                 touch     = {false}
+                styles    = {content:{display:'flex', flexDirection:'column'}}
             >
                 <style>{page_style}</style>
                 <style>{ProjectsNav.dropdown_nav_page_styles}</style>
@@ -205,4 +206,6 @@ page =
         <Page />
     </Redux>
 
-exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))
+exports.render = () =>
+    ReactDOM.render(page, document.getElementById('smc-react-container'))
+

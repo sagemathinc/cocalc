@@ -590,10 +590,6 @@ class Console extends EventEmitter
             @_decrease_font_size()
             return false
 
-        @element.find("a[href=\"#close\"]").click () =>
-            @opts.close?()
-            return false
-
         @element.find("a[href=\"#refresh\"]").click () =>
             @session?.reconnect()
             return false

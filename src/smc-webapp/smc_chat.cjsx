@@ -612,7 +612,19 @@ ChatRoom = rclass ({name}) ->
             />
         </Button>
 
-    render_desktop: ->
+    render_button_row: ->
+        <Row style={marginBottom:'5px'}>
+            <Col xs={12} md={12} className="pull-right" style={padding:'2px', textAlign:'right'}>
+                <ButtonGroup>
+                    {@render_timetravel_button()}
+                    {@render_video_chat_button()}
+                    {@render_bottom_button()}
+                </ButtonGroup>
+            </Col>
+        </Row>
+
+
+    render_body: ->
         chat_log_style =
             overflowY    : "auto"
             overflowX    : "hidden"
@@ -624,26 +636,12 @@ ChatRoom = rclass ({name}) ->
 
         chat_input_style =
             margin       : "0"
-            padding      : "4px 7px 4px 7px"
-            marginTop    : "5px"
+            padding      : "0"
+            height       : '90px'
             fontSize     : @props.font_size
 
         <Grid fluid={true} className='smc-vfill' style={maxWidth: '1200px', display:'flex', flexDirection:'column'}>
-            <Row style={marginBottom:'5px'}>
-                <Col xs={2} mdHidden>
-                    <Button className='smc-small-only'
-                            onClick={@show_files}>
-                            <Icon name='toggle-up'/> Files
-                    </Button>
-                </Col>
-                <Col xs={10} md={10} className="pull-right" style={padding:'2px', textAlign:'right'}>
-                    <ButtonGroup>
-                        {@render_timetravel_button()}
-                        {@render_video_chat_button()}
-                        {@render_bottom_button()}
-                    </ButtonGroup>
-                </Col>
-            </Row>
+            {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
                 <Col className='smc-vfill' md={12} style={padding:'0px 2px 0px 2px'}>
                     <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
@@ -666,7 +664,7 @@ ChatRoom = rclass ({name}) ->
                 <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
                     <FormGroup>
                         <FormControl
-                            autoFocus   = {true}
+                            autoFocus   = {not IS_MOBILE or isMobile.Android()}
                             rows        = 4
                             componentClass = 'textarea'
                             ref         = 'input'
@@ -678,87 +676,34 @@ ChatRoom = rclass ({name}) ->
                         />
                     </FormGroup>
                 </Col>
-                <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                    <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                    <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                <Col xs={2} md={1}
+                    style={height:'90px', padding:'0', marginBottom: '0', display:'flex', flexDirection:'column'}
+                    >
+                    {<Button onClick={@button_on_click} disabled={@props.input==''}
+                        bsStyle='info' style={height:'50%', width:'100%'}>
+                        Preview
+                    </Button> if not IS_MOBILE}
+                    <Button onClick={@button_send_chat} disabled={@props.input==''}
+                        bsStyle='success' style={flex:1, width:'100%'}>
+                        Send
+                    </Button>
                 </Col>
             </Row>
             <Row>
-                {@render_bottom_tip()}
+                {@render_bottom_tip() if not IS_MOBILE}
             </Row>
         </Grid>
 
-    render_mobile: ->
-        chat_log_style =
-            overflowY    : "auto"
-            overflowX    : "hidden"
-            maxHeight    : "60vh"
-            height       : "100%"
-            margin       : "0px 0px 0px 13px"
-            padding      : "0"
-            background   : 'white'
-
-        mobile_chat_input_style =
-            margin       : "0"
-            padding      : "4px 7px 4px 7px"
-            marginTop    : "5px"
-
-        <Grid fluid={true}>
-            <Row style={marginBottom:'5px'}>
-                <ButtonGroup>
-                    <Button className='smc-small-only'
-                        onClick={@show_files}>
-                        <Icon name='toggle-up'/> Files
-                    </Button>
-                    <Button onClick={@scroll_to_bottom}>
-                        <Icon name='arrow-down'/> Scroll to Bottom
-                    </Button>
-                </ButtonGroup>
-            </Row>
-            <Row>
-                <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog
-                            messages     = {@props.messages}
-                            account_id   = {@props.account_id}
-                            user_map     = {@props.user_map}
-                            project_id   = {@props.project_id}
-                            font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                            actions      = {@props.actions}
-                            show_heads   = {false} />
-                    </Well>
-                </Col>
-            </Row>
-            <Row>
-                <Col xs={10} style={padding:'0px 2px 0px 2px'}>
-                    <FormGroup>
-                        <FormControl
-                            autoFocus   = {isMobile.Android()}
-                            rows        = {2}
-                            type        = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onChange    = {(e)=>@props.actions.set_input(e.target.value); @mark_as_read()}
-                            style       = {mobile_chat_input_style}
-                        />
-                    </FormGroup>
-                </Col>
-                <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
-                    <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
-                        <Icon name='chevron-circle-right'/>
-                    </Button>
-                </Col>
-            </Row>
-        </Grid>
 
     render: ->
         if not @props.messages? or not @props.redux? or not @props.input.length?
             return <Loading/>
-        <div onMouseMove={@mark_as_read} className="smc-vfill">
-            {if IS_MOBILE then @render_mobile() else @render_desktop()}
+        <div
+            onMouseMove = {@mark_as_read}
+            onClick     = {@mark_as_read}
+            className   = "smc-vfill"
+            >
+            {@render_body()}
         </div>
 
 

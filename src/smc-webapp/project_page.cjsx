@@ -321,8 +321,12 @@ ProjectMainContent = rclass
 
     render_editor_tab: ->
         path         = misc.tab_to_path(@props.active_tab_name)
-        chat_width   = @props.open_files.getIn([path, 'chat_width']) ? DEFAULT_CHAT_WIDTH
-        is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+        if IS_MOBILE
+            # Side chat is not supported at all on mobile.
+            is_chat_open = false
+        else
+            chat_width   = @props.open_files.getIn([path, 'chat_width']) ? DEFAULT_CHAT_WIDTH
+            is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
 
         editor  = @render_editor(path)
 

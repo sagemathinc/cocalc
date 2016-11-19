@@ -776,6 +776,7 @@ exports.jupyter_notebook = (parent, filename, opts) ->
 
 class JupyterNotebook extends EventEmitter
     constructor: (@parent, @filename, opts={}) ->
+        window.w = @
         opts = @opts = defaults opts,
             read_only         : false
             mode              : undefined   # ignored
@@ -948,10 +949,6 @@ class JupyterNotebook extends EventEmitter
 
         @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
 
-        @element.find("a[href=\"#close\"]").click () =>
-            redux.getProjectActions(@project_id).set_active_tab('files')
-            return false
-
         @element.find("a[href=\"#undo\"]").click(@undo)
         @element.find("a[href=\"#redo\"]").click(@redo)
 
@@ -1102,7 +1099,7 @@ class JupyterNotebook extends EventEmitter
             throw Error("BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')")
         return @syncstring._syncstring.last_changed() - 0
 
-    show: (geometry) =>
+    show: =>
         @element.show()
         @dom?.refresh()
 

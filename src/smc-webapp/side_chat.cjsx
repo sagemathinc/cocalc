@@ -458,7 +458,7 @@ ChatRoom = rclass ({name}) ->
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@button_send_chat}
                         disabled = {@props.input==''}
-                        bsStyle  = 'primary' >
+                        bsStyle  = 'success' >
                         <Icon name='chevron-circle-right'/>
                     </Button>
                 </div>
