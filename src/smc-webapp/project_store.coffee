@@ -162,10 +162,10 @@ class ProjectActions extends Actions
         @setState(active_project_tab : key)
         switch key
             when 'files'
-                @set_url_to_path(store.get('current_path') ? '')
-                sort_by_time = store.get('sort_by_time') ? true
-                show_hidden = store.get('show_hidden') ? false
-                @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+                @set_url_to_path(store.current_path ? '')
+                sort_by_time = store.sort_by_time
+                show_hidden = store.show_hidden
+                @set_directory_files(store.current_path, sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.get('current_path'))
@@ -201,7 +201,7 @@ class ProjectActions extends Actions
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
-        x = store.get('activity')?.toJS()
+        x = store.activity?.toJS()
         if not x?
             x = {}
         # Actual implemenation of above specified API is VERY minimal for
@@ -214,7 +214,7 @@ class ProjectActions extends Actions
             if error == ''
                 @setState(error:error)
             else
-                @setState(error:((store.get('error') ? '') + '\n' + error).trim())
+                @setState(error:((store.error ? '') + '\n' + error).trim())
         if opts.stop?
             if opts.stop
                 x[opts.id] = opts.stop  # of course, just gets deleted below but that is because use is simple still
@@ -502,7 +502,7 @@ class ProjectActions extends Actions
         x = store.open_files_order
         index = x.indexOf(path)
         if index != -1
-            open_files = store.get('open_files')
+            open_files = store.open_files
             is_public = open_files.getIn([path, 'component'])?.is_public
             @setState
                 open_files_order : x.delete(index)
@@ -591,9 +591,9 @@ class ProjectActions extends Actions
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= (store.get('current_path') ? "")
-                sort_by_time ?= (store.get('sort_by_time') ? true)
-                show_hidden  ?= (store.get('show_hidden') ? false)
+                path         ?= store.current_path ? ""
+                sort_by_time ?= store.sort_by_time ? true
+                show_hidden  ?= store.show_hidden ? false
                 get_directory_listing
                     project_id : @project_id
                     path       : path
@@ -638,13 +638,13 @@ class ProjectActions extends Actions
     # Set the selected state of all files between the most_recent_file_click and the given file
     set_selected_file_range: (file, checked) =>
         store = @get_store()
-        most_recent = store.get('most_recent_file_click')
+        most_recent = store.most_recent_file_click
         if not most_recent?
             # nothing had been clicked before, treat as normal click
             range = [file]
         else
             # get the range of files
-            current_path = store.get('current_path')
+            current_path = store.current_path
             names = (misc.path_to_file(current_path, a.name) for a in store.displayed_listing.listing)
             range = misc.get_array_range(names, most_recent, file)
 
@@ -657,9 +657,9 @@ class ProjectActions extends Actions
     set_file_checked: (file, checked) =>
         store = @get_store()
         if checked
-            checked_files = store.get('checked_files').add(file)
+            checked_files = store.checked_files.add(file)
         else
-            checked_files = store.get('checked_files').delete(file)
+            checked_files = store.checked_files.delete(file)
 
         @setState
             checked_files : checked_files
@@ -1106,7 +1106,7 @@ class ProjectActions extends Actions
             if num_results >= max_results
                 break
 
-        if store.get('command') is cmd # only update the state if the results are from the most recent command
+        if store.command is cmd # only update the state if the results are from the most recent command
             @setState
                 too_many_results : too_many_results
                 search_results   : search_results
@@ -1114,24 +1114,24 @@ class ProjectActions extends Actions
     search: =>
         store = @get_store()
 
-        query = store.get('user_input').trim().replace(/"/g, '\\"')
+        query = store.user_input.trim().replace(/"/g, '\\"')
         if query is ''
             return
         search_query = '"' + query + '"'
 
         # generate the grep command for the given query with the given flags
-        if store.get('case_sensitive')
+        if store.case_sensitive
             ins = ''
         else
             ins = ' -i '
 
-        if store.get('subdirectories')
-            if store.get('hidden_files')
+        if store.subdirectories
+            if store.hidden_files
                 cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
                 cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
-            if store.get('hidden_files')
+            if store.hidden_files
                 cmd = "grep -I -H #{ins} #{search_query} -- .* *"
             else
                 cmd = "grep -I -H #{ins} #{search_query} -- *"
@@ -1145,7 +1145,7 @@ class ProjectActions extends Actions
             search_error       : undefined
             command            : cmd
             most_recent_search : query
-            most_recent_path   : store.get('current_path')
+            most_recent_path   : store.current_path
 
         salvus_client.exec
             project_id      : @project_id
@@ -1155,7 +1155,7 @@ class ProjectActions extends Actions
             max_output      : max_output
             bash            : true
             err_on_exit     : true
-            path            : store.get('current_path')
+            path            : store.current_path
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
@@ -1260,7 +1260,7 @@ create_project_store_def = (name, project_id) ->
         checked_files       : rtypes.immutable
         selected_file_index : rtypes.number
         new_name            : rtypes.string
-        sort_by_time        : computed rtypes.bool
+        sort_by_time        : rtypes.bool
 
         # Project Log
         project_log : rtypes.immutable
@@ -1295,9 +1295,9 @@ create_project_store_def = (name, project_id) ->
             {SCHEMA, client_db} = require('smc-util/schema')
             return SCHEMA.public_paths.user_query.set.fields.id({project_id:project_id, path:path}, client_db)
 
-    sort_by_time: (other_settings) ->
-        if not @get('sort_by_time')
-            return other_settings.get('default_file_sort') == 'time'
+    # TODO: Change input functions like this to use getInitialState
+    sort_by_time: ->
+        return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
