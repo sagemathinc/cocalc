@@ -569,7 +569,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     _set: (content) =>
         @source_editor._set(content)
 
-    _show: (opts={}) =>
+    _show: =>
+        if $.browser.safari  # safari flex bug: https://github.com/philipwalton/flexbugs/issues/132
+            @element.make_height_defined()
         return
 
     focus: () =>
