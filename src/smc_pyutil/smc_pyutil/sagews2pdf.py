@@ -241,7 +241,7 @@ def tex_escape(s):
 
 
 # Parallel computing can be useful for IO bound tasks.
-def thread_map(callable, inputs, nb_threads = 2):
+def thread_map(callable, inputs, nb_threads = 1):
     """
     Computing [callable(args) for args in inputs]
     in parallel using `nb_threads` separate *threads* (default: 2).
