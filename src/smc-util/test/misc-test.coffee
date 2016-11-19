@@ -635,14 +635,14 @@ describe "trunc", ->
     t = misc.trunc
     input = "abcdefghijk"
     it "shortens a string", ->
-        exp = "abcde..."
+        exp = "abcdefg…"
         t(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        t(input, 3).should.be.eql "..."
-        (-> t(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length below 1", ->
+        t(input, 1).should.be.eql "…"
+        (-> t(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        t(long).should.endWith("...").and.has.length 1024
+        t(long).should.endWith("…").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
     it "handles missing argument", ->
@@ -652,18 +652,31 @@ describe "trunc_left", ->
     tl = misc.trunc_left
     input = "abcdefghijk"
     it "shortens a string from the left", ->
-        exp = "...ghijk"
+        exp = "…efghijk"
         tl(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        tl(input, 3).should.be.eql "..."
-        (-> tl(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        tl(long).should.startWith("...").and.has.length 1024
+        tl(long).should.startWith("…").and.has.length 1024
     it "handles empty strings", ->
         tl("").should.be.eql ""
     it "handles missing argument", ->
         should(tl()).be.eql undefined
+
+describe "trunc_middle", ->
+    tl = misc.trunc_middle
+    input = "abcdefghijk"
+    it "shortens a string in middle (even)", ->
+        exp = 'abc…hijk'
+        tl(input, 8).should.be.eql exp
+    it "shortens a string in middle (odd)", ->
+        exp = 'abc…ijk'
+        tl(input, 7).should.be.eql exp
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
 
 describe "git_author", ->
     it "correctly formats the author tag", ->

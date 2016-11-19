@@ -522,29 +522,31 @@ exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return s.slice(0,max_length-3) + ELLIPSES
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return s.slice(0,max_length-1) + ELLIPSES
     else
         return s
 
-# "foobar" --> "fo...ar"
+# "foobar" --> "fo…ar"
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
     if s.length <= max_length
         return s
+    if max_length < 1
+        throw new Error("ValueError: max_length must be >= 1")
     n = Math.floor(max_length/2)
-    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-(n-1))
+    return s.slice(0, n - 1 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-n)
 
-# "foobar" --> "...bar"
+# "foobar" --> "…bar"
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return ELLIPSES + s.slice(s.length-max_length+3)
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return ELLIPSES + s.slice(s.length-max_length+1)
     else
         return s
 
