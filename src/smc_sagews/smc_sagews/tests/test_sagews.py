@@ -143,6 +143,10 @@ class TestIntrospect:
         """))
     def test_sage_autocomplete_1225b(self, execintrospect):
         execintrospect('z = 12 * y.', ["x"], '')
+    def test_sage_autocomplete_1252a(self, execintrospect):
+        execintrospect('2*sqr', ["t"], 'sqr')
+    def test_sage_autocomplete_1252b(self, execintrospect):
+        execintrospect('2+sqr', ["t"], 'sqr')
 
 class TestAttach:
     def test_define_paf(self, exec2):
