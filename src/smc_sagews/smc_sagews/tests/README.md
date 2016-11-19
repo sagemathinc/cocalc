@@ -27,3 +27,8 @@
 cd smc/src/smc_sagews/smc_sagews/tests
 python -m pytest
 ```
+
+## Test layout
+
+These tests follow the 'inline' test layout documented at pytest docs [Choosing a test layout / import rules](http://doc.pytest.org/en/latest/goodpractices.html#choosing-a-test-layout-import-rules).
+

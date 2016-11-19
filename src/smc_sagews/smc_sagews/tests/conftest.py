@@ -599,3 +599,11 @@ def own_sage_server(request):
         print("killing all sage_server processes")
         os.system("pkill -f sage_server_command_line")
     request.addfinalizer(fin)
+
+@pytest.fixture(scope = "class")
+def test_ro_data_dir(request):
+    """
+    Return the directory containing the test file.
+    Used for tests which have read-only data files in the test dir.
+    """
+    return os.path.dirname(request.module.__file__)

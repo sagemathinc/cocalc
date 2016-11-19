@@ -151,16 +151,19 @@ class TestAttach:
             print("attached files: %d"%len(attached_files()))
             print("\n".join(attached_files()))
         paf()"""),"attached files: 0\n\n")
-    def test_attach_sage_1(self, exec2):
-        exec2("%attach a.sage\npaf()", pattern="attached files: 1\n.*/a.sage\n")
+    def test_attach_sage_1(self, exec2, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.sage')
+        exec2("%attach {}\npaf()".format(fn), pattern="attached files: 1\n.*/a.sage\n")
     def test_attach_sage_2(self, exec2):
         exec2("f1('foo')","f1 arg = 'foo'\ntest f1 1\n")
-    def test_attach_py_1(self, exec2):
-        exec2("%attach a.py\npaf()", pattern="attached files: 2\n.*/a.py\n.*/a.sage\n")
+    def test_attach_py_1(self, exec2, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.py')
+        exec2("%attach {}\npaf()".format(fn), pattern="attached files: 2\n.*/a.py\n.*/a.sage\n")
     def test_attach_py_2(self, exec2):
         exec2("f2('foo')","test f2 1\n")
-    def test_attach_html_1(self, execblob):
-        execblob("%attach a.html", want_html=False, want_javascript=True, file_type='html')
+    def test_attach_html_1(self, execblob, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.html')
+        execblob("%attach {}".format(fn), want_html=False, want_javascript=True, file_type='html')
     def test_attach_html_2(self, exec2):
         exec2("paf()", pattern="attached files: 3\n.*/a.html\n.*/a.py\n.*/a.sage\n")
     def test_detach_1(self, exec2):
