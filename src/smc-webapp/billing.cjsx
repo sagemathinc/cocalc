@@ -919,7 +919,7 @@ ConfirmPaymentMethod = rclass
     render_recurring_payment_confirmation: ->
         <span>
             <p>The initial payment will be processed with the card below.</p>
-            <p>Future payments will be made with your default card
+            <p>Future payments will be made with your default card<Space/>
             <b>at the time of renewal</b>.
             Changing your default card right before renewal will cause the <Space/>
             new default to be charged instead of the previous one.</p>
