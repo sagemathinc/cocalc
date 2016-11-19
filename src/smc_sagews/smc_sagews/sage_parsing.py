@@ -387,16 +387,29 @@ def introspect(code, namespace, preparse=True):
         if get_completions and target == expr:
             j      = len(expr)
             if '*' in expr:
-                #if '*' in expr and '* ' not in expr:
                 # this case includes *_factors<TAB> and abc =...;3 * ab[tab]
                 try:
                     pattern = expr.replace("*",".*").replace("?",".")
                     reg = re.compile(pattern+"$")
                     v = filter(reg.match, namespace.keys() + _builtin_completions)
+                    # for 2*sq[tab]
+                    if len(v) == 0:
+                        gle = guess_last_expression(expr)
+                        j = len(gle)
+                        if j > 0:
+                            target = gle
+                            v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(gle)]
                 except:
                     pass
             else:
                 v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+                # for 2+sqr[tab]
+                if len(v) == 0:
+                    gle = guess_last_expression(expr)
+                    j = len(gle)
+                    if j > 0 and j < len(expr):
+                        target = gle
+                        v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(gle)]
         else:
 
             # We will try to evaluate
