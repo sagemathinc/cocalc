@@ -636,7 +636,6 @@ ChatRoom = rclass ({name}) ->
 
         chat_input_style =
             margin       : "0"
-            padding      : "0"
             height       : '90px'
             fontSize     : @props.font_size
 
