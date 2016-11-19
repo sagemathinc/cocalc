@@ -1,10 +1,14 @@
 # Pytest suite for sage_server
 
-## Purpose of These Tests
+## Goals
 
 - verify that sage worksheets return correct results for given cell inputs
 - back-end only test, uses message protocol to run tests against running sage_server
-- NOT to provide unit tests of functions internal to sagews modules
+
+## Non-goals
+
+- unit tests of functions internal to sagews modules
+- UI testing
 
 ## How to Use These Tests
 
@@ -20,6 +24,6 @@
 ### Running the Tests
 
 ```
-cd smc/src/smc_sagews/smc_sagews
-python -m pytest tests [-s]
+cd smc/src/smc_sagews/smc_sagews/tests
+python -m pytest
 ```
