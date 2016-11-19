@@ -2723,9 +2723,6 @@ class Media extends FileEditor
         if not @is_active()
             return
         @element.show()
-        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight()
-
 
 
 class PublicHTML extends FileEditor
@@ -2759,8 +2756,6 @@ class PublicHTML extends FileEditor
         else
             @set_iframe()
         @element.show()
-        #  redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
 
     set_iframe: () =>
         @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
@@ -2844,10 +2839,10 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
 
         if IS_MOBILE
             @element.css(position:'relative')
+
         @wrapped?.show?()
 
     hide: () =>
@@ -2941,9 +2936,6 @@ class JupyterNBViewerEmbedded extends FileEditor
             #ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
-        @iframe.maxheight()
 
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
 html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')

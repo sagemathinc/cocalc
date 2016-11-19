@@ -189,9 +189,6 @@ class ProjectActions extends Actions
     clear_ghost_file_tabs: =>
         @setState(num_ghost_file_tabs : 0)
 
-    set_editor_top_position: (pos) =>
-        @setState(editor_top_position : pos)
-
     set_next_default_filename: (next) =>
         @setState(default_filename: next)
 

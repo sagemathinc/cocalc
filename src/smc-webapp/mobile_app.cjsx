@@ -169,9 +169,9 @@ Page = rclass
                 z-index:0;
             }'
         style =
-            height:'100vh'
-            width:'100vw'
-            overflow:'auto'
+            height   : '100vh'
+            width    : '100vw'
+            overflow : 'auto'
 
         <div ref="page" style={style}>
             <Sidebar

@@ -1103,18 +1103,7 @@ class JupyterNotebook extends EventEmitter
         return @syncstring._syncstring.last_changed() - 0
 
     show: (geometry) =>
-        if not geometry?
-            geometry = @_last_show_geometry
-        else
-            @_last_show_geometry = geometry
-        {top, left, width, height} = defaults geometry,
-            left   : undefined  # not implemented
-            top    : redux.getProjectStore(@project_id).get('editor_top_position')
-            width  : $(window).width()
-            height : undefined  # not implemented
-        @element.show().css(top:top)
-        if top == 0
-            @element.css('position':'fixed')
+        @element.show()
         @dom?.refresh()
 
     hide: =>
@@ -1360,11 +1349,6 @@ class JupyterNBViewer
                 # could become undefined due to other things happening...
                 @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
-
-        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
-        @element.find(".smc-jupyter-nbviewer-content").maxheight(offset:18)
-        @iframe.maxheight(offset:18)
 
     init_buttons: () =>
         @element.find('a[href=\"#copy\"]').click () =>

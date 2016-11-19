@@ -394,19 +394,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
-    componentDidMount : ->
-        @set_bottom_height()
-
-    componentDidUpdate : ->
-        @set_bottom_height()
-
-    set_bottom_height : ->
-        node = ReactDOM.findDOMNode(@refs.projectNav)
-        if node?
-            @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
-        else
-            @actions(project_id : @props.project_id).set_editor_top_position(0)
-
     on_sort_end : ({oldIndex, newIndex}) ->
         @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
 
@@ -528,19 +515,6 @@ exports.MobileProjectPage = rclass ({name}) ->
 
     propTypes :
         project_id : rtypes.string
-
-    componentDidMount : ->
-        @set_bottom_height()
-
-    componentDidUpdate : ->
-        @set_bottom_height()
-
-    set_bottom_height : ->
-        node = ReactDOM.findDOMNode(@refs.projectNav)
-        if node?
-            @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
-        else
-            @actions(project_id : @props.project_id).set_editor_top_position(0)
 
     render_files_dropdown: ->
         if not @props.open_files_order?

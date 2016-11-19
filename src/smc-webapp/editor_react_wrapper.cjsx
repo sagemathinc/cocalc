@@ -15,10 +15,6 @@ GPL
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
-    reduxProps :
-        "#{project_name}":
-            editor_top_position : rtypes.number
-
     propTypes :
         editor : rtypes.object.isRequired
 
