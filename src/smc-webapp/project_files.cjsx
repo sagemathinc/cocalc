@@ -26,6 +26,7 @@ misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
+
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -35,9 +36,10 @@ immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
 {AccountPage}         = require('./account_page')
-{UsersViewing}        = require('./profile')
+{UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
-Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+
+Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
@@ -1805,20 +1807,20 @@ exports.ProjectFiles = rclass ({name}) ->
         account :
             other_settings : rtypes.immutable
         "#{name}" :
-            current_path        : rtypes.string
-            activity            : rtypes.object
-            page_number         : rtypes.number
-            file_action         : rtypes.string
-            file_search         : rtypes.string
-            show_hidden         : rtypes.bool
-            sort_by_time        : rtypes.bool
-            error               : rtypes.string
-            checked_files       : rtypes.immutable
-            selected_file_index : rtypes.number
-            show_upload         : rtypes.bool
-            directory_listings  : rtypes.object
+            current_path          : rtypes.string
+            activity              : rtypes.object
+            page_number           : rtypes.number
+            file_action           : rtypes.string
+            file_search           : rtypes.string
+            show_hidden           : rtypes.bool
+            sort_by_time          : rtypes.bool
+            error                 : rtypes.string
+            checked_files         : rtypes.immutable
+            selected_file_index   : rtypes.number
+            show_upload           : rtypes.bool
+            directory_listings    : rtypes.object
             get_displayed_listing : rtypes.func
-            new_name            : rtypes.string
+            new_name              : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1943,10 +1945,12 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle={style}
-                onClick={@props.actions.toggle_upload}
-                active={@props.show_upload}
-            ><Icon name='upload' /> Upload</Button>
+                bsStyle = {style}
+                onClick = {@props.actions.toggle_upload}
+                active  = {@props.show_upload}
+                >
+                <Icon name='upload' /> Upload
+            </Button>
         </Col>
 
     render_activity: ->
@@ -2014,7 +2018,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <div>
                 {e}
                 <br />
-                <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                <Button onClick={@update_current_listing}>
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
@@ -2037,9 +2041,13 @@ exports.ProjectFiles = rclass ({name}) ->
                 shift_is_down       = {@state.shift_is_down}
             />
         else
+            @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
             </div>
+
+    update_current_listing: ->
+        setTimeout((=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)
@@ -2109,9 +2117,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                <Col sm=3>
+                {<Col sm=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing redux={@props.redux} viewing_what='project' project_id={@props.project_id} />
+                        <UsersViewing project_id={@props.project_id} />
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
@@ -2120,7 +2128,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
-                </Col>
+                </Col> if not public_view}
             </Row>
             <Row>
                 <Col sm=8>

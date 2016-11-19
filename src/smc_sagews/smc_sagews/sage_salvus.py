@@ -1798,7 +1798,7 @@ def python(code):
     """
     salvus.execute(code, preparse=False)
 
-def python3(code,**kwargs):
+def python3(code=None,**kwargs):
     """
     Block decorator to run code in a pure Python3 mode session.
 

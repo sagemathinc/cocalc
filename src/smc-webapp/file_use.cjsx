@@ -23,9 +23,6 @@
 
 File Usage Notifications
 
-AUTHORS:
-   - first version written by William Stein, July 25-?, 2015, while unemployed.
-
 DOC:
 
 To mark a file as read:
@@ -54,8 +51,11 @@ immutable = require('immutable')
 
 # smc-specific modules
 misc = require('smc-util/misc')
+{required, defaults} = misc
 {salvus_client} = require('./salvus_client')
 editor = require('./editor')
+
+sha1 = require('smc-util/schema').client_db.sha1
 
 # react in smc-specific modules
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
@@ -83,20 +83,24 @@ class FileUseActions extends Actions
         for x in v
             @mark_file(x.project_id, x.path, action, 0, false)
 
-    mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
-        # console.log('mark_file', project_id, path, action)
+    # Mark the action for the given file with the current timestamp (right now).
+    # If zero is true, instead mark the timestamp as 0, basically indicating removal
+    # of that marking for that user.
+    mark_file: (project_id, path, action, ttl='default', fix_path=true, timestamp=undefined) =>  # ttl in units of ms
         if fix_path
+            # This changes .foo.txt.sage-chat to foo.txt.
             path = misc.original_path(path)
+        #console.log('mark_file', project_id, path, action)
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
             return
         if ttl
             if ttl == 'default'
-                if action == 'chat'
-                    ttl = 10*1000
+                if action.slice(0,4) == 'chat'
+                    ttl = 5*1000
                 else
-                    ttl = 120*1000
+                    ttl = 90*1000
             #console.log('ttl', ttl)
             key = "#{project_id}-#{path}-#{action}"
             @_mark_file_lock ?= {}
@@ -106,15 +110,16 @@ class FileUseActions extends Actions
             setTimeout((()=>delete @_mark_file_lock[key]), ttl)
 
         table = @redux.getTable('file_use')
-        now   = salvus_client.server_time()
+        timestamp ?= salvus_client.server_time()
+        timestamp = new Date(timestamp)
         obj   =
             project_id : project_id
             path       : path
-            users      : {"#{account_id}":{"#{action}":now}}
-        if action == 'edit' or action == 'chat'
+            users      : {"#{account_id}":{"#{action}":timestamp}}
+        if action == 'edit' or action == 'chat' or action == 'chatseen'
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
-            obj.last_edited = now
+            obj.last_edited = timestamp
         table.set obj, (err)=>
             if err
                 if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
@@ -163,7 +168,7 @@ class FileUseStore extends Store
         # make into list of objects
         v = []
         newest_chat = 0
-        you_last_seen = you_last_read = 0
+        you_last_seen = you_last_read = you_last_chatseen = 0
         other_newest_edit_or_chat = 0
         for account_id, user of users
             user.account_id = account_id
@@ -171,10 +176,12 @@ class FileUseStore extends Store
             if user.chat?
                 newest_chat = Math.max(newest_chat, user.chat ? 0)
             user.last_read = Math.max(user.last_edited, user.read ? 0)
-            user.last_seen = Math.max(user.last_read, user.seen ? 0)
+            user.last_seen = Math.max(Math.max(user.last_read, user.seen ? 0), user.chatseen ? 0)
+            user.last_used = Math.max(user.last_edited, user.open ? 0)
             if @_account_id == account_id
                 you_last_seen = user.last_seen
                 you_last_read = user.last_read
+                you_last_chatseen = user.chatseen ? 0
             else
                 other_newest_edit_or_chat = misc.max([other_newest_edit_or_chat, user.last_edited, user.chat ? 0])
             v.push(user)
@@ -196,7 +203,8 @@ class FileUseStore extends Store
         # - unseen: means that the max timestamp for our edit, read and seen
         #   fields is older than another edit or chat field
         y.is_unseen = you_last_seen < other_newest_edit_or_chat
-
+        # - unseen chat: means that you haven't seen the newest chat for this document.
+        y.is_unseenchat = you_last_chatseen < newest_chat
 
     get_notify_count: =>
         if not @_cache?
@@ -213,6 +221,27 @@ class FileUseStore extends Store
             @_update_cache()
         return @_cache?.sorted_file_use_immutable_list ? immutable.List()
 
+    # Get latest processed info about a specific file as an object.
+    get_file_info: (project_id, path) =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.file_use_map[sha1(project_id, path)]
+
+    # Get latest processed info about all use in a particular project.
+    get_project_info: (project_id) =>
+        if not @_cache?
+            @_update_cache()
+        v = {}
+        for id, x of @_cache?.file_use_map
+            if x.project_id == project_id
+                v[id] = x
+        return v
+
+    get_file_use_map: =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.file_use_map
+
     _update_cache: =>
         if not @get('file_use')?
             return
@@ -226,11 +255,13 @@ class FileUseStore extends Store
 
         @_account_id ?= @_account.get_account_id()
         v = []
-        @get('file_use').map (x,_) =>
+        file_use_map = {}
+        @get('file_use').map (x,id) =>
             y = x.toJS()
             y.search = @_search(y)
             @_process_users(y)
             v.push(y)
+            file_use_map[id] = y
         w0 = []
         w1 = []
         w2 = []
@@ -249,6 +280,7 @@ class FileUseStore extends Store
         @_cache =
             sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
+            file_use_map                   : file_use_map
             notify_count                   : (x for x in v when x.notify).length
         require('browser').set_window_title()
         return v
@@ -259,6 +291,54 @@ class FileUseStore extends Store
 
     get_all_unseen: =>
         return (x for x in @get_sorted_file_use_list() when x.is_unseen)
+
+    # Return active users... across all projects, a given project, or a given path in a project,
+    # depending on whether project_id or path is specified.  Returns info as a map
+    #    {account_id:[{project_id:?, path:?, last_used:?}, {project_id:?, path:?, last_used:?}, ...}]}
+    # Here last_used is the server timestamp (in milliseconds) of when they were last active there, and
+    # project_id, path are what they were using.
+    # Will return undefined in no data available yet.
+    get_active_users: (opts) =>
+        opts = defaults opts,
+            project_id : undefined   # optional; if not given provide info about all projects
+            path       : undefined   # if given, provide info about specific path in specific project only.
+            max_age_s  : 600         # user is active if they were active within this amount of time
+        files = undefined
+        if opts.project_id? and opts.path?   # users for a particular file
+            t = @get_file_info(opts.project_id, opts.path)
+            if t? then files = {_:t}
+        else if opts.project_id?             # a particular project
+            files = @get_project_info(opts.project_id)
+        else                                 # across all projects
+            files = @get_file_use_map()
+        if not files?                 # no data yet -- undefined signifies this.
+            return
+        users  = {}
+        now    = salvus_client.server_time() - 0
+        cutoff = now - opts.max_age_s*1000
+        for _, info of files
+            for user in info.users
+                time = user.last_used ? 0
+                # Note: we filter in future, since would be bad/buggy data.  (database could disallow...?)
+                if time >= cutoff and time <= (now + 60000)   # new enough?
+                    (users[user.account_id] ?= []).push  # create array if necessary, then push data about it
+                        last_used  : user.last_used ? 0
+                        project_id : info.project_id
+                        path       : info.path
+        return users
+
+    get_video_chat_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            ttl        : 120000    # time in ms; if timestamp of video chat is older than this, ignore
+        users = {}
+        cutoff = salvus_client.server_time() - opts.ttl
+        @getIn(['file_use', sha1(opts.project_id, opts.path), 'users'])?.map (info, account_id) ->
+            timestamp = info.get('video')
+            if timestamp? and timestamp - 0 >= cutoff
+                users[account_id] = timestamp
+        return users
 
 class FileUseTable extends Table
     query: ->
@@ -409,9 +489,13 @@ FileUseViewer = rclass
             />
         </span>
 
+    click_mark_all_read: ->
+        @actions('file_use').mark_all('read')
+        @actions('page').toggle_show_file_use()
+
     render_mark_all_read_button: ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read'); @actions('page').toggle_show_file_use()}>
+            onClick={@click_mark_all_read}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 

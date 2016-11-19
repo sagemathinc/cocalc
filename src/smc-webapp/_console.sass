@@ -5,13 +5,13 @@
   background-color : #eaeaea
   padding          : 0px
   margin           : 0px
-  width            : 100%
   border           : 0px solid black
 
 .salvus-console-topbar
   padding  : 0px
   margin   : 0px
   overflow : hidden
+  border   : 1px solid lightgrey
 
 .salvus-console-filename
   padding        : 10px
@@ -29,6 +29,7 @@
   max-height     : 1.5em
   padding-top    : 4px
   padding-bottom : 0
+  padding-right  : 50px
 
 .salvus-console-description
   color : #888
@@ -39,20 +40,21 @@
   color    : #fff
 
 .salvus-console-terminal
-  font-family   : droid-sans-mono
-  padding       : 1px
-  margin        : 0px
-  padding-right : 10px;  /* account for fake scrollbar -- should be same width as salvus-console-scrollbar */
-  white-space   : nowrap
-  /* critical at least for firefox and IE */
+  height      : 100%
+  width       : 100%
+  position    : absolute
+  font-family : droid-sans-mono
+  padding     : 1px
+  margin      : 0px
+  padding     : 5px
+  white-space : nowrap
+  flex        : 1
 
 .salvus-console-scrollbar
-  position   : absolute
-  right      : 0
-  width      : 10px
-  border     : none
+  height     : 99.5%
   overflow-x : hidden
   overflow-y : scroll
+  z-index    : 1          /* so terminal text doesn't appear visible when horizontally resizing */
 
 .salvus-console-cursor-blur
   border        : 1px solid grey
@@ -111,7 +113,10 @@
   position : fixed
 
 .salvus-console-focus
-  background-color : #ffffe8
+  border        : 1px solid #77b6e8
+  border-radius : 4px
+  box-shadow    : inset 0 0 4px #77b6e8
 
 .salvus-console-blur
-  background-color : #ccc
+  border        : 1px solid lightgrey
+  border-radius : 4px

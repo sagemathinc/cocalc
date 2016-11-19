@@ -25,7 +25,6 @@ immutable = require('immutable')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar, UsersViewing} = require('./profile')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
@@ -41,7 +40,9 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+editor_chat = require('./editor_chat')
+
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -63,7 +64,6 @@ Message = rclass
         is_next_sender : rtypes.bool
         actions        : rtypes.object
         show_heads     : rtypes.bool
-        focus_end      : rtypes.func
         saved_mesg     : rtypes.string
         close_input    : rtypes.func
 
@@ -107,15 +107,15 @@ Message = rclass
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
             if not @state.show_history
-                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
+                <span className="small" style={marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
                     <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
-                        <Icon name='history'/>
+                        <Icon name='history'/> Edited
                     </Tip>
                 </span>
             else
-                <span className="small"
-                        style={color:'#888', marginLeft:'10px', cursor:'pointer'}
-                        onClick={=>@toggle_history_side_chat(false)} >
+                <span className = "small"
+                        style   = {marginLeft:'10px', cursor:'pointer'}
+                        onClick = {=>@toggle_history_side_chat(false)} >
                     <Tip title='Message History' tip='Hide history of editing of this message.' placement='left'>
                         <Icon name='history'/> Hide History
                     </Tip>
@@ -131,14 +131,11 @@ Message = rclass
             if other_editors.size == 1
                 # This user and someone else is also editing
                 text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
-                color = "#E55435"
             else if other_editors.size > 1
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
-                color = "#E55435"
             else if @state.history_size != @props.message.get('history').size and @state.new_changes
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
-                color = "#E55435"
             else
                 text = "You are now editing ... Shift+Enter to submit changes."
         else
@@ -152,18 +149,17 @@ Message = rclass
                 text = "Deleted by #{@props.editor_name}"
 
         text ?= "Last edit by #{@props.editor_name}"
-        color ?= "#888"
 
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <span className="small" style={color:color}>
+            <span className="small">
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
             </span>
         else
-            <span className="small" style={color:color}>
+            <span className="small">
                 {text}
             </span>
 
@@ -172,12 +168,12 @@ Message = rclass
         @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
-        if e.keyCode==27 # ESC
+        if e.keyCode == 27 # ESC
             e.preventDefault()
             @setState
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
-        else if e.keyCode==13 and e.shiftKey # 13: enter key
+        else if e.keyCode==13 and e.shiftKey # shift+enter
             mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
             if mesg != newest_content(@props.message)
                 @props.actions.send_edit(@props.message, mesg)
@@ -188,16 +184,12 @@ Message = rclass
     content_column: ->
         value = newest_content(@props.message)
 
-        if sender_is_viewer(@props.account_id, @props.message)
-            color = '#eee'
-        else
-            color = '#fff'
+        {background, color, lighten, message_class} = editor_chat.message_colors(@props.account_id, @props.message)
 
         # smileys, just for fun.
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-
 
         font_size = "#{@props.font_size}px"
 
@@ -212,41 +204,46 @@ Message = rclass
             borderRadius = '5px 5px 10px 10px'
 
         message_style =
-            background    : color
-            wordWrap      : "break-word"
-            marginBottom  : "3px"
-            borderRadius  : borderRadius
+            background   : background
+            wordBreak    : "break-word"
+            marginBottom : "3px"
+            borderRadius : borderRadius
+            color        : color
+
+        if sender_is_viewer(@props.account_id, @props.message)
+            message_style.marginLeft = '10%'
+        else
+            message_style.marginRight = '10%'
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
-                {get_timeago(@props.message)}
-                {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
+                <span style={lighten}>
+                    {editor_chat.render_timeago(@props.message)}
+                </span>
+                {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
-                {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                {@toggle_history() if @props.message.get('history').size > 1}
+                <span style={lighten}>
+                    {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                    {@toggle_history() if @props.message.get('history').size > 1}
+                </span>
             </Well>
-            {render_history_title(color, font_size) if @state.show_history}
-            {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
-            {render_history_footer(color, font_size) if @state.show_history}
+            {render_history_title() if @state.show_history}
+            {render_history(@props.history, @props.user_map) if @state.show_history}
+            {render_history_footer() if @state.show_history}
         </Col>
 
-    # All the render methods
-
-
-    # TODO: Make this a codemirror input
     render_input: ->
         <form>
             <FormGroup>
                 <FormControl
-                    autoFocus = {true}
-                    rows      = 4
+                    autoFocus      = {true}
+                    rows           = 4
                     componentClass = 'textarea'
-                    ref       = 'editedMessage'
-                    onKeyDown = {@on_keydown}
-                    value     = {@state.edited_message}
-                    onChange  = {(e)=>@setState(edited_message: e.target.value)}
-                    onFocus   = {@props.focus_end}
+                    ref            = 'editedMessage'
+                    onKeyDown      = {@on_keydown}
+                    value          = {@state.edited_message}
+                    onChange       = {(e)=>@setState(edited_message: e.target.value)}
                 />
             </FormGroup>
         </form>
@@ -281,7 +278,6 @@ ChatLog = rclass
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
-        focus_end    : rtypes.func
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
 
@@ -337,9 +333,8 @@ ChatLog = rclass
                      include_avatar_col = {@props.show_heads}
                      get_user_name    = {get_user_name}
                      sender_name      = {sender_name}
-                     editor_name      = {last_editor_name}
+                     editor_name      = {misc.trunc_middle(last_editor_name,15)}
                      actions          = {@props.actions}
-                     focus_end        = {@props.focus_end}
                      saved_mesg       = {@props.saved_mesg}
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
@@ -348,11 +343,17 @@ ChatLog = rclass
         return v
 
     render: ->
-        <div>
+        <Grid fluid style={marginTop: '15px'}>
             {@list_messages()}
-        </div>
+        </Grid>
 
-ChatRoom = (name) -> rclass
+log_container_style =
+    overflowY       : 'auto'
+    flex            : 1
+    border          : '1px solid lightgrey'
+    backgroundColor : '#fafafa'
+
+ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
@@ -372,38 +373,31 @@ ChatRoom = (name) -> rclass
         file_use :
             file_use : rtypes.immutable
 
-    propTypes :
-        redux       : rtypes.object
-        actions     : rtypes.object
+    propTypes:
+        redux       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
-        max_height  : rtypes.number
-
-    getInitialState: ->
-        input          : ''
-
-    mobile_chat_input_style:
-        margin       : "0"
-        padding      : "4px 7px 4px 7px"
-        marginTop    : "5px"
 
     mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+        info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
+        if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
+            f = @props.redux.getActions('file_use').mark_file
+            f(@props.project_id, @props.path, 'read')
+            f(@props.project_id, @props.path, 'chatseen')
 
     on_keydown: (e) ->
-        # TODO: Add timeout component to is_typing
-        if e.keyCode==13 and e.shiftKey # 13: enter key
-            send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
-        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
-            # Up arrow on an empty input
+        if e.keyCode == 27  # ESC
+            @props.actions.set_input('')
+        else if e.keyCode == 13 and e.shiftKey # shift + enter
+            @button_send_chat(e)
+        else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
-        else if e.keyCode == 13
-            e.preventDefault()
 
     button_send_chat: (e) ->
-        send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
+        send_chat(e, @refs.log_container, @props.input, @props.actions)
 
     on_scroll: (e) ->
         @props.actions.set_use_saved_position(true)
@@ -412,7 +406,10 @@ ChatRoom = (name) -> rclass
         e.preventDefault()
 
     componentDidMount: ->
-        scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        scroll_to_position(@refs.log_container, @props.saved_position,
+                           @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        @mark_as_read() # The act of opening/displaying the chat marks it as seen...
+                        # since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -422,80 +419,88 @@ ChatRoom = (name) -> rclass
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
-    # All render methods
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        side_chat_log_style =
-            overflowY    : "auto"
-            overflowX    : "hidden"
-            width        : "380%"
-            height       : "#{@props.max_height}px"
-            margin       : "0px 0px 0px 15px"
-            padding      : "0"
-            background   : "white"
+        mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
-        <div>
-            <Row>
-                <Col md={3} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog
-                            messages     = {@props.messages}
-                            account_id   = {@props.account_id}
-                            user_map     = {@props.user_map}
-                            project_id   = {@props.project_id}
-                            font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                            actions      = {@props.actions}
-                            focus_end    = {focus_endpoint}
-                            show_heads   = {false} />
-                    </Well>
-                </Col>
-            </Row>
-            <Row>
-                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "15px", width:"60%"}>
-                    <form>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus   = {true}
-                                rows        = {2}
-                                componentClass = 'textarea'
-                                ref         = 'input'
-                                onKeyDown   = {@on_keydown}
-                                value       = {@props.input}
-                                placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
-                                onChange    = {(e)=>@props.actions.set_input(e.target.value)}
-                                onFocus     = {focus_endpoint}
-                                style       = {@mobile_chat_input_style}
-                            />
-                        </FormGroup>
-                    </form>
-                </Col>
-                <Col xs={1} style={height:'57px', padding:'0px 2px 0px 2px', width:"31%"}>
-                    <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
+        # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
+
+        <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
+             onMouseMove = {mark_as_read}>
+            <div style   = {log_container_style}
+                 ref     = 'log_container'
+                 onScroll= {@on_scroll}>
+                <ChatLog
+                    messages     = {@props.messages}
+                    account_id   = {@props.account_id}
+                    user_map     = {@props.user_map}
+                    project_id   = {@props.project_id}
+                    font_size    = {@props.font_size}
+                    file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                    actions      = {@props.actions}
+                    show_heads   = {false} />
+            </div>
+            <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
+                <div style={display:'flex', height:'6em'}>
+                    <FormControl
+                        style          = {width:'85%', height:'100%'}
+                        autoFocus      = {false}
+                        componentClass = 'textarea'
+                        ref            = 'input'
+                        onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
+                        value          = {@props.input}
+                        placeholder    = {'Type a message...'}
+                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
+                    />
+                    <Button
+                        style    = {width:'15%', height:'100%'}
+                        onClick  = {@button_send_chat}
+                        disabled = {@props.input==''}
+                        bsStyle  = 'success' >
                         <Icon name='chevron-circle-right'/>
                     </Button>
-                </Col>
-            </Row>
+                </div>
+                <div style={color:"#888", padding:'5px'}>
+                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.
+                </div>
+            </div>
         </div>
 
 
+# Component for use via React
+exports.SideChat = ({path, redux, project_id}) ->
+    name        = redux_name(project_id, path)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+    actions     = redux.getActions(name)
+    if not actions?
+        init_redux(path, redux, project_id)
+        actions = redux.getActions(name)
+    <ChatRoom
+        redux       = {redux}
+        actions     = {redux.getActions(name)}
+        name        = {name}
+        project_id  = {project_id}
+        path        = {path}
+        file_use_id = {file_use_id}
+        />
+
 # Fitting the side chat into non-react parts of SMC:
 
-render = (redux, project_id, path, max_height) ->
+render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    C = ChatRoom(name)
-    <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} max_height={max_height} />
-    </Redux>
+    actions = redux.getActions(name)
+    if not actions?
+        init_redux(@props.path, @props.redux, @props.project_id)
+        actions = redux.getActions(name)
+    <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
 
 # Render the given chatroom, and return the name of the redux actions/store
-exports.render = (project_id, path, dom_node, redux, max_height) ->
+exports.render = (project_id, path, dom_node, redux) ->
     name = init_redux(path, redux, project_id)
-    ReactDOM.render(render(redux, project_id, path, max_height), dom_node)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
     return name
 
 exports.hide = (project_id, path, dom_node, redux) ->
@@ -516,4 +521,5 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
+
 

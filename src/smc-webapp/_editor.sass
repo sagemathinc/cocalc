@@ -50,12 +50,10 @@
     width: 100%
 
 .salvus-editor-codemirror
-  position : fixed
   width    : 100%
   padding  : 0px
 
 .salvus-editor-codemirror-button-row
-  margin     : 1px 1px 1px 7px
   background : #efefef
 
 .salvus-editor-codemirror-filename,
@@ -93,29 +91,17 @@
 .salvus-editor-recent-files
   margin-bottom: 0em
 
-.salvus-editor-codemirror-input-box
-  /*border: 2px solid #9a9;
-   *border-radius: 5px;
-   */
-
 .salvus-editor-codemirror-sync
   font-size : 8pt
   color     : #bbb
 
-.salvus-editor-latex-png-preview
-  padding-top: 4px
-
-.salvus-editor-latex-errors
-  overflow-y: scroll
-
 .salvus-latex-errors-counter
-  color: #a00
+  color       : #aff
+  font-weight : bold
+  font-size   : 11pt
 
 .salvus-latex-warnings-counter
   color: #FDB600
-
-.salvus-editor-latex
-  left: 0
 
 .salvus-editor-latex-mesg-template
   overflow-x   : auto
@@ -136,25 +122,13 @@
   font-size : 9pt
   margin    : 5px
 
-// .salvus-editor-pdf-preview!
-
 .salvus-editor-pdf-preview-page
-  background-color : #eee
-  overflow-x       : auto
-  overflow-y       : scroll
+  background-color : #666
+  color            : #fff
 
 .salvus-editor-pdf-preview-page-single
   text-align       : center
   min-height       : 3em
-
-.salvus-editor-pdf-preview-image
-  margin           : 1em
-  background-color : #fff
-  border           : 1px solid #aaa
-  box-shadow       : 2px 2px 2px #888
-  max-width        : 160%
-  /* hard coded in the line @zoom_width = 160 in editor.coffee  */
-  width            : 160%
 
 .salvus-editor-pdf-preview-spinner
   position : absolute
@@ -176,15 +150,8 @@
   background-color : yellow
 
 .salvus-editor-pdf-preview-buttons
-  position     : absolute
-  margin-right : 1em
-  padding-top  : 2px
-  right        : 0
-  font-size    : 11pt
-
-.salvus-editor-pdf-preview-embed
-  position : fixed
-  left     : 0px
+  font-size : 11pt
+  border    : 1px solid lightgrey
 
 .salvus-editor-search-openfiles-input
   width : 80%
@@ -197,88 +164,19 @@
   border        : 1px solid #aaa
   box-shadow    : 2px 2px 2px 2px #bbb
 
-.salvus-editor-codemirror-chat-column
-  position         : fixed
-  background-color : white
-  right            : 0px
-  width            : 295px
-  padding          : 0px
-
-.salvus-editor-codemirror-chat
-  margin  : 1px
-  padding : 0px
-
 .smc-users-viewing-document
   display : inline-block
 
 .salvus-editor-chat-title
-  color        : #666
-  margin-right : 5px
-  white-space  : nowrap
-  font-size    : 18pt
-  font-weight  : bold
-  position     : fixed
-  z-index      : 10
-  right        : 0
-  margin-top   : -2px
-
-.salvus-editor-chat-title-text,
-.salvus-editor-chat-title-video
-  display        : inline-block
-  vertical-align : middle
-  cursor         : pointer
-
-.salvus-editor-codemirror-chat-video
-  padding          : 0ex
-  margin           : 0ex
-  width            : 100%
-  position         : absolute
-  overflow-y       : auto
-  overflow-x       : hidden
-  overflow-wrap    : break-word
-  background-color : #fff
-
-.salvus-editor-codemirror-chat-output
-  padding          : 2ex
-  margin           : 0ex
-  width            : 100%
-  position         : absolute
-  overflow-y       : auto
-  overflow-x       : hidden
-  overflow-wrap    : break-word
-  background-color : #fff
-
-.salvus-editor-codemirror-chat-input
-  padding  : 23x
-  margin   : 0ex
-  height   : 8em !important
-  width    : 100%
-  position : absolute
-  resize   : none
-
-.salvus-chat-header
-  padding-top : 3px
-  border-top  : solid 1px #ddd
-
-.salvus-chat-header-name
-  font-weight : bold
-
-.salvus-chat-header-activity
-  font-weight : bold
-
-.salvus-chat-header-date
-  font-size : 9pt
-  color     : #999
-
-.salvus-editor-chat-new-chats
-  color : orange
-
-.salvus-editor-chat-no-new-chats
-
-.salvus-editor-chat-video-is-on
-  color : red
-
-.salvus-editor-chat-video-is-off
+  color: #666
+  margin-right: 5px
+  white-space: nowrap
+  font-size: 18pt
+  font-weight: bold
+  position: fixed
+  z-index: 10
+  right: 0
+  margin-top: -2px
 
 .smc-editor-chat-smiley
   font-size : 125%
@@ -302,7 +200,7 @@
   background    : #ccc
 
 .sagews-input-newcell
-  width : 55%
+  width : 60%
 
 .sagews-input-eval-state
   width : 20%
@@ -438,8 +336,6 @@
 // .sagews-output-interact!
 
 .salvus-editor-image
-  position   : fixed
-  width      : 99%
   padding    : 0px
   overflow-y : auto
   left       : 0px
@@ -564,24 +460,31 @@ code
   border-radius : 3px
 
 .salvus-editor-resize-bar-layout-1
-  height     : 6px
-  cursor     : ns-resize
-  background : #ccc
+  height        : 5px
+  cursor        : ns-resize
+  background    : #ddd
+  border        : 1px solid grey
+  border-radius : 3px
+  z-index       : 1
   &:hover
-    background : #999
+    background : #888
 
-.salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
-  cursor     : ew-resize
-  background : #ccc
-  width      : 6px
+.smc-vertical-drag-bar, .salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
+  cursor        : ew-resize
+  background    : #ddd
+  width         : 4px
+  border        : 1px solid grey
+  border-radius : 3px
+  z-index       : 1
   &:hover
-    background : #999
+    background : #888
 
 .salvus-editor-html-md-preview
-  padding    : 12px
-  background : white
-  position   : absolute
-  overflow   : auto
+  padding       : 12px
+  background    : white
+  overflow      : auto
+  border        : 1px solid grey
+  border-radius : 4px
 
 .smc-html-selection
   background-color : lightgrey
@@ -665,3 +568,24 @@ h6 { font-size: 110% }
 
 .MathJax_SVG_Display
   background-color : inherit !important
+
+
+.smc-vfill
+  flex           : 1
+  display        : flex
+  flex-direction : column
+  overflow       : hidden
+
+.smc-vflex
+  display        : flex
+  flex-direction : column
+
+.smc-btn-group-nobreak
+  display     : flex
+  align-items : flex-start
+
+.salvus-editor-codemirror-button-container
+  border: 1px solid lightgrey
+
+.smc-message-from-viewer a:link, .smc-message-from-viewer a:visited
+   color : #FFEB3B

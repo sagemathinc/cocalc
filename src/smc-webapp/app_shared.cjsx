@@ -99,16 +99,18 @@ exports.NotificationBell = rclass
 
     notification_count: ->
         count_styles =
-            fontSize   : '8pt'
-            color      : 'red'
+            fontSize   : '10pt'
+            color      : '#c9302c'
             position   : 'absolute'
-            left       : '18.2px'
+            left       : '17.5px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9
-            count_styles.left = '15.8'
-            <span style={count_styles}>9+</span>
-        else if @props.count > 0
+            count_styles.left         = '15.8px'
+            count_styles.background   = 'white'
+            count_styles.borderRadius = '50%'
+            count_styles.border       = '2px solid lightgrey'
+        if @props.count > 0
             <span style={count_styles}>{@props.count}</span>
 
     render: ->
@@ -151,7 +153,10 @@ exports.ConnectionIndicator = rclass
         if @props.connection_status == 'connected'
             <div>
                 <Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} />
-                {<Tip title={'Most recently recorded roundtrip time to message the server.'}>
+                {<Tip
+                    title     = {'Most recently recorded roundtrip time to the server.'}
+                    placement = {'left'}
+                    >
                     {Math.floor(@props.avgping)}ms
                 </Tip> if @props.avgping?}
             </div>
@@ -256,13 +261,18 @@ exports.FullscreenButton = rclass
         icon = if @props.fullscreen then 'expand' else 'compress'
         styles =
             position   : 'fixed'
-            zIndex     : 100
+            zIndex     : 10000
             right      : 0
-            top        : 0
-            fontSize   : '12pt'
+            top        : '1px'
+            fontSize   : '13pt'
             padding    : 4
-            color      : '#999'
-            fontWeight : 700
+            color      : '#666'
+            cursor     : 'pointer'
+            borderRadius: '3px'
+
+        if @props.fullscreen
+            styles.background   = '#fff'
+
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
 exports.SMCLogo = rclass

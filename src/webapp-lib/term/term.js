@@ -3088,8 +3088,10 @@ Terminal.prototype.deleteChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param--) {
-    this.lines[row].splice(this.x, 1);
-    this.lines[row].push(ch);
+    if(row < this.lines.length) {
+      this.lines[row].splice(this.x, 1);
+      this.lines[row].push(ch);
+    }
   }
 };
 

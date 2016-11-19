@@ -54,7 +54,7 @@ BAD_COMMANDS =
     emacs   : "Type emacs in a full terminal instead,\nor just click on the file in the listing."
     open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/smc/issues/230"
 
-EXEC_TIMEOUT = 10 # in seconds    
+EXEC_TIMEOUT = 10 # in seconds
 
 exports.MiniTerminal = MiniTerminal = rclass
     displayName : 'MiniTerminal'
@@ -128,6 +128,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
+                    @props.actions.set_directory_files()  # update directory listing (command may change files)
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')

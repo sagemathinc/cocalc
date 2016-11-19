@@ -92,7 +92,6 @@ exports.AccountPage = rclass
             font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
             other_settings  = {@props.other_settings}
-            profile         = {@props.profile}
             groups          = {@props.groups} />
 
     render_landing_page: ->

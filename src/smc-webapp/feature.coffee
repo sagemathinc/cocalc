@@ -57,6 +57,9 @@ $.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
 exports.IS_MOBILE = exports.isMobile.any()
 
+# DEBUG
+# exports.IS_MOBILE = true
+
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
