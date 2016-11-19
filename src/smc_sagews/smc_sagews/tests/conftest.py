@@ -7,8 +7,6 @@ import signal
 import struct
 import hashlib
 
-# import sys
-
 ###
 # much of the code here is copied from sage_server.py
 # cut and paste was done because it takes over 30 sec to import sage_server
@@ -375,12 +373,9 @@ def data_path(tmpdir_factory):
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
-    Fixture for worksheet cell test. Depends on two other fixtures,
-    sagews and test_id.
-    - `` code `` -- string of code block to run
-
-    Fixture function exec2. If output & patterns are omitted, the cell is not
-    expected to produce a stdout result. Arguments after 'code' are optional.
+    Fixture function exec2. Depends on two other fixtures, sagews and test_id.
+    If output & patterns are omitted, the cell is not expected to produce a
+    stdout result. All arguments after 'code' are optional.
 
     - `` code `` -- string of code to run
 
@@ -520,6 +515,23 @@ def execblob(request, sagews, test_id):
 
     return execblobfn
 
+@pytest.fixture()
+def execintrospect(request, sagews, test_id):
+    def execfn(line, completions, target, top=None):
+        if top is None:
+            top = line
+        m = message.introspect(test_id, line=line, top=top)
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == completions
+        assert mesg['target'] == target
+
+    return execfn
+
 @pytest.fixture(scope = "class")
 def sagews(request):
     r"""
@@ -542,7 +554,7 @@ def sagews(request):
     c_ack = conn._recv(1)
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
-    # start session
+    # open connection with sage_server and run tests
     msg = message.start_session()
     msg['type'] = 'sage'
     conn.send_json(msg)
@@ -587,3 +599,11 @@ def own_sage_server(request):
         print("killing all sage_server processes")
         os.system("pkill -f sage_server_command_line")
     request.addfinalizer(fin)
+
+@pytest.fixture(scope = "class")
+def test_ro_data_dir(request):
+    """
+    Return the directory containing the test file.
+    Used for tests which have read-only data files in the test dir.
+    """
+    return os.path.dirname(request.module.__file__)

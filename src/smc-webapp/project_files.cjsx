@@ -26,6 +26,7 @@ misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
+
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -35,9 +36,10 @@ immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
 {AccountPage}         = require('./account_page')
-{UsersViewing}        = require('./profile')
+{UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
-Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+
+Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
@@ -136,6 +138,7 @@ FileRow = rclass
         is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
+        no_select    : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.name != next.name          or
@@ -146,7 +149,8 @@ FileRow = rclass
         @props.mask != next.mask                 or
         @props.public_data != next.public_data   or
         @props.current_path != next.current_path or
-        @props.bordered != next.border
+        @props.bordered != next.border           or
+        @props.no_select != next.no_select
 
     render_icon: ->
         ext   = misc.filename_extension(@props.name)
@@ -214,11 +218,16 @@ FileRow = rclass
     fullpath: ->
         misc.path_to_file(@props.current_path, @props.name)
 
+    handle_mouse_down: (e) ->
+        @setState
+            selection_at_last_mouse_down : window.getSelection().toString()
+
     handle_click: (e) ->
-        @props.actions.open_file
-            path       : @fullpath()
-            foreground : misc.should_open_in_foreground(e)
-        @props.actions.set_file_search('')
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
+            @props.actions.open_file
+                path       : @fullpath()
+                foreground : misc.should_open_in_foreground(e)
+            @props.actions.set_file_search('')
 
     handle_download_click: (e) ->
         e.preventDefault()
@@ -239,7 +248,12 @@ FileRow = rclass
         # support right-click → copy url for the download button
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row
+            style       = {row_styles}
+            onMouseDown = {@handle_mouse_down}
+            onClick     = {@handle_click}
+            className   = {'noselect' if @props.no_select}
+        >
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -256,10 +270,10 @@ FileRow = rclass
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
                 <span className='pull-right' style={color:'#666'}>
                     {human_readable_size(@props.size)}
-                    <Button style={marginLeft: '1em', background:'transparent'}
-                            bsStyle='default'
-                            bsSize='xsmall'
-                            href="#{url_href}"
+                    <Button style   = {marginLeft: '1em', background:'transparent'}
+                            bsStyle = 'default'
+                            bsSize  = 'xsmall'
+                            href    = "#{url_href}"
                             onClick = {@handle_download_click}>
                         <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
@@ -285,11 +299,17 @@ DirectoryRow = rclass
         is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
+        no_select    : rtypes.bool
 
-    handle_click: ->
-        path = misc.path_to_file(@props.current_path, @props.name)
-        @props.actions.open_directory(path)
-        @props.actions.set_file_search('')
+    handle_mouse_down: (e) ->
+        @setState
+            selection_at_last_mouse_down : window.getSelection().toString()
+
+    handle_click: (e) ->
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
+            path = misc.path_to_file(@props.current_path, @props.name)
+            @props.actions.open_directory(path)
+            @props.actions.set_file_search('')
 
     render_public_directory_info_popover: ->
         <Popover id={@props.name} title='This folder is being shared publicly' style={wordWrap:'break-word'}>
@@ -344,7 +364,7 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row style={row_styles} onMouseDown={@handle_mouse_down} onClick={@handle_click} className={'noselect' if @props.no_select}>
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -514,9 +534,9 @@ pager_range = (page_size, page_number) ->
     return {start_index: start_index, end_index: start_index + page_size}
 
 FileListing = rclass
-    displayName : 'ProjectFiles-FileListing'
+    displayName: 'ProjectFiles-FileListing'
 
-    propTypes :
+    propTypes:
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -531,6 +551,7 @@ FileListing = rclass
         selected_file_index : rtypes.number
         project_id          : rtypes.string
         show_upload         : rtypes.bool
+        shift_is_down       : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
@@ -565,7 +586,9 @@ FileListing = rclass
                 is_public    = {is_public}
                 checked      = {checked}
                 current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                actions      = {@props.actions}
+                no_select    = {@props.shift_is_down}
+            />
         else
             return <FileRow
                 name         = {name}
@@ -580,7 +603,9 @@ FileListing = rclass
                 checked      = {checked}
                 key          = {index}
                 current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                actions      = {@props.actions}
+                no_select    = {@props.shift_is_down}
+            />
 
     handle_parent: (e) ->
         e.preventDefault()
@@ -1781,6 +1806,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
         account :
             other_settings : rtypes.immutable
+
         "#{name}" :
             current_path        : rtypes.string
             activity            : rtypes.object
@@ -1808,6 +1834,25 @@ exports.ProjectFiles = rclass ({name}) ->
         selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
+
+    getInitialState: ->
+        shift_is_down : false
+
+    componentDidMount: ->
+        $(window).on("keydown", @handle_files_key_down)
+        $(window).on("keyup", @handle_files_key_up)
+
+    componentWillUnmount: ->
+        $(window).off("keydown", @handle_files_key_down)
+        $(window).off("keyup", @handle_files_key_up)
+
+    handle_files_key_down: (e) ->
+        if e.key == "Shift"
+            @setState(shift_is_down : true)
+
+    handle_files_key_up: (e) ->
+        if e.key == "Shift"
+            @setState(shift_is_down : false)
 
     previous_page: ->
         if @props.page_number > 0
@@ -1900,10 +1945,12 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle={style}
-                onClick={@props.actions.toggle_upload}
-                active={@props.show_upload}
-            ><Icon name='upload' /> Upload</Button>
+                bsStyle = {style}
+                onClick = {@props.actions.toggle_upload}
+                active  = {@props.show_upload}
+                >
+                <Icon name='upload' /> Upload
+            </Button>
         </Col>
 
     render_activity: ->
@@ -1971,7 +2018,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <div>
                 {e}
                 <br />
-                <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                <Button onClick={@update_current_listing}>
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
@@ -1990,11 +2037,17 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_folder       = {@create_folder}
                 selected_file_index = {@props.selected_file_index}
                 project_id          = {@props.project_id}
-                show_upload         = {@props.show_upload} />
+                show_upload         = {@props.show_upload}
+                shift_is_down       = {@state.shift_is_down}
+            />
         else
+            @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
             </div>
+
+    update_current_listing: ->
+        setTimeout((=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)
@@ -2064,9 +2117,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                <Col sm=3>
+                {<Col sm=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing redux={@props.redux} viewing_what='project' project_id={@props.project_id} />
+                        <UsersViewing project_id={@props.project_id} />
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
@@ -2075,7 +2128,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
-                </Col>
+                </Col> if not public_view}
             </Row>
             <Row>
                 <Col sm=8>

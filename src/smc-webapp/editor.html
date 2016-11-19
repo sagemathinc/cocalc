@@ -46,23 +46,15 @@ Editor for files in a project
     </ul>
 
     <!-- Template for the codemirror text editor -->
-    <div class="salvus-editor-codemirror well">
-        <div class="salvus-editor-codemirror-content">
+    <div class="salvus-editor-codemirror smc-vfill">
+        <textarea class="salvus-editor-textarea-0 hide"></textarea>
+        <textarea class="salvus-editor-textarea-1 hide"></textarea>
+        <div class="salvus-editor-codemirror-content  smc-vfill">
             <div class="salvus-editor-codemirror-button-row">
                 <div class="salvus-editor-codemirror-button-container">
                     <div class="hidden-xs salvus-editor-chat-title salvus-editor-write-only pull-right">
                         <div class="smc-users-viewing-document">
                             <!--to be filled with react component for users viewing the document-->
-                        </div>
-                        <div class="salvus-editor-chat-title-text">
-                            <i class="fa fa-caret-down salvus-editor-chat-hide"></i>
-                            <i class="fa fa-caret-left hide salvus-editor-chat-show"></i>
-                            <i class="fa fa-comments-o salvus-editor-chat-new-chats hide"></i>
-                            <i class="fa fa-comment salvus-editor-chat-no-new-chats"></i>
-                        </div>
-                        <div class="salvus-editor-chat-title-video">
-                            <i class="fa fa-video-camera salvus-editor-chat-video-toggle salvus-editor-chat-video-is-on hide"></i>
-                            <i class="fa fa-video-camera salvus-editor-chat-video-toggle salvus-editor-chat-video-is-off"></i>
                         </div>
                     </div>
 
@@ -71,7 +63,7 @@ Editor for files in a project
                     <span class="visible-xs">
                         <span class="btn-group">
                             <!-- <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> <span>Files...</span></a>-->
-                            <a href="#save" class="btn  btn-success btn-lg"><i class="fa fa-save"></i></a>
+                            <a href="#save" class="btn  btn-success btn-lg"><i class="fa fa-save"></i> Save</a>
                             <a href="#goto-line" class="btn btn-default btn-lg"><i class="fa fa-bolt"> </i></a>
                         </span>
 
@@ -116,18 +108,14 @@ Editor for files in a project
                         <a href="#autoindent" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
                         <a href="#undo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                         <a href="#redo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
-                        <!--
-    <a href="#shift-left" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
-                        <a href="#shift-right" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
-    -->
                         <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
                         <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                         <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
                         <a href="#replace" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                         <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
-                            <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
-                            <i class="fa fa-columns salvus-editor-layout-1"></i>
-                            <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2" style="font-size: 12pt;"></i>
+                            <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0 hide"></i>
+                            <i class="fa fa-columns salvus-editor-layout-1 hide"></i>
+                            <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2 hide" style="font-size: 12pt;"></i>
                         </a>
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
@@ -149,7 +137,7 @@ Editor for files in a project
                     <span class="btn-group salvus-editor-write-only">
                         <a href="#save" class="hidden-xs btn btn-success salvus-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk.">
                             <i class="fa fa-save"></i>
-                            <span class="hidden-sm">Save</span>
+                            Save
                             <span class="smc-uncommitted hide" data-toggle="tooltip" data-placement="bottom" title="DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file."> NOT saved!</span>
                         </a>
                         <a href="#history" class="hidden-xs btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
@@ -169,15 +157,8 @@ Editor for files in a project
 
                     <span class="salvus-editor-latex-buttons hide">
                         <span class="btn-group">
-                           <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
-                           <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
-                        </span>
-                        <span class="btn-group">
-                            <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                            <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
-                            <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                            <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
-                                <span class="salvus-latex-build-status"></span></a>
+                           <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
+                           <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
                         </span>
                     </span>
 
@@ -194,8 +175,8 @@ Editor for files in a project
 
                 <div class="salvus-editor-buttonbars salvus-editor-write-only">
                     <div class="salvus-editor-latex-buttonbar hide"></div>
-                    <div class="salvus-editor-codemirror-textedit-buttons hide">
-                        <code class="salvus-editor-codeedit-buttonbar-mode pull-right"></code>
+                    <div class="salvus-editor-codemirror-textedit-buttons hide  visible-md-block visible-lg-block">
+                        <code class="salvus-editor-codeedit-buttonbar-mode pull-right hide"></code>
                         <span class="react-target"></span>
                     </div>
                     <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
@@ -265,66 +246,58 @@ Editor for files in a project
                         </span>
                     </div>
                 </div>
-
             </div>
-            <div class="salvus-editor-codemirror-chat-column hide">
-                <div class="salvus-editor-codemirror-chat">
-                    <div class="salvus-editor-codemirror-chat-video"></div>
-<!--                    <div class="salvus-editor-codemirror-chat-output"></div>
-                    <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown and LaTeX..."></textarea> -->
+
+            <div class="salvus-editor-codemirror-input-container-layout-0 hide"
+                 style="flex: 1; display: flex; flex-direction: column;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
+                    </div>
+                </div>
+                <div class="salvus-editor-codemirror-input-box-1 hide">
+                    <div>
+                    </div>
                 </div>
             </div>
-            <div class="salvus-editor-codemirror-input-container-layout-1 hide">
-                <div class="row">
-                    <div class="salvus-editor-codemirror-input-box col-sm-12">
-                        <textarea></textarea>
+
+            <div class="salvus-editor-codemirror-input-container-layout-1 hide"
+                 style="flex: 1; display: flex; flex-direction: column;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
                 <div class="salvus-editor-resize-bar-layout-1">
                 </div>
-                <div class="row">
-                    <div class="salvus-editor-codemirror-input-box-1 col-sm-12">
-                        <textarea></textarea>
+                <!-- flex: 1 so expands to what is left after editor above is placed. -->
+                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
             </div>
 
-            <div class="salvus-editor-codemirror-input-container-layout-2 hide">
-                <div class="row">
-                    <div class="salvus-editor-codemirror-input-box col-sm-6">
-                        <textarea></textarea>
+            <div class="salvus-editor-codemirror-input-container-layout-2 hide"
+                 style="flex: 1; display: flex; flex-direction: row;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                     </div>
-                    <div style="padding-left: 0;">
-                        <div class="salvus-editor-resize-bar-layout-2"></div>
-                        <div class="salvus-editor-codemirror-input-box-1">
-                            <textarea></textarea>
-                        </div>
+                </div>
+                <div class="salvus-editor-resize-bar-layout-2">
+                </div>
+                <!-- flex: 1 so expands to what is left after editor above is placed. -->
+                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
             </div>
+
         </div>
-        <div class="salvus-editor-codemirror-startup-message alert alert-warning" role='alert'>
-        </div>
-    </div>
-
-    <!-- Template for chat entries -->
-
-    <div class="salvus-chat-entry">
-        <div class="salvus-chat-header">
-            <span class="salvus-chat-header-name"></span>
-            (<span class="salvus-chat-header-date"></span>):
-        </div>
-        <span class="salvus-chat-entry-content">
-        </span>
-    </div>
-
-    <!-- Template for chat activity entries (e.g. start video call) -->
-
-    <div class="salvus-chat-activity-entry">
-        <div class="salvus-chat-header">
-            <span class="salvus-chat-header-name"></span>
-            <span class="salvus-chat-header-activity"></span>
-            (<span class="salvus-chat-header-date"></span>)
+        <div class="salvus-editor-codemirror-startup-message alert alert-warning hide" role='alert'>
         </div>
     </div>
 
@@ -345,7 +318,7 @@ Editor for files in a project
             <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
         </span>
         <div class="hidden-xs salvus-editor-image-title pull-right"> The title </div>
-        <div class="salvus-editor-image-container"><img><video controls autoplay loop></video><span>Loading...</span></div>
+        <div class="salvus-editor-image-container"><img style="max-width:100%"><video controls autoplay loop></video><span>Loading...</span></div>
     </div>
 
     <!-- Static HTML viewer -->
@@ -357,27 +330,29 @@ Editor for files in a project
     </div>
 
     <!-- Templates for the png-based PDF previewer; this is designed for the pdf changes in little ways locally.  -->
-    <div class="salvus-editor-pdf-preview">
+    <div class="salvus-editor-pdf-preview smc-vfill">
         <div class="salvus-editor-pdf-preview-spinner hide"></div>
         <div class="salvus-editor-pdf-preview-highlight hide"></div>
-        <span class="salvus-editor-pdf-preview-buttons">
+        <div class="salvus-editor-pdf-preview-buttons">
             <span class="btn-group">
-                <a href="#zoom-preview-out" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom out a little"><i class="fa fa-search-minus"></i></a>
-                <a href="#zoom-preview-in" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in a little"><i class="fa fa-search-plus"></i></a>
-                <a href="#zoom-preview-fullpage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom out to show the full page"><i class="fa fa-minus-square-o"></i></a>
-                <a href="#zoom-preview-width" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in fairly close"><i class="fa fa-plus-square-o"></i></a>
+                <a href="#zoom-preview-out" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Zoom out some"><i class="fa fa-search-minus"></i></a>
+                <a href="#zoom-preview-in" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in some"><i class="fa fa-search-plus"></i></a>
+                <a href="#zoom-preview-fullpage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom so page width matches viewport"><i class="fa fa-minus-square-o"></i></a>
+                <a href="#zoom-preview-width" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in close"><i class="fa fa-plus-square-o"></i></a>
                 <a href="#preview-resolution" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Change the preview resolution"><i class="fa fa-th"></i></a>
                 <a href="#pdf-download" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Download the PDF file"><i class="fa fa-download"></i></a>
             </span>
-        </span>
-        <div class="salvus-editor-pdf-preview-page">
+        </div>
+        <div style="flex:1;overflow-y:auto;overflow-x:auto" class="salvus-editor-pdf-preview-output">
+            <div class="salvus-editor-pdf-preview-page">
+            </div>
         </div>
     </div>
 
 
 
     <!-- Templates for the embedded PDF previewer: just uses the built-in renderer; can't cope with file updates, inverse search, etc. -->
-    <div class="salvus-editor-pdf-preview-embed">
+    <div class="salvus-editor-pdf-preview-embed smc-vfill">
         <div class="salvus-editor-codemirror-button-row">
             <span class="salvus-editor-pdf-preview-embed-spinner hide"></span>
             <span class="btn-group">
@@ -392,8 +367,8 @@ Editor for files in a project
             </a>
             </span>
         </div>
-        <div class="salvus-editor-pdf-preview-embed-page">
-            <iframe frameborder="0" scrolling="no">
+        <div class="salvus-editor-pdf-preview-embed-page smc-vfill">
+            <iframe frameborder="0" scrolling="no" style="width:100%;height:100%">
                 <br>
                 <br>
                 &nbsp;&nbsp;&nbsp;Your browser doesn't support embedded PDF's, but you can <a target='_blank'>download <span></span></a>...
@@ -402,107 +377,119 @@ Editor for files in a project
     </div>
 
     <!-- Template for the LaTeX editor -->
-    <div class="salvus-editor-latex">
-        <div class="salvus-editor-latex-latex_editor">
-        </div>
-        <div class="salvus-editor-latex-resize-bar">
-        </div>
-        <div class="salvus-editor-latex-pdf-preview hide">
-        </div>
-        <div class="salvus-editor-latex-png-preview hide">
-        </div>
-        <div class="salvus-editor-latex-errors hide">
-            <div style="margin-left:2em">
-                <h3>Errors</h3>
-                <div class="salvus-latex-errors">
-                </div>
-                <h3>Typesetting Issues</h3>
-                <div class="salvus-latex-typesetting">
-                </div>
-                <h3>Other Warnings</h3>
-                <div class="salvus-latex-warnings">
-                </div>
-                <div style="height:10em"></div>
+    <div class="salvus-editor-latex smc-vfill">
+        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-latex-content">
+            <div class="salvus-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
             </div>
-        </div>
-
-        <!-- error/warning message templates -->
-
-        <div class="salvus-editor-latex-mesg-template well hide">
-            <a class="btn btn-default" style="max-width:80%">
-                <i class="fa fa-mail-reply"></i>
-                <span class="salvus-latex-mesg-line"></span>
-                <span class="salvus-latex-mesg-page"></span>
-                <span class="salvus-latex-mesg-file"></span>
-                <span class="salvus-latex-mesg-message"></span>
-            </a>
-            <a class="btn pull-right btn-default">
-                <i class="fa fa-mail-forward"></i>
-            </a>
-            <pre class="salvus-latex-mesg-content lighten hide"></pre>
-        </div>
-
-         <div class="salvus-editor-latex-log hide">
-            <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
-                <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
-                <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
-                <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
-                <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
-                <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Reset build command."><i class="fa fa-times-circle"></i></a>
-            </span>
-            <input style="width:50%" type="text" class="form-control">
-            <textarea rows="20" cols="100" class="well boxsizingBorder" readonly="" style="width:100%;background-color:white;">You have not run LaTeX yet.</textarea>
-        </div>
-        <div class="salvus-editor-latex-settings hide">
-            <h1>Settings</h1>
+            <div class="salvus-editor-latex-resize-bar">
+            </div>
+            <div class="salvus-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto; background: #efefef;">
+                <div class="btn-group">
+                    <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
+                    <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                    <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
+                    <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
+                        <span class="salvus-latex-build-status"></span></a>
+                </div>
+                <div class="salvus-editor-latex-pdf-preview smc-vfill hide">
+                </div>
+                <div class="salvus-editor-latex-png-preview smc-vfill hide" style="border:1px solid grey">
+                </div>
+                <div class="salvus-editor-latex-errors hide">
+                    <div style="margin-left:2em">
+                        <h3>Errors</h3>
+                        <div class="salvus-latex-errors">
+                        </div>
+                        <h3>Typesetting Issues</h3>
+                        <div class="salvus-latex-typesetting">
+                        </div>
+                        <h3>Other Warnings</h3>
+                        <div class="salvus-latex-warnings">
+                        </div>
+                        <div style="height:10em"></div>
+                    </div>
+                </div>
+                <!-- error/warning message templates -->
+                <div class="salvus-editor-latex-mesg-template well hide">
+                    <a class="btn btn-default" style="max-width:80%">
+                        <i class="fa fa-mail-reply"></i>
+                        <span class="salvus-latex-mesg-line"></span>
+                        <span class="salvus-latex-mesg-page"></span>
+                        <span class="salvus-latex-mesg-file"></span>
+                        <span class="salvus-latex-mesg-message"></span>
+                    </a>
+                    <a class="btn pull-right btn-default">
+                        <i class="fa fa-mail-forward"></i>
+                    </a>
+                    <pre class="salvus-latex-mesg-content lighten hide"></pre>
+                </div>
+                <div class="salvus-editor-latex-log smc-vfill hide">
+                    <span class="btn-group">
+                        <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
+                        <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
+                        <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
+                        <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
+                        <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Reset build command."><i class="fa fa-times-circle"></i></a>
+                    </span>
+                    <input type="text" class="form-control">
+                    <textarea  readonly="" style="padding:15px; flex:1; width:100%; color:#666; background: #f8f8f0;">You have not run LaTeX yet.</textarea>
+                </div>
+                <div class="salvus-editor-latex-settings hide">
+                    <h1>Settings</h1>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Template for the HTML-MD editor -->
-    <div class="salvus-editor-html-md">
+    <div class="salvus-editor-html-md smc-vfill">
+        <div class="salvus-editor-html-md-editor-buttonbar">
+        </div>
         <div class="salvus-editor-html-md-textedit-buttonbar">
         </div>
-        <div class="salvus-editor-html-md-source-editor">
-        </div>
-        <div class="salvus-editor-html-md-resize-bar">
-        </div>
-        <div class="salvus-editor-html-md-preview">
-            <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
-            <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
-            <div class="salvus-editor-html-md-preview-content">
+        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-html-md-content">
+            <div class="salvus-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+            </div>
+            <div class="salvus-editor-html-md-resize-bar">
+            </div>
+            <div class="salvus-editor-html-md-preview" style="flex:1">
+                <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
+                <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
+                <div class="salvus-editor-html-md-preview-content">
+                </div>
             </div>
         </div>
     </div>
 
 
-    <div class="salvus-editor-history" style="border: 1px solid grey; padding-top: 6px; padding-right: 5px; position:fixed; left:0; width:100%;">
-        <span class="salvus-editor-history-controls">
-            <span style="color:#666; font-size:14pt; font-weight: bold; margin-left:1em">
+    <div class="salvus-editor-history smc-vfill">
+        <div class="salvus-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; border-radius: 4px; background-color:#efefef">
+            <span style="color:#666; font-size:14pt; font-weight: bold; margin-right:1em">
                 <i class="fa fa-history"></i>
                 TimeTravel
             </span>
-            <span class="btn-group pull-right">
-                <a href="#file" class="btn btn-info " style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Show full file"><i class="fa fa-file-code-o"></i> Open File</a>
-                <a href="#all" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Load complete history"><i class="fa fa-floppy-o"></i> Load All History </a>
-                <a href="#revert" class="btn btn-warning hide" style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
-            </span>
-            <span style="margin-left:1em">
+            <span>
                 <a href="#show-diff" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show changes"><i class="fa fa-square-o"></i> Changes</a>
                 <a href="#hide-diff" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Show what changed"><i class="fa fa-check-square-o"></i> Changes</a>
             </span>
-            <span class="salvus-editor-history-control-button-container btn-group" style="margin-left:1em">
+            <span class="salvus-editor-history-control-button-container btn-group  smc-btn-group-nobreak" style="margin-left:1em">
                 <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
                 <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
+            </span>
+            <span class="btn-group smc-btn-group-nobreak">
+                <a href="#file" class="btn btn-info " style="margin-left:1em" data-toggle="tooltip" data-placement="bottom" title="Show full file"><i class="fa fa-file-code-o"></i> Open File</a>
+                <a href="#all" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Load complete history"><i class="fa fa-floppy-o"></i> Load All History </a>
+                <a href="#revert" class="btn btn-warning hide" style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
             </span>
             <span style="color:#666; margin-left: 1em">
                 <span class="salvus-editor-history-revision-time" style="font-weight: bold; font-size:12pt"></span><span class="salvus-editor-history-diff-mode hide">&nbsp;&nbsp; to&nbsp;&nbsp; </span><span class="hide salvus-editor-history-diff-mode salvus-editor-history-revision-time2" style="font-weight: bold; font-size:12pt"></span><span class="salvus-editor-history-revision-number"></span>
             </span>
-        </span>
-        <div style="margin-top:7px;">
+        </div>
+        <div style="margin-top:7px; margin-right:15px;">
             &nbsp;
             <span class="salvus-editor-history-revision-user lighten pull-right"></span>
         </div>
-        <div class="salvus-editor-history-sliders">
+        <div class="salvus-editor-history-sliders" style="border-bottom: 1px solid lightgrey;">
             <div class="salvus-editor-history-slider  salvus-editor-history-slider-style">
             </div>
             <div class="salvus-editor-history-diff-slider hide  salvus-editor-history-slider-style">
@@ -513,7 +500,7 @@ Editor for files in a project
             <b>WARNING: </b> History viewer for this file type not implemented, so showing underlying raw file instead.
         </div>
 
-        <div class="salvus-editor-history-history_editor"></div>
+        <div class="salvus-editor-history-history_editor smc-vfill"></div>
     </div>
 
     <span class="sagews-input">
@@ -546,7 +533,6 @@ Editor for files in a project
         </div>
         <div class="visible-xs">
             <span class="btn-group">
-                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
                 <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> Save</a>
             </span>
             <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">

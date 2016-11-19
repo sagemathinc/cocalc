@@ -38,8 +38,6 @@ message = require('smc-util/message')
 
 {redux} = require('./smc-react')
 
-profile = require('./profile')
-
 _ = underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
@@ -569,9 +567,6 @@ class FileEditor extends EventEmitter
         @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
 
-    show_chat_window: () =>
-        @syncdoc?.show_chat_window()
-
     is_active: () =>
         misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
@@ -666,7 +661,7 @@ class FileEditor extends EventEmitter
         # define in derived class
 
     hide: () =>
-        @element?.hide()
+        #@element?.hide()
 
     remove: () =>
         @element?.remove()
@@ -728,9 +723,6 @@ class CodeMirrorEditor extends FileEditor
 
         @element = templates.find(".salvus-editor-codemirror").clone()
 
-        if not opts.public_access
-            profile.render_new_viewing_doc(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
-
         @element.data('editor', @)
 
         @init_save_button()
@@ -744,26 +736,12 @@ class CodeMirrorEditor extends FileEditor
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
 
-        @chat_filename = misc.meta_file(@filename, 'chat')
-
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
         @_video_is_on = @local_storage("video_is_on")
         if not @_video_is_on?
             @_video_is_on = false
-
-        @_chat_is_hidden = @local_storage("chat_is_hidden")
-        if not @_chat_is_hidden?
-            @_chat_is_hidden = true
-
-        @_layout = @local_storage("layout")
-        if @_layout not in [1,2]
-            # The *ONLY* allowed values for the layout are 1 and 2 here (update when this changes!)
-            # IMPORTANT: If this were anything other than 1, the user would never be able to open
-            # tex files. So it's important that this be valid.
-            @_layout = 1
-        @_last_layout = @_layout
 
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
@@ -817,6 +795,21 @@ class CodeMirrorEditor extends FileEditor
                 evaluate_key = "Shift-Enter"
             extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
+        # Layouts:
+        #   0 - one single editor
+        #   1 - two editors, one on top of the other
+        #   2 - two editors, one next to the other
+
+        if IS_MOBILE
+            @_layout = 0
+        else
+            @_layout = @local_storage("layout") ? 0    # WARNING/UGLY: used by syncdoc.coffee and sagews.coffee !
+        if @_layout not in [0, 1, 2]
+            # IMPORTANT: If this were anything other than what is listed, the user
+            # would never be able to open tex files. So it's important that this be valid.
+            @_layout = 0
+        @_last_layout = undefined
+
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
@@ -839,7 +832,7 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 6
-                viewportMargin          : 125
+                viewportMargin          : 10
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -862,7 +855,8 @@ class CodeMirrorEditor extends FileEditor
             # The Codemirror themes impose their own weird fonts, but most users want whatever
             # they've configured as "monospace" in their browser.  So we force that back:
             e = $(cm.getWrapperElement())
-            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+            e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
+            # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
             if opts.bindings == 'vim'
                 # annoying due to api change in vim mode
@@ -870,14 +864,12 @@ class CodeMirrorEditor extends FileEditor
 
             return cm
 
-        layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-        elt = layout_elt.find(".salvus-editor-codemirror-input-box").find("textarea")
-        elt.text(content)
+        elt = @element.find(".salvus-editor-textarea-0"); elt.text(content)
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
+        elt1 = @element.find(".salvus-editor-textarea-1")
 
         @codemirror1 = make_editor(elt1[0])
         @codemirror1.name = '1'
@@ -893,10 +885,6 @@ class CodeMirrorEditor extends FileEditor
 
         @init_font_size() # get the @default_font_size
         @restore_font_size()
-
-        @_split_view = @local_storage("split_view")
-        if not @_split_view?
-            @_split_view = false
 
         @init_draggable_splits()
 
@@ -932,34 +920,37 @@ class CodeMirrorEditor extends FileEditor
         layout1_bar.draggable
             axis        : 'y'
             containment : @element
-            zIndex      : 100
+            zIndex      : 10
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                misc_page.drag_stop_iframe_enable()
+                # compute the position of bar as a number from 0 to 1, with
+                # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
                 top = e.offset().top
                 ht  = e.height()
                 p   = layout1_bar.offset().top + layout1_bar.height()/2
                 @_layout1_split_pos = (p - top) / ht
                 @local_storage("layout1_split_pos", @_layout1_split_pos)
-                layout1_bar.css(top:0)
                 # redraw, which uses split info
                 @show()
 
         layout2_bar = @element.find(".salvus-editor-resize-bar-layout-2")
-        layout2_bar.css(position:'absolute')
         layout2_bar.draggable
             axis        : 'x'
             containment : @element
             zIndex      : 100
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                misc_page.drag_stop_iframe_enable()
+                # compute the position of bar as a number from 0 to 1, with
+                # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")
                 left  = e.offset().left
                 width = e.width()
                 p     = layout2_bar.offset().left
                 @_layout2_split_pos = (p - left) / width
                 @local_storage("layout2_split_pos", @_layout2_split_pos)
-                layout2_bar.css(left:left + width*p)
                 # redraw, which uses split info
                 @show()
 
@@ -1165,19 +1156,11 @@ class CodeMirrorEditor extends FileEditor
         setTimeout(f, 0)
 
     toggle_split_view: (cm) =>
-        if @_split_view
-            if @_layout == 1
-                @_layout = 2
-            else
-                @_split_view = false
-        else
-            @_split_view = true
-            @_layout = 1
-        @local_storage("split_view", @_split_view)  # store state so can restore same on next open
+        @_layout = (@_layout + 1) % 3
         @local_storage("layout", @_layout)
         @show()
         if cm?
-            if @_split_view
+            if @_layout > 0
                 cm.focus()
             else
                 # focus first editor since it is only one that is visible.
@@ -1436,162 +1419,72 @@ class CodeMirrorEditor extends FileEditor
         $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
 
-    # hide/show the second linked codemirror editor, depending on whether or not it's enabled
-    _show_extra_codemirror_view: () =>
-        $(@codemirror1.getWrapperElement()).toggle(@_split_view)
 
-    _show_codemirror_editors: (height, width) =>
-        # console.log("_show_codemirror_editors: #{width} x #{height}")
-        if not width or not height
-            return
-        # in case of more than one view on the document...
-        @_show_extra_codemirror_view()
+    _show_codemirror_editors: (height) =>
+        # console.log("_show_codemirror_editors: #{@_layout}")
+        switch @_layout
+            when 0
+                p = 1
+            when 1
+                p = @_layout1_split_pos ? 0.5
+            when 2
+                p = @_layout2_split_pos ? 0.5
 
-        btn = @element.find("a[href=\"#split-view\"]")
-        btn.find("i").hide()
-        if not @_split_view
-            @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
-            @element.find(".salvus-editor-resize-bar-layout-1").hide()
-            @element.find(".salvus-editor-resize-bar-layout-2").hide()
-            btn.find(".salvus-editor-layout-0").show()
-            # one full editor
-            v = [{cm:@codemirror,height:height,width:width}]
+        # Change the height of the *top* div that contain the editors; the bottom one then
+        # uses of all remaining vertical height.
+        if @_layout > 0
+            p = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, p))
+
+        # We set only the default size of the *first* div -- everything else expands accordingly.
+        elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+
+        if @_layout == 1
+            @element.find(".salvus-editor-resize-bar-layout-1").css(top:0)
+        else if @_layout == 2
+            @element.find(".salvus-editor-resize-bar-layout-2").css(left:0)
+
+        c = elt.find(".salvus-editor-codemirror-input-box")
+        if @_layout == 0
+            c.css('flex', 1)   # use the full vertical height
         else
-            if @_layout == 1
-                @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
-                @element.find(".salvus-editor-resize-bar-layout-1").show()
-                @element.find(".salvus-editor-resize-bar-layout-2").hide()
-                btn.find(".salvus-editor-layout-1").show()
-                p = @_layout1_split_pos
-                if not p?
-                    p = 0.5
-                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
-                v = [{cm:@codemirror,  height:height*p,     width:width},
-                     {cm:@codemirror1, height:height*(1-p), width:width}]
-            else
-                @element.find(".salvus-editor-resize-bar-layout-1").hide()
-                @element.find(".salvus-editor-resize-bar-layout-2").show()
-                p = @_layout2_split_pos
-                if not p?
-                    p = 0.5
-                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
-                width0 = width*p
-                width1 = width*(1-p)
-                btn.find(".salvus-editor-layout-2").show()
-                e = @element.find(".salvus-editor-codemirror-input-container-layout-2")
-                e.width(width)
-                e.find(".salvus-editor-resize-bar-layout-2").height(height).css(left : e.offset().left + width*p)
-                e.find(".salvus-editor-codemirror-input-box").width(width0-7)
-                v = [{cm:@codemirror,  height:height, width:width0},
-                     {cm:@codemirror1, height:height, width:width1-8}]
+            c.css('flex-basis', "#{p*100}%")
 
         if @_last_layout != @_layout
-            # move the editors to the correct layout template and show it.
-            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
-            layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-            layout_elt.find(".salvus-editor-codemirror-input-box").empty().append($(@codemirror.getWrapperElement()))
-            layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
+            # The layout has changed
+            btn = @element.find('a[href="#split-view"]')
+
+            if @_last_layout?
+                # Hide previous
+                btn.find(".salvus-editor-layout-#{@_last_layout}").hide()
+                @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
+
+            # Show current
+            btn.find(".salvus-editor-layout-#{@_layout}").show()
+
+            # Put editors in their place -- in the div inside of each box
+            elt.find(".salvus-editor-codemirror-input-box div").empty().append($(@codemirror.getWrapperElement()))
+            elt.find(".salvus-editor-codemirror-input-box-1 div").empty().append($(@codemirror1.getWrapperElement()))
+
+            # Save for next time
             @_last_layout = @_layout
 
-        for {cm,height,width} in v
-            scroller = $(cm.getScrollerElement())
-            scroller.css('height':height)
-            cm_wrapper = $(cm.getWrapperElement())
-            cm_wrapper.css
-                height : height
-                width  : width
+        # Workaround a major and annoying bug in Safari:
+        #     https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari and @_layout == 1
+            # This is only needed for the "split via a horizontal line" layout, since
+            # the flex layout with column direction is broken on Safari.
+            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
-        # This is another hack that specifically hopefully addresses an
-        # issue where when I open a tab often the scrollbar is completely
-        # hosed.  Zooming in and out manually always fixes it, so maybe
-        # what's below will also.  Testing it.
-        f = () =>
-            for {cm,height,width} in v
-                cm.refresh()
-                ###
-                scroll = cm.getScrollInfo(); pos = cm.getCursor()
-                # above refresh
-                scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
-                if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
-                    console.log("WARNING: codemirror refresh lost pos -- RESETTING position; before=#{misc.to_json([scroll,pos])}, after=#{misc.to_json([scroll_after,pos_after])}")
-                    cm.setCursor(pos)
-                    cm.scrollTo(scroll.left, scroll.top)
-                ###
-        setTimeout(f, 1)
+        for cm in @codemirrors()
+            cm?.refresh()
 
-        @emit('show', height)
-
+        @emit('show')
 
     _show: (opts={}) =>
         # show the element that contains this editor
-        @element.show()
-
-        # do size computations: determine height and width of the codemirror editor(s)
-        if not opts.top?
-            top           = redux.getProjectStore(@project_id).get('editor_top_position')
-        else
-            top           = opts.top
-
-        height            = $(window).height()
-        elem_height       = height - top
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
-        font_height       = @codemirror.defaultTextHeight()
-        chat              = @_chat_is_hidden? and not @_chat_is_hidden
-        chat_video        = @_video_is_on? and @_video_is_on
-
-        # width of codemirror editors
-        if chat
-            width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
-        else
-            width         = $(window).width()
-
-        if opts.width?
-            width         = opts.width
-
-        if opts.top?
-            top           = opts.top
-
-        # height of codemirror editors
-        cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
-
-        # position the editor element on the screen
-        @element.css(top:top, left:0)
-        @element.css(left:0)
-        # and position the chat column
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height + 2)
-
-        # set overall height of the element
-        @element.height(elem_height)
-
+        #@element.show()
         # show the codemirror editors, resizing as needed
-        @_show_codemirror_editors(cm_height, width)
-
-        @chat_elt = @element.find(".salvus-editor-codemirror-chat")
-
-#         if chat
-#             chat_elt = @element.find(".salvus-editor-codemirror-chat")
-#             chat_elt.height(cm_height)
-
-#             chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
-#             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
-#             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
-
-#             chat_input_top = $(window).height() - chat_input.height() - 15
-
-#             if chat_video
-#                 video_height = chat_video_loc.height()
-#             else
-#                 video_height = 0
-
-#             video_top = chat_video_loc.offset().top
-
-#             chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
-#             chat_output_top = video_top + video_height
-
-#             chat_input.offset({top:chat_input_top})
-
-#             chat_output.height(chat_output_height)
-#             chat_output.offset({top:chat_output_top})
+        @_show_codemirror_editors()
 
     focus: () =>
         if not @codemirror?
@@ -2355,7 +2248,6 @@ class PDF_Preview extends FileEditor
         if @path == ''
             @path = './'
         @file = s.tail
-        @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
@@ -2428,10 +2320,11 @@ class PDF_Preview extends FileEditor
         if not pg?
             # the page has vanished in the meantime...
             return
-        t = @output.offset().top
-        @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
+        elt = @element.find(".salvus-editor-pdf-preview-output")
+        t = elt.offset().top
+        elt.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2
-        @output.scrollTop(top)
+        elt.scrollTop(top)
         if opts.highlight_line
             # highlight location of interest
             @highlight_middle()
@@ -2442,9 +2335,6 @@ class PDF_Preview extends FileEditor
         super()
 
     focus: () =>
-        @element.maxheight()
-        @output.height(@element.height())
-        @output.width(@element.width())
 
     current_page: () =>
         tp = @output.offset().top
@@ -2473,10 +2363,6 @@ class PDF_Preview extends FileEditor
         @dbg("update")
         #@spinner.show().spin(true)
         @_updating = true
-
-        @output.maxheight()
-        if @element.width()
-            @output.width(@element.width())
 
         # Hide trailing pages.
         if @pdflatex.num_pages?
@@ -2565,7 +2451,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2637,39 +2523,15 @@ class PDF_Preview extends FileEditor
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
-    show: (geometry={}) =>
-        geometry = defaults geometry,
-            left   : undefined
-            top    : undefined
-            width  : $(window).width()
-            height : undefined
-        if not @is_active()
-            return
+    show: =>
 
-        @element.show()
+    hide: =>
 
-        f = () =>
-            @element.width(geometry.width)
-            @element.offset
-                left : geometry.left
-                top  : geometry.top
-
-            if geometry.height?
-                @element.height(geometry.height)
-            else
-                @element.maxheight()
-                geometry.height = @element.height()
-
-            @focus()
-        # We wait a tick for the element to appear before positioning it, otherwise it
-        # can randomly get messed up.
-        setTimeout(f, 1)
-
-    hide: () =>
-        @element.hide()
 
 exports.PDF_Preview = PDF_Preview
 
+# NOTE: This is *ONLY* used as part of the latex editor now.  There is a rewrite
+# in eidtor_pdf.cjsx in react that is much better.
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@project_id, @filename, contents, @opts) ->
         super(@project_id, @filename)
@@ -2691,24 +2553,11 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
-    focus: () =>
+        @update()
 
     update: (cb) =>
-        height = @element.height()
-        if height == 0
-            # not visible.
-            return
-        width = @element.width()
-
         button = @element.find("a[href=\"#refresh\"]")
         button.icon_spin(true)
-
-        @_last_width = width
-        @_last_height = height
-
-        output_height = height - (@output.offset().top - @element.offset().top)
-        @output.height(output_height)
-        @output.width(width)
 
         @spinner.show().spin(true)
         salvus_client.read_file_from_project
@@ -2723,46 +2572,18 @@ class PDF_PreviewEmbed extends FileEditor
                 else
                     @pdf_title.find("span").text(@filename)
                     @pdf_title.attr('target', '_blank').attr("href", result.url)
-                    @output.find("iframe").attr('src', result.url).width(width).height(output_height-10)
+                    @output.find("iframe").attr('src', result.url)
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
+    show: =>
+         # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari
+            @element.find(".salvus-editor-pdf-preview-embed-page").make_height_defined()
 
-    show: (geometry={}) =>
-        geometry = defaults geometry,
-            left   : undefined
-            top    : undefined
-            width  : $(window).width()
-            height : undefined
+    focus:=>
 
-        @element.show()
-        if not geometry.top?
-            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-
-        if geometry.height?
-            @element.height(geometry.height)
-        else
-            @element.maxheight()
-            geometry.height = @element.height()
-
-        @element.width(geometry.width)
-
-        @element.offset
-            left : geometry.left
-            top  : geometry.top
-
-        if @_last_width != geometry.width or @_last_height != geometry.height
-            @update()
-
-        @focus()
-
-    hide: () =>
-        @element.hide()
+    hide: =>
 
 exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
@@ -2771,11 +2592,11 @@ class Terminal extends FileEditor
         super(@project_id, @filename)
         @element = $("<div>").hide()
         elt = @element.salvus_console
-            title     : "Terminal"
-            filename  : @filename
-            project_id: @project_id
-            resizable : false
-            editor    : @
+            title      : "Terminal"
+            filename   : @filename
+            project_id : @project_id
+            path       : @filename
+            editor     : @
         @console = elt.data("console")
         @element = @console.element
         salvus_client.read_text_file_from_project
@@ -2822,45 +2643,33 @@ class Terminal extends FileEditor
             salvus_client.new_session(mesg)
 
 
-    _get: () =>  # FUTURE ??
+    _get: =>  # FUTURE ??
         return @opts.session_uuid ? ''
 
     _set: (content) =>  # FUTURE ??
 
-    save: (cb) =>
+    save: =>
         # DO nothing -- a no-op for now
         # FUTURE: Add notion of history
         cb?()
 
-    focus: () =>
+    focus: =>
         @console?.focus()
 
-    blur: () =>
+    blur: =>
         @console?.blur()
 
     terminate_session: () =>
 
-    remove: () =>
+    remove: =>
         @element.salvus_console(false)
         super()
 
-    hide: () =>
-        if @console?
-            @element?.hide()
-            @console.blur()
+    hide: =>
+        @console?.blur()
 
     _show: () =>
-        if @console?
-            e = $(@console.terminal.element)
-            top = redux.getProjectStore(@project_id).get('editor_top_position') + @element.find(".salvus-console-topbar").height()
-            # We leave a gap at the bottom of the screen, because often the
-            # cursor is at the bottom, but tooltips, etc., would cover that
-            ht = $(window).height() - top - 6
-            if feature.isMobile.iOS()
-                ht = Math.floor(ht/2)
-            e.height(ht)
-            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # HACK: this is hack-ish; needs to be redone!
-            @console.focus(true)
+        @console?.resize()
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
@@ -2917,9 +2726,6 @@ class Media extends FileEditor
         if not @is_active()
             return
         @element.show()
-        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight()
-
 
 
 class PublicHTML extends FileEditor
@@ -2953,8 +2759,6 @@ class PublicHTML extends FileEditor
         else
             @set_iframe()
         @element.show()
-        #  redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
 
     set_iframe: () =>
         @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
@@ -3038,12 +2842,10 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
 
         if IS_MOBILE
             @element.css(position:'relative')
-        else
-            @element.css(position:'fixed')
+
         @wrapped?.show?()
 
     hide: () =>
@@ -3137,9 +2939,6 @@ class JupyterNBViewerEmbedded extends FileEditor
             #ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
-        @iframe.maxheight()
 
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
 html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
@@ -3177,7 +2976,6 @@ exports.register_nonreact_editors = () ->
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    register(false, PDF_PreviewEmbed, ['pdf'])
     register(false, TaskList,         ['tasks'])
     register(false, JupyterNotebook,  ['ipynb'])
 

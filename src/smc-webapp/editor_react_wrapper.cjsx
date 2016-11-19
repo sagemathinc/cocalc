@@ -2,33 +2,30 @@
 Wrapper in a React component of a non-react editor, so that we can fully rewrite
 the UI using React without having to rewrite all the editors.
 
-(c) SageMath, Inc.
+GPL
 
-AUTHORS:
-   - William Stein, 2016
-   - John Jeng, 2016
+(c) 2016, SageMath, Inc.
 ###
+
+{NotifyResize} = require('react-notify-resize')
+
+{debounce} = require('underscore')
 
 {rclass, rtypes, ReactDOM, React} = require('./smc-react')
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
-    reduxProps :
-        "#{project_name}":
-            editor_top_position : rtypes.number
-
     propTypes :
         editor : rtypes.object.isRequired
 
     componentDidMount: ->
-        # Use for any (god forbid..) future Iframe editors..
+        # Use for any future Iframe editors...
+        #   (Actually, see how editor_pdf and edtor_jupyter done for the right way to do this -- wstein)
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
-        mounted = @props.editor.mount?()
-        if not mounted
-            span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
-            if span.length > 0
-                span.replaceWith(@props.editor.element[0])
+        span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
+        if span.length > 0
+            span.replaceWith(@props.editor.element[0])
 
         @props.editor.show()
         @props.editor.focus?()
@@ -51,7 +48,9 @@ WrappedEditor = rclass ({project_name}) ->
             @props.editor.show()
 
     render: ->
-        <div>
+        # position relative is required by NotifyResize
+        <div className='smc-vfill' style={position:'relative'}>
+            <NotifyResize onResize={debounce(@refresh, 350)}/>
             <span className="smc-editor-react-wrapper"></span>
         </div>
 
@@ -60,6 +59,9 @@ editors = {}
 
 get_key = (project_id, path) ->
     return "#{project_id}-#{path}"
+
+exports.get_editor = (project_id, path) ->
+    return editors[get_key(project_id, path)]
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,

@@ -14,9 +14,6 @@ external code (e.g., Jupyter Notebooks) that don't (and may never)
 use react into SMC.
 
 (c) 2016 SageMath, Inc.
-
-AUTHORS:
-  - William Stein
 ###
 
 

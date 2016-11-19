@@ -99,7 +99,16 @@ $.fn.spin = (opts) ->
             delete data.spinner
         if opts isnt false
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
-    this
+    return this
+
+# jQuery plugin for spinner (/spin/spin.min.js)
+$.fn.exactly_cover = (other) ->
+    @each ->
+        elt = $(this)
+        elt.offset(other.offset())
+        elt.width(other.width())
+        elt.height(other.height())
+    return this
 
 # make all links open internally or in a new tab; etc.
 # opts={project_id:?, file_path:path that contains file}
@@ -1712,6 +1721,14 @@ exports.analytics_pageview = (args...) ->
 
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
+
+# These are used to disable pointer events for iframes when dragging something that may move over an iframe.
+# See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
+exports.drag_start_iframe_disable = ->
+    $("iframe:visible").css('pointer-events', 'none')
+
+exports.drag_stop_iframe_enable = ->
+    $("iframe:visible").css('pointer-events', 'auto')
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
 exports.open_new_tab = (url) ->

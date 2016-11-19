@@ -17,7 +17,7 @@ class PageActions extends Actions
     # FUTURE: Develop more general way to make key mappings for editors
     # HACK: __suppress_key_handlers is for file_use. See FUTURE above.
     #       Adding even a single suppressor leads to spaghetti code.
-    #       Don't fucking do it. -- J3
+    #       Don't do it. -- J3
     set_active_key_handler: (handler) =>
         if handler?
             $(window).off("keydown", @active_key_handler)

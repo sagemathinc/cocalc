@@ -38,7 +38,7 @@ markdown = require('./markdown')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
-{UsersViewing} = require('./profile')
+{UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {redux_name} = require('project_store')
 
@@ -1062,6 +1062,14 @@ ProjectRow = rclass
                            user_map    = {@props.user_map} />
         return r_join(users)
 
+    handle_mouse_down: (e) ->
+        @setState
+            selection_at_last_mouse_down : window.getSelection().toString()
+
+    handle_click: (e) ->
+        if window.getSelection().toString() == @state.selection_at_last_mouse_down
+            @open_project_from_list(e)
+
     open_project_from_list: (e) ->
         @actions('projects').open_project
             project_id : @props.project.project_id
@@ -1082,7 +1090,7 @@ ProjectRow = rclass
             cursor          : 'pointer'
             wordWrap        : 'break-word'
 
-        <Well style={project_row_styles} onClick={@open_project_from_list}>
+        <Well style={project_row_styles} onClick={@handle_click} onMouseDown={@handle_mouse_down}>
             <Row>
                 <Col sm=3 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     <a>{html_to_text(@props.project.title)}</a>
@@ -1383,7 +1391,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                         </Col>
                         <Col sm=4>
-                            <UsersViewing redux={redux} viewing_what='projects' />
+                            <UsersViewing style={width:'100%'}/>
                         </Col>
                     </Row>
                     <Row>

@@ -633,9 +633,9 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
-        log("GOLD SUPPORT : %8s/month ", money(400))
-        total_lower += 400
-        total_upper += 400
+        log("SILVER SUPPORT : %8s/month ", money(150))
+        total_lower += 150
+        total_upper += 150
         log("SALES TAX    : %8s/month -- 9.5%% WA+Seattle sales tax", money(total_lower*0.095))
         total_lower *= 1.095
         total_upper *= 1.095

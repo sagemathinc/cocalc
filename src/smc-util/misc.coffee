@@ -267,7 +267,6 @@ exports.uuidsha1 = (data) ->
                 return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
     )
 
-
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
@@ -517,15 +516,15 @@ exports.original_path = (path) ->
         x = s.head + '/' + x
     return x
 
-
-# "foobar" --> "foo..."
+ELLIPSES = "…"
+# "foobar" --> "foo…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")
-        return s.slice(0,max_length-3) + "..."
+        return s.slice(0,max_length-3) + ELLIPSES
     else
         return s
 
@@ -536,7 +535,7 @@ exports.trunc_middle = (s, max_length=1024) ->
     if s.length <= max_length
         return s
     n = Math.floor(max_length/2)
-    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
+    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-(n-1))
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length=1024) ->
@@ -545,7 +544,7 @@ exports.trunc_left = (s, max_length=1024) ->
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")
-        return "..." + s.slice(s.length-max_length+3)
+        return ELLIPSES + s.slice(s.length-max_length+3)
     else
         return s
 
@@ -1718,6 +1717,11 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
         args = [url]
 
     return {command:command, args:args}
+
+exports.ensure_bound = (x, min, max) ->
+    return min if x < min
+    return max if x > max
+    return x
 
 # convert a file path to the "name" of the underlying editor tab.
 # needed because otherwise filenames like 'log' would cause problems

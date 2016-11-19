@@ -5,7 +5,10 @@
 
 $ = window.$
 
+async = require('async')
+
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 
 {defaults, required} = misc
 
@@ -23,6 +26,7 @@ MAX_LATEX_WARNINGS = 50
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         super(@project_id, @filename)
+
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -37,6 +41,8 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        @element.find(".salvus-editor-codeedit-buttonbar-mode").remove()
+
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
 
@@ -99,15 +105,6 @@ class exports.LatexEditor extends editor.FileEditor
         @_init_buttons()
         @init_draggable_split()
 
-        # this is entirely because of the chat
-        # currently being part of @latex_editor, and
-        # only calling the show for that; once chat
-        # is refactored out, delete this.
-        @latex_editor.on 'show-chat', () =>
-            @show()
-        @latex_editor.on 'hide-chat', () =>
-            @show()
-
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
         ###
@@ -133,24 +130,31 @@ class exports.LatexEditor extends editor.FileEditor
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
-        dragbar.css(position:'absolute')
+        @set_dragbar_position()
+        update = =>
+            misc_page.drag_stop_iframe_enable()
+            # compute the position of bar as a number from 0 to 1
+            left  = @element.offset().left
+            width = @element.width()
+            p     = dragbar.offset().left
+            @_split_pos = (p - left) / width
+            @local_storage('split_pos', @_split_pos)
+            dragbar.css(left: 0)
+            @set_dragbar_position()
+
+
         dragbar.draggable
-            axis : 'x'
+            axis        : 'x'
             containment : @element
-            zIndex      : 100
-            stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1
-                left  = @element.offset().left
-                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-                if chat_pos.left
-                    width = chat_pos.left - left
-                else
-                    width = @element.width()
-                p     = dragbar.offset().left
-                @_split_pos = (p - left) / width
-                @local_storage('split_pos', @_split_pos)
-                #dragbar.css(left: )
-                @show()
+            zIndex      : 10
+            stop        : update
+            start       : misc_page.drag_start_iframe_disable
+
+    set_dragbar_position: =>
+        @_split_pos ?= @local_storage('split_pos') ? 0.5
+        @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
+        @element.find(".salvus-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
+
 
     set_conf: (obj) =>
         conf = @load_conf()
@@ -295,7 +299,6 @@ class exports.LatexEditor extends editor.FileEditor
 
         @element.find("a[href=\"#log\"]").click () =>
             @show_page('log')
-            @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
@@ -355,7 +358,6 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-
     set_resolution: (res) =>
         if not res?
             bootbox.prompt "Change preview resolution from #{@get_resolution()} dpi to...", (result) =>
@@ -395,14 +397,32 @@ class exports.LatexEditor extends editor.FileEditor
                         @preview_embed.update()
                 @spell_check()
 
-
     update_preview: (cb) =>
-        @run_latex
-            command : @load_conf_doc().latex_command
-            cb      : () =>
+        content = @_get()
+        if content == @_last_update_preview
+            cb?()
+            return
+        async.series([
+            (cb) =>
+                @_last_update_preview = content
+                if @latex_editor.has_unsaved_changes()
+                    @latex_editor.save(cb)
+                else
+                    cb()
+            (cb) =>
+                if @latex_editor.has_uncommitted_changes()
+                    delete @_last_update_preview  # running latex on stale version
+                @run_latex
+                    command : @load_conf_doc().latex_command
+                    cb      : cb
+            (cb) =>
                 @preview.update
-                    cb: (err) =>
-                        cb?(err)
+                    cb: cb
+        ], (err) =>
+            if err
+                delete @_last_update_preview
+            cb?(err)
+        )
 
     _get: () =>
         return @latex_editor._get()
@@ -410,46 +430,16 @@ class exports.LatexEditor extends editor.FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
-
     _show: (opts={}) =>
-        if not @_split_pos?
-            @_split_pos = .5
-        @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))
-
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
-        @element.width($(window).width())
-
-        width = @element.width()
-        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-        if chat_pos.left
-            width = chat_pos.left
-
-        {top, left} = @element.offset()
-        editor_width = (width - left) * @_split_pos
-
-        @_dragbar.css('left', editor_width + left)
-        @latex_editor.show(width:editor_width)
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
-
-        @_right_pane_position =
-            start : editor_width + left + 7
-            end   : width
-            top   : top + button_bar_height + 1
+         # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+        if $.browser.safari
+            @element.make_height_defined()
 
         if not @_show_before?
             @show_page('png-preview')
             @_show_before = true
         else
             @show_page()
-
-        @_dragbar.height(@latex_editor.element.height())
-        @_dragbar.css('top', button_bar_height + 2)
 
     focus: () =>
         @latex_editor?.focus()
@@ -458,9 +448,6 @@ class exports.LatexEditor extends editor.FileEditor
         return @latex_editor?.has_unsaved_changes(val)
 
     show_page: (name) =>
-        if not @_right_pane_position?
-            return
-
         if not name?
             name = @_current_page
         @_current_page = name
@@ -471,15 +458,6 @@ class exports.LatexEditor extends editor.FileEditor
         for n in pages
             @element.find(".salvus-editor-latex-#{n}").hide()
 
-        pos = @_right_pane_position
-        g  = {left : pos.start, top:pos.top+3, width:pos.end-pos.start-3}
-        if g.width < 50
-            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").hide()
-            @element.find(".salvus-editor-latex-log").find(".btn-group").hide()
-        else
-            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").show()
-            @element.find(".salvus-editor-latex-log").find(".btn-group").show()
-
         for n in pages
             page = @_pages[n]
             if not page?
@@ -488,17 +466,14 @@ class exports.LatexEditor extends editor.FileEditor
             button = @element.find("a[href=\"#" + n + "\"]")
             if n == name
                 e.show()
-                if n not in ['log', 'errors']
-                    page.show(g)
+                if n == 'log'
+                    c = @load_conf_doc().latex_command
+                    if c
+                        @log_input.val(c)
+                else if n == 'errors'
+                    @render_error_page()
                 else
-                    page.offset({left:g.left, top:g.top}).width(g.width)
-                    page.maxheight()
-                    if n == 'log'
-                        c = @load_conf_doc().latex_command
-                        if c
-                            @log_input.val(c)
-                    else if n == 'errors'
-                        @render_error_page()
+                    page.show()
                 button.addClass('btn-primary')
             else
                 button.removeClass('btn-primary')
@@ -544,15 +519,15 @@ class exports.LatexEditor extends editor.FileEditor
         p = (new LatexParser(log)).parse()
 
         if p.errors.length
-            @number_of_errors.text(p.errors.length)
+            @number_of_errors.text("  (#{p.errors.length})")
             @element.find("a[href=\"#errors\"]").addClass("btn-danger")
         else
             @number_of_errors.text('')
             @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
-        if k
-            @number_of_warnings.text("(#{k})")
+        if k and p.errors.length == 0  # don't show if there are errors
+            @number_of_warnings.text("  (#{k})")
         else
             @number_of_warnings.text('')
 

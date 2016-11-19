@@ -155,27 +155,32 @@ class ProjectActions extends Actions
     # Pushes to browser history
     # Updates the URL
     set_active_tab: (key) =>
+        store = @get_store()
+        if store.get('active_project_tab') == key
+            # nothing to do
+            return
         @setState(active_project_tab : key)
         switch key
             when 'files'
-                @set_url_to_path(@get_store().get('current_path') ? '')
-                store = @get_store()
+                @set_url_to_path(store.get('current_path') ? '')
                 sort_by_time = store.get('sort_by_time') ? true
                 show_hidden = store.get('show_hidden') ? false
                 @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
-                @push_state('new/' + @get_store().get('current_path'))
+                @push_state('new/' + store.get('current_path'))
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
                 @push_state('log')
             when 'search'
-                @push_state('search/' + @get_store().get('current_path'))
+                @push_state('search/' + store.get('current_path'))
             when 'settings'
                 @push_state('settings')
             else #editor...
-                @push_state('files/' + misc.tab_to_path(key))
-                @set_current_path(misc.path_split(misc.tab_to_path(key)).head)
+                path = misc.tab_to_path(key)
+                @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
+                @push_state('files/' + path)
+                @set_current_path(misc.path_split(path).head)
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().get('num_ghost_file_tabs')
@@ -183,9 +188,6 @@ class ProjectActions extends Actions
 
     clear_ghost_file_tabs: =>
         @setState(num_ghost_file_tabs : 0)
-
-    set_editor_top_position: (pos) =>
-        @setState(editor_top_position : pos)
 
     set_next_default_filename: (next) =>
         @setState(default_filename: next)
@@ -236,7 +238,7 @@ class ProjectActions extends Actions
             cb : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
-                    # (It *should* keep trying and store that in localStore, and try next time, etc...
+                    # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err)
 
@@ -269,7 +271,18 @@ class ProjectActions extends Actions
             path               : required
             foreground         : true      # display in foreground as soon as possible
             foreground_project : true
-            chat               : false
+            chat               : undefined
+            chat_width         : undefined
+
+        # grab chat state from local storage
+        local_storage = require('./editor').local_storage
+        if local_storage?
+            opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
+            opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
+
+        if misc.filename_extension(opts.path) == 'sage-chat'
+            opts.chat = false
+
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
@@ -345,9 +358,18 @@ class ProjectActions extends Actions
                             Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
                             # Add it to open files
-                            info = {Editor:Editor, redux_name:name, is_public:is_public}
+                            # IMPORTANT: info can't be a full immutable.js object, since Editor can't
+                            # be converted to immutable,
+                            # so don't try to do that.  Of course info could be an immutable map.
+                            info =
+                                redux_name   : name
+                                is_public    : is_public
+                                Editor       : Editor
+                            open_files = open_files.setIn([opts.path, 'component'], info)
+                            open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
+                            open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             @setState
-                                open_files       : open_files.setIn([opts.path, 'component'], info)
+                                open_files       : open_files
                                 open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
@@ -355,8 +377,50 @@ class ProjectActions extends Actions
                             @set_active_tab(misc.path_to_tab(opts.path))
         return
 
+    # If the given path is open, and editor supports going to line, moves to the given line.
+    # Otherwise, does nothing.
+    goto_line: (path, line) =>
+        # Obviously, for now, this only works for non-react editors.
+        # For react editors later, will get their actions and pass this on to them.
+        wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+
+    # Used by open/close chat below.
+    _set_chat_state: (path, is_chat_open) =>
+        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        if open_files? and path?
+            @setState
+                open_files : open_files.setIn([path, 'is_chat_open'], is_chat_open)
+
+    # Open side chat for the given file, assuming the file is open, store is initialized, etc.
+    open_chat: (opts) =>
+        opts = defaults opts,
+            path : required
+        @_set_chat_state(opts.path, true)
+        require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
+
+    # Close side chat for the given file, assuming the file itself is open
+    close_chat: (opts) =>
+        opts = defaults opts,
+            path : required
+        @_set_chat_state(opts.path, false)
+        require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', false)
+
+    set_chat_width: (opts) =>
+        opts = defaults opts,
+            path  : required
+            width : required     # between 0 and 1
+        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        if open_files?
+            width = misc.ensure_bound(opts.width, 0.05, 0.95)
+            require('./editor').local_storage?(@project_id, opts.path, 'chat_width', width)
+            @setState
+                open_files : open_files.setIn([opts.path, 'chat_width'], width)
+
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
+        if not filename?
+            return
+
         if not @_activity_indicator_timers?
             @_activity_indicator_timers = {}
         timer = @_activity_indicator_timers[filename]
@@ -431,7 +495,7 @@ class ProjectActions extends Actions
 
         @setState(open_files_order : empty, open_files : {})
 
-    # closes the file and removes all references
+    # Closes the file and removes all references.
     # Does not update tabs
     close_file: (path) =>
         store = @get_store()
@@ -477,10 +541,13 @@ class ProjectActions extends Actions
             window.cpath_args = arguments
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
+
         @setState
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
+
+        @set_directory_files()
 
     set_file_search: (search) =>
         @setState
@@ -840,7 +907,6 @@ class ProjectActions extends Actions
                         action : 'deleted'
                         files  : opts.paths[0...3]
                         count  : if opts.paths.length > 3 then opts.paths.length
-
 
     download_file: (opts) =>
         {download_file, open_new_tab} = require('./misc_page')
@@ -1278,6 +1344,14 @@ create_project_store_def = (name, project_id) ->
     stripped_public_paths: (public_paths) ->
         if public_paths?
             return immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS()))
+
+    # Returns the cursor positions for the given project_id/path, if that
+    # file is opened, and supports cursors.   Currently this only works
+    # for old sync'd codemirror editors.  Otherwise, returns undefined.
+    # To do this right, we'll want to have implement redux.getEditorStore(...)
+    # and *MOVE* this method there.
+    get_users_cursors: (path, account_id) =>
+        return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
 
     is_file_open: (path) ->
         return @getIn(['open_files', path])?

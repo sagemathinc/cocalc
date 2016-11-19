@@ -1,7 +1,7 @@
 <div class="smc-jupyter-templates hide">
     <div class="smc-jupyter-cursor"><pre class="smc-jupyter-cursor-label"></pre><div class="smc-jupyter-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
-    <div class="smc-jupyter-notebook">
+    <div class="smc-jupyter-notebook smc-vfill">
         <div class="smc-jupyter-startup-message alert alert-info" role='alert' style="width: 94%; margin: 3%;">
             Loading...
         </div>
@@ -34,7 +34,7 @@
                     <i class="fa fa-font" style="font-size:11pt"></i>
                 </a>
             </span>
-            <span class="btn-group" style="margin-right:64px">
+            <span class="btn-group">
                 <a href="#save" class="btn btn-success"
                    data-toggle="tooltip" data-placement="bottom"
                    title="Save .ipynb file to disk (file is constantly sync'd with server).">
@@ -45,12 +45,12 @@
                    title="View the history of this file.">
                        <i class="fa fa-history"></i> <span class="hidden-sm">TimeTravel</span>
                 </a>
-                <a href="#publish" class="btn btn-warning"
+                <a href="#publish" class="btn btn-default"
                    data-toggle="tooltip" data-placement="bottom"
                    title="Publish this notebook for anybody to see">
                        <i class="fa fa-refresh fa-spin hide"></i> <i class="fa fa-share-square-o"></i> <span class="hidden-sm">Publish</span>
                 </a>
-                <a href="#info" class="btn btn-info"
+                <a href="#info" class="btn btn-default"
                    data-toggle="tooltip" data-placement="bottom"
                    title="Extra information about the Jupyter notebook">
                        <i class="fa fa-question-circle"></i> <span class="hidden-sm">About</span>
@@ -65,10 +65,9 @@
 
         <div class="smc-jupyter-notebook-buttons visible-xs">
             <span class="btn-group">
-                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
-                <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> </a>
-                <a href="#publish" class="btn btn-warning btn-lg"> <i class="fa fa-share-square-o"></i></a>
-                <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
+                <a href="#save" class="btn btn-success"> <i class="fa fa-save"></i> Save </a>
+                <a href="#publish" class="btn btn-default"> <i class="fa fa-share-square-o"></i> Publish</a>
+                <a href="#info" class="btn  btn-default"> <i class="fa fa-info-circle"></i> About</a>
             </span>
             <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
                 <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i>
@@ -84,7 +83,7 @@
         </div>
 
         <h3 class="smc-jupyter-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
-        <div class="smc-jupyter-notebook-notebook"></div>
+        <div class="smc-jupyter-notebook-notebook smc-vfill"></div>
     </div>
 
 
