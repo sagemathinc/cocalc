@@ -249,10 +249,10 @@ FileRow = rclass
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
         <Row
-            style={row_styles}
-            onMouseDown={@handle_mouse_down}
-            onClick={@handle_click}
-            className={'noselect' if @props.no_select}
+            style       = {row_styles}
+            onMouseDown = {@handle_mouse_down}
+            onClick     = {@handle_click}
+            className   = {'noselect' if @props.no_select}
         >
             <Col sm=2 xs=3>
                 <FileCheckbox
@@ -270,10 +270,10 @@ FileRow = rclass
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
                 <span className='pull-right' style={color:'#666'}>
                     {human_readable_size(@props.size)}
-                    <Button style={marginLeft: '1em', background:'transparent'}
-                            bsStyle='default'
-                            bsSize='xsmall'
-                            href="#{url_href}"
+                    <Button style   = {marginLeft: '1em', background:'transparent'}
+                            bsStyle = 'default'
+                            bsSize  = 'xsmall'
+                            href    = "#{url_href}"
                             onClick = {@handle_download_click}>
                         <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
