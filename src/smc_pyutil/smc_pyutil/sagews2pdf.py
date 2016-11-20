@@ -117,10 +117,15 @@ STYLES = {
 
 COMMON = r"""
 \usepackage[USenglish]{babel}
-\usepackage{graphicx}
 \usepackage{etoolbox}
 \usepackage{url}
 \usepackage{hyperref}
+
+% use includegraphics directly, but beware, that this is actually ...
+\usepackage{graphicx}
+% ... adjust box! http://latex-alive.tumblr.com/post/81481408449
+\usepackage[Export]{adjustbox}
+\adjustboxset{max size={\textwidth}{0.7\textheight}}
 
 \usepackage{textcomp}
 \def\leftqquote{``}\def\rightqqoute{''}
@@ -236,7 +241,7 @@ def tex_escape(s):
 
 
 # Parallel computing can be useful for IO bound tasks.
-def thread_map(callable, inputs, nb_threads = 2):
+def thread_map(callable, inputs, nb_threads = 1):
     """
     Computing [callable(args) for args in inputs]
     in parallel using `nb_threads` separate *threads* (default: 2).
@@ -269,6 +274,7 @@ class Parser(HTMLParser.HTMLParser):
         HTMLParser.HTMLParser.__init__(self)
         self.result = ''
         self._commands = cmds
+        self._dont_close_img = False
 
     def handle_starttag(self, tag, attrs):
         if tag == 'h1':
@@ -306,19 +312,40 @@ class Parser(HTMLParser.HTMLParser):
                 href = attrs['src']
                 _, ext = os.path.splitext(href)
                 ext = ext.lower()
+                if '?' in ext:
+                    ext = ext[:ext.index('?')]
                 # create a deterministic filename based on the href
                 from hashlib import sha1
                 base = sha1(href).hexdigest()
                 filename = base + ext
 
-                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href, filename)
+                # href might start with /blobs/ or similar for e.g. octave plots
+                # in such a case, there is also a file output and we ignore the image in the html
+                if href[0] == '/':
+                    self._dont_close_img = True
+                    return
+                else:
+                    href_download = href
+
+                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href_download, filename)
                 if ext == '.svg':
                     # convert to pdf
                     c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
                     filename = base+'.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
-                self.result += '\\includegraphics[resolution=120]{%s}'%filename
+                # besides that, if we scale it in sagews, we also have to scale it here
+                scaling = 1.
+                if 'smc-image-scaling' in attrs:
+                    try:
+                        # in practice (and if it is set at all) it is most likely 0.66
+                        scaling = float(attrs['smc-image-scaling'])
+                    except:
+                        pass
+                resolution = int(120. / scaling)
+                self.result += '\\includegraphics[resolution=%s]{%s}'%(resolution, filename)
+                # alternatively, implicit scaling by adjbox and textwidth
+                # self.result += '\\includegraphics{%s}'%(filename)
             else:
                 # fallback, because there is no src='...'
                 self.result += '\\verbatim{image: %s}' % str(attrs)
@@ -331,6 +358,9 @@ class Parser(HTMLParser.HTMLParser):
         elif tag == 'ol':
             self.result += '\\end{enumerate}'
         elif tag == 'hr':
+            self.result += ''
+        elif tag == 'img' and self._dont_close_img:
+            self._dont_close_img = False
             self.result += ''
         else:
             self.result += '}'  # fallback
