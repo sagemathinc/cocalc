@@ -1139,7 +1139,8 @@ exports.ProjectSettings = rclass ({name}) ->
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
-            stripped_public_paths : rtypes.immutable
+            public_paths : rtypes.immutable  # really so we can access get_stripped_public_paths
+            #stripped_public_paths : rtypes.immutable
 
     propTypes :
         project_id : rtypes.string.isRequired
@@ -1172,7 +1173,7 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render: ->
-        if not @props.project_map? or not @props.user_map? or not @props.stripped_public_paths?
+        if not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -1192,7 +1193,7 @@ exports.ProjectSettings = rclass ({name}) ->
                     project_id    = {@props.project_id}
                     project       = {project}
                     user_map      = {@props.user_map}
-                    public_paths  = {@props.stripped_public_paths}
+                    public_paths  = {redux.getProjectStore(@props.project_id).get_stripped_public_paths()}
                     customer      = {@props.customer}
                     email_address = {@props.email_address}
                     project_map   = {@props.project_map}

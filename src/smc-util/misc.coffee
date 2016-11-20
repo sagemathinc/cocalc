@@ -1812,8 +1812,19 @@ exports.get_arg_names = (func) ->
 #     node1 : []
 #     node2 : ["node1"]
 #     node3 : ["node1", "node2"]
+#
+# WILLIAM : does the above define this or the opposite of it????
+#
+#   node1 ----> node2
+#     |           |
+#    \|/          |
+#   node3 <-------|
+#
+# William: It's just a poset -- what's so "topological" about it?
+#
 # Returns a topological ordering of the DAG
 #     object = ["node1", "node2", "node3"]
+#
 # Throws an error if cyclic
 # Runs in O(N + E) where N is the number of nodes and E the number of edges
 # Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM

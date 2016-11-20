@@ -1243,7 +1243,7 @@ create_project_store_def = (name, project_id) ->
         public_paths       : rtypes.immutable.List
         directory_listings : rtypes.immutable
         show_upload        : rtypes.bool
-        displayed_listing  : computed rtypes.object
+        #displayed_listing  : computed rtypes.object
 
         # Project Page
         active_project_tab  : rtypes.string
@@ -1286,7 +1286,7 @@ create_project_store_def = (name, project_id) ->
 
         # Project Settings
         get_public_path_id : rtypes.func
-        stripped_public_paths : computed rtypes.immutable.List
+        #stripped_public_paths : computed rtypes.immutable.List
 
     get_public_path_id: ->
         project_id = @project_id
@@ -1298,6 +1298,9 @@ create_project_store_def = (name, project_id) ->
     # TODO: Change input functions like this to use getInitialState
     sort_by_time: ->
         return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
+
+    get_displayed_listing: ->
+        return @displayed_listing(@directory_listings, @current_path, @stripped_public_paths, @file_search, @other_settings)
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
@@ -1345,12 +1348,15 @@ create_project_store_def = (name, project_id) ->
         if public_paths?
             return immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS()))
 
+    get_stripped_public_paths: ->
+        return @stripped_public_paths(@public_paths)
+
     # Returns the cursor positions for the given project_id/path, if that
     # file is opened, and supports cursors.   Currently this only works
     # for old sync'd codemirror editors.  Otherwise, returns undefined.
     # To do this right, we'll want to have implement redux.getEditorStore(...)
     # and *MOVE* this method there.
-    get_users_cursors: (path, account_id) =>
+    get_users_cursors: (path, account_id) ->
         return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
 
     is_file_open: (path) ->
