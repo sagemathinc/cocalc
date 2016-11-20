@@ -1857,6 +1857,7 @@ exports.top_sort = (DAG, opts={omit_sources:false}) ->
 
     # Detect cycles
     if num_edges != 0
+        window?._DAG = DAG  # so it's possible to debug in browser
         throw new Error "Store has a cycle in its computed values"
 
     if omit_sources
