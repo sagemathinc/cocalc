@@ -386,7 +386,7 @@ class ProjectActions extends Actions
 
     # Used by open/close chat below.
     _set_chat_state: (path, is_chat_open) =>
-        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        open_files = @get_store()?.open_files  # store might not be initialized
         if open_files? and path?
             @setState
                 open_files : open_files.setIn([path, 'is_chat_open'], is_chat_open)
@@ -409,7 +409,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path  : required
             width : required     # between 0 and 1
-        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        open_files = @get_store()?.open_files  # store might not be initialized
         if open_files?
             width = misc.ensure_bound(opts.width, 0.05, 0.95)
             require('./editor').local_storage?(@project_id, opts.path, 'chat_width', width)
