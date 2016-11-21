@@ -56,6 +56,7 @@
     "webpack-watch-map": "cd $SALVUS_ROOT; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-watch-quick-map": "cd $SALVUS_ROOT; SMC_WEBPACK_QUICK=true SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack --progress --colors",
+    "webpack-watch-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack --progress --watch --colors",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
