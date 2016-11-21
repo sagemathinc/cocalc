@@ -61,7 +61,6 @@ class PageActions extends Actions
         index = open_projects.indexOf(project_id)
         size = open_projects.size
         if project_id == active_top_tab
-            next_active_tab = 'projects'
             if index == -1 or size <= 1
                 next_active_tab = 'projects'
             else if index == size - 1
@@ -69,11 +68,17 @@ class PageActions extends Actions
             else
                 next_active_tab = open_projects.get(index + 1)
             @set_active_tab(next_active_tab)
-        if index == size - 1
-            @clear_ghost_tabs()
-        else
-            @add_a_ghost_tab()
-        # SMELL probably should be in here and not projects
+
+        ## This is somehow (?) broken by "computed values" (or something else) --
+        # The point of these "ghost tabs" is to make it so you can quickly close several
+        # open tabs, like in Chrome.   I'm disabling this for now until this gets
+        # sorted out. See https://github.com/sagemathinc/smc/issues/1271
+        #if index == size - 1
+        #    @clear_ghost_tabs()
+        #else
+        #    @add_a_ghost_tab()
+
+        # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
 
     set_active_tab: (key) =>
