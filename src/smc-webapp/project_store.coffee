@@ -1299,7 +1299,7 @@ create_project_store_def = (name, project_id) ->
         return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
 
     get_displayed_listing: ->
-        return @displayed_listing(@directory_listings, @current_path, @stripped_public_paths, @file_search, @other_settings)
+        return @displayed_listing(@directory_listings, @current_path, @get_stripped_public_paths(), @file_search, @other_settings)
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
@@ -1345,7 +1345,7 @@ create_project_store_def = (name, project_id) ->
 
     stripped_public_paths: (public_paths) ->
         if public_paths?
-            return immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS()))
+            return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS())
 
     get_stripped_public_paths: ->
         return @stripped_public_paths(@public_paths)
