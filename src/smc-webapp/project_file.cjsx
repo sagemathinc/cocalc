@@ -97,6 +97,8 @@ exports.generate = (path, redux, project_id, is_public) ->
 
 # Actually remove the given editor
 exports.remove = (path, redux, project_id, is_public) ->
+    if not path?
+        return
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
     # Use specific one for the given extension, or a fallback.

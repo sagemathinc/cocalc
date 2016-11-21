@@ -493,6 +493,8 @@ exports.path_to_file = (path, file) ->
     return path + '/' + file
 
 exports.meta_file = (path, ext) ->
+    if not path?
+        return
     p = exports.path_split(path)
     path = p.head
     if p.head != ''
