@@ -93,8 +93,8 @@ store_def =
     displayed_cc_number: ->
         return @getIn(['project_map', 'users', 'cc'])
 
-    filtered_val: (basic_input, some_list) ->
-        return some_list.filter (val) => val == basic_input
+    filtered_val: depends('basic_input', 'some_list') ->
+        return @some_list.filter (val) => val == @basic_input
 
     # Not available through redux props.
     # Great place to describe pure functions
@@ -194,6 +194,8 @@ harvest_import_functions = (store_def) ->
     return result
 
 # Parses and removes store_def.stateTypes
+# Also removes store_def[func] where func
+# is a key in store_def.stateTypes
 # Returns functions for selectors
 harvest_own_functions = (store_def) ->
     functions = {}
@@ -221,6 +223,11 @@ generate_selectors = (own, import_functions) ->
         own[func_name] = selector
         all_selectors[func_name] = selector
     return own
+
+depends  = (dependency_names...) ->
+    return (deriving_func) =>
+        deriving_func.dependency_names = dependency_names
+        return deriving_func
 
 action_set_state = (change) ->
     action =
@@ -609,6 +616,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 exports.computed = computed
+exports.depends  = depends
 exports.React    = React
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton

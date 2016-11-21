@@ -155,18 +155,22 @@ describe 'Functions from harvest_own_functions', ->
         expect(result.greetings.toString()).toEqual(original_function)
 
 describe 'generate_selectors', ->
-    extern_state =
-        first_name : "Kimberly"
-        last_name  : "Smith"
-
     store_def =
-        first_name : => extern_state.first_name
-        last_name  : => extern_state.last_name
-        full_name  : (first_name, last_name) => "#{first_name} #{last_name}"
-        short_name : (full_name) => full_name.slice(0,5)
+        raw_state :
+            first_name : "Kimberly"
+            last_name  : "Smith"
+        first_name : -> @raw_state.first_name
+        last_name  : -> @raw_state.last_name
+        full_name  : -> "#{@first_name()} #{@last_name()}"
+        short_name : -> @full_name().slice(0,5)
 
-    first_name_func_string = JSON.stringify(store_def.first_name)
-    generate_selectors(store_def)
+    store_def.full_name.dependency_names = ["first_name", "last_name"]
+    store_def.short_name.dependency_names = ["full_name"]
+
+    [bound_store_def] = misc.bind_objects(store_def, [store_def])
+
+    first_name_func_string = JSON.stringify(bound_store_def.first_name)
+    store_def = generate_selectors(bound_store_def)
 
     it 'Ignores input functions (those without arguments)', ->
         expect JSON.stringify(store_def.first_name)
@@ -193,7 +197,7 @@ describe 'generate_selectors', ->
     it 'Recomputes once on one input change', ->
         initial_comps = store_def.short_name.recomputations()
         val1 = store_def.short_name()
-        extern_state.first_name = "Katie"
+        store_def.raw_state.first_name = "Katie"
         val2 = store_def.short_name()
         val3 = store_def.short_name()
 

@@ -1795,34 +1795,17 @@ exports.local_storage_length = () ->
     catch e
         return 0
 
-# WARNING: THIS WILL BREAK WHEN UPGRADING TO COFFEE2 because
-# it matches on the text "function". TODO: Find a better parser.
-exports.get_arg_names = (func) ->
-    # First match everything inside the function argument parens.
-    args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
-
-    # Split the arguments string into an array comma delimited.
-    args = args.split(',').map (arg) ->
-        # Ensure no inline comments are parsed and trim the whitespace.
-        arg.replace(/\/\*.*\*\//, '').trim()
-    .filter (arg) -> # Ensure no undefined values are added.
-        arg
-    return args
-
 # Takes an object representing a directed graph shaped as follows:
 # DAG =
 #     node1 : []
 #     node2 : ["node1"]
 #     node3 : ["node1", "node2"]
 #
-# WILLIAM : does the above define this or the opposite of it????
-#
+# Which represents the following graph:
 #   node1 ----> node2
 #     |           |
 #    \|/          |
 #   node3 <-------|
-#
-# William: It's just a poset -- what's so "topological" about it?
 #
 # Returns a topological ordering of the DAG
 #     object = ["node1", "node2", "node3"]
@@ -1878,26 +1861,30 @@ exports.top_sort = (DAG, opts={omit_sources:false}) ->
     else
         return path
 
-# Metaprogramming utility for an object with functions
-# object =
-#     func_name1 : (): any => ...
-#     func_name2 : (func_name1): any => ...
-#     func_name3 : (func_name1, func_name2): any => ...
-# Understood that funct_name2 depends on func_name1
-
+# Takes an object with keys and values where
+# the values are functions and keys are the names
+# of the functions.
+# Dependency graph is created from the property
+# `dependency_names` found on the values
 # Returns an object shaped
 # DAG =
 #     func_name1 : []
 #     func_name2 : ["func_name1"]
 #     func_name3 : ["func_name1", "func_name2"]
+#
+# Which represents the following graph:
+#   func_name1 ----> func_name2
+#     |                |
+#    \|/               |
+#   func_name3 <-------|
 exports.create_dependency_graph = (object) =>
     DAG = {}
     for name, written_func of object
-        DAG[name] = exports.get_arg_names(written_func)
+        DAG[name] = written_func.dependency_names ? []
     return DAG
 
 # Binds all functions in objects of 'arr_objects' to 'scope'
-# Preserves toString of these functions
+# Preserves all properties and the toString of these functions
 # Returns a new array of objects in the same order given
 # Leaves arr_objects unaltered.
 exports.bind_objects = (scope, arr_objects) ->
@@ -1907,6 +1894,7 @@ exports.bind_objects = (scope, arr_objects) ->
                 original_toString = val.toString()
                 bound_func = val.bind(scope)
                 bound_func.toString = () => original_toString
+                Object.assign(bound_func, val)
                 return bound_func
             else
                 return val
