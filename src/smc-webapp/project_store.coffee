@@ -487,9 +487,8 @@ class ProjectActions extends Actions
         if file_paths.isEmpty()
             return
 
-        open_files = @get_store().get('open_files')
-        empty = file_paths.filter (path) =>
-            is_public = open_files.getIn([path, 'component'])?.is_public
+        empty = file_paths.map (obj, path) =>
+            is_public = obj.getIn(['component'])?.is_public
             project_file.remove(path, @redux, @project_id, is_public)
             return false
 

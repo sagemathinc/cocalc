@@ -99,6 +99,10 @@ exports.generate = (path, redux, project_id, is_public) ->
 exports.remove = (path, redux, project_id, is_public) ->
     if not path?
         return
+    if typeof(path) != 'string'
+        console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
+        # see https://github.com/sagemathinc/smc/issues/1275
+        return
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
     # Use specific one for the given extension, or a fallback.
