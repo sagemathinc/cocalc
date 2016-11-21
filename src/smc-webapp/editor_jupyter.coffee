@@ -598,18 +598,18 @@ class JupyterWrapper extends EventEmitter
             index += 1
 
     mutate_cell: (index, obj) =>
-        #dbg = @dbg("mutate_cell")([index, obj])
+        # dbg = @dbg("mutate_cell")([index, obj])
         ###
         NOTE: If you need to work on this function, here's how to get an instance
-        of this class. In the Javascript console, do this:
-
-            X = smc.editors['your_file_that_is_open.ipynb'].wrapped.dom
+        of this class. In the Javascript console, get access to this editor.  I typically
+        do this by putting a line of code like window.w = @ in the constructor
+        for class JupyterNotebook.
 
         For example, this then gets the first cell:
 
-            X.nb.get_cell(0)
+            w.dom.nb.get_cell(0)
 
-        (and X.nb.get_cell(0).element is the underlying DOM element)
+        (and w.dom.nb.get_cell(0).element is the underlying DOM element)
 
         You can then mess around with this until you get it to work.
         ###
@@ -637,6 +637,7 @@ class JupyterWrapper extends EventEmitter
             cell.output_area.clear_output(false, true)
             cell.output_area.trusted = !!obj.metadata.trusted
             cell.output_area.fromJSON(obj.outputs ? [], obj.metadata)
+
         if cell.cell_type == 'markdown' and cell.rendered
             do_rerender_cell = true
 
@@ -776,12 +777,18 @@ exports.jupyter_notebook = (parent, filename, opts) ->
 
 class JupyterNotebook extends EventEmitter
     constructor: (@parent, @filename, opts={}) ->
-        window.w = @
         opts = @opts = defaults opts,
             read_only         : false
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
+        #if not opts.read_only
+        #    window.w = @
+        if $.browser.firefox
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1262' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element.data("jupyter_notebook", @)
+            opts.cb?()
+            return
         @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only
