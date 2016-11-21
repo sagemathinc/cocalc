@@ -106,6 +106,7 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
@@ -123,6 +124,7 @@ console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
+console.log "MINIFY           = #{MINIFY}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
@@ -372,6 +374,8 @@ if PRODMODE
     # TODO change this back to a number at about 10, once we know how to keep old chunks around
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 1)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
+
+if PRODMODE or MINIFY
     # to get source maps working in production mode, one has to figure out how
     # to get inSourceMap/outSourceMap working here.
     plugins.push new webpack.optimize.UglifyJsPlugin

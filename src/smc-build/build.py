@@ -398,6 +398,7 @@ R_PACKAGES = [
     'maps',
     'plotly',
     'ipyleaflet', # also needs jupyter nbextension enable --py --sys-prefix ipyleaflet
+    'rjags',
 ]
 
 # Sage has additionally some optional packages. We try to install as many of them as feasible.
