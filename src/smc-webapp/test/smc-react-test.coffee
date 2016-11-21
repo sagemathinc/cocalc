@@ -161,6 +161,8 @@ describe 'generate_selectors', ->
             last_name  : "Smith"
         first_name : -> @raw_state.first_name
         last_name  : -> @raw_state.last_name
+        # Note that the function invocations are necessary unlike when
+        # writing actual stores because of the binding method
         full_name  : -> "#{@first_name()} #{@last_name()}"
         short_name : -> @full_name().slice(0,5)
 
