@@ -1818,6 +1818,7 @@ exports.ProjectFiles = rclass ({name}) ->
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
+            directory_listings  : rtypes.object # Required for correct rerendering
             #displayed_listing   : rtypes.object
             show_upload         : rtypes.bool
             new_name            : rtypes.string
