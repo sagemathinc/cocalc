@@ -1288,17 +1288,6 @@ describe 'suggest_duplicate_filename', ->
     it "also works with weird corner cases", ->
         dup('asdf-').should.be.eql 'asdf--1'
 
-describe 'parsing function for argument names', ->
-    f0 = (a, b, c) => "none"
-    it 'works in the basic case', ->
-        expect misc.get_arg_names(f0)
-        .toEqual ['a', 'b', 'c']
-
-    f1 = (a=3, b=2, c=5) => "all"
-    it 'works with default values', ->
-        expect misc.get_arg_names(f1)
-        .toEqual ['a', 'b', 'c']
-
 describe 'top_sort', ->
     # Initialize DAG
     DAG =
