@@ -2295,7 +2295,7 @@ class PDF_Preview extends FileEditor
         if @_f?
             clearInterval(@_f)
         timeout = undefined
-        @output.on 'scroll', () =>
+        @element.find(".salvus-editor-pdf-preview-output").on 'scroll', () =>
             @_needs_update = true
         f = () =>
             if @_needs_update and @element.is(':visible')
@@ -2337,11 +2337,11 @@ class PDF_Preview extends FileEditor
     focus: () =>
 
     current_page: () =>
-        tp = @output.offset().top
+        tp = @element.offset().top
         for _page in @output.children()
             page = $(_page)
             offset = page.offset()
-            if offset.top > tp
+            if offset.top - tp > 0   # starts on the visible page
                 n = page.data('number')
                 if n > 1
                     n -= 1
