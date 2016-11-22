@@ -1288,17 +1288,6 @@ describe 'suggest_duplicate_filename', ->
     it "also works with weird corner cases", ->
         dup('asdf-').should.be.eql 'asdf--1'
 
-describe 'parsing function for argument names', ->
-    f0 = (a, b, c) => "none"
-    it 'works in the basic case', ->
-        expect misc.get_arg_names(f0)
-        .toEqual ['a', 'b', 'c']
-
-    f1 = (a=3, b=2, c=5) => "all"
-    it 'works with default values', ->
-        expect misc.get_arg_names(f1)
-        .toEqual ['a', 'b', 'c']
-
 describe 'top_sort', ->
     # Initialize DAG
     DAG =
@@ -1342,8 +1331,11 @@ describe 'create_dependency_graph', ->
     store_def =
         first_name : => "Joe"
         last_name  : => "Smith"
-        full_name  : (first_name, last_name) => "#{first_name} #{last_name}"
-        short_name : (full_name) => full_name.slice(0,5)
+        full_name  : (first_name, last_name) => "#{@first_name} #{@last_name}"
+        short_name : (full_name) => @full_name.slice(0,5)
+
+    store_def.full_name.dependency_names = ['first_name', 'last_name']
+    store_def.short_name.dependency_names = ['full_name']
 
     DAG_string = JSON.stringify
         first_name : []
@@ -1368,6 +1360,8 @@ describe 'bind_objects', ->
         func21: () -> @get()
         func22: () -> @value
 
+    obj1.func11.prop = "cake"
+
     result = misc.bind_objects(scope, [obj1, obj2])
 
     it 'Binds all functions in a list of objects of functions to a scope', ->
@@ -1380,6 +1374,9 @@ describe 'bind_objects', ->
 
     it 'Preserves the toString of the original function', ->
         expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
+
+    it 'Preserves properties of the original function', ->
+        expect(result[0].func11.prop).toEqual(obj1.func11.prop)
 
     it 'Ignores non-function values', ->
         scope =

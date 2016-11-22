@@ -33,7 +33,7 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {defaults, required} = misc
 
-{Actions, rtypes, computed, Table, register_project_store, redux}  = require('./smc-react')
+{Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -1242,7 +1242,7 @@ create_project_store_def = (name, project_id) ->
         public_paths       : rtypes.immutable.List
         directory_listings : rtypes.immutable
         show_upload        : rtypes.bool
-        #displayed_listing  : computed rtypes.object
+        displayed_listing  : computed rtypes.object
 
         # Project Page
         active_project_tab  : rtypes.string
@@ -1285,8 +1285,9 @@ create_project_store_def = (name, project_id) ->
 
         # Project Settings
         get_public_path_id : rtypes.func
-        #stripped_public_paths : computed rtypes.immutable.List
+        stripped_public_paths : computed rtypes.immutable.List
 
+    # Non-default input functions
     get_public_path_id: ->
         project_id = @project_id
         (path) ->
@@ -1298,14 +1299,13 @@ create_project_store_def = (name, project_id) ->
     sort_by_time: ->
         return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
 
-    get_displayed_listing: ->
-        return @displayed_listing(@directory_listings, @current_path, @get_stripped_public_paths(), @file_search, @other_settings)
+    # Computed values
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: (directory_listings, current_path, stripped_public_paths, file_search, other_settings) ->
+    displayed_listing: depends('directory_listings', 'current_path', 'stripped_public_paths', 'file_search', 'other_settings') ->
         search_escape_char = '/'
-        listing = directory_listings.get(current_path)
+        listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
             if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
                 return {error:'no_instance'}  # the host VM is down
@@ -1323,13 +1323,13 @@ create_project_store_def = (name, project_id) ->
             return {error:misc.to_json(listing)}
         listing = listing.toJS()
 
-        if other_settings.get('mask_files')
+        if @other_settings.get('mask_files')
             @_compute_file_masks(listing)
 
-        if current_path == '.snapshots'
+        if @current_path == '.snapshots'
             @_compute_snapshot_display_names(listing)
 
-        search = file_search?.toLowerCase()
+        search = @file_search?.toLowerCase()
         if search and search[0] isnt search_escape_char
             listing = @_matched_files(search, listing)
 
@@ -1337,27 +1337,26 @@ create_project_store_def = (name, project_id) ->
         for x in listing
             map[x.name] = x
 
-        x = {listing: listing, public:{}, path:current_path, file_map:map}
+        x = {listing: listing, public:{}, path:@current_path, file_map:map}
 
-        @_compute_public_files(x, stripped_public_paths, current_path)
+        @_compute_public_files(x, @stripped_public_paths, @current_path)
 
         return x
 
-    stripped_public_paths: (public_paths) ->
-        if public_paths?
-            return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of public_paths.toJS())
-
-    get_stripped_public_paths: ->
-        return @stripped_public_paths(@public_paths)
+    stripped_public_paths: depends('public_paths') ->
+        if @public_paths?
+            return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of @public_paths.toJS())
 
     # Returns the cursor positions for the given project_id/path, if that
     # file is opened, and supports cursors.   Currently this only works
     # for old sync'd codemirror editors.  Otherwise, returns undefined.
     # To do this right, we'll want to have implement redux.getEditorStore(...)
     # and *MOVE* this method there.
+    # Not a property
     get_users_cursors: (path, account_id) ->
         return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
 
+    # Not a property
     is_file_open: (path) ->
         return @getIn(['open_files', path])?
 

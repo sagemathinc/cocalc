@@ -1818,8 +1818,7 @@ exports.ProjectFiles = rclass ({name}) ->
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
-            directory_listings  : rtypes.object # Required for correct rerendering
-            #displayed_listing   : rtypes.object
+            displayed_listing   : rtypes.object
             show_upload         : rtypes.bool
             new_name            : rtypes.string
 
@@ -2088,8 +2087,7 @@ exports.ProjectFiles = rclass ({name}) ->
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        #{listing, error, file_map} = @props.displayed_listing
-        {listing, error, file_map} = redux.getProjectStore(@props.project_id).get_displayed_listing()
+        {listing, error, file_map} = @props.displayed_listing
 
         file_listing_page_size= @file_listing_page_size()
         if listing?
