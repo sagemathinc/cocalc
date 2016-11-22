@@ -190,7 +190,8 @@ class Console extends EventEmitter
             @set_session(opts.session)
 
     append_to_value: (data) =>
-        # this @value is used for copy/paste of the session history.
+        # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
+        @value_orig += data
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
     init_mesg: () =>
@@ -354,7 +355,7 @@ class Console extends EventEmitter
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
         #$(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
-        @value = ''
+        @value = @value_orig = ''
         @scrollbar_nlines = 0
         @scrollbar.empty()
         @terminal.reset()
@@ -781,6 +782,7 @@ class Console extends EventEmitter
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
+        @terminal.showCursor()
 
 
     # Determine the current size (rows and columns) of the DOM
@@ -811,8 +813,15 @@ class Console extends EventEmitter
         @_needs_resize = false
         @session.write_data(resize_code(@opts.cols, @opts.rows))
 
+        @full_rerender()
+
         # Refresh depends on correct @opts being set!
         @refresh()
+
+    full_rerender: =>
+        value = @value_orig
+        @reset()
+        @render(value)
 
     resize_terminal: () =>
         # Determine size of container DOM.
