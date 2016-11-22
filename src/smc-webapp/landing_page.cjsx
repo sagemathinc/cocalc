@@ -169,7 +169,11 @@ SignIn = rclass
 
     display_error: ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setState(sign_in_error: undefined)} />
+            <ErrorDisplay
+                style   = {margin:'15px'}
+                error   = {@props.sign_in_error}
+                onClose = {=>@props.actions.setState(sign_in_error: undefined)}
+            />
 
     remove_error: ->
         if @props.sign_in_error
@@ -290,7 +294,7 @@ ForgotPassword = rclass
         <Modal show={true} onHide={@hide_forgot_password}>
             <Modal.Body>
                 <div>
-                    <h1>Forgot Password?</h1>
+                    <h4>Forgot Password?</h4>
                     Enter your email address to reset your password
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
@@ -519,7 +523,7 @@ exports.LandingPage = rclass
                     {<ForgotPassword actions={@props.actions}
                                      forgot_password_error={@props.forgot_password_error}
                                      forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-                <Row style={fontSize: 3*UNIT,\
+                <Row style={fontSize: UNIT,\
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
