@@ -59,6 +59,9 @@ class PageActions extends Actions
         active_top_tab = page_store.get('active_top_tab')
 
         index = open_projects.indexOf(project_id)
+        if index == -1
+            return
+
         size = open_projects.size
         if project_id == active_top_tab
             if index == -1 or size <= 1
@@ -69,14 +72,12 @@ class PageActions extends Actions
                 next_active_tab = open_projects.get(index + 1)
             @set_active_tab(next_active_tab)
 
-        ## This is somehow (?) broken by "computed values" (or something else) --
         # The point of these "ghost tabs" is to make it so you can quickly close several
-        # open tabs, like in Chrome.   I'm disabling this for now until this gets
-        # sorted out. See https://github.com/sagemathinc/smc/issues/1271
-        #if index == size - 1
-        #    @clear_ghost_tabs()
-        #else
-        #    @add_a_ghost_tab()
+        # open tabs, like in Chrome.
+        if index == size - 1
+            @clear_ghost_tabs()
+        else
+            @add_a_ghost_tab()
 
         # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
