@@ -821,7 +821,9 @@ class Console extends EventEmitter
     full_rerender: =>
         value = @value_orig
         @reset()
+        @_ignore_mesg = true
         @render(value)
+        @_ignore_mesg = false
 
     resize_terminal: () =>
         # Determine size of container DOM.
