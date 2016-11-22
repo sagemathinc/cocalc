@@ -6,6 +6,29 @@ import re
 import os
 from textwrap import dedent
 
+class TestScalaMode:
+    def test_scala_list(self, exec2):
+        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
+
+class TestScala211Mode:
+    # example from ScalaTour-1.6, p. 31, Pattern Matching
+    # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
+    def test_scala211_pat1(self, exec2):
+        code = dedent('''
+        %scala
+        object MatchTest1 extends App {
+          def matchTest(x: Int): String = x match {
+            case 1 => "one"
+            case 2 => "two"
+            case _ => "many"
+          }
+          println(matchTest(3))
+        }
+        ''').strip()
+        exec2(code, html_pattern="defined.*object.*MatchTest1")
+    def test_scala211_pat2(self, exec2):
+        exec2("%scala211\nMatchTest1.main(Array())", "many\n")
+
 class TestPython3Mode:
     def test_p3_max(self, exec2):
         exec2("%python3\nmax([],default=9)", "9")
