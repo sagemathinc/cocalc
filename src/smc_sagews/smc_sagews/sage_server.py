@@ -1778,8 +1778,8 @@ def serve(port, host, extra_imports=False):
                      'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
-                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
-                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
+                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
                      'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 

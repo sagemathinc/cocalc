@@ -2120,6 +2120,28 @@ def r(code=None,**kwargs):
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 
+# jupyter kernel for %scala mode
+def scala211(code=None,**kwargs):
+    r"""
+    Run scala code in a sage worksheet.
+
+    INPUT:
+
+    - ``code`` -- a string containing code
+
+    Use as a decorator.
+
+    .. note::
+
+        SMC %scala211 mode uses the jupyter `scala211` kernel.
+    """
+    if scala211.jupyter_kernel is None:
+        scala211.jupyter_kernel = jupyter("scala211")
+    return scala211.jupyter_kernel(code,**kwargs)
+scala211.jupyter_kernel = None
+# add alias for generic scala
+scala = scala211
+
 def prun(code):
     """
     Use %prun followed by a block of code to profile execution of that
