@@ -1,3 +1,23 @@
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 ###
 The Landing Page
 ###
@@ -10,7 +30,6 @@ The Landing Page
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
-# {SMC_ICON_URL} = require('./misc_page')
 SMC_ICON_URL = require('salvus-icon.svg')
 
 images = [
@@ -129,14 +148,15 @@ SignUp = rclass
                     <FormControl ref='password' type='password' placeholder='Choose a password' />
                 </FormGroup>
                 <TermsOfService style={fontSize: "small", textAlign: "center"} />
-                <Button style={marginBottom: UNIT, marginTop: UNIT}
-                    disabled={@props.signing_up}
-                    bsStyle="success"
-                    bsSize='large'
-                    type='submit'
-                    block>
+                <Button
+                    style    = {marginBottom: UNIT, marginTop: UNIT}
+                    disabled = {@props.signing_up}
+                    bsStyle  = "success"
+                    bsSize   = 'large'
+                    type     = 'submit'
+                    block >
                         {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
-                    </Button>
+                </Button>
             </form>
             <div style={textAlign: "center"}>
                 Email <HelpEmailLink /> if you need help.
@@ -199,10 +219,12 @@ SignIn = rclass
                         </div>
                     </Row>
                     <Row>
-                        <Button type="submit"
-                                disabled={@props.signing_in}
-                                bsStyle="default" style={height:34}
-                                className='pull-right'>Sign&nbsp;In</Button>
+                        <Button
+                            type      = "submit"
+                            disabled  = {@props.signing_in}
+                            bsStyle   = "default" style={height:34}
+                            className = 'pull-right'>Sign&nbsp;In
+                        </Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
                         {@display_error()}
@@ -224,11 +246,13 @@ SignIn = rclass
                         </FormGroup>
                     </Col>
                     <Col xs=3>
-                        <Button type="submit"
-                                disabled={@props.signing_in}
-                                bsStyle="default"
-                                style={height:34}
-                                className='pull-right'>Sign&nbsp;in</Button>
+                        <Button
+                            type      = "submit"
+                            disabled  = {@props.signing_in}
+                            bsStyle   = "default"
+                            style     = {height:34}
+                            className = 'pull-right'>Sign&nbsp;in
+                        </Button>
                     </Col>
                 </Row>
                 <Row>
@@ -306,8 +330,17 @@ ForgotPassword = rclass
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button disabled={not @state.is_email_valid} type="submit" bsStyle="primary" style={marginRight : 10}>Reset Password</Button>
-                            <Button onClick={@hide_forgot_password}>Close</Button>
+                            <Button
+                                disabled = {not @state.is_email_valid}
+                                type     = "submit"
+                                bsStyle  = "primary"
+                                style    = {marginRight : 10}
+                            >
+                                Reset Password
+                            </Button>
+                            <Button onClick={@hide_forgot_password}>
+                                Close
+                            </Button>
                         </div>
                     </Row>
                 </form>
@@ -316,8 +349,8 @@ ForgotPassword = rclass
 
 ResetPassword = rclass
     propTypes: ->
-        actions : rtypes.object.isRequired
-        reset_key : rtypes.string.isRequired
+        actions              : rtypes.object.isRequired
+        reset_key            : rtypes.string.isRequired
         reset_password_error : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
@@ -351,8 +384,16 @@ ResetPassword = rclass
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsStyle="primary" style={marginRight : 10}>Reset password</Button>
-                            <Button onClick={@hide_reset_password}>Cancel</Button>
+                            <Button
+                                type    = "submit" 
+                                bsStyle = "primary"
+                                style   = {marginRight : 10}
+                            >
+                                Reset password
+                            </Button>
+                            <Button onClick={@hide_reset_password}>
+                                Cancel
+                            </Button>
                         </div>
                     </Row>
                 </form>
@@ -476,8 +517,8 @@ ExampleBox = rclass
     displayName : "ExampleBox"
 
     propTypes :
-        title   : rtypes.string.isRequired
-        index   : rtypes.number.isRequired
+        title : rtypes.string.isRequired
+        index : rtypes.number.isRequired
 
     render: ->
         <div>
@@ -535,13 +576,19 @@ exports.LandingPage = rclass
                             xs            = {true} />
                         <div style={clear:'both'}></div>
                 </Row>
-                <Row style={fontSize: 3*UNIT,\
-                                backgroundColor: SAGE_LOGO_COLOR,\
-                                padding: 5, margin: 0, borderRadius:4, whiteSpace:'nowrap'}
+                <Row style={fontSize        : 3*UNIT,\
+                            backgroundColor : SAGE_LOGO_COLOR,\
+                            padding         : 5,\
+                            margin          : 0,\
+                            borderRadius    : 4,\
+                            whiteSpace      : 'nowrap'}
                      className="hidden-xs">
-                      <div style={width:490,zIndex:10,\
-                                  position:"relative",\
-                                  top:12,right:12,float:"right"}
+                      <div style={width    : 490,\
+                                  zIndex   : 10,\
+                                  position : "relative",\
+                                  top      : 12,\
+                                  right    : 12,\
+                                  float    : "right"}
                            className="smc-sign-in-form">
                           <SignIn
                               actions       = {@props.actions}
@@ -550,31 +597,31 @@ exports.LandingPage = rclass
                               has_account   = {@props.has_account}
                               xs            = {false} />
                       </div>
-                      <span style={display: 'inline-block', \
-                                   backgroundImage: "url('#{SMC_ICON_URL}')", \
-                                   backgroundSize: 'contain', \
-                                   height : UNIT * 4, width: UNIT * 4, \
-                                   borderRadius : 10, \
-                                   verticalAlign: 'center'}>
+                      <span style={display         : 'inline-block', \
+                                   backgroundImage : "url('#{SMC_ICON_URL}')", \
+                                   backgroundSize  : 'contain', \
+                                   height          : UNIT * 4, width: UNIT * 4, \
+                                   borderRadius    : 10, \
+                                   verticalAlign   : 'center'}>
                       </span>
                       <div className="hidden-sm"
-                          style={display:'inline-block',\
-                                  fontFamily: DESC_FONT,\
-                                  fontSize:"28px",\
-                                  top: -1 * UNIT,\
-                                  position: 'relative',\
-                                  color: 'white',\
-                                  lineHeight: 0,\
-                                  paddingRight: UNIT}><SiteName /></div>
-                      <div style={fontWeight:"700",\
-                                  fontSize:"15px",\
-                                  lineHeight:"1.3",\
-                                  fontFamily:"sans-serif",\
-                                  top:1,\
-                                  display:'inline-block',\
-                                  position:"relative",\
-                                  color:"white",\
-                                  paddingRight:UNIT}>Collaborative<br/>Computational<br/>Mathematics</div>
+                          style={display       : 'inline-block',\
+                                  fontFamily   : DESC_FONT,\
+                                  fontSize     : "28px",\
+                                  top          : -1 * UNIT,\
+                                  position     : 'relative',\
+                                  color        : 'white',\
+                                  lineHeight   : 0,\
+                                  paddingRight : UNIT}><SiteName /></div>
+                      <div style={fontWeight   : "700",\
+                                  fontSize     : "15px",\
+                                  lineHeight   : "1.3",\
+                                  fontFamily   : "sans-serif",\
+                                  top          : 1,\
+                                  display      : 'inline-block',\
+                                  position     : "relative",\
+                                  color        : "white",\
+                                  paddingRight : UNIT}>Collaborative<br/>Computational<br/>Mathematics</div>
                 </Row>
                 <Row>
                     <div className="hidden-xs" style={padding: "#{UNIT}px"}>
