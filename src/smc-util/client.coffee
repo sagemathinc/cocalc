@@ -649,9 +649,15 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the Salvus Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the SageMathCloud Terms of Service."}))
             return
 
+        if @_create_account_lock
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/smc/issues/1187
+            opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
+            return
+
+        @_create_account_lock = true
         @call
             message : message.create_account
                 first_name      : opts.first_name
@@ -661,7 +667,9 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 token           : opts.token
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) =>
+                setTimeout((() => delete @_create_account_lock), 1500)
+                opts.cb(err, resp)
 
     delete_account: (opts) =>
         opts = defaults opts,

@@ -92,6 +92,16 @@ Passports = rclass
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
 
+ERROR_STYLE =
+    color           : 'white'
+    fontSize        : '125%'
+    backgroundColor : 'red'
+    border          : '1px solid lightgray'
+    borderRadius    : '4px'
+    padding         : '15px'
+    marginTop       : '5px'
+    marginBottom    : '5px'
+
 SignUp = rclass
     displayName: 'SignUp'
 
@@ -114,7 +124,7 @@ SignUp = rclass
 
     display_error: (field)->
         if @props.sign_up_error?[field]?
-            <div style={color: "red", fontSize: "90%"}>{@props.sign_up_error[field]}</div>
+            <div style={ERROR_STYLE}>{@props.sign_up_error[field]}</div>
 
     display_passports: ->
         if not @props.strategies?
@@ -132,6 +142,7 @@ SignUp = rclass
         <Well style={marginTop:'10px'}>
             {@display_token_input()}
             {@display_error("token")}
+            {@display_error("account_creation_failed")}   {# a generic error}
             {@display_passports()}
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
@@ -385,7 +396,7 @@ ResetPassword = rclass
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
                             <Button
-                                type    = "submit" 
+                                type    = "submit"
                                 bsStyle = "primary"
                                 style   = {marginRight : 10}
                             >
