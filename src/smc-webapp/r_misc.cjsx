@@ -974,6 +974,16 @@ exports.DirectoryInput = rclass
         autoFocus     : rtypes.bool
         on_key_down   : rtypes.func
         on_key_up     : rtypes.func
+        exclusions    : rtypes.oneOfType([rtypes.array, rtypes.string])
+
+    remove_exclusions: (array) ->
+        if typeof @props.exclusions == 'string'
+            index = array.indexOf(@props.exclusions)
+            if index > -1
+                array.splice(index, 1)
+        else
+            console.warn("TODO: Implement removing an array of paths")
+        return array
 
     render: ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
@@ -987,6 +997,8 @@ exports.DirectoryInput = rclass
                     return s
                 else
                     return s.slice(0, i)
+            if @props.exclusions?
+                tree = @remove_exclusions(tree)
         else
             group = (s) -> s
         <Combobox
