@@ -534,6 +534,7 @@ class exports.Connection extends EventEmitter
                             project_id   : opts.project_id
                             session_uuid : reply.session_uuid
                             data_channel : reply.data_channel
+                            params       : opts.params
                             cb           : opts.cb
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
