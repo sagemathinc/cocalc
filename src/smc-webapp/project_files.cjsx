@@ -970,13 +970,14 @@ ProjectFilesActionBox = rclass
     displayName : 'ProjectFiles-ProjectFilesActionBox'
 
     propTypes :
-        checked_files : rtypes.object
-        file_action   : rtypes.string
-        current_path  : rtypes.string.isRequired
-        project_id    : rtypes.string.isRequired
-        public_view   : rtypes.bool
-        file_map      : rtypes.object.isRequired
-        actions       : rtypes.object.isRequired
+        checked_files     : rtypes.object
+        file_action       : rtypes.string
+        current_path      : rtypes.string.isRequired
+        project_id        : rtypes.string.isRequired
+        public_view       : rtypes.bool
+        file_map          : rtypes.object.isRequired
+        actions           : rtypes.object.isRequired
+        displayed_listing : rtypes.object
 
     reduxProps :
         projects :
@@ -1121,8 +1122,14 @@ ProjectFilesActionBox = rclass
                     src  : @props.checked_files.toArray()
                     dest : misc.path_to_file(rename_dir, destination)
             when 'duplicate'
+                # Add a / after any directory names, so that the contents are copied, not the directory itself.
+                # Otherwise, we end up with copying foo to foo-1, resulting in a foo-1/foo/...
+                # See https://github.com/sagemathinc/smc/issues/1235
+                # Note that src has length 1 so the whole iteration business is overkill.
+                src = (path + (if @props.displayed_listing?.file_map[path]?.isdir then '/' else '') \
+                             for path in @props.checked_files.toArray())
                 @props.actions.copy_files
-                    src  : @props.checked_files.toArray()
+                    src  : src
                     dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
@@ -1907,14 +1914,15 @@ exports.ProjectFiles = rclass ({name}) ->
             return
         <Col sm=12>
             <ProjectFilesActionBox
-                file_action   = {@props.file_action}
-                checked_files = {@props.checked_files}
-                current_path  = {@props.current_path}
-                project_id    = {@props.project_id}
-                public_view   = {public_view}
-                file_map      = {file_map}
-                new_name      = {@props.new_name}
-                actions       = {@props.actions} />
+                file_action       = {@props.file_action}
+                checked_files     = {@props.checked_files}
+                current_path      = {@props.current_path}
+                project_id        = {@props.project_id}
+                public_view       = {public_view}
+                file_map          = {file_map}
+                new_name          = {@props.new_name}
+                actions           = {@props.actions}
+                displayed_listing = {@props.displayed_listing} />
         </Col>
 
     render_files_actions: (listing, public_view) ->
