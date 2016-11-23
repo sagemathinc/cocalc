@@ -510,7 +510,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             timeout    : DEFAULT_TIMEOUT # how long until give up on getting a new session
             type       : "console"   # only "console" supported
-            params     : undefined   # extra params relevant to the session
+            params     : required    # must include {path:?, filename:?}
             project_id : required
             cb         : required    # cb(error, session)  if error is defined it is a string
 
