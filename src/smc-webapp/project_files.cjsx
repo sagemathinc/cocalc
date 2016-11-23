@@ -1126,10 +1126,13 @@ ProjectFilesActionBox = rclass
                 # Otherwise, we end up with copying foo to foo-1, resulting in a foo-1/foo/...
                 # See https://github.com/sagemathinc/smc/issues/1235
                 # Note that src has length 1 so the whole iteration business is overkill.
-                src = (path + (if @props.displayed_listing?.file_map[path]?.isdir then '/' else '') \
-                             for path in @props.checked_files.toArray())
+                f = (path) =>
+                    if @props.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+                        return path + '/'
+                    else
+                        return path
                 @props.actions.copy_files
-                    src  : src
+                    src  : (f(path) for path in @props.checked_files.toArray())
                     dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
