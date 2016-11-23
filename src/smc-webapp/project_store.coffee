@@ -1064,13 +1064,13 @@ class ProjectActions extends Actions
     ###
 
     toggle_search_checkbox_subdirectories: =>
-        @setState(subdirectories : not @get_store().get('subdirectories'))
+        @setState(subdirectories : not @get_store().subdirectories)
 
     toggle_search_checkbox_case_sensitive: =>
-        @setState(case_sensitive : not @get_store().get('case_sensitive'))
+        @setState(case_sensitive : not @get_store().case_sensitive)
 
     toggle_search_checkbox_hidden_files: =>
-        @setState(hidden_files : not @get_store().get('hidden_files'))
+        @setState(hidden_files : not @get_store().hidden_files)
 
     process_results: (err, output, max_results, max_output, cmd) =>
         store = @get_store()
@@ -1242,24 +1242,27 @@ create_project_store_def = (name, project_id) ->
         public_paths       : rtypes.immutable.List
         directory_listings : rtypes.immutable
         show_upload        : rtypes.bool
+        create_file_alert  : rtypes.bool
         displayed_listing  : computed rtypes.object
 
         # Project Page
-        active_project_tab  : rtypes.string
-        free_warning_closed : rtypes.bool     # Makes bottom height update
-        num_ghost_file_tabs : rtypes.number
+        active_project_tab       : rtypes.string
+        free_warning_closed      : rtypes.bool     # Makes bottom height update
+        free_warning_extra_shown : rtypes.bool
+        num_ghost_file_tabs      : rtypes.number
 
         # Project Files
-        activity            : rtypes.immutable
-        page_number         : rtypes.number
-        file_action         : rtypes.string
-        file_search         : rtypes.string
-        show_hidden         : rtypes.bool
-        error               : rtypes.string
-        checked_files       : rtypes.immutable
-        selected_file_index : rtypes.number
-        new_name            : rtypes.string
-        sort_by_time        : rtypes.bool
+        activity               : rtypes.immutable
+        page_number            : rtypes.number
+        file_action            : rtypes.string
+        file_search            : rtypes.string
+        show_hidden            : rtypes.bool
+        error                  : rtypes.string
+        checked_files          : rtypes.immutable
+        selected_file_index    : rtypes.number
+        new_name               : rtypes.string
+        sort_by_time           : rtypes.bool
+        most_recent_file_click : rtypes.string
 
         # Project Log
         project_log : rtypes.immutable
