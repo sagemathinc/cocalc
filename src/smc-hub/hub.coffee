@@ -667,6 +667,9 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'console'
+                if not mesg.params?.path? or not mesg.params?.filename?
+                    @push_to_client(message.error(id:mesg.id, error:"console session path and filename must be defined"))
+                    return
                 @connect_to_console_session(mesg)
             else
                 # TODO

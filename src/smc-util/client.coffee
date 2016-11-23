@@ -68,6 +68,9 @@ class Session extends EventEmitter
         @start_time   = misc.walltime()
         @conn         = opts.conn
         @params       = opts.params
+        if @type() == 'console'
+            if not @params?.path? or not @params?.filename?
+                throw Error("params must be specified with path and filename")
         @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
@@ -89,9 +92,9 @@ class Session extends EventEmitter
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
-        if not @conn._signed_in? or not @conn._signed_in
-            setTimeout(@reconnect, 500)
-            return  # do *NOT* do cb?() yet!
+        if not @conn._signed_in
+            setTimeout((()=>@reconnect(cb)), 500)
+            return
 
         if @_reconnect_lock
             #console.warn('reconnect: lock')
@@ -108,7 +111,7 @@ class Session extends EventEmitter
                     type         : @type()
                     project_id   : @project_id
                     params       : @params
-                timeout : 7
+                timeout : 30
                 cb      : (err, reply) =>
                     if err
                         cb(err); return
@@ -116,7 +119,7 @@ class Session extends EventEmitter
                         when 'error'
                             cb(reply.error)
                         when 'session_connected'
-                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
+                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS", reply)
                             if @data_channel != reply.data_channel
                                 @conn.change_data_channel
                                     prev_channel : @data_channel
@@ -124,7 +127,6 @@ class Session extends EventEmitter
                                     session      : @
                             @data_channel = reply.data_channel
                             @init_history = reply.history
-                            @emit("reconnect")
                             cb()
                         else
                             cb("bug in hub")
@@ -135,6 +137,8 @@ class Session extends EventEmitter
             cb       : (err) =>
                 #console.log("reconnect('#{@session_uuid}'): finished #{err}")
                 delete @_reconnect_lock
+                if not err
+                    @emit("reconnect")
                 cb?(err)
 
     terminate_session: (cb) =>
@@ -473,7 +477,7 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : DEFAULT_TIMEOUT
-            params       : undefined   # extra params relevant to the session (in case we need to restart it)
+            params       : required  # must include {path:?, filename:?}
             cb           : required
         @call
             message : message.connect_to_session

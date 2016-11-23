@@ -290,15 +290,13 @@ class Console extends EventEmitter
 
         @session.on 'reconnect', () =>
             partial_code = false
+            @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
-            #console.log("terminal: reconnect")
             @element.find(".salvus-console-terminal").css('opacity':'1')
             @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
             @_ignore_mesg = true
-            @value = ""
             @reset()
-            @resize()
             if @session.init_history?
                 #console.log("writing history")
                 try
@@ -798,6 +796,8 @@ class Console extends EventEmitter
             return
 
         if not @value
+            # Critical that we wait to receive something before doing any sort of resize; otherwise,
+            # the terminal will get "corrupted" with control codes.
             return
 
         @resize_terminal()
@@ -810,13 +810,14 @@ class Console extends EventEmitter
             return CSI + "4;#{rows};#{cols}t"
 
         # console.log 'connected: sending resize code'
-        @_needs_resize = false
         @session.write_data(resize_code(@opts.cols, @opts.rows))
 
         @full_rerender()
 
         # Refresh depends on correct @opts being set!
         @refresh()
+
+        @_needs_resize = false
 
     full_rerender: =>
         value = @value_orig
