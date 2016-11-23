@@ -25,7 +25,7 @@ blobs  = require('./blobs')
 # connection requests, after we restart it.  It can
 # take a while, since it pre-imports the sage library
 # at startup, before forking.
-SAGE_SERVER_MAX_STARTUP_TIME_S = 30   # 30 seconds
+SAGE_SERVER_MAX_STARTUP_TIME_S = 30
 
 _restarting_sage_server = false
 _restarted_sage_server  = 0   # time when we last restarted it
@@ -45,12 +45,16 @@ restart_sage_server = (cb) ->
     _restarting_sage_server = true
     dbg("restarting the daemon")
     misc_node.execute_code
-        command        : "smc-sage-server stop; smc-sage-server start"
+        command        : "smc-sage-server restart"
         timeout        : 45
         ulimit_timeout : false   # very important -- so doesn't kill after 30 seconds of cpu!
         err_on_exit    : true
         bash           : true
         cb             : (err) ->
+            if err
+                dbg("failed to restart sage server daemon -- #{err}")
+            else
+                dbg('successfully restarted sage server daemon')
             _restarting_sage_server = false
             _restarted_sage_server = new Date()
             cb(err)
@@ -73,13 +77,18 @@ exports.get_sage_socket = (cb) ->   # cb(err, socket)
                 # Note that restarting the sage server doesn't impact currently running worksheets (they
                 # have their own process that isn't killed).
                 restart_sage_server (err) ->  # won't actually try to restart if called recently.
-                    # we ignore the returned err -- error does not matter, since we didn't connect
-                    cb(true)
+                    if err
+                        cb(err)
+                        return
+                    # success at restarting sage server: *IMMEDIATELY* try to connect
+                    _get_sage_socket (err, _socket) ->
+                        socket = _socket
+                        cb(err)
 
     misc.retry_until_success
         f           : try_to_connect
-        start_delay : 2000
-        max_delay   : 6000
+        start_delay : 50
+        max_delay   : 5000
         factor      : 1.5
         max_time    : SAGE_SERVER_MAX_STARTUP_TIME_S*1000
         log         : (m) -> winston.debug("get_sage_socket: #{m}")
