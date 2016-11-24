@@ -168,6 +168,27 @@ sensitive=true}
   prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
   %frame=single
 }
+
+% sagemath macros
+\newcommand{\Bold}[1]{\mathbb{#1}}
+\newcommand{\ZZ}{\Bold{Z}}
+\newcommand{\NN}{\Bold{N}}
+\newcommand{\RR}{\Bold{R}}
+\newcommand{\CC}{\Bold{C}}
+\newcommand{\FF}{\Bold{F}}
+\newcommand{\QQ}{\Bold{Q}}
+\newcommand{\QQbar}{\overline{\QQ}}
+\newcommand{\CDF}{\Bold{C}}
+\newcommand{\CIF}{\Bold{C}}
+\newcommand{\CLF}{\Bold{C}}
+\newcommand{\RDF}{\Bold{R}}
+\newcommand{\RIF}{\Bold{I} \Bold{R}}
+\newcommand{\RLF}{\Bold{R}}
+\newcommand{\CFF}{\Bold{CFF}}
+\newcommand{\GF}[1]{\Bold{F}_{#1}}
+\newcommand{\Zp}[1]{\ZZ_{#1}}
+\newcommand{\Qp}[1]{\QQ_{#1}}
+\newcommand{\Zmod}[1]{\ZZ/#1\ZZ}
 """
 
 # this is part of the preamble above, although this time full of utf8 chars
