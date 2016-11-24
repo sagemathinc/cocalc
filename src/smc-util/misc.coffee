@@ -1915,9 +1915,9 @@ exports.bind_objects = (scope, arr_objects) ->
 #     ["folder", "folder/sub", "folder1" "folder1/folder12", "folder12", "folder12/another/inner"]
 # let `exclude` =
 #     {folder : true, folder12 : true}
-# remove_exclusions(path_array, exclude) returns
+# remove_subtrees(path_array, exclude) returns
 #     ["folder1", "folder1/folder12"]
-exports.remove_exclusions = (sorted_path_array, exclusions) ->
+exports.remove_subtrees = (sorted_path_array, exclusions) ->
     copied_array = sorted_path_array.slice()
     if not exclusions?
         return copied_array

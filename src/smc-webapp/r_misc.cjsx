@@ -988,7 +988,7 @@ exports.DirectoryInput = rclass
                     return s
                 else
                     return s.slice(0, i)
-            tree = misc.remove_exclusions(tree, @props.exclusions)
+            tree = misc.remove_subtrees(tree, @props.exclusions)
         else
             group = (s) -> s
         <Combobox

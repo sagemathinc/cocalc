@@ -1391,37 +1391,37 @@ describe 'bind_objects', ->
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
 
-describe 'remove_exclusions', ->
-    remove_exclusions = misc.remove_exclusions
+describe 'remove_subtrees', ->
+    remove_subtrees = misc.remove_subtrees
 
     it 'Does not mutate given array', ->
         array = ["a", "a/b", "c"]
         Object.freeze(array)
         expected = ["c"]
-        expect(=>array = remove_exclusions(array, "a")).toNotThrow()
+        expect(=>array = remove_subtrees(array, "a")).toNotThrow()
         expect(array).toEqual(expected)
 
     it 'Returns a new array unaltered if no exclusions', ->
         array = ["a", "a/b", "c"]
-        expected = remove_exclusions(array)
+        expected = remove_subtrees(array)
         expected = ["a", "a/b", "c"]
         expect(array).toEqual(expected)
 
     it 'Accepts one exclusion as a string', ->
         array = ["a", "a/b", "c"]
-        array = remove_exclusions(array, "a/b")
+        array = remove_subtrees(array, "a/b")
         expected = ["a", "c"]
         expect(array).toEqual(expected)
 
     it 'Accepts empty string as exclusion', ->
         array = ["", "a", "a/b", "c"]
-        array = remove_exclusions(array, "")
+        array = remove_subtrees(array, "")
         expected = ["a", "a/b", "c"]
         expect(array).toEqual(expected)
 
     it 'Removes subdirectories from a string', ->
         array = ["a", "a/b", "c"]
-        array = remove_exclusions(array, "a")
+        array = remove_subtrees(array, "a")
         expected = ["c"]
         expect(array).toEqual(expected)
 
@@ -1431,18 +1431,18 @@ describe 'remove_exclusions', ->
             b : true
 
         array = ["a", "a/b", "b", "b/q", "bc", "c"]
-        array = remove_exclusions(array, exclusions)
+        array = remove_subtrees(array, exclusions)
         expected = ["bc", "c"]
         expect(array).toEqual(expected)
 
     it 'Accepts an immutable set of exclusions', ->
         array = ["a", "a/b", "b", "b/q", "bc", "c"]
-        array = remove_exclusions(array, immutable.Set(["a", "b"]))
+        array = remove_subtrees(array, immutable.Set(["a", "b"]))
         expected = ["bc", "c"]
         expect(array).toEqual(expected)
 
     it 'Correctly removes the tail end', ->
         array = ["folder", "foleder", "wrk", "wrk/nested", "wrk/nested/deeper", "wrk/nested/folder"]
-        array = remove_exclusions(array, immutable.Set(["wrk/nested/folder", "wrk/nested/deeper"]))
+        array = remove_subtrees(array, immutable.Set(["wrk/nested/folder", "wrk/nested/deeper"]))
         expected = ["folder", "foleder", "wrk", "wrk/nested"]
         expect(array).toEqual(expected)
