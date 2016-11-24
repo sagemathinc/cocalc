@@ -1226,6 +1226,11 @@ class CodeMirrorEditor extends FileEditor
                             type    : "error"
                             message : "Printing error -- #{err}"
 
+    print_html: () =>
+        switch @ext
+            when 'sagews'
+                printing.Printer(@, @filename + '.html').print (err, resp) ->
+                    console.log 'Printer.print is done: err = ', err, resp
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: () =>
@@ -1265,7 +1270,7 @@ class CodeMirrorEditor extends FileEditor
                         subdir     : is_subdir
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
 
-                    printing.Printer(@).print
+                    printing.Printer(@, @filename + '.pdf').print
                         project_id  : @project_id
                         path        : @filename
                         options     : options

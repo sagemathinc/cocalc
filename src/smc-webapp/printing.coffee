@@ -109,14 +109,30 @@ class PandocPrinter extends Printer
 class LatexPrinter extends Printer
     @supported : ['tex']
 
-    print : () ->
+    print: () ->
         @show_print_new_tab()
 
 class SagewsPrinter extends Printer
     @supported : ['sagews']
 
-    print : (opts) ->
-        salvus_client.print_to_pdf(opts)
+    print: (opts) ->
+        target_ext = misc.filename_extension(@output_file).toLowerCase()
+        switch target_ext
+            when 'pdf'
+                salvus_client.print_to_pdf(opts)
+            when 'html'
+                @html(opts.cb)
+
+    html: (cb) ->
+        # sagews.SynchronizedWorksheet
+        html_data = @editor.syncdoc.print_to_html()
+        salvus_client.write_text_file_to_project
+            project_id : @editor.project_id
+            path       : @output_file
+            content    : html_data
+            cb         : (err, resp) =>
+                console.log err, resp
+                @cb?(err, resp)
 
 # registering printers
 printers = {}

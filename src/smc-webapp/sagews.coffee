@@ -2269,6 +2269,30 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         return data
 
+    print_to_html: () =>
+        html = [] # list of elements
+        cm = @editor.codemirror
+        for line in [0...cm.lineCount()]
+            x = cm.getLine(line)
+            console.log "line", x
+            marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
+            if not marks? or marks.length == 0
+                console.log 'no marks line', x
+                line_html = "<pre>#{x}</pre>"
+                html.push(line_html)
+            else
+                mark = marks[0]
+                console.log mark
+                switch x[0]
+                    when MARKERS.cell
+                        console.log 'cell', x
+
+                    when MARKERS.output
+                        console.log 'output', x
+                        html.push(mark.widgetNode.innerHTML)
+
+        return (h for h in html).join('\n')
+
     refresh_soon: (wait) =>
         if not wait?
             wait = 1000
