@@ -1903,8 +1903,13 @@ exports.bind_objects = (scope, arr_objects) ->
 #   `sorted_path_array`:Array<String>
 #   `exclusions`:String | object | immutable.Collection
 #
-# Assumes
-#   sorted_path_array` has no duplicates and contains absolute paths from a common root
+# Assumes sorted_path_array
+#   has no duplicates
+#   contains absolute paths
+#   contains all parents of any path
+#     ie. if sorted_path_array contains "a/b/c", then it
+#     must also contain "a" and "a/b"
+#   is sorted alphabetically such that '/' comes before any other character
 #
 # Returns
 #   An new copy of `sorted_path_array` where the paths in `exclude` and
