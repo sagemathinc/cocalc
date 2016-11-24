@@ -1250,7 +1250,7 @@ ProjectFilesActionBox = rclass
                         placeholder   = 'Home directory'
                         project_id    = {@props.project_id}
                         on_key_up     = {@action_key}
-                        exclusions    = {@props.current_path}
+                        exclusions    = {@props.checked_files}
                     />
                 </Col>
             </Row>
@@ -1388,7 +1388,6 @@ ProjectFilesActionBox = rclass
                             default_value = ''
                             project_id    = {@state.copy_destination_project_id}
                             on_key_up     = {@action_key}
-                            exclusions    = {@props.current_path}
                         />
                     </Col>
                 </Row>

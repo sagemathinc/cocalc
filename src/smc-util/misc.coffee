@@ -1898,3 +1898,59 @@ exports.bind_objects = (scope, arr_objects) ->
                 return bound_func
             else
                 return val
+
+# Takes
+#   `sorted_path_array`:Array<String>
+#   `exclusions`:String | object | immutable.Collection
+#
+# Assumes
+#   sorted_path_array` has no duplicates and contains absolute paths from a common root
+#
+# Returns
+#   An new copy of `sorted_path_array` where the paths in `exclude` and
+#   their subdirectories are removed from `sorted_path_array`
+#
+# Example:
+# let `path_array` =
+#     ["folder", "folder/sub", "folder1" "folder1/folder12", "folder12", "folder12/another/inner"]
+# let `exclude` =
+#     {folder : true, folder12 : true}
+# remove_exclusions(path_array, exclude) returns
+#     ["folder1", "folder1/folder12"]
+exports.remove_exclusions = (sorted_path_array, exclusions) ->
+    copied_array = sorted_path_array.slice()
+    if not exclusions?
+        return copied_array
+
+    if typeof exclusions == 'string'
+        return _.reject copied_array, (val) =>
+            val == exclusions or val.indexOf(exclusions + '/') == 0
+    else
+        previously_excluded = undefined
+        removal_sections = []
+        start_index = 0
+        count = 0
+        for current_path, index in copied_array
+            if exclusions[current_path] or exclusions.includes?(current_path)
+                if previously_excluded? # Previous path must have also been excluded
+                    count += 1
+                else
+                    start_index = index
+                    count = 1
+                previously_excluded = current_path
+
+            if previously_excluded? and previously_excluded != current_path
+                if current_path.indexOf(previously_excluded + '/') == 0
+                    count += 1
+                else
+                    previously_excluded = undefined
+                    removal_sections.push([start_index, count])
+                    count = 0
+        # Add the last section if it didn't get added
+        if count != 0
+            removal_sections.push([start_index, count])
+        # Batch removal splicing from end of array
+        for section in removal_sections by -1
+            copied_array.splice(section[0], section[1])
+
+    return copied_array

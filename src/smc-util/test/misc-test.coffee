@@ -22,6 +22,7 @@
 
 misc = require('../misc.coffee')
 underscore = require('underscore')
+immutable = require('immutable')
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together
@@ -1389,3 +1390,59 @@ describe 'bind_objects', ->
 
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
+
+describe 'remove_exclusions', ->
+    remove_exclusions = misc.remove_exclusions
+
+    it 'Does not mutate given array', ->
+        array = ["a", "a/b", "c"]
+        Object.freeze(array)
+        expected = ["c"]
+        expect(=>array = remove_exclusions(array, "a")).toNotThrow()
+        expect(array).toEqual(expected)
+
+    it 'Returns a new array unaltered if no exclusions', ->
+        array = ["a", "a/b", "c"]
+        expected = remove_exclusions(array)
+        expected = ["a", "a/b", "c"]
+        expect(array).toEqual(expected)
+
+    it 'Accepts one exclusion as a string', ->
+        array = ["a", "a/b", "c"]
+        array = remove_exclusions(array, "a/b")
+        expected = ["a", "c"]
+        expect(array).toEqual(expected)
+
+    it 'Accepts empty string as exclusion', ->
+        array = ["", "a", "a/b", "c"]
+        array = remove_exclusions(array, "")
+        expected = ["a", "a/b", "c"]
+        expect(array).toEqual(expected)
+
+    it 'Removes subdirectories from a string', ->
+        array = ["a", "a/b", "c"]
+        array = remove_exclusions(array, "a")
+        expected = ["c"]
+        expect(array).toEqual(expected)
+
+    it 'Accepts an object of exclusions', ->
+        exclusions =
+            a : true
+            b : true
+
+        array = ["a", "a/b", "b", "b/q", "bc", "c"]
+        array = remove_exclusions(array, exclusions)
+        expected = ["bc", "c"]
+        expect(array).toEqual(expected)
+
+    it 'Accepts an immutable set of exclusions', ->
+        array = ["a", "a/b", "b", "b/q", "bc", "c"]
+        array = remove_exclusions(array, immutable.Set(["a", "b"]))
+        expected = ["bc", "c"]
+        expect(array).toEqual(expected)
+
+    it 'Correctly removes the tail end', ->
+        array = ["folder", "foleder", "wrk", "wrk/nested", "wrk/nested/deeper", "wrk/nested/folder"]
+        array = remove_exclusions(array, immutable.Set(["wrk/nested/folder", "wrk/nested/deeper"]))
+        expected = ["folder", "foleder", "wrk", "wrk/nested"]
+        expect(array).toEqual(expected)
