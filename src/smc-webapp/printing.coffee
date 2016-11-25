@@ -126,7 +126,13 @@ class SagewsPrinter extends Printer
 
     generate_html: (data) ->
         if not @_html_tmpl?
-            @_html_tmpl = _.template '''
+            # recycle our mathjax config from last.coffee
+            {MathJaxConfig} = require('./last')
+            MathJaxConfig = _.clone(MathJaxConfig)
+            MathJaxConfig.skipStartupTypeset = false
+            MathJaxConfig.showProcessingMessages = true
+
+            @_html_tmpl = _.template """
                 <!doctype html>
                 <html lang="en">
                 <head>
@@ -137,19 +143,74 @@ class SagewsPrinter extends Printer
                     <meta name="date" content="<%= timestamp %>">
 
                     <style>
+                        html {
+                            font-family: sans-serif;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        body {
+                            max-width: 60rem;
+                            counter-reset: line;
+                        }
+
+                        div.output {
+                            border-left: 1px solid #33a;
+                            padding: 0 0 0 .5rem;
+                            margin-left: -.5rem;
+                        }
                         div.output.stdout, div.output.stderr { font-family: monospace; white-space: pre-wrap; }
-                        div.output.stderr { color: red; }
+                        div.output.stderr { color: red; border-color: #a33; }
+
+                        span.sagews-output-image > img { vertical-align: top; }
+
+                        pre.input { }
+                        pre.input > code {
+                            display: block;
+                            line-height: 1.1rem;
+                        }
+                        pre.input > code:before {
+                            margin-left: -3rem;
+                            counter-increment: line;
+                            content: counter(line);
+                            display: inline-block;
+                            border-right: 1px solid #3a3;
+                            padding: 0 .5rem 0 0;
+                            margin-right: .5rem;
+                            color: #888;
+                            min-width: 2rem;
+                            text-align: right;
+                        }
+                        div.output:before {
+                            margin-left: -3rem;
+                            counter-increment: line;
+                            content: counter(line);
+                            display: inline-block;
+                            padding: 0 .5rem 0 0;
+                            margin-right: .5rem;
+                            color: #888;
+                            min-width: 2rem;
+                            text-align: right;
+                            font-family: monospace;
+                        }
                     </style>
 
+                    <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
-                      src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+                        src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
                     </script>
                 </head>
 
                 <body>
+                <div class="header">
+                    <h1><%= title %></h1>
+                    <div>generated <%= timestamp %></div>
+                </div>
                 <%= content %>
+                <div class="footer">
+                </div>
                 </body>
-                </html>'''
+                </html>"""
         return @_html_tmpl(data)
 
     html_process_output_mesg: (mesg, mark) ->
@@ -160,10 +221,10 @@ class SagewsPrinter extends Printer
             out = "<div class='output stderr'>#{mesg.stderr}</div>"
         else if mesg.md?
             x = markdown.markdown_to_html(mesg.md)
-            $out = $("<div class='output md'>")
-            $out.html_noscript(x.s) # don't process mathjax!
+            $out = $("<div>")
+            $out.html_noscript(x.s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
-            out = $out.html()
+            out = "<div class='output md'>#{$out.html()}</div>"
         else if mesg.file?
             out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
         else if mesg.done?
@@ -181,7 +242,7 @@ class SagewsPrinter extends Printer
         input_lines = []
         input_lines_process = ->
             if input_lines.length > 0
-                html.push("<pre>#{input_lines.join('\n')}</pre>")
+                html.push("<pre class='input'><code>#{input_lines.join('</code><code>')}</code></pre>")
                 input_lines = []
 
         for line in [0...cm.lineCount()]
@@ -215,8 +276,8 @@ class SagewsPrinter extends Printer
 
         input_lines_process()
         html_data =
-            title     : @filename
-            filename  : @filename
+            title     : @editor.filename
+            filename  : @editor.filename
             content   : (h for h in html).join('\n')
             timestamp : "#{new Date()}"
 
