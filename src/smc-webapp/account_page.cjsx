@@ -13,7 +13,7 @@ require('./redux_account')
 {Icon}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
-exports.AccountPage = rclass
+exports.AccountPage = AccountPage = rclass
     displayName : 'AccountPage'
 
     reduxProps :
@@ -142,3 +142,8 @@ exports.AccountPage = rclass
                 </Col>
             </Row> if logged_in}
         </Grid>
+        
+exports.NotPublicError = rclass
+    render: ->
+        <div>This is not public!</div>
+        <div><AccountPage /></div>
