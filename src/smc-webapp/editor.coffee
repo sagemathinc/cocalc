@@ -1275,12 +1275,14 @@ class CodeMirrorEditor extends FileEditor
                         path        : @filename
                         options     : options
                         cb          : (err, _pdf) =>
-                            if err
+                            if err and not is_subdir
                                 cb(err)
                             else
                                 pdf = _pdf
                                 cb()
                 (cb) =>
+                    if is_subdir or not pdf?
+                        cb(); return
                     # does the pdf file exist?
                     project_tasks(@project_id).file_nonzero_size
                         path    : pdf
@@ -1293,6 +1295,8 @@ class CodeMirrorEditor extends FileEditor
                             else
                                 cb()
                 (cb) =>
+                    if is_subdir or not pdf?
+                        cb(); return
                     # pdf file exists -- show it in the UI
                     url = salvus_client.read_file_from_project
                         project_id  : @project_id
