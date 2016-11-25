@@ -124,8 +124,37 @@ class SagewsPrinter extends Printer
                 @html(opts.cb)
 
     html: (cb) ->
-        # sagews.SynchronizedWorksheet
-        html_data = @editor.syncdoc.print_to_html()
+        # the following fits mentally into sagews.SynchronizedWorksheet
+        {MARKERS} = require('smc-util/sagews')
+        html = [] # list of elements
+        cm = @editor.codemirror
+        input_lines = []
+        input_lines_process = ->
+            if input_lines.length > 0
+                html.push("<pre>#{input_lines.join('\n')}</pre>")
+                input_lines = []
+        for line in [0...cm.lineCount()]
+            x = cm.getLine(line)
+            console.log "line", x
+            marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
+            if not marks? or marks.length == 0
+                # console.log 'no marks line', x
+                input_lines.push(x)
+            else
+                input_lines_process()
+                mark = marks[0]
+                switch x[0]
+                    when MARKERS.cell
+                        x
+
+                    when MARKERS.output
+                        console.log 'output', mark
+                        out = "<div class='output'>#{mark.widgetNode.innerHTML}</div>"
+                        html.push(out)
+
+        input_lines_process()
+        html_data = (h for h in html).join('\n')
+
         salvus_client.write_text_file_to_project
             project_id : @editor.project_id
             path       : @output_file
