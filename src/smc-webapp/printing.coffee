@@ -28,6 +28,7 @@ misc            = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {redux}         = require('./smc-react')
 {project_tasks} = require('./project_tasks')
+markdown        = require('./markdown')
 
 # abstract class
 class Printer
@@ -123,16 +124,66 @@ class SagewsPrinter extends Printer
             when 'html'
                 @html(opts.cb)
 
+    generate_html: (data) ->
+        if not @_html_tmpl?
+            @_html_tmpl = _.template '''
+                <!doctype html>
+                <html lang="en">
+                <head>
+                    <meta charset="utf-8">
+
+                    <title><%= title %></title>
+                    <meta name="description" content="automatically generated from <%= filename %> on SageMathCloud">
+                    <meta name="date" content="<%= timestamp %>">
+
+                    <style>
+                        div.output.stdout, div.output.stderr { font-family: monospace; white-space: pre-wrap; }
+                        div.output.stderr { color: red; }
+                    </style>
+
+                    <script type="text/javascript" async
+                      src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+                    </script>
+                </head>
+
+                <body>
+                <%= content %>
+                </body>
+                </html>'''
+        return @_html_tmpl(data)
+
+    html_process_output_mesg: (mesg, mark) ->
+        out = null
+        if mesg.stdout?
+            out = "<div class='output stdout'>#{mesg.stdout}</div>"
+        else if mesg.stderr?
+            out = "<div class='output stderr'>#{mesg.stderr}</div>"
+        else if mesg.md?
+            x = markdown.markdown_to_html(mesg.md)
+            $out = $("<div class='output md'>")
+            $out.html_noscript(x.s) # don't process mathjax!
+            @editor.syncdoc.process_html_output($out)
+            out = $out.html()
+        else if mesg.file?
+            out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+        else if mesg.done?
+            # ignored
+        else
+            console.debug "ignored mesg", mesg
+        return out
+
     html: (cb) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
         {MARKERS} = require('smc-util/sagews')
         html = [] # list of elements
         cm = @editor.codemirror
+
         input_lines = []
         input_lines_process = ->
             if input_lines.length > 0
                 html.push("<pre>#{input_lines.join('\n')}</pre>")
                 input_lines = []
+
         for line in [0...cm.lineCount()]
             x = cm.getLine(line)
             console.log "line", x
@@ -142,23 +193,37 @@ class SagewsPrinter extends Printer
                 input_lines.push(x)
             else
                 input_lines_process()
-                mark = marks[0]
-                switch x[0]
+                mark = marks[0] # assumption it's always 1
+                switch x[0]     # first char is the marker
                     when MARKERS.cell
                         x
-
                     when MARKERS.output
+                        # assume, all cells are evaluated and hence mark.rendered contains the html
                         console.log 'output', mark
-                        out = "<div class='output'>#{mark.widgetNode.innerHTML}</div>"
-                        html.push(out)
+                        for mesg_ser in mark.rendered.split(MARKERS.output)
+                            if mesg_ser.length == 0
+                                continue
+                            try
+                                mesg = misc.from_json(mesg_ser)
+                            catch e
+                                console.warn("invalid output message '#{m}' in line '#{line}'")
+                                continue
+
+                            output_html = @html_process_output_mesg(mesg, mark)
+                            if output_html?
+                                html.push(output_html)
 
         input_lines_process()
-        html_data = (h for h in html).join('\n')
+        html_data =
+            title     : @filename
+            filename  : @filename
+            content   : (h for h in html).join('\n')
+            timestamp : "#{new Date()}"
 
         salvus_client.write_text_file_to_project
             project_id : @editor.project_id
             path       : @output_file
-            content    : html_data
+            content    : @generate_html(html_data)
             cb         : (err, resp) =>
                 console.log err, resp
                 @cb?(err, resp)
