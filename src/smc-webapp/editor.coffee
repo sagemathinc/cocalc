@@ -1062,10 +1062,10 @@ class CodeMirrorEditor extends FileEditor
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                that.click_edit_button($(@).data('name'))
+                that.click_edit_button($(@).data('name'), ctrl=event.ctrlKey)
                 return false
 
-    click_edit_button: (name) =>
+    click_edit_button: (name, ctrl = false) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1113,7 +1113,7 @@ class CodeMirrorEditor extends FileEditor
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
-                @print()
+                @print(ctrl = ctrl)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1211,10 +1211,13 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print : () =>
+    print: (ctrl = false) =>
         switch @ext
             when 'sagews'
-                @print_sagews()
+                if ctrl   # this is experimental html printing
+                    @print_html()
+                else
+                    @print_sagews()
             when 'txt', 'csv'
                 print_button = @element.find("a[href=\"#print\"]")
                 print_button.icon_spin(start:true, delay:0).addClass("disabled")
@@ -1226,14 +1229,20 @@ class CodeMirrorEditor extends FileEditor
                             type    : "error"
                             message : "Printing error -- #{err}"
 
-    print_html: () =>
+    print_html: =>
         switch @ext
             when 'sagews'
-                printing.Printer(@, @filename + '.html').print (err, resp) ->
+                output_fn = @filename + '.html'
+                printing.Printer(@, output_fn).print (err, resp) =>
                     console.log 'Printer.print is done: err = ', err, resp
+                    if not err
+                        a = redux.getProjectActions(@project_id)
+                        a.download_file
+                            path : output_fn
+                            auto : false  # open in new tab
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
-    print_sagews: () =>
+    print_sagews: =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
@@ -2558,14 +2567,14 @@ class PDF_PreviewEmbed extends FileEditor
 
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
 
-        @element.find("a[href=\"#refresh\"]").click () =>
+        @element.find('a[href="#refresh"]').click () =>
             @update()
             return false
 
         @update()
 
     update: (cb) =>
-        button = @element.find("a[href=\"#refresh\"]")
+        button = @element.find('a[href="#refresh"]')
         button.icon_spin(true)
 
         @spinner.show().spin(true)
@@ -2687,14 +2696,14 @@ class Media extends FileEditor
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
-        refresh = @element.find("a[href=\"#refresh\"]")
+        refresh = @element.find('a[href="#refresh"]')
         refresh.click () =>
             refresh.icon_spin(true)
             @update (err) =>
                 refresh.icon_spin(false)
             return false
 
-        @element.find("a[href=\"#close\"]").click () =>
+        @element.find('a[href="#close"]').click () =>
             return false
 
         if url?
@@ -2713,13 +2722,13 @@ class Media extends FileEditor
                 @element.find('video').attr('src', src).show()
 
     update: (cb) =>
-        @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
+        @element.find('a[href="#refresh"]').icon_spin(start:true)
         salvus_client.read_file_from_project
             project_id : @project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
-                @element.find("a[href=\"#refresh\"]").icon_spin(false)
+                @element.find('a[href="#refresh"]').icon_spin(false)
                 @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
@@ -2783,8 +2792,8 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
         opts.read_only = true
         opts.public_access = true
         super(@project_id, @filename, "Loading...", opts)
-        @element.find("a[href=\"#save\"]").hide()       # no need to even put in the button for published
-        @element.find("a[href=\"#readonly\"]").hide()   # ...
+        @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
+        @element.find('a[href="#readonly"]').hide()   # ...
         salvus_client.public_get_text_file
             project_id : @project_id
             path       : @filename
@@ -2799,7 +2808,7 @@ class PublicSagews extends PublicCodeMirrorEditor
     constructor: (@project_id, @filename, content, opts) ->
         opts.allow_javascript_eval = false
         super @project_id, @filename, content, opts, (err) =>
-            @element.find("a[href=\"#split-view\"]").hide()  # disable split view
+            @element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
                 @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
                 @syncdoc.process_sage_updates()

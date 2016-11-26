@@ -116,13 +116,13 @@ class LatexPrinter extends Printer
 class SagewsPrinter extends Printer
     @supported : ['sagews']
 
-    print: (opts) ->
+    print: (cb) ->
         target_ext = misc.filename_extension(@output_file).toLowerCase()
         switch target_ext
             when 'pdf'
-                salvus_client.print_to_pdf(opts)
+                salvus_client.print_to_pdf(cb)
             when 'html'
-                @html(opts.cb)
+                @html(cb)
 
     generate_html: (data) ->
         if not @_html_tmpl?
@@ -152,6 +152,7 @@ class SagewsPrinter extends Printer
                         body {
                             max-width: 60rem;
                             counter-reset: line;
+                            padding: .5rem;
                         }
 
                         div.output {
@@ -286,8 +287,7 @@ class SagewsPrinter extends Printer
             path       : @output_file
             content    : @generate_html(html_data)
             cb         : (err, resp) =>
-                console.log err, resp
-                @cb?(err, resp)
+                cb?(err, resp)
 
 # registering printers
 printers = {}
