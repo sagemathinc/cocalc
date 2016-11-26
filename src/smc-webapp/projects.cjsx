@@ -755,7 +755,7 @@ NewProjectCreator = rclass
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
                 {<div id="upgrade_before_creation"></div> if subs > 0}
-                {@render_upgrades_adjustor(true) if subs > 0}
+                {@render_upgrades_adjustor() if subs > 0}
             </div>
         </Col>
 
