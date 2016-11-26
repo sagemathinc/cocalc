@@ -675,12 +675,13 @@ NewProjectCreator = rclass
 
     getInitialState: ->
         state =
-            upgrading : true
-            has_subbed       : false
-            state            : 'view'    # view --> edit --> saving --> view
-            title_text       : ''
-            description_text : ''
-            error            : ''
+            upgrading         : true
+            has_subbed        : false
+            state             : 'view'    # view --> edit --> saving --> view
+            title_text        : ''
+            description_text  : ''
+            error             : ''
+            create_button_hit : ''
 
     componentWillReceiveProps: (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
@@ -697,10 +698,11 @@ NewProjectCreator = rclass
 
     cancel_editing: ->
         @setState
-            state            : 'view'
-            title_text       : ''
-            description_text : ''
-            error            : ''
+            state             : 'view'
+            title_text        : ''
+            description_text  : ''
+            error             : ''
+            create_button_hit : ''
 
     toggle_editing: ->
         if @state.state == 'view'
@@ -749,17 +751,6 @@ NewProjectCreator = rclass
 
     render_upgrade_before_create: (subs) ->
         <Col sm=12>
-            <h3>Upgrade to give your project internet access and more resources</h3>
-            <p>
-                To prevent abuse the free version doesn{"'"}t have internet access.
-                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or
-                any other internet resources
-                is not possible with the free version.
-                Starting at just $7/month you can give your project(s)
-                internet access, members only hosting, 1 day Idle timeout,
-                3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
-                with any project you are a collaborator on.
-            </p>
             <div>
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
@@ -774,7 +765,62 @@ NewProjectCreator = rclass
         else if @state.state == 'saving'
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
+    render_upgrade_buttons: ->
+        <ButtonToolbar>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project(false)} >
+                Create project without upgrades
+            </Button>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project(false)} >
+                Create project with members only hosting and direct internet access
+            </Button>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project(false)} >
+                Create project with custom upgrades
+            </Button>
+            <Button
+                disabled = {@state.state is 'saving'}
+                onClick  = {@cancel_editing} >
+                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+            </Button>
+        </ButtonToolbar>
+
+    render_create_button: ->
+        <ButtonToolbar>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project(false)} >
+                Create project
+            </Button>
+            <Button
+                disabled = {@state.state is 'saving'}
+                onClick  = {@cancel_editing} >
+                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+            </Button>
+        </ButtonToolbar>
+
+    render_commercial_explanation_of_project: ->
+        <div>
+            Each project is free. What{"'"}s not free is members only
+            hosting and direct use of internet resources. Project resources like ram, 
+            cpu, and disk space can be upgraded. If you have any questions, please
+            email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/>
+            <span className="highlight">If you are
+            purchasing a course subscription, but need a short trial to test things out first
+            then please immediately email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
+            </span>
+        </div>
+
     render_input_section: (subs)  ->
+        console.log('Create button', @state.create_button_hit)
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
         <Well style={backgroundColor: '#FFF', color:'#666'}>
@@ -808,43 +854,22 @@ NewProjectCreator = rclass
                     </FormGroup>
                 </Col>
 
-                <Col sm=2>
-                    {# potentially add users before creating a project?}
-                </Col>
             </Row>
 
             <Row>
-                <Col sm=5>
-                    <ButtonToolbar>
-                        <Button
-                            disabled = {@state.title_text == '' or @state.state == 'saving'}
-                            bsStyle  = 'success'
-                            onClick  = {=>@create_project(false)} >
-                            Create project without upgrades
-                        </Button>
-                        <Button
-                            disabled = {@state.state is 'saving'}
-                            onClick  = {@cancel_editing} >
-                            {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-                        </Button>
-                    </ButtonToolbar>
+                <Col sm=12>
+                    You can <b>very easily</b> change the title and description at any time later.<br/>
+                    A <b>project</b> is your own private computational workspace that you can share
+                    with others. 
+                    {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
+                    {if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()}
                     {@render_error()}
-                </Col>
-                <Col sm=7>
-                    <div style={marginBottom: '12px'}>You can <b>very easily</b> change the title and description at any time later.</div>
                 </Col>
             </Row>
             <Space/>
             <Row>
-                <Col sm=12 style={color:'#555'}>
-                    <div>
-                        A <b>project</b> is your own private computational workspace that you can
-                        share with others and upgrade. {#<a href="" onClick={@go_to_upgrade}>upgrade</a>.}
-                    </div>
-                </Col>
-            </Row>
-            <Row>
-                {@render_upgrade_before_create(subs) if require('./customize').commercial}
+                { @state.create_button_hit  }
+                {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
             </Row>
             <Row>
                 <Col sm=12>
