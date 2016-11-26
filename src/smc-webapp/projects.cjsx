@@ -715,11 +715,11 @@ NewProjectCreator = rclass
             upgrades_you_can_use                 = {@props.upgrades_you_can_use}
             upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
             upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-            submit_text              = {"Create project with upgrades"}
-            disable_submit           = {@state.title_text == '' or @state.state == 'saving'}
-            submit_upgrade_quotas    = {@create_project}
-            cancel_upgrading         = {@cancel_editing}
-            quota_params             = {require('smc-util/schema').PROJECT_UPGRADES.params}
+            submit_text                          = {"Create project with upgrades"}
+            disable_submit                       = {@state.title_text == '' or @state.state == 'saving'}
+            submit_upgrade_quotas                = {@create_project}
+            cancel_upgrading                     = {@cancel_editing}
+            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
         >
             {@render_info_alert()}
         </UpgradeAdjustor>
@@ -755,7 +755,7 @@ NewProjectCreator = rclass
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
                 {<div id="upgrade_before_creation"></div> if subs > 0}
-                {@render_upgrades_adjustor() if subs > 0}
+                {@render_upgrades_adjustor(true) if subs > 0}
             </div>
         </Col>
 
@@ -764,6 +764,13 @@ NewProjectCreator = rclass
             <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
         else if @state.state == 'saving'
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
+
+    create_project_with_members_and_internet: ->
+        total_upgrades = redux.getStore('account').get_total_upgrades() ? {}
+        if total_upgrades.member_host > 0 and total_upgrades.network > 0
+            @create_project({member_host: 1, network: 1})
+        else
+            @setState(create_button_hit: 'with_members_and_internet')
 
     render_upgrade_buttons: ->
         <ButtonToolbar>
@@ -774,15 +781,15 @@ NewProjectCreator = rclass
                 Create project without upgrades
             </Button>
             <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
                 bsStyle  = 'success'
-                onClick  = {=>@create_project(false)} >
+                onClick  = {=>@create_project_with_members_and_internet()} >
                 Create project with members only hosting and direct internet access
             </Button>
             <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
                 bsStyle  = 'success'
-                onClick  = {=>@create_project(false)} >
+                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
                 Create project with custom upgrades
             </Button>
             <Button
@@ -820,7 +827,6 @@ NewProjectCreator = rclass
         </div>
 
     render_input_section: (subs)  ->
-        console.log('Create button', @state.create_button_hit)
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
         <Well style={backgroundColor: '#FFF', color:'#666'}>
@@ -868,7 +874,6 @@ NewProjectCreator = rclass
             </Row>
             <Space/>
             <Row>
-                { @state.create_button_hit  }
                 {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
             </Row>
             <Row>

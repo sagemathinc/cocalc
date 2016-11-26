@@ -1259,7 +1259,10 @@ exports.UpgradeAdjustor = rclass
 
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_value = current[name] ? 0
+            if data.input_type == 'checkbox' and @props.submit_text == "Create project with upgrades"
+                current_value = current[name] ? 1
+            else
+                current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state
