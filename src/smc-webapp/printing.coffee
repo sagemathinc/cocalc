@@ -131,6 +131,10 @@ class SagewsPrinter extends Printer
             MathJaxConfig = _.clone(MathJaxConfig)
             MathJaxConfig.skipStartupTypeset = false
             MathJaxConfig.showProcessingMessages = true
+            MathJaxConfig.CommonHTML ?= {}
+            MathJaxConfig.CommonHTML.scale = 80
+            MathJaxConfig["HTML-CSS"] ?= {}
+            MathJaxConfig["HTML-CSS"].scale = 80
 
             @_html_tmpl = _.template """
                 <!doctype html>
@@ -220,6 +224,8 @@ class SagewsPrinter extends Printer
             out = "<div class='output stdout'>#{mesg.stdout}</div>"
         else if mesg.stderr?
             out = "<div class='output stderr'>#{mesg.stderr}</div>"
+        else if mesg.html?
+            out = "<div class='output html'>#{mesg.html}</div>"
         else if mesg.md?
             x = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
@@ -227,12 +233,40 @@ class SagewsPrinter extends Printer
             @editor.syncdoc.process_html_output($out)
             out = "<div class='output md'>#{$out.html()}</div>"
         else if mesg.file?
-            out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+            if misc.filename_extension(mesg.file.filename).toLowerCase() == 'sage3d'
+                for el in $(mark.replacedWith).find(".salvus-3d-container")
+                    $3d = $(el)
+                    console.log 'salvus 3d container', $3d
+                    scene = $3d.data('salvus-threejs')
+                    scene.set_static_renderer()
+                    data_url = scene.static_image
+                    out = "<div class='output sage3d'><img src='#{data_url}'></div>"
+            else
+                out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
         else if mesg.done?
             # ignored
         else
-            console.debug "ignored mesg", mesg
+            console.warn "ignored mesg", mesg
         return out
+
+    html_embedding_images: (html) ->
+        $html = $(html)
+        for img in $html.find('img')
+            c = document.createElement("canvas")
+            c.width = img.width
+            c.height = img.height
+            c.getContext('2d').drawImage(img, 0, 0)
+            ext = misc.filename_extension(img.src).toLowerCase()
+            ext = ext.split('?')[0]
+            if ext == 'svg'
+                ext = 'svg+xml'
+            else if ext in ['png', 'jpeg']
+                _
+            else
+                console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
+                continue
+            img.src = c.toDataURL("image/#{ext}")
+        return $html.html()
 
     html: (cb) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
@@ -255,7 +289,7 @@ class SagewsPrinter extends Printer
                 input_lines.push(x)
             else
                 input_lines_process()
-                mark = marks[0] # assumption it's always 1
+                mark = marks[0] # assumption it's always length 1
                 switch x[0]     # first char is the marker
                     when MARKERS.cell
                         x
@@ -272,6 +306,7 @@ class SagewsPrinter extends Printer
                                 continue
 
                             output_html = @html_process_output_mesg(mesg, mark)
+                            output_html = @html_embedding_images(output_html)
                             if output_html?
                                 html.push(output_html)
 

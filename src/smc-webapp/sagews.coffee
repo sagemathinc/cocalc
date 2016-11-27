@@ -2257,7 +2257,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 f = $(e)
                 scene = $(e).data('salvus-threejs')
                 scene.set_static_renderer()
-                data_url  = scene.static_image
+                data_url = scene.static_image
                 if data_url?
                     uuid = f.data('uuid')
                     if not sage3d[uuid]?
