@@ -162,12 +162,12 @@ class SagewsPrinter extends Printer
                             padding: .5rem;
                         }
                         @media print {
-                          body { width: 100%; margin: 1rem; font-size: 12pt; }
+                          body { width: 100%; margin: 1rem .2rem; font-size: 12pt; }
                         }
 
                         div.output {
-                            border-left: 1px solid #33a;
-                            padding: 0 0 0 .5rem;
+                            border-left: .2rem solid #33a;
+                            padding: 0 0 0 .3rem;
                             margin-left: -.5rem;
                         }
                         div.output img { width: 70%; }
@@ -188,7 +188,7 @@ class SagewsPrinter extends Printer
                             counter-increment: line;
                             content: counter(line);
                             display: inline-block;
-                            border-right: 1px solid #3a3;
+                            border-right: .2rem solid #3a3;
                             padding: 0 .5rem 0 0;
                             margin-right: .5rem;
                             color: #888;
@@ -253,6 +253,7 @@ class SagewsPrinter extends Printer
     html_process_output_mesg: (mesg, mark) ->
         out = null
         if mesg.stdout?
+            # assertion: for stdout, `mark` might be undefined
             out = "<div class='output stdout'>#{mesg.stdout}</div>"
         else if mesg.stderr?
             out = "<div class='output stderr'>#{mesg.stderr}</div>"
@@ -266,17 +267,23 @@ class SagewsPrinter extends Printer
             $out.html_noscript(x.s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
             out = "<div class='output md'>#{$out.html()}</div>"
+        else if mesg.interact?
+            out = "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
         else if mesg.file?
-            if misc.filename_extension(mesg.file.filename).toLowerCase() == 'sage3d'
-                for el in $(mark.replacedWith).find(".salvus-3d-container")
-                    $3d = $(el)
-                    console.log 'salvus 3d container', $3d
-                    scene = $3d.data('salvus-threejs')
-                    scene.set_static_renderer()
-                    data_url = scene.static_image
-                    out = "<div class='output sage3d'><img src='#{data_url}'></div>"
-            else
-                out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+            if mesg.file.show ? true
+                if misc.filename_extension(mesg.file.filename).toLowerCase() == 'sage3d'
+                    for el in $(mark.replacedWith).find(".salvus-3d-container")
+                        $3d = $(el)
+                        # console.log 'salvus 3d container', $3d
+                        scene = $3d.data('salvus-threejs')
+                        if not scene?
+                            # when the document isn't fully processed, there is no scene data
+                            continue
+                        scene.set_static_renderer()
+                        data_url = scene.static_image
+                        out = "<div class='output sage3d'><img src='#{data_url}'></div>"
+                else
+                    out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
         else if mesg.code?  # what's that actually?
             code = mesg.code.source
             out = "<pre><code>#{code}</code></pre>"
@@ -290,7 +297,9 @@ class SagewsPrinter extends Printer
             # ignored
         else
             console.warn "ignored mesg", mesg
-        return out
+        html = @html_embedding_images(out)
+        if html?
+            @_html.push(html)
 
     html_embedding_images: (html) ->
         if not html?
@@ -299,10 +308,13 @@ class SagewsPrinter extends Printer
         for img in $html.find('img')
             if img.src.startsWith('data:')
                 continue
-            c = document.createElement("canvas")
-            c.width = img.width
-            c.height = img.height
+            c          = document.createElement("canvas")
+            scaling    = img.getAttribute('smc-image-scaling') ? 1
+            c.width    = img.width
+            c.height   = img.height
             c.getContext('2d').drawImage(img, 0, 0)
+            img.width  = scaling * img.width
+            img.height = scaling * img.height
             ext = misc.filename_extension(img.src).toLowerCase()
             ext = ext.split('?')[0]
             if ext == 'svg'
@@ -313,31 +325,38 @@ class SagewsPrinter extends Printer
                 console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
                 continue
             img.src = c.toDataURL("image/#{ext}")
-        console.log "$html", $html
         return $html[0].outerHTML ? ''
 
     html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
         {MARKERS} = require('smc-util/sagews')
-        html = [] # list of elements
+        @_html = [] # list of elements
         cm = @editor.codemirror
 
         input_lines = []
-        input_lines_process = (lang) ->
+        input_lines_process = (lang) =>
             # lang is either html, python or md
             lang = if lang? then " lang-#{lang}" else ''
             if input_lines.length > 0
                 input_lines = (_.escape(line) for line in input_lines)
-                html.push("<pre class='input#{lang}'><code>#{input_lines.join('</code><code>')}</code></pre>")
+                @_html.push("<pre class='input#{lang}'><code>#{input_lines.join('</code><code>')}</code></pre>")
                 input_lines = []
+
+        # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
+        mesg_stdout = {stdout : ''}
+        process_collected_mesg_stdout = =>
+            # processing leftover stdout mesgs from previous iteration
+            if mesg_stdout.stdout.length > 0
+                @html_process_output_mesg(mesg_stdout)
+                mesg_stdout = {stdout : ''}
 
         # process lines in an async loop to avoid blocking on large documents
         line = 0
         lines_total = cm.lineCount()
         async.whilst(
             ->
-                progress?("conversion #{misc.round2(line / lines_total)} %")
-                line < lines_total
+                progress?("conversion #{misc.round2(100 * line / lines_total)} %")
+                return line < lines_total
             ,
             (cb) =>
                 x = cm.getLine(line)
@@ -349,7 +368,7 @@ class SagewsPrinter extends Printer
                     mark = marks[0] # assumption it's always length 1
                     switch x[0]     # first char is the marker
                         when MARKERS.cell
-                            x
+                            _
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
                             console.log 'output mark', mark
@@ -363,10 +382,15 @@ class SagewsPrinter extends Printer
                                     continue
 
                                 console.log 'output mesg', mesg
-                                output_html = @html_process_output_mesg(mesg, mark)
-                                output_html = @html_embedding_images(output_html)
-                                if output_html?
-                                    html.push(output_html)
+
+                                if mesg.stdout?
+                                    mesg_stdout.stdout += mesg.stdout
+                                else
+                                    process_collected_mesg_stdout()
+                                    # process the non-stdout mesg from this iteration
+                                    @html_process_output_mesg(mesg, mark)
+
+                process_collected_mesg_stdout()
                 line++
                 cb(null, line, x)
             ,
@@ -381,7 +405,7 @@ class SagewsPrinter extends Printer
         html_data =
             title     : @editor.filename
             filename  : @editor.filename
-            content   : (h for h in html).join('\n')
+            content   : (h for h in @_html).join('\n')
             timestamp : "#{new Date()}"
 
         salvus_client.write_text_file_to_project

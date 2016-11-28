@@ -1235,13 +1235,14 @@ class CodeMirrorEditor extends FileEditor
                 progress = (mesg) ->
                     console.log("print_html progress: #{mesg}")
                 output_fn = @filename + '.html'
-                printing.Printer(@, output_fn).print (err, progress) =>
+                printing.Printer(@, output_fn).print((err) =>
                     console.log 'Printer.print is done: err = ', err
                     if not err
                         a = redux.getProjectActions(@project_id)
                         a.download_file
                             path : output_fn
                             auto : false  # open in new tab
+                , progress)
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
