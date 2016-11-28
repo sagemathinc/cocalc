@@ -154,11 +154,15 @@ class SagewsPrinter extends Printer
                             display: flex;
                             align-items: center;
                             justify-content: center;
+                            margin: 0; padding: 0;
                         }
                         body {
-                            max-width: 60rem;
+                            max-width: 50rem;
                             counter-reset: line;
                             padding: .5rem;
+                        }
+                        @media print {
+                          body { width: 100%; margin: 1rem; font-size: 12pt; }
                         }
 
                         div.output {
@@ -166,10 +170,13 @@ class SagewsPrinter extends Printer
                             padding: 0 0 0 .5rem;
                             margin-left: -.5rem;
                         }
+                        div.output img { width: 70%; }
                         div.output.stdout, div.output.stderr { font-family: monospace; white-space: pre-wrap; }
                         div.output.stderr { color: red; border-color: #a33; }
 
-                        span.sagews-output-image > img { vertical-align: top; }
+                        span.sagews-output-image > img,
+                        span.sagews-output-html > img
+                        { vertical-align: top; }
 
                         pre.input { }
                         pre.input > code {
@@ -200,26 +207,45 @@ class SagewsPrinter extends Printer
                             text-align: right;
                             font-family: monospace;
                         }
+                        footer {
+                            font-size: 70%;
+                            color: #888;
+                            text-align: center;
+                        }
                     </style>
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
                         src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
                     </script>
-                    <!-- https://highlightjs.org/usage/ -->
-                    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
-                    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/go.min.js"></script>
-                    <script>hljs.initHighlightingOnLoad();</script>
                 </head>
 
                 <body>
                 <div class="header">
                     <h1><%= title %></h1>
-                    <div>generated <%= timestamp %></div>
                 </div>
                 <%= content %>
+                <hr size=1>
                 <div class="footer">
+                    <div>generated <%= timestamp %></div>
                 </div>
+
+                <!-- https://highlightjs.org/usage/ -->
+                <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/ascetic.min.css">
+                <style>
+                .hljs {
+                    overflow-x : inherit !important;
+                    padding    : 0       !important;
+                    background : none    !important;
+                }
+                </style>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/javascript.min.js"></script>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/python.min.js"></script>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/r.min.js"></script>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/coffeescript.min.js"></script>
+                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/matlab.min.js"></script>
+                <script>hljs.initHighlightingOnLoad();</script>
                 </body>
                 </html>"""
         return @_html_tmpl(data)
@@ -231,7 +257,7 @@ class SagewsPrinter extends Printer
         else if mesg.stderr?
             out = "<div class='output stderr'>#{mesg.stderr}</div>"
         else if mesg.html?
-            $html = $(mesg.html).wrap('<div>')
+            $html = $("<div>#{mesg.html}</div>")
             @editor.syncdoc.process_html_output($html)
             out = "<div class='output html'>#{$html.html()}</div>"
         else if mesg.md?
@@ -315,10 +341,8 @@ class SagewsPrinter extends Printer
             ,
             (cb) =>
                 x = cm.getLine(line)
-                console.log "line", x
                 marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
                 if not marks? or marks.length == 0
-                    # console.log 'no marks line', x
                     input_lines.push(x)
                 else
                     input_lines_process()
@@ -328,7 +352,7 @@ class SagewsPrinter extends Printer
                             x
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
-                            console.log 'output', mark
+                            console.log 'output mark', mark
                             for mesg_ser in mark.rendered.split(MARKERS.output)
                                 if mesg_ser.length == 0
                                     continue
@@ -338,6 +362,7 @@ class SagewsPrinter extends Printer
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
 
+                                console.log 'output mesg', mesg
                                 output_html = @html_process_output_mesg(mesg, mark)
                                 output_html = @html_embedding_images(output_html)
                                 if output_html?
