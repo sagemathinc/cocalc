@@ -1,6 +1,8 @@
 ###
 Similar to rethink.coffee... but built around PostgreSQL.
 
+** This code is NOT released under any license.  For use by SageMath, Inc. only.**
+
 ---
 
 Snippets...
@@ -57,7 +59,7 @@ class PostgreSQL
         if @_debug
             return (m) => winston.debug("PostgreSQL.#{f}: #{m}")
         else
-            return =>
+            return ->
 
     _notification: (mesg) =>
         dbg = @_dbg("_notification")
