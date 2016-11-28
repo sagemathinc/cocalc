@@ -116,13 +116,15 @@ class LatexPrinter extends Printer
 class SagewsPrinter extends Printer
     @supported : ['sagews']
 
-    print: (cb) ->
+    print: (cb, progress) ->
+        # cb: callback when done, usual err pattern
+        # progress: callback to signal back messages about the conversion progress
         target_ext = misc.filename_extension(@output_file).toLowerCase()
         switch target_ext
             when 'pdf'
                 salvus_client.print_to_pdf(cb)
             when 'html'
-                @html(cb)
+                @html(cb, progress)
 
     generate_html: (data) ->
         if not @_html_tmpl?
@@ -204,6 +206,10 @@ class SagewsPrinter extends Printer
                     <script type="text/javascript" async
                         src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
                     </script>
+                    <!-- https://highlightjs.org/usage/ -->
+                    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+                    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/go.min.js"></script>
+                    <script>hljs.initHighlightingOnLoad();</script>
                 </head>
 
                 <body>
@@ -225,7 +231,9 @@ class SagewsPrinter extends Printer
         else if mesg.stderr?
             out = "<div class='output stderr'>#{mesg.stderr}</div>"
         else if mesg.html?
-            out = "<div class='output html'>#{mesg.html}</div>"
+            $html = $(mesg.html).wrap('<div>')
+            @editor.syncdoc.process_html_output($html)
+            out = "<div class='output html'>#{$html.html()}</div>"
         else if mesg.md?
             x = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
@@ -243,6 +251,15 @@ class SagewsPrinter extends Printer
                     out = "<div class='output sage3d'><img src='#{data_url}'></div>"
             else
                 out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+        else if mesg.code?  # what's that actually?
+            code = mesg.code.source
+            out = "<pre><code>#{code}</code></pre>"
+        else if mesg.javascript?
+            code = mesg.javascript.source
+            if mesg.javascript.coffeescript
+                out = "<pre><code class='lang-coffeescript'>#{code}</code></pre>"
+            else
+                out = "<pre><code class='lang-javascript'>#{code}</code></pre>"
         else if mesg.done?
             # ignored
         else
@@ -250,8 +267,12 @@ class SagewsPrinter extends Printer
         return out
 
     html_embedding_images: (html) ->
+        if not html?
+            return html
         $html = $(html)
         for img in $html.find('img')
+            if img.src.startsWith('data:')
+                continue
             c = document.createElement("canvas")
             c.width = img.width
             c.height = img.height
@@ -266,51 +287,72 @@ class SagewsPrinter extends Printer
                 console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
                 continue
             img.src = c.toDataURL("image/#{ext}")
-        return $html.html()
+        console.log "$html", $html
+        return $html[0].outerHTML ? ''
 
-    html: (cb) ->
+    html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
         {MARKERS} = require('smc-util/sagews')
         html = [] # list of elements
         cm = @editor.codemirror
 
         input_lines = []
-        input_lines_process = ->
+        input_lines_process = (lang) ->
+            # lang is either html, python or md
+            lang = if lang? then " lang-#{lang}" else ''
             if input_lines.length > 0
-                html.push("<pre class='input'><code>#{input_lines.join('</code><code>')}</code></pre>")
+                input_lines = (_.escape(line) for line in input_lines)
+                html.push("<pre class='input#{lang}'><code>#{input_lines.join('</code><code>')}</code></pre>")
                 input_lines = []
 
-        for line in [0...cm.lineCount()]
-            x = cm.getLine(line)
-            console.log "line", x
-            marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
-            if not marks? or marks.length == 0
-                # console.log 'no marks line', x
-                input_lines.push(x)
-            else
+        # process lines in an async loop to avoid blocking on large documents
+        line = 0
+        lines_total = cm.lineCount()
+        async.whilst(
+            ->
+                progress?("conversion #{misc.round2(line / lines_total)} %")
+                line < lines_total
+            ,
+            (cb) =>
+                x = cm.getLine(line)
+                console.log "line", x
+                marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
+                if not marks? or marks.length == 0
+                    # console.log 'no marks line', x
+                    input_lines.push(x)
+                else
+                    input_lines_process()
+                    mark = marks[0] # assumption it's always length 1
+                    switch x[0]     # first char is the marker
+                        when MARKERS.cell
+                            x
+                        when MARKERS.output
+                            # assume, all cells are evaluated and hence mark.rendered contains the html
+                            console.log 'output', mark
+                            for mesg_ser in mark.rendered.split(MARKERS.output)
+                                if mesg_ser.length == 0
+                                    continue
+                                try
+                                    mesg = misc.from_json(mesg_ser)
+                                catch e
+                                    console.warn("invalid output message '#{m}' in line '#{line}'")
+                                    continue
+
+                                output_html = @html_process_output_mesg(mesg, mark)
+                                output_html = @html_embedding_images(output_html)
+                                if output_html?
+                                    html.push(output_html)
+                line++
+                cb(null, line, x)
+            ,
+            (err, line, x) ->
                 input_lines_process()
-                mark = marks[0] # assumption it's always length 1
-                switch x[0]     # first char is the marker
-                    when MARKERS.cell
-                        x
-                    when MARKERS.output
-                        # assume, all cells are evaluated and hence mark.rendered contains the html
-                        console.log 'output', mark
-                        for mesg_ser in mark.rendered.split(MARKERS.output)
-                            if mesg_ser.length == 0
-                                continue
-                            try
-                                mesg = misc.from_json(mesg_ser)
-                            catch e
-                                console.warn("invalid output message '#{m}' in line '#{line}'")
-                                continue
+                if err
+                    msg = "error processing line #{line}: '#{x}'"
+                    console.error(msg)
+                    cb?(err)
+        )
 
-                            output_html = @html_process_output_mesg(mesg, mark)
-                            output_html = @html_embedding_images(output_html)
-                            if output_html?
-                                html.push(output_html)
-
-        input_lines_process()
         html_data =
             title     : @editor.filename
             filename  : @editor.filename
@@ -322,7 +364,8 @@ class SagewsPrinter extends Printer
             path       : @output_file
             content    : @generate_html(html_data)
             cb         : (err, resp) =>
-                cb?(err, resp)
+                console.log("write_text_file_to_project.resp: '#{resp}'")
+                cb?(err)
 
 # registering printers
 printers = {}

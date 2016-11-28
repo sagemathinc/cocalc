@@ -1232,9 +1232,11 @@ class CodeMirrorEditor extends FileEditor
     print_html: =>
         switch @ext
             when 'sagews'
+                progress = (mesg) ->
+                    console.log("print_html progress: #{mesg}")
                 output_fn = @filename + '.html'
-                printing.Printer(@, output_fn).print (err, resp) =>
-                    console.log 'Printer.print is done: err = ', err, resp
+                printing.Printer(@, output_fn).print (err, progress) =>
+                    console.log 'Printer.print is done: err = ', err
                     if not err
                         a = redux.getProjectActions(@project_id)
                         a.download_file
