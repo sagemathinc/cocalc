@@ -34,6 +34,15 @@ misc_node  = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required   = defaults.required
 
+
+# Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
+# NOTE: We should add this to site configuration, and have it get read once when first
+# needed and cached.  Also it would be editable in admin account settings.
+BLOB_GCLOUD_BUCKET = 'smc-blobs'
+
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
+
+
 exports.pg = (opts) ->
     new PostgreSQL(opts)
 
@@ -44,16 +53,22 @@ class PostgreSQL
             database : 'smc'
             debug    : true
             cb       : undefined
-        @_debug = opts.debug
-        dbg = @_dbg("constructor"); dbg()
-        pg.connect "postgres://#{opts.host}/#{opts.database}", (err, client) =>
+        @_debug    = opts.debug
+        @_host     = opts.host
+        @_database = opts.database
+        @_connect(opts.cb)
+
+    _connect: (cb) =>
+        dbg = @_dbg("connect"); dbg()
+        pg.connect "postgres://#{@_host}/#{@_database}", (err, client) =>
             if err
                 dbg("Failed to connect to database -- #{err}")
-                opts.cb?(err)
+                cb?(err)
             else
+                dbg("connected!")
                 @_client = client
                 @_client.on('notification', @_notification)
-                opts.cb?()
+                cb?()
 
     _dbg: (f) =>
         if @_debug
@@ -132,6 +147,300 @@ class PostgreSQL
                 cb?()
         )
 
+    # Ensure that the actual schema in the database matches the one defined in SCHEMA
+    update_schema: (opts) =>
+        throw Error("NotImplementedError")
+
+
+    delete_entire_database: (opts) =>
+        throw Error("NotImplementedError")
+
+
+    concurrent: () =>
+        throw Error("NotImplementedError")
+
+    table: (name, opts) =>
+        throw Error("NotImplementedError")
+
+    synctable: (opts) =>
+        throw Error("NotImplementedError")
+
+    watch: (opts) =>
+        throw Error("NotImplementedError")
+
+    wait: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_random_password: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_all: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_expired: (opts) =>
+        throw Error("NotImplementedError")
+
+    log: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_log: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_user_log: (opts) =>
+        throw Error("NotImplementedError")
+
+    log_client_error: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_client_error_log: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_server_setting: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_server_setting: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_site_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_passport_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_passport_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    count_accounts_created_by: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_account: (opts) =>
+        throw Error("NotImplementedError")
+
+    mark_account_deleted: (opts) =>
+        throw Error("NotImplementedError")
+
+    account_exists: (opts) =>
+        throw Error("NotImplementedError")
+
+    account_creation_actions: (opts) =>
+        throw Error("NotImplementedError")
+
+    account_creation_actions_success: (opts) =>
+        throw Error("NotImplementedError")
+
+    do_account_creation_actions: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_stripe_customer_id: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_stripe_customer_id: (opts) =>
+        throw Error("NotImplementedError")
+
+    stripe_update_customer: (opts) =>
+        throw Error("NotImplementedError")
+
+    account_ids_to_usernames: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_usernames: (opts) =>
+        throw Error("NotImplementedError")
+
+    all_users: (cb) =>
+        throw Error("NotImplementedError")
+
+    user_search: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_account: (opts) =>
+        throw Error("NotImplementedError")
+
+    is_banned_user: (opts) =>
+        throw Error("NotImplementedError")
+
+    ban_user: (opts) =>
+        throw Error("NotImplementedError")
+
+    unban_user: (opts) =>
+        throw Error("NotImplementedError")
+
+    create_passport: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_passport: (opts) =>
+        throw Error("NotImplementedError")
+
+    passport_exists: (opts) =>
+        throw Error("NotImplementedError")
+
+    update_account_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    touch: (opts) =>
+        throw Error("NotImplementedError")
+
+    save_remember_me: (opts) =>
+        throw Error("NotImplementedError")
+
+    invalidate_all_remember_me: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_remember_me: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_remember_me: (opts) =>
+        throw Error("NotImplementedError")
+
+    change_password: (opts) =>
+        throw Error("NotImplementedError")
+
+    change_email_address: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_password_reset: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_password_reset: (opts) =>
+        throw Error("NotImplementedError")
+
+    delete_password_reset: (opts) =>
+        throw Error("NotImplementedError")
+
+    record_password_reset_attempt: (opts) =>
+        throw Error("NotImplementedError")
+
+    count_password_reset_attempts: (opts) =>
+        throw Error("NotImplementedError")
+
+    log_file_access: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_file_access: (opts) =>
+        throw Error("NotImplementedError")
+
+    create_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    update_project_data: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_data: (opts) =>
+        throw Error("NotImplementedError")
+
+    add_user_to_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    remove_collaborator_from_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_collaborator_ids: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_users: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_public_paths: (opts) =>
+        throw Error("NotImplementedError")
+
+    has_public_path: (opts) =>
+        throw Error("NotImplementedError")
+
+    path_is_public: (opts) =>
+        throw Error("NotImplementedError")
+
+    filter_public_paths: (opts) =>
+        throw Error("NotImplementedError")
+
+    touch_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    recently_modified_projects: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_open_unused_projects: (opts) =>
+        throw Error("NotImplementedError")
+
+    user_is_in_project_group: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_ids_with_user: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_projects_with_user: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_projects_with_ids: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_account_ids_using_project: (opts) =>
+        throw Error("NotImplementedError")
+
+    when_sent_project_invite: (opts) =>
+        throw Error("NotImplementedError")
+
+    sent_project_invite: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_project_host: (opts) =>
+        throw Error("NotImplementedError")
+
+    unset_project_host: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_host: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_project_storage: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_storage: (opts) =>
+        throw Error("NotImplementedError")
+
+    update_project_storage_save: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_project_storage_request: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_storage_request: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_project_state: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_state: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_quotas: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_user_project_upgrades: (opts) =>
+        throw Error("NotImplementedError")
+
+    ensure_user_project_upgrades_are_valid: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_upgrades: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_project_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    set_project_settings: (opts) =>
+        throw Error("NotImplementedError")
+
+    record_file_use: (opts) =>
+        throw Error("NotImplementedError")
+
+    get_file_use: (opts) =>
+        throw Error("NotImplementedError")
+
+    count_timespan: (opts) =>
+        throw Error("NotImplementedError")
+
 
 trigger_name = (table) ->
     return "changes_#{table}"
@@ -162,4 +471,26 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER #{tgname} AFTER INSERT OR UPDATE OR DELETE ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
 """
+
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
+        raise Error("NotImplementedError")
+
+    connect: (opts) =>
+        raise Error("NotImplementedError")
+
+    get: (key) =>
+        raise Error("NotImplementedError")
+
+    getIn: (x) =>
+        raise Error("NotImplementedError")
+
+    has: (key) =>
+        raise Error("NotImplementedError")
+
+    close: (keep_listeners) =>
+        raise Error("NotImplementedError")
+
+    wait: (opts) =>
+        raise Error("NotImplementedError")
 
