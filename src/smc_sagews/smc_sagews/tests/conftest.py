@@ -7,8 +7,6 @@ import signal
 import struct
 import hashlib
 
-# import sys
-
 ###
 # much of the code here is copied from sage_server.py
 # cut and paste was done because it takes over 30 sec to import sage_server
@@ -375,16 +373,13 @@ def data_path(tmpdir_factory):
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
-    Fixture for worksheet cell test. Depends on two other fixtures,
-    sagews and test_id.
-    - `` code `` -- string of code block to run
+    Fixture function exec2. Depends on two other fixtures, sagews and test_id.
+    If output & patterns are omitted, the cell is not expected to produce a
+    stdout result. All arguments after 'code' are optional.
 
-    Fixture function exec2. If output & patterns are omitted, the cell is not
-    expected to produce a stdout result. Arguments after 'code' are optional.
+    - `` code `` -- string of code to run
 
-    - `` code `` -- string of code block to run
-
-    - `` output `` -- string of expected output, to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched exactly
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -410,6 +405,10 @@ def exec2(request, sagews, test_id):
         def test_sh(exec2):
             exec2("sh('date +%Y-%m-%d')", pattern = '^\d{4}-\d{2}-\d{2}$')
 
+    .. NOTE::
+
+        If `output` is a list of strings, `pattern` and `html_pattern` are ignored
+
     """
     def execfn(code, output = None, pattern = None, html_pattern = None):
         m = message.execute_code(code = code, id = test_id)
@@ -418,7 +417,14 @@ def exec2(request, sagews, test_id):
         sagews.send_json(m)
 
         # check stdout
-        if output or pattern:
+        if isinstance(output, list):
+            for o in output:
+                typ, mesg = sagews.recv()
+                assert typ == 'json'
+                assert mesg['id'] == test_id
+                assert 'stdout' in mesg
+                assert mesg['stdout'] == o
+        elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
@@ -461,7 +467,7 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code, want_name=True, want_html=True):
+    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png'):
 
         SHA_LEN = 36
 
@@ -469,9 +475,10 @@ def execblob(request, sagews, test_id):
         m = message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
 
-        # expect 3 responses before "done", but order may vary
+        # expect several responses before "done", but order may vary
         want_blob = True
-        while want_blob or want_name or want_html:
+        want_name = True
+        while any([want_blob, want_name, want_html, want_javascript]):
             typ, mesg = sagews.recv()
             if typ == 'blob':
                 assert want_blob
@@ -490,11 +497,16 @@ def execblob(request, sagews, test_id):
                     assert want_html
                     want_html = False
                     print('got html')
+                elif 'javascript' in mesg:
+                    assert want_javascript
+                    want_javascript = False
+                    print('got javascript')
                 else:
                     assert want_name
                     want_name = False
                     assert 'file' in mesg
                     print('got file name')
+                    assert file_type in mesg['file']['filename']
 
         # final response is json "done" message
         typ, mesg = sagews.recv()
@@ -502,6 +514,23 @@ def execblob(request, sagews, test_id):
         assert mesg['done'] == True
 
     return execblobfn
+
+@pytest.fixture()
+def execintrospect(request, sagews, test_id):
+    def execfn(line, completions, target, top=None):
+        if top is None:
+            top = line
+        m = message.introspect(test_id, line=line, top=top)
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == completions
+        assert mesg['target'] == target
+
+    return execfn
 
 @pytest.fixture(scope = "class")
 def sagews(request):
@@ -525,7 +554,7 @@ def sagews(request):
     c_ack = conn._recv(1)
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
-    # start session
+    # open connection with sage_server and run tests
     msg = message.start_session()
     msg['type'] = 'sage'
     conn.send_json(msg)
@@ -570,3 +599,11 @@ def own_sage_server(request):
         print("killing all sage_server processes")
         os.system("pkill -f sage_server_command_line")
     request.addfinalizer(fin)
+
+@pytest.fixture(scope = "class")
+def test_ro_data_dir(request):
+    """
+    Return the directory containing the test file.
+    Used for tests which have read-only data files in the test dir.
+    """
+    return os.path.dirname(request.module.__file__)

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,15 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
-###
-AUTHORS:
-
-  - William Stein
-  - Harald Schilly
-  - Simon Luu
-  - John Jeng
-###
 
 ###
 Chat message JSON format:
@@ -70,7 +61,6 @@ immutable = require('immutable')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar, UsersViewing} = require('./profile')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
@@ -91,7 +81,7 @@ exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
-    _init : () =>
+    _init: () =>
         ## window.a = @  # for debugging
         # be explicit about exactly what state is in the store
         @setState
@@ -104,14 +94,10 @@ class ChatActions extends Actions
             position           : undefined  # more info about where chat editor is located
             saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
             use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
-            video              : undefined  # shared state about video chat: {room_id:'...', users:{account_id:timestamp, ...}}
-            video_window       : undefined  # true if the video window is opened.
-            video_interval     : undefined  # if set, the id of an interval timer that updates video with info about video_window being open
 
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: () =>
         v = {}
-        video = undefined
         for x in @syncdb.select()
             if x.corrupt?
                 continue
@@ -120,7 +106,7 @@ class ChatActions extends Actions
 
                 when 'chat'
                     if x.video_chat?.is_video_chat
-                        # discard/ignore anything related to the old video chat approach
+                        # discard/ignore anything related to the old old video chat approach
                         continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -140,12 +126,8 @@ class ChatActions extends Actions
                         x.editing = {}
                     v[x.date - 0] = x
 
-                when 'video'
-                    video = immutable.fromJS(x.video)
-
         @setState
             messages : immutable.fromJS(v)
-            video    : video
 
     _syncdb_change: (changes) =>
         messages_before = messages = @store.get('messages')
@@ -164,13 +146,6 @@ class ChatActions extends Actions
                         message  = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
                         message  = message.set('editing', immutable.Map(x.insert.editing))
                         messages = messages.set("#{x.insert.date - 0}", message)
-
-                    when 'video'
-                        # got an update to the shared video state...
-                        video = immutable.fromJS(x.insert.video)
-                        if not @store.get('video')?.equals(video)
-                            # and it is really different
-                            @setState(video : video)
 
             else if x.remove
                 if x.remove.event == 'chat'
@@ -258,55 +233,6 @@ class ChatActions extends Actions
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
 
-    save_shared_video_info: (video) =>
-        @setState(video: video)
-        @syncdb.update
-            set :
-                video : video   # actual info
-            where :
-                event : 'video'
-        @syncdb.save()  # so other users will know, and so this persists.
-
-    # Open the video chat window, if it isn't already opened
-    open_video_chat_window: =>
-        if @store.get('video_window')
-            # video chat window already opened
-            return
-
-        # get shared video chat state
-        video = (@store.get('video')?.toJS()) ? {}
-        room_id = video.room_id
-        if not room_id?
-            # the chatroom id hasn't been set yet, so set it
-            room_id = misc.uuid()
-            video.room_id = room_id
-            @save_shared_video_info(video)
-
-        # Create the pop-up window for the chat
-        url = "https://appear.in/" + room_id
-        w = window.open("", null, "height=640,width=800")
-        w.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-        w.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
-        w.document.write('</body></html>')
-
-        w.addEventListener "unload", () =>
-            # The user closes the window, so we unset our pointer to the window
-            @setState(video_window: undefined, video_window_room_id: undefined)
-
-        @_video_window = w   # slight cheat, since we can't store a window in REDUX (contains only immutable js objects)
-        @setState
-            video_window         : true
-            video_window_room_id : room_id  # use to re-open window in case another user changes the room id
-
-    # user wants to close the video chat window, but not via just clicking the close button on the popup window
-    close_video_chat_window: =>
-        w = @store.get('video_window')
-        if w
-            # there is an actual pop-up window, so we close it.
-            @_video_window?.close()
-            delete @_video_window
-            # and record that it is gone.
-            @setState(video_window: undefined, video_window_room_id : undefined)
 
 # Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
 syncdbs = {}
@@ -355,8 +281,6 @@ exports.remove_redux = (path, redux, project_id) ->
     redux.removeActions(name)
     return name
 
-    return name
-
 ### Message Methods ###
 exports.newest_content = newest_content = (message) ->
     message.get('history').peek()?.get('content') ? ''
@@ -364,14 +288,37 @@ exports.newest_content = newest_content = (message) ->
 exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
     account_id == message.get('sender_id')
 
-exports.get_timeago = get_timeago = (message) ->
-    <span className="pull-right small" style={color:'#888'}>
+exports.message_colors = (account_id, message) ->
+    if sender_is_viewer(account_id, message)
+        return {background: '#46b1f6', color: '#fff', message_class:'smc-message-from-viewer'}
+    else
+        return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
+
+exports.render_timeago = (message) ->
+    <span
+        className = "pull-right small"
+        style     = {maxWidth:'20%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
+        >
         <TimeAgo date={new Date(message.get('date'))} />
     </span>
 
+NAME_STYLE =
+    color        : "#888"
+    marginBottom : '1px'
+    marginLeft   : '10px'
+    right        : 0
+    whiteSpace   : 'nowrap'
+    overflow     : 'hidden'
+    textOverflow : 'ellipsis'    # see https://css-tricks.com/snippets/css/truncate-string-with-ellipsis/
+    position     : 'absolute'    # using the "absolute in relative" positioning trick
+    left         : 0
+    top          : 0
+
 exports.show_user_name = show_user_name = (sender_name) ->
-    <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
-        {sender_name}
+    <div style={position:'relative', height:'1.2em', width:'100%'}>
+        <div className={"small"} style={NAME_STYLE}>
+            {sender_name}
+        </div>
     </div>
 
 exports.is_editing = is_editing = (message, account_id) ->
@@ -380,21 +327,22 @@ exports.is_editing = is_editing = (message, account_id) ->
 exports.blank_column = blank_column = ->
     <Col key={2} xs={2} sm={2}></Col>
 
-exports.render_markdown = render_markdown = (value, project_id, file_path) ->
+exports.render_markdown = render_markdown = (value, project_id, file_path, className) ->
     # the marginBottom offsets that markdown wraps everything in a p tag
     <div style={marginBottom:'-10px'}>
-        <Markdown value={value} project_id={project_id} file_path={file_path} />
+        <Markdown value={value} project_id={project_id} file_path={file_path} className={className} />
     </div>
 
-exports.render_history_title = render_history_title = (color, font_size) ->
-    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
+exports.render_history_title = render_history_title =  ->
+    <ListGroupItem style={borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
         <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
     </ListGroupItem>
-exports.render_history_footer = render_history_footer = (color, font_size) ->
-    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
+
+exports.render_history_footer = render_history_footer = ->
+    <ListGroupItem style={borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
     </ListGroupItem>
 
-exports.render_history = render_history = (color, font_size, history, user_map) ->
+exports.render_history = render_history = (history, user_map) ->
     historyList = history?.pop()?.toJS()
     for index, objects of historyList
         value = objects.content
@@ -402,16 +350,16 @@ exports.render_history = render_history = (color, font_size, history, user_map) 
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html(value)
-        author = user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name')
+        author = misc.trunc_middle(user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name'), 20)
         if value.trim() == ''
             text = "Message deleted "
         else
             text = "Last edit "
-        <Well key={index} bsSize="small" style={background:color, fontSize: font_size, marginBottom:'0px'}>
+        <Well key={index} bsSize="small" style={marginBottom:'0px'}>
             <div style={marginBottom: '-10px', wordWrap:'break-word'}>
                 <Markdown value={value}/>
             </div>
-            <div className="small" style={color:'#888'}>
+            <div className="small">
                 {text}
                 <TimeAgo date={new Date(objects.date)} />
                 {' by ' + author}
@@ -438,11 +386,6 @@ exports.send_chat = send_chat = (e, log_container, mesg, actions) ->
 
 exports.clear_input = clear_input = (actions) ->
     actions.set_input('')
-
-exports.focus_endpoint = focus_endpoint = (e) ->
-    val = e.target.value
-    e.target.value = ''
-    e.target.value = val
 
 exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     # 20 for covering margin of bottom message

@@ -68,13 +68,13 @@ Page = rclass
     propTypes :
         redux : rtypes.object
 
-    getInitialState : ->
+    getInitialState: ->
         show_right_menu : false
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         @actions('page').clear_all_handlers()
 
-    account_name : ->
+    account_name: ->
         name = ''
         if @props.get_fullname?
             name = misc.trunc_middle(@props.get_fullname(), 32)
@@ -82,14 +82,14 @@ Page = rclass
             name = "Account"
         return name
 
-    render_projects_button : ->
+    render_projects_button: ->
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
             <NavItem onClick={(e)=>@actions('page').set_active_tab('projects')}>
                 <SMCLogo />
             </NavItem>
         </Nav>
 
-    render_right_menu_button : ->
+    render_right_menu_button: ->
         <Nav style={margin:'0', padding:'15px', paddingRight:'25px', fontSize:'20px', float:'right'}
             onClick={()=>@setState(show_right_menu: true)}
         >
@@ -98,11 +98,11 @@ Page = rclass
             </NavItem>
         </Nav>
 
-    close_right_menu : ->
+    close_right_menu: ->
         @setState(show_right_menu:false)
 
-    render_right_menu : ->
-        # HACK: This is the dumbest fuckin' hack ever.
+    render_right_menu: ->
+        # HACK: This is the dumbest hack ever.
         # We should use a better sidemenu in the future.
         if not @state.show_right_menu
             return <div> </div>
@@ -146,7 +146,7 @@ Page = rclass
             </Nav>
         </div>
 
-    render : ->
+    render: ->
         # Use this pattern very sparingly.
         # Right now only used to access library generated elements
         # Very fragile.
@@ -169,9 +169,9 @@ Page = rclass
                 z-index:0;
             }'
         style =
-            height:'100vh'
-            width:'100vw'
-            overflow:'auto'
+            height   : '100vh'
+            width    : '100vw'
+            overflow : 'auto'
 
         <div ref="page" style={style}>
             <Sidebar
@@ -181,6 +181,7 @@ Page = rclass
                 pullRight = {true}
                 shadow    = {false}
                 touch     = {false}
+                styles    = {content:{display:'flex', flexDirection:'column'}}
             >
                 <style>{page_style}</style>
                 <style>{ProjectsNav.dropdown_nav_page_styles}</style>
@@ -200,10 +201,11 @@ Page = rclass
             </Sidebar>
         </div>
 
-$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')
 page =
     <Redux redux={redux}>
         <Page />
     </Redux>
 
-exports.render = () => ReactDOM.render(page, $(".smc-react-container")[0])
+exports.render = () =>
+    ReactDOM.render(page, document.getElementById('smc-react-container'))
+

@@ -6,6 +6,76 @@ import re
 import os
 from textwrap import dedent
 
+class TestScalaMode:
+    def test_scala_list(self, exec2):
+        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
+
+class TestScala211Mode:
+    # example from ScalaTour-1.6, p. 31, Pattern Matching
+    # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
+    def test_scala211_pat1(self, exec2):
+        code = dedent('''
+        %scala
+        object MatchTest1 extends App {
+          def matchTest(x: Int): String = x match {
+            case 1 => "one"
+            case 2 => "two"
+            case _ => "many"
+          }
+          println(matchTest(3))
+        }
+        ''').strip()
+        exec2(code, html_pattern="defined.*object.*MatchTest1")
+    def test_scala211_pat2(self, exec2):
+        exec2("%scala211\nMatchTest1.main(Array())", "many\n")
+
+class TestPython3Mode:
+    def test_p3_max(self, exec2):
+        exec2("%python3\nmax([],default=9)", "9")
+
+    def test_capture_p3_01(self, exec2):
+        exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
+    def test_capture_p3_02(self, exec2):
+        exec2("print(output)", "12\n")
+
+    def test_p3_latex(self, exec2):
+        code = r"""%python3
+from IPython.display import Math
+Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
+        htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
+        exec2(code, html_pattern = htmp)
+
+    def test_p3_pandas(self, exec2):
+        code = dedent('''
+        %python3
+        import pandas as pd
+        from io import StringIO
+
+        df_csv = r"""Item,Category,Quantity,Weight
+        Pack,Pack,1,33.0
+        Tent,Shelter,1,80.0
+        Sleeping Pad,Sleep,0,27.0
+        Sleeping Bag,Sleep,1,20.0
+        Shoes,Clothing,1,12.0
+        Hat,Clothing,1,2.5"""
+        mydata = pd.read_csv(StringIO(df_csv))
+        mydata.shape''').strip()
+        exec2(code,"(6, 4)")
+
+    def test_p3_autocomplete(self, execintrospect):
+        execintrospect('myd', ["ata"], 'myd', '%python3')
+
+class TestPython3DefaultMode:
+    def test_set_python3_mode(self, exec2):
+        exec2("%default_mode python3")
+    def test_python3_assignment(self, exec2):
+        exec2("xx=[2,5,99]\nsum(xx)", "106")
+
+    def test_capture_p3d_01(self, exec2):
+        exec2("%capture(stdout='output')\nmax(xx)")
+    def test_capture_p3d_02(self, exec2):
+        exec2("%sage\nprint(output)", "99\n")
+
 class TestShMode:
     def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
@@ -38,16 +108,8 @@ class TestShMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("%sh TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='%sh')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV', '%sh')
 
     def test_bad_command(self, exec2):
         exec2("%sh xyz", pattern="command not found")
@@ -79,16 +141,8 @@ class TestShDefaultMode:
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, test_id, sagews):
-        m = conftest.message.introspect(test_id, line='echo $TESTV', top='')
-        m['preparse'] = True
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert mesg['event'] == "introspect_completions"
-        assert mesg['completions'] == ["AR29"]
-        assert mesg['target'] == "$TESTV"
+    def test_sh_autocomplete_02(self, execintrospect):
+        execintrospect('echo $TESTV', ["AR29"], '$TESTV')
 
 class TestRMode:
     def test_assignment(self, exec2):
@@ -126,8 +180,8 @@ class TestOctaveMode:
         exec2("%octave")
 
     def test_octave_calc(self, exec2):
-        code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
-        outp = r"ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389\s+\+\s+0.51038i"
+        code = "%octave\nformat short\nbesselh(0,2)"
+        outp = r"ans =  0.22389\s+\+\s+0.51038i"
         exec2(code, pattern = outp)
 
     def test_octave_fibonacci(self, exec2):
@@ -163,13 +217,15 @@ class TestAnaconda3Mode:
     def test_a3_errror(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
-class TestJupyterModes:
+class TestSageMode:
     def test_sagemath(self, exec2):
         exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
 
+class TestJuliaMode:
     def test_julia1(self, exec2):
         # julia kernel takes 8-12 sec to load
         exec2('jlk=jupyter("julia")')
+
     def test_julia2(self, exec2):
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 

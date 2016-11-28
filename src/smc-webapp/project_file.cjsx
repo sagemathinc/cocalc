@@ -22,6 +22,8 @@ Supplies the interface for creating file editors in the webapp
 
 ###
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 
 {filename_extension, defaults, required} = require('smc-util/misc')
@@ -30,8 +32,6 @@ Supplies the interface for creating file editors in the webapp
 file_editors =
     true  : {}    # true = is_public
     false : {}    # false = not public
-
-window.file_editors = file_editors
 
 ###
 ext       : string|array[string] to associate the editor with
@@ -53,7 +53,7 @@ exports.register_file_editor = (opts) ->
         is_public : false
         component : undefined # rclass
         generator : undefined # function
-        init      : undefined  # function
+        init      : undefined # function
         remove    : undefined
         icon      : 'file-o'
         save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
@@ -97,16 +97,28 @@ exports.generate = (path, redux, project_id, is_public) ->
 
 # Actually remove the given editor
 exports.remove = (path, redux, project_id, is_public) ->
+    if not path?
+        return
+    if typeof(path) != 'string'
+        console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
+        # see https://github.com/sagemathinc/smc/issues/1275
+        return
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
     # Use specific one for the given extension, or a fallback.
     remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)
     remove?(path, redux, project_id)
 
+    # Also free the corresponding side chat, if it was created.
+    require('./editor_chat').remove_redux(misc.meta_file(path, 'chat'), redux, project_id)
+
 # The save function may be called to request to save contents to disk.
 # It does not take a callback.  It's a non-op if no save function is registered
 # or the file isn't open.
 exports.save = (path, redux, project_id, is_public) ->
+    if not path?
+        console.warn("WARNING: save(undefined path)")
+        return
     is_public = !!is_public
     ext       = filename_extension(path).toLowerCase()
     # either use the one given by ext, or if there isn't one, use the '' fallback.
@@ -121,11 +133,11 @@ exports.save = (path, redux, project_id, is_public) ->
 require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
+require('./editor_pdf')
 
 # Public editors
 require('./public/editor_md')
 require('./public/editor_image')
-require('./public/editor_pdf')
 
 # require('./editor_codemirror')
 

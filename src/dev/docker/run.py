@@ -63,6 +63,8 @@ def init_projects_path():
     if not os.path.exists('/projects'):
         log("WARNING: container data will be EPHEMERAL -- in /projects")
         os.makedirs('/projects')
+    # Ensure that users can see their own home directories:
+    os.system("chmod a+rx /projects")
     for path in ['conf', 'rethinkdb']:
         full_path = join('/projects', path)
         if not os.path.exists(full_path):
@@ -84,8 +86,9 @@ def start_hub():
 def start_compute():
     run("mkdir -p /projects/conf && chmod og-rwx -R /projects/conf")
     run(". smc-env; compute --host=localhost --single start 1>/var/log/compute.log 2>/var/log/compute.err &", path='/smc/src')
-    # sleep to wait for compute server to start and write port/secret
-    run("""sleep 5; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee""", path='/smc/src')
+    # Sleep to wait for compute server to start and write port/secret *AND* initialize the schema.
+    # TODO: should really do this right -- since if the compute-client tries to initialize schema at same, time things get hosed.
+    run("""sleep 20; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee""", path='/smc/src')
 
 def tail_logs():
     run("tail -f /var/log/compute.log /var/log/compute.err /smc/logs/*")
@@ -134,8 +137,8 @@ def init_rethinkdb_password():
             r.db('rethinkdb').table('users').get('admin').update({'password': password}).run(conn)
             log("Successfully set database password")
             return
-        except Exception:
-            log("Failed -- waiting...")
+        except Exception as err:
+            log("Failed -- waiting...: %s"%err)
             time.sleep(1)
             continue
     log("Failed to set database password; moving old pasword file so will try to create password next time")

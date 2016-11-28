@@ -43,12 +43,15 @@
     "md5": "^2.0.0",
     "nodeunit": "^0.9.0",
     "octicons": "^3.5.0",
+    "onecolor": "^3.0.4",
     "pnotify": "^3.0.0",
     "react": "^15.3.2",
     "react-bootstrap": "^0.30.5",
     "react-chosen": "^0.3.8",
     "react-dom": "^15.3.2",
+    "react-draggable": "^2.2.2",
     "react-dropzone-component": "github:felixrieseberg/React-Dropzone-Component",
+    "react-notify-resize": "^2.0.2",
     "react-redux": "^4.4.5",
     "react-select": "git://github.com/JedWatson/react-select.git",
     "react-sidebar": "^2.2.1",
@@ -57,6 +60,7 @@
     "react-widgets": "^3.0.0",
     "redux": "^3.6.0",
     "remarked": "^0.1.4",
+    "reselect": "^2.5.4",
     "three": "^0.78.0",
     "timeago": "^1.5.3",
     "underscore": "^1.8.3"
@@ -72,7 +76,7 @@
     "mocha": "^2.3.3"
   },
   "scripts": {
-    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter spec",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
   },

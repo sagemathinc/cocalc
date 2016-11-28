@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -102,10 +102,10 @@ start_session = (socket, mesg) ->
         cols     : 80
         command  : 'bash'
         args     : []
-        path     : undefined
-        filename : undefined
+        path     : required
+        filename : required
 
-    opts.path = abspath(opts.path)  # important since console server is started in some random location
+    opts.path     = abspath(opts.path)  # important since console server is started in some random location
     opts.filename = abspath(opts.filename)
 
     init_fn = misc.console_init_filename(opts.filename)

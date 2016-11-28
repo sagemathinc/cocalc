@@ -4,7 +4,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ CONTRIBUTORS:
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
+# ATTN styles have to start with a newline
 STYLES = {
 'classic': r"""
 \documentclass{article}
@@ -84,6 +85,7 @@ STYLES = {
 
 \usepackage[utf8x]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{xltxtra}  % xelatex
 
 \usepackage[
     left=3cm,
@@ -100,8 +102,6 @@ STYLES = {
 
 % font tweaks
 \usepackage{ellipsis,ragged2e,marginnote}
-\usepackage[tracking=true]{microtype}
-\usepackage{cmbright}
 \usepackage{inconsolata}
 \renewcommand{\familydefault}{\sfdefault}
 \setkomafont{sectioning}{\normalcolor\bfseries}
@@ -116,10 +116,15 @@ STYLES = {
 
 COMMON = r"""
 \usepackage[USenglish]{babel}
-\usepackage{graphicx}
 \usepackage{etoolbox}
 \usepackage{url}
 \usepackage{hyperref}
+
+% use includegraphics directly, but beware, that this is actually ...
+\usepackage{graphicx}
+% ... adjust box! http://latex-alive.tumblr.com/post/81481408449
+\usepackage[Export]{adjustbox}
+\adjustboxset{max size={\textwidth}{0.7\textheight}}
 
 \usepackage{textcomp}
 \def\leftqquote{``}\def\rightqqoute{''}
@@ -163,6 +168,27 @@ sensitive=true}
   prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
   %frame=single
 }
+
+% sagemath macros
+\newcommand{\Bold}[1]{\mathbb{#1}}
+\newcommand{\ZZ}{\Bold{Z}}
+\newcommand{\NN}{\Bold{N}}
+\newcommand{\RR}{\Bold{R}}
+\newcommand{\CC}{\Bold{C}}
+\newcommand{\FF}{\Bold{F}}
+\newcommand{\QQ}{\Bold{Q}}
+\newcommand{\QQbar}{\overline{\QQ}}
+\newcommand{\CDF}{\Bold{C}}
+\newcommand{\CIF}{\Bold{C}}
+\newcommand{\CLF}{\Bold{C}}
+\newcommand{\RDF}{\Bold{R}}
+\newcommand{\RIF}{\Bold{I} \Bold{R}}
+\newcommand{\RLF}{\Bold{R}}
+\newcommand{\CFF}{\Bold{CFF}}
+\newcommand{\GF}[1]{\Bold{F}_{#1}}
+\newcommand{\Zp}[1]{\ZZ_{#1}}
+\newcommand{\Qp}[1]{\QQ_{#1}}
+\newcommand{\Zmod}[1]{\ZZ/#1\ZZ}
 """
 
 # this is part of the preamble above, although this time full of utf8 chars
@@ -191,6 +217,10 @@ COMMON += ur"""
   {€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
+"""
+
+FOOTER = """
+%sagemathcloud={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
 """
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
@@ -235,7 +265,7 @@ def tex_escape(s):
 
 
 # Parallel computing can be useful for IO bound tasks.
-def thread_map(callable, inputs, nb_threads = 2):
+def thread_map(callable, inputs, nb_threads = 1):
     """
     Computing [callable(args) for args in inputs]
     in parallel using `nb_threads` separate *threads* (default: 2).
@@ -268,6 +298,7 @@ class Parser(HTMLParser.HTMLParser):
         HTMLParser.HTMLParser.__init__(self)
         self.result = ''
         self._commands = cmds
+        self._dont_close_img = False
 
     def handle_starttag(self, tag, attrs):
         if tag == 'h1':
@@ -305,19 +336,40 @@ class Parser(HTMLParser.HTMLParser):
                 href = attrs['src']
                 _, ext = os.path.splitext(href)
                 ext = ext.lower()
+                if '?' in ext:
+                    ext = ext[:ext.index('?')]
                 # create a deterministic filename based on the href
                 from hashlib import sha1
                 base = sha1(href).hexdigest()
                 filename = base + ext
 
-                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href, filename)
+                # href might start with /blobs/ or similar for e.g. octave plots
+                # in such a case, there is also a file output and we ignore the image in the html
+                if href[0] == '/':
+                    self._dont_close_img = True
+                    return
+                else:
+                    href_download = href
+
+                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href_download, filename)
                 if ext == '.svg':
                     # convert to pdf
                     c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
                     filename = base+'.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
-                self.result += '\\includegraphics[resolution=120]{%s}'%filename
+                # besides that, if we scale it in sagews, we also have to scale it here
+                scaling = 1.
+                if 'smc-image-scaling' in attrs:
+                    try:
+                        # in practice (and if it is set at all) it is most likely 0.66
+                        scaling = float(attrs['smc-image-scaling'])
+                    except:
+                        pass
+                resolution = int(120. / scaling)
+                self.result += '\\includegraphics[resolution=%s]{%s}'%(resolution, filename)
+                # alternatively, implicit scaling by adjbox and textwidth
+                # self.result += '\\includegraphics{%s}'%(filename)
             else:
                 # fallback, because there is no src='...'
                 self.result += '\\verbatim{image: %s}' % str(attrs)
@@ -330,6 +382,9 @@ class Parser(HTMLParser.HTMLParser):
         elif tag == 'ol':
             self.result += '\\end{enumerate}'
         elif tag == 'hr':
+            self.result += ''
+        elif tag == 'img' and self._dont_close_img:
+            self._dont_close_img = False
             self.result += ''
         else:
             self.result += '}'  # fallback
@@ -493,6 +548,7 @@ class Cell(object):
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
+                # print "latex_output ext", ext
                 if ext in ['jpg', 'jpeg', 'png', 'eps', 'pdf', 'svg']:
                     img = ''
                     i = target.find("/raw/")
@@ -583,7 +639,10 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', style='modern', contents=True):
         # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
-        s = STYLES[style]
+        from datetime import datetime
+        top = '% generated by smc-sagews2pdf -- {timestamp}'
+        top = top.format(timestamp=str(datetime.utcnow()))
+        s = top + STYLES[style]
         s += COMMON
         s += r"\title{%s}"%tex_escape(title) + "\n"
         s += r"\author{%s}"%tex_escape(author) + "\n"
@@ -616,7 +675,8 @@ class Worksheet(object):
                                    style=style,
                                    contents=contents) \
                + '\n'.join(tex) \
-               + r"\end{document}"
+               + r"\end{document}" \
+               + FOOTER
 
 
 def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, work_dir=None, style='modern'):
@@ -645,9 +705,8 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
                     contents=contents,
                     style=style)
         )#.encode('utf8'))
-        os.system('pdflatex -interact=nonstopmode tmp.tex')
-        if contents:
-            os.system('pdflatex -interact=nonstopmode tmp.tex')
+        from subprocess import check_call
+        check_call('latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex', shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
@@ -698,16 +757,22 @@ def main():
     else:
         work_dir = None
 
-    sagews_to_pdf(args.filename,
-                  title=args.title.decode('utf8'),
-                  author=args.author.decode('utf8'),
-                  date=args.date,
-                  outfile=args.outfile,
-                  contents=args.contents,
-                  remove_tmpdir=remove_tmpdir,
-                  work_dir=work_dir,
-                  style=args.style
-                 )
+    from subprocess import CalledProcessError
+    try:
+        sagews_to_pdf(args.filename,
+                      title=args.title.decode('utf8'),
+                      author=args.author.decode('utf8'),
+                      date=args.date,
+                      outfile=args.outfile,
+                      contents=args.contents,
+                      remove_tmpdir=remove_tmpdir,
+                      work_dir=work_dir,
+                      style=args.style
+                     )
+    # subprocess.check_call might throw
+    except CalledProcessError as e:
+        sys.stderr.write('CalledProcessError: %s\n' % e)
+        exit(1)
 
 if __name__ == "__main__":
     main()

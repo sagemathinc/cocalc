@@ -5,6 +5,15 @@ import os, sys
 if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
 
+# See https://github.com/sagemathinc/smc/issues/973.
+# If the HOME path is long, the forever monitor just spins out of
+# control (using all CPU), since it truncates the path at some
+# meaningless length.
+if len(os.environ['SMC']) > 90:
+    # Note -- this directory will leak, but it doesn't have much in it, and this
+    # will only ever be used for development, so I'm not going to worry about that.
+    os.environ['FOREVER_ROOT'] = '/tmp/forever-%s'%os.environ['USER']
+
 os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
 
 data = os.path.join(os.environ['SMC'], 'console_server')

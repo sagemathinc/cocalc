@@ -635,14 +635,14 @@ describe "trunc", ->
     t = misc.trunc
     input = "abcdefghijk"
     it "shortens a string", ->
-        exp = "abcde..."
+        exp = "abcdefg…"
         t(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        t(input, 3).should.be.eql "..."
-        (-> t(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length below 1", ->
+        t(input, 1).should.be.eql "…"
+        (-> t(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        t(long).should.endWith("...").and.has.length 1024
+        t(long).should.endWith("…").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
     it "handles missing argument", ->
@@ -652,18 +652,31 @@ describe "trunc_left", ->
     tl = misc.trunc_left
     input = "abcdefghijk"
     it "shortens a string from the left", ->
-        exp = "...ghijk"
+        exp = "…efghijk"
         tl(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        tl(input, 3).should.be.eql "..."
-        (-> tl(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        tl(long).should.startWith("...").and.has.length 1024
+        tl(long).should.startWith("…").and.has.length 1024
     it "handles empty strings", ->
         tl("").should.be.eql ""
     it "handles missing argument", ->
         should(tl()).be.eql undefined
+
+describe "trunc_middle", ->
+    tl = misc.trunc_middle
+    input = "abcdefghijk"
+    it "shortens a string in middle (even)", ->
+        exp = 'abc…hijk'
+        tl(input, 8).should.be.eql exp
+    it "shortens a string in middle (odd)", ->
+        exp = 'abc…ijk'
+        tl(input, 7).should.be.eql exp
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
 
 describe "git_author", ->
     it "correctly formats the author tag", ->
@@ -729,6 +742,9 @@ describe "filename_extension", ->
     it "and an empty string if there is no extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
+    it "does not get confused by dots in the path", ->
+        fe('foo.bar/baz').should.be.exactly ''
+        fe('foo.bar/baz.ext').should.be.exactly 'ext'
 
 # TODO not really sure what retry_until_success should actually take care of
 # at least: the `done` callback of the mocha framework is called inside a passed in cb inside the function f
@@ -1238,6 +1254,25 @@ describe 'is_valid_email_address is', ->
     it "false for blabla", ->
         valid('blabla').should.be.false()
 
+describe 'separate_file_extension', ->
+    sfe = misc.separate_file_extension
+    it "splits filename.ext accordingly", ->
+        {name, ext} = sfe('foobar/filename.ext')
+        name.should.be.eql "foobar/filename"
+        ext.should.be.eql "ext"
+    it "ignores missing extensions", ->
+        {name, ext} = sfe('foo.bar/baz')
+        name.should.be.eql 'foo.bar/baz'
+        ext.should.be.eql ''
+
+describe 'change_filename_extension', ->
+    cfe = misc.change_filename_extension
+    it "changes a tex to pdf", ->
+        cfe('filename.tex', 'pdf').should.be.exactly 'filename.pdf'
+        cfe('/bar/baz/foo.png', 'gif').should.be.exactly '/bar/baz/foo.gif'
+    it "deals with missing extensions", ->
+        cfe('filename', 'tex').should.be.exactly 'filename.tex'
+
 describe 'suggest_duplicate_filename', ->
     dup = misc.suggest_duplicate_filename
     it "works with numbers", ->
@@ -1252,3 +1287,105 @@ describe 'suggest_duplicate_filename', ->
         dup('foo.bar').should.be.eql 'foo-1.bar'
     it "also works with weird corner cases", ->
         dup('asdf-').should.be.eql 'asdf--1'
+
+describe 'top_sort', ->
+    # Initialize DAG
+    DAG =
+        node1 : []
+        node0 : []
+        node2 : ["node1"]
+        node3 : ["node1", "node2"]
+    old_DAG_string = JSON.stringify(DAG)
+
+    it 'Returns a valid ordering', ->
+        expect misc.top_sort(DAG)
+        .toEqual ['node1', 'node0', 'node2', 'node3'] or
+            ['node0', 'node1', 'node2', 'node3']
+
+    it 'Omits graph sources when omit_sources:true', ->
+        expect misc.top_sort(DAG, omit_sources:true)
+        .toEqual ['node2', 'node3']
+
+    it 'Leaves the original DAG the same afterwards', ->
+        misc.top_sort(DAG)
+        expect JSON.stringify(DAG)
+        .toEqual old_DAG_string
+
+    DAG2 =
+        node0 : []
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects cycles and throws an error', ->
+        expect(() => misc.top_sort(DAG2)).toThrow("Store has a cycle in its computed values")
+
+    DAG3 =
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects a lack of sources and throws an error', ->
+        expect () => misc.top_sort(DAG3)
+        .toThrow("No sources were detected")
+
+describe 'create_dependency_graph', ->
+    store_def =
+        first_name : => "Joe"
+        last_name  : => "Smith"
+        full_name  : (first_name, last_name) => "#{@first_name} #{@last_name}"
+        short_name : (full_name) => @full_name.slice(0,5)
+
+    store_def.full_name.dependency_names = ['first_name', 'last_name']
+    store_def.short_name.dependency_names = ['full_name']
+
+    DAG_string = JSON.stringify
+        first_name : []
+        last_name  : []
+        full_name  : ["first_name", "last_name"]
+        short_name : ["full_name"]
+
+    it 'Creates a DAG with the right structure', ->
+        expect JSON.stringify(misc.create_dependency_graph(store_def))
+        .toEqual DAG_string
+
+describe 'bind_objects', ->
+    scope =
+        get   : () -> "cake"
+        value : "cake"
+
+    obj1 =
+        func11: () -> @get()
+        func12: () -> @value
+
+    obj2 =
+        func21: () -> @get()
+        func22: () -> @value
+
+    obj1.func11.prop = "cake"
+
+    result = misc.bind_objects(scope, [obj1, obj2])
+
+    it 'Binds all functions in a list of objects of functions to a scope', ->
+        for obj in result
+            for key, val of obj
+                expect(val()).toEqual("cake")
+
+    it 'Leaves the original object unchanged', ->
+        expect(=> obj1.func11()).toThrow(/get is not a function/)
+
+    it 'Preserves the toString of the original function', ->
+        expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
+
+    it 'Preserves properties of the original function', ->
+        expect(result[0].func11.prop).toEqual(obj1.func11.prop)
+
+    it 'Ignores non-function values', ->
+        scope =
+            value : "cake"
+
+        obj1 =
+            val : "lies"
+            func: () -> @value
+        [b_obj1] = misc.bind_objects(scope, [obj1])
+
+        expect(b_obj1.func()).toEqual("cake")
+        expect(b_obj1.val).toEqual("lies")

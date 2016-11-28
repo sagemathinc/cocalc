@@ -642,7 +642,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         opts = defaults opts,
             client       : required
             project_id   : required
-            params       : {command: 'bash'}
+            params       : required
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
         @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
@@ -697,7 +697,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     data_channel : channel
                     history      : console_socket.history
 
-                #delete console_socket.history  # free memory occupied by history, which we won't need again.
                 opts.cb(false, mesg)
 
                 # console --> client:

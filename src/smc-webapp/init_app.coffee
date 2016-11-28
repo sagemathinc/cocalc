@@ -1,4 +1,4 @@
-{Actions, Store, redux} = require('./smc-react')
+{Actions, Store, redux, rtypes, computed} = require('./smc-react')
 {salvus_client}         = require('./salvus_client')
 misc                    = require('smc-util/misc')
 
@@ -17,8 +17,8 @@ class PageActions extends Actions
     # FUTURE: Develop more general way to make key mappings for editors
     # HACK: __suppress_key_handlers is for file_use. See FUTURE above.
     #       Adding even a single suppressor leads to spaghetti code.
-    #       Don't fucking do it. -- J3
-    set_active_key_handler : (handler) =>
+    #       Don't do it. -- J3
+    set_active_key_handler: (handler) =>
         if handler?
             $(window).off("keydown", @active_key_handler)
             @active_key_handler = handler
@@ -27,12 +27,12 @@ class PageActions extends Actions
             $(window).on("keydown", @active_key_handler)
 
     # Only clears it from the window
-    unattach_active_key_handler : =>
+    unattach_active_key_handler: =>
         $(window).off("keydown", @active_key_handler)
 
     # Actually removes the handler from active memory
     # takes a handler to only remove if it's the active one
-    erase_active_key_handler : (handler) =>
+    erase_active_key_handler: (handler) =>
         if not handler? or handler == @active_key_handler
             $(window).off("keydown", @active_key_handler)
             @active_key_handler = undefined
@@ -40,18 +40,18 @@ class PageActions extends Actions
     # FUTURE: Will also clear all click handlers.
     # Right now there aren't even any ways (other than manually)
     # of adding click handlers that the app knows about.
-    clear_all_handlers : =>
+    clear_all_handlers: =>
         $(window).off("keydown", @active_key_handler)
         @active_key_handler = undefined
 
-    add_a_ghost_tab : () =>
+    add_a_ghost_tab: () =>
         current_num = redux.getStore('page').get('num_ghost_tabs')
         @setState(num_ghost_tabs : current_num + 1)
 
-    clear_ghost_tabs : =>
+    clear_ghost_tabs: =>
         @setState(num_ghost_tabs : 0)
 
-    close_project_tab : (project_id) =>
+    close_project_tab: (project_id) =>
         page_store = redux.getStore('page')
         projects_store = redux.getStore('projects')
 
@@ -59,9 +59,11 @@ class PageActions extends Actions
         active_top_tab = page_store.get('active_top_tab')
 
         index = open_projects.indexOf(project_id)
+        if index == -1
+            return
+
         size = open_projects.size
         if project_id == active_top_tab
-            next_active_tab = 'projects'
             if index == -1 or size <= 1
                 next_active_tab = 'projects'
             else if index == size - 1
@@ -69,14 +71,18 @@ class PageActions extends Actions
             else
                 next_active_tab = open_projects.get(index + 1)
             @set_active_tab(next_active_tab)
+
+        # The point of these "ghost tabs" is to make it so you can quickly close several
+        # open tabs, like in Chrome.
         if index == size - 1
             @clear_ghost_tabs()
         else
             @add_a_ghost_tab()
-        # SMELL probably should be in here and not projects
+
+        # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
 
-    set_active_tab : (key) =>
+    set_active_tab: (key) =>
         @setState(active_top_tab : key)
         switch key
             when 'projects'
@@ -105,13 +111,13 @@ class PageActions extends Actions
                     timeout : 15
                     cb      : (err, title) => set_window_title(title ? "")
 
-    show_connection : (shown) =>
+    show_connection: (shown) =>
         @setState(show_connection : shown)
 
     # Toggles visibility of file use widget
     # Temporarily disables window key handlers until closed
     # FUTURE: Develop more general way to make key mappings
-    toggle_show_file_use : =>
+    toggle_show_file_use: =>
         currently_shown = redux.getStore('page').get('show_file_use')
         if currently_shown
             # Enable whatever the current key handler should be
@@ -124,53 +130,64 @@ class PageActions extends Actions
 
         @setState(show_file_use: !currently_shown)
 
-    set_ping : (ping, avgping) =>
+    set_ping: (ping, avgping) =>
         @setState(ping : ping, avgping : avgping)
 
-    set_connection_status : (val, time) =>
+    set_connection_status: (val, time) =>
         if val != 'connecting' or time - (redux.getStore('page').get('last_status_time') ? 0) > 0
             @setState(connection_status : val, last_status_time : time)
 
-    set_new_version : (version) =>
+    set_new_version: (version) =>
         @setState(new_version : version)
 
-    set_fullscreen : (val) =>
+    set_fullscreen: (val) =>
         @setState(fullscreen : val)
 
-    show_cookie_warning : =>
+    show_cookie_warning: =>
         @setState(cookie_warning : true)
 
-    show_local_storage_warning : =>
+    show_local_storage_warning: =>
         @setState(local_storage_warning : true)
 
-    check_unload : (e) =>
+    check_unload: (e) =>
         if redux.getStore('account')?.get_confirm_close()
             return "Changes you make may not have been saved."
         else
             return
 
-    set_sign_in_func : (func) =>
+    set_sign_in_func: (func) =>
         @sign_in = func
 
-    remove_sign_in_func : =>
+    remove_sign_in_func: =>
         @sign_in = => false
 
     # Expected to be overridden by functions above
-    sign_in : =>
+    sign_in: =>
         false
-
 
 redux.createActions('page', PageActions)
 
+# redux.createStore('page', active_top_tab:'account')
+
 # FUTURE: Save entire state to database for #450, saved workspaces
-class PageStore extends Store
-    todo : ->
-        'place holder'
+redux.createStore
+    name: 'page'
 
-init_store =
-    active_top_tab : 'account' # One of: projects, account, about, [project id]
+    getInitialState: ->
+        active_top_tab        : 'account'
 
-redux.createStore('page', PageStore, init_store)
+    stateTypes:
+        active_top_tab        : rtypes.string    # key of the active tab
+        show_connection       : rtypes.bool
+        ping                  : rtypes.number
+        avgping               : rtypes.number
+        connection_status     : rtypes.string
+        new_version           : rtypes.object
+        fullscreen            : rtypes.bool
+        cookie_warning        : rtypes.bool
+        local_storage_warning : rtypes.bool
+        show_file_use         : rtypes.bool
+        num_ghost_tabs        : rtypes.number
 
 recent_disconnects = []
 record_disconnect = () ->

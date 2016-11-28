@@ -19,7 +19,7 @@ For debugging, this may help:
 # used over a TCP connection.
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -1180,7 +1180,7 @@ class Salvus(object):
             m['placeholder'] = unicode8(placeholder)
         self._send_output(raw_input=m, id=self._id)
         typ, mesg = self.message_queue.next_mesg()
-        #log("raw_input got message typ='%s', mesg='%s'"%(typ, mesg))
+        log("handling raw input message ", truncate_text(unicode8(mesg), 400))
         if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
@@ -1778,8 +1778,8 @@ def serve(port, host, extra_imports=False):
                      'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
-                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
-                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
+                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
                      'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 

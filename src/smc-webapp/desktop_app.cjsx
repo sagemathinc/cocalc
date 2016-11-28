@@ -75,10 +75,10 @@ Page = rclass
     propTypes :
         redux : rtypes.object
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         @actions('page').clear_all_handlers()
 
-    account_name : ->
+    account_name: ->
         name = ''
         if @props.get_fullname?
             name = misc.trunc_middle(@props.get_fullname(), 32)
@@ -110,7 +110,7 @@ Page = rclass
             active_top_tab = {@props.active_top_tab}
         />
 
-    render_right_nav : ->
+    render_right_nav: ->
         logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
@@ -122,7 +122,7 @@ Page = rclass
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
 
-    render_project_nav_button : ->
+    render_project_nav_button: ->
         projects_styles =
             whiteSpace : 'nowrap'
             float      : 'right'
@@ -143,7 +143,22 @@ Page = rclass
             </NavTab>
         </Nav>
 
-    render : ->
+    # register a default drag and drop handler, that prevents accidental file drops
+    # therefore, dropping files only works when done right above the dedicated dropzone
+    # TEST: make sure that usual drag'n'drop activities like rearranging tabs and reordering tasks work
+    drop: (e) ->
+        if DEBUG
+            e.persist()
+            console.log "react desktop_app.drop", e
+        e.preventDefault()
+        e.stopPropagation()
+        {alert_message} = require('./alerts')
+        alert_message
+            type     : 'info'
+            title    : 'File drop disabled'
+            message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
+
+    render: ->
         style =
             display       : 'flex'
             flexDirection : 'column'
@@ -151,14 +166,24 @@ Page = rclass
             width         : '100vw'
             overflow      : 'auto'
 
-        <div ref="page" style={style}>
+        style_top_bar =
+            display       : 'flex'
+            marginBottom  : 0
+            width         : '100%'
+            minHeight     : '42px'
+            position      : 'fixed'
+            right         : '0'
+            zIndex        : '100'
+            opacity       : '0.8'
+
+        <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
+            {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
@@ -170,9 +195,8 @@ Page = rclass
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>
         </div>
 
-$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden;position:absolute;top:0px;"></div>')
 page = <Redux redux={redux}>
     <Page redux={redux}/>
 </Redux>
 
-exports.render = () => ReactDOM.render(page, $(".smc-react-container")[0])
+exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))

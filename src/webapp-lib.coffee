@@ -14,10 +14,10 @@ require("script!primus/primus-engine.min.js")
 $ = jQuery = window.$ = window.jQuery = require('jquery')
 #require('jquery-ui')
 # explicit jQuery UI widgets that we use -- no need to load the entire library
-require("node_modules/jquery-ui/ui/widgets/draggable")
-require("node_modules/jquery-ui/ui/widgets/sortable")
+require("node_modules/jquery-ui/ui/widgets/draggable") # TODO: do we use?
+require("node_modules/jquery-ui/ui/widgets/sortable")  # TODO: do we use?
 require("node_modules/jquery-ui/ui/widgets/slider")
-require("node_modules/jquery-ui/ui/widgets/resizable")
+require("node_modules/jquery-ui/ui/widgets/resizable") # TODO: do we use?
 
 # $.tooltip() setup
 require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.

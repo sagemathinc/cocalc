@@ -14,9 +14,6 @@ external code (e.g., Jupyter Notebooks) that don't (and may never)
 use react into SMC.
 
 (c) 2016 SageMath, Inc.
-
-AUTHORS:
-  - William Stein
 ###
 
 
@@ -27,7 +24,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 App = rclass
-    render : ->
+    render: ->
         <div>
             <h2>Wrapper for an app</h2>
         </div>

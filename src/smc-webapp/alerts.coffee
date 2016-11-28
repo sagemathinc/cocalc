@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ $("#alert-templates").hide()
 exports.alert_message = (opts={}) ->
     opts = defaults opts,
         type    : 'default'
+        title   : undefined
         message : defaults.required
         block   : undefined
         timeout : undefined  # time in seconds
@@ -55,7 +56,7 @@ exports.alert_message = (opts={}) ->
         return
 
     $.pnotify
-        title           : ""
+        title           : opts.title ? ''
         type            : opts.type
         text            : opts.message
         nonblock        : false

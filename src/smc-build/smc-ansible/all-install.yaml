@@ -30,6 +30,15 @@
   - name: "rethinkdb ppa"
     apt_repository: mode=644 repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
 
+  - name: "python nosite script wrappers"
+    tags: [install, update, nosite]
+    copy: src="{{ item[0] }}"
+          dest="{{ item[1] }}"
+          owner=root group=root mode="u=rx,g=rx,o=rx"
+    with_together:
+      - [ "files/python2-nosite",            "files/python3-nosite"]
+      - [ "/usr/local/bin/python2-nosite",   "/usr/local/bin/python3-nosite"]
+
   - name: "additional install packages for all machines"
     apt: name={{ item }} install_recommends=yes state=latest
     with_items:
@@ -256,6 +265,7 @@
     - cvs
     - cython
     - cython3
+    - dialog
     - dieharder
     - doxygen
     - dstat
@@ -290,6 +300,7 @@
     - glpk-utils
     - glpk-doc
     - gmsh
+    - gnucash
     - gnugo
     - gnu-smalltalk
     - golang-go
@@ -308,6 +319,9 @@
     - hdf5-helpers
     - hexcurse
     - hexer
+    - hledger
+    #- hledger-ui
+    - hledger-web
     - hsbrainfuck
     - htop
     - iceweasel
@@ -452,6 +466,7 @@
     - ncompress
     - netcdf-bin
     - netcdf-doc
+    - net-tools
     - nim
     - noweb
     - ocaml
@@ -477,6 +492,7 @@
     - proofgeneral-doc
     - protobuf-compiler
     - pv
+    - pyqt4-dev-tools
     - pyro
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'

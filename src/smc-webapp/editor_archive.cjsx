@@ -68,7 +68,7 @@ remove_redux = (path, redux, project_id) ->
     return name
 
 class ArchiveActions extends Actions
-    parse_file_type : (file_info) ->
+    parse_file_type: (file_info) ->
         if file_info.indexOf('Zip archive data') != -1
             return 'zip'
         else if file_info.indexOf('tar archive') != -1
@@ -83,7 +83,7 @@ class ArchiveActions extends Actions
             return 'xz'
         return undefined
 
-    set_archive_contents : (project_id, path) ->
+    set_archive_contents: (project_id, path) ->
         async.waterfall([
             # Get the file type data. Error if no file found.
             (waterfall_cb) =>
@@ -106,7 +106,7 @@ class ArchiveActions extends Actions
                     type     : ext
         )
 
-    extract_archive_files : (project_id, path, type, contents) ->
+    extract_archive_files: (project_id, path, type, contents) ->
         {command, args} = COMMANDS[type].extract
         path_parts = misc.path_split(path)
         async.waterfall([
@@ -156,7 +156,13 @@ class ArchiveActions extends Actions
         )
 
 ArchiveContents = rclass
-    render : ->
+    propTypes:
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        contents   : rtypes.string
+
+    render: ->
         if not @props.contents?
             @props.actions.set_archive_contents(@props.project_id, @props.path)
         <pre>{@props.contents}</pre>
@@ -174,17 +180,17 @@ Archive = rclass ({name}) ->
             extract_output : rtypes.string
 
     propTypes:
-        path       : rtypes.string
-        actions    : rtypes.object
-        project_id : rtypes.string
+        actions    : rtypes.object.isRequired
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
 
-    title : ->
+    title: ->
         <tt><Icon name="file-zip-o" /> {@props.path}</tt>
 
-    extract_archive_files : ->
+    extract_archive_files: ->
         @props.actions.extract_archive_files(@props.project_id, @props.path, @props.type, @props.contents)
 
-    render : ->
+    render: ->
         <Panel header={@title()}>
             <Button bsSize='large' bsStyle='success' onClick={@extract_archive_files}><Icon name='folder' spin={@props.loading} /> Extract Files...</Button>
             {<pre>{@props.command}</pre> if @props.command}
@@ -198,8 +204,8 @@ Archive = rclass ({name}) ->
         </Panel>
 
 require('project_file').register_file_editor
-    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
-    icon   : 'file-archive-o'
+    ext       : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
+    icon      : 'file-archive-o'
     init      : init_redux
     component : Archive
     remove    : remove_redux

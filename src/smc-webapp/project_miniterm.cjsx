@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ BAD_COMMANDS =
     emacs   : "Type emacs in a full terminal instead,\nor just click on the file in the listing."
     open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/smc/issues/230"
 
-EXEC_TIMEOUT = 10 # in seconds    
+EXEC_TIMEOUT = 10 # in seconds
 
 exports.MiniTerminal = MiniTerminal = rclass
     displayName : 'MiniTerminal'
@@ -64,13 +64,13 @@ exports.MiniTerminal = MiniTerminal = rclass
         current_path : rtypes.string  # provided by the project store; undefined = HOME
         actions      : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         input  : ''
         stdout : undefined
         state  : 'edit'   # 'edit' --> 'run' --> 'edit'
         error  : undefined
 
-    execute_command : ->
+    execute_command: ->
         @setState(stdout:'', error:'')
         input = @state.input.trim()
         if not input
@@ -128,11 +128,12 @@ exports.MiniTerminal = MiniTerminal = rclass
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
+                    @props.actions.set_directory_files()  # update directory listing (command may change files)
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')
 
-    render_button : ->
+    render_button: ->
         switch @state.state
             when 'edit'
                 <Button onClick={@execute_command}>
@@ -143,7 +144,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     <Icon name='circle-o-notch' spin  />
                 </Button>
 
-    render_output : (x, style) ->
+    render_output: (x, style) ->
         if x
             <pre style=style>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
@@ -154,7 +155,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                 {x}
             </pre>
 
-    keydown : (e) ->
+    keydown: (e) ->
         # IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
         # all null right now -- see
         #     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
@@ -162,7 +163,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         if e.keyCode == 27
             @setState(input: '', stdout:'', error:'')
 
-    render : ->
+    render: ->
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
         <div>

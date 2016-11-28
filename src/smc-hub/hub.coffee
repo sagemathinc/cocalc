@@ -48,6 +48,8 @@ underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
 
+program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
+
 # smc path configurations (shared with webpack)
 misc_node      = require('smc-util-node/misc_node')
 SMC_ROOT       = misc_node.SMC_ROOT
@@ -102,8 +104,6 @@ from_json = misc.from_json
 
 # third-party libraries: add any new nodejs dependencies to the NODEJS_PACKAGES list in build.py
 async   = require("async")
-program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
 uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
@@ -667,6 +667,9 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'console'
+                if not mesg.params?.path? or not mesg.params?.filename?
+                    @push_to_client(message.error(id:mesg.id, error:"console session path and filename must be defined"))
+                    return
                 @connect_to_console_session(mesg)
             else
                 # TODO
@@ -1406,7 +1409,7 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else if not is_public
-                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public. 
+                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
@@ -2646,12 +2649,8 @@ create_account = (client, mesg, cb) ->
     async.series([
         (cb) ->
             dbg("run tests on generic validity of input")
+            # issues_with_create_account also does check is_valid_password!
             issues = client_lib.issues_with_create_account(mesg)
-
-            # Do not allow *really* stupid passwords.
-            [valid, reason] = is_valid_password(mesg.password)
-            if not valid
-                issues['password'] = reason
 
             # TODO -- only uncomment this for easy testing to allow any password choice.
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
@@ -3493,76 +3492,84 @@ add_user_to_project = (project_id, email_address, cb) ->
 # Process command line arguments
 #############################################
 
-program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
-    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
-    .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
-    .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
-    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
-    .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-    .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
-    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
-    .option('--passwd [email_address]', 'Reset password of given user', String, '')
-    .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
-    .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
-    .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
-    .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
-    .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
-    .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
-    .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-    .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
-    .option('--foreground', 'If specified, do not run as a deamon')
-    .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
-    .option('--single', 'if given, then run in LESS SAFE single-machine mode')
-    .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
-    .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
-    .parse(process.argv)
+command_line = () ->
+    program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
 
-    # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
+    program.usage('[start/stop/restart/status/nodaemon] [options]')
+        .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
+        .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
+        .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
+        .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
+        .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
+        .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
+        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+        .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
+        .option('--passwd [email_address]', 'Reset password of given user', String, '')
+        .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
+        .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
+        .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
+        .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
+        .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
+        .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
+        .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
+        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+        .option('--foreground', 'If specified, do not run as a deamon')
+        .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
+        .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+        .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+        .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
+        .parse(process.argv)
 
-if program._name.slice(0,3) == 'hub'
-    # run as a server/daemon (otherwise, is being imported as a library)
+        # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
-    #if program.rawArgs[1] in ['start', 'restart']
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
+    if program._name.slice(0,3) == 'hub'
+        # run as a server/daemon (otherwise, is being imported as a library)
 
-    if program.passwd
-        console.log("Resetting password")
-        reset_password(program.passwd, (err) -> process.exit())
-    else if program.stripe_sync
-        console.log("Stripe sync")
-        stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
-    else if program.stripe_dump
-        console.log("Stripe dump")
-        stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
-    else if program.delete_expired
-        delete_expired (err) ->
-            winston.debug("DONE", err)
-            process.exit()
-    else if program.blob_maintenance
-        blob_maintenance (err) ->
-            winston.debug("DONE", err)
-            process.exit()
-    else if program.add_user_to_project
-        console.log("Adding user to project")
-        v = program.add_user_to_project.split(',')
-        add_user_to_project v[0], v[1], (err) ->
-            if err
-                 console.log("Failed to add user: #{err}")
-            else
-                 console.log("User added to project.")
-            process.exit()
-    else
-        console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
-        # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
-        if program.foreground
-            start_server (err) ->
-                if err and program.dev
-                    process.exit(1)
+        #if program.rawArgs[1] in ['start', 'restart']
+        process.addListener "uncaughtException", (err) ->
+            winston.debug("BUG ****************************************************************************")
+            winston.debug("Uncaught exception: " + err)
+            winston.debug(err.stack)
+            winston.debug("BUG ****************************************************************************")
+
+        if program.passwd
+            console.log("Resetting password")
+            reset_password(program.passwd, (err) -> process.exit())
+        else if program.stripe_sync
+            console.log("Stripe sync")
+            stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
+        else if program.stripe_dump
+            console.log("Stripe dump")
+            stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
+        else if program.delete_expired
+            delete_expired (err) ->
+                winston.debug("DONE", err)
+                process.exit()
+        else if program.blob_maintenance
+            blob_maintenance (err) ->
+                winston.debug("DONE", err)
+                process.exit()
+        else if program.add_user_to_project
+            console.log("Adding user to project")
+            v = program.add_user_to_project.split(',')
+            add_user_to_project v[0], v[1], (err) ->
+                if err
+                     console.log("Failed to add user: #{err}")
+                else
+                     console.log("User added to project.")
+                process.exit()
         else
-            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
+            # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
+            if program.foreground
+                start_server (err) ->
+                    if err and program.dev
+                        process.exit(1)
+            else
+                daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+
+
+if process.argv.length > 1
+    command_line()

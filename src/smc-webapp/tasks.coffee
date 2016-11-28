@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2016, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element, @opts) ->
+    constructor: (@project_id, @filename, @element, @opts) ->
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
@@ -741,7 +741,7 @@ class TaskList
         else
             @set_current_task(task)
 
-    display_last_edited : (task) =>
+    display_last_edited: (task) =>
         if task.last_edited
             corrupt = false
             if typeof(task.last_edited) != "number"  # corrupt
@@ -1493,8 +1493,6 @@ class TaskList
                     alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
-        if not IS_MOBILE
-            @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
         redux.getActions('page').set_active_key_handler(tasks_key_handler)
 

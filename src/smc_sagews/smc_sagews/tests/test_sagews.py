@@ -64,6 +64,117 @@ class TestBasic:
         assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
         conftest.recv_til_done(sagews, test_id)
 
+    # https://github.com/sagemathinc/smc/issues/1107
+    def test_sage_underscore_1(self, exec2):
+        exec2("2/5","2/5\n")
+    def test_sage_underscore_2(self, exec2):
+        exec2("_","2/5\n")
+
+    # https://github.com/sagemathinc/smc/issues/978
+    def test_mode_comments_1(self, exec2):
+        exec2(dedent("""
+        def f(s):
+            print "s='%s'"%s"""))
+    def test_mode_comments_2(self, exec2):
+        exec2(dedent("""
+        %f
+        123
+        # foo
+        456"""), dedent("""
+        s='123
+        # foo
+        456'
+        """).lstrip())
+
+    def test_block_parser(self, exec2):
+        """
+        .. NOTE::
+
+            This function supplies a list of expected outputs to `exec2`.
+        """
+        exec2(dedent("""
+        pi.n().round()
+        [x for x in [1,2,3] if x<3]
+        for z in ['a','b']:
+            z
+        else:
+            z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
+
+class TestIntrospect:
+    # test names end with SMC issue number
+    def test_sage_autocomplete_1188(self, execintrospect):
+        execintrospect('2016.fa', ["ctor","ctorial"], "fa")
+    def test_sage_autocomplete_295_setup(self, exec2):
+        exec2("aaa=Rings()._super_categories_for_classes;len(aaa[0].axioms())","6\n")
+    def test_sage_autocomplete_295a(self, execintrospect):
+        execintrospect('for a in aa', ["a"], "aa")
+    def test_sage_autocomplete_295b(self, execintrospect):
+        execintrospect('3 * aa', ["a"], "aa")
+    def test_sage_autocomplete_701_setup(self, exec2):
+        exec2(dedent("""
+        class Xyz:
+            numerical_attribute = 42
+        x1 = Xyz()
+        x1.numerical_attribute.next_prime()"""),"43\n")
+    def test_sage_autocomplete_701a(self, execintrospect):
+        execintrospect('3 / x1.nu', ["merical_attribute"], "nu")
+    def test_sage_autocomplete_701b(self, execintrospect):
+        execintrospect('aa', ["a"], "aa")
+    def test_sage_autocomplete_701c(self, execintrospect):
+        execintrospect('[aa', ["a"], "aa")
+    def test_sage_autocomplete_701d(self, execintrospect):
+        execintrospect('( aa', ["a"], "aa")
+    def test_sage_autocomplete_734a(self, execintrospect):
+        f = '*_factors'
+        execintrospect(f, ["cunningham_prime_factors", "prime_factors"], f)
+    def test_sage_autocomplete_734b(self, execintrospect):
+        f = '*le_pr*'
+        execintrospect(f, ["next_probable_prime"], f)
+    def test_sage_autocomplete_734c(self, execintrospect):
+        execintrospect('list.re*e', ["remove", "reverse"], 're*e')
+    def test_sage_autocomplete_1225a(self, execintrospect):
+        execintrospect('z = 12.5 * units.len', ["gth"], 'len')
+    def test_sage_autocomplete_1225b_setup(self, exec2):
+        exec2(dedent("""
+        class TC:
+            def __init__(self, xval):
+                self.x = xval
+        y = TC(49)
+        """))
+    def test_sage_autocomplete_1225b(self, execintrospect):
+        execintrospect('z = 12 * y.', ["x"], '')
+    def test_sage_autocomplete_1252a(self, execintrospect):
+        execintrospect('2*sqr', ["t"], 'sqr')
+    def test_sage_autocomplete_1252b(self, execintrospect):
+        execintrospect('2+sqr', ["t"], 'sqr')
+
+class TestAttach:
+    def test_define_paf(self, exec2):
+        exec2(dedent(r"""
+        def paf():
+            print("attached files: %d"%len(attached_files()))
+            print("\n".join(attached_files()))
+        paf()"""),"attached files: 0\n\n")
+    def test_attach_sage_1(self, exec2, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.sage')
+        exec2("%attach {}\npaf()".format(fn), pattern="attached files: 1\n.*/a.sage\n")
+    def test_attach_sage_2(self, exec2):
+        exec2("f1('foo')","f1 arg = 'foo'\ntest f1 1\n")
+    def test_attach_py_1(self, exec2, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.py')
+        exec2("%attach {}\npaf()".format(fn), pattern="attached files: 2\n.*/a.py\n.*/a.sage\n")
+    def test_attach_py_2(self, exec2):
+        exec2("f2('foo')","test f2 1\n")
+    def test_attach_html_1(self, execblob, test_ro_data_dir):
+        fn = os.path.join(test_ro_data_dir, 'a.html')
+        execblob("%attach {}".format(fn), want_html=False, want_javascript=True, file_type='html')
+    def test_attach_html_2(self, exec2):
+        exec2("paf()", pattern="attached files: 3\n.*/a.html\n.*/a.py\n.*/a.sage\n")
+    def test_detach_1(self, exec2):
+        exec2("detach(attached_files())")
+    def test_detach_2(self, exec2):
+        exec2("paf()","attached files: 0\n\n")
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

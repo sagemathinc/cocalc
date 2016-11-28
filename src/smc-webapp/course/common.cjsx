@@ -83,7 +83,7 @@ exports.step_ready = (step, n) ->
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
 
-    render : ->
+    render: ->
         date = @props.date
         if not date?
             return
@@ -149,7 +149,7 @@ exports.StudentAssignmentInfoHeader = rclass
             {@render_col(6, 'return_graded', w)}
         </Row>
 
-    render : ->
+    render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
@@ -172,27 +172,27 @@ exports.StudentAssignmentInfo = rclass
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         editing_grade : false
 
-    open : (type, assignment_id, student_id) ->
+    open: (type, assignment_id, student_id) ->
         @props.redux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
 
-    copy : (type, assignment_id, student_id) ->
+    copy: (type, assignment_id, student_id) ->
         @props.redux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
-    stop : (type, assignment_id, student_id) ->
+    stop: (type, assignment_id, student_id) ->
         @props.redux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
-    save_grade : (e) ->
+    save_grade: (e) ->
         e?.preventDefault()
         @props.redux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
-    edit_grade : ->
+    edit_grade: ->
         @setState(grade:@props.grade, editing_grade:true)
 
-    render_grade_score : ->
+    render_grade_score: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
@@ -219,7 +219,7 @@ exports.StudentAssignmentInfo = rclass
                     Grade: {@props.grade}
                 </div>
 
-    render_grade : (info, width) ->
+    render_grade: (info, width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
@@ -228,12 +228,12 @@ exports.StudentAssignmentInfo = rclass
             {@render_grade_score()}
         </Col>
 
-    render_last_time : (name, time) ->
+    render_last_time: (name, time) ->
         <div key='time' style={color:"#666"}>
             (<BigTime date={time} />)
         </div>
 
-    render_open_recopy_confirm : (name, open, copy, copy_tip, open_tip, placement) ->
+    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip, placement) ->
         key = "recopy_#{name}"
         if @state[key]
             v = []
@@ -252,7 +252,7 @@ exports.StudentAssignmentInfo = rclass
                 </Tip>
             </Button>
 
-    render_open_recopy : (name, open, copy, copy_tip, open_tip) ->
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
         placement = if name == 'Return' then 'left' else 'right'
         <ButtonToolbar key='open_recopy'>
             {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
@@ -263,7 +263,7 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </ButtonToolbar>
 
-    render_open_copying : (name, open, stop) ->
+    render_open_copying: (name, open, stop) ->
         if name == "Return"
             placement = 'left'
         <ButtonGroup key='open_copying'>
@@ -278,7 +278,7 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </ButtonGroup>
 
-    render_copy : (name, copy, copy_tip) ->
+    render_copy: (name, copy, copy_tip) ->
         if name == "Return"
             placement = 'left'
         <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
@@ -287,7 +287,7 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </Tip>
 
-    render_error : (name, error) ->
+    render_error: (name, error) ->
         if typeof(error) != 'string'
             error = misc.to_json(error)
         if error.indexOf('No such file or directory') != -1
@@ -296,7 +296,7 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last : (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
+    render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
         stop = => @stop(type, info.assignment_id, info.student_id)
@@ -329,7 +329,7 @@ exports.StudentAssignmentInfo = rclass
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
         </Col>
 
-    render : ->
+    render: ->
         info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
         show_grade_col = (peer_grade and info.last_peer_collect) or (not peer_grade and info.last_collect)
@@ -374,29 +374,29 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
         item_name        : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         item_name        : 'result'
 
-    getInitialState : ->
+    getInitialState: ->
         selected_items : '' # currently selected options
         show_selector : false
 
-    shouldComponentUpdate : (newProps, newState) ->
+    shouldComponentUpdate: (newProps, newState) ->
         return newProps.search_results != @props.search_results or
             newProps.item_name != @props.item_name or
             newProps.is_searching != @props.is_searching or
             newState.selected_items != @state.selected_items
 
-    componentWillReceiveProps : (newProps) ->
+    componentWillReceiveProps: (newProps) ->
         @setState
             show_selector : newProps.search_results? and newProps.search_results.size > 0
 
-    clear_and_focus_search_input : ->
+    clear_and_focus_search_input: ->
         @props.clear_search()
         @setState(selected_items:'')
         @refs.search_input.clear_and_focus_search_input()
 
-    search_button : ->
+    search_button: ->
         if @props.is_searching
             # Currently doing a search, so show a spinner
             <Button>
@@ -413,24 +413,24 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 <Icon name="search" />
             </Button>
 
-    add_button_clicked : (e) ->
+    add_button_clicked: (e) ->
         e.preventDefault()
         @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
-    change_selection : (e) ->
+    change_selection: (e) ->
         v = []
         for option in e.target.selectedOptions
             v.push(option.label)
         @setState(selected_items : v)
 
-    render_results_list : ->
+    render_results_list: ->
         v = []
         @props.search_results.map (item) =>
             v.push(<option key={item} value={item} label={item}>{item}</option>)
         return v
 
-    render_add_selector : ->
+    render_add_selector: ->
         <FormGroup>
             <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={@change_selection}>
                 {@render_results_list()}
@@ -443,7 +443,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             </ButtonToolbar>
         </FormGroup>
 
-    render_add_selector_button : ->
+    render_add_selector_button: ->
         num_items_selected = @state.selected_items.length ? 0
         btn_text = switch @props.search_results.size
             when 0 then "No #{@props.item_name} found"
@@ -455,7 +455,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         disabled = @props.search_results.size == 0 or (@props.search_results.size >= 2 and num_items_selected == 0)
         <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
-    render : ->
+    render: ->
         <div>
             <SearchInput
                 autoFocus     = {true}
@@ -483,15 +483,15 @@ exports.FoldersToolbar = rclass
         item_name     : rtypes.string
         plural_item_name : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         item_name : "item"
         plural_item_name : "items"
 
-    getInitialState : ->
+    getInitialState: ->
         add_is_searching : false
         add_search_results : immutable.List([])
 
-    do_add_search : (search) ->
+    do_add_search: (search) ->
         if @state.add_is_searching
             return
         @setState(add_is_searching:true)
@@ -510,7 +510,7 @@ exports.FoldersToolbar = rclass
                     @setState(add_is_searching:false, add_search_results:merged)
 
     # Filter directories based on contents of all_items
-    filter_results : (directories, search, all_items) ->
+    filter_results: (directories, search, all_items) ->
         if directories.length > 0
             # Omit any -collect directory (unless explicitly searched for).
             # Omit any currently assigned directory
@@ -532,14 +532,14 @@ exports.FoldersToolbar = rclass
             directories.sort()
         return directories
 
-    submit_selected : (path_list) ->
+    submit_selected: (path_list) ->
         @props.add_folders(path_list)
         @clear_add_search()
 
-    clear_add_search : ->
+    clear_add_search: ->
         @setState(add_search_results:immutable.List([]))
 
-    render : ->
+    render: ->
         <Row>
             <Col md=3>
                 <SearchInput

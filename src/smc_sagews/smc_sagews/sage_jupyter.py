@@ -103,8 +103,6 @@ def _jkmagic(kernel_name, **kwargs):
 
     -  ``kernel_name`` -- name of kernel as it appears in output of `jupyter kernelspec list`
 
-    -  ``debug`` - optional, set true to view jupyter messages
-
     """
     import warnings
     import sage.misc.latex
@@ -117,12 +115,6 @@ def _jkmagic(kernel_name, **kwargs):
         atexit.register(km.shutdown_kernel)
         atexit.register(kc.hb_channel.close)
 
-    debug = kwargs['debug'] if 'debug' in kwargs else False
-
-    def p(*args):
-        if debug:
-            print ' '.join(str(a) for a in args)
-
     # inline: no header or style tags, useful for full == False
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
@@ -133,6 +125,8 @@ def _jkmagic(kernel_name, **kwargs):
 
         INPUT:
 
+        -  ``s`` - string to display in output of sagews cell
+
         -  ``block`` - set false to prevent newlines between output segments
 
         -  ``scroll`` - set true to put output into scrolling div
@@ -141,6 +135,7 @@ def _jkmagic(kernel_name, **kwargs):
         """
         # `full = False` or else cell output is huge
         if "\x1b[" in s:
+            # use html output if ansi control code found in string
             h = conv.convert(s, full = False)
             if block:
                 h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
@@ -158,6 +153,11 @@ def _jkmagic(kernel_name, **kwargs):
                 sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
+
+        def p(*args):
+            from smc_sagews.sage_server import log
+            if run_code.debug:
+                log("kernel {}: {}".format(kernel_name, ' '.join(str(a) for a in args)))
 
         if kwargs.get('get_kernel_client',False):
             return kc
@@ -195,14 +195,15 @@ def _jkmagic(kernel_name, **kwargs):
                 p("iopub channel empty")
                 break
 
+            p('iopub', msg_type, str(content)[:300])
+
             if msg['parent_header'].get('msg_id') != msg_id:
+                p('*** non-matching parent header')
                 continue
 
             if msg_type == 'status' and content['execution_state'] == 'idle':
                 break
 
-            # trace jupyter protocol if debug enabled
-            p('iopub', msg_type, str(content)[:300])
 
             def display_mime(msg_data):
                 '''
@@ -213,25 +214,30 @@ def _jkmagic(kernel_name, **kwargs):
                 # 1. if there is an image format, prefer that
                 # 2. elif default text or image mode is available, prefer that
                 # 3. else choose first matching format in modes list
+                from smc_sagews.sage_salvus import show
+
+                def show_plot(data, suffix):
+                    r"""
+                    If an html style is defined for this kernel, use it.
+                    Otherwise use salvus.file().
+                    """
+                    suffix = '.'+suffix
+                    fname = tempfile.mkstemp(suffix=suffix)[1]
+                    with open(fname,'w') as fo:
+                        fo.write(data)
+
+                    if run_code.smc_image_scaling is None:
+                        salvus.file(fname)
+                    else:
+                        img_src = salvus.file(fname, show=False)
+                        htms = '<img src="{0}" smc-image-scaling="{1}" />'.format(img_src, run_code.smc_image_scaling)
+                        salvus.html(htms)
+                    os.unlink(fname)
+
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
                 if any('image' in k for k in mkeys):
-                    # XXX to get svg format with R ("ir") kernel, will need something like @ws workaround:
-                    # from sage_salvus.py#L2073
-                    #    try:
-                    #        r_dev_on = True
-                    #        tmp = '/tmp/' + uuid() + '.svg'
-                    #        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-                    #        s = r_eval0(code, *args, **kwds)
-                    #        r_eval0('dev.off()')
-                    #        return s
-                    #    finally:
-                    #        r_dev_on = False
-                    #        if os.path.exists(tmp):
-                    #            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-                    #            os.unlink(tmp)
-                    #print('image')
                     dfim = run_code.default_image_fmt
                     #print('default_image_fmt %s'%dfim)
                     dispmode = next((m for m in mkeys if dfim in m), None)
@@ -243,50 +249,69 @@ def _jkmagic(kernel_name, **kwargs):
                     # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
                     if dispmode == 'image/svg+xml':
                         data = msg_data[dispmode]
-                        fname = tempfile.mkstemp(suffix=".svg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'svg')
                     elif dispmode == 'image/png':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".png")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'png')
                     elif dispmode == 'image/jpeg':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".jpg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'jpg')
                     return
                 elif any('text' in k for k in mkeys):
                     dftm = run_code.default_text_fmt
                     if capture_mode:
                         dftm = 'plain'
-                    #print('default_text_fmt %s'%dftm)
                     dispmode = next((m for m in mkeys if dftm in m), None)
                     if dispmode is None:
                         dispmode = next(m for m in txtmodes if m in mkeys)
-                    #print('dispmode is %s'%dispmode)
                     if dispmode == 'text/plain':
-                        txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
-                        sys.stdout.write(txt)
-                        sys.stdout.flush()
+                        p('text/plain',msg_data[dispmode])
+                        # override if plain text is object marker for latex output
+                        if re.match('<IPython.core.display.\w+ object>', msg_data[dispmode]):
+                            p("overriding plain -> latex")
+                            show(msg_data['text/latex'])
+                        else:
+                            txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
+                            hout(txt)
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':
+                        p('text/latex',msg_data[dispmode])
                         sage.misc.latex.latex.eval(msg_data[dispmode])
                     elif dispmode == 'text/markdown':
                         salvus.md(msg_data[dispmode])
                     return
 
 
-            # dispatch control or display calls depending on the message type
-            if msg_type == 'execute_result':
+            # reminder of iopub loop is switch on value of msg_type
+
+            if msg_type == 'execute_input':
+                # the following is a cheat to avoid forking a separate thread to listen on stdin channel
+                # most of the time, ignore "execute_input" message type
+                # but if code calls python3 input(), wait for message on stdin channel
+                if 'code' in content and kernel_name in ['python3','anaconda3']:
+                    ccode = content['code']
+                    if (re.match('^[^#]*\W?input\(', ccode)):
+                        # FIXME input() will be ignored if it's aliased to another name
+                        p('iopub input call: ',ccode)
+                        try:
+                            # do nothing if no messsage on stdin channel within 0.5 sec
+                            imsg = stdinj.get_msg(timeout = 0.5)
+                            imsg_type = imsg['msg_type']
+                            icontent = imsg['content']
+                            p('stdin', imsg_type, str(icontent)[:300])
+                            # kernel is now blocked waiting for input
+                            if imsg_type == 'input_request':
+                                prompt = '' if icontent['password'] else icontent['prompt']
+                                value = salvus.raw_input(prompt = prompt)
+                                xcontent = dict(value=value)
+                                xmsg = kc.session.msg('input_reply', xcontent)
+                                p('sending input_reply',xcontent)
+                                stdinj.send(xmsg)
+                        except:
+                            pass
+
+            elif msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
                 p('execute_result data keys: ',content['data'].keys())
@@ -300,8 +325,6 @@ def _jkmagic(kernel_name, **kwargs):
                 if content['execution_state'] == 'idle':
                     # when idle, kernel has executed all input
                     break
-                else:
-                    continue
 
             elif msg_type == 'clear_output':
                 salvus.clear()
@@ -352,11 +375,17 @@ def _jkmagic(kernel_name, **kwargs):
                 # not our reply
                 continue
         return
-    # 'html', 'plain', 'latex', 'markdown'
+    # 'html', 'plain', 'latex', 'markdown' - support depends on jupyter kernel
     run_code.default_text_fmt = 'html'
 
-    # 'svg', 'png', 'jpeg'
-    run_code.default_image_fmt = 'svg'
+    # 'svg', 'png', 'jpeg' - support depends on jupyter kernel
+    run_code.default_image_fmt = 'png'
+
+    # set to floating point fraction e.g. 0.5
+    run_code.smc_image_scaling = None
+
+    # set True to record jupyter messages to sage_server log
+    run_code.debug = False
 
     return run_code
 

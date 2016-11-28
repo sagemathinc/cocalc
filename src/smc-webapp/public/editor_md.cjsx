@@ -37,7 +37,7 @@ PublicMarkdown = rclass ({name}) ->
             project_id : rtypes.string
             path       : rtypes.string
 
-    render : ->
+    render: ->
         if @props.error
             <ErrorDisplay error={@props.error}/>
         else if not @props.content?
@@ -65,7 +65,7 @@ require('../project_file').register_file_editor
     is_public : true
     icon      : 'file-code-o'
 
-    init      : (path, redux, project_id) ->
+    init: (path, redux, project_id) ->
         name = redux_name(project_id, path)
         if redux.getActions(name)?
             return name
@@ -76,7 +76,7 @@ require('../project_file').register_file_editor
 
     component : PublicMarkdown
 
-    remove    : (path, redux, project_id) ->
+    remove: (path, redux, project_id) ->
         name = redux_name(project_id, path)
         redux.removeStore(name)
         redux.removeActions(name)

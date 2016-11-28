@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2015, 2016, William Stein
+SageMathCloud, Copyright (C) 2016, Sagemath Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1512,6 +1512,11 @@ class SyncDoc extends EventEmitter
     save_to_disk: (cb) =>
         #dbg = @dbg("save_to_disk(cb)")
         #dbg("initiating the save")
+        if not @has_unsaved_changes()
+            # no unsaved changes, so don't save -- CRITICAL: this optimization is assumed by autosave, etc.
+            cb?()
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1546,6 +1551,10 @@ class SyncDoc extends EventEmitter
     # The project sets the state to saving, does the save to disk, then sets
     # the state to done.
     _save_to_disk: (cb) =>
+        if not @has_unsaved_changes()
+            # no unsaved changes, so don't save -- CRITICAL: this optimization is assumed by autosave, etc.
+            cb?()
+            return
         path = @get_path()
         #dbg = @dbg("_save_to_disk('#{path}')")
         if not path?

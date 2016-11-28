@@ -152,12 +152,17 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='position:fixed'>")
             .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
-            .attr('scrolling', 'no')
-        @element.html('').append(@iframe)
-        @iframe.maxheight()
+            .attr('scrolling', 'no').hide()
+
+        # Unlike a normal DOM element, iframes can't be moved in and out of the DOM or have parents
+        # changed without refreshing like crazy.  Due to react and _wanting_ to do all sizing via CSS,
+        # we hide/show the iframe at the end of the page, and position it fixed on top of the @element
+        # whenever the @element resizes.
+        $("body").append(@iframe)
+
         # wait until connected -- it is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
@@ -201,6 +206,7 @@ class JupyterWrapper extends EventEmitter
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
                     @disable_autosave()
+                    @remove_modal_backdrop()
                     @state = 'ready'
                     @emit('ready')
                     cb()
@@ -213,6 +219,15 @@ class JupyterWrapper extends EventEmitter
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
+    # Position the iframe to exactly match the underlying element; I'm calling this
+    # "refresh" since that's the name of the similar method for CodeMirror.
+    refresh: =>
+        if @element.is(':visible')
+            @iframe.show()
+            @iframe.exactly_cover(@element)
+        else
+            @iframe.hide()
+
     close: () =>
         if @state == 'closed'
             return
@@ -220,6 +235,7 @@ class JupyterWrapper extends EventEmitter
             clearInterval(@dirty_interval)
             delete @dirty_interval
         @element.html('')
+        @iframe.remove()
         @removeAllListeners()
         delete @blobs
         delete @blobs_pending
@@ -254,6 +270,11 @@ class JupyterWrapper extends EventEmitter
         # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
         @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+
+    remove_modal_backdrop: =>
+        # For mysterious reasons, this modal-backdrop div
+        # gets left on Firefox, which makes it impossible to use.
+        @frame.jQuery(".modal-backdrop").remove()
 
     install_custom_undo_redo: (undo, redo) =>
         @frame.CodeMirror.prototype.undo = undo
@@ -542,7 +563,7 @@ class JupyterWrapper extends EventEmitter
             if not data?
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})
-                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute', width:'16ex')
+                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.6ex', position:'absolute', width:'16ex')
                 cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', left:'.9ex', position:'absolute')
                 data = x[i] = {cursor: cursor}
             if name != data.name
@@ -577,18 +598,18 @@ class JupyterWrapper extends EventEmitter
             index += 1
 
     mutate_cell: (index, obj) =>
-        #dbg = @dbg("mutate_cell")([index, obj])
+        # dbg = @dbg("mutate_cell")([index, obj])
         ###
         NOTE: If you need to work on this function, here's how to get an instance
-        of this class. In the Javascript console, do this:
-
-            X = smc.editors['your_file_that_is_open.ipynb'].wrapped.dom
+        of this class. In the Javascript console, get access to this editor.  I typically
+        do this by putting a line of code like window.w = @ in the constructor
+        for class JupyterNotebook.
 
         For example, this then gets the first cell:
 
-            X.nb.get_cell(0)
+            w.dom.nb.get_cell(0)
 
-        (and X.nb.get_cell(0).element is the underlying DOM element)
+        (and w.dom.nb.get_cell(0).element is the underlying DOM element)
 
         You can then mess around with this until you get it to work.
         ###
@@ -616,6 +637,7 @@ class JupyterWrapper extends EventEmitter
             cell.output_area.clear_output(false, true)
             cell.output_area.trusted = !!obj.metadata.trusted
             cell.output_area.fromJSON(obj.outputs ? [], obj.metadata)
+
         if cell.cell_type == 'markdown' and cell.rendered
             do_rerender_cell = true
 
@@ -652,10 +674,6 @@ class JupyterWrapper extends EventEmitter
         for cell in @nb.get_cells()
             doc += '\n' + @cell_to_line(cell, to_db)
         return doc
-
-    show: (width) =>
-        @iframe?.attr('width', width).maxheight()
-        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more in the next render loop.
 
     line_to_cell: (line) =>
         obj = JSON.parse(line)
@@ -764,6 +782,13 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
+        #if not opts.read_only
+        #    window.w = @
+        if $.browser.firefox
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1262' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element.data("jupyter_notebook", @)
+            opts.cb?()
+            return
         @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only
@@ -913,7 +938,7 @@ class JupyterNotebook extends EventEmitter
         if @_init_buttons_already_done
             return
         @_init_buttons_already_done = true
-        
+
         # info button
         @element.find("a[href=\"#info\"]").click(@info)
 
@@ -930,10 +955,6 @@ class JupyterNotebook extends EventEmitter
         @publish_button = @element.find("a[href=\"#publish\"]").click(@publish_ui)
 
         @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
-
-        @element.find("a[href=\"#close\"]").click () =>
-            redux.getProjectActions(@project_id).set_active_tab('files')
-            return false
 
         @element.find("a[href=\"#undo\"]").click(@undo)
         @element.find("a[href=\"#redo\"]").click(@redo)
@@ -1085,20 +1106,13 @@ class JupyterNotebook extends EventEmitter
             throw Error("BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')")
         return @syncstring._syncstring.last_changed() - 0
 
-    show: (geometry) =>
-        if not geometry?
-            geometry = @_last_show_geometry
-        else
-            @_last_show_geometry = geometry
-        {top, left, width, height} = defaults geometry,
-            left   : undefined  # not implemented
-            top    : redux.getProjectStore(@project_id).get('editor_top_position')
-            width  : $(window).width()
-            height : undefined  # not implemented
-        @element.css(top:top)
-        if top == 0
-            @element.css('position':'fixed')
-        @dom?.show(width)
+    show: =>
+        @element.show()
+        @dom?.refresh()
+
+    hide: =>
+        @element.hide()
+        @dom?.refresh()
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
@@ -1339,11 +1353,6 @@ class JupyterNBViewer
                 # could become undefined due to other things happening...
                 @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
-
-        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-        @element.maxheight(offset:18)
-        @element.find(".smc-jupyter-nbviewer-content").maxheight(offset:18)
-        @iframe.maxheight(offset:18)
 
     init_buttons: () =>
         @element.find('a[href=\"#copy\"]').click () =>

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -193,7 +193,7 @@ parse_width = (width) ->
         if typeof width == 'number'
             return "#{width}ex"
         else
-            return width1
+            return width
 
 interact_control = (desc, update) ->
     # Create and return a detached DOM element elt that represents

@@ -39,6 +39,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -88,6 +89,7 @@ class exports.HistoryEditor extends FileEditor
 
     close: () =>
         @syncstring?.close()
+        @view_doc?.close()
 
     disconnect_from_session: =>
         @close()
@@ -461,24 +463,22 @@ class exports.HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
         return @mounted
 
-    show: () =>
+    show: =>
         if not @is_active() or not @element? or not @view_doc?
             return
-        top = redux.getProjectStore(@project_id).get('editor_top_position')
-        @element.css('top', top)
-        if top == 0
-            @element.css('position':'fixed', 'width':'100%')
         @element.show()
-        x = @top_elt
-        @view_doc.show(top:x.offset().top + x.height() + 15)
+        @view_doc.show()
         if @ext == 'sagews'
             @worksheet?.process_sage_updates()
+
+    hide: =>
+        @view_doc?.hide()
 
     load_full_history: (cb) =>
         n = @syncstring.all_versions().length

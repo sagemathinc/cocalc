@@ -1,7 +1,7 @@
 <!--
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
 
-    Copyright (C) 2014, William Stein
+    Copyright (C) 2016, Sagemath Inc.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,20 +19,22 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
 
 <div id="salvus-console-templates" class="hide">
-    <div class="salvus-console well">
+    <div class="salvus-console smc-vfill salvus-console-blur">
 
         <!-- The bar across the top -->
         <!-- increase font, decrease font, refresh, paste spot, then title ... font indicator-->
         <div class="salvus-console-topbar">
-            <div class="salvus-console-title pull-right"></div>
+            <div class="smc-users-viewing-document salvus-editor-chat-title">
+            <!--to be filled with react component for users viewing the document-->
+            </div>
+
             &nbsp;&nbsp;
 
             <div class="pull-left">
                 <span class="btn-group visible-xs">
-                    <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
-                    <a href="#decrease-font" class="btn btn-default btn-lg"><i class="fa fa-font" style="font-size:8pt"> </i> </a>
-                    <a href="#increase-font" class="btn btn-default btn-lg"><i class="fa fa-font" style="font-size:13pt"> </i></a>
-                    <a href="#refresh" class='btn btn-default btn-lg'><i class="fa fa-repeat" style="font-size:14pt"> </i></a>
+                    <a href="#decrease-font" class="btn btn-default"><i class="fa fa-font" style="font-size:8pt"> </i> </a>
+                    <a href="#increase-font" class="btn btn-default"><i class="fa fa-font" style="font-size:13pt"> </i></a>
+                    <a href="#refresh" class='btn btn-default'><i class="fa fa-repeat" style="font-size:14pt"> </i></a>
                 </span>
 
                 <span class="hidden-xs">
@@ -55,13 +57,13 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                 </span>
             </div>
 
-            <div class="salvus-console-filename pull-left"></div>
+            <div class="salvus-console-title pull-left"></div>
             &nbsp;&nbsp;
 
             <div class="salvus-console-mobile-input">
 
                 <input class="salvus-console-input-line form-control" type="text" style="width:98%" placeholder="Type input or paste here...">
-                <span class="btn-group" style="margin-top:-11px">
+                <span class="btn-group">
                     <a class="btn salvus-console-submit-line btn-default">enter</a>
                     <a class="btn salvus-console-submit-ctrl-c btn-default">ctrl-c</a>
                     <a class="btn salvus-console-submit-tab btn-default">tab</a>
@@ -87,11 +89,14 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
         <!-- I tried  autocomplete="false" in the textarea, but this is not valid HTML, and I think didn't work anyways.
               Jason Grout suggests: autocapitalize="off" autocorrect="off" autocomplete="off"
         -->
-        <div>
+        <div class="smc-vfill" style="position:relative">
             <textarea class="salvus-console-for-mobile hide"></textarea>
-            <div class="salvus-console-terminal hide"></div>
-            <div class="salvus-console-scrollbar"></div>
-
+            <div style="flex:1; display:flex; overflow:hidden" class="salvus-console-terminal-container">
+                <div style="flex:1; position:relative">
+                    <div class="smc-vfill salvus-console-terminal"></div>
+                </div>
+                <div class="salvus-console-scrollbar"></div>
+            </div>
         </div>
     </div>
 </div>

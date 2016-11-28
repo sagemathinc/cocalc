@@ -148,7 +148,7 @@ PY_SAGE = PY_COMMON + [
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
     'polymake', # https://github.com/videlec/pypolymake/
-    'keras',
+    'keras', 'boolean2',
 ]
 
 # and in anaconda
@@ -156,7 +156,9 @@ PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype', 'astropy',
-    'plotly', 'geopandas', 'altair', 'simpy', 'keras', 'ccdproc',
+    'plotly', 'geopandas', 'altair', 'simpy', 'keras', 'ccdproc', 'tweepy', 'xarray', 'lxml',
+    'cartopy', 'dask', 'folium', 'gdal', 'gdal', 'geojson', 'geopandas', 'ipyleaflet', 'datashader',
+    'mplleaflet', 'mpl_toolkits', 'netCDF4', 'psycopg2', 'rasterio', 'rasterstats', 'shapely',
 ]
 
 # Tests for R setups and libraries

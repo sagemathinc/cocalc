@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -217,6 +217,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update(set:{description:description}, where:{table:'settings'})
             @set_all_student_project_descriptions(description)
 
+        set_allow_collabs: (allow_collabs) =>
+            @_update(set:{allow_collabs:allow_collabs}, where:{table:'settings'})
+
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
 
@@ -269,10 +272,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             #   {shared_project_users} = {course_project_users} union {students}.
 
             actions = redux.getActions('projects')
-            # Ensure the shared project users are all either course or students
-            shared_project_users.map (_, account_id) =>
-                if not course_project_users.get(account_id) and not student_account_ids[account_id]
-                    actions.remove_collaborator(shared_project_id, account_id)
+            if not store.get_allow_collabs()
+                # Ensure the shared project users are all either course or students
+                shared_project_users.map (_, account_id) =>
+                    if not course_project_users.get(account_id) and not student_account_ids[account_id]
+                        actions.remove_collaborator(shared_project_id, account_id)
             # Ensure every course project user is on the shared project
             course_project_users.map (_, account_id) =>
                 if not shared_project_users.get(account_id)
@@ -496,10 +500,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             target_users.map (_, account_id) =>
                 if not users.get(account_id)?
                     invite(account_id)
-            # Remove anybody extra on the student project
-            users.map (_, account_id) =>
-                if not target_users.get(account_id)? and account_id != student_account_id
-                    redux.getActions('projects').remove_collaborator(student_project_id, account_id)
+            if not s.get_allow_collabs()
+                # Remove anybody extra on the student project
+                users.map (_, account_id) =>
+                    if not target_users.get(account_id)? and account_id != student_account_id
+                        redux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = redux.getStore('projects').get_users(student_project_id)
@@ -1517,6 +1522,9 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_pay: =>
             return @getIn(['settings', 'pay']) ? ''
 
+        get_allow_collabs: =>
+            return @getIn(['settings', 'allow_collabs']) ? false
+
         get_email_invite: =>
             host = window.location.hostname
             @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
@@ -1917,25 +1925,25 @@ CourseEditor = rclass ({name}) ->
         project_id  : rtypes.string.isRequired
         path        : rtypes.string.isRequired
 
-    render_activity : ->
+    render_activity: ->
         <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
             on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
 
-    render_error : ->
+    render_error: ->
         <ErrorDisplay error={@props.error}
                       onClose={=>@props.redux.getActions(@props.name).set_error('')} />
 
-    render_save_button : ->
+    render_save_button: ->
         <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
 
-    show_files : ->
+    show_files: ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
-    render_files_button : ->
+    render_files_button: ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
-    render_title : ->
+    render_title: ->
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     show_timetravel: ->
@@ -1968,7 +1976,7 @@ CourseEditor = rclass ({name}) ->
     num_handouts: ->
         @props.redux.getStore(@props.name)?.num_handouts()
 
-    render_students : ->
+    render_students: ->
         if @props.redux? and @props.students? and @props.user_map? and @props.project_map?
             <StudentsPanel redux={@props.redux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
@@ -1978,14 +1986,14 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_assignments : ->
+    render_assignments: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <AssignmentsPanel actions={@props.redux.getActions(@props.name)} redux={@props.redux} all_assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />
 
-    render_handouts : ->
+    render_handouts: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
                 project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
@@ -1995,7 +2003,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_settings : ->
+    render_settings: ->
         if @props.redux? and @props.settings?
             <SettingsPanel redux={@props.redux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
@@ -2011,7 +2019,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render : ->
+    render: ->
         <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}

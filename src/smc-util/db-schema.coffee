@@ -936,7 +936,7 @@ class ClientDB
     constructor: ->
         @r = {}
 
-    sha1 : (args...) =>
+    sha1: (args...) =>
         v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
         return sha1(v)
 

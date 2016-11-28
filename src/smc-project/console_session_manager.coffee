@@ -219,9 +219,12 @@ class ConsoleSessions
         async.series([
             (cb) =>
                 misc.retry_until_success
-                    f        : f
-                    max_time : 5000
-                    cb       : (err) =>
+                    f           : f
+                    start_delay : 50
+                    factor      : 1.7
+                    max_delay   : 2000
+                    max_time    : 5000
+                    cb          : (err) =>
                         cb()  # ignore err on purpose -- no err sets socket
             (cb) =>
                 if socket?

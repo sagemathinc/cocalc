@@ -26,7 +26,7 @@
 ##########################################################################
 #
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (C) 2016, Sagemath Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -267,7 +267,6 @@ exports.uuidsha1 = (data) ->
                 return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
     )
 
-
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
@@ -403,6 +402,7 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
+    filename = exports.path_split(filename).tail
     return filename_extension_re.exec(filename)[1] ? ''
 
 exports.filename_extension_notilde = (filename) ->
@@ -418,6 +418,12 @@ exports.separate_file_extension = (name) ->
     if ext isnt ''
         name = name[0...name.length - ext.length - 1] # remove the ext and the .
     return {name: name, ext: ext}
+
+# change the filename's extension to the new one.
+# if there is no extension, add it.
+exports.change_filename_extension = (name, new_ext) ->
+    {name, ext} = exports.separate_file_extension(name)
+    return "#{name}.#{new_ext}"
 
 # shallow copy of a map
 exports.copy = (obj) ->
@@ -487,6 +493,8 @@ exports.path_to_file = (path, file) ->
     return path + '/' + file
 
 exports.meta_file = (path, ext) ->
+    if not path?
+        return
     p = exports.path_split(path)
     path = p.head
     if p.head != ''
@@ -510,35 +518,37 @@ exports.original_path = (path) ->
         x = s.head + '/' + x
     return x
 
-
-# "foobar" --> "foo..."
+ELLIPSES = "…"
+# "foobar" --> "foo…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return s.slice(0,max_length-3) + "..."
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return s.slice(0,max_length-1) + ELLIPSES
     else
         return s
 
-# "foobar" --> "fo...ar"
+# "foobar" --> "fo…ar"
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
     if s.length <= max_length
         return s
+    if max_length < 1
+        throw new Error("ValueError: max_length must be >= 1")
     n = Math.floor(max_length/2)
-    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
+    return s.slice(0, n - 1 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-n)
 
-# "foobar" --> "...bar"
+# "foobar" --> "…bar"
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return "..." + s.slice(s.length-max_length+3)
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return ELLIPSES + s.slice(s.length-max_length+1)
     else
         return s
 
@@ -1712,6 +1722,11 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
 
     return {command:command, args:args}
 
+exports.ensure_bound = (x, min, max) ->
+    return min if x < min
+    return max if x > max
+    return x
+
 # convert a file path to the "name" of the underlying editor tab.
 # needed because otherwise filenames like 'log' would cause problems
 exports.path_to_tab = (name) ->
@@ -1779,3 +1794,107 @@ exports.local_storage_length = () ->
         return localStorage.length
     catch e
         return 0
+
+# Takes an object representing a directed graph shaped as follows:
+# DAG =
+#     node1 : []
+#     node2 : ["node1"]
+#     node3 : ["node1", "node2"]
+#
+# Which represents the following graph:
+#   node1 ----> node2
+#     |           |
+#    \|/          |
+#   node3 <-------|
+#
+# Returns a topological ordering of the DAG
+#     object = ["node1", "node2", "node3"]
+#
+# Throws an error if cyclic
+# Runs in O(N + E) where N is the number of nodes and E the number of edges
+# Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
+exports.top_sort = (DAG, opts={omit_sources:false}) ->
+    {omit_sources} = opts
+    source_names = []
+    num_edges    = 0
+    data         = {}
+
+    # Ready the data for top sort
+    for name, parents of DAG
+        data[name] ?= {}
+        node = data[name]
+        node.name = name
+        node.children ?= []
+        node.parent_set = new Set(parents)
+        for parent_name in parents
+            data[parent_name] ?= {}
+            data[parent_name].children ?= []
+            data[parent_name].children.push(node)
+        if parents.length == 0
+            source_names.push(name)
+        else
+            num_edges += parents.length
+
+    # Top sort! Non-recursive method since recursion is way slow in javascript
+    path = []
+    num_sources = source_names.length
+    while source_names.length > 0
+        curr_name = source_names.shift()
+        path.push(curr_name)
+        for child in data[curr_name].children
+            child.parent_set.delete(curr_name)
+            num_edges -= 1
+            if child.parent_set.size == 0
+                source_names.push(child.name)
+
+    # Detect lack of sources
+    if num_sources == 0
+        throw new Error "No sources were detected"
+
+    # Detect cycles
+    if num_edges != 0
+        window?._DAG = DAG  # so it's possible to debug in browser
+        throw new Error "Store has a cycle in its computed values"
+
+    if omit_sources
+        return path.slice(num_sources)
+    else
+        return path
+
+# Takes an object with keys and values where
+# the values are functions and keys are the names
+# of the functions.
+# Dependency graph is created from the property
+# `dependency_names` found on the values
+# Returns an object shaped
+# DAG =
+#     func_name1 : []
+#     func_name2 : ["func_name1"]
+#     func_name3 : ["func_name1", "func_name2"]
+#
+# Which represents the following graph:
+#   func_name1 ----> func_name2
+#     |                |
+#    \|/               |
+#   func_name3 <-------|
+exports.create_dependency_graph = (object) =>
+    DAG = {}
+    for name, written_func of object
+        DAG[name] = written_func.dependency_names ? []
+    return DAG
+
+# Binds all functions in objects of 'arr_objects' to 'scope'
+# Preserves all properties and the toString of these functions
+# Returns a new array of objects in the same order given
+# Leaves arr_objects unaltered.
+exports.bind_objects = (scope, arr_objects) ->
+    return underscore.map arr_objects, (object) =>
+        return underscore.mapObject object, (val) =>
+            if typeof val == 'function'
+                original_toString = val.toString()
+                bound_func = val.bind(scope)
+                bound_func.toString = () => original_toString
+                Object.assign(bound_func, val)
+                return bound_func
+            else
+                return val

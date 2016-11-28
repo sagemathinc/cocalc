@@ -44,8 +44,6 @@ account = require('./account')
 
 {EventEmitter} = require('events')
 
-side_chat = require('./side_chat')
-
 {IS_MOBILE} = require('./feature')
 
 class AbstractSynchronizedDoc extends EventEmitter
@@ -62,7 +60,7 @@ exports.synchronized_string = synchronized_string
 class SynchronizedDocument extends AbstractSynchronizedDoc
     codemirrors: () =>
         v = [@codemirror]
-        if @editor._split_view
+        if @editor._layout > 0
             v.push(@codemirror1)
         return v
 
@@ -75,110 +73,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             n     : opts?.n
             delay : opts?.delay
             f     : @sync
-
-    ###
-    The rest of this class is chat functionality.  This will, of course, be factored out.
-    ###
-    init_chat: () =>
-        chat = @element.find(".salvus-editor-codemirror-chat")
-        input = chat.find(".salvus-editor-codemirror-chat-input")
-
-        # # send chat message
-        # input.keydown (evt) =>
-        #     if evt.which == 13 # enter
-        #         content = $.trim(input.val())
-        #         if content != ""
-        #             input.val("")
-        #             @write_chat_message
-        #                 event_type : "chat"
-        #                 payload    : {content : content}
-        #         return false
-
-        #@chat_session.on('sync', (=>@render_chat_log()))
-
-        #@render_chat_log()  # first time
-        @init_chat_toggle()
-        @init_video_toggle()
-
-
-    # This is an interface that allows messages to be passed between connected
-    # clients via a log in the filesystem. These messages are handled on all
-    # clients through the render_chat_log() method, which listens to the 'sync'
-    # event emitted by the chat_session object.
-
-    init_chat_toggle: () =>
-        title = @element.find(".salvus-editor-chat-title-text")
-        title.click () =>
-            if @editor._chat_is_hidden? and @editor._chat_is_hidden
-                @show_chat_window()
-            else
-                @hide_chat_window()
-        if @editor._chat_is_hidden
-            @hide_chat_window()
-        else
-            @show_chat_window()
-
-    show_chat_window: () =>
-        # SHOW the chat window
-        @editor._chat_is_hidden = false
-        @editor.local_storage("chat_is_hidden", false)
-        @element.find(".salvus-editor-chat-show").hide()
-        @element.find(".salvus-editor-chat-hide").show()
-        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
-        @element.find(".salvus-editor-codemirror-chat-column").show()
-        # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
-        # if you want to try to make this resizable
-        @editor.show()  # updates editor width
-        @editor.emit 'show-chat'
-        #@render_chat_log()
-        chat_height = @element.height() + 2 - @element.find(".salvus-editor-codemirror-button-row").height() - 70
-
-        @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-
-    hide_chat_window: () =>
-        # HIDE the chat window
-        @editor._chat_is_hidden = true
-        @editor.local_storage("chat_is_hidden", true)
-        @element.find(".salvus-editor-chat-hide").hide()
-        @element.find(".salvus-editor-chat-show").show()
-        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
-        @element.find(".salvus-editor-codemirror-chat-column").hide()
-        @editor.show()  # update size/display of editor (especially the width)
-        @editor.emit('hide-chat')
-
-    init_video_toggle: () =>
-        video_on_button  = @element.find(".salvus-editor-chat-video-is-off")
-        video_off_button = @element.find(".salvus-editor-chat-video-is-on")
-
-        video_on_button.click () =>
-            actions = redux.getActions(@_chat_redux_name)
-            actions.open_video_chat_window()
-            @element.find(".salvus-editor-chat-video-is-off").hide()
-            @element.find(".salvus-editor-chat-video-is-on").show()
-            actions._video_window.addEventListener "unload", () =>
-                @element.find(".salvus-editor-chat-video-is-off").show()
-                @element.find(".salvus-editor-chat-video-is-on").hide()
-
-        video_off_button.click () =>
-            actions = redux.getActions(@_chat_redux_name)
-            actions.close_video_chat_window()
-            @element.find(".salvus-editor-chat-video-is-off").show()
-            @element.find(".salvus-editor-chat-video-is-on").hide()
-
-    search_message_log: =>
-        messages = @chat_session.live()
-        messages = messages.split('\n')
-        all_messages = []
-        for m in messages
-            if $.trim(m) == ""
-                continue
-            try
-                new_message = JSON.parse(m)
-            catch e
-                continue # skip
-
-            all_messages.push(new_message)
-        return all_messages
 
 underscore = require('underscore')
 
@@ -385,14 +279,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
-        synchronized_string
-            project_id    : @project_id
-            filename      : misc.meta_file(@filename, 'chat')
-            cb            : (err, chat_session) =>
-                if not err  # err actually can't happen, since we retry until success...
-                    @chat_session = chat_session
-                    @init_chat()
-
     has_unsaved_changes: =>
         if not @codemirror?
             return false
@@ -555,10 +441,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
-            # LABEL: first fade the label out over 6s
-            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
-            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+            # LABEL: first fade the label out over 15s
+            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:15000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 25s.
+            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:25000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
@@ -575,7 +461,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if @_closed
             return
         @_syncstring?.close()
-        @chat_session?.close()
         # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
             cm.setOption("mode", "text/x-csrc")
