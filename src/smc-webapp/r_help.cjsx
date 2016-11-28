@@ -168,12 +168,11 @@ SUPPORT_LINKS =
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/smc'
-        link : 'Complete source code'
-        text : <span>(SageMathCloud is 100% open source)</span>
+        link : 'SageMathCloud source code'
     github_issue_tracker :
         icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/smc/issues'
-        link : 'Github issue tracker'
+        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
+        link : 'Known bugs in SageMathCloud'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
