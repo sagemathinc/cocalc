@@ -131,6 +131,38 @@ class PostgreSQL
                     args    : ['--host', @_host, '--port', @_port, @_database]
                     cb      : cb
 
+    _confirm_delete: (opts) =>
+        opts = defaults opts,
+            confirm : 'no'
+            cb      : required
+        dbg = @_dbg("confirm")
+        if opts.confirm != 'yes'
+            err = "Really delete all data? -- you must explicitly pass in confirm='yes' (but confirm:'#{opts.confirm}')"
+            dbg(err)
+            opts.cb(err)
+            return false
+        else
+            return true
+
+    # This will fail if any other clients have db open.
+    # This function is very important for automated testing.
+    delete_entire_database: (opts) =>
+        dbg = @_dbg("delete_entire_database")
+        dbg("deleting database '#{@_database}'")
+        if not @_confirm_delete(opts)
+            dbg("failed confirmation")
+            return
+        async.series([
+            (cb) =>
+                dbg("disconnect from db")
+                @_client.end(cb)
+            (cb) =>
+                misc_node.execute_code
+                    command : 'dropdb'
+                    args    : ['--host', @_host, '--port', @_port, @_database]
+                    cb      : cb
+        ], opts.cb)
+
     _ensure_trigger_exists: (table, columns, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
         dbg("columns=#{misc.to_json(columns)}")
@@ -263,9 +295,6 @@ class PostgreSQL
                         dbg("error creating tables -- #{err}")
                     cb(err)
         ], (err) => opts.cb?(err))
-
-    delete_entire_database: (opts) =>
-        throw Error("NotImplementedError")
 
     concurrent: () =>
         throw Error("NotImplementedError")
