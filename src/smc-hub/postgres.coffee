@@ -99,7 +99,36 @@ class PostgreSQL
         opts  = defaults opts,
             query  : required
             params : undefined
+            where  : undefined   # If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
+                                 # and values the corresponding params.  Also, WHERE must not be in the query already.
+                                 # If where[cond] is undefined, then cond is completely **ignored**.
             cb     : undefined
+        if opts.params? and not misc.is_array(opts.params)
+            opts.cb("params must be an array")
+            return
+        if opts.where?
+            if typeof(opts.where) != 'object'
+                opts.cb("where must be an object")
+                return
+            if opts.params?
+                opts.cb("params must not be given if where clause is given")
+                return
+            i = 1
+            z = []
+            p = []
+            for cond, param of opts.where
+                if typeof(cond) != 'string'
+                    opts.cb("each condition must be a string but '#{cond}' isn't")
+                    return
+                if not param?
+                    continue
+                z.push(cond.replace('$::', "$#{i}::"))
+                p.push(param)
+                i += 1
+            if z.length > 0
+                opts.params = p
+                opts.query += " WHERE #{z.join(' AND ')}"
+
         dbg = @_dbg("_query('#{opts.query}')")
         dbg("doing query (concurrent=#{@_concurrent_queries})")
         @_concurrent_queries += 1
@@ -413,32 +442,35 @@ class PostgreSQL
             start : undefined     # if not given start at beginning of time
             end   : undefined     # if not given include everything until now
             event : undefined
+            where : undefined     # if given, restrict to records with the given json
+                                  # containment, e.g., {account_id:'...'}, only returns
+                                  # entries whose value has the given account_id.
             cb    : required
-        query = 'SELECT * FROM central_log'
-        where = []
-        params = []
-        if opts.start?
-            params.push(opts.start)
-            where.push('time >= $1::TIMESTAMP')
-            if opts.end
-                params.push(opts.end)
-                where.push('time <= $2::TIMESTAMP')
-        else if opts.end?
-            params.push(opts.end)
-            where.push('time <= $1::TIMESTAMP')
-        if opts.event?
-            params.push(opts.event)
-            where.push("event = $#{params.length}::TEXT")
-        if where.length > 0
-            query += " WHERE #{where.join(' AND ')}"
         @_query
-            query  : query
-            params : params
+            query  : 'SELECT * FROM central_log'
+            where  :
+                'time  >= $::TIMESTAMP' : opts.start
+                'time  <= $::TIMESTAMP' : opts.end
+                'event  = $::TEXT'      : opts.event
+                'value @> $::JSONB'     : opts.where
             cb     : (err, result) =>
                 opts.cb(err, result?.rows)
 
+    # Return every entry x in central_log in the given period of time for
+    # which x.event==event and x.value.account_id == account_id.
     get_user_log: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            start      : undefined
+            end        : undefined     # if not given include everything until now
+            event      : 'successful_sign_in'
+            account_id : required
+            cb         : required
+        @get_log
+            start : opts.start
+            end   : opts.end
+            event : opts.event
+            where : {account_id: opts.account_id}
+            cb    : opts.cb
 
     log_client_error: (opts) =>
         throw Error("NotImplementedError")
