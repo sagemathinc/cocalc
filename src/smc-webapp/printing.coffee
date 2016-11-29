@@ -120,11 +120,17 @@ class SagewsPrinter extends Printer
         # cb: callback when done, usual err pattern
         # progress: callback to signal back messages about the conversion progress
         target_ext = misc.filename_extension(@output_file).toLowerCase()
-        switch target_ext
-            when 'pdf'
-                salvus_client.print_to_pdf(cb)
-            when 'html'
-                @html(cb, progress)
+        try
+            switch target_ext
+                when 'pdf'
+                    salvus_client.print_to_pdf(cb)
+                when 'html'
+                    @html(cb, progress)
+        catch e
+            err = "Exception trying to print to #{target_ext} -- #{e}"
+            console.error(err, e)
+            console.trace()
+            cb(err)
 
     generate_html: (data) ->
         if not @_html_tmpl?
@@ -241,7 +247,7 @@ class SagewsPrinter extends Printer
                 </footer>
 
                 <!-- https://highlightjs.org/usage/ -->
-                <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/ascetic.min.css">
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/ascetic.min.css">
                 <style>
                 .hljs {
                     overflow-x : inherit !important;
@@ -249,12 +255,12 @@ class SagewsPrinter extends Printer
                     background : none    !important;
                 }
                 </style>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/javascript.min.js"></script>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/python.min.js"></script>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/r.min.js"></script>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/coffeescript.min.js"></script>
-                <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/matlab.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/javascript.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/python.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/r.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/coffeescript.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/matlab.min.js"></script>
                 <script>hljs.initHighlightingOnLoad();</script>
                 </body>
                 </html>"""
@@ -284,7 +290,6 @@ class SagewsPrinter extends Printer
                 if misc.filename_extension(mesg.file.filename).toLowerCase() == 'sage3d'
                     for el in $(mark.replacedWith).find(".salvus-3d-container")
                         $3d = $(el)
-                        # console.log 'salvus 3d container', $3d
                         scene = $3d.data('salvus-threejs')
                         if not scene?
                             # when the document isn't fully processed, there is no scene data
@@ -339,6 +344,7 @@ class SagewsPrinter extends Printer
 
     html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
+        # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
         {MARKERS} = require('smc-util/sagews')
         @_html = [] # list of elements
         cm = @editor.codemirror
@@ -365,7 +371,7 @@ class SagewsPrinter extends Printer
         lines_total = cm.lineCount()
         async.whilst(
             ->
-                progress?("conversion #{misc.round2(100 * line / lines_total)} %")
+                progress?(.1 + .8 * line / lines_total, "line #{line}")
                 return line < lines_total
             ,
             (cb) =>
@@ -381,7 +387,7 @@ class SagewsPrinter extends Printer
                             _
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
-                            console.log 'output mark', mark
+                            console.debug 'output mark', mark
                             for mesg_ser in mark.rendered.split(MARKERS.output)
                                 if mesg_ser.length == 0
                                     continue
@@ -391,7 +397,7 @@ class SagewsPrinter extends Printer
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
 
-                                console.log 'output mesg', mesg
+                                console.debug 'output mesg', mesg
 
                                 if mesg.stdout?
                                     mesg_stdout.stdout += mesg.stdout
@@ -424,7 +430,7 @@ class SagewsPrinter extends Printer
             path       : @output_file
             content    : content
             cb         : (err, resp) =>
-                console.log("write_text_file_to_project.resp: '#{resp}'")
+                console.debug("write_text_file_to_project.resp: '#{resp}'")
                 cb?(err)
 
 # registering printers

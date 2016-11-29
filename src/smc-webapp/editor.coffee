@@ -1230,19 +1230,90 @@ class CodeMirrorEditor extends FileEditor
                             message : "Printing error -- #{err}"
 
     print_html: =>
-        switch @ext
-            when 'sagews'
-                output_fn = @filename + '.html'
-                progress = (mesg) =>
-                    console.log("Printer.print_html progress: #{mesg}")
-                done = (err) =>
-                    console.log 'Printer.print_html is done: err = ', err
-                    if not err
-                        a = redux.getProjectActions(@project_id)
-                        a.download_file
-                            path : output_fn
-                            auto : false  # open in new tab
-                printing.Printer(@, output_fn).print(done, progress)
+        dialog     = null
+        d_content  = null
+        d_open     = null
+        d_download = null
+        d_progress = (p) ->
+        output_fn  = null # set this before showing the dialog
+
+        show_dialog = (cb) =>
+            dialog = $("""
+            <div class="modal" tabindex="-1" role="dialog">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Print to HTML</h4>
+                  </div>
+                  <div class="modal-body">
+                    <div class="progress">
+                      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                        0 %
+                      </div>
+                    </div>
+                    <p class="content"></p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn-download btn btn-primary disabled">Download</button>
+                    <button type="button" class="btn-open btn btn-success disabled">Open</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            """)
+            d_content  = dialog.find('.content')
+            d_open     = dialog.find('.btn-open')
+            d_download = dialog.find('.btn-download')
+            action     = redux.getProjectActions(@project_id)
+            d_progress = (p) ->
+                pct = "#{100 * p}%"
+                dialog.find(".progress-bar").css('width', pct).text(pct)
+            dialog.find('.btn-close').click ->
+                dialog.modal('hide')
+                return false
+            d_open.click =>
+                action.download_file
+                    path : output_fn
+                    auto : false  # open in new tab
+            d_download.click =>
+                action.download_file
+                    path : output_fn
+                    auto : true
+            dialog.modal('show')
+            cb()
+
+        convert = (cb) =>
+            switch @ext
+                when 'sagews'
+                    output_fn = @filename + '.html'
+                    progress = (percent, mesg) =>
+                        d_content.text("#{misc.round2(100 * percent)} -- #{mesg}")
+                        d_progress(percent)
+                    progress = _.debounce(progress, 30)
+                    done = (err) =>
+                        console.log 'Printer.print_html is done: err = ', err
+                        if err
+                            d_content.text("Problem printing to HTML: #{err}")
+                        else
+                            d_content.text('Printing finished without errors.')
+                            d_progress(100)
+                            # enable open&download buttons
+                            dialog.find('button.btn').removeClass('disabled')
+                    printing.Printer(@, output_fn).print(done, progress)
+                    cb(); return
+
+            cb("err -- unable to convert files with extension '@ext'")
+
+        async.series([show_dialog, convert], (err) =>
+            if err
+                msg = "problem printing -- #{misc.to_json(err)}"
+                alert_message
+                    type    : "error"
+                    message : msg
+                dialog.content.text(msg)
+        )
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
