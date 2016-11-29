@@ -44,31 +44,43 @@ BLOB_GCLOUD_BUCKET = 'smc-blobs'
 
 
 exports.pg = (opts) ->
-    new PostgreSQL(opts)
+    return new PostgreSQL(opts)
 
 class PostgreSQL
     constructor: (opts) ->
         opts = defaults opts,
             host     : 'localhost'
             database : 'smc'
+            port     : 5432
             debug    : true
             cb       : undefined
         @_debug    = opts.debug
         @_host     = opts.host
+        @_port     = opts.port
         @_database = opts.database
         @_connect(opts.cb)
 
     _connect: (cb) =>
         dbg = @_dbg("connect"); dbg()
-        pg.connect "postgres://#{@_host}/#{@_database}", (err, client) =>
+        async.series([
+            (cb) =>
+                dbg("first make sure db exists")
+                @_ensure_database_exists(cb)
+            (cb) =>
+                @_client = new pg.Client
+                    host     : @_host
+                    port     : @_port
+                    database : @_database
+                @_client.on('notification', @_notification)
+                @_client.connect(cb)
+        ], (err) =>
             if err
                 dbg("Failed to connect to database -- #{err}")
                 cb?(err)
             else
                 dbg("connected!")
-                @_client = client
-                @_client.on('notification', @_notification)
-                cb?()
+                cb?(undefined, @)
+        )
 
     _dbg: (f) =>
         if @_debug
@@ -93,6 +105,28 @@ class PostgreSQL
                 dbg('done -- success')
             opts.cb?(err, result)
         return
+
+    _ensure_database_exists: (cb) =>
+        dbg = @_dbg("_ensure_database_exists")
+        dbg("ensure database '#{@_database}' exists")
+        misc_node.execute_code
+            command : 'psql'
+            args    : ['--host', @_host, '--port', @_port,
+                       '--list', '--tuples-only']
+            cb      : (err, output) =>
+                if err
+                    cb(err)
+                    return
+                databases = (x.split('|')[0].trim() for x in output.stdout.split('\n') when x)
+                if @_database in databases
+                    dbg("database '#{@_database}' already exists")
+                    cb()
+                    return
+                dbg("creating database '#{@_database}'")
+                misc_node.execute_code
+                    command : 'createdb'
+                    args    : ['--host', @_host, '--port', @_port, @_database]
+                    cb      : cb
 
     _ensure_trigger_exists: (table, columns, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
@@ -149,12 +183,18 @@ class PostgreSQL
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA
     update_schema: (opts) =>
-        throw Error("NotImplementedError")
-
+        opts = defaults opts,
+            cb : undefined
+         dbg = @_dbg("update_schema"); dbg()
+         async.series([
+            (cb) =>
+                cb()
+         ], (err) =>
+            opts.cb?(err)
+         )
 
     delete_entire_database: (opts) =>
         throw Error("NotImplementedError")
-
 
     concurrent: () =>
         throw Error("NotImplementedError")
