@@ -599,7 +599,7 @@ Other misc functions
 
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
-pg_type = (info) ->
+pg_type = (info, field) ->
     if typeof(info) == 'boolean'
         throw Error("pg_type: insufficient information to determine type (info=boolean)")
     if info.pg_type
@@ -614,9 +614,13 @@ pg_type = (info) ->
             return 'TIMESTAMP'
         when 'string'
             return 'TEXT'
+        when 'boolean'
+            return 'BOOLEAN'
         when 'map'
             return 'JSONB'
-        when 'number'
+        when 'integer'
+            return 'INTEGER'
+        when 'number', 'double', 'float'
             return 'DOUBLE PRECISION'
         when 'array'
             throw Error("pg_type: you must specify the array type explicitly")

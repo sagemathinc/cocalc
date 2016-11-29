@@ -132,13 +132,13 @@ schema.accounts =
             type : 'map'
             desc : 'Settings for the terminal, e.g., font_size, etc. (see get query)'
         autosave :
-            type : 'number'
+            type : 'integer'
             desc : 'File autosave interval in seconds'
         evaluate_key :
             type : 'string'
             desc : 'Key used to evaluate code in Sage worksheet.'
         font_size :
-            type : 'number'
+            type : 'integer'
             desc : 'Default font-size for the editor, jupyter, etc. (px)'
         last_active :
             type : 'timestamp'
@@ -240,7 +240,7 @@ schema.blobs =
             type : 'Buffer'
             desc : 'The actual blob content'
         ttl    :
-            type : 'number'
+            type : 'integer'
             desc : 'Number of seconds that the blob will live or 0 to make it never expire.'
         expire :
             type : 'timestamp'
@@ -327,11 +327,16 @@ schema.client_error_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
-        id         : true
-        event      : true
-        error      : true
-        account_id : true
-        time       : true
+        id         :
+            type : 'uuid'
+        event      :
+            type : 'string'
+        error      :
+            type : 'string'
+        account_id :
+            type : 'uuid'
+        time       :
+            type : 'timestamp'
     indexes:
         time : []
         event : []
@@ -355,23 +360,36 @@ schema.collaborators =
 schema.compute_servers =
     primary_key : 'host'
     fields :
-        host         : true
-        dc           : true
-        port         : true
-        secret       : true
-        experimental : true
-        member_host  : true
-        status       : true   # map {stuff:?,...,timestamp:?}
+        host         :
+            type : 'string'
+        dc           :
+            type : 'string'
+        port         :
+            type : 'string'
+        secret       :
+            type : 'string'
+        experimental :
+            type : 'boolean'
+        member_host  :
+            type : 'boolean'
+        status       :
+            type : 'map'
+            desc : 'something like {stuff:?,...,timestamp:?}'
 
 schema.file_access_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
-        id         : true
-        project_id : true
-        account_id : true
-        filename   : true
-        time       : true
+        id         :
+            type : 'uuid'
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        filename   :
+            type : 'string'
+        time       :
+            type : 'timestamp'
     indexes:
         project_id : []
         time       : []
@@ -381,11 +399,18 @@ schema.file_use =
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
-        id          : true
-        project_id  : true
-        path        : true
-        users       : true
-        last_edited : true
+        id          :
+            type : 'uuid'
+        project_id  :
+            type : 'uuid'
+        path        :
+            type : 'string'
+        users       :
+            type : 'map'
+            desc : '{account_id: {1action1: timestamp1, action2:timestamp2}, account_id2: {...}}'
+        last_edited :
+            type : 'timestamp'
+
     indexes:
         project_id                    : []
         last_edited                   : []
@@ -431,38 +456,62 @@ schema.hub_servers =
     primary_key : 'host'
     durability : 'soft' # loss of some log data not serious, since ephemeral and expires quickly anyways
     fields:
-        expire : true
+        expire :
+            type : 'timestamp'
+        host :
+            type : 'string'
+        port :
+            type : 'integer'
+        clients :
+            type : 'integer'
     indexes:
         expire : []
 
 schema.instances =
     primary_key: 'name'
     fields:
-        name                  : true
-        gce                   : true
-        gce_sha1              : true
-        requested_preemptible : true  # true or false
-        requested_status      : true  # 'RUNNING', 'TERMINATED'
-        action                : true  # {action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}
+        name                  :
+            type : 'string'
+        gce                   :
+            type : 'map'
+        gce_sha1              :
+            type : 'string'
+        requested_preemptible :
+            type : 'boolean'
+        requested_status      :
+            type : 'string'
+            desc : "One of 'RUNNING', 'TERMINATED'"
+        action                :
+            type : 'map'
+            desc : "{action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}"
 
 schema.instance_actions_log =
     primary_key: 'id'
     fields:
-        id        : true
-        name      : true  # hostname of vm
-        action    : true  # same as finished action object for instances above
+        id        :
+            type : 'uuid'
+        name      :
+            type : 'string'
+            desc : 'hostname of vm'
+        action    :
+            type : 'map'
+            desc : 'same as finished action object for instances above'
 
 schema.passport_settings =
     primary_key:'strategy'
     fields:
-        strategy : true
-        conf     : true
+        strategy :
+            type : 'string'
+        conf     :
+            type : 'map'
 
 schema.password_reset =
     primary_key: 'id'
     fields:
-        email_address : true
-        expire        : true
+        email_address :
+            type : 'string'
+        expire        :
+            type : 'timestamp'
     indexes:
         expire : []  # only used by delete_expired
 
@@ -470,9 +519,13 @@ schema.password_reset_attempts =
     primary_key: 'id'
     durability : 'soft' # loss not serious, since used only for analytics and preventing attacks
     fields:
-        email_address : true
-        ip_address    : true
-        time          : true
+        email_address :
+            type : 'string'
+        ip_address    :
+            type : 'string'
+            pg_type : 'inet'
+        time          :
+            type : 'timestamp'
     indexes:
         email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
         ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
@@ -481,13 +534,22 @@ schema.password_reset_attempts =
 schema.project_log =
     primary_key: 'id'
     durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
-
     fields :
-        id          : true  # which
-        project_id  : true  # where
-        time        : true  # when
-        account_id  : true  # who
-        event       : true  # what
+        id          :
+            type : 'uuid'
+            desc : 'which'
+        project_id  :
+            type : 'uuid'
+            desc : 'where'
+        time        :
+            type : 'timestamp'
+            desc : 'when'
+        account_id  :
+            type : 'uuid'
+            desc : 'who'
+        event       :
+            type : 'map'
+            desc : 'what'
 
     indexes:
         project_id        : []
