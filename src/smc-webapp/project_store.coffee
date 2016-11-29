@@ -156,7 +156,7 @@ class ProjectActions extends Actions
     # Updates the URL
     set_active_tab: (key) =>
         store = @get_store()
-        if store.get('active_project_tab') == key
+        if store.active_project_tab == key
             # nothing to do
             return
         @setState(active_project_tab : key)
@@ -168,12 +168,12 @@ class ProjectActions extends Actions
                 @set_directory_files(store.current_path, sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
-                @push_state('new/' + store.get('current_path'))
+                @push_state('new/' + store.current_path)
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
                 @push_state('log')
             when 'search'
-                @push_state('search/' + store.get('current_path'))
+                @push_state('search/' + store.current_path)
             when 'settings'
                 @push_state('settings')
             else #editor...
@@ -525,7 +525,10 @@ class ProjectActions extends Actions
             else
                 @foreground_project()
                 @set_current_path(path)
-                @set_active_tab('files')
+                if @get_store().active_project_tab == 'files'
+                    @set_url_to_path(path)
+                else
+                    @set_active_tab('files')
                 @set_all_files_unchecked()
 
     # ONLY updates current path
