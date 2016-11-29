@@ -396,11 +396,46 @@ class PostgreSQL
             tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
         async.map(tables, f, opts.cb)
 
+    # write an event to the central_log table
     log: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            event : required    # string
+            value : required    # object
+            cb    : undefined
+        @_query
+            query  : 'INSERT INTO central_log (id, event, value, time) VALUES ($1::UUID, $2::TEXT, $3::JSONB, NOW())'
+            params : [misc.uuid(), opts.event, opts.value]
+            cb     : (err) => opts.cb?(err)
 
+    # dump a range of data from the central_log table
     get_log: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            cb    : required
+        query = 'SELECT * FROM central_log'
+        where = []
+        params = []
+        if opts.start?
+            params.push(opts.start)
+            where.push('time >= $1::TIMESTAMP')
+            if opts.end
+                params.push(opts.end)
+                where.push('time <= $2::TIMESTAMP')
+        else if opts.end?
+            params.push(opts.end)
+            where.push('time <= $1::TIMESTAMP')
+        if opts.event?
+            params.push(opts.event)
+            where.push("event = $#{params.length}::TEXT")
+        if where.length > 0
+            query += " WHERE #{where.join(' AND ')}"
+        @_query
+            query  : query
+            params : params
+            cb     : (err, result) =>
+                opts.cb(err, result?.rows)
 
     get_user_log: (opts) =>
         throw Error("NotImplementedError")
