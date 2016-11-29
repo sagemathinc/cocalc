@@ -363,9 +363,38 @@ class PostgreSQL
     set_random_password: (opts) =>
         throw Error("NotImplementedError")
 
-
+    # Go through every table in the schema with a column called "expire", and
+    # delete every entry where expire is <= right now.
+    # TODO: I took out everything related to throttling from the RethinkDB
+    # version -- maybe postgres is much more efficient!
     delete_expired: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            count_only : true       # if true, only count the number of rows that would be deleted
+            table      : undefined  # only delete from this table
+            cb         : required
+        dbg = @_dbg("delete_expired(...)")
+        dbg()
+        f = (table, cb) =>
+            dbg("table='#{table}'")
+            if opts.count_only
+                @_query
+                    query : "SELECT COUNT(*) FROM #{table} WHERE expire <= NOW()"
+                    cb    : (err, result) =>
+                        if not err
+                            dbg("COUNT for table #{table} is #{result.rows[0].count}")
+                        cb(err)
+            else
+                dbg("deleting expired entries from '#{table}'")
+                @_query
+                    query : "DELETE FROM #{table} WHERE expire <= NOW()"
+                    cb    : (err) =>
+                        dbg("finished deleting expired entries from '#{table}' -- #{err}")
+                        cb(err)
+        if opts.table
+            tables = [opts.table]
+        else
+            tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
+        async.map(tables, f, opts.cb)
 
     log: (opts) =>
         throw Error("NotImplementedError")
