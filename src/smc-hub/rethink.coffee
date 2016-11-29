@@ -759,7 +759,7 @@ class RethinkDB
                 @r.dbDrop(@_database).run(opts.cb)
 
     # Deletes all the contents of the tables in the database.  It doesn't
-    # delete indexes or or tables.
+    # delete anything about the schema itself: indexes or tables.
     delete_all: (opts) =>
         if not @_confirm_delete(opts)
             return

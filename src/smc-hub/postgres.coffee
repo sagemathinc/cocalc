@@ -166,6 +166,26 @@ class PostgreSQL
                     cb      : cb
         ], opts.cb)
 
+    # Deletes all the contents of the tables in the database.  It doesn't
+    # delete anything about the schema itself: indexes or tables.
+    delete_all: (opts) =>
+        dbg = @_dbg("delete_all")
+        dbg("deleting all contents of tables in '#{@_database}'")
+        if not @_confirm_delete(opts)
+            return
+        tables = undefined
+        async.series([
+            (cb) =>
+                @_get_tables (err, t) =>
+                    tables = t; cb(err)
+            (cb) =>
+                f = (table, cb) =>
+                    @_query
+                        query : "DELETE FROM #{table}"
+                        cb    : cb
+                async.map(tables, f, cb)
+        ], opts.cb)
+
     _ensure_trigger_exists: (table, columns, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
         dbg("columns=#{misc.to_json(columns)}")
@@ -303,23 +323,46 @@ class PostgreSQL
     concurrent: () =>
         return @_concurrent_queries
 
-    table: (name, opts) =>
-        throw Error("NotImplementedError")
-
+    # Server-side changefeed-updated table, which automatically restart changefeed
+    # on error, etc.  See SyncTable docs where the class is defined.
     synctable: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            query          : required
+            primary_key    : undefined  # if not given, will use the one for the whole table -- value *must* be a string
+            idle_timeout_s : undefined  # if given, synctable will disconnect from remote database if nothing happens for this long; this mean on 'change' events won't get fired on change.  Any function calls on the SyncTable will reset this timeout and reconnect.  Also, call .connect () => to ensure that everything is current before using synctable.
+            cb             : required
+        new SyncTable(opts.query, opts.primary_key, @, opts.idle_timeout_s, opts.cb)
+        return
 
+    # Any time a record changes in any of the given tables,
+    # calls the cb with the change.
     watch: (opts) =>
         throw Error("NotImplementedError")
 
+    # Wait until the query results in at least one result obj, and
+    # calls cb(undefined, obj).
+    # TODO: rethinkdb api says:  "This is not robust to connection to database ending, etc. --
+    # in those cases, get cb(err)."  -- maybe we can do better this time?
     wait: (opts) =>
+        opts = defaults opts,
+            until     : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
+            timeout_s : undefined
+            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
         throw Error("NotImplementedError")
+
+    # Compute the sha1 hash (in hex) of the input arguments, which are
+    # converted to strings (via json) if they are not strings, then concatenated.
+    # This is used for computing compound primary keys in a way that is relatively
+    # safe, and in situations where if there were a highly unlikely collision, it
+    # wouldn't be the end of the world.  There is a similar client-only slower version
+    # of this function (in schema.coffee), so don't change it willy nilly.
+    sha1: (args...) ->
+        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        return misc_node.sha1(v)
 
     set_random_password: (opts) =>
         throw Error("NotImplementedError")
 
-    delete_all: (opts) =>
-        throw Error("NotImplementedError")
 
     delete_expired: (opts) =>
         throw Error("NotImplementedError")
@@ -587,25 +630,25 @@ class PostgreSQL
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     connect: (opts) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     get: (key) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     getIn: (x) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     has: (key) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     close: (keep_listeners) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
     wait: (opts) =>
-        raise Error("NotImplementedError")
+        throw Error("NotImplementedError")
 
 ###
 Trigger functions
