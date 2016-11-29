@@ -60,6 +60,7 @@ class PostgreSQL
         @_host     = opts.host
         @_port     = opts.port
         @_database = opts.database
+        @_concurrent_queries = 0
         @_connect(opts.cb)
 
     _connect: (cb) =>
@@ -100,12 +101,14 @@ class PostgreSQL
             params : undefined
             cb     : undefined
         dbg = @_dbg("_query('#{opts.query}')")
-        dbg("doing query")
+        dbg("doing query (concurrent=#{@_concurrent_queries})")
+        @_concurrent_queries += 1
         @_client.query opts.query, opts.params, (err, result) =>
+            @_concurrent_queries -= 1
             if err
-                dbg("done -- error: #{err}")
+                dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
             else
-                dbg('done -- success')
+                dbg("done (concurrent=#{@_concurrent_queries}) -- success")
             opts.cb?(err, result)
         return
 
@@ -296,8 +299,9 @@ class PostgreSQL
                     cb(err)
         ], (err) => opts.cb?(err))
 
+    # Return the number of outstanding concurrent queries.
     concurrent: () =>
-        throw Error("NotImplementedError")
+        return @_concurrent_queries
 
     table: (name, opts) =>
         throw Error("NotImplementedError")
