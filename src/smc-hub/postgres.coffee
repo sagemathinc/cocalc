@@ -99,19 +99,49 @@ class PostgreSQL
         opts  = defaults opts,
             query  : required
             params : undefined
-            where  : undefined   # If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
+            where  : undefined   # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
                                  # and values the corresponding params.  Also, WHERE must not be in the query already.
                                  # If where[cond] is undefined, then cond is completely **ignored**.
+            values : undefined   # Used for INSERT: If given, then params and where must not be given.   Values is a map
+                                 # {field1:[{type1:value}|string], field2:[{type2:value}|string], ...} which gets converted to
+                                 # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
+                                 # with corresponding params set.
             cb     : undefined
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
             return
+        if opts.values?
+            if opts.where? or opts.params?
+                opts.cb("where and params must not be defined if opts.values is defined")
+                return
+            i = 1
+            fields = []
+            params = []
+            values = []
+            for field, v of opts.values
+                fields.push(field)
+                if typeof(v) == 'string'
+                    if v.indexOf('$') != -1
+                        opts.cb("if value is a string it must not contain $")
+                        return
+                    values.push(v)
+                else
+                    if typeof(v) != 'object'
+                        opts.cb("values (=#{misc.to_json(v)}) must be of the form {type1:value} or string")
+                        return
+                    for type, param of v
+                        values.push("$#{i}::#{type}")
+                        params.push(param)
+                        i += 1
+                        break  # v should have just one thing in it.
+            opts.params = params
+            opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')})"
         if opts.where?
             if typeof(opts.where) != 'object'
                 opts.cb("where must be an object")
                 return
-            if opts.params?
-                opts.cb("params must not be given if where clause is given")
+            if opts.params? or opts.values?
+                opts.cb("params (or values) must not be given if where clause is given")
                 return
             i = 1
             z = []
@@ -224,7 +254,7 @@ class PostgreSQL
             (cb) =>
                 dbg("checking whether or not trigger exists")
                 @_query
-                    query : "SELECT count(*) FROM  pg_trigger where tgname = '#{tgname}'"
+                    query : "SELECT count(*) FROM pg_trigger WHERE tgname = '#{tgname}'"
                     cb    : (err, result) =>
                         if err
                             cb(err)
@@ -281,9 +311,10 @@ class PostgreSQL
     # Return list of columns in a given table
     _get_columns: (table, cb) =>
         @_query
-            query  : "SELECT column_name FROM information_schema.columns WHERE table_name = $1::text"
-            params : [table]
-            cb     : (err, result) =>
+            query : "SELECT column_name FROM information_schema.columns"
+            where :
+                "table_name = $::text" : table
+            cb    : (err, result) =>
                 if err
                     cb(err)
                 else
@@ -432,8 +463,12 @@ class PostgreSQL
             value : required    # object
             cb    : undefined
         @_query
-            query  : 'INSERT INTO central_log (id, event, value, time) VALUES ($1::UUID, $2::TEXT, $3::JSONB, NOW())'
-            params : [misc.uuid(), opts.event, opts.value]
+            query  : 'INSERT INTO central_log'
+            values :
+                id    : UUID  : misc.uuid()
+                event : TEXT  : opts.event
+                value : JSONB : opts.value
+                time  : 'NOW()'
             cb     : (err) => opts.cb?(err)
 
     # dump a range of data from the central_log table
