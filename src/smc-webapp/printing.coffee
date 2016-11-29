@@ -138,15 +138,22 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            @_html_tmpl = _.template """
+            SiteName = redux.getStore('customize').site_name ? 'SageMathCloud'
+            if window?
+                loc = window.location
+                url = "#{loc.protocol}//#{loc.hostname}/#{window.smc_base_url ? ''}"
+            else
+                url = 'https://cloud.sagemath.com/'
+
+            @_html_tmpl = """
                 <!doctype html>
                 <html lang="en">
                 <head>
                     <meta charset="utf-8">
 
-                    <title><%= title %></title>
-                    <meta name="description" content="automatically generated from <%= filename %> on SageMathCloud">
-                    <meta name="date" content="<%= timestamp %>">
+                    <title>#{data.title}</title>
+                    <meta name="description" content="automatically generated from '#{data.filename} on SageMathCloud">
+                    <meta name="date" content="#{data.timestamp}">
 
                     <style>
                         html {
@@ -208,6 +215,8 @@ class SagewsPrinter extends Printer
                             font-family: monospace;
                         }
                         footer {
+                            margin-top: 1rem;
+                            border-top: .1rem solid #888;
                             font-size: 70%;
                             color: #888;
                             text-align: center;
@@ -222,13 +231,14 @@ class SagewsPrinter extends Printer
 
                 <body>
                 <div class="header">
-                    <h1><%= title %></h1>
+                    <h1>#{data.title}</h1>
                 </div>
-                <%= content %>
-                <hr size=1>
-                <div class="footer">
-                    <div>generated <%= timestamp %></div>
-                </div>
+                #{data.content}
+                <footer>
+                    <div>generated #{data.timestamp} on
+                    <a href="#{url}">#{SiteName}</a>
+                    </div>
+                </footer>
 
                 <!-- https://highlightjs.org/usage/ -->
                 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/ascetic.min.css">
@@ -248,7 +258,7 @@ class SagewsPrinter extends Printer
                 <script>hljs.initHighlightingOnLoad();</script>
                 </body>
                 </html>"""
-        return @_html_tmpl(data)
+        return @_html_tmpl
 
     html_process_output_mesg: (mesg, mark) ->
         out = null
@@ -400,18 +410,19 @@ class SagewsPrinter extends Printer
                     msg = "error processing line #{line}: '#{x}'"
                     console.error(msg)
                     cb?(err)
+                    return
         )
 
-        html_data =
+        content = @generate_html
             title     : @editor.filename
             filename  : @editor.filename
             content   : (h for h in @_html).join('\n')
-            timestamp : "#{new Date()}"
+            timestamp : "#{(new Date()).toISOString()}"
 
         salvus_client.write_text_file_to_project
             project_id : @editor.project_id
             path       : @output_file
-            content    : @generate_html(html_data)
+            content    : content
             cb         : (err, resp) =>
                 console.log("write_text_file_to_project.resp: '#{resp}'")
                 cb?(err)

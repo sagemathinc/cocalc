@@ -1219,7 +1219,7 @@ class CodeMirrorEditor extends FileEditor
                 else
                     @print_sagews()
             when 'txt', 'csv'
-                print_button = @element.find("a[href=\"#print\"]")
+                print_button = @element.find('a[href="#print"]')
                 print_button.icon_spin(start:true, delay:0).addClass("disabled")
                 printing.Printer(@, @filename + '.pdf').print (err) ->
                     print_button.removeClass('disabled')
@@ -1232,17 +1232,17 @@ class CodeMirrorEditor extends FileEditor
     print_html: =>
         switch @ext
             when 'sagews'
-                progress = (mesg) ->
-                    console.log("print_html progress: #{mesg}")
                 output_fn = @filename + '.html'
-                printing.Printer(@, output_fn).print((err) =>
-                    console.log 'Printer.print is done: err = ', err
+                progress = (mesg) =>
+                    console.log("Printer.print_html progress: #{mesg}")
+                done = (err) =>
+                    console.log 'Printer.print_html is done: err = ', err
                     if not err
                         a = redux.getProjectActions(@project_id)
                         a.download_file
                             path : output_fn
                             auto : false  # open in new tab
-                , progress)
+                printing.Printer(@, output_fn).print(done, progress)
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
