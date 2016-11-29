@@ -34,6 +34,8 @@ misc_node  = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required   = defaults.required
 
+# TODO: this is purely for interactive debugging -- remove later.
+global.done = global.d = misc.done
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
 # NOTE: We should add this to site configuration, and have it get read once when first
@@ -94,11 +96,12 @@ class PostgreSQL
 
     _query: (opts) =>
         opts  = defaults opts,
-            query : required
-            cb    : undefined
+            query  : required
+            params : undefined
+            cb     : undefined
         dbg = @_dbg("_query('#{opts.query}')")
         dbg("doing query")
-        @_client.query opts.query, (err, result) =>
+        @_client.query opts.query, opts.params, (err, result) =>
             if err
                 dbg("done -- error: #{err}")
             else
@@ -181,17 +184,71 @@ class PostgreSQL
                 cb?()
         )
 
+    # return list of tables in the database
+    _get_tables: (cb) =>
+        @_query
+            query : "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+            cb    : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(undefined, (row.table_name for row in result.rows))
+
+    # Return list of columns in a given table
+    _get_columns: (table, cb) =>
+        @_query
+            query  : "SELECT column_name FROM information_schema.columns WHERE table_name = $1::text"
+            params : [table]
+            cb     : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(undefined, (row.column_name for row in result.rows))
+
+    _create_table: (table, cb) =>
+        schema = SCHEMA[table]
+        if not schema?
+            cb("no table '#{table}' in schema")
+            return
+        if schema.virtual
+            cb("table '#{table}' is virtual")
+            return
+        columns = []
+        for column, info of schema.fields
+            s = "#{column} #{pg_type(info)}"
+            if schema.primary_key == column
+                s += " PRIMARY KEY"
+            columns.push(s)
+        @_query
+            query  : "CREATE TABLE #{table} (#{columns.join(',')})"
+            cb     : cb
+
     # Ensure that the actual schema in the database matches the one defined in SCHEMA
     update_schema: (opts) =>
         opts = defaults opts,
             cb : undefined
-         dbg = @_dbg("update_schema"); dbg()
-         async.series([
+        dbg = @_dbg("update_schema"); dbg()
+
+        goal_tables = (t for t,s of SCHEMA when t not in x and not s.virtual)
+        dbg("goal_tables = #{misc.to_json(goal_tables)}")
+        psql_tables = undefined
+        async.series([
             (cb) =>
-                cb()
-         ], (err) =>
-            opts.cb?(err)
-         )
+                dbg("get tables")
+                @_get_tables (err, t) =>
+                    psql_tables = t
+                    dbg("psql_tables = #{misc.to_json(psql_tables)}")
+                    cb(err)
+            (cb) =>
+                to_create = (table for table in goal_tables when table not in psql_tables)
+                if to_create.length == 0
+                    dbg("there are no missing tables in psql")
+                    cb()
+                    return
+
+
+
+        ], (err) => opts.cb?(err))
 
     delete_entire_database: (opts) =>
         throw Error("NotImplementedError")
@@ -481,7 +538,31 @@ class PostgreSQL
     count_timespan: (opts) =>
         throw Error("NotImplementedError")
 
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
+        raise Error("NotImplementedError")
 
+    connect: (opts) =>
+        raise Error("NotImplementedError")
+
+    get: (key) =>
+        raise Error("NotImplementedError")
+
+    getIn: (x) =>
+        raise Error("NotImplementedError")
+
+    has: (key) =>
+        raise Error("NotImplementedError")
+
+    close: (keep_listeners) =>
+        raise Error("NotImplementedError")
+
+    wait: (opts) =>
+        raise Error("NotImplementedError")
+
+###
+Trigger functions
+###
 trigger_name = (table) ->
     return "changes_#{table}"
 
@@ -512,25 +593,35 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER #{tgname} AFTER INSERT OR UPDATE OR DELETE ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
 """
 
-class SyncTable extends EventEmitter
-    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
-        raise Error("NotImplementedError")
+###
+Other misc functions
+###
 
-    connect: (opts) =>
-        raise Error("NotImplementedError")
-
-    get: (key) =>
-        raise Error("NotImplementedError")
-
-    getIn: (x) =>
-        raise Error("NotImplementedError")
-
-    has: (key) =>
-        raise Error("NotImplementedError")
-
-    close: (keep_listeners) =>
-        raise Error("NotImplementedError")
-
-    wait: (opts) =>
-        raise Error("NotImplementedError")
+# Convert from info in the schema table to a pg type
+# See https://www.postgresql.org/docs/devel/static/datatype.html
+pg_type = (info) ->
+    if typeof(info) == 'boolean'
+        throw Error("pg_type: insufficient information to determine type (info=boolean)")
+    if info.pg_type
+        return info.pg_type
+    if not info.type?
+        throw Error("pg_type: insufficient information to determine type (pg_type and type both not given)")
+    type = info.type.toLowerCase()
+    switch type
+        when 'uuid'
+            return 'UUID'
+        when 'timestamp'
+            return 'TIMESTAMP'
+        when 'string'
+            return 'TEXT'
+        when 'map'
+            return 'JSONB'
+        when 'number'
+            return 'DOUBLE PRECISION'
+        when 'array'
+            throw Error("pg_type: you must specify the array type explicitly")
+        when 'buffer'
+            return "BYTEA"
+        else
+            throw Error("pg_type: unknown type '#{type}'")
 

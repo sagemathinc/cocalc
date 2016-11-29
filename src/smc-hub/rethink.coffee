@@ -824,7 +824,7 @@ class RethinkDB
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
-            value : required
+            value : required    # object
             cb    : undefined
         value = if typeof(opts.value) == 'object' then misc.map_without_undefined(opts.value) else opts.value
         @table('central_log').insert({event:opts.event, value:value, time:new Date()}).run((err)=>opts.cb?(err))

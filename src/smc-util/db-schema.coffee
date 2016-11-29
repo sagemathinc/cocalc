@@ -154,6 +154,7 @@ schema.accounts =
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
         groups :
             type : 'array'
+            pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
@@ -309,10 +310,14 @@ schema.central_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields :
-        id    : true
-        event : true
-        value : true
-        time  : true
+        id    :
+            type : 'uuid'
+        event :
+            type : 'string'
+        value :
+            type : 'map'
+        time  :
+            type : 'timestamp'
     indexes:
         time  : []
         event : []
