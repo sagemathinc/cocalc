@@ -13,6 +13,7 @@ schema.syncstrings =
     fields :
         string_id :
             type : 'sha1'
+            pg_type : 'CHAR(40)'
             desc : 'id of this synchronized string sha1 hash of (project_id and path)'
         project_id :
             type : 'uuid'
@@ -30,7 +31,7 @@ schema.syncstrings =
             type : 'boolean'
             desc : 'if true, the file was deleted; client **must** create file on disk before editing again.'
         init :
-            type : 'object'
+            type : 'map'
             desc : '{time:timestamp, error:?} - info about what happened when backend tried to initialize this string'
         save :
             type : 'map'
@@ -40,6 +41,7 @@ schema.syncstrings =
             desc : 'true or false, depending on whether this syncstring is readonly or can be edited'
         users :
             type : 'array'
+            pg_type : 'UUID[]'
             desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
         last_snapshot :
             type : 'timestamp'
@@ -96,7 +98,6 @@ schema.syncstrings =
             on_change : (db, old_val, new_val, account_id, cb) ->
                 db._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
 
-
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)
 
 schema.syncstrings_delete  =
@@ -148,21 +149,25 @@ schema.recent_syncstrings_in_project =
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
 schema.patches =
-    primary_key   : 'id'  # this is a compound primary key as an array -- [string_id, time]
+    primary_key   : 'id'   # this is a compound primary key as an array -- [string_id, time]
     unique_writes : true   # there is no reason for a user to write exactly the same record twice
     fields :
         id       :
             type : 'compound key [string_id, time]'
+            pg_type:
+                string_id : 'UUID'
+                time      : 'TIMESTAMP'
             desc : 'Primary key'
         user     :
-            type : 'number'
+            type : 'integer'
             desc : 'a nonnegative integer; this is an index into syncstrings.users'
         patch    :
             type : 'string'
-            desc : 'JSON string the parses to a patch, which goes from the previous of the syncstring to this version'
+            pg_type : 'JSON'   # not JSONB since no need to parse or do anything with this.
+            desc : 'JSON string that parses to a patch, which transforms the previous version of the syncstring to this version'
         snapshot :
             type : 'string'
-            desc : 'Optionally, gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
+            desc : 'Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
         sent :
             type : 'timestamp'
             desc : 'Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.'
@@ -235,14 +240,23 @@ schema.patches_delete  =
                 # this verifies that user has read access to these patches -- redundant with admin requirement above.
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
 
-
 schema.cursors =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
     durability : 'soft' # loss of data for the cursors table just doesn't matter
     fields:
-        id   : true    # [string_id, user_id]
-        locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
-        time : true    # time when these cursor positions were sent out
+        id   :
+            type : 'compound key [string_id, user_id]'
+            pg_type:
+                string_id : 'UUID'
+                user_id   : 'UUID'
+            desc : '[string_id, user_id]'
+        locs :
+            type : 'array'
+            pg_type : 'JSONB[]'
+            desc : "[{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)"
+        time :
+            type : 'timestamp'
+            desc : 'time when these cursor positions were sent out'
     indexes :
         string_id : ["that.r.row('id')(0)"]
     user_query:
@@ -278,8 +292,10 @@ schema.eval_inputs =
     durability : 'soft' # loss of eval requests not serious
     unique_writes: true
     fields:
-        id    : true
-        input : true
+        id    :
+            type : 'uuid'
+        input :
+            type : 'map'
     user_query:
         get :
             all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
@@ -306,8 +322,10 @@ schema.eval_outputs =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, output_number starting at 0]
     durability : 'soft' # loss of eval output not serious (in long term only used for analytics)
     fields:
-        id     : true
-        output : true
+        id     :
+            type : 'uuid'
+        output :
+            type : 'map'
     user_query:
         get :
             all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t

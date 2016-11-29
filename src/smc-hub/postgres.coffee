@@ -17,7 +17,7 @@ INSERT INTO accounts VALUES ('83b126a6-1f47-42aa-bb94-1eb7639e9a5e', 'wstein@gma
 INSERT INTO projects VALUES ('10f0e544-313c-4efe-8718-2142ac97ad11', 'RethinkDB --> PostgreSQL project');
 ###
 
-# standard liib
+# standard lib
 EventEmitter = require('events')
 fs           = require('fs')
 
@@ -214,30 +214,43 @@ class PostgreSQL
             cb("table '#{table}' is virtual")
             return
         columns = []
+        primary_keys = []
         for column, info of schema.fields
-            s = "#{column} #{pg_type(info)}"
+            if info.deprecated
+                continue
+            if typeof(info.pg_type) == 'object'
+                # compound primary key
+                for field, type of info.pg_type
+                    columns.push("#{quote_field(field)} #{type}")
+                    primary_keys.push(field)
+                continue
+            s = "#{quote_field(column)} #{pg_type(info)}"
             if schema.primary_key == column
-                s += " PRIMARY KEY"
+                primary_keys.push(column)
             columns.push(s)
+        if primary_keys.length == 0
+            cb("ERROR creating table '#{table}': a valid primary key must be specified -- #{schema.primary_key}")
+            return
         @_query
-            query  : "CREATE TABLE #{table} (#{columns.join(',')})"
+            query  : "CREATE TABLE #{table} (#{columns.join(', ')}, PRIMARY KEY(#{primary_keys.join(', ')}))"
             cb     : cb
 
-    # Ensure that the actual schema in the database matches the one defined in SCHEMA
+    # Ensure that the actual schema in the database matches the one defined in SCHEMA.
+    # TODO: we do NOT do anything related to the actual columns or datatypes yet!
     update_schema: (opts) =>
         opts = defaults opts,
             cb : undefined
         dbg = @_dbg("update_schema"); dbg()
 
-        goal_tables = (t for t,s of SCHEMA when t not in x and not s.virtual)
-        dbg("goal_tables = #{misc.to_json(goal_tables)}")
-        psql_tables = undefined
+        psql_tables = goal_tables = undefined
         async.series([
             (cb) =>
                 dbg("get tables")
                 @_get_tables (err, t) =>
                     psql_tables = t
                     dbg("psql_tables = #{misc.to_json(psql_tables)}")
+                    goal_tables = (t for t,s of SCHEMA when t not in psql_tables and not s.virtual)
+                    dbg("goal_tables = #{misc.to_json(goal_tables)}")
                     cb(err)
             (cb) =>
                 to_create = (table for table in goal_tables when table not in psql_tables)
@@ -245,9 +258,10 @@ class PostgreSQL
                     dbg("there are no missing tables in psql")
                     cb()
                     return
-
-
-
+                async.map to_create, @_create_table, (err) =>
+                    if err
+                        dbg("error creating tables -- #{err}")
+                    cb(err)
         ], (err) => opts.cb?(err))
 
     delete_entire_database: (opts) =>
@@ -629,3 +643,11 @@ pg_type = (info, field) ->
         else
             throw Error("pg_type: unknown type '#{type}'")
 
+# Certain field names we used with RethinkDB
+# aren't allowed without quoting in Postgres.
+NEEDS_QUOTING =
+    user : true
+quote_field = (field) ->
+    if NEEDS_QUOTING[field]
+        return "\"#{field}\""
+    return field

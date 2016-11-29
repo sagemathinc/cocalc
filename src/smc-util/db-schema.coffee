@@ -87,6 +87,8 @@ schema.account_creation_actions =
     desc : 'Actions to carry out when accounts are created, triggered by the email address of the user.'
     primary_key : 'id'
     fields :
+        id :
+            type : 'uuid'
         action        :
             type : 'map'
             desc : 'Describes the action to carry out when an account is created with the given email_address.'
@@ -234,7 +236,7 @@ schema.blobs =
     primary_key : 'id'
     fields :
         id     :
-            type : 'string'
+            type : 'uuid'
             desc : 'The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.'
         blob   :
             type : 'Buffer'
@@ -362,6 +364,7 @@ schema.compute_servers =
     fields :
         host         :
             type : 'string'
+            pg_type : 'VARCHAR(63)'
         dc           :
             type : 'string'
         port         :
@@ -460,6 +463,7 @@ schema.hub_servers =
             type : 'timestamp'
         host :
             type : 'string'
+            pg_type : 'VARCHAR(63)'
         port :
             type : 'integer'
         clients :
@@ -493,6 +497,7 @@ schema.instance_actions_log =
         name      :
             type : 'string'
             desc : 'hostname of vm'
+            pg_type : 'VARCHAR(63)'
         action    :
             type : 'map'
             desc : 'same as finished action object for instances above'
@@ -508,6 +513,8 @@ schema.passport_settings =
 schema.password_reset =
     primary_key: 'id'
     fields:
+        id :
+            type : 'uuid'
         email_address :
             type : 'string'
         expire        :
@@ -519,6 +526,8 @@ schema.password_reset_attempts =
     primary_key: 'id'
     durability : 'soft' # loss not serious, since used only for analytics and preventing attacks
     fields:
+        id :
+            type : 'uuid'
         email_address :
             type : 'string'
         ip_address    :
@@ -595,7 +604,7 @@ schema.projects =
             type : 'map'
             desc : "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}."
         deleted     :
-            type : 'bool'
+            type : 'boolean'
             desc : 'Whether or not this project is deleted.'
         host        :
             type : 'map'
@@ -626,6 +635,7 @@ schema.projects =
             desc : "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}."
         storage_history :
             type : 'array'
+            pg_type : 'JSONB[]'
             desc : 'Array of maps {host:?, assigned:?} of *previous* servers; add an entry to this array each time storage location changes.'
         last_backup :
             type : 'timestamp'
@@ -637,25 +647,25 @@ schema.projects =
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
         run :
-            type : 'bool'
+            type : 'boolean'
             desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
         storage_server :
-            type : 'number'
+            type : 'integer'
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
-            type : 'bool'
+            type : 'boolean'
             desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
-            type : 'number'
+            type : 'integer'
             desc : 'Size in megabytes of the project disk.'
         resources :
             type : 'map'
             desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
         preemptible :
-            type : 'bool'
+            type : 'boolean'
             desc : 'If true, allow to run on preemptible nodes.'
         idle_timeout :
-            type : 'number'
+            type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
 
     indexes :
@@ -805,11 +815,17 @@ schema.public_paths =
     primary_key: 'id'
     anonymous : true   # allow user *read* access, even if not signed in
     fields:
-        id          : true
-        project_id  : true
-        path        : true
-        description : true
-        disabled    : true   # if true then disabled
+        id          :
+            type : 'uuid'
+        project_id  :
+            type : 'uuid'
+        path        :
+            type : 'string'
+        description :
+            type : 'string'
+        disabled    :
+            type : 'boolean'
+            desc : 'if true then disabled'
     indexes:
         project_id : []
     user_query:
@@ -839,10 +855,15 @@ schema.remember_me =
     primary_key : 'hash'
     durability  : 'soft' # dropping this would just require a user to login again
     fields :
-        hash       : true
-        value      : true
-        account_id : true
-        expire     : true
+        hash       :
+            type : 'string'
+            pg_type : 'CHAR(127)'
+        value      :
+            type : 'map'
+        account_id :
+            type : 'uuid'
+        expire     :
+            type : 'timestamp'
     indexes :
         expire     : []
         account_id : []
@@ -851,8 +872,10 @@ schema.server_settings =
     primary_key : 'name'
     anonymous   : false
     fields :
-        name  : true
-        value : true
+        name  :
+            type : 'string'
+        value :
+            type : 'map'
     user_query:
         # NOTE: can *set* but cannot get!
         set:
@@ -914,21 +937,40 @@ schema.site_settings =
 schema.stats =
     primary_key: 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous : true   # allow user access, even if not signed in
+    anonymous : true     # allow user access, even if not signed in
     fields:
-        id                  : true
-        time                : true
-        accounts            : true
-        accounts_created    : true
-        projects            : true
-        projects_created    : true
-        projects_edited     : true
-        active_projects     : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_hour_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_day_projects   : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_week_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_month_projects : true # deprecated → projects_edited[RECENT_TIMES-key]
-        hub_servers         : true
+        id                  :
+            type : 'uuid'
+        time                :
+            type : 'timestamp'
+        accounts            :
+            type : 'integer'
+        accounts_created    :
+            type : 'map'
+        projects            :
+            type : 'integer'
+        projects_created    :
+            type : 'map'
+        projects_edited     :
+            type : 'map'
+        active_projects     :
+            type : 'integer'
+            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
+        last_hour_projects  :
+            type : 'integer'
+            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
+        last_day_projects   :
+            type : 'integer'
+            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
+        last_week_projects  :
+            type : 'integer'
+            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
+        last_month_projects :
+            type : 'integer'
+            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
+        hub_servers         :
+            type : 'array'
+            pg_type : 'JSONB[]'
     indexes:
         time : []
     user_query:
@@ -954,13 +996,16 @@ schema.stats =
 schema.storage_servers =
     primary_key : 'host'
     fields :
-        host : true
+        host :
+            type    : 'string'
+            desc    : 'hostname of the storage server'
+            pg_type : 'VARCHAR(63)'
 
 schema.system_notifications =
     primary_key : 'id'
     fields :
         id :
-            type : 'id'
+            type : 'uuid'
             desc : 'primary key'
         time :
             type : 'timestamp'
@@ -970,9 +1015,10 @@ schema.system_notifications =
             desc : 'the text of the message'
         priority:
             type : 'string'
+            pg_type : 'VARCHAR(6)'
             desc : 'one of "low", "medium", or "high"'
         done:
-            type : 'bool'
+            type : 'boolean'
             desc : 'if true, then this notification is no longer relevant'
     indexes:
         time : []
