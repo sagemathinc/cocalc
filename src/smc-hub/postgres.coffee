@@ -103,9 +103,9 @@ class PostgreSQL
                                  # and values the corresponding params.  Also, WHERE must not be in the query already.
                                  # If where[cond] is undefined, then cond is completely **ignored**.
             values : undefined   # Used for INSERT: If given, then params and where must not be given.   Values is a map
-                                 # {field1:[{type1:value}|string], field2:[{type2:value}|string], ...} which gets converted to
+                                 # {field1:[{type1:value}|string|undefined], field2:[{type2:value}|string|undefined], ...} which gets converted to
                                  # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                 # with corresponding params set.
+                                 # with corresponding params set.  Undefined valued fields are ignored.
             cb     : undefined
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
@@ -119,6 +119,8 @@ class PostgreSQL
             params = []
             values = []
             for field, v of opts.values
+                if not v? # ignore undefined fields -- makes code cleaner (and makes sense)
+                    continue
                 fields.push(field)
                 if typeof(v) == 'string'
                     if v.indexOf('$') != -1
@@ -508,7 +510,20 @@ class PostgreSQL
             cb    : opts.cb
 
     log_client_error: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            event      : 'event'
+            error      : 'error'
+            account_id : undefined
+            cb         : undefined
+        @_query
+            query  : 'INSERT INTO client_error_log'
+            values :
+                id         : UUID : misc.uuid()
+                event      : TEXT : opts.event
+                error      : TEXT : opts.error
+                account_id : UUID : opts.account_id
+                time       : 'NOW()'
+            cb     : (err) => opts.cb?(err)
 
     get_client_error_log: (opts) =>
         throw Error("NotImplementedError")
