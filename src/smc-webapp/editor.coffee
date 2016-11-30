@@ -1304,6 +1304,7 @@ class CodeMirrorEditor extends FileEditor
                         d_content.text(mesg)
                         d_progress(percent)
                     progress = _.debounce(progress, 5)
+                    progress(.01, "Loading ...")
                     done = (err) =>
                         console.log 'Printer.print_html is done: err = ', err
                         if err

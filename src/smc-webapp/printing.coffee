@@ -30,10 +30,6 @@ misc            = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 markdown        = require('./markdown')
 
-# canonical modes in a sagews
-{sagews_decorator_modes} = require('./editor')
-canonical_modes = _.object(sagews_decorator_modes)
-
 # abstract class
 class Printer
     constructor : (@editor, @output_file, @opts) ->
@@ -360,21 +356,29 @@ class SagewsPrinter extends Printer
         cm           = @editor.codemirror
         progress     ?= _.noop
 
+        # canonical modes in a sagews
+        {sagews_decorator_modes} = require('./editor')
+        canonical_modes = _.object(sagews_decorator_modes)
+
         # cell input lines are collected first and processed once lines with markers appear (i.e. output)
+        # the assumption is, that default_mode extends to all the consecutive cells until the next mode or default_mode
         input_lines              = []
         input_lines_mode         = null
         input_lines_default_mode = 'python'
 
+        canonical_mode = (mode) ->
+            canonical_modes[mode] ? input_lines_default_mode
+
         detect_mode = (line) ->
             line = line.trim()
-            if line.startsWith('%default_mode')
-                input_lines_default_mode = line.split(/\s+/)[1] ? input_lines_default_mode
-                console.log "input_lines_default_mode", input_lines_default_mode
-            else if line.startsWith('%')
-                mode = line.split(" ")[0][1..] # worst case, this is an empty string
-                if _.has(mode, canonical_modes)
-                    input_lines_mode = canonical_modes[mode]
-                    console.log "input_lines_mode", input_lines_mode
+            if line.startsWith('%') # could be %auto, %md, %auto %default_mode, ...
+                i = line.indexOf('%default_mode')
+                if i >= 0
+                    input_lines_default_mode = canonical_mode(line[i..].split(/\s+/)[1])
+                else
+                    mode = line.split(" ")[0][1..] # worst case, this is an empty string
+                    if _.has(canonical_modes, mode)
+                        input_lines_mode = canonical_mode(mode)
 
         process_line = (line) ->
             detect_mode(line)
@@ -385,8 +389,10 @@ class SagewsPrinter extends Printer
             return code.outerHTML
 
         input_lines_process = =>
-            input_lines = input_lines.map(process_line).join('')
-            @_html.push("<pre class='input'>#{input_lines}</pre>")
+            if input_lines.length > 0
+                input_lines = input_lines.map(process_line).join('') # no \n linebreaks!
+                #@_html.push("<div class='mode'>#{input_lines_mode ? input_lines_default_mode} mode")
+                @_html.push("<pre class='input'>#{input_lines}</pre>")
             input_lines      = []
             input_lines_mode = null
 
