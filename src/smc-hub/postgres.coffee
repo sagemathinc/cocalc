@@ -1,20 +1,15 @@
 ###
 Similar to rethink.coffee... but built around PostgreSQL.
 
-** This code is NOT released under any license.  For use by SageMath, Inc. only.**
+**
+This code is currently NOT released under any license for use by anybody except SageMath, Inc.
+
+(c) SageMath, Inc.
+**
 
 ---
 
-Snippets...
-
 p = (require('./postgres')).pg()
-
-
-CREATE TABLE accounts (account_id UUID PRIMARY KEY, email_address VARCHAR(128));
-CREATE TABLE projects (project_id UUID PRIMARY KEY, title TEXT);
-
-INSERT INTO accounts VALUES ('83b126a6-1f47-42aa-bb94-1eb7639e9a5e', 'wstein@gmail.com');
-INSERT INTO projects VALUES ('10f0e544-313c-4efe-8718-2142ac97ad11', 'RethinkDB --> PostgreSQL project');
 ###
 
 # standard lib
