@@ -1123,11 +1123,11 @@ class exports.Connection extends EventEmitter
     find_directories: (opts) =>
         opts = defaults opts,
             project_id     : required
-            query          : '*'   # see the -iname option to the UNIX find command.
-            path           : '.'
-            exclusions     : undefined # Relative to opts.path Skips whole sub-tree
+            query          : '*'       # see the -iname option to the UNIX find command.
+            path           : '.'       # Root path to find directories from
+            exclusions     : undefined # Array<String> Paths relative to `opts.path`. Skips whole sub-trees
             include_hidden : false
-            cb             : required      # cb(err, object describing result (see code below))
+            cb             : required  # cb(err, object describing result (see code below))
 
         args = [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', "'#{opts.query}'", '-readable']
         tail_args = ['-print']
@@ -1148,7 +1148,6 @@ class exports.Connection extends EventEmitter
             command    : command ? "find"
             args       : args
             timeout    : 15
-            bash       : true
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return

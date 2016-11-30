@@ -240,7 +240,7 @@ class ProjectsActions extends Actions
     # call this function.
     fetch_directory_tree: (project_id, opts) =>
         opts = defaults opts,
-            exclusions : undefined
+            exclusions : undefined # Array<String> of sub-trees' root paths to omit
         # WARNING: Do not change the store except in a callback below.
         block = "_fetch_directory_tree_#{project_id}"
         if @[block]
