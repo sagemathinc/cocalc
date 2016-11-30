@@ -707,6 +707,8 @@ class ProjectActions extends Actions
             when 'move'
                 checked_files = @get_store().checked_files.toArray()
                 @redux.getActions('projects').fetch_directory_tree(@project_id, exclusions:checked_files)
+            when 'copy'
+                @redux.getActions('projects').fetch_directory_tree(@project_id)
             when 'duplicate'
                 @setState(new_name : @_suggest_duplicate_filename(get_basename()))
             when 'rename'

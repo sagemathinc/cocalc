@@ -1138,15 +1138,11 @@ class exports.Connection extends EventEmitter
             args = args.concat(exclusion_args)
 
         args = args.concat(tail_args)
-        # The exclusion args don't work if not in the command for some reason
-        if opts.exclusions
-            command = "find #{args.join(' ')}"
-            args = undefined
+        command = "find #{args.join(' ')}"
 
         @exec
             project_id : opts.project_id
-            command    : command ? "find"
-            args       : args
+            command    : command
             timeout    : 15
             cb         : (err, result) =>
                 if err
