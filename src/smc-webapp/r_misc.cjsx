@@ -974,12 +974,12 @@ exports.DirectoryInput = rclass
         autoFocus     : rtypes.bool
         on_key_down   : rtypes.func
         on_key_up     : rtypes.func
-        exclusions    : rtypes.immutable.Set
+        exclusions    : rtypes.array
 
     render: ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
         if not x? or new Date() - x.updated >= 15000
-            redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions.toArray())
+            redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions)
         tree = x?.tree
         if tree?
             group = (s) ->
