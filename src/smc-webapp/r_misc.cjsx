@@ -979,7 +979,7 @@ exports.DirectoryInput = rclass
     render: ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
         if not x? or new Date() - x.updated >= 15000
-            redux.getActions('projects').fetch_directory_tree(@props.project_id)
+            redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions.toArray())
         tree = x?.tree
         if tree?
             group = (s) ->
@@ -988,7 +988,6 @@ exports.DirectoryInput = rclass
                     return s
                 else
                     return s.slice(0, i)
-            tree = misc.remove_subtrees(tree, @props.exclusions)
         else
             group = (s) -> s
         <Combobox

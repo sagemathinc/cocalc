@@ -23,7 +23,8 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-async       = require('async')
+async = require('async')
+_     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -1124,15 +1125,30 @@ class exports.Connection extends EventEmitter
             project_id     : required
             query          : '*'   # see the -iname option to the UNIX find command.
             path           : '.'
+            exclusions     : undefined # Relative to opts.path Skips whole sub-tree
             include_hidden : false
             cb             : required      # cb(err, object describing result (see code below))
 
+        args = [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', "'#{opts.query}'", '-readable']
+        tail_args = ['-print']
+
+        if opts.exclusions?
+            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+                "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
+            args = args.concat(exclusion_args)
+
+        args = args.concat(tail_args)
+        # The exclusion args don't work if not in the command for some reason
+        if opts.exclusions
+            command = "find #{args.join(' ')}"
+            args = undefined
+
         @exec
             project_id : opts.project_id
-            command    : "find"
+            command    : command ? "find"
+            args       : args
             timeout    : 15
-            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
-            bash       : false
+            bash       : true
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return

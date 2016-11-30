@@ -237,8 +237,10 @@ class ProjectsActions extends Actions
 
     # If something needs the store to fill in
     #    directory_tree.project_id = {updated:time, error:err, tree:list},
-    # call this function.  Used by the DirectoryListing component.
-    fetch_directory_tree: (project_id) =>
+    # call this function.
+    fetch_directory_tree: (project_id, opts) =>
+        opts = defaults opts,
+            exclusions : undefined
         # WARNING: Do not change the store except in a callback below.
         block = "_fetch_directory_tree_#{project_id}"
         if @[block]
@@ -247,6 +249,7 @@ class ProjectsActions extends Actions
         salvus_client.find_directories
             include_hidden : false
             project_id     : project_id
+            exclusions     : opts.exclusions
             cb             : (err, resp) =>
                 # ignore calls to update_directory_tree for 5 more seconds
                 setTimeout((()=>delete @[block]), 5000)
