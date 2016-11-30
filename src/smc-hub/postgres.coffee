@@ -170,7 +170,7 @@ class PostgreSQL
                     return
                 if not param?
                     continue
-                z.push(cond.replace('$::', "$#{i}::"))
+                z.push(cond.replace('$', "$#{i}"))
                 p.push(param)
                 i += 1
             if z.length > 0
@@ -579,8 +579,24 @@ class PostgreSQL
             cb    : (err, result) =>
                 opts.cb(err, result?.rows[0]?.value)
 
+    # TODO: optimization -- this could be done as a changefeed (and is in rethink.coffee)
     get_site_settings: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            cb : required   # (err, settings)
+        @_query
+            query : 'SELECT name, value FROM server_settings'
+            where :
+                "name = ANY($)" : misc.keys(site_settings_conf)
+            cb : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    x = {}
+                    for k in result.rows
+                        if k.name == 'commercial' and k.value in ['true', 'false']  # backward compatibility
+                            k.value = eval(k.value)
+                        x[k.name] = k.value
+                    opts.cb(undefined, x)
 
     set_passport_settings: (opts) =>
         throw Error("NotImplementedError")
