@@ -817,8 +817,35 @@ class PostgreSQL
             cb    : (err, result) =>
                 opts.cb?(err, result?.rows[0]?.account_id)
 
+    # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : required
+            action        : undefined   # if given, adds this action; if not, returns all non-expired actions
+            ttl           : 60*60*24*14 # add action with this ttl in seconds (default: 2 weeks)
+            cb            : required    # if ttl not given cb(err, [array of actions])
+        if opts.action?
+            # add action
+            @_query
+                query  : 'INSERT INTO account_creation_actions'
+                values :
+                    id            : 'UUID'      : misc.uuid()
+                    email_address : 'TEXT'      : opts.email_address
+                    action        : 'JSONB'     : opts.action
+                    expire        : 'TIMESTAMP' : expire_time(opts.ttl)
+                cb : opts.cb
+        else
+            # query for actions
+            @_query
+                query : 'SELECT action FROM account_creation_actions'
+                where :
+                    'email_address = $::TEXT' : opts.email_address
+                    'expire >= $::TIMESTAMP'  : new Date()
+                cb    : (err, result) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(undefined, (x.action for x in result.rows))
 
     account_creation_actions_success: (opts) =>
         throw Error("NotImplementedError")
@@ -1175,3 +1202,7 @@ quote_field = (field) ->
     if NEEDS_QUOTING[field]
         return "\"#{field}\""
     return field
+
+# Timestamp the given number of seconds **in the future**.
+exports.expire_time = expire_time = (ttl) ->
+    if ttl then new Date((new Date() - 0) + ttl*1000)
