@@ -22,7 +22,6 @@
 
 misc = require('../misc.coffee')
 underscore = require('underscore')
-immutable = require('immutable')
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together

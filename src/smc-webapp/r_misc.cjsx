@@ -974,7 +974,7 @@ exports.DirectoryInput = rclass
         autoFocus     : rtypes.bool
         on_key_down   : rtypes.func
         on_key_up     : rtypes.func
-        exclusions    : rtypes.oneOfType([rtypes.immutable.Set, rtypes.string])
+        exclusions    : rtypes.immutable.Set
 
     render: ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
