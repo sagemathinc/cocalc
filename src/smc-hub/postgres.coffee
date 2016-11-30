@@ -599,10 +599,27 @@ class PostgreSQL
                     opts.cb(undefined, x)
 
     set_passport_settings: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            strategy : required
+            conf     : required
+            cb       : required
+        @_query
+            query : 'INSERT into passport_settings'
+            values :
+                strategy : TEXT  : opts.strategy
+                conf     : JSONB : opts.conf
+            conflict : 'strategy'
 
     get_passport_settings: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            strategy : required
+            cb       : required
+        @_query
+            query : 'SELECT conf FROM passport_settings'
+            where :
+                "strategy = $::TEXT" : opts.strategy
+            cb    : (err, result) =>
+                opts.cb(err, result?.rows[0]?.conf)
 
     count_accounts_created_by: (opts) =>
         throw Error("NotImplementedError")
