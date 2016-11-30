@@ -339,7 +339,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
 
 {MARKERS} = require('smc-util/sagews')
 
-sagews_decorator_modes = [
+exports.sagews_decorator_modes = sagews_decorator_modes = [
     ['cjsx'        , 'text/cjsx'],
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'cython'],
@@ -1234,10 +1234,11 @@ class CodeMirrorEditor extends FileEditor
         d_content  = null
         d_open     = null
         d_download = null
-        d_progress = (p) ->
+        d_progress = _.noop
         output_fn  = null # set this before showing the dialog
 
         show_dialog = (cb) =>
+            # this creates the dialog element and defines the action functions like d_progress
             dialog = $("""
             <div class="modal" tabindex="-1" role="dialog">
               <div class="modal-dialog" role="document">
@@ -1252,7 +1253,17 @@ class CodeMirrorEditor extends FileEditor
                         0 %
                       </div>
                     </div>
-                    <p class="content"></p>
+                    <div class="content" style="text-align: center;"></div>
+                    <div style="margin-top: 25px;">
+                      <p><b>How to convert to PDF?</b></p>
+                      <p>
+                      First off, there is no strong necessity for PDF over HTML.
+                      This conversion creates a self-contained HTML file,
+                      which you can send out to others or archive.
+                      Still, you can use the print dialog of your browser
+                      to convert the generated document to a PDF file.
+                      </p>
+                    </div>
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
@@ -1268,7 +1279,7 @@ class CodeMirrorEditor extends FileEditor
             d_download = dialog.find('.btn-download')
             action     = redux.getProjectActions(@project_id)
             d_progress = (p) ->
-                pct = "#{100 * p}%"
+                pct = "#{Math.round(100 * p)}%"
                 dialog.find(".progress-bar").css('width', pct).text(pct)
             dialog.find('.btn-close').click ->
                 dialog.modal('hide')
@@ -1285,25 +1296,27 @@ class CodeMirrorEditor extends FileEditor
             cb()
 
         convert = (cb) =>
+            # initiates the actual conversion via printing.Printer ...
             switch @ext
                 when 'sagews'
                     output_fn = @filename + '.html'
                     progress = (percent, mesg) =>
-                        d_content.text("#{misc.round2(100 * percent)} -- #{mesg}")
+                        d_content.text(mesg)
                         d_progress(percent)
-                    progress = _.debounce(progress, 30)
+                    progress = _.debounce(progress, 5)
                     done = (err) =>
                         console.log 'Printer.print_html is done: err = ', err
                         if err
                             d_content.text("Problem printing to HTML: #{err}")
                         else
                             d_content.text('Printing finished without errors.')
-                            d_progress(100)
-                            # enable open&download buttons
+                            # enable open & download buttons
                             dialog.find('button.btn').removeClass('disabled')
+                        progress(1, "Done")
                     printing.Printer(@, output_fn).print(done, progress)
                     cb(); return
 
+            # fallback
             cb("err -- unable to convert files with extension '@ext'")
 
         async.series([show_dialog, convert], (err) =>

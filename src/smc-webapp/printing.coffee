@@ -30,6 +30,10 @@ misc            = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 markdown        = require('./markdown')
 
+# canonical modes in a sagews
+{sagews_decorator_modes} = require('./editor')
+canonical_modes = _.object(sagews_decorator_modes)
+
 # abstract class
 class Printer
     constructor : (@editor, @output_file, @opts) ->
@@ -170,7 +174,7 @@ class SagewsPrinter extends Printer
                             margin: 0; padding: 0;
                         }
                         body {
-                            max-width: 50rem;
+                            width: 50rem;
                             counter-reset: line;
                             padding: .5rem;
                         }
@@ -229,6 +233,29 @@ class SagewsPrinter extends Printer
                         }
                     </style>
 
+
+                    <!-- the styling of the highlighted code; should be printer friendly -->
+                    <style>
+                        .cm-keyword { font-weight: bold; color: #339; }
+                        .cm-atom { color: #666; }
+                        .cm-number { color: #333; }
+                        .cm-def { color: #666; }
+                        .cm-variable { color: black; }
+                        .cm-variable-2 { color:black; }
+                        .cm-variable-3 { color: black; }
+                        .cm-property { color: black; }
+                        .cm-operator { color: black; font-weight: bold; }
+                        .cm-comment { color: #777; }
+                        .cm-string { color: #333; }
+                        .cm-meta { color: #039; }
+                        .cm-qualifier { color: #666; }
+                        .cm-builtin { color: #393; font-weight: bold; }
+                        .cm-bracket { color: #666; }
+                        .cm-tag { color: #444; font-weight: bold; }
+                        .cm-attribute { color: #777; }
+                        .cm-error { color: #000; }
+                    </style>
+
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
                         src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
@@ -245,23 +272,6 @@ class SagewsPrinter extends Printer
                     <a href="#{url}">#{SiteName}</a>
                     </div>
                 </footer>
-
-                <!-- https://highlightjs.org/usage/ -->
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/ascetic.min.css">
-                <style>
-                .hljs {
-                    overflow-x : inherit !important;
-                    padding    : 0       !important;
-                    background : none    !important;
-                }
-                </style>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/javascript.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/python.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/r.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/coffeescript.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/matlab.min.js"></script>
-                <script>hljs.initHighlightingOnLoad();</script>
                 </body>
                 </html>"""
         return @_html_tmpl
@@ -345,18 +355,40 @@ class SagewsPrinter extends Printer
     html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
         # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
-        {MARKERS} = require('smc-util/sagews')
-        @_html = [] # list of elements
-        cm = @editor.codemirror
+        {MARKERS}    = require('smc-util/sagews')
+        @_html       = [] # list of elements
+        cm           = @editor.codemirror
+        progress     ?= _.noop
 
-        input_lines = []
-        input_lines_process = (lang) =>
-            # lang is either html, python or md
-            lang = if lang? then " lang-#{lang}" else ''
-            if input_lines.length > 0
-                input_lines = (_.escape(line) for line in input_lines)
-                @_html.push("<pre class='input#{lang}'><code>#{input_lines.join('</code><code>')}</code></pre>")
-                input_lines = []
+        # cell input lines are collected first and processed once lines with markers appear (i.e. output)
+        input_lines              = []
+        input_lines_mode         = null
+        input_lines_default_mode = 'python'
+
+        detect_mode = (line) ->
+            line = line.trim()
+            if line.startsWith('%default_mode')
+                input_lines_default_mode = line.split(/\s+/)[1] ? input_lines_default_mode
+                console.log "input_lines_default_mode", input_lines_default_mode
+            else if line.startsWith('%')
+                mode = line.split(" ")[0][1..] # worst case, this is an empty string
+                if _.has(mode, canonical_modes)
+                    input_lines_mode = canonical_modes[mode]
+                    console.log "input_lines_mode", input_lines_mode
+
+        process_line = (line) ->
+            detect_mode(line)
+            # each line is in <code> because of the css line numbering
+            code = document.createElement('code')
+            mode = input_lines_mode ? input_lines_default_mode
+            CodeMirror.runMode(line, mode, code)
+            return code.outerHTML
+
+        input_lines_process = =>
+            input_lines = input_lines.map(process_line).join('')
+            @_html.push("<pre class='input'>#{input_lines}</pre>")
+            input_lines      = []
+            input_lines_mode = null
 
         # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
         mesg_stdout = {stdout : ''}
@@ -371,7 +403,7 @@ class SagewsPrinter extends Printer
         lines_total = cm.lineCount()
         async.whilst(
             ->
-                progress?(.1 + .8 * line / lines_total, "line #{line}")
+                progress(.1 + .8 * line / lines_total, "Converting line #{line}")
                 return line < lines_total
             ,
             (cb) =>
@@ -387,7 +419,6 @@ class SagewsPrinter extends Printer
                             _
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
-                            console.debug 'output mark', mark
                             for mesg_ser in mark.rendered.split(MARKERS.output)
                                 if mesg_ser.length == 0
                                     continue
@@ -396,8 +427,6 @@ class SagewsPrinter extends Printer
                                 catch e
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
-
-                                console.debug 'output mesg', mesg
 
                                 if mesg.stdout?
                                     mesg_stdout.stdout += mesg.stdout
@@ -425,6 +454,7 @@ class SagewsPrinter extends Printer
             content   : (h for h in @_html).join('\n')
             timestamp : "#{(new Date()).toISOString()}"
 
+        progress(.95, "Saving to #{@output_file} ...")
         salvus_client.write_text_file_to_project
             project_id : @editor.project_id
             path       : @output_file
