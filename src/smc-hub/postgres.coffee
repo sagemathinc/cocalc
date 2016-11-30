@@ -67,6 +67,12 @@ class PostgreSQL
         dbg = @_dbg("connect"); dbg()
         async.series([
             (cb) =>
+                if @_client?
+                    @_client.end(cb)
+                else
+                    cb()
+            (cb) =>
+                @_concurrent_queries = 0
                 dbg("first make sure db exists")
                 @_ensure_database_exists(cb)
             (cb) =>
@@ -109,6 +115,8 @@ class PostgreSQL
             conflict : undefined # if given, then values must be given; appends something like this to query:
                                  #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
             cb     : undefined
+        dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
+        dbg()
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
             return
@@ -174,16 +182,20 @@ class PostgreSQL
                 opts.params = p
                 opts.query += " WHERE #{z.join(' AND ')}"
 
-        dbg = @_dbg("_query('#{opts.query}')")
-        dbg("doing query (concurrent=#{@_concurrent_queries})")
+        dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
         @_concurrent_queries += 1
-        @_client.query opts.query, opts.params, (err, result) =>
+        try
+            @_client.query opts.query, opts.params, (err, result) =>
+                @_concurrent_queries -= 1
+                if err
+                    dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
+                else
+                    dbg("done (concurrent=#{@_concurrent_queries}) -- success")
+                opts.cb?(err, result)
+        catch e
+            # this should never ever happen
+            dbg("EXCEPTION in @_client.query: #{e}")
             @_concurrent_queries -= 1
-            if err
-                dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
-            else
-                dbg("done (concurrent=#{@_concurrent_queries}) -- success")
-            opts.cb?(err, result)
         return
 
     _ensure_database_exists: (cb) =>
@@ -562,7 +574,15 @@ class PostgreSQL
             cb     : opts.cb
 
     get_server_setting: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            name  : required
+            cb    : required
+        @_query
+            query : 'SELECT value FROM server_settings'
+            where :
+                "name = $::TEXT" : opts.name
+            cb    : (err, result) =>
+                opts.cb(err, result?.rows[0]?.value)
 
     get_site_settings: (opts) =>
         throw Error("NotImplementedError")
