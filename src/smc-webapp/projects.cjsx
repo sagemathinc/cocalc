@@ -242,7 +242,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             exclusions : undefined # Array<String> of sub-trees' root paths to omit
         # WARNING: Do not change the store except in a callback below.
-        block = "_fetch_directory_tree_#{project_id}"
+        block = "_fetch_directory_tree_#{project_id}_#{opts.exclusions?.toString()}"
         if @[block]
             return
         @[block] = true
