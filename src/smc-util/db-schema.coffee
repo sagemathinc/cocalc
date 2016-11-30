@@ -112,9 +112,18 @@ schema.accounts =
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
+        created_by :
+            type : 'string'
+            pg_type : 'inet'
+            desc : 'IP address that created the account.'
+        password_hash :
+            type : 'string'
+            pg_type : 'CHAR(173)'
+            desc : 'hash of the password'
         email_address   :
             type : 'string'
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
+            unique : true  # only one record in database can have this email address
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'

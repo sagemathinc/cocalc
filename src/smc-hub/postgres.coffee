@@ -6,10 +6,19 @@ This code is currently NOT released under any license for use by anybody except 
 
 (c) SageMath, Inc.
 **
-
 ---
 
 p = (require('./postgres')).pg()
+
+---
+
+NOTES:
+
+  - Some of the methods in the main class below are also in rethink.coffee.
+    Since rethink will likely get deleted once postgres is up and running,
+    this doesn't concern me.
+  - In the first pass, I'm not worrying about indexes.  This may hurt
+    scalable performance.
 ###
 
 # standard lib
@@ -99,29 +108,55 @@ class PostgreSQL
     _query: (opts) =>
         opts  = defaults opts,
             query  : required
-            params : undefined
-            where  : undefined   # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
-                                 # and values the corresponding params.  Also, WHERE must not be in the query already.
-                                 # If where[cond] is undefined, then cond is completely **ignored**.
-            values : undefined   # Used for INSERT: If given, then params and where must not be given.   Values is a map
-                                 # {field1:[{type1:value}|string|undefined], field2:[{type2:value}|string|undefined], ...} which gets converted to
-                                 # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                 # with corresponding params set.  Undefined valued fields are ignored.
-            conflict : undefined # if given, then values must be given; appends something like this to query:
-                                 #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
-            cb     : undefined
+            params : []
+            where  : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
+                                  # and values the corresponding params.  Also, WHERE must not be in the query already.
+                                  # If where[cond] is undefined, then cond is completely **ignored**.
+            values : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
+                                  # {field1:[{type1:value}|string|undefined], field2:[{type2:value}|string|undefined], ...} which gets converted to
+                                  # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
+                                  # with corresponding params set.  Undefined valued fields are ignored.
+            conflict : undefined  # if given, then values must be given; appends something like this to query:
+                                  #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
+            jsonb_set : undefined # used for setting a field that contains a JSONB javascript map;
+                                  # Give as input an object {key1:val1, key2:val2, ...}.
+                                  # Every key has the corresponding value set, unless val is undefined/null, in which
+                                  # case that key is deleted from the JSONB object.  Simple as that!  This is much, much
+                                  # cleaner to use than the generated SQL.   Also, if the field itself is NULL, it gets
+                                  # created automatically.
+            cb     : required
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
             return
+
+        push_param = (param, type) ->
+            if type == 'JSONB' and misc.is_array(param)
+                param = misc.to_json(param)  # I don't understand why this is needed by the driver....
+            opts.params.push(param)
+            return opts.params.length
+
+        if opts.jsonb_set?
+            opts.query += " SET "
+            v = []
+            for field, data of opts.jsonb_set
+                obj = "COALESCE(#{field}, '{}'::JSONB)"
+                for key, val of data
+                    if not val?
+                        # remove key from object
+                        obj = "(#{obj} - '#{key}')"
+                    else
+                        # add key to object
+                        obj = "JSONB_SET(#{obj}, '{#{key}}', $#{push_param(val, 'JSONB')}::JSONB)"
+                v.push(" #{field} = #{obj}")
+            opts.query += v.join(' , ')
+
         if opts.values?
-            if opts.where? or opts.params?
-                opts.cb("where and params must not be defined if opts.values is defined")
+            if opts.where?
+                opts.cb("where must not be defined if opts.values is defined")
                 return
-            i = 1
             fields = []
-            params = []
             values = []
             for field, v of opts.values
                 if not v? # ignore undefined fields -- makes code cleaner (and makes sense)
@@ -137,11 +172,8 @@ class PostgreSQL
                         opts.cb("values (=#{misc.to_json(v)}) must be of the form {type1:value} or string")
                         return
                     for type, param of v
-                        values.push("$#{i}::#{type}")
-                        params.push(param)
-                        i += 1
+                        values.push("$#{push_param(param)}::#{type}")
                         break  # v should have just one thing in it.
-            opts.params = params
             opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
 
         if opts.conflict?
@@ -158,26 +190,23 @@ class PostgreSQL
             if typeof(opts.where) != 'object'
                 opts.cb("where must be an object")
                 return
-            if opts.params? or opts.values?
-                opts.cb("params (or values) must not be given if where clause is given")
+            if opts.values?
+                opts.cb("values must not be given if where clause is given")
                 return
-            i = 1
             z = []
-            p = []
             for cond, param of opts.where
                 if typeof(cond) != 'string'
                     opts.cb("each condition must be a string but '#{cond}' isn't")
                     return
                 if not param?
                     continue
+                i = push_param(param)
                 z.push(cond.replace('$', "$#{i}"))
-                p.push(param)
-                i += 1
             if z.length > 0
-                opts.params = p
                 opts.query += " WHERE #{z.join(' AND ')}"
 
         dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
+
         @_concurrent_queries += 1
         try
             @_client.query opts.query, opts.params, (err, result) =>
@@ -192,6 +221,36 @@ class PostgreSQL
             dbg("EXCEPTION in @_client.query: #{e}")
             @_concurrent_queries -= 1
         return
+
+    # Special case of query for counting entries in a table.
+    _count: (opts) =>
+        opts  = defaults opts,
+            table : required
+            where : undefined  # as in _query
+            cb    : required
+        @_query
+            query : "SELECT COUNT(*) FROM #{opts.table}"
+            where : opts.where
+            cb    : (err, result) => opts.cb(err, parseInt(result?.rows[0].count))
+
+    _validate_opts: (opts) =>
+        for k, v of opts
+            if k.slice(k.length-2) == 'id'
+                if v? and not misc.is_valid_uuid_string(v)
+                    opts.cb?("invalid #{k} -- #{v}")
+                    return false
+            if k.slice(k.length-3) == 'ids'
+                for w in v
+                    if not misc.is_valid_uuid_string(w)
+                        opts.cb?("invalid uuid #{w} in #{k} -- #{to_json(v)}")
+                        return false
+            if k == 'group' and v not in misc.PROJECT_GROUPS
+                opts.cb?("unknown project group '#{v}'"); return false
+            if k == 'groups'
+                for w in v
+                    if w not in misc.PROJECT_GROUPS
+                        opts.cb?("unknown project group '#{w}' in groups"); return false
+        return true
 
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
@@ -281,7 +340,7 @@ class PostgreSQL
                         if err
                             cb(err)
                         else
-                            trigger_exists = result.rows[0].count > 0
+                            trigger_exists = parseInt(result.rows[0].count) > 0
                             cb()
             (cb) =>
                 if trigger_exists
@@ -362,6 +421,8 @@ class PostgreSQL
                     primary_keys.push(field)
                 continue
             s = "#{quote_field(column)} #{pg_type(info)}"
+            if info.unique
+                s += " UNIQUE"
             if schema.primary_key == column
                 primary_keys.push(column)
             columns.push(s)
@@ -621,17 +682,140 @@ class PostgreSQL
             cb    : (err, result) =>
                 opts.cb(err, result?.rows[0]?.conf)
 
-    count_accounts_created_by: (opts) =>
-        throw Error("NotImplementedError")
+    ###
+    Account creation, deletion, existence
+    ###
+    create_account: (opts={}) ->
+        opts = defaults opts,
+            first_name        : required
+            last_name         : required
 
+            created_by        : undefined  #  ip address of computer creating this account
+
+            email_address     : undefined
+            password_hash     : undefined
+
+            passport_strategy : undefined
+            passport_id       : undefined
+            passport_profile  : undefined
+            cb                : required       # cb(err, account_id)
+
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id})")
+        dbg()
+
+        if opts.email_address? # canonicalize the email address, if given
+            opts.email_address = misc.lower_email_address(opts.email_address)
+
+        if not opts.email_address? and not opts.passport_strategy?
+            opts.cb("email_address or passport must be given")
+            return
+
+        account_id = misc.uuid()
+
+        passport_key = undefined
+        if opts.passport_strategy?
+            # This is to make it impossible to accidentally create two accounts with the same passport
+            # due to calling create_account twice at once.   See TODO below about changing schema.
+            # This should be enough for now since a given user only makes their account through a single
+            # server via the persistent websocket...
+            @_create_account_passport_keys ?= {}
+            passport_key = @_passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
+            last = @_create_account_passport_keys[passport_key]
+            if last? and new Date() - last <= 60*1000
+                opts.cb("recent attempt to make account with this passport strategy")
+                return
+            @_create_account_passport_keys[passport_key] = new Date()
+
+        async.series([
+            (cb) =>
+                if not opts.passport_strategy?
+                    cb(); return
+                dbg("verify that no account with passport (strategy='#{opts.passport_strategy}', id='#{opts.passport_id}') already exists")
+                # **TODO:** need to make it so insertion into the table still would yield an error due to
+                # unique constraint; this will require probably moving the passports
+                # object to a separate table.  This is important, since this is exactly the place where
+                # a race condition might cause touble!
+                @passport_exists
+                    strategy : opts.passport_strategy
+                    id       : opts.passport_id
+                    cb       : (err, account_id) ->
+                        if err
+                            cb(err)
+                        else if account_id
+                            cb("account with email passport strategy '#{opts.passport_strategy}' and id '#{opts.passport_id}' already exists")
+                        else
+                            cb()
+            (cb) =>
+                dbg("create the actual account")
+                @_query
+                    query  : "INSERT INTO accounts"
+                    values :
+                        account_id    : 'UUID'      : account_id
+                        first_name    : 'TEXT'      : opts.first_name
+                        last_name     : 'TEXT'      : opts.last_name
+                        created       : 'TIMESTAMP' : new Date()
+                        created_by    : 'INET'      : opts.created_by
+                        password_hash : 'CHAR(173)' : opts.password_hash
+                        email_address : 'TEXT'      : opts.email_address
+                    cb : cb
+            (cb) =>
+                if opts.passport_strategy?
+                    dbg("add passport authentication strategy")
+                    @create_passport
+                        account_id : account_id
+                        strategy   : opts.passport_strategy
+                        id         : opts.passport_id
+                        profile    : opts.passport_profile
+                        cb         : cb
+                else
+                    cb()
+        ], (err) =>
+            if err
+                dbg("error creating account -- #{err}")
+                opts.cb(err)
+            else
+                dbg("successfully created account")
+                opts.cb(undefined, account_id)
+        )
+
+    # TODO: (probably) need indexes to make this fast.
+    count_accounts_created_by: (opts) =>
+        opts = defaults opts,
+            ip_address : required
+            age_s      : required
+            cb         : required
+        @_count
+            table : 'accounts'
+            where :
+                "created_by  = $::INET"      : opts.ip_address
+                "created    >= $::TIMESTAMP" : misc.seconds_ago(opts.age_s)
+            cb    : opts.cb
+
+    # Completely delete the given account from the database.  This doesn't
+    # do any sort of cleanup of things associated with the account!  There
+    # is no reason to ever use this, except for testing purposes.
     delete_account: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : "DELETE FROM accounts"
+            where : "account_id = $::UUID" : opts.account_id
+            cb    : opts.cb
 
     mark_account_deleted: (opts) =>
         throw Error("NotImplementedError")
 
     account_exists: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : required
+            cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
+        @_query
+            query : 'SELECT account_id FROM accounts'
+            where : "email_address = $::TEXT" : opts.email_address
+            cb    : (err, result) =>
+                opts.cb?(err, result?.rows[0]?.account_id)
 
     account_creation_actions: (opts) =>
         throw Error("NotImplementedError")
@@ -675,14 +859,54 @@ class PostgreSQL
     unban_user: (opts) =>
         throw Error("NotImplementedError")
 
+    ###
+    Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.
+    The Schema is slightly redundant, but indexed properly:
+       {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
+    ###
+    _passport_key: (opts) => "#{opts.strategy}-#{opts.id}"
+
     create_passport: (opts) =>
-        throw Error("NotImplementedError")
+        opts= defaults opts,
+            account_id : required
+            strategy   : required
+            id         : required
+            profile    : required
+            cb         : required   # cb(err)
+        @_dbg('create_passport')(misc.to_json(opts.profile))
+        @_query
+            query     : "UPDATE accounts"
+            jsonb_set :
+                passports : "#{@_passport_key(opts)}" : opts.profile
+            where     :
+                "account_id = $::UUID" : opts.account_id
+            cb        : opts.cb
 
     delete_passport: (opts) =>
-        throw Error("NotImplementedError")
+        opts= defaults opts,
+            account_id : required
+            strategy   : required
+            id         : required
+            cb         : required
+        @_dbg('delete_passport')(misc.to_json(opts.profile))
+        @_query
+            query     : "UPDATE accounts"
+            jsonb_set :
+                passports : "#{@_passport_key(opts)}" : null  # delete it
+            where     :
+                "account_id = $::UUID" : opts.account_id
+            cb        : opts.cb
 
     passport_exists: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            strategy : required
+            id       : required
+            cb       : required   # cb(err, account_id or undefined)
+        @_query
+            query : "SELECT account_id FROM accounts"
+            where : "(passports->>$::TEXT) IS NOT NULL" : @_passport_key(opts)
+            cb    : (err, result) =>
+                opts.cb(err, result?.rows[0]?.account_id)
 
     update_account_settings: (opts) =>
         throw Error("NotImplementedError")
