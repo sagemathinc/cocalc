@@ -106,6 +106,8 @@ class PostgreSQL
                                  # {field1:[{type1:value}|string|undefined], field2:[{type2:value}|string|undefined], ...} which gets converted to
                                  # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
                                  # with corresponding params set.  Undefined valued fields are ignored.
+            conflict : undefined # if given, then values must be given; appends something like this to query:
+                                 #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
             cb     : undefined
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
@@ -137,7 +139,18 @@ class PostgreSQL
                         i += 1
                         break  # v should have just one thing in it.
             opts.params = params
-            opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')})"
+            opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
+
+        if opts.conflict?
+            if not opts.values?
+                opts.cb("if conflict is specified then values must also be specified")
+                return
+            if typeof(opts.conflict) != 'string'
+                opts.cb("conflict must be a string (the field name), for now")
+                return
+            set = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
+            opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE SET #{set.join(', ')} "
+
         if opts.where?
             if typeof(opts.where) != 'object'
                 opts.cb("where must be an object")
@@ -478,13 +491,14 @@ class PostgreSQL
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
             end   : undefined     # if not given include everything until now
+            log   : 'central_log' # which table to query
             event : undefined
             where : undefined     # if given, restrict to records with the given json
                                   # containment, e.g., {account_id:'...'}, only returns
                                   # entries whose value has the given account_id.
             cb    : required
         @_query
-            query  : 'SELECT * FROM central_log'
+            query  : "SELECT * FROM #{opts.log}"
             where  :
                 'time  >= $::TIMESTAMP' : opts.start
                 'time  <= $::TIMESTAMP' : opts.end
@@ -526,10 +540,26 @@ class PostgreSQL
             cb     : (err) => opts.cb?(err)
 
     get_client_error_log: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            cb    : required
+        opts.log = 'client_error_log'
+        @get_log(opts)
 
     set_server_setting: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            name  : required
+            value : required
+            cb    : required
+        @_query
+            query  : 'INSERT INTO server_settings'
+            values :
+                name  : 'TEXT' : opts.name
+                value : 'TEXT' : opts.value
+            conflict : 'name'
+            cb     : opts.cb
 
     get_server_setting: (opts) =>
         throw Error("NotImplementedError")

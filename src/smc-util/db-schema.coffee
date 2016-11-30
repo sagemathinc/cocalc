@@ -875,7 +875,7 @@ schema.server_settings =
         name  :
             type : 'string'
         value :
-            type : 'map'
+            type : 'string'
     user_query:
         # NOTE: can *set* but cannot get!
         set:
