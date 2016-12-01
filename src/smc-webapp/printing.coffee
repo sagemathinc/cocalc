@@ -186,11 +186,14 @@ class SagewsPrinter extends Printer
                             line-height: 1.5;
                         }
                         div.output img {
+                            display: block;
                             max-width: 70%;
                             width: auto;
                             height: auto;
                         }
-                        div.output.stdout, div.output.stderr { font-family: monospace; white-space: pre-wrap; }
+                        div.output.stdout,
+                        div.output.stderr,
+                        div.output.javascript { font-family: monospace; white-space: pre-wrap; }
                         div.output.stderr { color: #F00; border-color: #F33; }
 
                         span.sagews-output-image > img,
@@ -316,11 +319,10 @@ class SagewsPrinter extends Printer
             code = mesg.code.source
             out = "<pre><code>#{code}</code></pre>"
         else if mesg.javascript?
-            code = mesg.javascript.source
-            if mesg.javascript.coffeescript
-                out = "<pre><code class='lang-coffeescript'>#{code}</code></pre>"
-            else
-                out = "<pre><code class='lang-javascript'>#{code}</code></pre>"
+            # mesg.javascript.coffeescript is true iff coffeescript
+            $output = $(mark.replacedWith)
+            $output.find('.sagews-output-container').remove() # TODO what's that?
+            out = "<div class='output javascript'>#{$output.html()}</div>"
         else if mesg.done?
             # ignored
         else
@@ -454,6 +456,7 @@ class SagewsPrinter extends Printer
                                 else
                                     process_collected_mesg_stdout()
                                     # process the non-stdout mesg from this iteration
+                                    # console.log 'output message', mesg, mark
                                     @html_process_output_mesg(mesg, mark)
 
                 process_collected_mesg_stdout()
