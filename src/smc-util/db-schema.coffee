@@ -172,6 +172,12 @@ schema.accounts =
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
         created       : [] # to compute stats efficiently
         email_address : []
+    pg_indexes : [
+        'lower(first_name) text_pattern_ops',
+        'lower(last_name)  text_pattern_ops',
+        'created_by',
+        'created',
+        ]
     user_query :
         get :
             all :

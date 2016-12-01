@@ -432,6 +432,8 @@ class PostgreSQL
                     cb(undefined, (row.column_name for row in result.rows))
 
     _create_table: (table, cb) =>
+        dbg = @_dbg("_create_table('#{table}')")
+        dbg()
         schema = SCHEMA[table]
         if not schema?
             cb("no table '#{table}' in schema")
@@ -459,9 +461,36 @@ class PostgreSQL
         if primary_keys.length == 0
             cb("ERROR creating table '#{table}': a valid primary key must be specified -- #{schema.primary_key}")
             return
-        @_query
-            query  : "CREATE TABLE #{table} (#{columns.join(', ')}, PRIMARY KEY(#{primary_keys.join(', ')}))"
-            cb     : cb
+        async.series([
+            (cb) =>
+                dbg("creating the table")
+                @_query
+                    query  : "CREATE TABLE #{table} (#{columns.join(', ')}, PRIMARY KEY(#{primary_keys.join(', ')}))"
+                    cb     : cb
+            (cb) =>
+                @_create_indexes(cb)
+        ], cb)
+
+    _create_indexes: (table, cb) =>
+        dbg = @_dbg("_create_indexes('#{table}')")
+        dbg()
+        schema = SCHEMA[table]
+        if not schema.pg_indexes?
+            dbg("no indexes defined")
+            cb()
+            return
+        dbg("creating indexes")
+        f = (query, cb) =>
+            s = query.toLowerCase()
+            if s.indexOf('create') == -1 or s.indexOf('index') == -1
+                # Shorthand index is just the part in parens.
+                # Schema can also give a full create index command.
+                query = "CREATE INDEX ON #{table} (#{query})"
+            @_query
+                query : query
+                cb    : cb
+        async.map(schema.pg_indexes, f, cb)
+
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
     # TODO: we do NOT do anything related to the actual columns or datatypes yet!
@@ -1057,11 +1086,58 @@ class PostgreSQL
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
-    all_users: (cb) =>
-        throw Error("NotImplementedError")
-
     user_search: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
+            limit : 50           # limit on string queries; email query always returns 0 or 1 result per email address
+            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
+                                 # email_address *only* occurs in search queries that are by email_address -- we do not reveal
+                                 # email addresses of users queried by name.
+        {string_queries, email_queries} = misc.parse_user_search(opts.query)
+        results = []
+        dbg = @_dbg("user_search")
+        dbg("query = #{misc.to_json(opts.query)}")
+        async.parallel([
+            (cb) =>
+                if email_queries.length == 0
+                    cb(); return
+                dbg("do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)")
+                @_query
+                    query : 'SELECT account_id, first_name, last_name, email_address FROM accounts'
+                    where : 'email_address = ANY($::TEXT[])' : email_queries
+                    cb    : (err, result) =>
+                        cb(err, if result? then results.push(result.rows...))
+            (cb) =>
+                dbg("do all string queries")
+                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                    # nothing to do
+                    cb(); return
+                # substring search on first and last name.
+                # With the two indexes, the query below is instant even on several
+                # hundred thousand accounts:
+                #     CREATE INDEX accounts_first_name_idx ON accounts(first_name text_pattern_ops);
+                #     CREATE INDEX accounts_last_name_idx  ON accounts(last_name text_pattern_ops);
+                where  = []
+                params = []
+                i      = 1
+                for terms in string_queries
+                    v = []
+                    for s in terms
+                        s = s.toLowerCase()
+                        v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT)")
+                        params.push("#{s}%")  # require string to name to start with string -- makes searching way faster and is more useful too
+                        i += 1
+                    where.push("(#{v.join(' AND ')})")
+                query = 'SELECT account_id, first_name, last_name FROM accounts'
+                query += ' WHERE ' + where.join(' OR ')
+                query += " LIMIT $#{i}::INTEGER"; i += 1
+                params.push(opts.limit)
+                @_query
+                    query  : query
+                    params : params
+                    cb     : (err, result) =>
+                        cb(err, if result? then results.push(result.rows...))
+            ], (err) => opts.cb(err, results))
 
     get_account: (opts) =>
         throw Error("NotImplementedError")
