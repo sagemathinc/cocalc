@@ -702,7 +702,7 @@ NewProjectCreator = rclass
             title_text        : ''
             description_text  : ''
             error             : ''
-            create_button_hit : ''
+            create_button_hit : '' # Options are 'with_members_and_internet' and 'with_custom_upgrades'
 
     toggle_editing: ->
         if @state.state == 'view'
@@ -766,8 +766,8 @@ NewProjectCreator = rclass
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
     create_project_with_members_and_internet: ->
-        total_upgrades = redux.getStore('account').get_total_upgrades() ? {}
-        if total_upgrades.member_host > 0 and total_upgrades.network > 0
+        remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
+        if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
             @create_project({member_host: 1, network: 1})
         else
             @setState(create_button_hit: 'with_members_and_internet')
