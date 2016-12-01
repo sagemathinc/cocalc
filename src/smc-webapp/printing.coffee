@@ -158,7 +158,7 @@ class SagewsPrinter extends Printer
                     <meta charset="utf-8">
 
                     <title>#{data.title}</title>
-                    <meta name="description" content="automatically generated from '#{data.filename} on SageMathCloud">
+                    <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on SageMathCloud">
                     <meta name="date" content="#{data.timestamp}">
 
                     <style>
@@ -175,7 +175,7 @@ class SagewsPrinter extends Printer
                             padding: .5rem;
                         }
                         @media print {
-                          body { width: 100%; margin: 1rem .2rem; font-size: 12pt; }
+                          body { width: 100%; margin: 1rem 1rem 1rem 6rem; font-size: 12pt; }
                         }
                         pre { margin: 0; }
                         div.output + pre.input { margin-top: 1rem; }
@@ -186,7 +186,6 @@ class SagewsPrinter extends Printer
                             line-height: 1.5;
                         }
                         div.output img {
-                            display: block;
                             max-width: 70%;
                             width: auto;
                             height: auto;
@@ -230,6 +229,7 @@ class SagewsPrinter extends Printer
                             font-family: monospace;
                         }
                         */
+                        div.header { margin-bottom: 1rem; }
                         footer {
                             margin-top: 1rem;
                             border-top: .1rem solid #888;
@@ -271,6 +271,9 @@ class SagewsPrinter extends Printer
                 <body>
                 <div class="header">
                     <h1>#{data.title}</h1>
+                    <div>Author #{data.author}</div>
+                    <div>Generated at <code>#{data.timestamp}</code></div>
+                    <div>File <code>#{data.project_id}: #{data.filename}</code></div>
                 </div>
                 #{data.content}
                 <footer>
@@ -314,7 +317,10 @@ class SagewsPrinter extends Printer
                         data_url = scene.static_image
                         out = "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else
-                    out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+                    # console.log 'msg.file', mark, mesg
+                    if not @_output_ids[mark.id] # avoid duplicated outputs
+                        @_output_ids[mark.id] = true
+                        out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
         else if mesg.code?  # what's that actually?
             code = mesg.code.source
             out = "<pre><code>#{code}</code></pre>"
@@ -327,14 +333,20 @@ class SagewsPrinter extends Printer
             # ignored
         else
             console.warn "ignored mesg", mesg
-        html = @html_embedding_images(out)
+        html = @html_post_process(out)
         if html?
             @_html.push(html)
 
-    html_embedding_images: (html) ->
+    html_post_process: (html) ->
+        # embedding images and detecting a title
         if not html?
             return html
         $html = $(html)
+        if not @_title
+            for tag in ['h1', 'h2', 'h3']
+                $hx = $html.find(tag + ':first')
+                if $hx.length > 0
+                    @_title = $hx.text()
         for img in $html.find('img')
             if img.src.startsWith('data:')
                 continue
@@ -362,6 +374,8 @@ class SagewsPrinter extends Printer
         # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
         {MARKERS}    = require('smc-util/sagews')
         @_html       = [] # list of elements
+        @_title      = null # for saving the detected title
+        @_output_ids = {} # identifies text marker elements, to avoid printing show-plots them more than once!
         cm           = @editor.codemirror
         progress     ?= _.noop
 
@@ -401,7 +415,6 @@ class SagewsPrinter extends Printer
             # final: if true, filter out the empty lines at the bottom
             while final and input_lines.length > 0
                 line = input_lines[input_lines.length - 1]
-                console.log("last line:", line)
                 if line.length == 0
                     input_lines.pop()
                 else
@@ -473,10 +486,12 @@ class SagewsPrinter extends Printer
         )
 
         content = @generate_html
-            title     : @editor.filename
-            filename  : @editor.filename
-            content   : (h for h in @_html).join('\n')
-            timestamp : "#{(new Date()).toISOString()}"
+            title      : @_title ? @editor.filename
+            filename   : @editor.filename
+            content    : (h for h in @_html).join('\n')
+            timestamp  : "#{(new Date()).toISOString()}".split('.')[0]
+            project_id : @editor.project_id
+            author     : redux.getStore('account').get_fullname()
 
         progress(.95, "Saving to #{@output_file} ...")
         salvus_client.write_text_file_to_project
