@@ -28,6 +28,7 @@ misc            = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {redux}         = require('./smc-react')
 {project_tasks} = require('./project_tasks')
+markdown        = require('./markdown')
 
 # abstract class
 class Printer
@@ -109,14 +110,397 @@ class PandocPrinter extends Printer
 class LatexPrinter extends Printer
     @supported : ['tex']
 
-    print : () ->
+    print: () ->
         @show_print_new_tab()
 
 class SagewsPrinter extends Printer
     @supported : ['sagews']
 
-    print : (opts) ->
-        salvus_client.print_to_pdf(opts)
+    print: (cb, progress) ->
+        # cb: callback when done, usual err pattern
+        # progress: callback to signal back messages about the conversion progress
+        target_ext = misc.filename_extension(@output_file).toLowerCase()
+        try
+            switch target_ext
+                when 'pdf'
+                    salvus_client.print_to_pdf(cb)
+                when 'html'
+                    @html(cb, progress)
+        catch e
+            err = "Exception trying to print to #{target_ext} -- #{e}"
+            console.error(err, e)
+            console.trace()
+            cb(err)
+
+    generate_html: (data) ->
+        if not @_html_tmpl?
+            # recycle our mathjax config from last.coffee
+            {MathJaxConfig} = require('./last')
+            MathJaxConfig = _.clone(MathJaxConfig)
+            MathJaxConfig.skipStartupTypeset = false
+            MathJaxConfig.showProcessingMessages = true
+            MathJaxConfig.CommonHTML ?= {}
+            MathJaxConfig.CommonHTML.scale = 80
+            MathJaxConfig["HTML-CSS"] ?= {}
+            MathJaxConfig["HTML-CSS"].scale = 80
+
+            SiteName = redux.getStore('customize').site_name ? 'SageMathCloud'
+            if window?
+                loc = window.location
+                url = "#{loc.protocol}//#{loc.hostname}/#{window.smc_base_url ? ''}"
+            else
+                url = 'https://cloud.sagemath.com/'
+
+            @_html_tmpl = """
+                <!doctype html>
+                <html lang="en">
+                <head>
+                    <meta charset="utf-8">
+
+                    <title>#{data.title}</title>
+                    <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on SageMathCloud">
+                    <meta name="date" content="#{data.timestamp}">
+
+                    <style>
+                        html {
+                            font-family: sans-serif;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0; padding: 0;
+                        }
+                        body {
+                            width: 50rem;
+                            counter-reset: line;
+                            padding: .5rem;
+                        }
+                        @media print {
+                          body { width: 100%; margin: 1rem 1rem 1rem 6rem; font-size: 12pt; }
+                        }
+                        pre { margin: 0; }
+                        div.output + pre.input { margin-top: 1rem; }
+                        div.output {
+                            border-left: .2rem solid #33a;
+                            padding: .3rem;
+                            margin-left: -.5rem;
+                            line-height: 1.5;
+                        }
+                        div.output img {
+                            max-width: 70%;
+                            width: auto;
+                            height: auto;
+                        }
+                        div.output.stdout,
+                        div.output.stderr,
+                        div.output.javascript { font-family: monospace; white-space: pre-wrap; }
+                        div.output.stderr { color: #F00; border-color: #F33; }
+
+                        span.sagews-output-image > img,
+                        span.sagews-output-html > img
+                        { vertical-align: top; }
+
+                        pre.input { }
+                        pre.input > code {
+                            display: block;
+                            line-height: 1.1rem;
+                        }
+                        pre.input > code:before {
+                            margin-left: -3rem;
+                            counter-increment: line;
+                            content: counter(line);
+                            display: inline-block;
+                            border-right: .2rem solid #3a3;
+                            padding: 0 .5rem 0 0;
+                            margin-right: .5rem;
+                            color: #888;
+                            min-width: 2rem;
+                            text-align: right;
+                        }
+                        /* numbering output, disabled because it doesn't look good */
+                        /*
+                        div.output:before {
+                            margin-left: -3rem;
+                            counter-increment: line;
+                            content: counter(line);
+                            display: inline-block;
+                            color: #888;
+                            min-width: 2rem;
+                            text-align: right;
+                            font-family: monospace;
+                        }
+                        */
+                        div.header { margin-bottom: 1rem; }
+                        footer {
+                            margin-top: 1rem;
+                            border-top: .1rem solid #888;
+                            font-size: 70%;
+                            color: #888;
+                            text-align: center;
+                        }
+                    </style>
+
+
+                    <!-- the styling of the highlighted code; should be printer friendly -->
+                    <style>
+                        .cm-keyword { font-weight: bold; color: #339; }
+                        .cm-atom { color: #666; }
+                        .cm-number { color: #333; }
+                        .cm-def { color: #666; }
+                        .cm-variable { color: black; }
+                        .cm-variable-2 { color:black; }
+                        .cm-variable-3 { color: black; }
+                        .cm-property { color: black; }
+                        .cm-operator { color: black; font-weight: bold; }
+                        .cm-comment { color: #777; }
+                        .cm-string { color: #333; }
+                        .cm-meta { color: #039; }
+                        .cm-qualifier { color: #666; }
+                        .cm-builtin { color: #393; font-weight: bold; }
+                        .cm-bracket { color: #666; }
+                        .cm-tag { color: #444; font-weight: bold; }
+                        .cm-attribute { color: #777; }
+                        .cm-error { color: #000; }
+                    </style>
+
+                    <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
+                    <script type="text/javascript" async
+                        src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+                    </script>
+                </head>
+
+                <body>
+                <div class="header">
+                    <h1>#{data.title}</h1>
+                    <div>Author #{data.author}</div>
+                    <div>Generated at <code>#{data.timestamp}</code></div>
+                    <div>File <code>#{data.project_id}: #{data.filename}</code></div>
+                </div>
+                #{data.content}
+                <footer>
+                    <div>generated #{data.timestamp} on
+                    <a href="#{url}">#{SiteName}</a>
+                    </div>
+                </footer>
+                </body>
+                </html>"""
+        return @_html_tmpl
+
+    html_process_output_mesg: (mesg, mark) ->
+        out = null
+        if mesg.stdout?
+            # assertion: for stdout, `mark` might be undefined
+            out = "<div class='output stdout'>#{mesg.stdout}</div>"
+        else if mesg.stderr?
+            out = "<div class='output stderr'>#{mesg.stderr}</div>"
+        else if mesg.html?
+            $html = $("<div>#{mesg.html}</div>")
+            @editor.syncdoc.process_html_output($html)
+            out = "<div class='output html'>#{$html.html()}</div>"
+        else if mesg.md?
+            x = markdown.markdown_to_html(mesg.md)
+            $out = $("<div>")
+            $out.html_noscript(x.s) # also, don't process mathjax!
+            @editor.syncdoc.process_html_output($out)
+            out = "<div class='output md'>#{$out.html()}</div>"
+        else if mesg.interact?
+            out = "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
+        else if mesg.file?
+            if mesg.file.show ? true
+                if misc.filename_extension(mesg.file.filename).toLowerCase() == 'sage3d'
+                    for el in $(mark.replacedWith).find(".salvus-3d-container")
+                        $3d = $(el)
+                        scene = $3d.data('salvus-threejs')
+                        if not scene?
+                            # when the document isn't fully processed, there is no scene data
+                            continue
+                        scene.set_static_renderer()
+                        data_url = scene.static_image
+                        out = "<div class='output sage3d'><img src='#{data_url}'></div>"
+                else
+                    # console.log 'msg.file', mark, mesg
+                    if not @_output_ids[mark.id] # avoid duplicated outputs
+                        @_output_ids[mark.id] = true
+                        out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+        else if mesg.code?  # what's that actually?
+            code = mesg.code.source
+            out = "<pre><code>#{code}</code></pre>"
+        else if mesg.javascript?
+            # mesg.javascript.coffeescript is true iff coffeescript
+            $output = $(mark.replacedWith)
+            $output.find('.sagews-output-container').remove() # TODO what's that?
+            out = "<div class='output javascript'>#{$output.html()}</div>"
+        else if mesg.done?
+            # ignored
+        else
+            console.warn "ignored mesg", mesg
+        html = @html_post_process(out)
+        if html?
+            @_html.push(html)
+
+    html_post_process: (html) ->
+        # embedding images and detecting a title
+        if not html?
+            return html
+        $html = $(html)
+        if not @_title
+            for tag in ['h1', 'h2', 'h3']
+                $hx = $html.find(tag + ':first')
+                if $hx.length > 0
+                    @_title = $hx.text()
+        for img in $html.find('img')
+            if img.src.startsWith('data:')
+                continue
+            c          = document.createElement("canvas")
+            scaling    = img.getAttribute('smc-image-scaling') ? 1
+            c.width    = img.width
+            c.height   = img.height
+            c.getContext('2d').drawImage(img, 0, 0)
+            img.width  = scaling * img.width
+            img.height = scaling * img.height
+            ext = misc.filename_extension(img.src).toLowerCase()
+            ext = ext.split('?')[0]
+            if ext == 'svg'
+                ext = 'svg+xml'
+            else if ext in ['png', 'jpeg']
+                _
+            else
+                console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
+                continue
+            img.src = c.toDataURL("image/#{ext}")
+        return $html[0].outerHTML ? ''
+
+    html: (cb, progress) ->
+        # the following fits mentally into sagews.SynchronizedWorksheet
+        # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
+        {MARKERS}    = require('smc-util/sagews')
+        @_html       = [] # list of elements
+        @_title      = null # for saving the detected title
+        @_output_ids = {} # identifies text marker elements, to avoid printing show-plots them more than once!
+        cm           = @editor.codemirror
+        progress     ?= _.noop
+
+        # canonical modes in a sagews
+        {sagews_decorator_modes} = require('./editor')
+        canonical_modes = _.object(sagews_decorator_modes)
+
+        # cell input lines are collected first and processed once lines with markers appear (i.e. output)
+        # the assumption is, that default_mode extends to all the consecutive cells until the next mode or default_mode
+        input_lines              = []
+        input_lines_mode         = null
+        input_lines_default_mode = 'python'
+
+        canonical_mode = (mode) ->
+            canonical_modes[mode] ? input_lines_default_mode
+
+        detect_mode = (line) ->
+            line = line.trim()
+            if line.startsWith('%') # could be %auto, %md, %auto %default_mode, ...
+                i = line.indexOf('%default_mode')
+                if i >= 0
+                    input_lines_default_mode = canonical_mode(line[i..].split(/\s+/)[1])
+                else
+                    mode = line.split(" ")[0][1..] # worst case, this is an empty string
+                    if _.has(canonical_modes, mode)
+                        input_lines_mode = canonical_mode(mode)
+
+        process_line = (line) ->
+            detect_mode(line)
+            # each line is in <code> because of the css line numbering
+            code = document.createElement('code')
+            mode = input_lines_mode ? input_lines_default_mode
+            CodeMirror.runMode(line, mode, code)
+            return code.outerHTML
+
+        input_lines_process = (final = false) =>
+            # final: if true, filter out the empty lines at the bottom
+            while final and input_lines.length > 0
+                line = input_lines[input_lines.length - 1]
+                if line.length == 0
+                    input_lines.pop()
+                else
+                    break
+            if input_lines.length > 0
+                input_lines = input_lines.map(process_line).join('') # no \n linebreaks!
+                #@_html.push("<div class='mode'>#{input_lines_mode ? input_lines_default_mode} mode")
+                @_html.push("<pre class='input'>#{input_lines}</pre>")
+            input_lines      = []
+            input_lines_mode = null
+
+        # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
+        mesg_stdout = {stdout : ''}
+        process_collected_mesg_stdout = =>
+            # processing leftover stdout mesgs from previous iteration
+            if mesg_stdout.stdout.length > 0
+                @html_process_output_mesg(mesg_stdout)
+                mesg_stdout = {stdout : ''}
+
+        # process lines in an async loop to avoid blocking on large documents
+        line = 0
+        lines_total = cm.lineCount()
+        async.whilst(
+            ->
+                progress(.1 + .8 * line / lines_total, "Converting line #{line}")
+                return line < lines_total
+            ,
+            (cb) =>
+                x = cm.getLine(line)
+                marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
+                if not marks? or marks.length == 0
+                    input_lines.push(x)
+                else
+                    input_lines_process()
+                    mark = marks[0] # assumption it's always length 1
+                    switch x[0]     # first char is the marker
+                        when MARKERS.cell
+                            _
+                        when MARKERS.output
+                            # assume, all cells are evaluated and hence mark.rendered contains the html
+                            for mesg_ser in mark.rendered.split(MARKERS.output)
+                                if mesg_ser.length == 0
+                                    continue
+                                try
+                                    mesg = misc.from_json(mesg_ser)
+                                catch e
+                                    console.warn("invalid output message '#{m}' in line '#{line}'")
+                                    continue
+
+                                if mesg.stdout?
+                                    mesg_stdout.stdout += mesg.stdout
+                                else
+                                    process_collected_mesg_stdout()
+                                    # process the non-stdout mesg from this iteration
+                                    # console.log 'output message', mesg, mark
+                                    @html_process_output_mesg(mesg, mark)
+
+                process_collected_mesg_stdout()
+                line++
+                cb(null, line, x)
+            ,
+            (err, line, x) ->
+                input_lines_process(final = true)
+                if err
+                    msg = "error processing line #{line}: '#{x}'"
+                    console.error(msg)
+                    cb?(err)
+                    return
+        )
+
+        content = @generate_html
+            title      : @_title ? @editor.filename
+            filename   : @editor.filename
+            content    : (h for h in @_html).join('\n')
+            timestamp  : "#{(new Date()).toISOString()}".split('.')[0]
+            project_id : @editor.project_id
+            author     : redux.getStore('account').get_fullname()
+
+        progress(.95, "Saving to #{@output_file} ...")
+        salvus_client.write_text_file_to_project
+            project_id : @editor.project_id
+            path       : @output_file
+            content    : content
+            cb         : (err, resp) =>
+                console.debug("write_text_file_to_project.resp: '#{resp}'")
+                cb?(err)
 
 # registering printers
 printers = {}

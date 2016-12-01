@@ -56,7 +56,7 @@ if client._connected
 # mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
 
 # ATTN: do not use "xypic.js", frequently causes crash!
-window.MathJax =
+window.MathJax = exports.MathJaxConfig =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
     jax: ["input/TeX","input/AsciiMath", "output/SVG"]
