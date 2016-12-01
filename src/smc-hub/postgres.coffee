@@ -172,6 +172,21 @@ class PostgreSQL
                     values.push("$#{push_param(param)}")
             opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
 
+        if opts.set?
+            fields = []
+            values = []
+            for field, param of opts.values
+                if field.indexOf('::') != -1
+                    [field, type] = field.split('::')
+                    type = type.trim()
+                    v.push("#{field.trim()}=$#{push_param(param, type)}::#{type}")
+                    continue
+                else
+                    fields.push(field)
+                    values.push("$#{push_param(param)}")
+
+            opts.query += " SET  (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
+
         if opts.conflict?
             if not opts.values?
                 opts.cb("if conflict is specified then values must also be specified")
@@ -844,7 +859,16 @@ class PostgreSQL
                         opts.cb(undefined, (x.action for x in result.rows))
 
     account_creation_actions_success: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query : 'UPDATE accounts'
+            set   :
+                "creation_actions_done::BOOLEAN" : true
+            where :
+                "account_id = $::UUID" : opts.account_id
+            cb     : opts.cb
 
     do_account_creation_actions: (opts) =>
         throw Error("NotImplementedError")
