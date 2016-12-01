@@ -999,8 +999,30 @@ class PostgreSQL
                     cb()
         ], opts.cb)
 
+    ###
+    Querying for searchable information about accounts.
+    ###
     account_ids_to_usernames: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_ids : required
+            cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
+        if not @_validate_opts(opts) then return
+        if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
+            opts.cb(undefined, [])
+            return
+        @_query
+            query : 'SELECT account_id, first_name, last_name FROM accounts'
+            where : 'account_id = ANY($::UUID[])' : opts.account_ids
+            cb    : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    v = misc.dict(([r.account_id, {first_name:r.first_name, last_name:r.last_name}] for r in result.rows))
+                    # fill in unknown users (should never be hit...)
+                    for id in opts.account_ids
+                        if not v[id]?
+                            v[id] = {first_name:undefined, last_name:undefined}
+                    opts.cb(err, v)
 
     get_usernames: (opts) =>
         throw Error("NotImplementedError")
