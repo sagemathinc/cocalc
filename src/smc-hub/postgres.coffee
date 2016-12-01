@@ -261,7 +261,7 @@ class PostgreSQL
         @_query
             query : "SELECT COUNT(*) FROM #{opts.table}"
             where : opts.where
-            cb    : (err, result) => opts.cb(err, parseInt(result?.rows[0].count))
+            cb    : count_result(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts
@@ -602,8 +602,7 @@ class PostgreSQL
                 'time  <= $::TIMESTAMP' : opts.end
                 'event  = $::TEXT'      : opts.event
                 'value @> $::JSONB'     : opts.where
-            cb     : (err, result) =>
-                opts.cb(err, result?.rows)
+            cb     : all_results(opts.cb)
 
     # Return every entry x in central_log in the given period of time for
     # which x.event==event and x.value.account_id == account_id.
@@ -635,7 +634,7 @@ class PostgreSQL
                 'error      :: TEXT'      : opts.error
                 'account_id :: UUID'      : opts.account_id
                 'time       :: TIMESTAMP' : 'NOW()'
-            cb     : (err) => opts.cb?(err)
+            cb     : opts.cb
 
     get_client_error_log: (opts) =>
         opts = defaults opts,
@@ -667,8 +666,7 @@ class PostgreSQL
             query : 'SELECT value FROM server_settings'
             where :
                 "name = $::TEXT" : opts.name
-            cb    : (err, result) =>
-                opts.cb(err, result?.rows[0]?.value)
+            cb    : one_result(opts.cb, 'value')
 
     # TODO: optimization -- this could be done as a changefeed (and is in rethink.coffee)
     get_site_settings: (opts) =>
@@ -695,11 +693,12 @@ class PostgreSQL
             conf     : required
             cb       : required
         @_query
-            query : 'INSERT into passport_settings'
-            values :
+            query    : 'INSERT into passport_settings'
+            values   :
                 'strategy::TEXT ' : opts.strategy
                 'conf    ::JSONB' : opts.conf
             conflict : 'strategy'
+            cb       : opts.cb
 
     get_passport_settings: (opts) =>
         opts = defaults opts,
@@ -709,8 +708,7 @@ class PostgreSQL
             query : 'SELECT conf FROM passport_settings'
             where :
                 "strategy = $::TEXT" : opts.strategy
-            cb    : (err, result) =>
-                opts.cb(err, result?.rows[0]?.conf)
+            cb    : one_result(opts.cb, 'conf')
 
     ###
     Account creation, deletion, existence
@@ -844,8 +842,7 @@ class PostgreSQL
         @_query
             query : 'SELECT account_id FROM accounts'
             where : "email_address = $::TEXT" : opts.email_address
-            cb    : (err, result) =>
-                opts.cb?(err, result?.rows[0]?.account_id)
+            cb    : one_result(opts.cb, 'account_id')
 
     # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
@@ -871,11 +868,7 @@ class PostgreSQL
                 where :
                     'email_address  = $::TEXT'       : opts.email_address
                     'expire        >= $::TIMESTAMP'  : new Date()
-                cb    : (err, result) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        opts.cb(undefined, (x.action for x in result.rows))
+                cb    : all_results(opts.cb, 'action')
 
     account_creation_actions_success: (opts) =>
         opts = defaults opts,
@@ -947,10 +940,64 @@ class PostgreSQL
         @_query
             query : 'SELECT stripe_customer_id FROM accounts'
             where : 'account_id = $::UUID' : opts.account_id
-            cb    : (err, result) => opts.cb(err, result?.rows[0]?.stripe_customer_id)
+            cb    : one_result(opts.cb, 'stripe_customer_id')
 
+    ###
+    Stripe integration/sync:
+    Get all info about the given account from stripe and put it in our own local database.
+    Call it with force right after the user does some action that will change their
+    account info status.  This will never touch stripe if the user doesn't have
+    a stripe_customer_id.   TODO: This should be replaced by webhooks...
+    ###
     stripe_update_customer: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id  : required   # user's account_id
+            stripe      : undefined  # api connection to stripe
+            customer_id : undefined  # will be looked up if not known
+            cb          : undefined
+        customer = undefined
+        dbg = @_dbg("stripe_update_customer(account_id='#{opts.account_id}')")
+        async.series([
+            (cb) =>
+                if opts.customer_id?
+                    cb(); return
+                dbg("get_stripe_customer_id")
+                @get_stripe_customer_id
+                    account_id : opts.account_id
+                    cb         : (err, x) =>
+                        dbg("their stripe id is #{x}")
+                        opts.customer_id = x; cb(err)
+            (cb) =>
+                if opts.customer_id? and not opts.stripe?
+                    @get_server_setting
+                        name : 'stripe_secret_key'
+                        cb   : (err, secret) =>
+                            if err
+                                cb(err)
+                            else if not secret
+                                cb("stripe must be configured")
+                            else
+                                opts.stripe = require("stripe")(secret)
+                                cb()
+                else
+                    cb()
+            (cb) =>
+                if opts.customer_id?
+                    opts.stripe.customers.retrieve opts.customer_id, (err, x) =>
+                        dbg("got stripe info -- #{err}")
+                        customer = x; cb(err)
+                else
+                    cb()
+            (cb) =>
+                if opts.customer_id?
+                    @_query
+                        query : 'UPDATE accounts'
+                        set   : 'stripe_customer::JSONB' : customer
+                        where : 'account_id = $::UUID'   : opts.account_id
+                        cb    : opts.cb
+                else
+                    cb()
+        ], opts.cb)
 
     account_ids_to_usernames: (opts) =>
         throw Error("NotImplementedError")
@@ -1326,3 +1373,66 @@ quote_field = (field) ->
 # Timestamp the given number of seconds **in the future**.
 exports.expire_time = expire_time = (ttl) ->
     if ttl then new Date((new Date() - 0) + ttl*1000)
+
+# Returns a function that takes as input the output of doing a SQL query.
+# If there are no results, returns undefined.
+# If there is exactly one result, what is returned depends on pattern:
+#     'a_field' --> returns the value of this field in the result
+# If more than one result, an error
+one_result = (cb, pattern) ->
+    if not cb?
+        return ->  # do nothing -- return function that ignores result
+    return (err, result) ->
+        if err
+            cb(err)
+            return
+        if not result?.rows?
+            cb()
+            return
+        switch result.rows.length
+            when 0
+                cb()
+            when 1
+                obj = result.rows[0]
+                switch typeof(pattern)
+                    when 'string'
+                        x = obj[pattern]
+                        if not x?  # null or undefined -- SQL returns null, but we want undefined
+                            cb()
+                        else
+                            cb(undefined, x)
+                    when 'object'
+                        x = {}
+                        for p in pattern
+                            if obj[p]?
+                                x[p] = obj[p]
+                        cb(undefined, x)
+                    else
+                        cb("BUG: unknown pattern -- #{pattern}")
+            else
+                cb("more than one result")
+
+all_results = (cb, pattern) ->
+    if not cb?
+        return ->  # do nothing -- return function that ignores result
+    return (err, result) ->
+        if err
+            cb(err)
+        else
+            rows = result.rows
+            if not pattern?
+                cb(undefined, rows)
+            else if typeof(pattern) == 'string'
+                cb(undefined, ((x[pattern] ? undefined) for x in rows))
+            else
+                cb("unsupported pattern type '#{typeof(pattern)}'")
+
+
+count_result = (cb) ->
+    if not cb?
+        return ->  # do nothing -- return function that ignores result
+    return (err, result) ->
+        if err
+            cb(err)
+        else
+            cb(undefined, parseInt(result?.rows?[0]?.count))
