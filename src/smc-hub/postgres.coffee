@@ -109,21 +109,27 @@ class PostgreSQL
         opts  = defaults opts,
             query     : required
             params    : []
-            where     : undefined # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
-                                  # and values the corresponding params.  Also, WHERE must not be in the query already.
-                                  # If where[cond] is undefined, then cond is completely **ignored**.
-            values    : undefined # Used for INSERT: If given, then params and where must not be given.   Values is a map
-                                  # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
-                                  # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                  # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
-            conflict  : undefined # If given, then values must also be given; appends this to query:
-                                  #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
-            jsonb_set : undefined # Used for setting a field that contains a JSONB javascript map.
-                                  # Give as input an object {key1:val1, key2:val2, ...}.
-                                  # Every key has the corresponding value set, unless val is undefined/null, in which
-                                  # case that key is deleted from the JSONB object.  Simple as that!  This is much, much
-                                  # cleaner to use than the generated SQL.   Also, if the field itself is NULL, it gets
-                                  # created automatically.
+            where     : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
+                                     # and values the corresponding params.  Also, WHERE must not be in the query already.
+                                     # If where[cond] is undefined, then cond is completely **ignored**.
+            values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
+                                     # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
+                                     # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
+                                     # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
+            conflict  : undefined    # If given, then values must also be given; appends this to query:
+                                     #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
+            jsonb_set : undefined    # Used for setting a field that contains a JSONB javascript map.
+                                     # Give as input an object
+                                     #
+                                     # { field1:{key1:val1, key2:val2, ...}, field2:{key3:val3,...}, ...}
+                                     #
+                                     # In each field, every key has the corresponding value set, unless val is undefined/null, in which
+                                     # case that key is deleted from the JSONB object fieldi.  Simple as that!  This is much, much
+                                     # cleaner to use than SQL.   Also, if the value in fieldi itself is NULL, it gets
+                                     # created automatically.
+            jsonb_merge : undefined  # Exactly lke jsonb_set, but when val1 (say) is an object, it merges that object in,
+                                     # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
+                                     # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             cb     : required
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
@@ -132,25 +138,40 @@ class PostgreSQL
             return
 
         push_param = (param, type) ->
-            if type.toUpperCase() == 'JSONB' and misc.is_array(param)
+            if type?.toUpperCase() == 'JSONB'
                 param = misc.to_json(param)  # I don't understand why this is needed by the driver....
             opts.params.push(param)
             return opts.params.length
 
+        if opts.jsonb_merge?
+            if opts.jsonb_set?
+                opts.cb("if jsonb_merge is set then jsonb_set must not be set")
+                return
+            opts.jsonb_set = opts.jsonb_merge
+
         if opts.jsonb_set?
-            opts.query += " SET "
-            v = []
-            for field, data of opts.jsonb_set
-                obj = "COALESCE(#{field}, '{}'::JSONB)"
+            # This little piece of very hard to write (and clever?) code
+            # makes it so we can set or **merge in at any nested level (!)
+            # arbitrary JSON objects.  We can also delete any key at any
+            # level by making the value null or undefined!  This is amazingly
+            # easy to use in queries -- basically making JSONP with postgres
+            # as expressive as RethinkDB REQL (even better in some ways).
+            set = (field, data, path) =>
+                obj = "COALESCE(#{field}#>'{#{path.join(',')}}', '{}'::JSONB)"
                 for key, val of data
                     if not val?
                         # remove key from object
                         obj = "(#{obj} - '#{key}')"
                     else
-                        # add key to object
-                        obj = "JSONB_SET(#{obj}, '{#{key}}', $#{push_param(val, 'JSONB')}::JSONB)"
-                v.push(" #{field} = #{obj}")
-            opts.query += v.join(' , ')
+                        if opts.jsonb_merge? and typeof(val) == 'object'
+                            subobj = set(field, val, path.concat([key]))
+                            obj    = "JSONB_SET(#{obj}, '{#{key}}', #{subobj})"
+                        else
+                            # completely replace field[key] with val.
+                            obj = "JSONB_SET(#{obj}, '{#{key}}', $#{push_param(val, 'JSONB')}::JSONB)"
+                return obj
+            v = ("#{field}=#{set(field, data, [])}" for field, data of opts.jsonb_set)
+            opts.query += " SET " + v.join(' , ')
 
         if opts.values?
             if opts.where?
@@ -871,7 +892,38 @@ class PostgreSQL
             cb     : opts.cb
 
     do_account_creation_actions: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : required
+            account_id    : required
+            cb            : required
+        dbg = @_dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
+        @account_creation_actions
+            email_address : opts.email_address
+            cb            : (err, actions) =>
+                if err
+                    opts.cb(err); return
+                f = (action, cb) =>
+                    dbg("account_creation_actions: action = #{misc.to_json(action)}")
+                    if action.action == 'add_to_project'
+                        @add_user_to_project
+                            project_id : action.project_id
+                            account_id : opts.account_id
+                            group      : action.group
+                            cb         : (err) =>
+                                if err
+                                    dbg("Error adding user to project: #{err}")
+                                cb(err)
+                    else
+                        # TODO: need to report this some better way, maybe email?
+                        dbg("skipping unknown action -- #{action.action}")
+                        cb()
+                async.map actions, f, (err) =>
+                    if not err
+                        @account_creation_actions_success
+                            account_id : opts.account_id
+                            cb         : opts.cb
+                    else
+                        opts.cb(err)
 
     set_stripe_customer_id: (opts) =>
         throw Error("NotImplementedError")
@@ -1001,7 +1053,25 @@ class PostgreSQL
         throw Error("NotImplementedError")
 
     create_project: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id  : required    # initial owner
+            title       : undefined
+            description : undefined
+            cb          : required    # cb(err, project_id)
+        if not @_validate_opts(opts) then return
+        project_id = misc.uuid()
+        now = new Date()
+        @_query
+            query  : "INSERT INTO projects"
+            values :
+                project_id  : project_id
+                title       : opts.title
+                description : opts.description
+                created     : now
+                last_edited : now
+                users       : {"#{opts.account_id}":{group:'owner'}}
+            cb : (err, result) =>
+                opts.cb(err, if not err then project_id)
 
     get_project: (opts) =>
         throw Error("NotImplementedError")
@@ -1013,7 +1083,19 @@ class PostgreSQL
         throw Error("NotImplementedError")
 
     add_user_to_project: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : 'collaborator'  # see misc.PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        if not @_validate_opts(opts) then return
+        @_query
+            query       : 'UPDATE projects'
+            jsonb_merge :
+                users   :
+                    "#{opts.account_id}":
+                        group: opts.group
+            cb          : opts.cb
 
     remove_collaborator_from_project: (opts) =>
         throw Error("NotImplementedError")
