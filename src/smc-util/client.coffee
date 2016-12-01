@@ -23,7 +23,8 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-async       = require('async')
+async = require('async')
+_     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -1122,17 +1123,27 @@ class exports.Connection extends EventEmitter
     find_directories: (opts) =>
         opts = defaults opts,
             project_id     : required
-            query          : '*'   # see the -iname option to the UNIX find command.
-            path           : '.'
+            query          : '*'       # see the -iname option to the UNIX find command.
+            path           : '.'       # Root path to find directories from
+            exclusions     : undefined # Array<String> Paths relative to `opts.path`. Skips whole sub-trees
             include_hidden : false
-            cb             : required      # cb(err, object describing result (see code below))
+            cb             : required  # cb(err, object describing result (see code below))
+
+        args = [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', "'#{opts.query}'", '-readable']
+        tail_args = ['-print']
+
+        if opts.exclusions?
+            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+                "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
+            args = args.concat(exclusion_args)
+
+        args = args.concat(tail_args)
+        command = "find #{args.join(' ')}"
 
         @exec
             project_id : opts.project_id
-            command    : "find"
+            command    : command
             timeout    : 15
-            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
-            bash       : false
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return
