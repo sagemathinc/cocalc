@@ -112,6 +112,7 @@ class PostgreSQL
             where     : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
                                      # and values the corresponding params.  Also, WHERE must not be in the query already.
                                      # If where[cond] is undefined, then cond is completely **ignored**.
+            set       : undefined    # Appends a SET clause to the query; same format as values.
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
                                      # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
@@ -194,19 +195,17 @@ class PostgreSQL
             opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
 
         if opts.set?
-            fields = []
-            values = []
-            for field, param of opts.values
+            v = []
+            for field, param of opts.set
                 if field.indexOf('::') != -1
                     [field, type] = field.split('::')
                     type = type.trim()
                     v.push("#{field.trim()}=$#{push_param(param, type)}::#{type}")
                     continue
                 else
-                    fields.push(field)
-                    values.push("$#{push_param(param)}")
-
-            opts.query += " SET  (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
+                    v.push("#{field.trim()}=$#{push_param(param)}")
+            if v.length > 0
+                opts.query += " SET #{v.join(', ')} "
 
         if opts.conflict?
             if not opts.values?
@@ -232,8 +231,7 @@ class PostgreSQL
                     return
                 if not param?
                     continue
-                i = push_param(param)
-                z.push(cond.replace('$', "$#{i}"))
+                z.push(cond.replace('$', "$#{push_param(param)}"))
             if z.length > 0
                 opts.query += " WHERE #{z.join(' AND ')}"
 
@@ -886,9 +884,9 @@ class PostgreSQL
         @_query
             query : 'UPDATE accounts'
             set   :
-                "creation_actions_done::BOOLEAN" : true
+                'creation_actions_done::BOOLEAN' : true
             where :
-                "account_id = $::UUID" : opts.account_id
+                'account_id = $::UUID' : opts.account_id
             cb     : opts.cb
 
     do_account_creation_actions: (opts) =>
@@ -925,11 +923,31 @@ class PostgreSQL
                     else
                         opts.cb(err)
 
+    ###
+    Stripe support for accounts
+    ###
+    # Set the stripe id in our database of this user.  If there is no user with this
+    # account_id, then this is a NO-OP.
     set_stripe_customer_id: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id  : required
+            customer_id : required
+            cb          : required
+        @_query
+            query : 'UPDATE accounts'
+            set   : 'stripe_customer_id::TEXT' : opts.customer_id
+            where : 'account_id = $::UUID'     : opts.account_id
+            cb    : opts.cb
 
+    # Get the stripe id in our database of this user (or undefined if not stripe_id or no such user).
     get_stripe_customer_id: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id  : required
+            cb          : required
+        @_query
+            query : 'SELECT stripe_customer_id FROM accounts'
+            where : 'account_id = $::UUID' : opts.account_id
+            cb    : (err, result) => opts.cb(err, result?.rows[0]?.stripe_customer_id)
 
     stripe_update_customer: (opts) =>
         throw Error("NotImplementedError")
