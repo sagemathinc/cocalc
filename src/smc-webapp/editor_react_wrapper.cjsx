@@ -120,4 +120,5 @@ exports.register_nonreact_editor = (opts) ->
                 (e.click_save_button ? e.save)?()
 
 
-
+if DEBUG
+    smc.editors = editors

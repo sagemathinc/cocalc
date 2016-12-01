@@ -131,8 +131,8 @@ class ProjectActions extends Actions
     # Closes a file tab
     # Also closes file references.
     close_tab: (path) =>
-        open_files_order = @get_store().get('open_files_order')
-        active_project_tab = @get_store().get('active_project_tab')
+        open_files_order = @get_store().open_files_order
+        active_project_tab = @get_store().active_project_tab
         closed_index = open_files_order.indexOf(path)
         size = open_files_order.size
         if misc.path_to_tab(path) == active_project_tab
@@ -156,7 +156,7 @@ class ProjectActions extends Actions
     # Updates the URL
     set_active_tab: (key) =>
         store = @get_store()
-        if store.get('active_project_tab') == key
+        if store.active_project_tab == key
             # nothing to do
             return
         @setState(active_project_tab : key)
@@ -168,12 +168,12 @@ class ProjectActions extends Actions
                 @set_directory_files(store.current_path, sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
-                @push_state('new/' + store.get('current_path'))
+                @push_state('new/' + store.current_path)
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
                 @push_state('log')
             when 'search'
-                @push_state('search/' + store.get('current_path'))
+                @push_state('search/' + store.current_path)
             when 'settings'
                 @push_state('settings')
             else #editor...
@@ -183,7 +183,7 @@ class ProjectActions extends Actions
                 @set_current_path(misc.path_split(path).head)
 
     add_a_ghost_file_tab: () =>
-        current_num = @get_store().get('num_ghost_file_tabs')
+        current_num = @get_store().num_ghost_file_tabs
         @setState(num_ghost_file_tabs : current_num + 1)
 
     clear_ghost_file_tabs: =>
@@ -249,7 +249,7 @@ class ProjectActions extends Actions
         if not @redux.getStore('projects').is_project_open(@project_id)
             return # nothing to do regarding save, since project isn't even open
         # NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
-        is_public = @get_store().get('open_files').getIn([opts.path, 'component'])?.is_public
+        is_public = @get_store().open_files.getIn([opts.path, 'component'])?.is_public
         project_file.save(opts.path, @redux, @project_id, is_public)
 
     # Save all open files in this project
@@ -260,7 +260,7 @@ class ProjectActions extends Actions
         group = s.get_my_group(@project_id)
         if not group? or group == 'public'
             return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
-        @get_store().get('open_files').filter (val, path) =>
+        @get_store().open_files.filter (val, path) =>
             is_public = val.get('component')?.is_public  # might still in theory someday be true.
             project_file.save(path, @redux, @project_id, is_public)
             return false
@@ -428,12 +428,12 @@ class ProjectActions extends Actions
             clearTimeout(timer)
 
         set_inactive = () =>
-            current_files = @get_store().get('open_files')
+            current_files = @get_store().open_files
             @setState(open_files : current_files.setIn([filename, 'has_activity'], false))
 
         @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
 
-        open_files = @get_store().get('open_files')
+        open_files = @get_store().open_files
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
 
@@ -525,7 +525,10 @@ class ProjectActions extends Actions
             else
                 @foreground_project()
                 @set_current_path(path)
-                @set_active_tab('files')
+                if @get_store().active_project_tab == 'files'
+                    @set_url_to_path(path)
+                else
+                    @set_active_tab('files')
                 @set_all_files_unchecked()
 
     # ONLY updates current path
@@ -560,7 +563,7 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     set_directory_files: (path, sort_by_time, show_hidden) =>
         if not path?
-            path = @get_store().get('current_path')
+            path = @get_store().current_path
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
             return
@@ -617,13 +620,13 @@ class ProjectActions extends Actions
     # Increases the selected file index by 1
     # Assumes undefined state to be identical to 0
     increment_selected_file_index: ->
-        current_index = @get_store().get('selected_file_index') ? 0
+        current_index = @get_store().selected_file_index ? 0
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
     decrement_selected_file_index: ->
-        current_index = @get_store().get('selected_file_index')
+        current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
@@ -667,19 +670,19 @@ class ProjectActions extends Actions
     # check all files in the given file_list
     set_file_list_checked: (file_list) =>
         @setState
-            checked_files : @get_store().get('checked_files').union(file_list)
+            checked_files : @get_store().checked_files.union(file_list)
             file_action   : undefined
 
     # uncheck all files in the given file_list
     set_file_list_unchecked: (file_list) =>
         @setState
-            checked_files : @get_store().get('checked_files').subtract(file_list)
+            checked_files : @get_store().checked_files.subtract(file_list)
             file_action   : undefined
 
     # uncheck all files
     set_all_files_unchecked: =>
         @setState
-            checked_files : @get_store().get('checked_files').clear()
+            checked_files : @get_store().checked_files.clear()
             file_action   : undefined
 
     _suggest_duplicate_filename: (name) =>
@@ -702,6 +705,9 @@ class ProjectActions extends Actions
     set_file_action: (action, get_basename) =>
         switch action
             when 'move'
+                checked_files = @get_store().checked_files.toArray()
+                @redux.getActions('projects').fetch_directory_tree(@project_id, exclusions:checked_files)
+            when 'copy'
                 @redux.getActions('projects').fetch_directory_tree(@project_id)
             when 'duplicate'
                 @setState(new_name : @_suggest_duplicate_filename(get_basename()))

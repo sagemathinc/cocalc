@@ -56,7 +56,7 @@ if client._connected
 # mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
 
 # ATTN: do not use "xypic.js", frequently causes crash!
-window.MathJax =
+window.MathJax = exports.MathJaxConfig =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
     jax: ["input/TeX","input/AsciiMath", "output/SVG"]
@@ -114,3 +114,11 @@ $ ->
         {mathjax_finish_startup} = require('./misc_page')
         MathJax.Hub?.Queue([mathjax_finish_startup])
     document.getElementsByTagName("head")[0].appendChild(mjscript)
+
+    if $.browser.firefox and window.navigator.platform != "MacIntel"
+        # See https://github.com/sagemathinc/smc/issues/1314
+        {alert_message} = require('./alerts')
+        alert_message
+            type    : 'info'
+            message : "There are major performance issues with Firefox and SageMathCloud due to bugs in Firefox.  We strongly recommend using Chrome, Safari, or Edge."
+            timeout : 120

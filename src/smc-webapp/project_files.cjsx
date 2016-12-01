@@ -1250,6 +1250,7 @@ ProjectFilesActionBox = rclass
                         placeholder   = 'Home directory'
                         project_id    = {@props.project_id}
                         on_key_up     = {@action_key}
+                        exclusions    = {@props.checked_files.toArray()}
                     />
                 </Col>
             </Row>
