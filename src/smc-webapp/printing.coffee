@@ -177,15 +177,21 @@ class SagewsPrinter extends Printer
                         @media print {
                           body { width: 100%; margin: 1rem .2rem; font-size: 12pt; }
                         }
-
+                        pre { margin: 0; }
+                        div.output + pre.input { margin-top: 1rem; }
                         div.output {
                             border-left: .2rem solid #33a;
-                            padding: 0 0 0 .3rem;
+                            padding: .3rem;
                             margin-left: -.5rem;
+                            line-height: 1.5;
                         }
-                        div.output img { width: 70%; }
+                        div.output img {
+                            max-width: 70%;
+                            width: auto;
+                            height: auto;
+                        }
                         div.output.stdout, div.output.stderr { font-family: monospace; white-space: pre-wrap; }
-                        div.output.stderr { color: red; border-color: #a33; }
+                        div.output.stderr { color: #F00; border-color: #F33; }
 
                         span.sagews-output-image > img,
                         span.sagews-output-html > img
@@ -208,18 +214,19 @@ class SagewsPrinter extends Printer
                             min-width: 2rem;
                             text-align: right;
                         }
+                        /* numbering output, disabled because it doesn't look good */
+                        /*
                         div.output:before {
                             margin-left: -3rem;
                             counter-increment: line;
                             content: counter(line);
                             display: inline-block;
-                            padding: 0 .5rem 0 0;
-                            margin-right: .5rem;
                             color: #888;
                             min-width: 2rem;
                             text-align: right;
                             font-family: monospace;
                         }
+                        */
                         footer {
                             margin-top: 1rem;
                             border-top: .1rem solid #888;
@@ -388,7 +395,15 @@ class SagewsPrinter extends Printer
             CodeMirror.runMode(line, mode, code)
             return code.outerHTML
 
-        input_lines_process = =>
+        input_lines_process = (final = false) =>
+            # final: if true, filter out the empty lines at the bottom
+            while final and input_lines.length > 0
+                line = input_lines[input_lines.length - 1]
+                console.log("last line:", line)
+                if line.length == 0
+                    input_lines.pop()
+                else
+                    break
             if input_lines.length > 0
                 input_lines = input_lines.map(process_line).join('') # no \n linebreaks!
                 #@_html.push("<div class='mode'>#{input_lines_mode ? input_lines_default_mode} mode")
@@ -446,7 +461,7 @@ class SagewsPrinter extends Printer
                 cb(null, line, x)
             ,
             (err, line, x) ->
-                input_lines_process()
+                input_lines_process(final = true)
                 if err
                     msg = "error processing line #{line}: '#{x}'"
                     console.error(msg)
