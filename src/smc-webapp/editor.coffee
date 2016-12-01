@@ -1062,10 +1062,11 @@ class CodeMirrorEditor extends FileEditor
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                that.click_edit_button($(@).data('name'), ctrl=event.ctrlKey)
+                html = event.ctrlKey or event.metaKey
+                that.click_edit_button($(@).data('name'), html=html)
                 return false
 
-    click_edit_button: (name, ctrl = false) =>
+    click_edit_button: (name, html = false) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1113,7 +1114,7 @@ class CodeMirrorEditor extends FileEditor
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
-                @print(ctrl = ctrl)
+                @print(html = html)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1211,10 +1212,10 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print: (ctrl = false) =>
+    print: (html = false) =>
         switch @ext
             when 'sagews'
-                if ctrl   # this is experimental html printing
+                if html   # this is experimental html printing
                     @print_html()
                 else
                     @print_sagews()
@@ -1308,12 +1309,11 @@ class CodeMirrorEditor extends FileEditor
                     done = (err) =>
                         #console.log 'Printer.print_html is done: err = ', err
                         if err
-                            d_content.text("Problem printing to HTML: #{err}")
+                            progress(0, "Problem printing to HTML: #{err}")
                         else
-                            d_content.text('Printing finished without errors.')
+                            progress(1, 'Printing finished.')
                             # enable open & download buttons
                             dialog.find('button.btn').removeClass('disabled')
-                        progress(1, "Done")
                     printing.Printer(@, output_fn).print(done, progress)
                     cb(); return
 

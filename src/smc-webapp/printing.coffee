@@ -151,6 +151,8 @@ class SagewsPrinter extends Printer
             else
                 url = 'https://cloud.sagemath.com/'
 
+            # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
+            # e.g. this can be used to import it later on
             @_html_tmpl = """
                 <!doctype html>
                 <html lang="en">
@@ -160,6 +162,7 @@ class SagewsPrinter extends Printer
                     <title>#{data.title}</title>
                     <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on SageMathCloud">
                     <meta name="date" content="#{data.timestamp}">
+                    <meta data-name="smc-generated" content="version:1">
 
                     <style>
                         html {
@@ -271,9 +274,9 @@ class SagewsPrinter extends Printer
                 <body>
                 <div class="header">
                     <h1>#{data.title}</h1>
-                    <div>Author #{data.author}</div>
-                    <div>Generated at <code>#{data.timestamp}</code></div>
-                    <div>File <code>#{data.project_id}: #{data.filename}</code></div>
+                    <div>Author <b>#{data.author}</b></div>
+                    <div>Date <b><code>#{data.timestamp}</code></b></div>
+                    <div>File <b><a href="#{data.file_url}"><code>#{data.project_id}:#{data.filename}</code></a></b></div>
                 </div>
                 #{data.content}
                 <footer>
@@ -366,7 +369,13 @@ class SagewsPrinter extends Printer
             else
                 console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
                 continue
-            img.src = c.toDataURL("image/#{ext}")
+            try
+                img.src = c.toDataURL("image/#{ext}")
+            catch e
+                # ignore a potential CORS security error, when the image comes from another domain.
+                # SecurityError: Failed to execute 'toDataURL' on 'HTMLCanvasElement': Tainted canvases may not be exported.
+                console.info('ignoring CORS error regarding reading the image content via "toDataURL"')
+                continue
         return $html[0].outerHTML ? ''
 
     html: (cb, progress) ->
@@ -485,6 +494,7 @@ class SagewsPrinter extends Printer
                     return
         )
 
+        file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
         content = @generate_html
             title      : @_title ? @editor.filename
             filename   : @editor.filename
@@ -492,6 +502,7 @@ class SagewsPrinter extends Printer
             timestamp  : "#{(new Date()).toISOString()}".split('.')[0]
             project_id : @editor.project_id
             author     : redux.getStore('account').get_fullname()
+            file_url   : file_url
 
         progress(.95, "Saving to #{@output_file} ...")
         salvus_client.write_text_file_to_project
