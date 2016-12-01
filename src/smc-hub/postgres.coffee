@@ -107,18 +107,18 @@ class PostgreSQL
 
     _query: (opts) =>
         opts  = defaults opts,
-            query  : required
-            params : []
-            where  : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
+            query     : required
+            params    : []
+            where     : undefined # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
                                   # and values the corresponding params.  Also, WHERE must not be in the query already.
                                   # If where[cond] is undefined, then cond is completely **ignored**.
-            values : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
-                                  # {field1:[{type1:value}|string|undefined], field2:[{type2:value}|string|undefined], ...} which gets converted to
+            values    : undefined # Used for INSERT: If given, then params and where must not be given.   Values is a map
+                                  # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
                                   # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                  # with corresponding params set.  Undefined valued fields are ignored.
-            conflict : undefined  # if given, then values must be given; appends something like this to query:
+                                  # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
+            conflict  : undefined # If given, then values must also be given; appends this to query:
                                   #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
-            jsonb_set : undefined # used for setting a field that contains a JSONB javascript map;
+            jsonb_set : undefined # Used for setting a field that contains a JSONB javascript map.
                                   # Give as input an object {key1:val1, key2:val2, ...}.
                                   # Every key has the corresponding value set, unless val is undefined/null, in which
                                   # case that key is deleted from the JSONB object.  Simple as that!  This is much, much
@@ -132,7 +132,7 @@ class PostgreSQL
             return
 
         push_param = (param, type) ->
-            if type == 'JSONB' and misc.is_array(param)
+            if type.toUpperCase() == 'JSONB' and misc.is_array(param)
                 param = misc.to_json(param)  # I don't understand why this is needed by the driver....
             opts.params.push(param)
             return opts.params.length
@@ -158,22 +158,18 @@ class PostgreSQL
                 return
             fields = []
             values = []
-            for field, v of opts.values
-                if not v? # ignore undefined fields -- makes code cleaner (and makes sense)
+            for field, param of opts.values
+                if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
                     continue
-                fields.push(field)
-                if typeof(v) == 'string'
-                    if v.indexOf('$') != -1
-                        opts.cb("if value is a string it must not contain $")
-                        return
-                    values.push(v)
+                if field.indexOf('::') != -1
+                    [field, type] = field.split('::')
+                    fields.push(field.trim())
+                    type = type.trim()
+                    values.push("$#{push_param(param, type)}::#{type}")
+                    continue
                 else
-                    if typeof(v) != 'object'
-                        opts.cb("values (=#{misc.to_json(v)}) must be of the form {type1:value} or string")
-                        return
-                    for type, param of v
-                        values.push("$#{push_param(param)}::#{type}")
-                        break  # v should have just one thing in it.
+                    fields.push(field)
+                    values.push("$#{push_param(param)}")
             opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
 
         if opts.conflict?
@@ -548,10 +544,10 @@ class PostgreSQL
         @_query
             query  : 'INSERT INTO central_log'
             values :
-                id    : UUID  : misc.uuid()
-                event : TEXT  : opts.event
-                value : JSONB : opts.value
-                time  : 'NOW()'
+                'id::UUID'        : misc.uuid()
+                'event::TEXT'     : opts.event
+                'value::JSONB'    : opts.value
+                'time::TIMESTAMP' : 'NOW()'
             cb     : (err) => opts.cb?(err)
 
     # dump a range of data from the central_log table
@@ -600,11 +596,11 @@ class PostgreSQL
         @_query
             query  : 'INSERT INTO client_error_log'
             values :
-                id         : UUID : misc.uuid()
-                event      : TEXT : opts.event
-                error      : TEXT : opts.error
-                account_id : UUID : opts.account_id
-                time       : 'NOW()'
+                'id         :: UUID'      : misc.uuid()
+                'event      :: TEXT'      : opts.event
+                'error      :: TEXT'      : opts.error
+                'account_id :: UUID'      : opts.account_id
+                'time       :: TIMESTAMP' : 'NOW()'
             cb     : (err) => opts.cb?(err)
 
     get_client_error_log: (opts) =>
@@ -624,8 +620,8 @@ class PostgreSQL
         @_query
             query  : 'INSERT INTO server_settings'
             values :
-                name  : 'TEXT' : opts.name
-                value : 'TEXT' : opts.value
+                'name::TEXT'  : opts.name
+                'value::TEXT' : opts.value
             conflict : 'name'
             cb     : opts.cb
 
@@ -667,8 +663,8 @@ class PostgreSQL
         @_query
             query : 'INSERT into passport_settings'
             values :
-                strategy : TEXT  : opts.strategy
-                conf     : JSONB : opts.conf
+                'strategy::TEXT ' : opts.strategy
+                'conf    ::JSONB' : opts.conf
             conflict : 'strategy'
 
     get_passport_settings: (opts) =>
@@ -750,13 +746,13 @@ class PostgreSQL
                 @_query
                     query  : "INSERT INTO accounts"
                     values :
-                        account_id    : 'UUID'      : account_id
-                        first_name    : 'TEXT'      : opts.first_name
-                        last_name     : 'TEXT'      : opts.last_name
-                        created       : 'TIMESTAMP' : new Date()
-                        created_by    : 'INET'      : opts.created_by
-                        password_hash : 'CHAR(173)' : opts.password_hash
-                        email_address : 'TEXT'      : opts.email_address
+                        'account_id    :: UUID'      : account_id
+                        'first_name    :: TEXT'      : opts.first_name
+                        'last_name     :: TEXT'      : opts.last_name
+                        'created       :: TIMESTAMP' : new Date()
+                        'created_by    :: INET'      : opts.created_by
+                        'password_hash :: CHAR(173)' : opts.password_hash
+                        'email_address :: TEXT'      : opts.email_address
                     cb : cb
             (cb) =>
                 if opts.passport_strategy?
@@ -829,18 +825,18 @@ class PostgreSQL
             @_query
                 query  : 'INSERT INTO account_creation_actions'
                 values :
-                    id            : 'UUID'      : misc.uuid()
-                    email_address : 'TEXT'      : opts.email_address
-                    action        : 'JSONB'     : opts.action
-                    expire        : 'TIMESTAMP' : expire_time(opts.ttl)
+                    'id            :: UUID'      : misc.uuid()
+                    'email_address :: TEXT'      : opts.email_address
+                    'action        :: JSONB'     : opts.action
+                    'expire        :: TIMESTAMP' : expire_time(opts.ttl)
                 cb : opts.cb
         else
             # query for actions
             @_query
                 query : 'SELECT action FROM account_creation_actions'
                 where :
-                    'email_address = $::TEXT' : opts.email_address
-                    'expire >= $::TIMESTAMP'  : new Date()
+                    'email_address  = $::TEXT'       : opts.email_address
+                    'expire        >= $::TIMESTAMP'  : new Date()
                 cb    : (err, result) =>
                     if err
                         opts.cb(err)
