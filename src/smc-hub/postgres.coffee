@@ -131,15 +131,15 @@ class PostgreSQL
             jsonb_merge : undefined  # Exactly lke jsonb_set, but when val1 (say) is an object, it merges that object in,
                                      # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
-            cb     : required
+            cb          : undefined
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
         if not @_client?
             # TODO: should also check that client is connected.
-            opts.cb("client not yet initialized")
+            opts.cb?("client not yet initialized")
             return
         if opts.params? and not misc.is_array(opts.params)
-            opts.cb("params must be an array")
+            opts.cb?("params must be an array")
             return
 
         push_param = (param, type) ->
@@ -150,7 +150,7 @@ class PostgreSQL
 
         if opts.jsonb_merge?
             if opts.jsonb_set?
-                opts.cb("if jsonb_merge is set then jsonb_set must not be set")
+                opts.cb?("if jsonb_merge is set then jsonb_set must not be set")
                 return
             opts.jsonb_set = opts.jsonb_merge
 
@@ -181,7 +181,7 @@ class PostgreSQL
 
         if opts.values?
             if opts.where?
-                opts.cb("where must not be defined if opts.values is defined")
+                opts.cb?("where must not be defined if opts.values is defined")
                 return
             fields = []
             values = []
@@ -214,10 +214,10 @@ class PostgreSQL
 
         if opts.conflict?
             if not opts.values?
-                opts.cb("if conflict is specified then values must also be specified")
+                opts.cb?("if conflict is specified then values must also be specified")
                 return
             if typeof(opts.conflict) != 'string'
-                opts.cb("conflict must be a string (the field name), for now")
+                opts.cb?("conflict must be a string (the field name), for now")
                 return
             v = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
             SET.push(v...)
@@ -228,15 +228,15 @@ class PostgreSQL
 
         if opts.where?
             if typeof(opts.where) != 'object'
-                opts.cb("where must be an object")
+                opts.cb?("where must be an object")
                 return
             if opts.values?
-                opts.cb("values must not be given if where clause is given")
+                opts.cb?("values must not be given if where clause is given")
                 return
             z = []
             for cond, param of opts.where
                 if typeof(cond) != 'string'
-                    opts.cb("each condition must be a string but '#{cond}' isn't")
+                    opts.cb?("each condition must be a string but '#{cond}' isn't")
                     return
                 if not param?
                     continue
@@ -258,6 +258,7 @@ class PostgreSQL
         catch e
             # this should never ever happen
             dbg("EXCEPTION in @_client.query: #{e}")
+            opts.cb?(e)
             @_concurrent_queries -= 1
         return
 
@@ -484,7 +485,10 @@ class PostgreSQL
         dbg = @_dbg("_create_indexes('#{table}')")
         dbg()
         schema = SCHEMA[table]
-        if not schema.pg_indexes?
+        pg_indexes = schema.pg_indexes ? []
+        if schema.fields.expire? and 'expire' not in pg_indexes
+            pg_indexes.push('expire')
+        if pg_indexes.length == 0
             dbg("no indexes defined")
             cb()
             return
@@ -498,7 +502,7 @@ class PostgreSQL
             @_query
                 query : query
                 cb    : cb
-        async.map(schema.pg_indexes, f, cb)
+        async.map(pg_indexes, f, cb)
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
     # TODO: we do NOT do anything related to the actual columns or datatypes yet!
@@ -1335,17 +1339,71 @@ class PostgreSQL
                 @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
+    ###
+    Rememberme cookie functionality
+    ###
+    # Save remember me info in the database
     save_remember_me: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            hash       : required
+            value      : required
+            ttl        : required
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'INSERT INTO remember_me'
+            values :
+                'hash       :: TEXT      ' : opts.hash.slice(0,127)
+                'value      :: JSONB     ' : opts.value
+                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
+                'account_id :: UUID      ' : opts.account_id
+            conflict : 'hash'
+            cb       : opts.cb
 
+    # Invalidate all outstanding remember me cookies for the given account by
+    # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        @_query
+            query : 'DELETE FROM remember_me'
+            where :
+                'account_id = $::UUID' : opts.account_id
+            cb       : opts.cb
 
+    # Get remember me cookie with given hash.  If it has expired,
+    # get back undefined instead.  (Actually deleting expired)
     get_remember_me: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            hash       : required
+            cb         : required   # cb(err, signed_in_message)
+        @_query
+            query : 'SELECT value, expire FROM remember_me'
+            where :
+                'hash = $::TEXT' : opts.hash.slice(0,127)
+            cb       : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.rows.length == 0
+                    opts.cb()
+                else
+                    x = result.rows[0]
+                    if new Date() >= x.expire  # expired, so async delete
+                        x = undefined
+                        @delete_remember_me(hash:opts.hash)
+                    opts.cb(undefined, x?.value)  # x can be made undefined above when it expires
 
     delete_remember_me: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            hash : required
+            cb   : undefined
+        @_query
+            query : 'DELETE FROM remember_me'
+            where :
+                'hash = $::TEXT' : opts.hash.slice(0,127)
+            cb    : opts.cb
 
     change_password: (opts) =>
         throw Error("NotImplementedError")

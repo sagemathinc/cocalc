@@ -890,6 +890,8 @@ schema.remember_me =
     indexes :
         expire     : []
         account_id : []
+    pg_indexes : ['account_id']
+
 
 schema.server_settings =
     primary_key : 'name'
