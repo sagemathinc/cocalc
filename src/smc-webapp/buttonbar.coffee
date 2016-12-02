@@ -355,14 +355,18 @@ exports.commands =
             wrap :
                 left  : "\n#### "
                 right : ""
-        format_code :  # FUTURE: I think indentation is probably nicer?  on single line ` is nicer.
+        format_code :
             wrap :
-                left  : '\n```'
-                right : '\n```\n'
+                left  : '    '
+                right : ''
+                multi : true
+                space : false
         indent :
             wrap :
-                left  : "\n> "
-                right : ""
+                left  : '>'
+                right : ''
+                multi : true
+                space : true
         horizontalRule:
             wrap:
                 left  : "\n------------------\n"
