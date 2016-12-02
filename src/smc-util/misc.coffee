@@ -1331,9 +1331,15 @@ exports.capitalize = (s) ->
         return s.charAt(0).toUpperCase() + s.slice(1)
 
 exports.is_array = is_array = (obj) ->
-    Object.prototype.toString.call(obj) == "[object Array]"
+    return Object.prototype.toString.call(obj) == "[object Array]"
 
-exports.is_date = (obj) -> obj instanceof Date
+# An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
+# NOT include Date.
+exports.is_object = is_object = (obj) ->
+    return Object.prototype.toString.call(obj) == "[object Object]"
+
+exports.is_date = is_date = (obj) ->
+    return obj instanceof Date
 
 # get a subarray of all values between the two given values inclusive, provided in either order
 exports.get_array_range = (arr, value1, value2) ->
@@ -1522,7 +1528,7 @@ exports.map_without_undefined = map_without_undefined = (map) ->
         if not v?
             continue
         else
-            new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
+            new_map[k] = if is_object(v) then map_without_undefined(v) else v
     return new_map
 
 # foreground; otherwise, return false.

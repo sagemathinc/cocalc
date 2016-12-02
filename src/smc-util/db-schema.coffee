@@ -706,6 +706,11 @@ schema.projects =
         storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
         # see code below for some additional indexes
 
+    pg_indexes : [
+        'USING GIN (users)'    # so get_collaborator_ids is fast
+    ]
+
+
     user_query:
         get :
             all :

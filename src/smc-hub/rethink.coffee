@@ -1848,14 +1848,6 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).update(opts.data).run(opts.cb)
 
-    get_project_data: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            columns     : PROJECT_COLUMNS
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
-
     _validate_opts: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'

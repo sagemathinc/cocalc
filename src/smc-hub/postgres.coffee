@@ -48,6 +48,10 @@ BLOB_GCLOUD_BUCKET = 'smc-blobs'
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
+PROJECT_GROUPS = misc.PROJECT_GROUPS
+
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
 exports.pg = (opts) ->
     return new PostgreSQL(opts)
@@ -502,7 +506,9 @@ class PostgreSQL
             if s.indexOf('create') == -1 or s.indexOf('index') == -1
                 # Shorthand index is just the part in parens.
                 # Schema can also give a full create index command.
-                query = "CREATE INDEX ON #{table} (#{query})"
+                if query.indexOf('(') == -1
+                    query = "(#{query})"
+                query = "CREATE INDEX ON #{table} #{query}"
             @_query
                 query : query
                 cb    : cb
@@ -1638,14 +1644,36 @@ class PostgreSQL
             order_by : 'last_edited'
             cb       : all_results(opts.cb)
 
+    _validate_opts: (opts) =>
+        for k, v of opts
+            if k.slice(k.length-2) == 'id'
+                if v? and not misc.is_valid_uuid_string(v)
+                    opts.cb?("invalid #{k} -- #{v}")
+                    return false
+            if k.slice(k.length-3) == 'ids'
+                for w in v
+                    if not misc.is_valid_uuid_string(w)
+                        opts.cb?("invalid uuid #{w} in #{k} -- #{to_json(v)}")
+                        return false
+            if k == 'group' and v not in misc.PROJECT_GROUPS
+                opts.cb?("unknown project group '#{v}'"); return false
+            if k == 'groups'
+                for w in v
+                    if w not in misc.PROJECT_GROUPS
+                        opts.cb?("unknown project group '#{w}' in groups"); return false
+
+        return true
+
     get_project: (opts) =>
-        throw Error("NotImplementedError")
-
-    update_project_data: (opts) =>
-        throw Error("NotImplementedError")
-
-    get_project_data: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required   # an array of id's
+            columns    : PROJECT_COLUMNS
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : "SELECT #{opts.columns.join(',')} FROM projects"
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : one_result(opts.cb)
 
     add_user_to_project: (opts) =>
         opts = defaults opts,
@@ -1660,16 +1688,39 @@ class PostgreSQL
                 users   :
                     "#{opts.account_id}":
                         group: opts.group
+            where       :
+                "project_id = $::UUID": opts.project_id
             cb          : opts.cb
 
+    # Remove the given collaborator from the project.
+    # Attempts to remove an *owner* via this function will silently fail (change their group first),
+    # as will attempts to remove a user not on the project, or to remove from a non-existent project.
     remove_collaborator_from_project: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : required  # cb(err)
+        if not @_validate_opts(opts) then return
+        @_query
+            query     : 'UPDATE projects'
+            jsonb_set :
+                users :
+                    "#{opts.account_id}": null
+            where     :
+                'project_id :: UUID = $'                          : opts.project_id
+                "users#>>'{#{opts.account_id},group}' != $::TEXT" : 'owner'
+            cb        : opts.cb
 
+    # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
-        throw Error("NotImplementedError")
-
-    get_project_users: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        dbg = @_dbg("get_collaborator_ids")
+        @_query
+            query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
+            where : "users ? $::TEXT" : opts.account_id
+            cb    : all_results(opts.cb, 'jsonb_object_keys')
 
     get_public_paths: (opts) =>
         throw Error("NotImplementedError")
@@ -1887,7 +1938,10 @@ one_result = (cb, pattern) ->
             when 0
                 cb()
             when 1
-                obj = result.rows[0]
+                obj = misc.map_without_undefined(result.rows[0])
+                if not pattern?
+                    cb(undefined, obj)
+                    return
                 switch typeof(pattern)
                     when 'string'
                         x = obj[pattern]
