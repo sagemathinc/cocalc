@@ -325,12 +325,16 @@ exports.commands =
                 right : '~~'
         insertunorderedlist :
             wrap :
-                left  : "\n - "
-                right : "\n"
+                left  : " -"
+                right : ''
+                multi : true
+                space : true
         insertorderedlist :
             wrap :
-                left  : "\n 1. "
-                right : "\n"
+                left  : "1."
+                right : ''
+                multi : true
+                space : true
         format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
@@ -367,10 +371,10 @@ exports.commands =
             wrap:
                 left : """
                        | Left-Aligned  | Center Aligned  | Right Aligned |
-                       | :------------ |:---------------:| -----:|
-                       | col 3 is      | some wordy text | 1600 |
-                       | col 2 is      | centered        |  12 |
-                       | zebra stripes | and math       |  $\\pi^3$ |
+                       | :------------ |:---------------:| -------------:|
+                       | col 3 is      | some wordy text |          1600 |
+                       | col 2 is      |    centered     |            12 |
+                       | zebra stripes |    and math     |      $\\pi^3$ |
                        """
                 right : ""
 
