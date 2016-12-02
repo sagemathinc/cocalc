@@ -134,6 +134,10 @@ class PostgreSQL
             cb     : required
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
+        if not @_client?
+            # TODO: should also check that client is connected.
+            opts.cb("client not yet initialized")
+            return
         if opts.params? and not misc.is_array(opts.params)
             opts.cb("params must be an array")
             return
@@ -150,6 +154,7 @@ class PostgreSQL
                 return
             opts.jsonb_set = opts.jsonb_merge
 
+        SET = []
         if opts.jsonb_set?
             # This little piece of very hard to write (and clever?) code
             # makes it so we can set or **merge in at any nested level (!)
@@ -164,7 +169,7 @@ class PostgreSQL
                         # remove key from object
                         obj = "(#{obj} - '#{key}')"
                     else
-                        if opts.jsonb_merge? and typeof(val) == 'object'
+                        if opts.jsonb_merge? and (typeof(val) == 'object' and not misc.is_date(val))
                             subobj = set(field, val, path.concat([key]))
                             obj    = "JSONB_SET(#{obj}, '{#{key}}', #{subobj})"
                         else
@@ -172,7 +177,7 @@ class PostgreSQL
                             obj = "JSONB_SET(#{obj}, '{#{key}}', $#{push_param(val, 'JSONB')}::JSONB)"
                 return obj
             v = ("#{field}=#{set(field, data, [])}" for field, data of opts.jsonb_set)
-            opts.query += " SET " + v.join(' , ')
+            SET.push(v...)
 
         if opts.values?
             if opts.where?
@@ -205,7 +210,7 @@ class PostgreSQL
                 else
                     v.push("#{field.trim()}=$#{push_param(param)}")
             if v.length > 0
-                opts.query += " SET #{v.join(', ')} "
+                SET.push(v...)
 
         if opts.conflict?
             if not opts.values?
@@ -214,8 +219,12 @@ class PostgreSQL
             if typeof(opts.conflict) != 'string'
                 opts.cb("conflict must be a string (the field name), for now")
                 return
-            set = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
-            opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE SET #{set.join(', ')} "
+            v = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
+            SET.push(v...)
+            opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE "
+
+        if SET.length > 0
+            opts.query += " SET " + SET.join(' , ')
 
         if opts.where?
             if typeof(opts.where) != 'object'
@@ -468,7 +477,7 @@ class PostgreSQL
                     query  : "CREATE TABLE #{table} (#{columns.join(', ')}, PRIMARY KEY(#{primary_keys.join(', ')}))"
                     cb     : cb
             (cb) =>
-                @_create_indexes(cb)
+                @_create_indexes(table, cb)
         ], cb)
 
     _create_indexes: (table, cb) =>
@@ -490,7 +499,6 @@ class PostgreSQL
                 query : query
                 cb    : cb
         async.map(schema.pg_indexes, f, cb)
-
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
     # TODO: we do NOT do anything related to the actual columns or datatypes yet!
@@ -1200,11 +1208,69 @@ class PostgreSQL
             cb    : (err, result) =>
                 opts.cb(err, result?.rows[0]?.account_id)
 
-    update_account_settings: (opts) =>
-        throw Error("NotImplementedError")
+    _lock : (name, key, time_s) =>
+        x = "_lock_#{name}"
+        @[x] ?= {}
+        if @[x][key]
+            return true
+        @[x][key] = true
+        setTimeout((()=>delete @[x][key]), time_s*1000)
+        return false
 
+    _touch_account: (account_id, cb) =>
+        if @_lock('_touch_account', account_id, 120)
+            cb()
+            return
+        @_query
+            query : 'UPDATE accounts'
+            set   : {last_active: 'NOW()'}
+            where : "account_id = $::UUID" : account_id
+            cb    : cb
+
+    _touch_project: (project_id, account_id, cb) =>
+        if @_lock('_touch_project', "#{project_id}-#{account_id}", 60)
+            cb()
+            return
+        NOW = new Date()
+        @_query
+            query       : "UPDATE projects"
+            set         : {last_edited : NOW}
+            jsonb_merge : {last_active:{"#{account_id}":NOW}}
+            where       : "project_id = $::UUID" : project_id
+            cb          : cb
+
+    # Indicate activity by a user, possibly on a specific project, and
+    # then possibly on a specific path in that project.
     touch: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            project_id : undefined
+            path       : undefined
+            action     : 'edit'
+            ttl_s      : 50        # min activity interval; calling this function with same input again within this interval is ignored
+            cb         : undefined
+        if opts.ttl_s
+            @_touch_lock ?= {}
+            key = "#{opts.account_id}-#{opts.project_id}-#{opts.path}-#{opts.action}"
+            if @_touch_lock[key]
+                opts.cb?()
+                return
+            @_touch_lock[key] = true
+            setTimeout((()=>delete @_touch_lock[key]), opts.ttl_s*1000)
+
+        now = new Date()
+        async.parallel([
+            (cb) =>
+                @_touch_account(opts.account_id, cb)
+            (cb) =>
+                if not opts.project_id?
+                    cb(); return
+                @_touch_project(opts.project_id, opts.account_id, cb)
+            (cb) =>
+                if not opts.path? or not opts.project_id?
+                    cb(); return
+                @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
+        ], (err)->opts.cb?(err))
 
     save_remember_me: (opts) =>
         throw Error("NotImplementedError")
@@ -1265,6 +1331,47 @@ class PostgreSQL
                 users       : {"#{opts.account_id}":{group:'owner'}}
             cb : (err, result) =>
                 opts.cb(err, if not err then project_id)
+
+    ###
+    File editing activity -- users modifying files in any way
+      - one single table called file_activity
+      - table also records info about whether or not activity has been seen by users
+    ###
+    record_file_use: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            account_id : required
+            action     : required  # 'edit', 'read', 'seen', 'chat', etc.?
+            cb         : required
+        # Doing what's done below (with two queries) is really, really ugly.
+        # See comment in db-schema.coffee about file_use table -- will redo
+        # for postgres later...
+        now = new Date()
+        entry =
+            id         : @sha1(opts.project_id, opts.path)
+            project_id : opts.project_id
+            path       : opts.path
+        if opts.action == 'edit' or opts.action == 'chat'
+            entry.last_edited = now
+        async.series([
+            (cb) =>
+                @_query
+                    query       : 'INSERT INTO file_use'
+                    conflict    : 'id'
+                    values      : entry
+                    cb          : cb
+            (cb) =>
+                @_query
+                    query       : 'UPDATE file_use'
+                    jsonb_merge :
+                        users : {"#{opts.account_id}": {"#{opts.action}": now}}
+                    cb          : cb
+        ], opts.cb)
+
+    get_file_use: (opts) =>
+        throw Error("NotImplementedError")
+
 
     get_project: (opts) =>
         throw Error("NotImplementedError")
@@ -1387,12 +1494,6 @@ class PostgreSQL
         throw Error("NotImplementedError")
 
     set_project_settings: (opts) =>
-        throw Error("NotImplementedError")
-
-    record_file_use: (opts) =>
-        throw Error("NotImplementedError")
-
-    get_file_use: (opts) =>
         throw Error("NotImplementedError")
 
     count_timespan: (opts) =>

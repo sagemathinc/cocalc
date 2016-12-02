@@ -412,20 +412,25 @@ schema.file_access_log =
         project_id : []
         time       : []
 
+# TODO: for postgres rewrite after done we'll completely redo file_use to eliminate
+# the id field, use project_id, path as a compound primary key, and maybe put users in
+# another table with a relation.  In RethinkDB this file_use table is notoriously slow,
+# and -- with indexes, etc., -- it should be super fast.
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
         id          :
-            type : 'uuid'
+            type : 'string'
+            pg_type : 'CHAR(40)'
         project_id  :
             type : 'uuid'
         path        :
             type : 'string'
         users       :
             type : 'map'
-            desc : '{account_id: {1action1: timestamp1, action2:timestamp2}, account_id2: {...}}'
+            desc : '{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}'
         last_edited :
             type : 'timestamp'
 
