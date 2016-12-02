@@ -202,7 +202,11 @@ class SagewsPrinter extends Printer
                         span.sagews-output-html > img
                         { vertical-align: top; }
 
-                        pre.input { }
+                        pre.input {
+                            border-left: .2rem solid #3a3;
+                            padding: .5rem;
+                            margin-left: -.5rem;
+                        }
                         pre.input > code {
                             display: block;
                             line-height: 1.1rem;
@@ -212,8 +216,7 @@ class SagewsPrinter extends Printer
                             counter-increment: line;
                             content: counter(line);
                             display: inline-block;
-                            border-right: .2rem solid #3a3;
-                            padding: 0 .5rem 0 0;
+                            padding: 0 .3rem 0 0;
                             margin-right: .5rem;
                             color: #888;
                             min-width: 2rem;
@@ -263,6 +266,12 @@ class SagewsPrinter extends Printer
                         .cm-tag { color: #444; font-weight: bold; }
                         .cm-attribute { color: #777; }
                         .cm-error { color: #000; }
+                        .cm-header { font-weight: bold; }
+                        .cm-header-1 { font-size: 1.2rem; }
+                        .cm-header-2 { font-size: 1.15rem; }
+                        .cm-header-3 { font-size: 1.12rem; }
+                        .cm-header-4 { font-size: 1.1rem; }
+                        .cm-header-5 { font-size: 1rem; }
                     </style>
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
@@ -350,6 +359,7 @@ class SagewsPrinter extends Printer
                 $hx = $html.find(tag + ':first')
                 if $hx.length > 0
                     @_title = $hx.text()
+                    break
         for img in $html.find('img')
             if img.src.startsWith('data:')
                 continue
