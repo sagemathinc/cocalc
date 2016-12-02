@@ -116,6 +116,7 @@ class PostgreSQL
             where     : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
                                      # and values the corresponding params.  Also, WHERE must not be in the query already.
                                      # If where[cond] is undefined, then cond is completely **ignored**.
+            where2    : undefined    # Array of where clauses as string (no params) -- needed since opts.where all have param.
             set       : undefined    # Appends a SET clause to the query; same format as values.
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
@@ -231,6 +232,7 @@ class PostgreSQL
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')
 
+        WHERE = []
         if opts.where?
             if typeof(opts.where) != 'object'
                 opts.cb?("where must be an object")
@@ -238,16 +240,19 @@ class PostgreSQL
             if opts.values?
                 opts.cb?("values must not be given if where clause is given")
                 return
-            z = []
             for cond, param of opts.where
                 if typeof(cond) != 'string'
                     opts.cb?("each condition must be a string but '#{cond}' isn't")
                     return
                 if not param?
                     continue
-                z.push(cond.replace('$', "$#{push_param(param)}"))
-            if z.length > 0
-                opts.query += " WHERE #{z.join(' AND ')}"
+                WHERE.push(cond.replace('$', "$#{push_param(param)}"))
+
+        if opts.where2?
+            WHERE.push(opts.where2...)
+
+        if WHERE.length > 0
+            opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
             opts.query += " ORDER BY #{opts.order_by} "
@@ -717,7 +722,7 @@ class PostgreSQL
             query : 'SELECT value FROM server_settings'
             where :
                 "name = $::TEXT" : opts.name
-            cb    : one_result(opts.cb, 'value')
+            cb    : one_result('value', opts.cb)
 
     # TODO: optimization -- this could be done as a changefeed (and is in rethink.coffee)
     get_site_settings: (opts) =>
@@ -759,7 +764,7 @@ class PostgreSQL
             query : 'SELECT conf FROM passport_settings'
             where :
                 "strategy = $::TEXT" : opts.strategy
-            cb    : one_result(opts.cb, 'conf')
+            cb    : one_result('conf', opts.cb)
 
     ###
     Account creation, deletion, existence
@@ -893,7 +898,7 @@ class PostgreSQL
         @_query
             query : 'SELECT account_id FROM accounts'
             where : "email_address = $::TEXT" : opts.email_address
-            cb    : one_result(opts.cb, 'account_id')
+            cb    : one_result('account_id', opts.cb)
 
     # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
@@ -919,7 +924,7 @@ class PostgreSQL
                 where :
                     'email_address  = $::TEXT'       : opts.email_address
                     'expire        >= $::TIMESTAMP'  : new Date()
-                cb    : all_results(opts.cb, 'action')
+                cb    : all_results('action', opts.cb)
 
     account_creation_actions_success: (opts) =>
         opts = defaults opts,
@@ -991,7 +996,7 @@ class PostgreSQL
         @_query
             query : 'SELECT stripe_customer_id FROM accounts'
             where : 'account_id = $::UUID' : opts.account_id
-            cb    : one_result(opts.cb, 'stripe_customer_id')
+            cb    : one_result('stripe_customer_id', opts.cb)
 
     ###
     Stripe integration/sync:
@@ -1215,7 +1220,7 @@ class PostgreSQL
         @_query
             query : 'SELECT banned FROM accounts'
             where : @_account_where(opts)
-            cb    : one_result(opts.cb, 'banned')
+            cb    : one_result('banned', opts.cb)
 
     _set_ban_user: (opts) =>
         opts = defaults opts,
@@ -1228,7 +1233,7 @@ class PostgreSQL
             query : 'UPDATE accounts'
             set   : {banned: opts.banned}
             where : @_account_where(opts)
-            cb    : one_result(opts.cb, 'banned')
+            cb    : one_result('banned', opts.cb)
 
     ban_user: (opts) =>
         @_set_ban_user(misc.merge(opts, banned:true))
@@ -1390,7 +1395,7 @@ class PostgreSQL
             query : 'SELECT value, expire FROM remember_me'
             where :
                 'hash = $::TEXT' : opts.hash.slice(0,127)
-            cb       : one_result(opts.cb, 'value')
+            cb       : one_result('value', opts.cb)
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
@@ -1468,7 +1473,7 @@ class PostgreSQL
         @_query
             query : 'SELECT expire, email_address FROM password_reset'
             where : 'id = $::UUID': opts.id
-            cb    : one_result(opts.cb, 'email_address')
+            cb    : one_result('email_address', opts.cb)
 
     delete_password_reset: (opts) =>
         opts = defaults opts,
@@ -1720,19 +1725,72 @@ class PostgreSQL
         @_query
             query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
             where : "users ? $::TEXT" : opts.account_id
-            cb    : all_results(opts.cb, 'jsonb_object_keys')
+            cb    : all_results('jsonb_object_keys', opts.cb)
 
+    # return list of paths that are public and not disabled in the given project
     get_public_paths: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id  : required
+            cb          : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : "SELECT path FROM public_paths"
+            where : "project_id = $::UUID" : opts.project_id
+            where2: ["disabled IS NOT TRUE"]
+            cb    : all_results('path', opts.cb)
 
     has_public_path: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id  : required
+            cb          : required    # cb(err, has_public_path)
+        @_query
+            query : "SELECT COUNT(path) FROM public_paths"
+            where : "project_id = $::UUID" : opts.project_id
+            where2: ["disabled IS NOT TRUE"]
+            cb    : count_result (err, n) ->
+                opts.cb(err, n>0)
 
     path_is_public: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+        # Get all public paths for the given project_id, then check if path is "in" one according
+        # to the definition in misc.
+        # TODO: implement caching + changefeeds so that we only do the get once.
+        @get_public_paths
+            project_id : opts.project_id
+            cb         : (err, public_paths) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, misc.path_is_in_public_paths(opts.path, public_paths))
 
     filter_public_paths: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            listing    : required   # files in path [{name:..., isdir:boolean, ....}, ...]
+            cb         : required
+        # Get all public paths for the given project_id, then check if path is "in" one according
+        # to the definition in misc.
+        @get_public_paths
+            project_id : opts.project_id
+            cb         : (err, public_paths) =>
+                if err
+                    opts.cb(err)
+                    return
+                if misc.path_is_in_public_paths(opts.path, public_paths)
+                    # nothing to do -- containing path is public
+                    listing = opts.listing
+                else
+                    listing = misc.deep_copy(opts.listing) # don't mututate input on general principle
+                    # some files in the listing might not be public, since the containing path isn't public, so we filter
+                    # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
+                    # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
+                    listing.files = (x for x in listing.files when \
+                        misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                opts.cb(undefined, listing)
 
     touch_project: (opts) =>
         throw Error("NotImplementedError")
@@ -1924,7 +1982,7 @@ exports.expire_time = expire_time = (ttl) ->
 # If there is exactly one result, what is returned depends on pattern:
 #     'a_field' --> returns the value of this field in the result
 # If more than one result, an error
-one_result = (cb, pattern) ->
+one_result = (pattern, cb) ->
     if not cb?
         return ->  # do nothing -- return function that ignores result
     return (err, result) ->
@@ -1963,7 +2021,9 @@ one_result = (cb, pattern) ->
             else
                 cb("more than one result")
 
-all_results = (cb, pattern) ->
+all_results = (pattern, cb) ->
+    if not cb?
+        cb = pattern
     if not cb?
         return ->  # do nothing -- return function that ignores result
     return (err, result) ->

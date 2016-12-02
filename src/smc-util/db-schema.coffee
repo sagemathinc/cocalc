@@ -843,8 +843,8 @@ schema.public_projects =
 
 
 schema.public_paths =
-    primary_key: 'id'
-    anonymous : true   # allow user *read* access, even if not signed in
+    primary_key : 'id'
+    anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
             type : 'uuid'
@@ -859,6 +859,7 @@ schema.public_paths =
             desc : 'if true then disabled'
     indexes:
         project_id : []
+    pg_indexes : ['project_id']
     user_query:
         get :
             all :
