@@ -278,6 +278,8 @@ class SagewsPrinter extends Printer
                         .cm-header-3 { font-size: 1.12rem; }
                         .cm-header-4 { font-size: 1.1rem; }
                         .cm-header-5 { font-size: 1rem; }
+                        .cm-em { font-style: italic; }
+                        .cm-strong { font-weight: bold; }
                     </style>
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
