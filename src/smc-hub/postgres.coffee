@@ -131,6 +131,7 @@ class PostgreSQL
             jsonb_merge : undefined  # Exactly lke jsonb_set, but when val1 (say) is an object, it merges that object in,
                                      # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
+            order_by    : undefined
             cb          : undefined
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
@@ -243,6 +244,9 @@ class PostgreSQL
                 z.push(cond.replace('$', "$#{push_param(param)}"))
             if z.length > 0
                 opts.query += " WHERE #{z.join(' AND ')}"
+
+        if opts.order_by?
+            opts.query += " ORDER BY #{opts.order_by} "
 
         dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
@@ -1610,8 +1614,29 @@ class PostgreSQL
         ], opts.cb)
 
     get_file_use: (opts) =>
-        throw Error("NotImplementedError")
-
+        opts = defaults opts,
+            max_age_s   : undefined
+            project_id  : undefined    # don't specify both project_id and project_ids
+            project_ids : undefined
+            path        : undefined    # if given, project_id must be given
+            cb          : required     # entry if path given; otherwise, an array
+        if opts.project_id?
+            if opts.project_ids?
+                opts.cb("don't specify both project_id and project_ids")
+                return
+            else
+                opts.project_ids = [opts.project_id]
+        else if not opts.project_ids?
+            opts.cb("project_id or project_ids must be defined")
+            return
+        @_query
+            query    : 'SELECT * FROM file_use'
+            where    :
+                'last_edited >= $::TIMESTAMP' : if opts.max_age_s then misc.seconds_ago(opts.max_age_s)
+                'project_id   = ANY($)'       : opts.project_ids
+                'path         = $::TEXT'      : opts.path
+            order_by : 'last_edited'
+            cb       : all_results(opts.cb)
 
     get_project: (opts) =>
         throw Error("NotImplementedError")
