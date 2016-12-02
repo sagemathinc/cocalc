@@ -301,6 +301,7 @@ class SagewsPrinter extends Printer
                     <a href="#{url}">#{SiteName}</a>
                     </div>
                 </footer>
+                <embed hidden src="#{data.sagews_data}"></embed>
                 </body>
                 </html>"""
         return @_html_tmpl
@@ -461,75 +462,99 @@ class SagewsPrinter extends Printer
                 @html_process_output_mesg(mesg_stdout)
                 mesg_stdout = {stdout : ''}
 
-        # process lines in an async loop to avoid blocking on large documents
-        line = 0
-        lines_total = cm.lineCount()
-        async.whilst(
-            ->
-                progress(.1 + .8 * line / lines_total, "Converting line #{line}")
-                return line < lines_total
-            ,
-            (cb) =>
-                x = cm.getLine(line)
-                marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
-                if not marks? or marks.length == 0
-                    input_lines.push(x)
-                else
-                    input_lines_process()
-                    mark = marks[0] # assumption it's always length 1
-                    switch x[0]     # first char is the marker
-                        when MARKERS.cell
-                            _
-                        when MARKERS.output
-                            # assume, all cells are evaluated and hence mark.rendered contains the html
-                            for mesg_ser in mark.rendered.split(MARKERS.output)
-                                if mesg_ser.length == 0
-                                    continue
-                                try
-                                    mesg = misc.from_json(mesg_ser)
-                                catch e
-                                    console.warn("invalid output message '#{m}' in line '#{line}'")
-                                    continue
+        process_lines = (cb) =>
+            # process lines in an async loop to avoid blocking on large documents
+            line = 0
+            lines_total = cm.lineCount()
+            async.whilst(
+                ->
+                    progress(.1 + .8 * line / lines_total, "Converting line #{line}")
+                    return line < lines_total
+                ,
+                (cb) =>
+                    x = cm.getLine(line)
+                    marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
+                    if not marks? or marks.length == 0
+                        input_lines.push(x)
+                    else
+                        input_lines_process()
+                        mark = marks[0] # assumption it's always length 1
+                        switch x[0]     # first char is the marker
+                            when MARKERS.cell
+                                _
+                            when MARKERS.output
+                                # assume, all cells are evaluated and hence mark.rendered contains the html
+                                for mesg_ser in mark.rendered.split(MARKERS.output)
+                                    if mesg_ser.length == 0
+                                        continue
+                                    try
+                                        mesg = misc.from_json(mesg_ser)
+                                    catch e
+                                        console.warn("invalid output message '#{m}' in line '#{line}'")
+                                        continue
 
-                                if mesg.stdout?
-                                    mesg_stdout.stdout += mesg.stdout
-                                else
-                                    process_collected_mesg_stdout()
-                                    # process the non-stdout mesg from this iteration
-                                    # console.log 'output message', mesg, mark
-                                    @html_process_output_mesg(mesg, mark)
+                                    if mesg.stdout?
+                                        mesg_stdout.stdout += mesg.stdout
+                                    else
+                                        process_collected_mesg_stdout()
+                                        # process the non-stdout mesg from this iteration
+                                        # console.log 'output message', mesg, mark
+                                        @html_process_output_mesg(mesg, mark)
 
-                process_collected_mesg_stdout()
-                line++
-                cb(null, line, x)
-            ,
-            (err, line, x) ->
-                input_lines_process(final = true)
-                if err
-                    msg = "error processing line #{line}: '#{x}'"
-                    console.error(msg)
-                    cb?(err)
-                    return
-        )
+                    process_collected_mesg_stdout()
+                    line++
+                    cb(null, line, x)
+                ,
+                (err, line, x) ->
+                    if err
+                        msg = "error processing line #{line}: '#{x}'"
+                        console.error(msg)
+                        cb(err)
+                    else
+                        input_lines_process(final = true)
+                        cb()
+            )
 
-        file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
-        content = @generate_html
-            title      : @_title ? @editor.filename
-            filename   : @editor.filename
-            content    : (h for h in @_html).join('\n')
-            timestamp  : "#{(new Date()).toISOString()}".split('.')[0]
-            project_id : @editor.project_id
-            author     : redux.getStore('account').get_fullname()
-            file_url   : file_url
+        sagews_data = (cb) =>
+            dl_url = salvus_client.read_file_from_project
+                project_id  : @editor.project_id
+                path        : @editor.filename
+            $.get(dl_url, (data) ->
+                data_enc = window.btoa(window.unescape(encodeURIComponent(data)))
+                data_base64 = 'data:application/octet-stream;base64,' + data_enc
+                cb(null, data_base64)
+            )
 
-        progress(.95, "Saving to #{@output_file} ...")
-        salvus_client.write_text_file_to_project
-            project_id : @editor.project_id
-            path       : @output_file
-            content    : content
-            cb         : (err, resp) =>
-                console.debug("write_text_file_to_project.resp: '#{resp}'")
+        finalize = (err, results) =>
+            data = results[0]
+            if err
                 cb?(err)
+                return
+            if not data?
+                cb?('Unable to download and serialize the Sage Worksheet.')
+                return
+
+            file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
+            content = @generate_html
+                title       : @_title ? @editor.filename
+                filename    : @editor.filename
+                content     : (h for h in @_html).join('\n')
+                timestamp   : "#{(new Date()).toISOString()}".split('.')[0]
+                project_id  : @editor.project_id
+                author      : redux.getStore('account').get_fullname()
+                file_url    : file_url
+                sagews_data : data
+
+            progress(.95, "Saving to #{@output_file} ...")
+            salvus_client.write_text_file_to_project
+                project_id : @editor.project_id
+                path       : @output_file
+                content    : content
+                cb         : (err, resp) =>
+                    console.debug("write_text_file_to_project.resp: '#{resp}'")
+                    cb?(err)
+
+        async.parallel([sagews_data, process_lines], finalize)
 
 # registering printers
 printers = {}
