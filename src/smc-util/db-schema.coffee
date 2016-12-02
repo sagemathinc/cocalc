@@ -414,6 +414,7 @@ schema.file_access_log =
     indexes:
         project_id : []
         time       : []
+    pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
 # TODO: for postgres rewrite after done we'll completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in

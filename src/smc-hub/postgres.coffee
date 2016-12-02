@@ -39,7 +39,7 @@ misc_node  = require('smc-util-node/misc_node')
 required   = defaults.required
 
 # TODO: this is purely for interactive debugging -- remove later.
-global.done = global.d = misc.done
+global.done = global.d = misc.done; global.misc = misc
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
 # NOTE: We should add this to site configuration, and have it get read once when first
@@ -1275,8 +1275,9 @@ class PostgreSQL
             cb    : (err, result) =>
                 opts.cb(err, result?.rows[0]?.account_id)
 
-    _lock : (name, key, time_s) =>
-        x = "_lock_#{name}"
+    _throttle: (name, time_s, key...) =>
+        key = misc.to_json(key)
+        x = "_throttle_#{name}"
         @[x] ?= {}
         if @[x][key]
             return true
@@ -1285,7 +1286,7 @@ class PostgreSQL
         return false
 
     _touch_account: (account_id, cb) =>
-        if @_lock('_touch_account', account_id, 120)
+        if @_throttle('_touch_account', 120, account_id)
             cb()
             return
         @_query
@@ -1295,7 +1296,7 @@ class PostgreSQL
             cb    : cb
 
     _touch_project: (project_id, account_id, cb) =>
-        if @_lock('_touch_project', "#{project_id}-#{account_id}", 60)
+        if @_throttle('_touch_project', 60, project_id, account_id)
             cb()
             return
         NOW = new Date()
@@ -1317,13 +1318,9 @@ class PostgreSQL
             ttl_s      : 50        # min activity interval; calling this function with same input again within this interval is ignored
             cb         : undefined
         if opts.ttl_s
-            @_touch_lock ?= {}
-            key = "#{opts.account_id}-#{opts.project_id}-#{opts.path}-#{opts.action}"
-            if @_touch_lock[key]
+            if @_throttle('touch', opts.ttl_s, opts.account_id, opts.project_id, opts.path, opts.action)
                 opts.cb?()
                 return
-            @_touch_lock[key] = true
-            setTimeout((()=>delete @_touch_lock[key]), opts.ttl_s*1000)
 
         now = new Date()
         async.parallel([
@@ -1500,12 +1497,60 @@ class PostgreSQL
                 'ip_address     = $::INET     ' : opts.ip_address
             cb    : count_result(opts.cb)
 
+    ###
+    Tracking file access
+
+    log_file_access is throttled in each server, in the sense that
+    if it is called with the same input within a minute, those
+    subsequent calls are ignored.  Of course, if multiple servers
+    are recording file_access then there can be more than one
+    entry per minute.
+    ###
     log_file_access: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            filename   : required
+            cb         : undefined
+        if not @_validate_opts(opts) then return
+        if @_throttle('log_file_access', 60, opts.project_id, opts.account_id, opts.filename)
+            opts.cb?()
+            return
+        @_query
+            query  : 'INSERT INTO file_access_log'
+            values :
+                'id         :: UUID     ' : misc.uuid()
+                'project_id :: UUID     ' : opts.project_id
+                'account_id :: UUID     ' : opts.account_id
+                'filename   :: TEXT     ' : opts.filename
+                'time       :: TIMESTAMP' : 'NOW()'
+            cb     : opts.cb
 
+    ###
+    Efficiently get all files access times subject to various constraints...
+
+    NOTE: this was not available in RethinkDB version (too painful to implement!), but here it is,
+    easily sliceable in any way.  This could be VERY useful for users!
+    ###
     get_file_access: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            start      : undefined   # start time
+            end        : undefined  # end time
+            project_id : undefined
+            account_id : undefined
+            filename   : undefined
+            cb    : required
+        @_query
+            query : 'SELECT project_id, account_id, filename, time FROM file_access_log'
+            where :
+                'time >= $::TIMESTAMP' : opts.start
+                'time <= $::TIMESTAMP' : opts.end
+                'project_id = $::UUID' : opts.project_id
+                'account_id = $::UUID' : opts.account_id
+                'filename   = $::TEXT' : opts.filename
+            cb   : all_results(opts.cb)
 
+    # Create a new project with given owner.  Returns the generated project_id.
     create_project: (opts) =>
         opts = defaults opts,
             account_id  : required    # initial owner
