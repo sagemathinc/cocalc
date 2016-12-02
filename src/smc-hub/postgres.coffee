@@ -1148,7 +1148,46 @@ class PostgreSQL
             ], (err) => opts.cb(err, results))
 
     get_account: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : undefined     # provide either email or account_id (not both)
+            account_id    : undefined
+            columns       : ['account_id',
+                             'password_hash',
+                             'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
+                             'first_name', 'last_name',
+                             'email_address',
+                             'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'groups',
+                             'passports'
+                            ]
+            cb            : required
+        if not @_validate_opts(opts) then return
+        if 'password_is_set' in opts.columns
+            if 'password_hash' not in opts.columns
+                opts.columns.push('password_hash')
+            misc.remove(opts.columns, 'password_is_set')
+            password_is_set = true
+        if opts.account_id?
+            where = {"account_id = $::UUID" : opts.account_id}
+        else
+            where = {"email_address = $::TEXT" : opts.email_address}
+        @_query
+            query : "SELECT #{opts.columns.join(',')} FROM accounts"
+            where : where
+            cb    : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.rows.length == 0
+                    opts.cb("no such account")
+                else
+                    z = result.rows[0]
+                    if password_is_set
+                        z.password_is_set = !!z.password_hash
+                    delete z.password_hash
+                    for c in opts.columns
+                        if not z[c]?     # for same semantics as rethinkdb... (for now)
+                            delete z[c]
+                    opts.cb(undefined, z)
 
     is_banned_user: (opts) =>
         throw Error("NotImplementedError")
