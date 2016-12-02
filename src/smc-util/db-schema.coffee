@@ -554,7 +554,7 @@ schema.password_reset_attempts =
         email_address :
             type : 'string'
         ip_address    :
-            type : 'string'
+            type    : 'string'
             pg_type : 'inet'
         time          :
             type : 'timestamp'
@@ -562,6 +562,8 @@ schema.password_reset_attempts =
         email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
         ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
         time          : []
+
+    pg_indexes: ['time']
 
 schema.project_log =
     primary_key: 'id'

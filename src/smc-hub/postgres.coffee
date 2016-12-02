@@ -1383,17 +1383,7 @@ class PostgreSQL
             query : 'SELECT value, expire FROM remember_me'
             where :
                 'hash = $::TEXT' : opts.hash.slice(0,127)
-            cb       : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.rows.length == 0
-                    opts.cb()
-                else
-                    x = result.rows[0]
-                    if new Date() >= x.expire  # expired, so async delete
-                        x = undefined
-                        @delete_remember_me(hash:opts.hash)
-                    opts.cb(undefined, x?.value)  # x can be made undefined above when it expires
+            cb       : one_result(opts.cb, 'value')
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
@@ -1405,26 +1395,110 @@ class PostgreSQL
                 'hash = $::TEXT' : opts.hash.slice(0,127)
             cb    : opts.cb
 
-    change_password: (opts) =>
-        throw Error("NotImplementedError")
+    ###
+    # Changing password/email, etc. sensitive info about a user
+    ###
 
-    change_email_address: (opts) =>
-        throw Error("NotImplementedError")
+    # Change the password for the given account.
+    change_password: (opts={}) =>
+        opts = defaults opts,
+            account_id             : required
+            password_hash          : required
+            invalidate_remember_me : true
+            cb                     : required
+        if not @_validate_opts(opts) then return
+        async.series([  # don't do in parallel -- don't kill remember_me if password failed!
+            (cb) =>
+                @_account(opts).update(password_hash:opts.password_hash).run(cb)
+            (cb) =>
+                if opts.invalidate_remember_me
+                    @invalidate_all_remember_me
+                        account_id : opts.account_id
+                        cb         : cb
+                else
+                    cb()
+        ], opts.cb)
 
+    # Change the email address, unless the email_address we're changing to is already taken.
+    change_email_address: (opts={}) =>
+        opts = defaults opts,
+            account_id    : required
+            email_address : required
+            cb            : required
+        if not @_validate_opts(opts) then return
+        @account_exists
+            email_address : opts.email_address
+            cb            : (err, exists) =>
+                if err
+                    opts.cb(err)
+                else if exists
+                    opts.cb("email_already_taken")
+                else
+                    @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
+
+    ###
+    Password reset
+    ###
     set_password_reset: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : required
+            ttl           : required
+            cb            : required   # cb(err, uuid)
+        id = misc.uuid()
+        @_query
+            query : "INSERT INTO password_reset"
+            values :
+                "id            :: UUID"      : id
+                "email_address :: TEXT"      : opts.email_address
+                "expire        :: TIMESTAMP" : expire_time(opts.ttl)
+            cb : (err) =>
+                opts.cb(err, id)
 
     get_password_reset: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            id : required
+            cb : required   # cb(err, true if allowed and false if not)
+        @_query
+            query : 'SELECT expire, email_address FROM password_reset'
+            where : 'id = $::UUID': opts.id
+            cb    : one_result(opts.cb, 'email_address')
 
     delete_password_reset: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            id : required
+            cb : required   # cb(err, true if allowed and false if not)
+        @_query
+            query : 'DELETE FROM password_reset'
+            where : 'id = $::UUID': opts.id
+            cb    : opts.cb
 
     record_password_reset_attempt: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : required
+            ip_address    : required
+            cb            : required   # cb(err)
+        @_query
+            query  : 'INSERT INTO password_reset_attempts'
+            values :
+                "id            :: UUID"      : misc.uuid()
+                "email_address :: TEXT "     : opts.email_address
+                "ip_address    :: INET"      : opts.ip_address
+                "time          :: TIMESTAMP" : "NOW()"
+            cb     : opts.cb
 
     count_password_reset_attempts: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : undefined  # must give one of email_address or ip_address
+            ip_address    : undefined
+            age_s         : required   # at most this old
+            cb            : required   # cb(err)
+        @_query
+            query : 'SELECT COUNT(*) FROM password_reset_attempts'
+            where :
+                'time          >= $::TIMESTAMP' : misc.seconds_ago(opts.age_s)
+                'email_address  = $::TEXT     ' : opts.email_address
+                'ip_address     = $::INET     ' : opts.ip_address
+            cb    : count_result(opts.cb)
 
     log_file_access: (opts) =>
         throw Error("NotImplementedError")
@@ -1750,7 +1824,10 @@ one_result = (cb, pattern) ->
                         if not x?  # null or undefined -- SQL returns null, but we want undefined
                             cb()
                         else
-                            cb(undefined, x)
+                            if obj.expire? and new Date() >= obj.expire
+                                cb()
+                            else
+                                cb(undefined, x)
                     when 'object'
                         x = {}
                         for p in pattern
