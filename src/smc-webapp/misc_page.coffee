@@ -1167,7 +1167,7 @@ exports.define_codemirror_extensions = () ->
             cm.focus()
             cm.replaceRange(left_white + src + right_white, from, to)
 
-            if not how?.insert?
+            if not how?.insert? and not how?.wrap?
                 if selection.empty()
                     # restore cursor
                     if left?
@@ -1178,7 +1178,7 @@ exports.define_codemirror_extensions = () ->
                 else
                     # now select the new range
                     delta = src.length - src0.length
-                    cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+                    cm.extendSelection(from, {line:to.line, ch:to.ch+delta})
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
