@@ -224,6 +224,24 @@ class SagewsPrinter extends Printer
                             user-select: none;
                         }
                         div.header { margin-bottom: 1rem; }
+                        table {
+                            border-spacing: 0;
+                            border-collapse: collapse;
+                            margin-top: .5rem;
+                            margin-bottom: .5rem;
+                            border-color: #888;
+                        }
+                        table td, table th {
+                            padding: .5rem;
+                        }
+                        table tr>td {
+                            vertical-align: top;
+                            border-top: .05rem solid #888;
+                        }
+                        table tr>th {
+                            vertical-align: bottom;
+                            border-bottom: .1rem solid #888;
+                        }
                         footer {
                             margin-top: 1rem;
                             border-top: .1rem solid #888;
