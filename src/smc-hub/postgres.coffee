@@ -1147,6 +1147,12 @@ class PostgreSQL
                         cb(err, if result? then results.push(result.rows...))
             ], (err) => opts.cb(err, results))
 
+    _account_where: (opts) =>
+        if opts.account_id?
+            return {"account_id = $::UUID" : opts.account_id}
+        else
+            return {"email_address = $::TEXT" : opts.email_address}
+
     get_account: (opts) =>
         opts = defaults opts,
             email_address : undefined     # provide either email or account_id (not both)
@@ -1167,13 +1173,9 @@ class PostgreSQL
                 opts.columns.push('password_hash')
             misc.remove(opts.columns, 'password_is_set')
             password_is_set = true
-        if opts.account_id?
-            where = {"account_id = $::UUID" : opts.account_id}
-        else
-            where = {"email_address = $::TEXT" : opts.email_address}
         @_query
             query : "SELECT #{opts.columns.join(',')} FROM accounts"
-            where : where
+            where : @_account_where(opts)
             cb    : (err, result) =>
                 if err
                     opts.cb(err)
@@ -1189,14 +1191,36 @@ class PostgreSQL
                             delete z[c]
                     opts.cb(undefined, z)
 
+    # check whether or not a user is banned
     is_banned_user: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            email_address : undefined
+            account_id    : undefined
+            cb            : required    # cb(err, true if banned; false if not banned)
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT banned FROM accounts'
+            where : @_account_where(opts)
+            cb    : one_result(opts.cb, 'banned')
+
+    _set_ban_user: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined
+            email_address : undefined
+            banned        : required
+            cb            : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'UPDATE accounts'
+            set   : {banned: opts.banned}
+            where : @_account_where(opts)
+            cb    : one_result(opts.cb, 'banned')
 
     ban_user: (opts) =>
-        throw Error("NotImplementedError")
+        @_set_ban_user(misc.merge(opts, banned:true))
 
     unban_user: (opts) =>
-        throw Error("NotImplementedError")
+        @_set_ban_user(misc.merge(opts, banned:false))
 
     ###
     Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.

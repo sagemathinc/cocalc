@@ -139,6 +139,9 @@ schema.accounts =
         last_name :
             type : 'string'
             desc : 'The last name of this user.'
+        banned :
+            type : 'boolean'
+            desc : 'Whether or not this user is banned.'
         terminal :
             type : 'map'
             desc : 'Settings for the terminal, e.g., font_size, etc. (see get query)'
