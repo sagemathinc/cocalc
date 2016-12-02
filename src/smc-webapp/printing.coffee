@@ -221,20 +221,8 @@ class SagewsPrinter extends Printer
                             color: #888;
                             min-width: 2rem;
                             text-align: right;
+                            user-select: none;
                         }
-                        /* numbering output, disabled because it doesn't look good */
-                        /*
-                        div.output:before {
-                            margin-left: -3rem;
-                            counter-increment: line;
-                            content: counter(line);
-                            display: inline-block;
-                            color: #888;
-                            min-width: 2rem;
-                            text-align: right;
-                            font-family: monospace;
-                        }
-                        */
                         div.header { margin-bottom: 1rem; }
                         footer {
                             margin-top: 1rem;
