@@ -1957,16 +1957,40 @@ class PostgreSQL
             cb : opts.cb
 
     ###
-    The project host, storage location, and state.
+    Project host, storage location, and state.
     ###
     set_project_host: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            host       : required
+            cb         : required
+        assigned = new Date()
+        @_query
+            query : "UPDATE projects"
+            jsonb_set :
+                host : {host:opts.host, assigned:assigned}
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : (err) => opts.cb(err, assigned)
 
     unset_project_host: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "UPDATE projects"
+            set   :
+                host : null
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : opts.cb
 
     get_project_host: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "SELECT host#>>'{host}' AS host FROM projects"
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : one_result('host', opts.cb)
 
     set_project_storage: (opts) =>
         throw Error("NotImplementedError")
