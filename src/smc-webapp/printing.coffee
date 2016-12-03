@@ -336,12 +336,18 @@ class SagewsPrinter extends Printer
                             continue
                         scene.set_static_renderer()
                         data_url = scene.static_image
-                        out = "<div class='output sage3d'><img src='#{data_url}'></div>"
+                        out ?= ''
+                        out += "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else
                     # console.log 'msg.file', mark, mesg
                     if not @_output_ids[mark.id] # avoid duplicated outputs
                         @_output_ids[mark.id] = true
-                        out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+                        $images = $(mark.widgetNode)
+                        console.log $images, $images.html()
+                        for el in $images.find('.sagews-output-image')
+                            out ?= ''
+                            # innerHTML should just be the <img ... > tag
+                            out += "<div class='output image'>#{el.innerHTML}</div>"
         else if mesg.code?  # what's that actually?
             code = mesg.code.source
             out = "<pre><code>#{code}</code></pre>"
