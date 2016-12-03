@@ -1724,6 +1724,15 @@ class PostgreSQL
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result(opts.cb)
 
+    _get_project_column: (column, project_id, cb) =>
+        if not misc.is_valid_uuid_string(project_id)
+            cb("invalid project_id -- #{project_id}: getting column #{column}")
+            return
+        @_query
+            query : "SELECT #{column} FROM projects"
+            where : 'project_id :: UUID = $' : project_id
+            cb    : one_result(column, cb)
+
     add_user_to_project: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -2019,19 +2028,31 @@ class PostgreSQL
         opts = defaults opts,
             project_id : required
             cb         : required
-        @_query
-            query : "SELECT storage FROM projects"
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : one_result('storage', opts.cb)
-
-    update_project_storage_save: (opts) =>
-        throw Error("NotImplementedError")
+        @_get_project_column('storage', opts.project_id, opts.cb)
 
     set_project_storage_request: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            action     : required    # 'save', 'close', 'open', 'move'
+            target     : undefined   # needed for 'open' and 'move'
+            cb         : required
+        x =
+            action    : opts.action
+            requested : new Date()
+        if opts.target?
+            x.target = opts.target
+        @_query
+            query     : "UPDATE projects"
+            set       :
+                "storage_request::JSONB" : x
+            where     : 'project_id :: UUID = $' : opts.project_id
+            cb        : opts.cb
 
     get_project_storage_request: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_get_project_column('storage_request', opts.project_id, opts.cb)
 
     set_project_state: (opts) =>
         throw Error("NotImplementedError")
