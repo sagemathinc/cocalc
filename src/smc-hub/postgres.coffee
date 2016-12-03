@@ -1311,7 +1311,7 @@ class PostgreSQL
             cb    : cb
 
     _touch_project: (project_id, account_id, cb) =>
-        if @_throttle('_touch_project', 60, project_id, account_id)
+        if @_throttle('_user_touch_project', 60, project_id, account_id)
             cb()
             return
         NOW = new Date()
@@ -1792,36 +1792,129 @@ class PostgreSQL
                         misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
                 opts.cb(undefined, listing)
 
+    # Set last_edited for this project to right now, and possibly update its size.
+    # It is safe and efficient to call this function very frequently since it will
+    # actually hit the database at most once every 30s (per project, per client).  In particular,
+    # once called, it ignores subsequent calls for the same project for 30s.
     touch_project: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        if not @_validate_opts(opts) then return
+        if @_throttle('touch_project', 30, opts.project_id)
+            opts.cb?()
+            return
+        @_query
+            query : "UPDATE projects"
+            set   : {last_edited : 'NOW()'}
+            where : "project_id = $::UUID" : opts.project_id
+            cb    : opts.cb
 
     recently_modified_projects: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            max_age_s : required
+            cb        : required
+        @_query
+            query : "SELECT project_id FROM projects"
+            where : "last_edited >= $::TIMESTAMP" : misc.seconds_ago(opts.max_age_s)
+            cb    : all_results('project_id', opts.cb)
 
     get_open_unused_projects: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            min_age_days : 30         # project must not have been edited in this much time
+            max_age_days : 120        # project must have been edited at most this long ago
+            host         : required   # hostname of where project is opened
+            cb           : required
+        @_query
+            query : "SELECT project_id FROM projects"
+            where :
+                "last_edited >= $::TIMESTAMP" : misc.days_ago(opts.max_age_days)
+                "last_edited <= $::TIMESTAMP" : misc.days_ago(opts.min_age_days)
+                "host#>>'{host}' = $::TEXT  " : opts.host
+            where2: ["state#>>'{state}' = 'opened'"]
+            cb    : all_results('project_id', opts.cb)
 
+    # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id  : required
+            account_id  : undefined
+            groups      : misc.PROJECT_GROUPS
+            cb          : required  # cb(err, true if in group)
+        if not opts.account_id?
+            # clearly user -- who isn't even signed in -- is not in the group
+            opts.cb(undefined, false)
+            return
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT COUNT(*) FROM projects'
+            where :
+                'project_id :: UUID = $' : opts.project_id
+                "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups
+            cb    : count_result (err, n) -> opts.cb(err, n > 0)
 
+    # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT project_id FROM projects'
+            where : 'users ? $::TEXT' : opts.account_id
+            cb    : all_results('project_id', opts.cb)
 
-    get_projects_with_user: (opts) =>
-        throw Error("NotImplementedError")
-
-    get_projects_with_ids: (opts) =>
-        throw Error("NotImplementedError")
-
+    # cb(err, array of account_id's of accounts in non-invited-only groups)
+    # TODO: add something about invited users too and show them in UI!
     get_account_ids_using_project: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT users FROM projects'
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : one_result 'users', (err, users) =>
+                if err
+                    opts.cb(err)
+                    return
+                opts.cb(undefined, if users? then (id for id,v of users when v.group?.indexOf('invite') == -1) else [])
 
+    # Have we successfully (no error) sent an invite to the given email address?
+    # If so, returns timestamp of when.
+    # If not, returns 0.
     when_sent_project_invite: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            to         : required  # an email address
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : "SELECT invite#>'{#{opts.to}}' AS to FROM projects"
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : one_result 'to', (err, y) =>
+                opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
 
+    # call this to record that we have sent an email invite to the given email address
     sent_project_invite: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            to         : required   # an email address
+            error      : undefined  # if there was an error set it to this; leave undefined to mean that sending succeeded
+            cb         : undefined
+        x = {time: new Date()}
+        if opts.error?
+            x.error = opts.error
+        @_query
+            query : "UPDATE projects"
+            jsonb_merge :
+                {invite : "#{opts.to}" : {time: new Date(), error:opts.error}}
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb : opts.cb
 
+    ###
+    The project host, storage location, and state.
+    ###
     set_project_host: (opts) =>
         throw Error("NotImplementedError")
 
@@ -1852,6 +1945,9 @@ class PostgreSQL
     get_project_state: (opts) =>
         throw Error("NotImplementedError")
 
+    ###
+    Project quotas and upgrades
+    ###
     get_project_quotas: (opts) =>
         throw Error("NotImplementedError")
 
@@ -1864,6 +1960,9 @@ class PostgreSQL
     get_project_upgrades: (opts) =>
         throw Error("NotImplementedError")
 
+    ###
+    Project settings
+    ###
     get_project_settings: (opts) =>
         throw Error("NotImplementedError")
 

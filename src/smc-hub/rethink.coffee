@@ -2081,8 +2081,7 @@ class RethinkDB
             else
                 opts.cb(undefined, group in opts.groups)
 
-    # all id's of projects having anything to do with the given account (ignores
-    # hidden projects unless opts.hidden is true).
+    # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required

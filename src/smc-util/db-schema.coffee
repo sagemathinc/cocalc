@@ -707,6 +707,7 @@ schema.projects =
         # see code below for some additional indexes
 
     pg_indexes : [
+        'last_edited',
         'USING GIN (users)'    # so get_collaborator_ids is fast
     ]
 
