@@ -38,9 +38,6 @@ misc_node  = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required   = defaults.required
 
-# TODO: this is purely for interactive debugging -- remove later.
-global.done = global.d = misc.done; global.misc = misc
-
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
@@ -888,8 +885,55 @@ class PostgreSQL
             where : "account_id = $::UUID" : opts.account_id
             cb    : opts.cb
 
+    # Mark the account as deleted, thus freeing up the email
+    # address for use by another account, etc.  The actual
+    # account entry remains in the database, since it may be
+    # referred to by many other things (projects, logs, etc.).
+    # However, the deleted field is set to true, so the account
+    # is excluded from user search.
     mark_account_deleted: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id    : undefined
+            email_address : undefined
+            cb            : required
+        if not opts.account_id? and not opts.email_address?
+            opts.cb("one of email address or account_id must be specified")
+            return
+
+        query = undefined
+        email_address = undefined
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                else
+                    @account_exists
+                        email_address : opts.email_address
+                        cb            : (err, account_id) =>
+                            if err
+                                cb(err)
+                            else if not account_id
+                                cb("no such email address known")
+                            else
+                                opts.account_id = account_id
+                                cb()
+            (cb) =>
+                @_query
+                    query : "SELECT email_address FROM accounts"
+                    where : "account_id = $::UUID" : opts.account_id
+                    cb    : one_result 'email_address', (err, x) =>
+                        email_address = x; cb(err)
+            (cb) =>
+                @_query
+                    query  : "UPDATE accounts"
+                    set    :
+                        "deleted::BOOLEAN"                  : true
+                        "email_address_before_delete::TEXT" : email_address
+                        "email_address"                     : null
+                        "passports"                         : null
+                    where  : "account_id = $::UUID"             : opts.account_id
+                    cb     : cb
+        ], opts.cb)
 
     account_exists: (opts) =>
         opts = defaults opts,
@@ -1156,7 +1200,7 @@ class PostgreSQL
                         i += 1
                     where.push("(#{v.join(' AND ')})")
                 query = 'SELECT account_id, first_name, last_name FROM accounts'
-                query += ' WHERE ' + where.join(' OR ')
+                query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
                 @_query
@@ -2146,3 +2190,5 @@ count_result = (cb) ->
             cb(err)
         else
             cb(undefined, parseInt(result?.rows?[0]?.count))
+
+

@@ -120,10 +120,16 @@ schema.accounts =
             type : 'string'
             pg_type : 'CHAR(173)'
             desc : 'hash of the password'
-        email_address   :
+        deleted :
+            type : 'boolean'
+            desc : "True if the account has been deleted."
+        email_address :
             type : 'string'
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
-            unique : true  # only one record in database can have this email address
+            unique : true  # only one record in database can have this email address (if given)
+        email_address_before_delete :
+            type : 'string'
+            desc : 'The email address of the user before they deleted their account.'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
