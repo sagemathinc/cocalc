@@ -1993,10 +1993,36 @@ class PostgreSQL
             cb    : one_result('host', opts.cb)
 
     set_project_storage: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            host       : required
+            cb         : required
+        @get_project_storage
+            project_id : opts.project_id
+            cb         : (err, current) =>
+                if err
+                    opts.cb(err)
+                    return
+                if current?.host? and current.host != opts.host
+                    opts.cb("change storage not implemented yet -- need to implement saving previous host")
+                else
+                    # easy case -- assigning for the first time
+                    assigned = new Date()
+                    @_query
+                        query : "UPDATE projects"
+                        jsonb_set :
+                            storage : {host:opts.host, assigned:assigned}
+                        where : 'project_id :: UUID = $' : opts.project_id
+                        cb    : (err) => opts.cb(err, assigned)
 
     get_project_storage: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "SELECT storage FROM projects"
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : one_result('storage', opts.cb)
 
     update_project_storage_save: (opts) =>
         throw Error("NotImplementedError")
