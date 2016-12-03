@@ -73,11 +73,11 @@ class ProjectTasks
     url_fullpath: (path) ->
         if window?
             loc = window.location
-            base = "#{loc.protocol}//#{loc.hostname}/"
+            base = "#{loc.protocol}//#{loc.hostname}"
         else
-            base = 'https://cloud.sagemath.com/'
+            base = 'https://cloud.sagemath.com'
         {join} = require('path')
-        return "#{base}" + join("#{window.smc_base_url ? ''}", "projects", "#{@project_id}", "#{misc.encode_path(path)}")
+        return "#{base}" + join("#{window.smc_base_url ? '/'}", "projects", "#{@project_id}", "#{misc.encode_path(path)}")
 
     # returns the URL for the file at the given path
     url_href: (path) =>
