@@ -2055,10 +2055,34 @@ class PostgreSQL
         @_get_project_column('storage_request', opts.project_id, opts.cb)
 
     set_project_state: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            state      : required
+            time       : new Date()
+            error      : undefined
+            cb         : required
+        if typeof(opts.state) != 'string'
+            opts.cb("invalid state type")
+            return
+        if not COMPUTE_STATES[opts.state]?
+            opts.cb("state = '#{opts.state}' it not a valid state")
+            return
+        state =
+            state : opts.state
+            time  : opts.time
+        if opts.error
+            state.error = opts.error
+        @_query
+            query     : "UPDATE projects"
+            set       : "state::JSONB" : state
+            where     : 'project_id :: UUID = $' : opts.project_id
+            cb        : opts.cb
 
     get_project_state: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_get_project_column('state', opts.project_id, opts.cb)
 
     ###
     Project quotas and upgrades
