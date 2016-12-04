@@ -2087,17 +2087,128 @@ class PostgreSQL
     ###
     Project quotas and upgrades
     ###
+
+    # Returns the total quotas for the project, including any
+    # upgrades to the base settings.
     get_project_quotas: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        settings = project_upgrades = undefined
+        async.parallel([
+            (cb) =>
+                @get_project_settings
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        settings = x; cb(err)
+            (cb) =>
+                @get_project_upgrades
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        project_upgrades = x; cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, misc.map_sum(settings, project_upgrades))
+        )
 
+    # Return mapping from project_id to map listing the upgrades this particular user
+    # applied to the given project.  This only includes project_id's of projects that
+    # this user may have upgraded in some way.
     get_user_project_upgrades: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query : "SELECT project_id, users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
+            where : 'users ? $::TEXT' : opts.account_id    # this is a user of the project
+            where2 : ["users#>'{#{opts.account_id},upgrades}' IS NOT NULL"]   # upgrades are defined
+            cb : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    x = {}
+                    for p in result.rows
+                        x[p.project_id] = p.upgrades
+                    opts.cb(undefined, x)
 
+    # Ensure that all upgrades applied by the given user to projects are consistent,
+    # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
+    # the only way the quotas should ever exceed their allotment would be if the
+    # user is trying to cheat.
     ensure_user_project_upgrades_are_valid: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            account_id : required
+            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to say actually change them.
+            cb         : required   # cb(err, excess)
+        excess = stripe_data = project_upgrades = undefined
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        @_query
+                            query : 'SELECT stripe_customer FROM accounts'
+                            where : 'account_id = $::UUID' : opts.account_id
+                            cb    : one_result 'stripe_customer', (err, stripe_customer) =>
+                                stripe_data = stripe_customer?.subscriptions?.data
+                                cb(err)
+                    (cb) =>
+                        @get_user_project_upgrades
+                            account_id : opts.account_id
+                            cb         : (err, x) =>
+                                project_upgrades = x
+                                cb(err)
+                ], cb)
+            (cb) =>
+                excess = require('smc-util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
+                if opts.fix
+                    fix = (project_id, cb) =>
+                        upgrades = undefined
+                        async.series([
+                            (cb) =>
+                                @_query
+                                    query : "SELECT users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
+                                    where : 'project_id = $::UUID' : project_id
+                                    cb    : one_result 'upgrades', (err, x) =>
+                                        upgrades = x; cb(err)
+                            (cb) =>
+                                if not upgrades?
+                                    cb(); return
+                                # WORRY: this is dangerous since if something else changed about a user
+                                # between the read/write here, then we would have trouble.  (This is milliseconds of time though...)
+                                for k, v of excess[project_id]
+                                    upgrades[k] -= v
+                                @_query
+                                    query       : "UPDATE projects"
+                                    where       : 'project_id = $::UUID' : project_id
+                                    jsonb_merge :
+                                        users : {"#{opts.account_id}": {upgrades: upgrades}}
+                                    cb          : cb
+                        ], cb)
+                    async.map(misc.keys(excess), fix, cb)
+                else
+                    cb()
+        ], (err) =>
+            opts.cb(err, excess)
+        )
 
+    # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : 'SELECT users FROM projects'
+            where : 'project_id = $::UUID' : opts.project_id
+            cb    : one_result 'users', (err, users) =>
+                if err
+                    opts.cb(err); return
+                upgrades = undefined
+                if users?
+                    for account_id, info of users
+                        upgrades = misc.map_sum(upgrades, info.upgrades)
+                opts.cb(undefined, upgrades)
 
     ###
     Project settings

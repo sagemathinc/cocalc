@@ -8,7 +8,7 @@ misc = require('./misc')
 exports.get_total_upgrades = get_total_upgrades = (stripe_subscriptions_data) ->
     subs = stripe_subscriptions_data
     if not subs?
-        return
+        return {}
     total = {}
     for sub in subs
         for q in [0...sub.quantity]
