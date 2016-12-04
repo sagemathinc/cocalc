@@ -2214,13 +2214,38 @@ class PostgreSQL
     Project settings
     ###
     get_project_settings: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "SELECT settings FROM projects"
+            where : 'project_id = $::UUID' : opts.project_id
+            cb    : one_result 'settings', (err, settings) =>
+                if err
+                    opts.cb(err)
+                else if not settings?
+                    opts.cb(undefined, misc.copy(DEFAULT_QUOTAS))
+                else
+                    settings = misc.coerce_codomain_to_numbers(settings)
+                    quotas = {}
+                    for k, v of DEFAULT_QUOTAS
+                        quotas[k] = if not settings[k]? then v else settings[k]
+                    opts.cb(undefined, quotas)
 
     set_project_settings: (opts) =>
-        throw Error("NotImplementedError")
+        opts = defaults opts,
+            project_id : required
+            settings   : required   # can be any subset of the map
+            cb         : required
+        @_query
+            query       : "UPDATE projects"
+            where       : 'project_id = $::UUID' : opts.project_id
+            jsonb_merge : {settings: opts.settings}
+            cb          : opts.cb
 
     count_timespan: (opts) =>
         throw Error("NotImplementedError")
+
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
