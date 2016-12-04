@@ -2510,28 +2510,6 @@ class PostgreSQL
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
 
-class SyncTable extends EventEmitter
-    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
-        throw Error("NotImplementedError")
-
-    connect: (opts) =>
-        throw Error("NotImplementedError")
-
-    get: (key) =>
-        throw Error("NotImplementedError")
-
-    getIn: (x) =>
-        throw Error("NotImplementedError")
-
-    has: (key) =>
-        throw Error("NotImplementedError")
-
-    close: (keep_listeners) =>
-        throw Error("NotImplementedError")
-
-    wait: (opts) =>
-        throw Error("NotImplementedError")
-
 ###
 Trigger functions
 ###
