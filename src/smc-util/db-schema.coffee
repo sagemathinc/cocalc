@@ -1014,6 +1014,7 @@ schema.stats =
             pg_type : 'JSONB[]'
     indexes:
         time : []
+    pg_indexes : ['time']
     user_query:
         get:
             all :

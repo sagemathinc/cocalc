@@ -47,6 +47,9 @@ BLOB_GCLOUD_BUCKET = 'smc-blobs'
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
+# limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
+MAP_LIMIT = 5
+
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
 exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
@@ -2243,8 +2246,147 @@ class PostgreSQL
             jsonb_merge : {settings: opts.settings}
             cb          : opts.cb
 
-    count_timespan: (opts) =>
-        throw Error("NotImplementedError")
+
+    ###
+    STATS
+    ###
+
+    _count_timespan: (opts) =>
+        opts = defaults opts,
+            table    : required
+            field    : undefined
+            age_m    : undefined
+            upper_m  : undefined  # defaults to zero minutes (i.e. "now")
+            cb       : required
+        where = {}
+        if opts.field?
+            if opts.age_m?
+                where["#{opts.field} >= $::TIMESTAMP"] = misc.minutes_ago(opts.age_m)
+            if opts.upper_m?
+                where["#{opts.field} <= $::TIMESTAMP"] = misc.minutes_ago(opts.upper_m)
+        @_query
+            query : "SELECT COUNT(*) FROM #{opts.table}"
+            where : where
+            cb    : count_result(opts.cb)
+
+    recent_projects: (opts) =>
+        opts = defaults opts,
+            age_m     : required   # return results at most this old
+            min_age_m : 0          # only returns results at least this old
+            pluck     : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
+            cb        : required   # cb(err, list of strings or objects)
+
+        if opts.pluck?
+            columns = opts.pluck.join(',')
+            cb = all_results(opts.cb)
+        else
+            columns = 'project_id'
+            cb = all_results('project_id', opts.cb)
+        @_query
+            query : "SELECT #{columns} FROM projects"
+            where :
+                "last_edited >= $::TIMESTAMP" : misc.minutes_ago(opts.age_m)
+                "last_edited <= $::TIMESTAMP" : misc.minutes_ago(opts.min_age_m)
+            cb    : cb
+
+    get_stats_interval: (opts) =>
+        opts = defaults opts,
+            start : required
+            end   : required
+            cb    : required
+        @_query
+            query    : 'SELECT * FROM stats'
+            where    :
+                "time >= $::TIMESTAMP" : opts.start
+                "time <= $::TIMESTAMP" : opts.end
+            order_by : 'time'
+            cb       : all_results(opts.cb)
+
+    # If there is a cached version of stats (which has given ttl) return that -- this could have
+    # been computed by any of the hubs.  If there is no cached version, compute new one and store
+    # in cache for ttl seconds.
+    get_stats: (opts) =>
+        opts = defaults opts,
+            ttl : 60         # how long cached version lives (in seconds)
+            cb  : undefined
+        stats = undefined
+        dbg = @_dbg('get_stats')
+        async.series([
+            (cb) =>
+                dbg("using cached stats?")
+                if @_stats_cached? and @_stats_cached.time > misc.seconds_ago(opts.ttl)
+                    stats = @_stats_cached
+                    dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
+                    cb(); return
+                @_query
+                    query : "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
+                    cb    : one_result (err, x) =>
+                        if err or not x? or (x? and x.time < misc.seconds_ago(opts.ttl))
+                            dbg("not using cache")
+                            cb(err)
+                        else
+                            dbg("using db cached stats from #{(new Date() - x.time) / 1000} secs ago.")
+                            stats = x
+                            # storing still valid result in local cache
+                            @_stats_cached = misc.deep_copy(stats)
+                            cb()
+            (cb) =>
+                if stats?
+                    cb(); return
+                dbg("querying all stats from the DB")
+                stats = {time : new Date(), projects_created : {}, projects_edited: {}, accounts_created : {}}
+                R = RECENT_TIMES
+                K = RECENT_TIMES_KEY
+                async.parallelLimit([
+                    (cb) => @_count_timespan(table:'accounts', cb:(err, x) => stats.accounts = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', cb:(err, x) => stats.projects = x; cb(err))
+
+                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.active, cb: (err, x) => stats.projects_edited[K.active] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_hour, cb: (err, x) => stats.projects_edited[K.last_hour] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_day, cb: (err, x) => stats.projects_edited[K.last_day]  = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_week, cb: (err, x) => stats.projects_edited[K.last_week] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_month, cb: (err, x) => stats.projects_edited[K.last_month]= x; cb(err))
+
+                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_hour, cb: (err, x) => stats.projects_created[K.last_hour] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_day, cb: (err, x) => stats.projects_created[K.last_day] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_week, cb: (err, x) => stats.projects_created[K.last_week] = x; cb(err))
+                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_month, cb: (err, x) => stats.projects_created[K.last_month] = x; cb(err))
+
+                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_hour,  cb: (err, x) => stats.accounts_created[K.last_hour] = x; cb(err))
+                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_day,   cb: (err, x) => stats.accounts_created[K.last_day] = x; cb(err))
+                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_week,  cb: (err, x) => stats.accounts_created[K.last_week] = x; cb(err))
+                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_month, cb: (err, x) => stats.accounts_created[K.last_month] = x; cb(err))
+                    (cb) =>
+                        @_query
+                            query : 'SELECT expire, host FROM hub_servers'
+                            cb    : all_results (err, hub_servers) =>
+                                if err
+                                    cb(err)
+                                else
+                                    now = new Date()
+                                    stats.hub_servers = []
+                                    for x in hub_servers
+                                        if x.expire > now
+                                            delete x.expire
+                                            stats.hub_servers.push(x)
+                                    cb()
+                ], MAP_LIMIT, (err) =>
+                    if err
+                        cb(err)
+                    else
+                        dbg("everything succeeded in parallel above -- now insert stats")
+                        # storing in local and db cache
+                        stats.id = misc.uuid()
+                        @_stats_cached = misc.deep_copy(stats)
+                        @_query
+                            query  : 'INSERT INTO stats'
+                            values : stats
+                            cb     : cb
+                )
+        ], (err) =>
+            opts.cb?(err, stats)
+        )
+
 
 
 class SyncTable extends EventEmitter
@@ -2357,6 +2499,9 @@ exports.expire_time = expire_time = (ttl) ->
 #     'a_field' --> returns the value of this field in the result
 # If more than one result, an error
 one_result = (pattern, cb) ->
+    if not cb? and typeof(pattern) == 'function'
+        cb = pattern
+        pattern = undefined
     if not cb?
         return ->  # do nothing -- return function that ignores result
     return (err, result) ->
@@ -2396,8 +2541,9 @@ one_result = (pattern, cb) ->
                 cb("more than one result")
 
 all_results = (pattern, cb) ->
-    if not cb?
+    if not cb? and typeof(pattern) == 'function'
         cb = pattern
+        pattern = undefined
     if not cb?
         return ->  # do nothing -- return function that ignores result
     return (err, result) ->
