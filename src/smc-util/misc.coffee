@@ -472,10 +472,13 @@ exports.deep_copy = (obj) ->
         flags += 'y' if obj.sticky?
         return new RegExp(obj.source, flags)
 
-    newInstance = new obj.constructor()
+    try
+        newInstance = new obj.constructor()
+    catch
+        newInstance = {}
 
-    for key of obj
-        newInstance[key] = exports.deep_copy(obj[key])
+    for key, val of obj
+        newInstance[key] = exports.deep_copy(val)
 
     return newInstance
 

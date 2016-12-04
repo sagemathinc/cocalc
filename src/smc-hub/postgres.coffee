@@ -186,6 +186,7 @@ class PostgreSQL
             SET.push(v...)
 
         if opts.values?
+            #dbg("values = #{misc.to_json(opts.values)}")
             if opts.where?
                 opts.cb?("where must not be defined if opts.values is defined")
                 return
@@ -2387,6 +2388,53 @@ class PostgreSQL
             opts.cb?(err, stats)
         )
 
+    ###
+    # Hub servers
+    ###
+    register_hub: (opts) =>
+        opts = defaults opts,
+            host    : required
+            port    : required
+            clients : required
+            ttl     : required
+            cb      : required
+        # Since multiple hubs can run on the same host (but with different ports) and the host is the primary
+        # key, we combine the host and port number in the host name for the db.  The hub_servers table is only
+        # used for tracking connection stats, so this is safe.
+        @_query
+            query  : "INSERT INTO hub_servers"
+            values :
+                "host    :: TEXT     " : "#{opts.host}-#{opts.port}"
+                "port    :: INTEGER  " : opts.port
+                "clients :: INTEGER  " : opts.clients
+                "expire  :: TIMESTAMP" : expire_time(opts.ttl)
+            conflict : 'host'
+            cb : opts.cb
+
+    get_hub_servers: (opts) =>
+        opts = defaults opts,
+            cb   : required
+        @_query
+            query : "SELECT * FROM hub_servers"
+            cb    : all_results (err, v) =>
+                if err
+                    opts.cb(err)
+                    return
+                w = []
+                to_delete = []
+                now = new Date()
+                for x in v
+                    if x.expire and x.expire <= now
+                        to_delete.push(x.host)
+                    else
+                        w.push(x)
+                if to_delete.length > 0
+                    @_query
+                        query : "DELETE FROM hub_servers"
+                        where : "host = ANY($)" : to_delete
+                        cb    : (err) => opts.cb(err, w)
+                else
+                    opts.cb(undefined, w)
 
 
 class SyncTable extends EventEmitter
