@@ -265,9 +265,6 @@ schema.blobs =
         blob   :
             type : 'Buffer'
             desc : 'The actual blob content'
-        ttl    :
-            type : 'integer'
-            desc : 'Number of seconds that the blob will live or 0 to make it never expire.'
         expire :
             type : 'timestamp'
             desc : 'When to expire this blob (when delete_expired is called on the database).'
@@ -289,9 +286,9 @@ schema.blobs =
         gcloud :
             type : 'string'
             desc : 'name of a bucket that contains the actual blob, if available.'
-        backed_up :
-            type : 'timestamp'
-            desc : 'if true, then this blob was saved to an offsite backup at the given time'
+        backup :
+            type : 'boolean'
+            desc : 'if true, then this blob was saved to an offsite backup'
     indexes:
         expire : []   # when expired
         needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')

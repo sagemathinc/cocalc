@@ -2794,7 +2794,7 @@ class RethinkDB
                         cb('no such blob')
                     else if not x.blob and not x.gcloud
                         cb('blob not available -- this should not be possible')
-                    else if not x.blob and x.force
+                    else if not x.blob and opts.force
                         cb("blob can't be reploaded since it was already deleted")
                     else
                         cb()

@@ -4,7 +4,7 @@ Similar to rethink.coffee... but built around PostgreSQL.
 **
 This code is currently NOT released under any license for use by anybody except SageMath, Inc.
 
-(c) SageMath, Inc.
+(c) 2016 SageMath, Inc.
 **
 ---
 
@@ -113,10 +113,12 @@ class PostgreSQL
             query     : required
             params    : []
             cache     : false        # TODO: implement this
-            where     : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
-                                     # and values the corresponding params.  Also, WHERE must not be in the query already.
-                                     # If where[cond] is undefined, then cond is completely **ignored**.
-            where2    : undefined    # Array of where clauses as string (no params) -- needed since opts.where all have param.
+            where     : undefined    # Used for SELECT: If given, can be
+                                     #  - a map with keys clauses with $::TYPE  (not $1::TYPE!)  and values
+                                     #    the corresponding params.  Also, WHERE must not be in the query already.
+                                     #    If where[cond] is undefined, then cond is completely **ignored**.
+                                     #  - a string, which is inserted as is as a normal WHERE condition.
+                                     #  - an array of maps or strings.
             set       : undefined    # Appends a SET clause to the query; same format as values.
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
@@ -137,6 +139,7 @@ class PostgreSQL
                                      # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
+            limit       : undefined
             cb          : undefined
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
@@ -234,29 +237,35 @@ class PostgreSQL
             opts.query += " SET " + SET.join(' , ')
 
         WHERE = []
-        if opts.where?
-            if typeof(opts.where) != 'object'
-                opts.cb?("where must be an object")
-                return
-            if opts.values?
-                opts.cb?("values must not be given if where clause is given")
-                return
-            for cond, param of opts.where
-                if typeof(cond) != 'string'
-                    opts.cb?("each condition must be a string but '#{cond}' isn't")
-                    return
-                if not param?
-                    continue
-                WHERE.push(cond.replace('$', "$#{push_param(param)}"))
+        push_where = (x) =>
+            if typeof(x) == 'string'
+                WHERE.push(x)
+            else if misc.is_array(x)
+                for v in x
+                    push_where(v)
+            else if misc.is_object(x)
+                for cond, param of x
+                    if typeof(cond) != 'string'
+                        opts.cb?("each condition must be a string but '#{cond}' isn't")
+                        return
+                    if not param?  # *IGNORE* where conditions where value is explicitly undefined
+                        continue
+                    WHERE.push(cond.replace('$', "$#{push_param(param)}"))
 
-        if opts.where2?
-            WHERE.push(opts.where2...)
+        if opts.where?
+            push_where(opts.where)
 
         if WHERE.length > 0
+            if opts.values?
+                opts.cb?("values must not be given if where clause given")
+                return
             opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
             opts.query += " ORDER BY #{opts.order_by} "
+
+        if opts.limit?
+            opts.query += " LIMIT #{opts.limit} "
 
         dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
@@ -1792,8 +1801,10 @@ class PostgreSQL
         if not @_validate_opts(opts) then return
         @_query
             query : "SELECT path FROM public_paths"
-            where : "project_id = $::UUID" : opts.project_id
-            where2: ["disabled IS NOT TRUE"]
+            where : [
+                "project_id = $::UUID" : opts.project_id,
+                "disabled IS NOT TRUE"
+            ]
             cb    : all_results('path', opts.cb)
 
     has_public_path: (opts) =>
@@ -1802,8 +1813,10 @@ class PostgreSQL
             cb          : required    # cb(err, has_public_path)
         @_query
             query : "SELECT COUNT(path) FROM public_paths"
-            where : "project_id = $::UUID" : opts.project_id
-            where2: ["disabled IS NOT TRUE"]
+            where : [
+                "project_id = $::UUID" : opts.project_id,
+                "disabled IS NOT TRUE"
+            ]
             cb    : count_result (err, n) ->
                 opts.cb(err, n>0)
 
@@ -1884,11 +1897,12 @@ class PostgreSQL
             cb           : required
         @_query
             query : "SELECT project_id FROM projects"
-            where :
+            where : [
                 "last_edited >= $::TIMESTAMP" : misc.days_ago(opts.max_age_days)
                 "last_edited <= $::TIMESTAMP" : misc.days_ago(opts.min_age_days)
-                "host#>>'{host}' = $::TEXT  " : opts.host
-            where2: ["state#>>'{state}' = 'opened'"]
+                "host#>>'{host}' = $::TEXT  " : opts.host,
+                "state#>>'{state}' = 'opened'"
+            ]
             cb    : all_results('project_id', opts.cb)
 
     # cb(err, true if user is in one of the groups for the project)
@@ -2126,8 +2140,10 @@ class PostgreSQL
             cb         : required
         @_query
             query : "SELECT project_id, users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
-            where : 'users ? $::TEXT' : opts.account_id    # this is a user of the project
-            where2 : ["users#>'{#{opts.account_id},upgrades}' IS NOT NULL"]   # upgrades are defined
+            where : [
+                'users ? $::TEXT' : opts.account_id,    # this is a user of the project
+                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
+            ]
             cb : (err, result) =>
                 if err
                     opts.cb(err)
@@ -2509,12 +2525,6 @@ class PostgreSQL
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
 
-# Add further functionality to PostgreSQL class
-exports.PostgreSQL = PostgreSQL  # class defined above
-{PostgreSQL} = require('./postgres-blobs')  # extended version of class above.
-{PostgreSQL} = require('./postgres-user-queries')
-{PostgreSQL} = require('./postgres-synctable')
-
 ###
 Trigger functions
 ###
@@ -2602,7 +2612,7 @@ exports.expire_time = expire_time = (ttl) ->
 # If there is exactly one result, what is returned depends on pattern:
 #     'a_field' --> returns the value of this field in the result
 # If more than one result, an error
-one_result = (pattern, cb) ->
+exports.one_result = one_result = (pattern, cb) ->
     if not cb? and typeof(pattern) == 'function'
         cb = pattern
         pattern = undefined
@@ -2644,7 +2654,7 @@ one_result = (pattern, cb) ->
             else
                 cb("more than one result")
 
-all_results = (pattern, cb) ->
+exports.all_results = all_results = (pattern, cb) ->
     if not cb? and typeof(pattern) == 'function'
         cb = pattern
         pattern = undefined
@@ -2663,7 +2673,7 @@ all_results = (pattern, cb) ->
                 cb("unsupported pattern type '#{typeof(pattern)}'")
 
 
-count_result = (cb) ->
+exports.count_result = count_result = (cb) ->
     if not cb?
         return ->  # do nothing -- return function that ignores result
     return (err, result) ->
@@ -2671,5 +2681,11 @@ count_result = (cb) ->
             cb(err)
         else
             cb(undefined, parseInt(result?.rows?[0]?.count))
+
+# Add further functionality to PostgreSQL class -- must be at the bottom of this file.
+exports.PostgreSQL = PostgreSQL  # class defined above
+{PostgreSQL} = require('./postgres-blobs')  # extended version of class above.
+#{PostgreSQL} = require('./postgres-user-queries')
+#{PostgreSQL} = require('./postgres-synctable')
 
 
