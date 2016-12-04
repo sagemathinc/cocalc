@@ -23,7 +23,8 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-async       = require('async')
+async = require('async')
+_     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -68,6 +69,9 @@ class Session extends EventEmitter
         @start_time   = misc.walltime()
         @conn         = opts.conn
         @params       = opts.params
+        if @type() == 'console'
+            if not @params?.path? or not @params?.filename?
+                throw Error("params must be specified with path and filename")
         @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
@@ -89,9 +93,9 @@ class Session extends EventEmitter
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
-        if not @conn._signed_in? or not @conn._signed_in
-            setTimeout(@reconnect, 500)
-            return  # do *NOT* do cb?() yet!
+        if not @conn._signed_in
+            setTimeout((()=>@reconnect(cb)), 500)
+            return
 
         if @_reconnect_lock
             #console.warn('reconnect: lock')
@@ -108,7 +112,7 @@ class Session extends EventEmitter
                     type         : @type()
                     project_id   : @project_id
                     params       : @params
-                timeout : 7
+                timeout : 30
                 cb      : (err, reply) =>
                     if err
                         cb(err); return
@@ -116,7 +120,7 @@ class Session extends EventEmitter
                         when 'error'
                             cb(reply.error)
                         when 'session_connected'
-                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
+                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS", reply)
                             if @data_channel != reply.data_channel
                                 @conn.change_data_channel
                                     prev_channel : @data_channel
@@ -124,7 +128,6 @@ class Session extends EventEmitter
                                     session      : @
                             @data_channel = reply.data_channel
                             @init_history = reply.history
-                            @emit("reconnect")
                             cb()
                         else
                             cb("bug in hub")
@@ -135,6 +138,8 @@ class Session extends EventEmitter
             cb       : (err) =>
                 #console.log("reconnect('#{@session_uuid}'): finished #{err}")
                 delete @_reconnect_lock
+                if not err
+                    @emit("reconnect")
                 cb?(err)
 
     terminate_session: (cb) =>
@@ -473,7 +478,7 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : DEFAULT_TIMEOUT
-            params       : undefined   # extra params relevant to the session (in case we need to restart it)
+            params       : required  # must include {path:?, filename:?}
             cb           : required
         @call
             message : message.connect_to_session
@@ -506,7 +511,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             timeout    : DEFAULT_TIMEOUT # how long until give up on getting a new session
             type       : "console"   # only "console" supported
-            params     : undefined   # extra params relevant to the session
+            params     : required    # must include {path:?, filename:?}
             project_id : required
             cb         : required    # cb(error, session)  if error is defined it is a string
 
@@ -530,6 +535,7 @@ class exports.Connection extends EventEmitter
                             project_id   : opts.project_id
                             session_uuid : reply.session_uuid
                             data_channel : reply.data_channel
+                            params       : opts.params
                             cb           : opts.cb
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
@@ -649,9 +655,15 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the Salvus Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the SageMathCloud Terms of Service."}))
             return
 
+        if @_create_account_lock
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/smc/issues/1187
+            opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
+            return
+
+        @_create_account_lock = true
         @call
             message : message.create_account
                 first_name      : opts.first_name
@@ -661,7 +673,9 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 token           : opts.token
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) =>
+                setTimeout((() => delete @_create_account_lock), 1500)
+                opts.cb(err, resp)
 
     delete_account: (opts) =>
         opts = defaults opts,
@@ -1109,17 +1123,27 @@ class exports.Connection extends EventEmitter
     find_directories: (opts) =>
         opts = defaults opts,
             project_id     : required
-            query          : '*'   # see the -iname option to the UNIX find command.
-            path           : '.'
+            query          : '*'       # see the -iname option to the UNIX find command.
+            path           : '.'       # Root path to find directories from
+            exclusions     : undefined # Array<String> Paths relative to `opts.path`. Skips whole sub-trees
             include_hidden : false
-            cb             : required      # cb(err, object describing result (see code below))
+            cb             : required  # cb(err, object describing result (see code below))
+
+        args = [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', "'#{opts.query}'", '-readable']
+        tail_args = ['-print']
+
+        if opts.exclusions?
+            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+                "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
+            args = args.concat(exclusion_args)
+
+        args = args.concat(tail_args)
+        command = "find #{args.join(' ')}"
 
         @exec
             project_id : opts.project_id
-            command    : "find"
+            command    : command
             timeout    : 15
-            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
-            bash       : false
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return

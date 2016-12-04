@@ -1712,10 +1712,21 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    render_help_suggestion: ->
+        <span>
+            <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
+            <i>
+                <Space/> Contact us if you are purchasing a course subscription, but need a short trial
+                to test things out first.<Space/>
+            </i>
+        </span>
+
     render_suggested_next_step: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
         invoices = @props.invoices?.data?.length ? 0
+        help     = @render_help_suggestion()
+
         if cards == 0
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
@@ -1725,7 +1736,7 @@ BillingPage = rclass
                     choose from either a monthly, yearly or semester-long plan.
                     You will <b>not be charged</b> until you select a specific subscription then click
                     "Add Subscription".
-                    If you have any questions at all, email <HelpEmailLink /> immediately.
+                    {help}
                 </span>
             else
                 # subscriptions but they deleted their card.
@@ -1745,14 +1756,14 @@ BillingPage = rclass
                 same subscription more than once to increase the number of upgrades).
                 You will be charged only after you select a specific subscription and click
                 "Add Subscription".
-                If you have any questions, email <HelpEmailLink /> immediately.
+                {help}
             </span>
         else if invoices == 0
             # have payment source, subscription, but no invoices yet
             <span>
                 Sign up for the same subscription package more than
                 once to increase the number of upgrades that you can use.
-                If you have any questions, email <HelpEmailLink /> immediately.
+                {help}
             </span>
         else
             # have payment source, subscription, and at least one invoice
@@ -1760,7 +1771,7 @@ BillingPage = rclass
                 You may sign up for the same subscription package more than
                 once to increase the number of upgrades that you can use.
                 Past invoices and receipts are also available below.
-                If you have any questions, email <HelpEmailLink /> immediately.
+                {help}
             </span>
 
     render_info_link: ->

@@ -85,6 +85,7 @@ STYLES = {
 
 \usepackage[utf8x]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{xltxtra}  % xelatex
 
 \usepackage[
     left=3cm,
@@ -101,8 +102,6 @@ STYLES = {
 
 % font tweaks
 \usepackage{ellipsis,ragged2e,marginnote}
-\usepackage[tracking=true]{microtype}
-\usepackage{cmbright}
 \usepackage{inconsolata}
 \renewcommand{\familydefault}{\sfdefault}
 \setkomafont{sectioning}{\normalcolor\bfseries}
@@ -169,6 +168,27 @@ sensitive=true}
   prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
   %frame=single
 }
+
+% sagemath macros
+\newcommand{\Bold}[1]{\mathbb{#1}}
+\newcommand{\ZZ}{\Bold{Z}}
+\newcommand{\NN}{\Bold{N}}
+\newcommand{\RR}{\Bold{R}}
+\newcommand{\CC}{\Bold{C}}
+\newcommand{\FF}{\Bold{F}}
+\newcommand{\QQ}{\Bold{Q}}
+\newcommand{\QQbar}{\overline{\QQ}}
+\newcommand{\CDF}{\Bold{C}}
+\newcommand{\CIF}{\Bold{C}}
+\newcommand{\CLF}{\Bold{C}}
+\newcommand{\RDF}{\Bold{R}}
+\newcommand{\RIF}{\Bold{I} \Bold{R}}
+\newcommand{\RLF}{\Bold{R}}
+\newcommand{\CFF}{\Bold{CFF}}
+\newcommand{\GF}[1]{\Bold{F}_{#1}}
+\newcommand{\Zp}[1]{\ZZ_{#1}}
+\newcommand{\Qp}[1]{\QQ_{#1}}
+\newcommand{\Zmod}[1]{\ZZ/#1\ZZ}
 """
 
 # this is part of the preamble above, although this time full of utf8 chars
@@ -197,6 +217,10 @@ COMMON += ur"""
   {€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
+"""
+
+FOOTER = """
+%sagemathcloud={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
 """
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
@@ -524,6 +548,7 @@ class Cell(object):
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
+                # print "latex_output ext", ext
                 if ext in ['jpg', 'jpeg', 'png', 'eps', 'pdf', 'svg']:
                     img = ''
                     i = target.find("/raw/")
@@ -650,7 +675,8 @@ class Worksheet(object):
                                    style=style,
                                    contents=contents) \
                + '\n'.join(tex) \
-               + r"\end{document}"
+               + r"\end{document}" \
+               + FOOTER
 
 
 def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, work_dir=None, style='modern'):
@@ -680,9 +706,7 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
                     style=style)
         )#.encode('utf8'))
         from subprocess import check_call
-        check_call('pdflatex -interact=nonstopmode tmp.tex', shell=True)
-        if contents:
-            check_call('pdflatex -interact=nonstopmode tmp.tex', shell=True)
+        check_call('latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex', shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)

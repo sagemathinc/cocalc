@@ -667,6 +667,9 @@ class Client extends EventEmitter
             return
         switch mesg.type
             when 'console'
+                if not mesg.params?.path? or not mesg.params?.filename?
+                    @push_to_client(message.error(id:mesg.id, error:"console session path and filename must be defined"))
+                    return
                 @connect_to_console_session(mesg)
             else
                 # TODO
@@ -2646,12 +2649,8 @@ create_account = (client, mesg, cb) ->
     async.series([
         (cb) ->
             dbg("run tests on generic validity of input")
+            # issues_with_create_account also does check is_valid_password!
             issues = client_lib.issues_with_create_account(mesg)
-
-            # Do not allow *really* stupid passwords.
-            [valid, reason] = is_valid_password(mesg.password)
-            if not valid
-                issues['password'] = reason
 
             # TODO -- only uncomment this for easy testing to allow any password choice.
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!

@@ -125,6 +125,8 @@ def _jkmagic(kernel_name, **kwargs):
 
         INPUT:
 
+        -  ``s`` - string to display in output of sagews cell
+
         -  ``block`` - set false to prevent newlines between output segments
 
         -  ``scroll`` - set true to put output into scrolling div
@@ -133,6 +135,7 @@ def _jkmagic(kernel_name, **kwargs):
         """
         # `full = False` or else cell output is huge
         if "\x1b[" in s:
+            # use html output if ansi control code found in string
             h = conv.convert(s, full = False)
             if block:
                 h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
@@ -269,8 +272,7 @@ def _jkmagic(kernel_name, **kwargs):
                             show(msg_data['text/latex'])
                         else:
                             txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
-                            sys.stdout.write(txt)
-                            sys.stdout.flush()
+                            hout(txt)
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':

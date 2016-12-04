@@ -339,7 +339,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
 
 {MARKERS} = require('smc-util/sagews')
 
-sagews_decorator_modes = [
+exports.sagews_decorator_modes = sagews_decorator_modes = [
     ['cjsx'        , 'text/cjsx'],
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'cython'],
@@ -1062,10 +1062,11 @@ class CodeMirrorEditor extends FileEditor
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                that.click_edit_button($(@).data('name'))
+                html = event.ctrlKey or event.metaKey
+                that.click_edit_button($(@).data('name'), html=html)
                 return false
 
-    click_edit_button: (name) =>
+    click_edit_button: (name, html = false) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1113,7 +1114,7 @@ class CodeMirrorEditor extends FileEditor
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
-                @print()
+                @print(html = html)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1211,12 +1212,15 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print : () =>
+    print: (html = false) =>
         switch @ext
             when 'sagews'
-                @print_sagews()
+                if html   # this is experimental html printing
+                    @print_html()
+                else
+                    @print_sagews()
             when 'txt', 'csv'
-                print_button = @element.find("a[href=\"#print\"]")
+                print_button = @element.find('a[href="#print"]')
                 print_button.icon_spin(start:true, delay:0).addClass("disabled")
                 printing.Printer(@, @filename + '.pdf').print (err) ->
                     print_button.removeClass('disabled')
@@ -1226,9 +1230,107 @@ class CodeMirrorEditor extends FileEditor
                             type    : "error"
                             message : "Printing error -- #{err}"
 
+    print_html: =>
+        dialog     = null
+        d_content  = null
+        d_open     = null
+        d_download = null
+        d_progress = _.noop
+        output_fn  = null # set this before showing the dialog
+
+        show_dialog = (cb) =>
+            # this creates the dialog element and defines the action functions like d_progress
+            dialog = $("""
+            <div class="modal" tabindex="-1" role="dialog">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Print to HTML</h4>
+                  </div>
+                  <div class="modal-body">
+                    <div class="progress">
+                      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                        0 %
+                      </div>
+                    </div>
+                    <div class="content" style="text-align: center;"></div>
+                    <div style="margin-top: 25px;">
+                      <p><b>How to convert to PDF?</b></p>
+                      <p>
+                      First off, there is no strong necessity for PDF over HTML.
+                      This conversion creates a self-contained HTML file,
+                      which you can send out to others or archive.
+                      Still, you can use the print dialog of your browser
+                      to convert the generated document to a PDF file.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn-download btn btn-primary disabled">Download</button>
+                    <button type="button" class="btn-open btn btn-success disabled">Open</button>
+                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            """)
+            d_content  = dialog.find('.content')
+            d_open     = dialog.find('.btn-open')
+            d_download = dialog.find('.btn-download')
+            action     = redux.getProjectActions(@project_id)
+            d_progress = (p) ->
+                pct = "#{Math.round(100 * p)}%"
+                dialog.find(".progress-bar").css('width', pct).text(pct)
+            dialog.find('.btn-close').click ->
+                dialog.modal('hide')
+                return false
+            d_open.click =>
+                action.download_file
+                    path : output_fn
+                    auto : false  # open in new tab
+            d_download.click =>
+                action.download_file
+                    path : output_fn
+                    auto : true
+            dialog.modal('show')
+            cb()
+
+        convert = (cb) =>
+            # initiates the actual conversion via printing.Printer ...
+            switch @ext
+                when 'sagews'
+                    output_fn = @filename + '.html'
+                    progress = (percent, mesg) =>
+                        d_content.text(mesg)
+                        d_progress(percent)
+                    progress = _.debounce(progress, 5)
+                    progress(.01, "Loading ...")
+                    done = (err) =>
+                        #console.log 'Printer.print_html is done: err = ', err
+                        if err
+                            progress(0, "Problem printing to HTML: #{err}")
+                        else
+                            progress(1, 'Printing finished.')
+                            # enable open & download buttons
+                            dialog.find('button.btn').removeClass('disabled')
+                    printing.Printer(@, output_fn).print(done, progress)
+                    cb(); return
+
+            # fallback
+            cb("err -- unable to convert files with extension '@ext'")
+
+        async.series([show_dialog, convert], (err) =>
+            if err
+                msg = "problem printing -- #{misc.to_json(err)}"
+                alert_message
+                    type    : "error"
+                    message : msg
+                dialog.content.text(msg)
+        )
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
-    print_sagews: () =>
+    print_sagews: =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
@@ -1265,17 +1367,19 @@ class CodeMirrorEditor extends FileEditor
                         subdir     : is_subdir
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
 
-                    printing.Printer(@).print
+                    printing.Printer(@, @filename + '.pdf').print
                         project_id  : @project_id
                         path        : @filename
                         options     : options
                         cb          : (err, _pdf) =>
-                            if err
+                            if err and not is_subdir
                                 cb(err)
                             else
                                 pdf = _pdf
                                 cb()
                 (cb) =>
+                    if is_subdir or not pdf?
+                        cb(); return
                     # does the pdf file exist?
                     project_tasks(@project_id).file_nonzero_size
                         path    : pdf
@@ -1288,6 +1392,8 @@ class CodeMirrorEditor extends FileEditor
                             else
                                 cb()
                 (cb) =>
+                    if is_subdir or not pdf?
+                        cb(); return
                     # pdf file exists -- show it in the UI
                     url = salvus_client.read_file_from_project
                         project_id  : @project_id
@@ -2295,7 +2401,7 @@ class PDF_Preview extends FileEditor
         if @_f?
             clearInterval(@_f)
         timeout = undefined
-        @output.on 'scroll', () =>
+        @element.find(".salvus-editor-pdf-preview-output").on 'scroll', () =>
             @_needs_update = true
         f = () =>
             if @_needs_update and @element.is(':visible')
@@ -2337,11 +2443,11 @@ class PDF_Preview extends FileEditor
     focus: () =>
 
     current_page: () =>
-        tp = @output.offset().top
+        tp = @element.offset().top
         for _page in @output.children()
             page = $(_page)
             offset = page.offset()
-            if offset.top > tp
+            if offset.top - tp > 0   # starts on the visible page
                 n = page.data('number')
                 if n > 1
                     n -= 1
@@ -2549,14 +2655,14 @@ class PDF_PreviewEmbed extends FileEditor
 
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
 
-        @element.find("a[href=\"#refresh\"]").click () =>
+        @element.find('a[href="#refresh"]').click () =>
             @update()
             return false
 
         @update()
 
     update: (cb) =>
-        button = @element.find("a[href=\"#refresh\"]")
+        button = @element.find('a[href="#refresh"]')
         button.icon_spin(true)
 
         @spinner.show().spin(true)
@@ -2678,14 +2784,14 @@ class Media extends FileEditor
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
-        refresh = @element.find("a[href=\"#refresh\"]")
+        refresh = @element.find('a[href="#refresh"]')
         refresh.click () =>
             refresh.icon_spin(true)
             @update (err) =>
                 refresh.icon_spin(false)
             return false
 
-        @element.find("a[href=\"#close\"]").click () =>
+        @element.find('a[href="#close"]').click () =>
             return false
 
         if url?
@@ -2704,13 +2810,13 @@ class Media extends FileEditor
                 @element.find('video').attr('src', src).show()
 
     update: (cb) =>
-        @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
+        @element.find('a[href="#refresh"]').icon_spin(start:true)
         salvus_client.read_file_from_project
             project_id : @project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
-                @element.find("a[href=\"#refresh\"]").icon_spin(false)
+                @element.find('a[href="#refresh"]').icon_spin(false)
                 @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
@@ -2774,8 +2880,8 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
         opts.read_only = true
         opts.public_access = true
         super(@project_id, @filename, "Loading...", opts)
-        @element.find("a[href=\"#save\"]").hide()       # no need to even put in the button for published
-        @element.find("a[href=\"#readonly\"]").hide()   # ...
+        @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
+        @element.find('a[href="#readonly"]').hide()   # ...
         salvus_client.public_get_text_file
             project_id : @project_id
             path       : @filename
@@ -2790,7 +2896,7 @@ class PublicSagews extends PublicCodeMirrorEditor
     constructor: (@project_id, @filename, content, opts) ->
         opts.allow_javascript_eval = false
         super @project_id, @filename, content, opts, (err) =>
-            @element.find("a[href=\"#split-view\"]").hide()  # disable split view
+            @element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
                 @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
                 @syncdoc.process_sage_updates()
