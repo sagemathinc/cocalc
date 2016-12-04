@@ -22,7 +22,6 @@ NOTES:
 ###
 
 # standard lib
-EventEmitter = require('events')
 fs           = require('fs')
 
 # third party modules
@@ -2509,6 +2508,12 @@ class PostgreSQL
             cache : true   # cache result (for a few seconds), since this is very unlikely to change.
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
+
+# Add further functionality to PostgreSQL class
+exports.PostgreSQL = PostgreSQL  # class defined above
+{PostgreSQL} = require('./postgres-blobs')  # extended version of class above.
+{PostgreSQL} = require('./postgres-user-queries')
+{PostgreSQL} = require('./postgres-synctable')
 
 ###
 Trigger functions
