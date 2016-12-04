@@ -113,6 +113,7 @@ class PostgreSQL
         opts  = defaults opts,
             query     : required
             params    : []
+            cache     : false        # TODO: implement this
             where     : undefined    # Used for SELECT: If given, must be a map with keys clauses with $::TYPE  (not $1::TYPE!)
                                      # and values the corresponding params.  Also, WHERE must not be in the query already.
                                      # If where[cond] is undefined, then cond is completely **ignored**.
@@ -2436,6 +2437,78 @@ class PostgreSQL
                 else
                     opts.cb(undefined, w)
 
+    ###
+    Compute servers
+    ###
+    save_compute_server: (opts) =>
+        opts = defaults opts,
+            host         : required
+            dc           : required
+            port         : required
+            secret       : required
+            experimental : false
+            member_host  : false
+            cb           : required
+        @_query
+            query    : "INSERT INTO compute_servers"
+            values   :
+                'host         :: TEXT    ' : opts.host
+                'dc           :: TEXT    ' : opts.dc
+                'port         :: INTEGER ' : opts.port
+                'secret       :: TEXT    ' : opts.secret
+                'experimental :: BOOLEAN ' : opts.experimental
+                'member_host  :: BOOLEAN ' : opts.member_host
+            conflict : 'host'
+            cb : opts.cb
+
+    get_compute_server: (opts) =>
+        opts = defaults opts,
+            host         : required
+            cb           : required
+        @_query
+            query : "SELECT * FROM compute_servers"
+            where :
+                "host = $::TEXT" : opts.host
+            cb    : one_result(opts.cb)
+
+    get_all_compute_servers: (opts) =>
+        opts = defaults opts,
+            experimental : undefined
+            cb           : required
+        @_query
+            query : "SELECT * FROM compute_servers"
+            where : "host = $::TEXT" : opts.host
+            cb    : all_results (err, servers) =>
+                if err
+                    opts.cb(err)
+                else
+                    if opts.experimental?
+                        is_experimental = !!opts.experimental
+                        # just filter experimental client side, since so few servers...
+                        servers = (server for server in servers when !!server.experimental == is_experimental)
+                    opts.cb(undefined, servers)
+
+    get_projects_on_compute_server: (opts) =>
+        opts = defaults opts,
+            compute_server : required    # hostname of the compute server
+            columns        : ['project_id']
+            cb             : required
+        @_query
+            query : "SELECT #{opts.columns.join(',')} FROM projects"
+            where :
+                "host @> $::JSONB" : {host:opts.compute_server}
+            cb    : all_results(opts.cb)
+
+    is_member_host_compute_server: (opts) =>
+        opts = defaults opts,
+            host : required   # hostname of the compute server
+            cb   : required
+        @_query
+            query : "SELECT member_host FROM compute_servers"
+            where : "host = $::TEXT" : opts.host
+            cache : true   # cache result (for a few seconds), since this is very unlikely to change.
+            cb    : one_result 'member_host', (err, member_host) =>
+                opts.cb(err, !!member_host)
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->

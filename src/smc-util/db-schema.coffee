@@ -714,7 +714,8 @@ schema.projects =
 
     pg_indexes : [
         'last_edited',
-        'USING GIN (users)'    # so get_collaborator_ids is fast
+        'USING GIN (users)'               # so get_collaborator_ids is fast
+        'USING GIN (host jsonb_path_ops)' # so get_projects_on_compute_server is fast
     ]
 
 
