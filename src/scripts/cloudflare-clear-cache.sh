@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+echo "Purge the cloudflare clache for sagemath.com -- see https://api.cloudflare.com/#zone-purge-all-files"
+
 set -e
 
 export API_KEY=$HOME/secrets/cloudflare/cloudflare
@@ -8,11 +11,10 @@ if [ ! -f $API_KEY ]; then
   exit 1
 else
   echo "$0: Contacting CloudFlare servers to clear cache."
-  curl https://www.cloudflare.com/api_json.html \
-  -d 'a=fpurge_ts' \
-  -d "tkn=`cat $API_KEY`" \
-  -d 'email=office@sagemath.com' \
-  -d 'z=sagemath.com' \
-  -d 'v=1'
-  echo "Success!"
+
+  curl -X DELETE "https://api.cloudflare.com/client/v4/zones/536921d68a9bb81e6bec64603c8cc51b/purge_cache" \
+     -H "X-Auth-Email: office@sagemath.com" \
+     -H "X-Auth-Key: `cat $API_KEY`" \
+     -H "Content-Type: application/json" \
+     --data '{"purge_everything":true}'
 fi
