@@ -1267,9 +1267,9 @@ class CodeMirrorEditor extends FileEditor
                     </div>
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
                     <button type="button" class="btn-download btn btn-primary disabled">Download</button>
                     <button type="button" class="btn-open btn btn-success disabled">Open</button>
+                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
                   </div>
                 </div>
               </div>

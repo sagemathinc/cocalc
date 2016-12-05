@@ -15,8 +15,8 @@ from pprint import pprint
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
 import locale
-locale.setlocale( locale.LC_ALL, '' )
 def money(s):
+    locale.setlocale( locale.LC_ALL,  'en_US.UTF-8' )
     return locale.currency(s)
 
 from pricing import PRICING

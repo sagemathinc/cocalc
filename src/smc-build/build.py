@@ -298,6 +298,8 @@ SAGE_PIP_PACKAGES = [
     'BooleanNet', # https://github.com/ialbert/booleannet (called "boolean2")
     'textblob', # https://textblob.readthedocs.io/en/dev/
     'nilearn', # https://nilearn.github.io/index.html
+    'git+https://github.com/abelfunctions/abelfunctions.git',
+    'multipolynomial_bases', # https://github.com/VivianePons/multipolynomial-bases
     ]
 
 # additional environment settings for specific packages

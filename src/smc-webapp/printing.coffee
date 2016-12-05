@@ -147,12 +147,15 @@ class SagewsPrinter extends Printer
             SiteName = redux.getStore('customize').site_name ? 'SageMathCloud'
             if window?
                 loc = window.location
-                url = "#{loc.protocol}//#{loc.hostname}/#{window.smc_base_url ? ''}"
+                {join} = require('path')
+                url = "#{loc.protocol}//" + join(loc.hostname, window.smc_base_url ? '')
             else
                 url = 'https://cloud.sagemath.com/'
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
             # e.g. this can be used to import it later on
+            # version 1: no embedded file
+            # versoin 2: embedded into "a[download]:first"
             @_html_tmpl = """
                 <!doctype html>
                 <html lang="en">
@@ -162,7 +165,7 @@ class SagewsPrinter extends Printer
                     <title>#{data.title}</title>
                     <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on SageMathCloud">
                     <meta name="date" content="#{data.timestamp}">
-                    <meta data-name="smc-generated" content="version:1">
+                    <meta data-name="smc-generated" content="version:2">
 
                     <style>
                         html {
@@ -178,7 +181,7 @@ class SagewsPrinter extends Printer
                             padding: .5rem;
                         }
                         @media print {
-                          body { width: 100%; margin: 1rem 1rem 1rem 6rem; font-size: 12pt; }
+                          body { width: 100%; margin: 1rem 1rem 1rem 6rem; font-size: 10pt; }
                         }
                         pre { margin: 0; }
                         div.output + pre.input { margin-top: 1rem; }
@@ -224,6 +227,11 @@ class SagewsPrinter extends Printer
                             user-select: none;
                         }
                         div.header { margin-bottom: 1rem; }
+                        table.header td { border: 0; }
+                        table.header tr>td:nth-child(2) {
+                            font-weight: bold;
+                            font-family: monospace;
+                        }
                         table {
                             border-spacing: 0;
                             border-collapse: collapse;
@@ -278,6 +286,8 @@ class SagewsPrinter extends Printer
                         .cm-header-3 { font-size: 1.12rem; }
                         .cm-header-4 { font-size: 1.1rem; }
                         .cm-header-5 { font-size: 1rem; }
+                        .cm-em { font-style: italic; }
+                        .cm-strong { font-weight: bold; }
                     </style>
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
@@ -289,9 +299,20 @@ class SagewsPrinter extends Printer
                 <body>
                 <div class="header">
                     <h1>#{data.title}</h1>
-                    <div>Author <b>#{data.author}</b></div>
-                    <div>Date <b><code>#{data.timestamp}</code></b></div>
-                    <div>File <b><a href="#{data.file_url}"><code>#{data.project_id}:#{data.filename}</code></a></b></div>
+                    <table class="header">
+                    <tr><td>Author</td><td>#{data.author}</td></tr>
+                    <tr><td>Date</td><td>#{data.timestamp}</td></tr>
+                    <tr><td>Project</td><td>#{data.project_id}</td></tr>
+                    <tr><td>Location</td><td><a href="#{data.file_url}">#{data.filename}</a></td></tr>
+                    <tr><td>Original file</td><td><a href="#{data.sagews_data}" download="#{data.basename}">#{data.basename}</td></tr>
+                    <script type="text/javascript">
+                    var is_chrome = navigator.userAgent.indexOf('Chrome') > -1;
+                    var is_safari = navigator.userAgent.indexOf("Safari") > -1;
+                    if (is_safari && !is_chrome) {
+                        document.write("<tr><td colspan='2'>(when downloading, rename file to #{data.basename})</td></tr>");
+                    }
+                    </script>
+                    </table>
                 </div>
                 #{data.content}
                 <footer>
@@ -333,12 +354,19 @@ class SagewsPrinter extends Printer
                             continue
                         scene.set_static_renderer()
                         data_url = scene.static_image
-                        out = "<div class='output sage3d'><img src='#{data_url}'></div>"
+                        out ?= ''
+                        out += "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else
                     # console.log 'msg.file', mark, mesg
                     if not @_output_ids[mark.id] # avoid duplicated outputs
                         @_output_ids[mark.id] = true
-                        out = "<div class='output file'>#{mark.widgetNode.innerHTML}</div>"
+                        # console.log "output.file", mark, mesg
+                        $images = $(mark.widgetNode)
+                        for el in $images.find('.sagews-output-image')
+                            out ?= ''
+                            # innerHTML should just be the <img ... > element
+                            out += el.innerHTML
+                        out = "<div class='output image'>#{out}</div>"
         else if mesg.code?  # what's that actually?
             code = mesg.code.source
             out = "<pre><code>#{code}</code></pre>"
@@ -359,7 +387,7 @@ class SagewsPrinter extends Printer
         # embedding images and detecting a title
         if not html?
             return html
-        $html = $(html)
+        $html = $('<div>').html(html)
         if not @_title
             for tag in ['h1', 'h2', 'h3']
                 $hx = $html.find(tag + ':first')
@@ -392,7 +420,7 @@ class SagewsPrinter extends Printer
                 # SecurityError: Failed to execute 'toDataURL' on 'HTMLCanvasElement': Tainted canvases may not be exported.
                 console.info('ignoring CORS error regarding reading the image content via "toDataURL"')
                 continue
-        return $html[0].outerHTML ? ''
+        return $html.html()
 
     html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
@@ -459,15 +487,12 @@ class SagewsPrinter extends Printer
                 @html_process_output_mesg(mesg_stdout)
                 mesg_stdout = {stdout : ''}
 
-        # process lines in an async loop to avoid blocking on large documents
-        line = 0
-        lines_total = cm.lineCount()
-        async.whilst(
-            ->
+        process_lines = (cb) =>
+            # process lines in an async loop to avoid blocking on large documents
+            line = 0
+            lines_total = cm.lineCount()
+            while line < lines_total
                 progress(.1 + .8 * line / lines_total, "Converting line #{line}")
-                return line < lines_total
-            ,
-            (cb) =>
                 x = cm.getLine(line)
                 marks = cm.findMarks({line:line, ch:0}, {line:line, ch:x.length})
                 if not marks? or marks.length == 0
@@ -499,35 +524,60 @@ class SagewsPrinter extends Printer
 
                 process_collected_mesg_stdout()
                 line++
-                cb(null, line, x)
-            ,
-            (err, line, x) ->
-                input_lines_process(final = true)
-                if err
-                    msg = "error processing line #{line}: '#{x}'"
-                    console.error(msg)
-                    cb?(err)
-                    return
-        )
+            input_lines_process(final = true)
+            cb()
 
-        file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
-        content = @generate_html
-            title      : @_title ? @editor.filename
-            filename   : @editor.filename
-            content    : (h for h in @_html).join('\n')
-            timestamp  : "#{(new Date()).toISOString()}".split('.')[0]
-            project_id : @editor.project_id
-            author     : redux.getStore('account').get_fullname()
-            file_url   : file_url
+        sagews_data = (cb) =>
+            dl_url = salvus_client.read_file_from_project
+                project_id  : @editor.project_id
+                path        : @editor.filename
 
-        progress(.95, "Saving to #{@output_file} ...")
-        salvus_client.write_text_file_to_project
-            project_id : @editor.project_id
-            path       : @output_file
-            content    : content
-            cb         : (err, resp) =>
-                console.debug("write_text_file_to_project.resp: '#{resp}'")
+            data_base64 = null
+            f = (cb) ->
+                $.get(dl_url).done((data) ->
+                    console.log "data", data
+                    data_enc = window.btoa(window.unescape(encodeURIComponent(data)))
+                    data_base64 = 'data:application/octet-stream;base64,' + data_enc
+                    cb(null)
+                ).fail(-> cb(true))
+
+            misc.retry_until_success
+                f         : f
+                max_time  : 60*1000
+                cb        : (err) ->
+                    cb(err, data_base64)
+
+        finalize = (err, results) =>
+            data = results[0]
+            if err
                 cb?(err)
+                return
+            if not data?
+                cb?('Unable to download and serialize the Sage Worksheet.')
+                return
+
+            file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
+            content = @generate_html
+                title       : @_title ? @editor.filename
+                filename    : @editor.filename
+                content     : (h for h in @_html).join('\n')
+                timestamp   : "#{(new Date()).toISOString()}".split('.')[0]
+                project_id  : @editor.project_id
+                author      : redux.getStore('account').get_fullname()
+                file_url    : file_url
+                basename    : misc.path_split(@editor.filename).tail
+                sagews_data : data
+
+            progress(.95, "Saving to #{@output_file} ...")
+            salvus_client.write_text_file_to_project
+                project_id : @editor.project_id
+                path       : @output_file
+                content    : content
+                cb         : (err, resp) =>
+                    console.debug("write_text_file_to_project.resp: '#{resp}'")
+                    cb?(err)
+
+        async.parallel([sagews_data, process_lines], finalize)
 
 # registering printers
 printers = {}
