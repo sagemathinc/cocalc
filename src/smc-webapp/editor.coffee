@@ -1059,14 +1059,19 @@ class CodeMirrorEditor extends FileEditor
         else
             @element.find('a[href="#print"]').remove()
 
+        # sagews2pdf conversion
+        if @ext == 'sagews'
+            button_names.push('sagews2pdf')
+        else
+            @element.find('a[href="#sagews2pdf"]').remove()
+
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                html = event.ctrlKey or event.metaKey
-                that.click_edit_button($(@).data('name'), html=html)
+                that.click_edit_button($(@).data('name'))
                 return false
 
-    click_edit_button: (name, html = false) =>
+    click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1113,8 +1118,10 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'goto-line'
                 @goto_line(cm)
+            when 'sagews2pdf'
+                @print(sagews2html = false)
             when 'print'
-                @print(html = html)
+                @print(sagews2html = true)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1212,10 +1219,10 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print: (html = false) =>
+    print: (sagews2html = true) =>
         switch @ext
             when 'sagews'
-                if html   # this is experimental html printing
+                if sagews2html
                     @print_html()
                 else
                     @print_sagews()
@@ -1256,13 +1263,12 @@ class CodeMirrorEditor extends FileEditor
                     </div>
                     <div class="content" style="text-align: center;"></div>
                     <div style="margin-top: 25px;">
-                      <p><b>How to convert to PDF?</b></p>
+                      <p><b>More information</b></p>
                       <p>
-                      First off, there is no strong necessity for PDF over HTML.
-                      This conversion creates a self-contained HTML file,
-                      which you can send out to others or archive.
-                      Still, you can use the print dialog of your browser
-                      to convert the generated document to a PDF file.
+                      This SageWS to HTML conversion transforms the current worksheet
+                      to a static HTML file.
+                      <br/>
+                      <a href="https://github.com/sagemathinc/smc/wiki/sagews2html" target='_blank'>Click here for more information</a>.
                       </p>
                     </div>
                   </div>
