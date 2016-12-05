@@ -1,14 +1,12 @@
 ###
-
-PostgreSQL storage of blobs
+PostgreSQL -- implementation of queries needed for storage and managing blobs,
+including backups, integration with google cloud storage, etc.
 
 **
 This code is currently NOT released under any license for use by anybody except SageMath, Inc.
 
 (c) 2016 SageMath, Inc.
 **
-
-
 ###
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
