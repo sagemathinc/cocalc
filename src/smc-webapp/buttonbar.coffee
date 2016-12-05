@@ -325,12 +325,20 @@ exports.commands =
                 right : '~~'
         insertunorderedlist :
             wrap :
-                left  : "\n - "
-                right : "\n"
+                left    : " - "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         insertorderedlist :
             wrap :
-                left  : "\n 1. "
-                right : "\n"
+                left    : "1. "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
@@ -351,14 +359,22 @@ exports.commands =
             wrap :
                 left  : "\n#### "
                 right : ""
-        format_code :  # FUTURE: I think indentation is probably nicer?  on single line ` is nicer.
+        format_code :
             wrap :
-                left  : '\n```'
-                right : '\n```\n'
+                left    : '    '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         indent :
             wrap :
-                left  : "\n> "
-                right : ""
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
                 left  : "\n------------------\n"
@@ -367,10 +383,10 @@ exports.commands =
             wrap:
                 left : """
                        | Left-Aligned  | Center Aligned  | Right Aligned |
-                       | :------------ |:---------------:| -----:|
-                       | col 3 is      | some wordy text | 1600 |
-                       | col 2 is      | centered        |  12 |
-                       | zebra stripes | and math       |  $\\pi^3$ |
+                       | :------------ |:---------------:| -------------:|
+                       | col 3 is      | some wordy text |          1600 |
+                       | col 2 is      |    centered     |            12 |
+                       | zebra stripes |    and math     |      $\\pi^3$ |
                        """
                 right : ""
 
