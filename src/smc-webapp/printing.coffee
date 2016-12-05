@@ -531,11 +531,21 @@ class SagewsPrinter extends Printer
             dl_url = salvus_client.read_file_from_project
                 project_id  : @editor.project_id
                 path        : @editor.filename
-            $.get(dl_url, (data) ->
-                data_enc = window.btoa(window.unescape(encodeURIComponent(data)))
-                data_base64 = 'data:application/octet-stream;base64,' + data_enc
-                cb(null, data_base64)
-            )
+
+            data_base64 = null
+            f = (cb) ->
+                $.get(dl_url).done((data) ->
+                    console.log "data", data
+                    data_enc = window.btoa(window.unescape(encodeURIComponent(data)))
+                    data_base64 = 'data:application/octet-stream;base64,' + data_enc
+                    cb(null)
+                ).fail(-> cb(true))
+
+            misc.retry_until_success
+                f         : f
+                max_time  : 60*1000
+                cb        : (err) ->
+                    cb(err, data_base64)
 
         finalize = (err, results) =>
             data = results[0]
