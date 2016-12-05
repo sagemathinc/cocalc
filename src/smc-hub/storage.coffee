@@ -1662,6 +1662,7 @@ class Activity
 exports.ignored_storage_requests = (opts) ->
     opts = defaults opts,
         age_m : 10
+        all   : true    # if true, get's all ignored storage requests -- if false gets ones just for the host of this process.
         cb    : required
     dbg = (m) -> winston.debug("ignored_storage_requests: #{m}")
     dbg()
@@ -1687,11 +1688,13 @@ exports.ignored_storage_requests = (opts) ->
             q = q.pluck(FIELDS...)
             # and we only want the ignored requests...
             # First, get the ones with a request at all
-            # return (x for x in @list() when x.storage_request?.requested? and not x.storage_request?.finished and not x.storage_request?.started)
             q = q.hasFields(storage_request:{requested:true})
             # And the ones that haven't started and haven't finished
             q = q.filter(db.r.row.hasFields(storage_request:{started:true}).not())
             q = q.filter(db.r.row.hasFields(storage_request:{finished:true}).not())
+            if not opts.all
+                # Only get the ones on *this* host.
+               q = q.filter(storage:{host:os.hostname()})
             q.run (err, x) ->
                 v = x
                 cb(err)
