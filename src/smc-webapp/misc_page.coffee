@@ -1030,18 +1030,8 @@ exports.define_codemirror_extensions = () ->
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)
-            # trim whitespace
-            i = 0
-            while i < src.length and /\s/.test(src[i])
-                i += 1
-            j = src.length-1
-            while j > 0 and /\s/.test(src[j])
-                j -= 1
-            j += 1
-            left_white = src.slice(0,i)
-            right_white = src.slice(j)
-            src = src.slice(i,j)
-            src0 = src
+            start_line_beginning = from.ch == 0
+            until_line_ending    = cm.getLine(to.line).length == to.ch
 
             mode1 = mode
             data_for_mode = EDIT_COMMANDS[mode1]
@@ -1057,6 +1047,20 @@ exports.define_codemirror_extensions = () ->
                     # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
+
+            # trim whitespace
+            i = 0
+            j = src.length-1
+            if how? and (if how.trim? then how.trim else true)
+                while i < src.length and /\s/.test(src[i])
+                    i += 1
+                while j > 0 and /\s/.test(src[j])
+                    j -= 1
+            j += 1
+            left_white  = src.slice(0,i)
+            right_white = src.slice(j)
+            src         = src.slice(i,j)
+            src0        = src
 
             done = false
 
@@ -1097,6 +1101,12 @@ exports.define_codemirror_extensions = () ->
                     src = (process(x) for x in src.split('\n')).join('\n')
                 else
                     src = process(src)
+                if how.wrap.newline
+                    src = '\n' + src + '\n'
+                    if not start_line_beginning
+                        src = '\n' + src
+                    if not until_line_ending
+                        src += '\n'
                 done = true
 
             if how?.insert? # to insert the code snippet right below, next line

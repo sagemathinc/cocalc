@@ -325,16 +325,20 @@ exports.commands =
                 right : '~~'
         insertunorderedlist :
             wrap :
-                left  : " -"
-                right : ''
-                multi : true
-                space : true
+                left    : " - "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         insertorderedlist :
             wrap :
-                left  : "1."
-                right : ''
-                multi : true
-                space : true
+                left    : "1. "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
@@ -357,16 +361,20 @@ exports.commands =
                 right : ""
         format_code :
             wrap :
-                left  : '    '
-                right : ''
-                multi : true
-                space : false
+                left    : '    '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         indent :
             wrap :
-                left  : '>'
-                right : ''
-                multi : true
-                space : true
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
                 left  : "\n------------------\n"
