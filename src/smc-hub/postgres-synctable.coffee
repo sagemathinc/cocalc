@@ -72,7 +72,6 @@ class exports.PostgreSQL extends PostgreSQL
                 cb?()
         )
 
-
     # Server-side changefeed-updated table, which automatically restart changefeed
     # on error, etc.  See SyncTable docs where the class is defined.
     synctable: (opts) =>
@@ -83,22 +82,6 @@ class exports.PostgreSQL extends PostgreSQL
             cb             : required
         new SyncTable(opts.query, opts.primary_key, @, opts.idle_timeout_s, opts.cb)
         return
-
-    # Any time a record changes in any of the given tables,
-    # calls the cb with the change.
-    watch: (opts) =>
-        throw Error("NotImplementedError")
-
-    # Wait until the query results in at least one result obj, and
-    # calls cb(undefined, obj).
-    # TODO: rethinkdb api says:  "This is not robust to connection to database ending, etc. --
-    # in those cases, get cb(err)."  -- maybe we can do better this time?
-    wait: (opts) =>
-        opts = defaults opts,
-            until     : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
-            timeout_s : undefined
-            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
-        throw Error("NotImplementedError")
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
