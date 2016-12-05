@@ -523,6 +523,8 @@ class ProjectActions extends Actions
                 # TODO!
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
+                if path[path.length - 1] == '/'
+                    path = path.slice(0, -1)
                 @foreground_project()
                 @set_current_path(path)
                 if @get_store().active_project_tab == 'files'
@@ -793,7 +795,7 @@ class ProjectActions extends Actions
             action : 'copied'
             files  : opts.src[0...3]
             count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest
+            dest   : opts.dest + '/'
         salvus_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!

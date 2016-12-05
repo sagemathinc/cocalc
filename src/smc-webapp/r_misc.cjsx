@@ -880,7 +880,6 @@ exports.FileLink = rclass
                 path       : @props.path
                 foreground : misc.should_open_in_foreground(e)
 
-
     render_link: (text) ->
         if @props.link
             <a onClick={@handle_click} style={@props.style} href=''>{text}</a>

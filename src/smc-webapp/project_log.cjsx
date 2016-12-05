@@ -172,7 +172,7 @@ LogEntry = rclass
             when 'moved'
                 <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true, 0)}</span>
             when 'copied'
-                <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}</span>
+                <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true)} {if e.project? then @project_title()}</span>
             when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 

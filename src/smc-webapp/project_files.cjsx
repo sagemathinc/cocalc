@@ -1320,7 +1320,12 @@ ProjectFilesActionBox = rclass
         destination_project_id = @state.copy_destination_project_id
         overwrite_newer        = @state.overwrite_newer
         delete_extra_files     = @state.delete_extra_files
-        paths = @props.checked_files.toArray()
+        f = (path) =>
+            if @props.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+                return path + '/'
+            else
+                return path
+        paths = (f(path) for path in @props.checked_files.toArray())
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
                 public            : @props.public_view
