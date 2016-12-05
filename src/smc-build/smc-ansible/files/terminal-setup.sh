@@ -109,6 +109,12 @@ export LANGUAGE=en_US:en
 export LESS_TERMCAP_so=$'\E[;7m'
 export LESS_TERMCAP_se=$'\E[;27m'
 
+# Tell the sfl4j logger (and similar) to use a local tmp directory and not the global  one in /tmp/
+# This came up with running the jupyter-scala kernel
+jtmp=~/tmp/
+eval jtmp=$jtmp  # this expands the ~ for the user since java does not do it
+export _JAVA_OPTIONS="-Djava.io.tmpdir=$jtmp"
+
 # Julia packages are globally installed right here
 export JULIA_PKGDIR=/usr/local/share/julia/site/
 

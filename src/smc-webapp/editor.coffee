@@ -1059,13 +1059,19 @@ class CodeMirrorEditor extends FileEditor
         else
             @element.find('a[href="#print"]').remove()
 
+        # sagews2pdf conversion
+        if @ext == 'sagews'
+            button_names.push('sagews2pdf')
+        else
+            @element.find('a[href="#sagews2pdf"]').remove()
+
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                that.click_edit_button($(@).data('name'), ctrl=event.ctrlKey)
+                that.click_edit_button($(@).data('name'))
                 return false
 
-    click_edit_button: (name, ctrl = false) =>
+    click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1112,8 +1118,10 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'goto-line'
                 @goto_line(cm)
+            when 'sagews2pdf'
+                @print(sagews2html = false)
             when 'print'
-                @print(ctrl = ctrl)
+                @print(sagews2html = true)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1211,10 +1219,10 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print: (ctrl = false) =>
+    print: (sagews2html = true) =>
         switch @ext
             when 'sagews'
-                if ctrl   # this is experimental html printing
+                if sagews2html
                     @print_html()
                 else
                     @print_sagews()
@@ -1255,20 +1263,19 @@ class CodeMirrorEditor extends FileEditor
                     </div>
                     <div class="content" style="text-align: center;"></div>
                     <div style="margin-top: 25px;">
-                      <p><b>How to convert to PDF?</b></p>
+                      <p><b>More information</b></p>
                       <p>
-                      First off, there is no strong necessity for PDF over HTML.
-                      This conversion creates a self-contained HTML file,
-                      which you can send out to others or archive.
-                      Still, you can use the print dialog of your browser
-                      to convert the generated document to a PDF file.
+                      This SageWS to HTML conversion transforms the current worksheet
+                      to a static HTML file.
+                      <br/>
+                      <a href="https://github.com/sagemathinc/smc/wiki/sagews2html" target='_blank'>Click here for more information</a>.
                       </p>
                     </div>
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
                     <button type="button" class="btn-download btn btn-primary disabled">Download</button>
                     <button type="button" class="btn-open btn btn-success disabled">Open</button>
+                    <button type="button" class="btn-close btn btn-default" data-dismiss="modal">Close</button>
                   </div>
                 </div>
               </div>
@@ -1308,12 +1315,11 @@ class CodeMirrorEditor extends FileEditor
                     done = (err) =>
                         #console.log 'Printer.print_html is done: err = ', err
                         if err
-                            d_content.text("Problem printing to HTML: #{err}")
+                            progress(0, "Problem printing to HTML: #{err}")
                         else
-                            d_content.text('Printing finished without errors.')
+                            progress(1, 'Printing finished.')
                             # enable open & download buttons
                             dialog.find('button.btn').removeClass('disabled')
-                        progress(1, "Done")
                     printing.Printer(@, output_fn).print(done, progress)
                     cb(); return
 

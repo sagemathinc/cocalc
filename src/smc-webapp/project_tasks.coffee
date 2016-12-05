@@ -69,6 +69,17 @@ class ProjectTasks
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
+    # returns the full URL path to the file (not the "raw" server)
+    url_fullpath: (path) ->
+        if window?
+            loc = window.location
+            base = "#{loc.protocol}//#{loc.hostname}"
+        else
+            base = 'https://cloud.sagemath.com'
+        {join} = require('path')
+        path = join("#{window.smc_base_url ? '/'}", "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
+        return "#{base}" + (if path[0] == '/' then '' else '/') + path
+
     # returns the URL for the file at the given path
     url_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
