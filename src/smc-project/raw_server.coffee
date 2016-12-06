@@ -61,6 +61,9 @@ exports.start_raw_server = (opts) ->
                 # it sets the content type to octet-stream (aka "download me") if URL query ?download exists
                 if req.query.download?
                     res.setHeader('Content-Type', 'application/octet-stream')
+                # Disable any caching -- even cloudflare obeys these headers
+                res.setHeader('Cache-Control', 'no-store, must-revalidate')
+                res.setHeader('Expires', '0')
                 return next()
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
