@@ -53,7 +53,7 @@ class exports.PostgreSQL extends EventEmitter
                 @_ensure_database_exists(cb)
             (cb) =>
                 @_client = new pg.Client
-                    host     : @_host
+                    #host     : if @_host then @_host    # undefined if @_host=''
                     port     : @_port
                     database : @_database
                 if @_notification?
@@ -284,10 +284,11 @@ class exports.PostgreSQL extends EventEmitter
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
+        args = ['--host', @_host, '--port', @_port, '--list', '--tuples-only']
+        dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
-            args    : ['--host', @_host, '--port', @_port,
-                       '--list', '--tuples-only']
+            args    : args
             cb      : (err, output) =>
                 if err
                     cb(err)
@@ -500,11 +501,9 @@ class exports.PostgreSQL extends EventEmitter
 
     # Go through every table in the schema with a column called "expire", and
     # delete every entry where expire is <= right now.
-    # TODO: I took out everything related to throttling from the RethinkDB
-    # version -- maybe postgres is much more efficient!
     delete_expired: (opts) =>
         opts = defaults opts,
-            count_only : true       # if true, only count the number of rows that would be deleted
+            count_only : false      # if true, only count the number of rows that would be deleted
             table      : undefined  # only delete from this table
             cb         : required
         dbg = @_dbg("delete_expired(...)")
@@ -531,8 +530,14 @@ class exports.PostgreSQL extends EventEmitter
             tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
         async.map(tables, f, opts.cb)
 
-
-
+    # count number of entries in a table
+    count: (opts) =>
+        opts = defaults opts,
+            table : required
+            cb    : required
+        @_query
+            query : "SELECT COUNT(*) FROM #{opts.table}"
+            cb    : count_result(opts.cb)
 
 ###
 Other misc functions
@@ -642,7 +647,7 @@ exports.all_results = all_results = (pattern, cb) ->
         else
             rows = result.rows
             if not pattern?
-                cb(undefined, rows)
+                cb(undefined, (misc.copy(x) for x in rows))  # TODO: stupid misc.copy to unwrap from pg driver type -- investigate better!
             else if typeof(pattern) == 'string'
                 cb(undefined, ((x[pattern] ? undefined) for x in rows))
             else

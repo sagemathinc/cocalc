@@ -584,8 +584,8 @@ class exports.PostgreSQL extends PostgreSQL
                 @_query
                     query : 'SELECT account_id, first_name, last_name, email_address FROM accounts'
                     where : 'email_address = ANY($::TEXT[])' : email_queries
-                    cb    : (err, result) =>
-                        cb(err, if result? then results.push(result.rows...))
+                    cb    : all_results (err, rows) =>
+                        cb(err, if rows? then results.push(rows...))
             (cb) =>
                 dbg("do all string queries")
                 if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
@@ -614,8 +614,8 @@ class exports.PostgreSQL extends PostgreSQL
                 @_query
                     query  : query
                     params : params
-                    cb     : (err, result) =>
-                        cb(err, if result? then results.push(result.rows...))
+                    cb     : all_results (err, rows) =>
+                        cb(err, if rows? then results.push(rows...))
             ], (err) => opts.cb(err, results))
 
     _account_where: (opts) =>
@@ -672,7 +672,7 @@ class exports.PostgreSQL extends PostgreSQL
         @_query
             query : 'SELECT banned FROM accounts'
             where : @_account_where(opts)
-            cb    : one_result('banned', opts.cb)
+            cb    : one_result('banned', (err, banned) => opts.cb(err, !!banned))
 
     _set_ban_user: (opts) =>
         opts = defaults opts,
@@ -1072,7 +1072,7 @@ class exports.PostgreSQL extends PostgreSQL
             project_id  : undefined    # don't specify both project_id and project_ids
             project_ids : undefined
             path        : undefined    # if given, project_id must be given
-            cb          : required     # entry if path given; otherwise, an array
+            cb          : required     # one entry if path given; otherwise, an array of entries.
         if opts.project_id?
             if opts.project_ids?
                 opts.cb("don't specify both project_id and project_ids")
@@ -1089,7 +1089,7 @@ class exports.PostgreSQL extends PostgreSQL
                 'project_id   = ANY($)'       : opts.project_ids
                 'path         = $::TEXT'      : opts.path
             order_by : 'last_edited'
-            cb       : all_results(opts.cb)
+            cb       : if opts.path? then one_result(opts.cb) else all_results(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts

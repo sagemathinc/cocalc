@@ -33,7 +33,7 @@ for f in ['pg_type', 'expire_time', 'one_result', 'all_results', 'count_result']
 for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries']
     exports.PostgreSQL = require("./postgres-#{module}").PostgreSQL
 
-exports.pg = (opts) ->
+exports.db = (opts) ->
     return new exports.PostgreSQL(opts)
 
 

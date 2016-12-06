@@ -435,7 +435,7 @@ class exports.PostgreSQL extends PostgreSQL
         @_query
             query : "UPDATE blobs"
             set   : {expire: null}
-            where : "id::UUID in ANY($)" : opts.uuids
+            where : "id::UUID = ANY($)" : opts.uuids
             cb    : opts.cb
 
     # If blob has been copied to gcloud, remove the BLOB part of the data
