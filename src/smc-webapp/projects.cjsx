@@ -774,23 +774,25 @@ NewProjectCreator = rclass
 
     render_upgrade_buttons: ->
         <ButtonToolbar>
-            <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving'}
-                bsStyle  = 'success'
-                onClick  = {=>@create_project(false)} >
-                Create project without upgrades
-            </Button>
+            <label>Create this project with:</label><br/>
+            
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
                 bsStyle  = 'success'
                 onClick  = {=>@create_project_with_members_and_internet()} >
-                Create project with members only hosting and direct internet access
+                Core upgrades
             </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
                 bsStyle  = 'success'
                 onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
-                Create project with custom upgrades
+                Custom upgrades
+            </Button>
+            <Button
+                disabled  = {@state.title_text == '' or @state.state == 'saving'}
+                className = 'gray-button'
+                onClick   = {=>@create_project(false)} >
+                No upgrades
             </Button>
             <Button
                 disabled = {@state.state is 'saving'}
@@ -816,15 +818,21 @@ NewProjectCreator = rclass
 
     render_commercial_explanation_of_project: ->
         <div>
-            Each project is free. What{"'"}s not free is members only
-            hosting and direct use of internet resources. Project resources like ram, 
-            cpu, and disk space can be upgraded. If you have any questions, please
+            Creating basic projects without upgrades is free while upgrades require a subscription. 
+            Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space. 
+            If you have any questions, please
             email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/>
             <span className="highlight">If you are
-            purchasing a course subscription, but need a short trial to test things out first
+            purchasing a course subscription, but need a short trial to test things out first,
             then please immediately email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
             </span>
         </div>
+
+    render_no_title_warning: ->
+        <Alert bsStyle='warning'>No project title specified. Please enter title at the top.</Alert>
+
+    render_create_buttons: ->
+        if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()
 
     render_input_section: (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
@@ -868,7 +876,7 @@ NewProjectCreator = rclass
                     A <b>project</b> is your own private computational workspace that you can share
                     with others. 
                     {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
-                    {if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()}
+                    {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
                     {@render_error()}
                 </Col>
             </Row>
