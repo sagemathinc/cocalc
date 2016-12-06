@@ -12,17 +12,27 @@ This code is currently NOT released under any license for use by anybody except 
 
 EventEmitter = require('events')
 
+immutable    = require('immutable')
+async        = require('async')
+
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
+misc_node = require('smc-util-node/misc_node')
 
-{PostgreSQL} = require('./postgres')
+{PostgreSQL, pg_type} = require('./postgres')
+
+{SCHEMA} = require('smc-util/schema')
+
 
 class exports.PostgreSQL extends PostgreSQL
 
     _ensure_trigger_exists: (table, columns, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
         dbg("columns=#{misc.to_json(columns)}")
-        tgname = trigger_name(table)
+        if misc.len(columns) == 0
+            cb('there must be at least one column')
+            return
+        tgname = trigger_name(table, columns)
         trigger_exists = undefined
         async.series([
             (cb) =>
@@ -48,8 +58,13 @@ class exports.PostgreSQL extends PostgreSQL
 
     _listen: (table, columns, cb) =>
         dbg = @_dbg("_listen(#{table})")
+        dbg("columns = #{misc.to_json(columns)}")
+        if misc.len(columns) == 0
+            cb('there must be at least one column')
+            return
         @_listening ?= {}
-        if @_listening[table]
+        tgname = trigger_name(table, columns)
+        if @_listening[tgname]
             dbg("already listening")
             cb?()
             return
@@ -60,44 +75,151 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 dbg("add listener")
                 @_query
-                    query : "LISTEN changes_#{table}"
+                    query : "LISTEN #{tgname}"
                     cb    : cb
         ], (err) =>
             if err
                 dbg("fail: err = #{err}")
                 cb?(err)
             else
-                @_listening[table] = true
+                @_listening[tgname] = true
                 dbg("success")
-                cb?()
+                cb?(undefined, tgname)
         )
+
+    _notification: (mesg) =>
+        @_dbg('notification')(misc.to_json(mesg))
+        @emit(mesg.channel, JSON.parse(mesg.payload))
 
     # Server-side changefeed-updated table, which automatically restart changefeed
     # on error, etc.  See SyncTable docs where the class is defined.
     synctable: (opts) =>
         opts = defaults opts,
-            query          : required
-            primary_key    : undefined  # if not given, will use the one for the whole table -- value *must* be a string
-            idle_timeout_s : undefined  # if given, synctable will disconnect from remote database if nothing happens for this long; this mean on 'change' events won't get fired on change.  Any function calls on the SyncTable will reset this timeout and reconnect.  Also, call .connect () => to ensure that everything is current before using synctable.
+            table          : required
+            columns        : undefined
+            where          : undefined
+            limit          : undefined
+            order_by       : undefined
             cb             : required
-        new SyncTable(opts.query, opts.primary_key, @, opts.idle_timeout_s, opts.cb)
+        new SyncTable(@, opts.table, opts.columns, opts.where, opts.limit, opts.order_by, opts.cb)
         return
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
-        throw Error("NotImplementedError")
+    constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
+        t = SCHEMA[@_table]
+        if not t?
+            @_state = 'error'
+            cb("unknown table #{@_table}")
+            return
+
+        @_primary_key = t.primary_key
+        if not @_primary_key
+            @_state = 'error'
+            cb("primary key unknown")
+            return
+
+        @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
+        if @_where?
+            for field, _ of @_where
+                @_listen_columns[field] = pg_type(t.fields[field], field)
+
+        columns = if @_columns then @_columns.join(', ') else misc.keys(SCHEMA[@_table].fields).join(', ')
+        @_select_query = "SELECT #{columns} FROM #{@_table}"
+
+        @_init (err) => cb(err, @)
+
+    _dbg: (f) =>
+        return @_db._dbg("SyncTable.#{f}")
+
+    _query_opts: () =>
+        opts = {}
+        opts.query = @_select_query
+        opts.where = @_where
+        opts.limit = @_limit
+        opts.order_by = @_order_by
+        return opts
+
+    close: () =>
+        @_db.removeListener(@_tgname, @_notification)
+        delete @_value
+        @_state = 'closed'
+
+    _satisfies_where: (obj) =>
+        return true  # TODO
+
+    _notification: (obj) =>
+        console.log 'notification', obj
+        if @_satisfies_where(obj)
+            console.log 'satisfies where'
+            if obj.action == 'DELETE'
+                console.log 'delete'
+                @_value = @_value.delete(obj[@_primary_key])
+            else
+                @_changed[obj[@_primary_key]] = true
+                @_update()
+
+    _init: (cb) =>
+        @_state = 'init' # 'init' -> ['error', 'ready'] -> 'closed'
+        @_value = immutable.Map()
+        @_changed = {}
+        async.series([
+            (cb) =>
+                # ensure database client is listen for primary keys changes to our table
+                @_db._listen @_table, @_listen_columns, (err, tgname) =>
+                    @_tgname = tgname
+                    @_db.on(@_tgname, @_notification)
+                    cb(err)
+            (cb) =>
+                opts = @_query_opts()
+                opts.cb = (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        @_process_results(result.rows)
+                        cb()
+                @_db._query(opts)
+            (cb) =>
+                @_update(cb)
+            ], (err) =>
+                if err
+                    @_state = 'error'
+                    cb(err)
+                else
+                    @_state = 'ready'
+                    cb()
+            )
+
+    _process_results: (rows) =>
+        for x in rows
+            @_value = @_value.set(x[@_primary_key], immutable.fromJS(misc.map_without_undefined(x)))
+
+    # Grab any entries from table about which we have been notified of changes.
+    _update: (cb) =>
+        changed = @_changed
+        @_changed = {}
+        @_db._query
+            query : @_select_query
+            where : "#{@_primary_key} = ANY($)" : misc.keys(changed)
+            cb    : (err, result) =>
+                if err
+                    @_dbg("update")("error #{err}")
+                    for k of changed
+                        @_changed[k] = true   # will try again
+                else
+                    @_process_results(result.rows)
+                cb?()
 
     connect: (opts) =>
         throw Error("NotImplementedError")
 
     get: (key) =>
-        throw Error("NotImplementedError")
+        return if key? then @_value.get(key) else @_value
 
     getIn: (x) =>
-        throw Error("NotImplementedError")
+        return @_value.getIn(x)
 
     has: (key) =>
-        throw Error("NotImplementedError")
+        return @_value.has(key)
 
     close: (keep_listeners) =>
         throw Error("NotImplementedError")
@@ -109,8 +231,10 @@ class SyncTable extends EventEmitter
 ###
 Trigger functions
 ###
-trigger_name = (table) ->
-    return "changes_#{table}"
+trigger_name = (table, columns) ->
+    c = misc.keys(columns)
+    c.sort()
+    return 'change_' + misc_node.sha1("changes_#{table}_#{c.join('_')}")
 
 trigger_code = (table, columns) ->
     tgname      = trigger_name(table, columns)
@@ -130,7 +254,7 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
         ELSE
             #{new_assign.join('\n')}
         END IF;
-        notification = json_build_object('table',  TG_TABLE_NAME, 'action', TG_OP, #{build_obj.join(',')});
+        notification = json_build_object('action', TG_OP, #{build_obj.join(',')});
         PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;

@@ -26,7 +26,7 @@ required = defaults.required
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 
-{PostgreSQL, PROJECT_COLUMNS, one_result, all_results, count_result} = require('./postgres')
+{PostgreSQL, PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres')
 
 class exports.PostgreSQL extends PostgreSQL
 

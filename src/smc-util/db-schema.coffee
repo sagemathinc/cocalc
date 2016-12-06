@@ -486,8 +486,6 @@ schema.hub_servers =
     primary_key : 'host'
     durability : 'soft' # loss of some log data not serious, since ephemeral and expires quickly anyways
     fields:
-        expire :
-            type : 'timestamp'
         host :
             type : 'string'
             pg_type : 'VARCHAR(63)'
@@ -495,6 +493,8 @@ schema.hub_servers =
             type : 'integer'
         clients :
             type : 'integer'
+        expire :
+            type : 'timestamp'
     indexes:
         expire : []
 
