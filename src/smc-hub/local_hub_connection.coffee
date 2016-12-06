@@ -506,7 +506,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 if not socket?
                     @dbg("still don't have our connection -- try again")
                     f (err, _socket) =>
-                       socket = _socket; cb(err)
+                        socket = _socket; cb(err)
                 else
                     cb()
         ], (err) =>

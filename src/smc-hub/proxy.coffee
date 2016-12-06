@@ -10,6 +10,7 @@ url     = require('url')
 http    = require('http')
 mime    = require('mime')
 Cookies = require('cookies')
+ms      = require('ms')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc
@@ -422,6 +423,9 @@ exports.init_http_proxy_server = (opts) ->
                                         # see https://www.npmjs.com/package/mime
                                         mime_type = mime.lookup(filename)
                                         res.setHeader("Content-Type", mime_type)
+                                        timeout = ms('10 minutes')
+                                        res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
+                                        res.setHeader('Expires', new Date(Date.now() + timeout).toUTCString());
                                         res.write(data)
                                         res.end()
                                         is_public = true
