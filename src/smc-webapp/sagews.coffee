@@ -1249,7 +1249,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @process_output_mesg(opts)
 
         # Call jQuery plugin to make it all happen.
-        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:f)
+        interact_elt.sage_interact
+            desc                : desc
+            execute_code        : @execute_code
+            process_output_mesg : f
+            process_html_output : @process_html_output
 
     jump_to_output_matching_jquery_selector: (selector) =>
         cm = @focused_codemirror()
