@@ -10,40 +10,166 @@ This code is currently NOT released under any license for use by anybody except 
 ###
 
 EventEmitter = require('events')
+async        = require('async')
 
-{PostgreSQL} = require('./postgres')
+{PostgreSQL, one_result} = require('./postgres')
+
+{defaults} = misc = require('smc-util/misc')
+required = defaults.required
+
+{SCHEMA} = require('smc-util/schema')
 
 class exports.PostgreSQL extends PostgreSQL
-    
+
+    user_query: (opts) =>
+        opts = defaults opts,
+            account_id : undefined
+            project_id : undefined
+            query      : required
+            options    : []         # used for initial query; **IGNORED** by changefeed!;
+                                    #  - Use [{set:true}] or [{set:false}] to force get or set query
+                                    #  - For a set query, use {delete:true} to delete instead of set.  This is the only way
+                                    #    to delete a record, and won't work unless delete:true is set in the schema
+                                    #    for the table to explicitly allow deleting.
+            changes    : undefined  # id of change feed
+            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+        dbg = @_dbg("user_query(...)")
+        if misc.is_array(opts.query)
+            @_user_query_array(opts)
+            return
+
+        subs =
+            '{account_id}' : opts.account_id
+            '{project_id}' : opts.project_id
+            '{now}'        : new Date()
+
+        if opts.changes?
+            changes =
+                id : opts.changes
+                cb : opts.cb
+
+        v = misc.keys(opts.query)
+        if v.length > 1
+            opts.cb?('must specify exactly one key in the query')
+            return
+        table = v[0]
+        query = opts.query[table]
+        if misc.is_array(query)
+            if query.length > 1
+                opts.cb("array of length > 1 not yet implemented")
+                return
+            multi = true
+            query = query[0]
+        else
+            multi = false
+        is_set_query = undefined
+        if opts.options?
+            if not misc.is_array(opts.options)
+                opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
+                return
+            for x in opts.options
+                if x.set?
+                    is_set_query = !!x.set
+            options = (x for x in opts.options when not x.set?)
+        else
+            options = []
+
+        if misc.is_object(query)
+            query = misc.deep_copy(query)
+            obj_key_subs(query, subs)
+            if not is_set_query?
+                is_set_query = not misc.has_null_leaf(query)
+            if is_set_query
+                # do a set query
+                if changes
+                    opts.cb("changefeeds only for read queries")
+                    return
+                if not opts.account_id? and not opts.project_id?
+                    opts.cb("no anonymous set queries")
+                    return
+                @user_set_query
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    table      : table
+                    query      : query
+                    options    : opts.options
+                    cb         : (err, x) =>
+                        opts.cb(err, {"#{table}":x})
+            else
+                # do a get query
+                if changes and not multi
+                    opts.cb("changefeeds only implemented for multi-document queries")
+                    return
+
+                if changes
+                    try
+                        @_inc_changefeed_count(opts.account_id, opts.project_id, changes.id)
+                    catch err
+                        opts.cb(err)
+                        return
+
+                @user_get_query
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    table      : table
+                    query      : query
+                    options    : options
+                    multi      : multi
+                    changes    : changes
+                    cb         : (err, x) =>
+                        if err and changes
+                            # didn't actually make the changefeed, so don't count it.
+                            @_dec_changefeed_count(changes.id)
+                        opts.cb(err, {"#{table}":x})
+        else
+            opts.cb("invalid user_query of '#{table}' -- query must be an object")
+
+    # Incrementa count of the number of changefeeds by a given client so we can cap it.
+    _inc_changefeed_count: (account_id, project_id, changefeed_id) =>
+        client_name = "#{opts.account_id}-#{opts.project_id}"
+        cnt = @_user_get_changefeed_counts ?= {}
+        ids = @_user_get_changefeed_id_to_user ?= {}
+        if not cnt[client_name]?
+            cnt[client_name] = 1
+        else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
+            throw Error("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+        else
+            # increment before successfully making get_query to prevent huge bursts causing trouble!
+            cnt[client_name] += 1
+        dbg("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+        ids[changefeed_id] = client_name
+
+    # Corresonding decrement of count of the number of changefeeds by a given client.
+    _dec_changefeed_count: (id) =>
+        client_name = @_user_get_changefeed_id_to_user[id]
+        if client_name?
+            @_user_get_changefeed_counts?[client_name] -= 1
+            delete @_user_get_changefeed_id_to_user[id]
+            cnt = @_user_get_changefeed_counts
+            @_dbg("_dec_changefeed_count")("counts={#{client_name}:#{cnt[client_name]} ...}")
+
+    # Handle user_query when opts.query is an array.  opts below are as for user_query.
+    _user_query_array: (opts) =>
+        if opts.changes and opts.query.length > 1
+            opts.cb("changefeeds only implemented for single table")
+            return
+        result = []
+        f = (query, cb) =>
+            @user_query
+                account_id : opts.account_id
+                project_id : opts.project_id
+                query      : query
+                options    : opts.options
+                cb         : (err, x) =>
+                    result.push(x); cb(err)
+        async.mapSeries(opts.query, f, (err) => opts.cb(err, result))
+
     user_query_cancel_changefeed: (opts) =>
-
-    user_query: (opts) =>
         opts = defaults opts,
-            account_id : undefined
-            project_id : undefined
-            query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!;
-                                    #  - Use [{set:true}] or [{set:false}] to force get or set query
-                                    #  - For a set query, use {delete:true} to delete instead of set.  This is the only way
-                                    #    to deleete a record, and won't work unless delete:true is set in the schema
-                                    #    for the table to explicitly allow deleting.
-            changes    : undefined  # id of change feed
-            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
-        dbg = @_dbg("user_query(...)")
-
-    user_query: (opts) =>
-        opts = defaults opts,
-            account_id : undefined
-            project_id : undefined
-            query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!;
-                                    #  - Use [{set:true}] or [{set:false}] to force get or set query
-                                    #  - For a set query, use {delete:true} to delete instead of set.  This is the only way
-                                    #    to deleete a record, and won't work unless delete:true is set in the schema
-                                    #    for the table to explicitly allow deleting.
-            changes    : undefined  # id of change feed
-            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
-        dbg = @_dbg("user_query(...)")
+            id : required
+            cb : undefined
+        @_dec_changefeed_count(opts.id)
+        opts.cb?("NotImplemented")
 
     _query_is_cmp: (obj) =>
         for k, _ of obj
@@ -52,81 +178,25 @@ class exports.PostgreSQL extends PostgreSQL
         return false
 
     _query_cmp: (filter, x, q) =>
-        for op, val of q
-            switch op
-                when '=='
-                    x = x.eq(val)
-                when '!='
-                    x = x.ne(val)
-                when '>='
-                    x = x.ge(val)
-                when '>'
-                    x = x.gt(val)
-                when '<'
-                    x = x.lt(val)
-                when '<='
-                    x = x.le(val)
-            if filter?
-                filter = filter.and(x)
-            else
-                filter = x
-        return filter
+        throw Error("NotImplemented")
 
     _query_descend: (filter, x, q) =>
-        for k, v of q
-            if v != null
-                if typeof(v) != 'object'
-                    v = {'==':v}
-                if misc.len(v) == 0
-                    continue
-                row = x(k)
-                if @_query_is_cmp(v)
-                    filter = @_query_cmp(filter, row, v)
-                else
-                    filter = @_query_descend(filter, row, v)
-        return filter
+        throw Error("NotImplemented")
 
     _query_to_filter: (query, primary_key) =>
-        filter = undefined
-        for k, v of query
-            if primary_key? and k == primary_key
-                continue
-            if v != null
-                if typeof(v) != 'object'
-                    v = {'==':v}
-                if misc.len(v) == 0
-                    continue
-                row = @r.row(k)
-                if @_query_is_cmp(v)
-                    filter = @_query_cmp(filter, row, v)
-                else
-                    filter = @_query_descend(filter, row, v)
-
-        return filter
+        throw Error("NotImplemented")
 
     _query_to_field_selector: (query, primary_key) =>
-        selector = {}
-        for k, v of query
-            if k == primary_key or v == null or typeof(v) != 'object'
-                selector[k] = true
-            else
-                sub = true
-                for a, _ of v
-                    if a in ['==', '!=', '>=', '>', '<', '<=']
-                        selector[k] = true
-                        sub = false
-                        break
-                if sub
-                    selector[k] = @_query_to_field_selector(v, primary_key)
-        return selector
+        throw Error("NotImplemented")
 
-    is_admin: (account_id, cb) =>
+    _is_admin: (account_id, cb) =>
+        cb?("NotImplemented")
 
     _require_is_admin: (account_id, cb) =>
         if not account_id?
             cb("user must be an admin")
             return
-        @is_admin account_id, (err, is_admin) =>
+        @_is_admin account_id, (err, is_admin) =>
             if err
                 cb(err)
             else if not is_admin
@@ -137,48 +207,13 @@ class exports.PostgreSQL extends PostgreSQL
     # Ensure that each project_id in project_ids is such that the account is in one of the given
     # groups for the project, or that the account is an admin.  If not, cb(err).
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
+        cb?("NotImplemented")
 
     _query_parse_options: (db_query, options) =>
-        limit = err = heartbeat = undefined
-        for x in options
-            for name, value of x
-                switch name
-                    when 'limit'
-                        db_query = db_query.limit(value)
-                        limit = value
-                    when 'slice'
-                        db_query = db_query.slice(value...)
-                    when 'order_by'
-                        if value[0] == '-'
-                            value = @r.desc(value.slice(1))
-                        # TODO: could optimize with an index
-                        db_query = db_query.orderBy(value)
-                    when 'heartbeat'
-                        x = parseInt(value)
-                        if x > 0
-                            heartbeat = x
-                    when 'delete'
-                        # ignore here - is parsed elsewhere
-                    else
-                        err:"unknown option '#{name}'"
-        return {db_query:db_query, err:err, limit:limit, heartbeat:heartbeat}
+        throw Error("NotImplemented")
 
     _primary_key_query: (primary_key, query) =>
-        if query[primary_key]? and query[primary_key] != null
-            # primary key query
-            x = query[primary_key]
-            if misc.is_array(x)
-                get_all = x
-            else
-                if typeof(x) != 'object'
-                    x = {'==':x}
-                for k, v of x
-                    if k == '=='
-                        get_all = [v]
-                        break
-                    else
-                        return {err:"invalid primary key query: '#{k}'"}
-        return {get_all:get_all}
+        throw Error("NotImplemented")
 
     user_set_query: (opts) =>
         opts = defaults opts,
@@ -195,14 +230,9 @@ class exports.PostgreSQL extends PostgreSQL
         else
             opts.cb("account_id or project_id must be specified")
             return
-        dbg(to_json(opts.query))
+        dbg(misc.to_json(opts.query))
         if opts.options
             dbg("options=#{misc.to_json(opts.options)}")
-
-        @_user_query_stats.set_query
-            account_id : opts.account_id
-            project_id : opts.project_id
-            table      : opts.table
 
         query      = misc.copy(opts.query)
         table      = opts.table
@@ -217,22 +247,11 @@ class exports.PostgreSQL extends PostgreSQL
         else
             client_query = s?.project_query
         if not client_query?.set?.fields?
-            #dbg("requested to do set on table '#{opts.table}' that doesn't allow set")
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
-        # mod_fields counts the fields in query that might actually get modified
-        # in the database when we do the query; e.g., account_id won't since it gets
-        # filled in with the user's account_id, and project_write won't since it must
-        # refer to an existing project.  We use mod_field **only** to skip doing
-        # no-op queries below. It's just an optimization.
-        mod_fields = 0
-        for field in misc.keys(opts.query)
-            if client_query.set.fields[field] not in ['account_id', 'project_write']
-                mod_fields += 1
-        if mod_fields == 0
-            # nothing to do
-            opts.cb()
+        if not @_mod_fields(opts.query, client_query)
+            opts.cb()   # no fields will be modified, so nothing to do
             return
 
         for field in misc.keys(client_query.set.fields)
@@ -252,7 +271,6 @@ class exports.PostgreSQL extends PostgreSQL
                     query[field] = project_id
                 when 'time_id'
                     query[field] = uuid.v1()
-                    #console.log("time_id -- query['#{field}']='#{query[field]}'")
                 when 'project_write'
                     if not query[field]?
                         opts.cb("must specify #{opts.table}.#{field}")
@@ -264,7 +282,6 @@ class exports.PostgreSQL extends PostgreSQL
                         return
                     require_project_ids_owner = [query[field]]
 
-        #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
             f = client_query.set.fields?[field]
             if typeof(f) == 'function'
@@ -277,9 +294,8 @@ class exports.PostgreSQL extends PostgreSQL
         if client_query.set.admin
             require_admin = true
 
-        primary_key = s.primary_key
-        if not primary_key?
-            primary_key = 'id'
+        primary_key = s.primary_key ? 'id'
+
         for k, v of query
             if primary_key == k
                 continue
@@ -321,9 +337,9 @@ class exports.PostgreSQL extends PostgreSQL
         on_change_hook = client_query.set.on_change
 
         old_val = undefined
-        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
+        #dbg("on_change_hook=#{on_change_hook?}, #{misc.to_json(misc.keys(client_query.set))}")
 
-        # set the query options -- order doesn't matter for set queries (unlike for get), so we
+        # Set the query options -- order doesn't matter for set queries (unlike for get), so we
         # just merge the options into a single dictionary.
         # NOTE: As I write this, there is just one supported option: {delete:true}.
         options = {}
@@ -378,12 +394,15 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
             (cb) =>
                 if on_change_hook? or before_change_hook? or instead_of_change_hook?
-                    if not query[primary_key]?  # I noticed this in the log -- reql will flip on .get(undefined)
+                    if not query[primary_key]?
                         cb("query must specify primary key '#{primary_key}'")
                         return
                     # get the old value before changing it
-                    @table(db_table).get(query[primary_key]).run (err, x) =>
-                        old_val = x; cb(err)
+                    @_query
+                        query : "SELECT * FROM #{db_table}"
+                        where : "#{primary_key} = $" : query[primary_key]
+                        cb    : one_result (err, x) =>
+                            old_val = x; cb(err)
                 else
                     cb()
             (cb) =>
@@ -397,18 +416,36 @@ class exports.PostgreSQL extends PostgreSQL
                 else if options.delete
                     if query[primary_key]
                         dbg("delete based on primary key")
-                        @table(db_table).get(query[primary_key]).delete().run(cb)
+                        @_query
+                            query : "DELETE FROM #{db_table}"
+                            where : "#{primary_key} = $" : query[primary_key]
+                            cb    : cb
                     else
                         cb("delete query must set primary key")
                 else
-                    @table(db_table).insert(query, conflict:'update').run(cb)
+                    @_query
+                        query    : "INSERT INTO #{db_table}"
+                        values   : query
+                        conflict : primary_key
+                        cb       : cb
             (cb) =>
                 if on_change_hook?
-                    #dbg("calling on_change_hook")
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
         ], (err) => opts.cb(err))
+
+
+    # mod_fields counts the fields in query that might actually get modified
+    # in the database when we do the query; e.g., account_id won't since it gets
+    # filled in with the user's account_id, and project_write won't since it must
+    # refer to an existing project.  We use mod_field **only** to skip doing
+    # no-op queries. It's just an optimization.
+    _mod_fields: (query, client_query) =>
+        for field in misc.keys(query)
+            if client_query.set.fields[field] not in ['account_id', 'project_write']
+                return true
+        return false
 
     # fill in the default values for obj using the client_query spec.
     _query_set_defaults: (client_query, obj, fields) =>
@@ -436,6 +473,7 @@ class exports.PostgreSQL extends PostgreSQL
                                     y[k0] = v0
 
     _user_set_query_project_users: (obj, account_id) =>
+        throw Error("NotImplemented")
 
     project_action: (opts) =>
         opts = defaults opts,
@@ -444,6 +482,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb             : required
         dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
         dbg()
+        opts.cb('NotImplemented')
 
     # This hook is called *before* the user commits a change to a project in the database
     # via a user set query.
@@ -451,7 +490,7 @@ class exports.PostgreSQL extends PostgreSQL
     # This will avoid a possible subtle edge case if user is cheating and always somehow
     # crashes server...?
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
-        dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
+        dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
         dbg()
 
         if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
@@ -494,7 +533,7 @@ class exports.PostgreSQL extends PostgreSQL
     # might require doing various async calls, or take actions (e.g., setting quotas,
     # starting projects, etc.).
     _user_set_query_project_change_after: (old_val, new_val, account_id, cb) =>
-        dbg = @_dbg("_user_set_query_project_change_after #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
+        dbg = @_dbg("_user_set_query_project_change_after #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
         dbg()
         old_upgrades = old_val.users?[account_id]?.upgrades
         new_upgrades = new_val.users?[account_id]?.upgrades
@@ -536,13 +575,16 @@ class exports.PostgreSQL extends PostgreSQL
                                     # which ensures that *something* is sent every n minutes, in case no
                                     # changes are coming out of the changefeed. This is an additional
                                     # measure in case the client somehow doesn't get a "this changefeed died" message.
-                                    # Use [{delete:true}] to instead delete the selected records (must have delete:true in schema).
+                                    # Use [{delete:true}] to instead delete the selected records (must
+                                    # have delete:true in schema).
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
-        # User queries are of the form
+        User queries are of the form
 
-            .table(table).getAll(get_all).filter(filter).pluck(pluck)[limit|slice options]
+            old ReQL: .table(table).getAll(get_all).filter(filter).pluck(pluck)[limit|slice options]
+
+            SELECT [columns] FROM table WHERE [get_all] AND [further restrictions] LIMIT/slice
 
         Using the whitelist rules specified in SCHEMA, we
         determine each of get_all, filter, pluck, and options,
@@ -688,4 +730,19 @@ class exports.PostgreSQL extends PostgreSQL
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("only users and projects can access syncstrings")
+
+
+# modify obj in place substituting keys as given.
+obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
 

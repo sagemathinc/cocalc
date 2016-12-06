@@ -182,8 +182,8 @@ schema.accounts =
         created       : [] # to compute stats efficiently
         email_address : []
     pg_indexes : [
-        'lower(first_name) text_pattern_ops',
-        'lower(last_name)  text_pattern_ops',
+        '(lower(first_name) text_pattern_ops)',
+        '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
         ]
@@ -846,7 +846,6 @@ schema.public_projects =
                 project_id : true
                 title      : true
 
-
 schema.public_paths =
     primary_key : 'id'
     anonymous   : true   # allow user *read* access, even if not signed in
@@ -905,7 +904,6 @@ schema.remember_me =
         expire     : []
         account_id : []
     pg_indexes : ['account_id']
-
 
 schema.server_settings =
     primary_key : 'name'

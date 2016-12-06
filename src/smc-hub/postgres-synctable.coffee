@@ -119,9 +119,6 @@ class SyncTable extends EventEmitter
             return
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
-        if @_where?
-            for field, _ of @_where
-                @_listen_columns[field] = pg_type(t.fields[field], field)
 
         columns = if @_columns then @_columns.join(', ') else misc.keys(SCHEMA[@_table].fields).join(', ')
         @_select_query = "SELECT #{columns} FROM #{@_table}"
@@ -149,14 +146,11 @@ class SyncTable extends EventEmitter
 
     _notification: (obj) =>
         console.log 'notification', obj
-        if @_satisfies_where(obj)
-            console.log 'satisfies where'
-            if obj.action == 'DELETE'
-                console.log 'delete'
-                @_value = @_value.delete(obj[@_primary_key])
-            else
-                @_changed[obj[@_primary_key]] = true
-                @_update()
+        if obj.action == 'DELETE'
+            @_value = @_value.delete(obj[@_primary_key])
+        else
+            @_changed[obj[@_primary_key]] = true
+            @_update()
 
     _init: (cb) =>
         @_state = 'init' # 'init' -> ['error', 'ready'] -> 'closed'
@@ -199,7 +193,7 @@ class SyncTable extends EventEmitter
         @_changed = {}
         @_db._query
             query : @_select_query
-            where : "#{@_primary_key} = ANY($)" : misc.keys(changed)
+            where : misc.merge("#{@_primary_key} = ANY($)" : misc.keys(changed), @_where)
             cb    : (err, result) =>
                 if err
                     @_dbg("update")("error #{err}")
@@ -262,3 +256,13 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER #{tgname} AFTER INSERT OR UPDATE OR DELETE ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
 """
+
+parse_cond = (cond) ->
+    # TODO hack for now -- there must be space
+    i = cond.indexOf(' ')
+    if i == -1
+        return {field:cond}
+    else
+        return {field:cond.slice(0,i)}
+
+
