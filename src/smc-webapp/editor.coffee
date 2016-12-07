@@ -1737,7 +1737,7 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
+        @fallback_buttons.find('a[href="#todo"]').click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -1747,6 +1747,7 @@ class CodeMirrorEditor extends FileEditor
 
         @mode_display = mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
         @_current_mode = "sage"
+        @mode_display.show()
 
         set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
