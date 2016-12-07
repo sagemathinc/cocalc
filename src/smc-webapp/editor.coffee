@@ -1504,7 +1504,7 @@ class CodeMirrorEditor extends FileEditor
     restore_cursor_position: () =>
         for i, cm of [@codemirror, @codemirror1]
             if cm?
-                pos = @local_storage("cursor#{i}")
+                pos = @local_storage("cursor#{cm.name}")
                 if pos?
                     cm.setCursor(pos)
                     #console.log("#{@filename}: setting view #{cm.name} to cursor pos -- #{misc.to_json(pos)}")
@@ -1587,8 +1587,14 @@ class CodeMirrorEditor extends FileEditor
             # the flex layout with column direction is broken on Safari.
             @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
+        refresh = (cm) =>
+            return if not cm?
+            cm.refresh()
+            # See https://github.com/sagemathinc/smc/issues/1327#issuecomment-265488872
+            setTimeout((=>cm.refresh()), 1)
+
         for cm in @codemirrors()
-            cm?.refresh()
+            refresh(cm)
 
         @emit('show')
 
