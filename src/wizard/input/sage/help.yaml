@@ -50,7 +50,7 @@ descr: |
 
     In the given example here, position the cursor after the dot and press the `[TAB]` key.
 
-    Autocompletion also wors for partial strings and pre-defined objects.
+    Autocompletion also works for partial strings and pre-defined objects.
     In the second and third example, you can either all implemented Graphs or tab-complete a specific function.
 code: |
     # press the tab key after placing the cursor right next to the "."

@@ -75,14 +75,26 @@ key = (project_id, path) -> project_id + path
 
 iframes = {}
 
+last_visible_key = undefined
 refresh_iframe = (project_id, path, elt, show) ->
     elt = $(elt)
-    iframe = iframes[key(project_id, path)]
+
+    if last_visible_key?
+        # See https://github.com/sagemathinc/smc/issues/1322
+        # React optimizes things and doesn't unmount the component when switching
+        # between two editors both display PDF's, so componentWillUnmount isn't called
+        # (instead the PDF viewer is mutated from one to the other!).
+        iframes[last_visible_key]?.hide()
+        last_visible_key = undefined
+
+    k = key(project_id, path)
+    iframe = iframes[k]
     if not iframe?
         return
     if show
         iframe.show()
         iframe.exactly_cover(elt)
+        last_visible_key = k
     else
         iframe.hide()
 
