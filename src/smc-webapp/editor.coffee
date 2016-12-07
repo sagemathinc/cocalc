@@ -1628,10 +1628,10 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     wizard_handler: () =>
-        $target = @mode_display.parent().find('.react-target')
-        {render_wizard} = require('./wizard')
         # @wizard is this WizardActions object
         if not @wizard?
+            $target = @mode_display.parent().find('.react-target')
+            {render_wizard} = require('./wizard')
             @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
             @wizard.show(lang = @_current_mode)
