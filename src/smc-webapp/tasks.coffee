@@ -1508,6 +1508,12 @@ set_key_handler = (task) ->
 tasks_key_handler = (evt) =>
     if not current_task_list?
         return
+    # See https://github.com/sagemathinc/smc/issues/1318 -- this is a temporary
+    # way to deal with keyboard focus -- just check that if something is focused,
+    # it is one of *our* text areas.
+    focused = $(":focus")
+    if focused.length > 0 and focused.closest(".salvus-tasks-listing").length == 0
+        return
 
     if help_dialog_open
         close_help_dialog()
