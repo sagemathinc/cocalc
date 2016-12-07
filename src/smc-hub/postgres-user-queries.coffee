@@ -120,7 +120,7 @@ class exports.PostgreSQL extends PostgreSQL
                         if err and changes
                             # didn't actually make the changefeed, so don't count it.
                             @_dec_changefeed_count(changes.id)
-                        opts.cb(err, {"#{table}":x})
+                        opts.cb(err, if not err then {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
@@ -689,14 +689,50 @@ class exports.PostgreSQL extends PostgreSQL
         sub_value = (value, cb) =>
             switch value
                 when 'account_id'
+                    if not account_id?
+                        cb('account_id must be given')
+                        return
                     subs[value] = account_id
                     cb()
-                when 'collaborator_ids'
-                    @get_collaborator_ids
-                        account_id : account_id
-                        cb         : (err, ids) =>
-                            subs[value] = ids
-                            cb(err)
+                when 'project_id'
+                    if project_id?
+                        subs[value] = project_id
+                        cb()
+                    else if not user_query.project_id
+                        cb("must specify project_id")
+                    else if SCHEMA[table].anonymous
+                        subs[value] = user_query.project_id
+                        cb()
+                    else
+                        @user_is_in_project_group
+                            account_id : account_id
+                            project_id : user_query.project_id
+                            groups     : ['owner', 'collaborator']
+                            cb         : (err, in_group) =>
+                                if err
+                                    cb(err)
+                                else if in_group
+                                    subs[value] = user_query.project_id
+                                    cb()
+                                else
+                                    cb("you do not have read access to this project")
+                when 'project_id-public'
+                    if not user_query.project_id
+                        cb("must specify project_id")
+                    else
+                        if SCHEMA[table].anonymous
+                            @has_public_path
+                                project_id : user_query.project_id
+                                cb         : (err, has_public_path) =>
+                                    if err
+                                        cb(err)
+                                    else if not has_public_path
+                                        cb("project does not have any public paths")
+                                    else
+                                        subs[value] = user_query.project_id
+                                        cb()
+                        else
+                            cb("table must allow anonymous queries")
                 else
                     cb()
 
@@ -711,59 +747,6 @@ class exports.PostgreSQL extends PostgreSQL
             cb(undefined, pg_where)
 
         ###
-                when 'project_id-public'
-                    if not user_query.project_id
-                        cb("must specify project_id")
-                    else
-                        if SCHEMA[table].anonymous
-                            @has_public_path
-                                project_id : user_query.project_id
-                                cb         : (err, has_public_path) =>
-                                    if err
-                                        cb(err)
-                                    else if not has_public_path
-                                        cb("project does not have any public paths")
-                                    else
-                                        v.push(user_query.project_id)
-                                        cb()
-                when 'project_id'
-                    if project_id?
-                        v.push(project_id)
-                        cb()
-                    else if not user_query.project_id
-                        cb("must specify project_id")
-                    else
-                        if SCHEMA[table].anonymous
-                            v.push(user_query.project_id)
-                            cb()
-                        else
-                            @user_is_in_project_group
-                                account_id : account_id
-                                project_id : user_query.project_id
-                                groups     : ['owner', 'collaborator']
-                                cb         : (err, in_group) =>
-                                    if err
-                                        cb(err)
-                                    else if in_group
-                                        v.push(user_query.project_id)
-                                        cb()
-                                    else
-                                        cb("you do not have read access to this project")
-                when 'all_projects_read'
-                    @get_project_ids_with_user
-                        account_id : account_id
-                        cb         : (err, y) =>
-                            v = v.concat(y)
-                            cb(err)
-                when 'collaborators'
-                    @get_collaborator_ids
-                        account_id : account_id
-                        cb         : (err, y) =>
-                            v = v.concat(y)
-                            cb(err)
-                else
-                    v.push(x)
-                    cb()
 
         # First this function g parses each array in the args.  These are used for
         # multi-indexes.  This whole block of code g and the map below does *nothing*
@@ -816,8 +799,11 @@ class exports.PostgreSQL extends PostgreSQL
                     db_query = db_query.filter(filter)
         ###
 
-    _user_get_query_options: (delete_option, options, multi) =>
+    _user_get_query_options: (delete_option, options, multi, schema_options) =>
         r = {}
+
+        if schema_options?
+            options = options.concat(schema_options)
 
         # Parse option part of the query
         {limit, order_by, slice, err} = @_query_parse_options(options)
@@ -907,14 +893,16 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
             (cb) =>
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
-                r = @_user_get_query_options(delete_option, opts.options, opts.multi)
+                r = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.all?.options)
                 if r.err
                     cb(err)
                     return
                 misc.merge(_query_opts, r)
                 @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, (err, x) =>
                     result = x; cb(err)
-        ], (err) => opts.cb(err, result) )
+        ], (err) =>
+            opts.cb(err, result if not err)
+        )
 
     ###
     Synchronized strings

@@ -371,7 +371,7 @@ schema.collaborators =
     virtual     : 'accounts'
     user_query:
         get :
-            pg_where : ["account_id = ANY($)" : 'collaborator_ids']
+            pg_where : ["account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)": 'account_id']
             all :
                 method : 'getAll'
                 args   : ['collaborators']
@@ -451,6 +451,8 @@ schema.file_use =
         'project_id-last_edited'      : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
     user_query:
         get :
+            pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
+
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
@@ -597,9 +599,11 @@ schema.project_log =
 
     user_query:
         get :
+            pg_where : ["project_id = $::UUID": 'project_id']
             all:
-                cmd   : 'getAll'
-                args  : ['project_id', index:'project_id']
+                cmd     : 'getAll'
+                args    : ['project_id', index:'project_id']
+                options : [{order_by : '-time'}]
             fields :
                 id          : null
                 project_id  : null
@@ -717,9 +721,9 @@ schema.projects =
         'USING GIN (host jsonb_path_ops)' # so get_projects_on_compute_server is fast
     ]
 
-
     user_query:
         get :
+            pg_where : ["users ? $::TEXT" : 'account_id']
             all :
                 cmd  : 'getAll'
                 args : ['account_id', index:'users']
@@ -757,6 +761,7 @@ schema.projects =
 
     project_query:
         get :
+            pg_where : ["project_id = $::UUID" : 'project_id']
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -829,6 +834,7 @@ schema.projects_admin =
     user_query:
         get :
             admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
+            pg_where : ['project_id = $::UUID':'project_id']
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -841,6 +847,7 @@ schema.public_projects =
     virtual   : 'projects'
     user_query :
         get :
+            pg_where : ['project_id = $::UUID':'project_id-public']
             all :
                 cmd : 'getAll'
                 args : ['project_id-public']
@@ -868,6 +875,7 @@ schema.public_paths =
     pg_indexes : ['project_id']
     user_query:
         get :
+            pg_where : ["project_id = $::UUID": 'project_id']
             all :
                 cmd : 'getAll'
                 args : ['project_id', index:'project_id']
@@ -959,6 +967,7 @@ schema.site_settings =
     user_query:
         # NOTE: can set and get certain fields.
         get:
+            pg_where: [] # TODO
             all :
                 cmd  : 'getAll'
                 args : site_settings_fields
@@ -1015,9 +1024,11 @@ schema.stats =
     pg_indexes : ['time']
     user_query:
         get:
+            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
+                options : [{'order_by':'-time'}]
             fields :
                 id                  : null
                 time                : null
@@ -1064,6 +1075,7 @@ schema.system_notifications =
         time : []
     user_query:
         get:
+            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]

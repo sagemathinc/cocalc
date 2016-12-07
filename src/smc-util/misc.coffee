@@ -1618,22 +1618,24 @@ exports.history_path = (path) ->
     return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
 
 # This is a convenience function to provide as a callback when working interactively.
-exports.done = () ->
+_done = (n, args...) ->
     start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
-
-exports.done2 = (args...) ->
-    if args.length > 0
-        console.log(args...)
-        return
-    start_time = new Date()
-    return (args...) ->
+    f = (args...) ->
+        if n != 1
+            try
+                args = [JSON.stringify(args, null, n)]
+            catch
+                # do nothing
         console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args...)
+    if args.length > 0
+        f(args...)
+    else
+        return f
+
+exports.done = (args...) -> _done(0, args...)
+exports.done1 = (args...) -> _done(1, args...)
+exports.done2 = (args...) -> _done(2, args...)
+
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
