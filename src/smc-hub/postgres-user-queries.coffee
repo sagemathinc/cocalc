@@ -12,7 +12,7 @@ This code is currently NOT released under any license for use by anybody except 
 EventEmitter = require('events')
 async        = require('async')
 
-{PostgreSQL, one_result} = require('./postgres')
+{PostgreSQL, one_result, all_results} = require('./postgres')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -186,8 +186,21 @@ class exports.PostgreSQL extends PostgreSQL
     _query_to_filter: (query, primary_key) =>
         throw Error("NotImplemented")
 
-    _query_to_field_selector: (query, primary_key) =>
-        throw Error("NotImplemented")
+    _user_get_query_columns: (query) =>
+        columns = {}
+        for k, v of query
+            if v == null or typeof(v) != 'object'
+                columns[k] = true
+            else
+                sub = true
+                for a, _ of v
+                    if a in ['==', '!=', '>=', '>', '<', '<=']
+                        columns[k] = true
+                        sub = false
+                        break
+                if sub
+                    columns[k] = @_query_to_field_columns(v)
+        return misc.keys(columns)
 
     _is_admin: (account_id, cb) =>
         cb?("NotImplemented")
@@ -209,8 +222,24 @@ class exports.PostgreSQL extends PostgreSQL
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         cb?("NotImplemented")
 
-    _query_parse_options: (db_query, options) =>
-        throw Error("NotImplemented")
+    _query_parse_options: (options) =>
+        r = {}
+        for x in options
+            for name, value of x
+                switch name
+                    when 'limit'
+                        r.limit = value
+                    when 'slice'
+                        r.slice = value
+                    when 'order_by'
+                        if value[0] == '-'
+                            value = value.slice(1) + " DESC "
+                        r.order_by = value
+                    when 'delete'
+                        # ignore here - is parsed elsewhere
+                    else
+                        r.err = "unknown option '#{name}'"
+        return r
 
     _primary_key_query: (primary_key, query) =>
         throw Error("NotImplemented")
@@ -564,6 +593,229 @@ class exports.PostgreSQL extends PostgreSQL
         else
             cb()
 
+    _parse_get_query: (opts) =>
+        if opts.changes? and not opts.changes.cb?
+            return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
+
+        r = {}
+        # get data about user queries on this table
+        if opts.project_id?
+            r.client_query = SCHEMA[opts.table]?.project_query
+        else
+            r.client_query = SCHEMA[opts.table]?.user_query
+
+        if not r.client_query?.get?
+            return {err: "get queries not allowed for table '#{opts.table}'"}
+
+        if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
+            return {err: "anonymous get queries not allowed for table '#{opts.table}'"}
+
+        # Are only admins allowed any get access to this table?
+        r.require_admin = !!r.client_query.get.admin
+
+        # verify all requested fields may be read by users
+        for field in misc.keys(opts.query)
+            if r.client_query.get.fields?[field] == undefined
+                return {err: "user get query not allowed for #{opts.table}.#{field}"}
+
+        if r.client_query.get.instead_of_query?
+            return r
+
+        # Make sure there is the query that gets only things in this table that this user
+        # is allowed to see.
+        if not r.client_query.get.all?.args?
+            return {err: "user get query not allowed for #{opts.table} (no getAll filter)"}
+
+        # Apply default options to the get query (don't impact changefeed)
+        # The user can overide these, e.g., if they were to want to explicitly increase a limit
+        # to get more file use history.
+        r.delete_option = false  # will be true if an option is delete
+        user_options = {}
+        for x in opts.options
+            for y, z of x
+                if y == 'delete'
+                    r.delete_option = z
+                else
+                    user_options[y] = true
+
+        if r.client_query.get.all?.options?
+            # complicated since options is a list of {opt:val} !
+            for x in r.client_query.get.all.options
+                for y, z of x
+                    if y == 'delete'
+                        r.delete_option = z
+                    else
+                        if not user_options[y]
+                            opts.options.push(x)
+                            break
+
+        if opts.changes? and r.delete_option
+            return {err: "user_get_query -- if opts.changes is specified, then delete option must not be specified"}
+
+        r.table = SCHEMA[opts.table].virtual ? opts.table
+        return r
+
+    _user_get_query_where: (client_query, account_id, project_id, table, user_query, cb) =>
+        dbg = @_dbg("_user_get_first_selection")
+        dbg()
+
+        pg_where = client_query.get.pg_where
+        if not pg_where?
+            # no condition at all - this is NOT allowed.
+            cb("you must specify the pg_where condition (not doing so is too dangerous)")
+            return
+
+        # Now we just fill in all the parametrized values in the pg_where list.
+        where = []
+
+        get_condition = (x, cb) =>
+            if x == 'account_id'
+                where.push('account_id = $::UUID': account_id)
+            cb()
+
+        async.mapSeries pg_where, get_condition, (err) =>
+            cb(err, where)
+        ###
+                when 'project_id-public'
+                    if not user_query.project_id
+                        cb("must specify project_id")
+                    else
+                        if SCHEMA[table].anonymous
+                            @has_public_path
+                                project_id : user_query.project_id
+                                cb         : (err, has_public_path) =>
+                                    if err
+                                        cb(err)
+                                    else if not has_public_path
+                                        cb("project does not have any public paths")
+                                    else
+                                        v.push(user_query.project_id)
+                                        cb()
+                when 'project_id'
+                    if project_id?
+                        v.push(project_id)
+                        cb()
+                    else if not user_query.project_id
+                        cb("must specify project_id")
+                    else
+                        if SCHEMA[table].anonymous
+                            v.push(user_query.project_id)
+                            cb()
+                        else
+                            @user_is_in_project_group
+                                account_id : account_id
+                                project_id : user_query.project_id
+                                groups     : ['owner', 'collaborator']
+                                cb         : (err, in_group) =>
+                                    if err
+                                        cb(err)
+                                    else if in_group
+                                        v.push(user_query.project_id)
+                                        cb()
+                                    else
+                                        cb("you do not have read access to this project")
+                when 'all_projects_read'
+                    @get_project_ids_with_user
+                        account_id : account_id
+                        cb         : (err, y) =>
+                            v = v.concat(y)
+                            cb(err)
+                when 'collaborators'
+                    @get_collaborator_ids
+                        account_id : account_id
+                        cb         : (err, y) =>
+                            v = v.concat(y)
+                            cb(err)
+                else
+                    v.push(x)
+                    cb()
+
+        # First this function g parses each array in the args.  These are used for
+        # multi-indexes.  This whole block of code g and the map below does *nothing*
+        # unless the args spec for this schema has a single-level nested array in it.
+        g = (i, cb) =>
+            arg = args[i]
+            if not misc.is_array(arg)
+                #console.log(arg, " is not an array")
+                cb()
+            else
+                v = [] # we reuse the global variable f for parsing each array, hence use mapSeries below!
+                async.mapSeries arg, f, (err) =>
+                    if err
+                        cb(err)
+                    else
+                        # succeeded in parsing array; replace args[i] by it.
+                        #console.log('parsed something and got ', v)
+                        args[i] = v
+                        cb()
+
+        # The first mapSeries parses any arrays in args (usually there are none)
+        async.mapSeries [0...args.length], g, (err) =>
+            if err
+                cb(err)
+            else
+                # Next reset v and parse everything in args that is left.
+                # Each call to f does argument substitutions, possibly checks
+                # permissions, etc.
+                v = []
+                async.mapSeries args, f, (err) =>
+                    if err
+                        cb(err)
+                    else
+                        #dbg("v=#{misc.to_json(v)}")
+                        db_query = db_query[cmd](v...)
+                        cb()
+
+
+                # Parse the filter part of the query
+                query = misc.copy(opts.query)
+
+                # If the schema lists the value in a get query as null, then we reset it to null; it was already
+                # used by the initial get all part of the query.
+                for field, val of client_query.get.fields
+                    if val == 'null'
+                        query[field] = null
+
+                filter  = @_query_to_filter(query)
+                if filter?
+                    db_query = db_query.filter(filter)
+        ###
+
+    _user_get_query_options: (delete_option, options, multi) =>
+        r = {}
+
+        # Parse option part of the query
+        {limit, order_by, slice, err} = @_query_parse_options(options)
+
+        if err
+            return {err: err}
+        if limit?
+            r.limit = limit
+        else if not multi
+            r.limit = 1
+        if order_by?
+            r.order_by = order_by
+        if slice?
+            return {err: "slice not implemented"}
+        return r
+
+    _user_get_query_do_query: (query_opts, client_query, user_query, multi, cb) =>
+        query_opts.cb = all_results (err, x) =>
+            if err
+                cb(err)
+            else
+                if not multi
+                    x = x[0]
+                @_query_set_defaults(client_query, x, misc.keys(user_query))
+                cb(undefined, x)
+        @_query(query_opts)
+
+    _user_get_query_query: (delete_option, table, user_query) =>
+        if delete_option
+            return "DELETE FROM #{table}"
+        else
+            return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
+
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
@@ -580,28 +832,54 @@ class exports.PostgreSQL extends PostgreSQL
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
-        User queries are of the form
-
-            old ReQL: .table(table).getAll(get_all).filter(filter).pluck(pluck)[limit|slice options]
+        The general idea is that user get queries are of the form
 
             SELECT [columns] FROM table WHERE [get_all] AND [further restrictions] LIMIT/slice
 
         Using the whitelist rules specified in SCHEMA, we
-        determine each of get_all, filter, pluck, and options,
-        then run the query.
+        determine each of the above, then run the query.
 
-        If no error in query, and changes is a given uuid, then sets up a change
+        If no error in query, and changes is a given uuid, set up a change
         feed that calls opts.cb on changes as well.
         ###
-        if opts.account_id?
-            dbg = @_dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
-        else if opts.project_id?
-            dbg = @_dbg("user_get_query(project_id=#{opts.project_id}, table=#{opts.table})")
-        else
-            dbg = @_dbg("user_get_query(anonymous, table=#{opts.table})")
 
-        dbg("options=#{misc.to_json(opts.options)}")
-        opts.cb('not implemented')
+        {err, dbg, table, client_query, require_admin, delete_option} = @_parse_get_query(opts)
+
+        if err
+            opts.cb(err)
+            return
+        if client_query.get.instead_of_query?
+            # custom version: instead of doing a full query, we instead call a function and that's it.
+            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
+            return
+
+        _query_opts = {}  # this will be the input to the @_query command.
+        result = undefined
+        async.series([
+            (cb) =>
+                if client_query.get.check_hook?
+                    client_query.get.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
+                else
+                    cb()
+            (cb) =>
+                if require_admin
+                    @_require_is_admin(opts.account_id, cb)
+                else
+                    cb()
+            (cb) =>
+                @_user_get_query_where client_query, opts.account_id, opts.project_id, table, opts.query, (err, where) =>
+                    _query_opts.where = where
+                    cb(err)
+            (cb) =>
+                _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
+                r = @_user_get_query_options(delete_option, opts.options, opts.multi)
+                if r.err
+                    cb(err)
+                    return
+                misc.merge(_query_opts, r)
+                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, (err, x) =>
+                    result = x; cb(err)
+        ], (err) => opts.cb(err, result) )
 
     ###
     Synchronized strings

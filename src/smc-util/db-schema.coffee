@@ -189,6 +189,7 @@ schema.accounts =
         ]
     user_query :
         get :
+            pg_where : ['account_id']
             all :
                 cmd  : 'getAll'
                 args : ['account_id']
