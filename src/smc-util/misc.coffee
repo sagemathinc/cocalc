@@ -1627,6 +1627,14 @@ exports.done = () ->
             s = args
         console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
 
+exports.done2 = (args...) ->
+    if args.length > 0
+        console.log(args...)
+        return
+    start_time = new Date()
+    return (args...) ->
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args...)
+
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
 exports.log = () ->

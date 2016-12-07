@@ -189,7 +189,7 @@ schema.accounts =
         ]
     user_query :
         get :
-            pg_where : ['account_id']
+            pg_where : ['account_id = $::UUID':'account_id']
             all :
                 cmd  : 'getAll'
                 args : ['account_id']
@@ -371,6 +371,7 @@ schema.collaborators =
     virtual     : 'accounts'
     user_query:
         get :
+            pg_where : ["account_id = ANY($)" : 'collaborator_ids']
             all :
                 method : 'getAll'
                 args   : ['collaborators']

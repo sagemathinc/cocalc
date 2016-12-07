@@ -124,7 +124,11 @@ class exports.PostgreSQL extends PostgreSQL
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
-    # Incrementa count of the number of changefeeds by a given client so we can cap it.
+    ###
+    TRACK CHANGEFEED COUNTS
+    ###
+
+    # Incremen a count of the number of changefeeds by a given client so we can cap it.
     _inc_changefeed_count: (account_id, project_id, changefeed_id) =>
         client_name = "#{opts.account_id}-#{opts.project_id}"
         cnt = @_user_get_changefeed_counts ?= {}
@@ -243,7 +247,9 @@ class exports.PostgreSQL extends PostgreSQL
 
     _primary_key_query: (primary_key, query) =>
         throw Error("NotImplemented")
-
+    ###
+    SET QUERIES
+    ###
     user_set_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
@@ -464,7 +470,6 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
         ], (err) => opts.cb(err))
 
-
     # mod_fields counts the fields in query that might actually get modified
     # in the database when we do the query; e.g., account_id won't since it gets
     # filled in with the user's account_id, and project_write won't since it must
@@ -593,6 +598,10 @@ class exports.PostgreSQL extends PostgreSQL
         else
             cb()
 
+    ###
+    GET QUERIES
+    ###
+
     _parse_get_query: (opts) =>
         if opts.changes? and not opts.changes.cb?
             return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
@@ -613,7 +622,7 @@ class exports.PostgreSQL extends PostgreSQL
         # Are only admins allowed any get access to this table?
         r.require_admin = !!r.client_query.get.admin
 
-        # verify all requested fields may be read by users
+        # Verify that all requested fields may be read by users
         for field in misc.keys(opts.query)
             if r.client_query.get.fields?[field] == undefined
                 return {err: "user get query not allowed for #{opts.table}.#{field}"}
@@ -664,17 +673,43 @@ class exports.PostgreSQL extends PostgreSQL
             # no condition at all - this is NOT allowed.
             cb("you must specify the pg_where condition (not doing so is too dangerous)")
             return
+        if not misc.is_array(pg_where)
+            cb("pg_where must be an array (of strings or objects)")
+            return
 
-        # Now we just fill in all the parametrized values in the pg_where list.
-        where = []
+        # Now we just fill in all the parametrized substitions in the pg_where list.
+        pg_where = misc.deep_copy(pg_where)
 
-        get_condition = (x, cb) =>
-            if x == 'account_id'
-                where.push('account_id = $::UUID': account_id)
-            cb()
+        subs = {}
+        for x in pg_where
+            if misc.is_object(x)
+                for key, value of x
+                    subs[value] = value
 
-        async.mapSeries pg_where, get_condition, (err) =>
-            cb(err, where)
+        sub_value = (value, cb) =>
+            switch value
+                when 'account_id'
+                    subs[value] = account_id
+                    cb()
+                when 'collaborator_ids'
+                    @get_collaborator_ids
+                        account_id : account_id
+                        cb         : (err, ids) =>
+                            subs[value] = ids
+                            cb(err)
+                else
+                    cb()
+
+        async.map misc.keys(subs), sub_value, (err) =>
+            if err
+                cb(err)
+                return
+            for x in pg_where
+                if misc.is_object(x)
+                    for key, value of x
+                        x[key] = subs[value]
+            cb(undefined, pg_where)
+
         ###
                 when 'project_id-public'
                     if not user_query.project_id
