@@ -854,8 +854,7 @@ exports.SaveButton = rclass
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
         </Button>
 
-# File link to attempt opening an smc path in a project
-# Assumes path ends in a / iff it is a directorie
+# Compnent to attempt opening an smc path in a project
 exports.PathLink = rclass
     displayName : 'Misc-PathLink'
 

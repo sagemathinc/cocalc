@@ -1176,15 +1176,30 @@ class ProjectActions extends Actions
         segments = target.split('/')
         full_path = segments.slice(1).join('/')
         parent_path = segments.slice(1, segments.length-1).join('/')
+        last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
+
                 else
-                    @open_file
-                        path       : full_path
-                        foreground : foreground
-                        foreground_project : foreground
+                    @fetch_directory_listing(parent_path)
+                    @get_store().wait
+                        until   : (s) =>
+                            s.directory_listings.get(parent_path)?.find (val) =>
+                                val.get('name') == last
+                        timeout : 3
+                        cb      : (err, item) =>
+                            if err
+                                alert_message(type:'error', message:'Failed to open link')
+                            else
+                                if item.get('isdir')
+                                    @open_directory(full_path)
+                                else
+                                    @open_file
+                                        path       : full_path
+                                        foreground : foreground
+                                        foreground_project : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)
                 @set_active_tab('new')
