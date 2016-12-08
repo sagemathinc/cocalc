@@ -60,7 +60,7 @@ describe 'some basic testing of user_queries', ->
     project_id = undefined
     it 'creates a project that we will query about soon', (done) ->
         db.create_project(account_id:account_id, title:"Test project", description:"The description",\
-                    cb:(err, x) => project_id=x; done(err))
+                    cb:(err, x) -> project_id=x; done(err))
 
     it 'queries the collaborators virtual table after making one project', (done) ->
         db.user_query
@@ -167,12 +167,12 @@ describe 'testing file_use', ->
     projects = []
     it 'setup accounts and projects', (done) ->
         async.series([
-            (cb) =>
-                create_accounts 2, (err, x) => accounts=x; cb()
-            (cb) =>
-                create_projects 1, accounts[0], (err, x) => projects.push(x...); cb(err)
-            (cb) =>
-                create_projects 1, accounts[1], (err, x) => projects.push(x...); cb(err)
+            (cb) ->
+                create_accounts 2, (err, x) -> accounts=x; cb()
+            (cb) ->
+                create_projects 1, accounts[0], (err, x) -> projects.push(x...); cb(err)
+            (cb) ->
+                create_projects 1, accounts[1], (err, x) -> projects.push(x...); cb(err)
         ], done)
 
     time0 = new Date()
@@ -183,12 +183,12 @@ describe 'testing file_use', ->
             users       : {"#{accounts[0]}":{edit:time0}}
             last_edited : time0
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[0]
                     query      : {file_use : obj}
                     cb         : cb
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[0]
                     query      :
@@ -208,12 +208,12 @@ describe 'testing file_use', ->
             path        : 'foo'
             users       : {"#{accounts[0]}":{read:time0}}
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[0]
                     query      : {file_use : obj}
                     cb         : cb
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[0]
                     query      :
@@ -268,7 +268,7 @@ describe 'testing file_use', ->
             users       : {"#{accounts[1]}":{read:t}}
             last_edited : t
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[1]
                     query      : {file_use : obj}
@@ -301,7 +301,7 @@ describe 'testing file_use', ->
             path        : 'bar'
             last_edited : new Date()
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[1]
                     query      : {file_use : obj}
@@ -339,7 +339,7 @@ describe 'testing file_use', ->
                 db.user_query
                     account_id : accounts[0]
                     query      : {file_use : obj}
-                    cb         : (err) =>
+                    cb         : (err) ->
                         expect(err).toEqual('user must be an admin')
                         cb()
             (cb) ->
@@ -351,14 +351,14 @@ describe 'testing file_use', ->
                 # verify user 0 is admin
                 db.is_admin
                     account_id : accounts[0]
-                    cb         : (err, is_admin) =>
+                    cb         : (err, is_admin) ->
                         expect(is_admin).toEqual(true)
                         cb(err)
             (cb) ->
                 # ... but 1 is not
                 db.is_admin
                     account_id : accounts[1]
-                    cb         : (err, is_admin) =>
+                    cb         : (err, is_admin) ->
                         expect(is_admin).toEqual(false)
                         cb(err)
             (cb) ->
@@ -379,10 +379,10 @@ describe 'test project_log table', ->
     projects = []
     it 'setup accounts and projects', (done) ->
         async.series([
-            (cb) =>
-                create_accounts 3, (err, x) => accounts=x; cb()
-            (cb) =>
-                create_projects 3, accounts[0], (err, x) => projects.push(x...); cb(err)
+            (cb) ->
+                create_accounts 3, (err, x) -> accounts=x; cb()
+            (cb) ->
+                create_projects 3, accounts[0], (err, x) -> projects.push(x...); cb(err)
         ], done)
 
     it 'writes a project_log entry via a user query (and gets it back)', (done) ->
@@ -392,9 +392,9 @@ describe 'test project_log table', ->
             time       : new Date()
             event      : {test:'thing'}
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query(account_id : accounts[0], query:{project_log:obj}, cb:cb)
-            (cb) =>
+            (cb) ->
                 db.user_query
                     account_id : accounts[0]
                     query      :
@@ -421,9 +421,9 @@ describe 'test project_log table', ->
             time       : t  # SAME TIME
             event      : {test:'other stuff'}
         async.series([
-            (cb) =>
+            (cb) ->
                 db.user_query(account_id : accounts[0], query:[{project_log:obj0}, {project_log:obj1}], cb:cb)
-            (cb) =>
+            (cb) ->
                 # get everything with the given time t
                 db.user_query
                     account_id : accounts[0]
@@ -439,7 +439,7 @@ describe 'test project_log table', ->
                             cb()
         ], done)
 
-    it "confirm other user can't read log of first project", (done) =>
+    it "confirm other user can't read log of first project", (done) ->
         db.user_query
             account_id : accounts[1]
             query      :
@@ -448,7 +448,7 @@ describe 'test project_log table', ->
                 expect(err).toEqual('you do not have read access to this project')
                 done()
 
-    it 'make third user an admin and verify can read log of first project', (done) =>
+    it 'make third user an admin and verify can read log of first project', (done) ->
         async.series([
             (cb) ->
                 # now make account 2 an admin
@@ -467,7 +467,7 @@ describe 'test project_log table', ->
                             cb()
         ], done)
 
-    it "add other user, and confirm other user now *CAN* read log", (done) =>
+    it "add other user, and confirm other user now *CAN* read log", (done) ->
         async.series([
             (cb) ->
                 db.add_user_to_project

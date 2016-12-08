@@ -130,7 +130,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     # Incremen a count of the number of changefeeds by a given client so we can cap it.
     _inc_changefeed_count: (account_id, project_id, changefeed_id) =>
-        client_name = "#{opts.account_id}-#{opts.project_id}"
+        client_name = "#{account_id}-#{project_id}"
         cnt = @_user_get_changefeed_counts ?= {}
         ids = @_user_get_changefeed_id_to_user ?= {}
         if not cnt[client_name]?
@@ -140,7 +140,7 @@ class exports.PostgreSQL extends PostgreSQL
         else
             # increment before successfully making get_query to prevent huge bursts causing trouble!
             cnt[client_name] += 1
-        dbg("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+        @_dbg("_inc_changefeed_count")("{#{client_name}:#{cnt[client_name]} ...}")
         ids[changefeed_id] = client_name
 
     # Corresonding decrement of count of the number of changefeeds by a given client.
@@ -766,6 +766,9 @@ class exports.PostgreSQL extends PostgreSQL
         if opts.changes? and not opts.changes.cb?
             return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
 
+        if opts.changes?
+            return {err: "changes not implemented"}
+
         r = {}
         # get data about user queries on this table
         if opts.project_id?
@@ -1017,7 +1020,6 @@ class exports.PostgreSQL extends PostgreSQL
         If no error in query, and changes is a given uuid, set up a change
         feed that calls opts.cb on changes as well.
         ###
-
         {err, dbg, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
 
         if err
