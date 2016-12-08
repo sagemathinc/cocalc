@@ -12,19 +12,15 @@ This is a self-contained single-image multi-user SageMathCloud server.
 
 **Technical Note: This Docker image only supports 64-bit Intel.**
 
-To download the latest docker image (about 7GB):
-
-    docker pull  sagemathinc/sagemathcloud
-
-To store your local SMC data in the directory ~/smc, and run SageMathCloud (via docker), make sure you have about 7GB disk space free, then type:
-
-    docker run --name=smc -v ~/smc:/projects -p 80:80 -p 443:443 sagemathinc/sagemathcloud
-
-Then connect to localhost.   You can also do this to run it in the backeground:
+Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).   Make sure you have at least 7GB disk space free, then type 
 
     docker run --name=smc -d -v ~/smc:/projects -p 80:80 -p 443:443 sagemathinc/sagemathcloud
 
-The name smc makes it so you can refer to the container and use commands like:
+(If you get an error about the Docker daemon, instead run `sudo docker ...`.)
+
+The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer.  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost). 
+
+The docker container is called `smc` and you can refer to the container and use commands like:
 
     $ docker stop smc
     $ docker start smc
@@ -33,14 +29,15 @@ You can watch the logs:
 
     $ docker logs smc -f
 
-If you're running this docker image on a remote server and want to use
-ssh port forwarding to connect, type
+If you're running this docker image on a remote server and want to use ssh port forwarding to connect, type
 
     ssh -L 8080:localhost:80 username@remote_server
 
 then open your web browser to http://localhost:8080
 
 ### Make all users admins
+
+Get a bash shell insider the container, then connect to the database and make all users admins as follows:
 
     $ docker exec -it 9eff7133bbd6 bash
     root@9eff7133bbd6:/# cd /smc/src
