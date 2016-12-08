@@ -165,7 +165,7 @@ class ProjectActions extends Actions
                 @set_url_to_path(store.current_path ? '')
                 sort_by_time = store.sort_by_time
                 show_hidden = store.show_hidden
-                @set_directory_files(store.current_path, sort_by_time, show_hidden)
+                @fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.current_path)
@@ -551,7 +551,7 @@ class ProjectActions extends Actions
             page_number            : 0
             most_recent_file_click : undefined
 
-        @set_directory_files()
+        @fetch_directory_listing()
 
     set_file_search: (search) =>
         @setState
@@ -563,7 +563,7 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    set_directory_files: (path, sort_by_time, show_hidden) =>
+    fetch_directory_listing: (path, sort_by_time, show_hidden) =>
         if not path?
             path = @get_store().current_path
         if not path?
@@ -745,7 +745,7 @@ class ProjectActions extends Actions
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
-            @set_directory_files()
+            @fetch_directory_listing()
             if err
                 @set_activity(id:id, error:err)
             else if output?.event == 'error' or output?.error
@@ -874,7 +874,7 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:id, error:err)
             else
-                @set_directory_files()
+                @fetch_directory_listing()
             @log
                 event  : 'file_action'
                 action : 'moved'
@@ -1050,7 +1050,7 @@ class ProjectActions extends Actions
             timeout : FROM_WEB_TIMEOUT_S
             alert   : true
             cb      : (err) =>
-                @set_directory_files()
+                @fetch_directory_listing()
                 @set_activity(id: id, stop:'')
                 cb?(err)
 

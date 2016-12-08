@@ -128,7 +128,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
-                    @props.actions.set_directory_files()  # update directory listing (command may change files)
+                    @props.actions.fetch_directory_listing()  # update directory listing (command may change files)
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')

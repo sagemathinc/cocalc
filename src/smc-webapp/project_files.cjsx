@@ -678,7 +678,7 @@ FileListing = rclass
 
         dropzone_handler =
             dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.set_directory_files(@props.current_path)
+            complete  : => @props.actions.fetch_directory_listing(@props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
@@ -739,24 +739,24 @@ ProjectFilesButtons = rclass
         if @props.default_sort != next.default_sort
             if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
                 @props.actions.setState(sort_by_time : next.sort_by_time)
-                @props.actions.set_directory_files(next.current_path, next.sort_by_time, next.show_hidden)
+                @props.actions.fetch_directory_listing(next.current_path, next.sort_by_time, next.show_hidden)
             else
                 @props.actions.setState(sort_by_time : not next.sort_by_time)
-                @props.actions.set_directory_files(next.current_path, not next.sort_by_time, next.show_hidden)
+                @props.actions.fetch_directory_listing(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh: (e) ->
         e.preventDefault()
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     handle_sort_method: (e) ->
         e.preventDefault()
         @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.set_directory_files(@props.current_path, not @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing(@props.current_path, not @props.sort_by_time, @props.show_hidden)
 
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, not @props.show_hidden)
+        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
@@ -1071,7 +1071,7 @@ ProjectFilesActionBox = rclass
             paths : @props.checked_files.toArray()
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
 
     render_delete_warning: ->
@@ -1888,7 +1888,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     create_folder: (switch_over=true) ->
         @props.actions.create_folder
@@ -1898,7 +1898,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     render_paging_buttons: (num_pages) ->
         if num_pages > 1
@@ -2064,7 +2064,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </div>
 
     update_current_listing: ->
-        setTimeout((=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
+        setTimeout((=>@props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)
