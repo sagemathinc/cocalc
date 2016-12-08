@@ -772,11 +772,35 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : @_finish_exec(id)
 
-    copy_files: (opts) =>
+    # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
+    _convert_to_displayed_path: (path) =>
+        if path.slice(-1) == '/'
+            return path
+        else
+            if @get_store().displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+                return path + '/'
+            else
+                return path
+
+
+    copy_paths: (opts) =>
         opts = defaults opts,
-            src  : required     # Should be an array of source paths
-            dest : required
-            id   : undefined
+            src           : required     # Should be an array of source paths
+            dest          : required
+            id            : undefined
+            only_contents : false
+
+        with_slashes = opts.src.map(@_convert_to_displayed_path)
+
+        @log
+            event  : 'file_action'
+            action : 'copied'
+            files  : with_slashes[0...3]
+            count  : if opts.src.length > 3 then opts.src.length
+            dest   : opts.dest + '/'
+
+        if opts.only_contents
+            opts.src = with_slashes
 
         # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
         deal_with_leading_dash = (src_path) ->
@@ -790,12 +814,7 @@ class ProjectActions extends Actions
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
-        @log
-            event  : 'file_action'
-            action : 'copied'
-            files  : opts.src[0...3]
-            count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest + '/'
+
         salvus_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -824,12 +843,13 @@ class ProjectActions extends Actions
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
         src = opts.src
         delete opts.src
+        with_slashes = src.map(@_convert_to_displayed_path)
         @log
             event   : 'file_action'
             action  : 'copied'
-            files   : src[0...3]
+            files   : with_slashes[0...3]
             count   : if src.length > 3 then src.length
-            dest    : opts.dest
+            dest    : opts.target_path + '/'
             project : opts.target_project_id
         f = (src_path, cb) =>
             opts0 = misc.copy(opts)
@@ -1181,18 +1201,16 @@ class ProjectActions extends Actions
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
-
                 else
                     @fetch_directory_listing(parent_path)
                     @get_store().wait
-                        until   : (s) =>
-                            s.directory_listings.get(parent_path)?.find (val) =>
-                                val.get('name') == last
+                        until   : (s) => s.directory_listings.get(parent_path)
                         timeout : 3
-                        cb      : (err, item) =>
+                        cb      : (err, listing) =>
                             if err
                                 alert_message(type:'error', message:'Failed to open link')
                             else
+                                item = listing.find (val) => val.get('name') == last
                                 if item.get('isdir')
                                     @open_directory(full_path)
                                 else

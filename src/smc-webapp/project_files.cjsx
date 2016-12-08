@@ -1122,18 +1122,10 @@ ProjectFilesActionBox = rclass
                     src  : @props.checked_files.toArray()
                     dest : misc.path_to_file(rename_dir, destination)
             when 'duplicate'
-                # Add a / after any directory names, so that the contents are copied, not the directory itself.
-                # Otherwise, we end up with copying foo to foo-1, resulting in a foo-1/foo/...
-                # See https://github.com/sagemathinc/smc/issues/1235
-                # Note that src has length 1 so the whole iteration business is overkill.
-                f = (path) =>
-                    if @props.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
-                        return path + '/'
-                    else
-                        return path
-                @props.actions.copy_files
-                    src  : (f(path) for path in @props.checked_files.toArray())
-                    dest : misc.path_to_file(rename_dir, destination)
+                @props.actions.copy_paths
+                    src           : @props.checked_files.toArray
+                    dest          : misc.path_to_file(rename_dir, destination)
+                    only_contents : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1320,12 +1312,7 @@ ProjectFilesActionBox = rclass
         destination_project_id = @state.copy_destination_project_id
         overwrite_newer        = @state.overwrite_newer
         delete_extra_files     = @state.delete_extra_files
-        f = (path) =>
-            if @props.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
-                return path + '/'
-            else
-                return path
-        paths = (f(path) for path in @props.checked_files.toArray())
+        paths                  = @props.checked_files.toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
                 public            : @props.public_view
@@ -1336,7 +1323,7 @@ ProjectFilesActionBox = rclass
                 overwrite_newer   : overwrite_newer
                 delete_missing    : delete_extra_files
         else
-            @props.actions.copy_files
+            @props.actions.copy_paths
                 src  : paths
                 dest : destination_directory
         @props.actions.set_file_action()
