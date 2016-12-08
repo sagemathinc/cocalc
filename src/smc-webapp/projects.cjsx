@@ -780,13 +780,13 @@ NewProjectCreator = rclass
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
                 bsStyle  = 'success'
                 onClick  = {=>@create_project_with_members_and_internet()} >
-                Core upgrades
+                <Icon name="arrow-circle-up" /> Core upgrades
             </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
                 bsStyle  = 'success'
                 onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
-                Custom upgrades
+                <Icon name="cog" /> Custom upgrades
             </Button>
             <Button
                 disabled  = {@state.title_text == '' or @state.state == 'saving'}
@@ -869,14 +869,19 @@ NewProjectCreator = rclass
                 </Col>
 
             </Row>
-
+            <Row>
+                <Col sm=5>
+                </Col>
+                <Col sm=7>
+                    <div style={marginBottom: '12px'}>You can <b>very easily</b> change the title and description at any time later.</div>
+                </Col>
+            </Row>
             <Row>
                 <Col sm=12>
-                    You can <b>very easily</b> change the title and description at any time later.<br/>
-                    A <b>project</b> is your own private computational workspace that you can share
+                    {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
+                    <br/>A <b>project</b> is your own private computational workspace that you can share
                     with others. 
                     {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
-                    {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
                     {@render_error()}
                 </Col>
             </Row>
