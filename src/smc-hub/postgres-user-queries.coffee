@@ -766,9 +766,6 @@ class exports.PostgreSQL extends PostgreSQL
         if opts.changes? and not opts.changes.cb?
             return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
 
-        if opts.changes?
-            return {err: "changes not implemented"}
-
         r = {}
         # get data about user queries on this table
         if opts.project_id?
@@ -1020,7 +1017,9 @@ class exports.PostgreSQL extends PostgreSQL
         If no error in query, and changes is a given uuid, set up a change
         feed that calls opts.cb on changes as well.
         ###
-        {err, dbg, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
+        dbg = @_dbg("user_get_query(table='#{opts.table}')")
+        dbg()
+        {err, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
 
         if err
             opts.cb(err)
@@ -1053,11 +1052,30 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
             (cb) =>
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
-                r = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.all?.options)
-                if r.err
+                x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.all?.options)
+                if x.err
                     cb(err)
                     return
-                misc.merge(_query_opts, r)
+                misc.merge(_query_opts, x)
+
+                if opts.changes?
+                    @changefeed
+                        table     : table
+                        columns   : {account_id:'UUID'}
+                        query     : _query_opts
+                        condition : (x) -> x.account_id == opts.account_id
+                        cb        : (err, feed) =>
+                            if err
+                                dbg("ERROR registering changefeed")
+                            else
+                                dbg("successfully registered changefeed")
+                                feed.on 'change', (x) ->
+                                    dbg("changefeed: #{misc.to_json(x)}")
+                                    opts.cb(undefined, x)
+                                feed.on 'error', (err) ->
+                                    dbg("changefeed: ERROR #{err}")
+                                    opts.cb(err)
+
                 @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, x) =>
                     result = x; cb(err)
         ], (err) =>

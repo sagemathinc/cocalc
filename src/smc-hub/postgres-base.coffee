@@ -32,6 +32,7 @@ class exports.PostgreSQL extends EventEmitter
             port     : 5432
             debug    : true
             cb       : undefined
+        @setMaxListeners(200)
         @_debug    = opts.debug
         @_host     = opts.host
         @_port     = opts.port

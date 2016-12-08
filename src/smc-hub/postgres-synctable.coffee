@@ -19,20 +19,23 @@ async        = require('async')
 required = defaults.required
 misc_node = require('smc-util-node/misc_node')
 
-{PostgreSQL, pg_type} = require('./postgres')
+{PostgreSQL, pg_type, one_result} = require('./postgres')
 
 {SCHEMA} = require('smc-util/schema')
 
 
 class exports.PostgreSQL extends PostgreSQL
 
-    _ensure_trigger_exists: (table, columns, cb) =>
+    _ensure_trigger_exists: (table, select, watch, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
-        dbg("columns=#{misc.to_json(columns)}")
-        if misc.len(columns) == 0
-            cb('there must be at least one column')
+        dbg("select=#{misc.to_json(select)}")
+        if misc.len(select) == 0
+            cb('there must be at least one column selected')
             return
-        tgname = trigger_name(table, columns)
+        if watch.length == 0
+            cb('there must be at least one column where we watch for watchs')
+            return
+        tgname = trigger_name(table, select, watch)
         trigger_exists = undefined
         async.series([
             (cb) =>
@@ -52,26 +55,36 @@ class exports.PostgreSQL extends PostgreSQL
                     return
                 dbg("creating trigger #{tgname}")
                 @_query
-                    query : trigger_code(table, columns)
+                    query : trigger_code(table, select, watch)
                     cb    : cb
         ], cb)
 
-    _listen: (table, columns, cb) =>
+    _listen: (table, select, watch, cb) =>
         dbg = @_dbg("_listen(#{table})")
-        dbg("columns = #{misc.to_json(columns)}")
-        if misc.len(columns) == 0
+        dbg("select = #{misc.to_json(select)}")
+        if not misc.is_object(select)
+            cb('select must be an object')
+            return
+        if misc.len(select) == 0
             cb('there must be at least one column')
             return
+        if not misc.is_array(watch)
+            cb('watch must be an array')
+            return
+        if watch.length == 0
+            cb('there must be at least one column where we watch for watchs')
+            return
         @_listening ?= {}
-        tgname = trigger_name(table, columns)
-        if @_listening[tgname]
+        tgname = trigger_name(table, select, watch)
+        if @_listening[tgname] > 0
             dbg("already listening")
-            cb?()
+            @_listening[tgname] += 1
+            cb?(undefined, tgname)
             return
         async.series([
             (cb) =>
                 dbg("ensure trigger exists")
-                @_ensure_trigger_exists(table, columns, cb)
+                @_ensure_trigger_exists(table, select, watch, cb)
             (cb) =>
                 dbg("add listener")
                 @_query
@@ -82,7 +95,8 @@ class exports.PostgreSQL extends PostgreSQL
                 dbg("fail: err = #{err}")
                 cb?(err)
             else
-                @_listening[tgname] = true
+                @_listening[tgname] ?= 0
+                @_listening[tgname] += 1
                 dbg("success")
                 cb?(undefined, tgname)
         )
@@ -90,6 +104,19 @@ class exports.PostgreSQL extends PostgreSQL
     _notification: (mesg) =>
         @_dbg('notification')(misc.to_json(mesg))
         @emit(mesg.channel, JSON.parse(mesg.payload))
+
+    _stop_listening: (table, select, watch, cb) =>
+        @_listening ?= {}
+        tgname = trigger_name(table, select, watch)
+        if not @_listening[tgname]? or @_listening[tgname] == 0
+            cb?()
+            return
+        if @_listening[tgname] > 0
+            @_listening[tgname] -= 1
+        if @_listening[tgname] == 0
+            @_query
+                query : "UNLISTEN #{tgname}"
+                cb    : cb
 
     # Server-side changefeed-updated table, which automatically restart changefeed
     # on error, etc.  See SyncTable docs where the class is defined.
@@ -103,6 +130,101 @@ class exports.PostgreSQL extends PostgreSQL
             cb             : required
         new SyncTable(@, opts.table, opts.columns, opts.where, opts.limit, opts.order_by, opts.cb)
         return
+
+    changefeed: (opts) =>
+        opts = defaults opts,
+            table  : required   # Name of the table
+            select : required   # Map from field names to postgres data types. These must
+                                # determine entries of table (e.g., primary key).
+            watch  : required   # Array of field names we watch for changes
+            where  : required   # Condition involving only the fields in select
+            cb     : required
+        new Changes(@, opts.table, opts.select, opts.watch, opts.where, opts.cb)
+        return
+
+class Changes extends EventEmitter
+    constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
+        @dbg = @_db._dbg("ChangeFeed(table='#{@_table}')")
+        @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}")
+        @_init_where()
+        @_db._listen @_table, @_select, @_watch, (err, tgname) =>
+            if err
+                cb(err); return
+            @_tgname = tgname
+            @_db.on(@_tgname, @_handle_change)
+            cb(undefined, @)
+
+    close: (cb) =>
+        @_db.removeListener(@_tgname, @_handle_change)
+        @_db._stop_listening(@_table, @_select, @_watch, cb)
+        delete @_tgname
+        delete @_condition
+
+    _handle_change: (mesg) =>
+        if not @_match_condition(mesg[1])
+            return
+        if mesg[0] == 'DELETE'
+            @emit 'delete', mesg[1]
+        else
+            where = {}
+            for k, v of mesg[1]
+                where["#{k} = $"] = v
+            @_db._query
+                query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
+                where : where
+                cb    : one_result (err, result) =>
+                    @emit 'change', misc.merge(result, mesg[1])
+
+    _init_where: =>
+        if misc.is_object(@_where)
+            w = [@_where]
+        else
+            w = @_where
+        @_condition = {}
+        for obj in w
+            if misc.is_object(obj)
+                for k, val of obj
+                    # should be of the form "field = $":val
+                    i = k.indexOf(':')
+                    if i != -1
+                        k = k.slice(i)
+                    if k.indexOf('>') != -1
+                        throw Error("NotImplementedError")
+                    if k.indexOf('<') != -1
+                        throw Error("NotImplementedError")
+                    if k.indexOf('!') != -1
+                        throw Error("NotImplementedError")
+                    v = k.split('=')
+                    field = v[0].trim()
+                    if not @_select[field]?
+                        throw Error("'#{field}' must be in select")
+                    @_condition[field] = val
+            else if typeof(obj) == 'string'
+                if obj.indexOf('>') != -1
+                    throw Error("NotImplementedError")
+                if obj.indexOf('<') != -1
+                    throw Error("NotImplementedError")
+                if obj.indexOf('!') != -1
+                    throw Error("NotImplementedError")
+                v = obj.split('=')
+                field = v[0].trim()
+                val   = eval(v[1].trim())
+                if not @_select[field]?
+                    throw Error("'#{field}' must be in select")
+                @_condition[field] = val
+            else
+                throw Error("NotImplementedError")
+        if misc.len(@_condition) == 0
+            delete @_condition
+
+    _match_condition: (obj) =>
+        if not @_condition?
+            return true
+        for field, val of @_condition
+            if obj[field] != val
+                return false
+        return true
+
 
 class SyncTable extends EventEmitter
     constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
@@ -225,30 +347,52 @@ class SyncTable extends EventEmitter
 ###
 Trigger functions
 ###
-trigger_name = (table, columns) ->
-    c = misc.keys(columns)
+trigger_name = (table, select, watch) ->
+    if not misc.is_object(select)
+        throw Error("trigger_name -- columns must be a map of colname:type")
+    c = misc.keys(select)
     c.sort()
-    return 'change_' + misc_node.sha1("changes_#{table}_#{c.join('_')}")
+    watch = misc.copy(watch)
+    watch.sort()
+    c = c.concat(watch)
+    return 'change_' + misc_node.sha1("#{table} #{c.join(' ')}").slice(0,16)
 
-trigger_code = (table, columns) ->
-    tgname      = trigger_name(table, columns)
-    column_decl = ("#{name} #{type ? 'text'};" for name, type of columns)
-    old_assign  = ("#{name} = OLD.#{name};" for name, _ of columns)
-    new_assign  = ("#{name} = NEW.#{name};" for name, _ of columns)
-    build_obj   = ("'#{name}', #{name}" for name, _ of columns)
+###
+INPUT:
+    table  -- name of a table
+    select -- map from field names (of table) to their postgres types
+    change -- array of field names (of table)
+
+Creates a trigger function that fires whenever any of the given
+columns changes, and sends the columns in select out as a notification.
+###
+trigger_code = (table, select, watch) ->
+    tgname      = trigger_name(table, select, watch)
+    column_decl = ("#{field} #{type ? 'text'};"   for field, type of select)
+    old_assign  = ("#{field} = OLD.#{field};"     for field, _ of select)
+    new_assign  = ("#{field} = NEW.#{field};"     for field, _ of select)
+    build_obj   = ("'#{field}', #{field}"         for field, _ of select)
+    no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch).join(' AND ')
     return """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
         notification json;
         #{column_decl.join('\n')}
     BEGIN
-        -- Action = DELETE?             -> OLD row; INSERT or UPDATE?   -> NEW row
-        IF (TG_OP = 'DELETE') THEN
+        -- TG_OP is 'DELETE', 'INSERT' or 'UPDATE'
+        IF TG_OP = 'DELETE' THEN
             #{old_assign.join('\n')}
-        ELSE
+        END IF;
+        IF TG_OP = 'INSERT' THEN
             #{new_assign.join('\n')}
         END IF;
-        notification = json_build_object('action', TG_OP, #{build_obj.join(',')});
+        IF TG_OP = 'UPDATE' THEN
+            IF #{no_change} THEN
+                RETURN NULL;
+            END IF;
+            #{new_assign.join('\n')}
+        END IF;
+        notification = json_build_array(TG_OP, json_build_object(#{build_obj.join(',')}));
         PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;

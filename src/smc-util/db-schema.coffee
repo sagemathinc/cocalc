@@ -190,6 +190,8 @@ schema.accounts =
     user_query :
         get :
             pg_where : ['account_id = $::UUID':'account_id']
+            pg_changefeed :
+                columns : ['account_id']
             all :
                 cmd  : 'getAll'
                 args : ['account_id']
