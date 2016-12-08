@@ -1,3 +1,14 @@
+###
+TESTING of User (and project) client queries
+
+**
+This code is currently NOT released under any license for use by anybody except SageMath, Inc.
+
+(c) 2016 SageMath, Inc.
+**
+
+###
+
 pgtest   = require('./pgtest')
 db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
@@ -359,10 +370,155 @@ describe 'testing file_use', ->
         ], done)
 
 
-#describe 'test project_log table', ->
-#    before(setup)
-#    after(teardown)
+describe 'test project_log table', ->
+    before(setup)
+    after(teardown)
 
+    # Create two users and one project
+    accounts = []
+    projects = []
+    it 'setup accounts and projects', (done) ->
+        async.series([
+            (cb) =>
+                create_accounts 3, (err, x) => accounts=x; cb()
+            (cb) =>
+                create_projects 3, accounts[0], (err, x) => projects.push(x...); cb(err)
+        ], done)
 
+    it 'writes a project_log entry via a user query (and gets it back)', (done) ->
+        obj =
+            id         : misc.uuid()
+            project_id : projects[0]
+            time       : new Date()
+            event      : {test:'thing'}
+        async.series([
+            (cb) =>
+                db.user_query(account_id : accounts[0], query:{project_log:obj}, cb:cb)
+            (cb) =>
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        project_log :
+                            project_id  : projects[0]
+                            time        : null
+                            event       : null
+                            id          : null
+                    cb         : (err, result) ->
+                        expect(result).toEqual(project_log:obj)
+                        cb(err)
+        ], done)
+
+    it 'write two project_log entries with the same timestamp (but different ids)', (done) ->
+        t = new Date()
+        obj0 =
+            id         : misc.uuid()
+            project_id : projects[0]
+            time       : t
+            event      : {test:'stuff', a:['x', 'y']}
+        obj1 =
+            id         : misc.uuid()
+            project_id : projects[0]
+            time       : t  # SAME TIME
+            event      : {test:'other stuff'}
+        async.series([
+            (cb) =>
+                db.user_query(account_id : accounts[0], query:[{project_log:obj0}, {project_log:obj1}], cb:cb)
+            (cb) =>
+                # get everything with the given time t
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        project_log : [{project_id:projects[0], time:t, id:null}]
+                    cb         : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            expect(result.project_log.length).toEqual(2)
+                            expect(result.project_log[0].time).toEqual(t)
+                            expect(result.project_log[1].time).toEqual(t)
+                            cb()
+        ], done)
+
+    it "confirm other user can't read log of first project", (done) =>
+        db.user_query
+            account_id : accounts[1]
+            query      :
+                project_log : [{project_id:projects[0], time:null, id:null}]
+            cb         : (err, result) ->
+                expect(err).toEqual('you do not have read access to this project')
+                done()
+
+    it 'make third user an admin and verify can read log of first project', (done) =>
+        async.series([
+            (cb) ->
+                # now make account 2 an admin
+                db.make_user_admin
+                    account_id : accounts[2]
+                    cb         : cb
+            (cb) ->
+                db.user_query
+                    account_id : accounts[2]
+                    query      : project_log : [{project_id:projects[0], time:null, id:null}]
+                    cb         : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            expect(result.project_log.length).toEqual(3)
+                            cb()
+        ], done)
+
+    it "add other user, and confirm other user now *CAN* read log", (done) =>
+        async.series([
+            (cb) ->
+                db.add_user_to_project
+                    project_id : projects[0]
+                    account_id : accounts[1]
+                    cb         : cb
+            (cb) ->
+                db.user_query
+                    account_id : accounts[1]
+                    query      : project_log : [{project_id:projects[0], time:null, id:null}]
+                    cb         : (err, result) ->
+                        expect(result.project_log.length).toEqual(3)
+                        cb(err)
+        ], done)
+
+    it "confirm other project doesn't have any log entries (testing that reads are by project)", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      :
+                project_log : [{project_id:projects[1], time:null, id:null}]
+            cb         : (err, result) ->
+                expect(result.project_log.length).toEqual(0)
+                done(err)
+
+    it "add three entries to second project log and verify that they come back in the right order", (done) ->
+        f = (t, id, cb) ->
+            obj =
+                id         : id
+                project_id : projects[2]
+                time       : t
+                event      : {test:'0'}
+            db.user_query(account_id:accounts[0], query:{project_log:obj}, cb:cb)
+        ids = (misc.uuid() for _ in [0,1,2])
+        async.series([
+            (cb) -> f(misc.minutes_ago(5), ids[0], cb)
+            (cb) -> f(misc.minutes_ago(1), ids[2], cb)
+            (cb) -> f(misc.minutes_ago(3), ids[1], cb)
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        project_log : [{project_id:projects[2], time:null, id:null}]
+                    cb         : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            expect(result.project_log.length).toEqual(3)
+                            expect(result.project_log[0].id).toEqual(ids[2])
+                            expect(result.project_log[1].id).toEqual(ids[1])
+                            expect(result.project_log[2].id).toEqual(ids[0])
+                            cb()
+        ], done)
 
 

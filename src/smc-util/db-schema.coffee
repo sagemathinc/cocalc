@@ -600,6 +600,8 @@ schema.project_log =
         project_id        : []
         'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
 
+    pg_indexes : ['project_id', 'time']
+
     user_query:
         get :
             pg_where : ["project_id = $::UUID": 'project_id']
@@ -615,6 +617,7 @@ schema.project_log =
                 event       : null
         set :
             fields :
+                id         : true
                 project_id : 'project_write'
                 account_id : 'account_id'
                 time       : true

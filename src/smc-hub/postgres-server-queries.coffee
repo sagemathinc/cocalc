@@ -1329,7 +1329,16 @@ class exports.PostgreSQL extends PostgreSQL
             where :
                 'project_id :: UUID = $' : opts.project_id
                 "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups
-            cb    : count_result (err, n) -> opts.cb(err, n > 0)
+            cb    : count_result (err, n) =>
+                if err
+                    opts.cb(err)
+                else if n == 0
+                    # one more chance -- admin?
+                    @is_admin
+                        account_id : opts.account_id
+                        cb         : opts.cb
+                else
+                    opts.cb(err, n > 0)
 
     # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>

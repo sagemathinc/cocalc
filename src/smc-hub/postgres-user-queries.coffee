@@ -184,16 +184,7 @@ class exports.PostgreSQL extends PostgreSQL
         return true
 
     _user_get_query_columns: (query) =>
-        columns = {}
-        for k, v of query
-            if v == null or typeof(v) != 'object'
-                columns[k] = true
-            else
-                for a, _ of v
-                    if a in ['==', '!=', '>=', '>', '<', '<=']
-                        columns[k] = true
-                        break
-        return misc.keys(columns)
+        return misc.keys(query)
 
     _require_is_admin: (account_id, cb) =>
         if not account_id?
@@ -305,11 +296,11 @@ class exports.PostgreSQL extends PostgreSQL
                     when 'account_id'
                         if not r.account_id?
                             return {err: "account_id must be specified"}
-                        r.query[field] = account_id
+                        r.query[field] = r.account_id
                     when 'project_id'
-                        if not project_id?
+                        if not r.project_id?
                             return {err: "project_id must be specified"}
-                        r.query[field] = project_id
+                        r.query[field] = r.project_id
                     when 'time_id'
                         r.query[field] = uuid.v1()
                     when 'project_write'
