@@ -2064,7 +2064,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </div>
 
     update_current_listing: ->
-        setTimeout((=>@props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
+        setTimeout(@props.actions.fetch_directory_listing, 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)

@@ -26,7 +26,7 @@ immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
-{Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
+{Icon, Loading, TimeAgo, PathLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
@@ -114,22 +114,16 @@ LogEntry = rclass
         user_map        : rtypes.object
         cursor          : rtypes.bool
         backgroundStyle : rtypes.object
-        actions         : rtypes.object.isRequired
-
-    click_filename: (e) ->
-        e.preventDefault()
-        @props.actions.open_file
-            path       : @props.event.filename
-            foreground : misc.should_open_in_foreground(e)
+        project_id      : rtypes.string
 
     render_open_file: ->
         <span>opened<Space/>
-            <FileLink
-                path    = {@props.event.filename}
-                full    = {true}
-                style   = {if @props.cursor then selected_item}
-                trunc   = 50
-                actions = {@props.actions} />
+            <PathLink
+                path       = {@props.event.filename}
+                full       = {true}
+                style      = {if @props.cursor then selected_item}
+                trunc      = 50
+                project_id = {@props.project_id} />
         </span>
 
     render_miniterm_command: (cmd) ->
@@ -146,21 +140,32 @@ LogEntry = rclass
     project_title: ->
         <ProjectTitleAuto project_id={@props.event.project} />
 
-    file_link: (path, link, i) ->
-        <FileLink
-            path    = {path}
-            full    = {true}
-            style   = {if @props.cursor then selected_item}
-            key     = {i}
-            trunc   = 50
-            link    = {link}
-            actions = {@props.actions} />
+    file_link: (path, link, i, project_id) ->
+        <PathLink
+            path       = {path}
+            full       = {true}
+            style      = {if @props.cursor then selected_item}
+            key        = {i}
+            trunc      = 50
+            link       = {link}
+            project_id = {project_id ? @props.project_id} />
 
     multi_file_links: (link = true) ->
         links = []
         for path, i in @props.event.files
             links.push @file_link(path, link, i)
         return r_join(links)
+
+    to_link: ->
+        e = @props.event
+        if e.project? and e.dest?
+            return <span>{@file_link(e.dest, true, 0, e.project)} of {@project_title()}</span>
+        else if e.project?
+            return @project_title()
+        else if e.dest?
+            return @file_link(e.dest, true, 0)
+        else
+            return "???"
 
     render_file_action: ->
         e = @props.event
@@ -170,15 +175,15 @@ LogEntry = rclass
             when 'downloaded'
                 <span>downloaded {@file_link(e.path ? e.files, true, 0)} {(if e.count? then "(#{e.count} total)" else '')}</span>
             when 'moved'
-                <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true, 0)}</span>
+                <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@to_link()}</span>
             when 'copied'
-                <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true)} {if e.project? then @project_title()}</span>
+                <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {@to_link()}</span>
             when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 
     click_set: (e) ->
         e.preventDefault()
-        @props.actions.set_active_tab('settings')
+        @actions(project_id : @props.project_id).set_active_tab('settings')
 
     render_set: (obj) ->
         i = 0
@@ -292,9 +297,9 @@ LogMessages = rclass
 
     propTypes :
         log        : rtypes.array.isRequired
+        project_id : rtypes.string.isRequired
         user_map   : rtypes.object
         cursor     : rtypes.string    # id of the cursor
-        actions    : rtypes.object.isRequired
 
     render_entries: ->
         for x, i in @props.log
@@ -306,7 +311,7 @@ LogMessages = rclass
                 account_id      = {x.account_id}
                 user_map        = {@props.user_map}
                 backgroundStyle = {if i % 2 is 0 then backgroundColor : '#eee'}
-                actions         = {@props.actions} />
+                project_id      = {@props.project_id} />
 
     render: ->
         <div style={wordWrap:'break-word'}>
@@ -324,7 +329,7 @@ matches = (s, words) ->
 exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
-    reduxProps :
+    reduxProps:
         "#{name}" :
             project_log : rtypes.immutable
             search      : rtypes.string
@@ -332,6 +337,9 @@ exports.ProjectLog = rclass ({name}) ->
         users :
             user_map    : rtypes.immutable
             get_name    : rtypes.func
+
+    propTypes:
+        project_id : rtypes.string.isRequired
 
     getDefaultProps: ->
         search : ''   # search that user has requested
@@ -469,7 +477,7 @@ exports.ProjectLog = rclass ({name}) ->
             </Row>
             <Row>
                 <Col sm=12>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@actions(name)} />
+                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
             <Row>

@@ -854,17 +854,19 @@ exports.SaveButton = rclass
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
         </Button>
 
-exports.FileLink = rclass
-    displayName : 'Misc-FileLink'
+# File link to attempt opening an smc path in a project
+# Assumes path ends in a / iff it is a directorie
+exports.PathLink = rclass
+    displayName : 'Misc-PathLink'
 
     propTypes :
         path         : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
         display_name : rtypes.string # if provided, show this as the link and show real name in popover
         full         : rtypes.bool   # true = show full path, false = show only basename
         trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
         style        : rtypes.object
         link         : rtypes.bool   # set to false to make it not be a link
-        actions      : rtypes.object.isRequired
 
     getDefaultProps: ->
         style : {}
@@ -873,12 +875,12 @@ exports.FileLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        if misc.endswith(@props.path, '/')
-            @props.actions.open_directory(@props.path)
-        else
-            @props.actions.open_file
-                path       : @props.path
-                foreground : misc.should_open_in_foreground(e)
+        path_head = 'files'
+        path_head += '/' if @props.path[0] != '/'
+        @actions('projects').open_project
+            project_id : @props.project_id
+            target     : path_head + @props.path
+            switch_to  : misc.should_open_in_foreground(e)
 
     render_link: (text) ->
         if @props.link
