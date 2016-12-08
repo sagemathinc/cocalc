@@ -7,8 +7,9 @@ async  = require('async')
 expect = require('expect')
 
 misc = require('smc-util/misc')
+{SCHEMA} = require('smc-util/schema')
 
-describe 'basic testing of the schema-based query language', ->
+describe 'some basic testing of user_queries', ->
     before(setup)
     after(teardown)
     account_id = undefined
@@ -24,23 +25,6 @@ describe 'basic testing of the schema-based query language', ->
                 expect(result).toEqual({accounts:{ account_id:account_id, first_name: 'Sage' }})
                 done(err)
 
-### not implemented yet!
-
-describe 'basic testing of the schema-based query language', ->
-    before(setup)
-    after(teardown)
-    account_id = undefined
-    # First create an account, so we can do some queries.
-    it 'creates an account', (done) ->
-        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
-                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) -> account_id=x; done(err))
-    it 'queries for the first_name and account_id property', (done) ->
-        db.user_query
-            account_id : account_id
-            query      : {accounts:{account_id:account_id, first_name:null}}
-            cb         : (err, result) ->
-                expect(result).toEqual({accounts:{ account_id:account_id, first_name: 'Sage' }})
-                done(err)
     it 'query for the evaluate key fills in the correct default', (done) ->
         db.user_query
             account_id : account_id
@@ -76,15 +60,7 @@ describe 'basic testing of the schema-based query language', ->
                 expect(collabs).toEqual({collaborators:[user]})
                 done()
 
-    it 'queries the projects table and ensures there is one project with the correct title and description, etc.', (done) ->
-        db.user_query
-            account_id : account_id
-            query      : {projects:[{project_id:project_id, title:null, description:null}]}
-            cb         : (err, projects) ->
-                expect(projects).toEqual(projects:[{description: 'The description', project_id: project_id, title: 'Test project' }])
-                done(err)
-
-    it 'queries the projects table and ensures there is one project with the correct title and description, etc.', (done) ->
+    it 'queries the projects table and ensures there is one project with the correct title and description.', (done) ->
         db.user_query
             account_id : account_id
             query      : {projects:[{project_id:project_id, title:null, description:null}]}
@@ -115,9 +91,10 @@ describe 'basic testing of the schema-based query language', ->
             account_id : account_id2
             query      : {accounts:{account_id:account_id, first_name:null}}
             cb         : (err, result) ->
-                # we get undefined, meaning no results in the data weknow about that match the query
+                # we get undefined, meaning no results in the data we know about that match the query
                 expect(result).toEqual({accounts:undefined})
                 done(err)
+
     it 'queries for first user project but does not see it', (done) ->
         db.user_query
             account_id : account_id2
@@ -125,6 +102,7 @@ describe 'basic testing of the schema-based query language', ->
             cb         : (err, projects) ->
                 expect(projects).toEqual(projects:[])
                 done(err)
+
     it 'queries the collaborators virtual table before there are any projects for the second user', (done) ->
         db.user_query
             account_id : account_id2
@@ -166,6 +144,4 @@ describe 'basic testing of the schema-based query language', ->
                 user2 = {account_id:account_id, first_name:'Sage', last_name:'Math'}
                 expect(collabs).toEqual({collaborators:[user1,user2]})
                 done(err)
-
-###
 

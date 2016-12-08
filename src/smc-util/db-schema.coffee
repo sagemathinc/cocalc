@@ -967,7 +967,7 @@ schema.site_settings =
     user_query:
         # NOTE: can set and get certain fields.
         get:
-            pg_where: [] # TODO
+            pg_where: ['name = ANY($)': site_settings_fields]
             all :
                 cmd  : 'getAll'
                 args : site_settings_fields

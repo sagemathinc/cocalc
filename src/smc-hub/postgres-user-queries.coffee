@@ -176,19 +176,12 @@ class exports.PostgreSQL extends PostgreSQL
         opts.cb?("NotImplemented")
 
     _query_is_cmp: (obj) =>
+        if not misc.is_object(obj)
+            return false
         for k, _ of obj
-            if k in ['==', '!=', '>=', '<=', '>', '<']
-                return true
-        return false
-
-    _query_cmp: (filter, x, q) =>
-        throw Error("NotImplemented")
-
-    _query_descend: (filter, x, q) =>
-        throw Error("NotImplemented")
-
-    _query_to_filter: (query, primary_key) =>
-        throw Error("NotImplemented")
+            if k not in ['==', '!=', '>=', '<=', '>', '<']
+                return false
+        return true
 
     _user_get_query_columns: (query) =>
         columns = {}
@@ -196,24 +189,17 @@ class exports.PostgreSQL extends PostgreSQL
             if v == null or typeof(v) != 'object'
                 columns[k] = true
             else
-                sub = true
                 for a, _ of v
                     if a in ['==', '!=', '>=', '>', '<', '<=']
                         columns[k] = true
-                        sub = false
                         break
-                if sub
-                    columns[k] = @_query_to_field_columns(v)
         return misc.keys(columns)
-
-    _is_admin: (account_id, cb) =>
-        cb?("NotImplemented")
 
     _require_is_admin: (account_id, cb) =>
         if not account_id?
             cb("user must be an admin")
             return
-        @_is_admin account_id, (err, is_admin) =>
+        @is_admin account_id, (err, is_admin) =>
             if err
                 cb(err)
             else if not is_admin
@@ -224,7 +210,30 @@ class exports.PostgreSQL extends PostgreSQL
     # Ensure that each project_id in project_ids is such that the account is in one of the given
     # groups for the project, or that the account is an admin.  If not, cb(err).
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
-        cb?("NotImplemented")
+        s = {"#{account_id}": true}
+        require_admin = false
+        @_query
+            query : "SELECT project_id, users#>'{#{account_id}}' AS user FROM projects"
+            where : "project_id = ANY($)":project_ids
+            cache : true
+            cb    : all_results (err, x) =>
+                if err
+                    cb(err)
+                else
+                    known_project_ids = {}  # we use this to ensure that each of the given project_ids exists.
+                    for p in x
+                        known_project_ids[p.project_id] = true
+                        if p.user?.group not in groups
+                            require_admin = true
+                    # If any of the project_ids don't exist, reject the query.
+                    for project_id in project_ids
+                        if not known_project_ids[project_id]
+                            cb("unknown project_id '#{misc.trunc(project_id,100)}'")
+                            return
+                    if require_admin
+                        @_require_is_admin(account_id, cb)
+                    else
+                        cb()
 
     _query_parse_options: (options) =>
         r = {}
@@ -245,102 +254,93 @@ class exports.PostgreSQL extends PostgreSQL
                         r.err = "unknown option '#{name}'"
         return r
 
-    _primary_key_query: (primary_key, query) =>
-        throw Error("NotImplemented")
     ###
     SET QUERIES
     ###
-    user_set_query: (opts) =>
-        opts = defaults opts,
-            account_id : undefined
-            project_id : undefined
-            table      : required
-            query      : required
-            options    : undefined     # {delete:true} is the only supported option
-            cb         : required   # cb(err)
+    _parse_set_query_opts: (opts) =>
+        r = {}
+
         if opts.project_id?
-            dbg = @_dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
+            dbg = r.dbg = @_dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
         else if opts.account_id?
-            dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+            dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
-            opts.cb("account_id or project_id must be specified")
-            return
+            return {err:"account_id or project_id must be specified"}
+
         dbg(misc.to_json(opts.query))
+
         if opts.options
             dbg("options=#{misc.to_json(opts.options)}")
 
-        query      = misc.copy(opts.query)
-        table      = opts.table
-        db_table   = SCHEMA[opts.table].virtual ? table
-        account_id = opts.account_id
-        project_id = opts.project_id
+        r.query      = misc.copy(opts.query)
+        r.table      = opts.table
+        r.db_table   = SCHEMA[opts.table].virtual ? opts.table
+        r.account_id = opts.account_id
+        r.project_id = opts.project_id
 
-        s = SCHEMA[table]
+        s = SCHEMA[opts.table]
 
-        if account_id?
-            client_query = s?.user_query
+        if opts.account_id?
+            r.client_query = s?.user_query
         else
-            client_query = s?.project_query
-        if not client_query?.set?.fields?
-            opts.cb("user set queries not allowed for table '#{opts.table}'")
+            r.client_query = s?.project_query
+
+        if not r.client_query?.set?.fields?
+            return {err:"user set queries not allowed for table '#{opts.table}'"}
+
+        if not @_mod_fields(opts.query, r.client_query)
+            dbg("shortcut -- no fields will be modified, so nothing to do")
             return
 
-        if not @_mod_fields(opts.query, client_query)
-            opts.cb()   # no fields will be modified, so nothing to do
-            return
+        for field in misc.keys(r.client_query.set.fields)
+            if r.client_query.set.fields[field] == undefined
+                return {err: "user set query not allowed for #{opts.table}.#{field}"}
+            val = r.client_query.set.fields[field]
+            if typeof(val) == 'function'
+                r.query[field] = val(r.query, @)
+            else
+                switch val
+                    when 'account_id'
+                        if not r.account_id?
+                            return {err: "account_id must be specified"}
+                        r.query[field] = account_id
+                    when 'project_id'
+                        if not project_id?
+                            return {err: "project_id must be specified"}
+                        r.query[field] = project_id
+                    when 'time_id'
+                        r.query[field] = uuid.v1()
+                    when 'project_write'
+                        if not r.query[field]?
+                            return {err: "must specify #{opts.table}.#{field}"}
+                        r.require_project_ids_write_access = [r.query[field]]
+                    when 'project_owner'
+                        if not query[field]?
+                            return {err:"must specify #{opts.table}.#{field}"}
+                        r.require_project_ids_owner = [r.query[field]]
 
-        for field in misc.keys(client_query.set.fields)
-            if client_query.set.fields[field] == undefined
-                opts.cb("user set query not allowed for #{opts.table}.#{field}")
-                return
-            switch client_query.set.fields[field]
-                when 'account_id'
-                    if not account_id?
-                        opts.cb("account_id must be specified")
-                        return
-                    query[field] = account_id
-                when 'project_id'
-                    if not project_id?
-                        opts.cb("project_id must be specified")
-                        return
-                    query[field] = project_id
-                when 'time_id'
-                    query[field] = uuid.v1()
-                when 'project_write'
-                    if not query[field]?
-                        opts.cb("must specify #{opts.table}.#{field}")
-                        return
-                    require_project_ids_write_access = [query[field]]
-                when 'project_owner'
-                    if not query[field]?
-                        opts.cb("must specify #{opts.table}.#{field}")
-                        return
-                    require_project_ids_owner = [query[field]]
-
-        for field in misc.keys(query)
-            f = client_query.set.fields?[field]
+        for field in misc.keys(r.query)
+            f = r.client_query.set.fields?[field]
             if typeof(f) == 'function'
                 try
-                    query[field] = f(query, @, opts.account_id)
+                    r.query[field] = f(r.query, @, r.account_id)
                 catch err
-                    opts.cb("error setting '#{field}' -- #{err}")
-                    return
+                    return {err:"error setting '#{field}' -- #{err}"}
 
-        if client_query.set.admin
-            require_admin = true
+        if r.client_query.set.admin
+            r.require_admin = true
 
-        primary_key = s.primary_key ? 'id'
+        r.primary_key = s.primary_key ? 'id'
 
-        for k, v of query
-            if primary_key == k
+        for k, v of r.query
+            if r.primary_key == k
                 continue
-            if client_query?.set?.fields?[k] != undefined
+            if r.client_query?.set?.fields?[k] != undefined
                 continue
-            if s.admin_query?.set?.fields?[k] != undefined
-                require_admin = true
+            if r.s.admin_query?.set?.fields?[k] != undefined
+                r.require_admin = true
                 continue
-            opts.cb("changing #{table}.#{k} not allowed")
-            return
+            return {err: "changing #{r.table}.#{k} not allowed"}
 
         # HOOKS which allow for running arbitrary code in response to
         # user set queries.  In each case, new_val below is only the part
@@ -349,12 +349,12 @@ class exports.PostgreSQL extends PostgreSQL
         # 0. CHECK: Runs before doing any further processing; has callback, so this
         # provides a generic way to quickly check whether or not this query is allowed
         # for things that can't be done declaratively.
-        check_hook = client_query.set.check_hook
+        r.check_hook = r.client_query.set.check_hook
 
         # 1. BEFORE: If before_change is set, it is called with input
         #   (database, old_val, new_val, account_id, cb)
         # before the actual change to the database is made.
-        before_change_hook = client_query.set.before_change
+        r.before_change_hook = r.client_query.set.before_change
 
         # 2. INSTEAD OF: If instead_of_change is set, then instead_of_change_hook
         # is called with input
@@ -364,108 +364,134 @@ class exports.PostgreSQL extends PostgreSQL
         # code whenever the user does a certain type of set query.
         # Obviously, if that code doesn't set the new_val in the
         # database, then new_val won't be the new val.
-        instead_of_change_hook = client_query.set.instead_of_change
+        r.instead_of_change_hook = r.client_query.set.instead_of_change
 
         # 3. AFTER:  If set, the on_change_hook is called with
         #   (database, old_val, new_val, account_id, cb)
         # after everything the database has been modified.
-        on_change_hook = client_query.set.on_change
+        r.on_change_hook = r.client_query.set.on_change
 
-        old_val = undefined
         #dbg("on_change_hook=#{on_change_hook?}, #{misc.to_json(misc.keys(client_query.set))}")
 
         # Set the query options -- order doesn't matter for set queries (unlike for get), so we
         # just merge the options into a single dictionary.
         # NOTE: As I write this, there is just one supported option: {delete:true}.
-        options = {}
-        if client_query.set.options?
-            for x in client_query.set.options
+        r.options = {}
+        if r.client_query.set.options?
+            for x in r.client_query.set.options
                 for y, z of x
-                    options[y] = z
+                    r.options[y] = z
         if opts.options?
             for x in opts.options
                 for y, z of x
-                    options[y] = z
-        dbg("options = #{misc.to_json(options)}")
+                    r.options[y] = z
+        dbg("options = #{misc.to_json(r.options)}")
 
-        if options.delete and not client_query.set.delete
+        if r.options.delete and not r.client_query.set.delete
             # delete option is set, but deletes aren't explicitly allowed on this table.  ERROR.
-            opts.cb("delete from #{table} not allowed")
+            return {err: "delete from #{r.table} not allowed"}
+
+        return r
+
+    _user_set_query_enforce_requirements: (r, cb) =>
+        async.parallel([
+            (cb) =>
+                if r.require_admin
+                    @_require_is_admin(r.account_id, cb)
+                else
+                    cb()
+            (cb) =>
+                if r.require_project_ids_write_access?
+                    if r.project_id?
+                        err = undefined
+                        for x in r.require_project_ids_write_access
+                            if x != r.project_id
+                                err = "can only query same project"
+                                break
+                        cb(err)
+                    else
+                        @_require_project_ids_in_groups(r.account_id, r.require_project_ids_write_access,\
+                                         ['owner', 'collaborator'], cb)
+                else
+                    cb()
+            (cb) =>
+                if r.require_project_ids_owner?
+                    @_require_project_ids_in_groups(r.account_id, r.require_project_ids_owner,\
+                                     ['owner'], cb)
+                else
+                    cb()
+        ], cb)
+
+    _user_set_query_hooks_prepare: (r, cb) =>
+        if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
+            if not r.query[r.primary_key]?
+                cb("query must specify primary key '#{r.primary_key}'")
+                return
+            # get the old value before changing it
+            # TODO: can we restrict columns below
+            @_query
+                query : "SELECT * FROM #{r.db_table}"
+                where : "#{r.primary_key} = $" : r.query[r.primary_key]
+                cb    : one_result (err, x) =>
+                    r.old_val = x; cb(err)
+        else
+            cb()
+
+    _user_set_query_main_query: (r, cb) =>
+        if r.instead_of_change_hook?
+            r.instead_of_change_hook(@, r.old_val, r.query, r.account_id, cb)
+        else if r.options.delete
+            if r.query[r.primary_key]
+                r.dbg("delete based on primary key")
+                @_query
+                    query : "DELETE FROM #{r.db_table}"
+                    where : "#{r.primary_key} = $" : r.query[r.primary_key]
+                    cb    : cb
+            else
+                cb("delete query must set primary key")
+        else
+            @_query
+                query    : "INSERT INTO #{r.db_table}"
+                values   : r.query
+                conflict : r.primary_key
+                cb       : cb
+
+    user_set_query: (opts) =>
+        opts = defaults opts,
+            account_id : undefined
+            project_id : undefined
+            table      : required
+            query      : required
+            options    : undefined     # {delete:true} is the only supported option
+            cb         : required   # cb(err)
+        r = @_parse_set_query_opts(opts)
+        if not r?  # nothing to do
+            opts.cb()
+            return
+        if r.err
+            opts.cb(r.err)
             return
 
         async.series([
             (cb) =>
-                async.parallel([
-                    (cb) =>
-                        if require_admin
-                            @_require_is_admin(account_id, cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if require_project_ids_write_access?
-                            if project_id?
-                                err = undefined
-                                for x in require_project_ids_write_access
-                                    if x != project_id
-                                        err = "can only query same project"
-                                        break
-                                cb(err)
-                            else
-                                @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
-                                                 ['owner', 'collaborator'], cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if require_project_ids_owner?
-                            @_require_project_ids_in_groups(account_id, require_project_ids_owner,\
-                                             ['owner'], cb)
-                        else
-                            cb()
-                ], cb)
+                @_user_set_query_enforce_requirements(r, cb)
             (cb) =>
-                if check_hook?
-                    check_hook(@, query, account_id, project_id, cb)
+                if r.check_hook?
+                    r.check_hook(@, r.query, r.account_id, r.project_id, cb)
                 else
                     cb()
             (cb) =>
-                if on_change_hook? or before_change_hook? or instead_of_change_hook?
-                    if not query[primary_key]?
-                        cb("query must specify primary key '#{primary_key}'")
-                        return
-                    # get the old value before changing it
-                    @_query
-                        query : "SELECT * FROM #{db_table}"
-                        where : "#{primary_key} = $" : query[primary_key]
-                        cb    : one_result (err, x) =>
-                            old_val = x; cb(err)
+                @_user_set_query_hooks_prepare(r, cb)
+            (cb) =>
+                if r.before_change_hook?
+                    r.before_change_hook(@, r.old_val, r.query, r.account_id, cb)
                 else
                     cb()
             (cb) =>
-                if before_change_hook?
-                    before_change_hook(@, old_val, query, account_id, cb)
-                else
-                    cb()
+                @_user_set_query_main_query(r, cb)
             (cb) =>
-                if instead_of_change_hook?
-                    instead_of_change_hook(@, old_val, query, account_id, cb)
-                else if options.delete
-                    if query[primary_key]
-                        dbg("delete based on primary key")
-                        @_query
-                            query : "DELETE FROM #{db_table}"
-                            where : "#{primary_key} = $" : query[primary_key]
-                            cb    : cb
-                    else
-                        cb("delete query must set primary key")
-                else
-                    @_query
-                        query    : "INSERT INTO #{db_table}"
-                        values   : query
-                        conflict : primary_key
-                        cb       : cb
-            (cb) =>
-                if on_change_hook?
-                    on_change_hook(@, old_val, query, account_id, cb)
+                if r.on_change_hook?
+                    r.on_change_hook(@, r.old_val, r.query, r.account_id, cb)
                 else
                     cb()
         ], (err) => opts.cb(err))
@@ -507,7 +533,34 @@ class exports.PostgreSQL extends PostgreSQL
                                     y[k0] = v0
 
     _user_set_query_project_users: (obj, account_id) =>
-        throw Error("NotImplemented")
+        dbg = @_dbg("_user_set_query_project_users")
+        dbg("disabled")
+        return obj.users
+        # TODO:  disabling the real checks for now -- fix this!
+
+        #   - ensures all keys of users are valid uuid's (though not that they are valid users).
+        #   - and format is:
+        #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
+        #     with valid upgrade fields.
+        upgrade_fields = PROJECT_UPGRADES.params
+        users = {}
+        for id, x of obj.users
+            if misc.is_valid_uuid_string(id)
+                for key in misc.keys(x)
+                    if key not in ['group', 'hide', 'upgrades']
+                        throw Error("unknown field '#{key}")
+                if x.group? and (x.group not in ['owner', 'collaborator'])
+                    throw Error("invalid value for field 'group'")
+                if x.hide? and typeof(x.hide) != 'boolean'
+                    throw Error("invalid type for field 'hide'")
+                if x.upgrades?
+                    if typeof(x.upgrades) != 'object'
+                        throw Error("invalid type for field 'upgrades'")
+                    for k,_ of x.upgrades
+                        if not upgrade_fields[k]
+                            throw Error("invalid upgrades field '#{k}'")
+                users[id] = x
+        return users
 
     project_action: (opts) =>
         opts = defaults opts,
@@ -516,7 +569,53 @@ class exports.PostgreSQL extends PostgreSQL
             cb             : required
         dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
         dbg()
-        opts.cb('NotImplemented')
+        project = undefined
+        action_request = misc.copy(opts.action_request)
+        set_action_request = (cb) =>
+            dbg("set action_request to #{misc.to_json(action_request)}")
+            @_query
+                query     : "UPDATE projects"
+                where     : 'project_id = $::UUID':opts.project_id
+                jsonb_set : {action_request : action_request}
+                cb        : cb
+        async.series([
+            (cb) =>
+                action_request.started = new Date()
+                set_action_request(cb)
+            (cb) =>
+                dbg("get project")
+                @compute_server.project
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        project = x; cb(err)
+            (cb) =>
+                dbg("doing action")
+                switch action_request.action
+                    when 'save'
+                        project.save
+                            min_interval : 1   # allow frequent explicit save (just an rsync)
+                            cb           : cb
+                    when 'restart'
+                        project.restart
+                            cb           : cb
+                    when 'stop'
+                        project.stop
+                            cb           : cb
+                    when 'start'
+                        project.start
+                            cb           : cb
+                    when 'close'
+                        project.close
+                            cb           : cb
+                    else
+                        cb("action '#{opts.action_request.action}' not implemented")
+        ], (err) =>
+            if err
+                action_request.err = err
+            action_request.finished = new Date()
+            dbg("finished!")
+            set_action_request()
+        )
 
     # This hook is called *before* the user commits a change to a project in the database
     # via a user set query.
@@ -602,7 +701,7 @@ class exports.PostgreSQL extends PostgreSQL
     GET QUERIES
     ###
 
-    _parse_get_query: (opts) =>
+    _parse_get_query_opts: (opts) =>
         if opts.changes? and not opts.changes.cb?
             return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
 
@@ -618,6 +717,8 @@ class exports.PostgreSQL extends PostgreSQL
 
         if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
             return {err: "anonymous get queries not allowed for table '#{opts.table}'"}
+
+        r.primary_key = SCHEMA[opts.table] ? 'id'
 
         # Are only admins allowed any get access to this table?
         r.require_admin = !!r.client_query.get.admin
@@ -664,15 +765,15 @@ class exports.PostgreSQL extends PostgreSQL
         r.table = SCHEMA[opts.table].virtual ? opts.table
         return r
 
-    _user_get_query_where: (client_query, account_id, project_id, table, user_query, cb) =>
-        dbg = @_dbg("_user_get_first_selection")
+    _user_get_query_where: (client_query, account_id, project_id, table, user_query, primary_key, cb) =>
+        dbg = @_dbg("_user_get_query_where")
         dbg()
 
         pg_where = client_query.get.pg_where
         if not pg_where?
-            # no condition at all - this is NOT allowed.
-            cb("you must specify the pg_where condition (not doing so is too dangerous)")
-            return
+            pg_where = []
+        if typeof(pg_where) == 'function'
+            pg_where = pg_where(user_query, @)
         if not misc.is_array(pg_where)
             cb("pg_where must be an array (of strings or objects)")
             return
@@ -744,60 +845,36 @@ class exports.PostgreSQL extends PostgreSQL
                 if misc.is_object(x)
                     for key, value of x
                         x[key] = subs[value]
+
+            # impose further restrictions (more where conditions)
+            pg_where.push(@_user_get_query_filter(user_query, client_query, primary_key))
+
             cb(undefined, pg_where)
 
-        ###
+    # Additional where object condition imposed by user's get query
+    _user_get_query_filter: (user_query, client_query, primary_key) =>
+        # If the schema lists the value in a get query as 'null', then we remove it;
+        # nulls means it was only there to be used by the initial where filter
+        # part of the query.
+        # TODO: barely used in our schema; I don't like this.  there must be a better way.
+        for field, val of client_query.get.fields
+            if val == 'null'
+                delete user_query[field]
 
-        # First this function g parses each array in the args.  These are used for
-        # multi-indexes.  This whole block of code g and the map below does *nothing*
-        # unless the args spec for this schema has a single-level nested array in it.
-        g = (i, cb) =>
-            arg = args[i]
-            if not misc.is_array(arg)
-                #console.log(arg, " is not an array")
-                cb()
-            else
-                v = [] # we reuse the global variable f for parsing each array, hence use mapSeries below!
-                async.mapSeries arg, f, (err) =>
-                    if err
-                        cb(err)
-                    else
-                        # succeeded in parsing array; replace args[i] by it.
-                        #console.log('parsed something and got ', v)
-                        args[i] = v
-                        cb()
+        where = {}
+        for field, val of user_query
+            if val?
+                if @_query_is_cmp(val)
+                    # A comparison, e.g.,
+                    # field :
+                    #    '<=' : 5
+                    #    '>=' : 2
+                    for op, v of val
+                        where['#{field} #{op} $'] = v
+                else
+                    where["#{field} = $"] = val
 
-        # The first mapSeries parses any arrays in args (usually there are none)
-        async.mapSeries [0...args.length], g, (err) =>
-            if err
-                cb(err)
-            else
-                # Next reset v and parse everything in args that is left.
-                # Each call to f does argument substitutions, possibly checks
-                # permissions, etc.
-                v = []
-                async.mapSeries args, f, (err) =>
-                    if err
-                        cb(err)
-                    else
-                        #dbg("v=#{misc.to_json(v)}")
-                        db_query = db_query[cmd](v...)
-                        cb()
-
-
-                # Parse the filter part of the query
-                query = misc.copy(opts.query)
-
-                # If the schema lists the value in a get query as null, then we reset it to null; it was already
-                # used by the initial get all part of the query.
-                for field, val of client_query.get.fields
-                    if val == 'null'
-                        query[field] = null
-
-                filter  = @_query_to_filter(query)
-                if filter?
-                    db_query = db_query.filter(filter)
-        ###
+        return where
 
     _user_get_query_options: (delete_option, options, multi, schema_options) =>
         r = {}
@@ -864,7 +941,7 @@ class exports.PostgreSQL extends PostgreSQL
         feed that calls opts.cb on changes as well.
         ###
 
-        {err, dbg, table, client_query, require_admin, delete_option} = @_parse_get_query(opts)
+        {err, dbg, table, client_query, require_admin, delete_option, primary_key} = @_parse_get_query_opts(opts)
 
         if err
             opts.cb(err)
@@ -888,7 +965,10 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     cb()
             (cb) =>
-                @_user_get_query_where client_query, opts.account_id, opts.project_id, table, opts.query, (err, where) =>
+                # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
+                # so it is important that this is called before @_user_get_query_query below.
+                # See the TODO in @_user_get_query_filter.
+                @_user_get_query_where client_query, opts.account_id, opts.project_id, table, opts.query, primary_key, (err, where) =>
                     _query_opts.where = where
                     cb(err)
             (cb) =>
@@ -908,12 +988,9 @@ class exports.PostgreSQL extends PostgreSQL
     Synchronized strings
     ###
     _user_set_query_syncstring_change_after: (old_val, new_val, account_id, cb) =>
-        dbg = @dbg("_user_set_query_syncstring_change_after")
-        cb() # immediately -- stuff below can happen as side effect in the background.
-        #dbg("new_val='#{misc.to_json(new_val)}")
-
+        dbg = @_dbg("_user_set_query_syncstring_change_after")
+        cb() # return immediately -- stuff below can happen as side effect in the background.
         # Now do the following reactions to this syncstring change in the background:
-
         # 1. Awaken the relevant project.
         project_id = old_val?.project_id ? new_val?.project_id
         if project_id? and (new_val?.save?.state == 'requested' or (new_val?.last_active? and new_val?.last_active != old_val?.last_active))
@@ -1012,7 +1089,8 @@ class exports.PostgreSQL extends PostgreSQL
         # claiming they are another users of that project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
-        cb('not implemented')
+        #cb('not implemented')
+        cb() # TODO!
 
     # Check permissions for querying for syncstrings in a project
     _syncstrings_check: (obj, account_id, project_id, cb) =>

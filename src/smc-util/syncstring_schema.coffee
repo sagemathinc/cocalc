@@ -53,6 +53,8 @@ schema.syncstrings =
     indexes:
         project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
 
+    pg_indexes : ['last_active']
+
     user_query:
         get :
             all:
@@ -130,6 +132,11 @@ schema.recent_syncstrings_in_project =
         deleted     : true
     user_query :
         get :
+            pg_where : (obj, db) ->
+                [
+                    "project_id = $::UUID" : obj.project_id,
+                    "last_active >= $"     : misc.minutes_ago(obj.max_age_m ? 15)
+                ]
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.project_id, misc.minutes_ago(obj.max_age_m)], [obj.project_id, db.r.maxval], index:'project_last_active']
@@ -155,7 +162,7 @@ schema.patches =
         id       :
             type : 'compound key [string_id, time]'
             pg_type:
-                string_id : 'UUID'
+                string_id : 'CHAR(40)'
                 time      : 'TIMESTAMP'
             desc : 'Primary key'
         user     :
@@ -163,7 +170,7 @@ schema.patches =
             desc : 'a nonnegative integer; this is an index into syncstrings.users'
         patch    :
             type : 'string'
-            pg_type : 'JSON'   # not JSONB since no need to parse or do anything with this.
+            pg_type : 'TEXT'  # that's what it is in the database now...
             desc : 'JSON string that parses to a patch, which transforms the previous version of the syncstring to this version'
         snapshot :
             type : 'string'
@@ -176,6 +183,11 @@ schema.patches =
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query :
         get :
+            pg_where : (obj, db) ->
+                where = ["string_id = $::CHAR(40)" : obj.id[0]]
+                if obj.id[1]?
+                    where.push("time >= $::TIMESTAMP" : obj.id[1])
+                return where
             all :
                 cmd : 'between'
                 args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
@@ -186,6 +198,7 @@ schema.patches =
                 snapshot : null
                 sent     : null
                 prev     : null
+                time     : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -227,6 +240,11 @@ schema.patches_delete  =
     fields      : schema.patches.fields
     user_query:
         get :  # use get query since selecting a range of records for deletion
+            pg_where : (obj, db) ->
+                where = ["string_id = $::CHAR(40)" : obj.id[0]]
+                if obj.id[1]?
+                    where.push("time >= $::TIMESTAMP" : obj.id[1])
+                return where
             all :
                 cmd     : 'between'
                 args    : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
@@ -247,8 +265,8 @@ schema.cursors =
         id   :
             type : 'compound key [string_id, user_id]'
             pg_type:
-                string_id : 'UUID'
-                user_id   : 'UUID'
+                string_id : 'CHAR(40)'
+                user_id   : 'INTEGER'
             desc : '[string_id, user_id]'
         locs :
             type : 'array'
@@ -261,15 +279,16 @@ schema.cursors =
         string_id : ["that.r.row('id')(0)"]
     user_query:
         get :
-            all :  # query gets all cursors of *all users* with given string_id -- uses index instead of commented out range query
-                #cmd  : 'between'
-                #args : (obj, db) -> [[obj.string_id, db.r.minval], [obj.string_id, db.r.maxval]]
+            pg_where : (obj, db) ->
+                ["string_id = $::CHAR(40)":obj.string_id]
+            all :  # query gets all cursors of *all users* with given string_id
                 cmd  : 'getAll'
                 args : (obj, db) -> [obj.string_id, index:'string_id']
             fields :
                 id        : null
                 locs      : null
                 time      : null
+                user_id   : null
                 string_id : 'null'  # virtual -- only used for query, not kept in table
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these cursors
@@ -294,10 +313,19 @@ schema.eval_inputs =
     fields:
         id    :
             type : 'uuid'
+            pg_type:
+                string_id : 'CHAR(40)'
+                time      : 'TIMESTAMP'
+                user_id   : 'INTEGER'
         input :
             type : 'map'
     user_query:
         get :
+            pg_where : (obj, db) ->
+                where = ["string_id = $::CHAR(40)" : obj.id[0]]
+                if obj.id[1]?
+                    where.push("time >= $::TIMESTAMP" : obj.id[1])
+                return where
             all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
@@ -324,16 +352,27 @@ schema.eval_outputs =
     fields:
         id     :
             type : 'uuid'
+            pg_type:
+                string_id : 'CHAR(40)'
+                time      : 'TIMESTAMP'
+                number    : 'INTEGER'
         output :
             type : 'map'
     user_query:
         get :
+            pg_where : (obj, db) ->
+                where = ["string_id = $::CHAR(40)" : obj.id[0]]
+                if obj.id[1]?
+                    where.push("time >= $::TIMESTAMP" : obj.id[1])
+                return where
             all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
                 id    : 'null'   # 'null' = field gets used for args above then set to null
                 output : null
+                time   : null
+                number : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
         set :

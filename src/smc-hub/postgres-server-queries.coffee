@@ -267,6 +267,14 @@ class exports.PostgreSQL extends PostgreSQL
                 opts.cb(undefined, account_id)
         )
 
+    is_admin: (account_id, cb) =>
+        @_query
+            query : "SELECT groups FROM accounts"
+            where : 'account_id = $::UUID':account_id
+            cache : true
+            cb    : one_result 'groups', (err, groups) =>
+                cb(err, groups? and 'admin' in groups)
+
     # TODO: (probably) need indexes to make this fast.
     count_accounts_created_by: (opts) =>
         opts = defaults opts,
