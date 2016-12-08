@@ -199,13 +199,15 @@ class exports.PostgreSQL extends PostgreSQL
         if not account_id?
             cb("user must be an admin")
             return
-        @is_admin account_id, (err, is_admin) =>
-            if err
-                cb(err)
-            else if not is_admin
-                cb("user must be an admin")
-            else
-                cb()
+        @is_admin
+            account_id : account_id
+            cb         : (err, is_admin) =>
+                if err
+                    cb(err)
+                else if not is_admin
+                    cb("user must be an admin")
+                else
+                    cb()
 
     # Ensure that each project_id in project_ids is such that the account is in one of the given
     # groups for the project, or that the account is an admin.  If not, cb(err).

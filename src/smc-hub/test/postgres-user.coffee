@@ -218,3 +218,151 @@ describe 'testing file_use', ->
                         expect(result).toEqual(file_use:obj)
                         cb(err)
         ], done)
+
+    it 'tries to read file use entry as user without project access and get no match', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      :
+                file_use :
+                    project_id  : projects[0]
+                    path        : 'foo'
+                    users       : null
+            cb         : (err, result) ->
+                expect(result).toEqual(file_use:undefined)
+                done()
+
+    it 'adds second user to first project, then reads and finds one file_use match', (done) ->
+        async.series([
+            (cb) ->
+                db.add_user_to_project
+                    project_id : projects[0]
+                    account_id : accounts[1]
+                    cb         : cb
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        file_use : [{project_id:projects[0], path:'foo', users:null}]
+                    cb : (err, x) ->
+                        expect(x?.file_use?.length).toEqual(1)
+                        cb(err)
+            ], done)
+
+
+    it 'add a second file_use notification for first project (different path)', (done) ->
+        t = new Date()
+        obj =
+            project_id  : projects[0]
+            path        : 'foo2'
+            users       : {"#{accounts[1]}":{read:t}}
+            last_edited : t
+        async.series([
+            (cb) =>
+                db.user_query
+                    account_id : accounts[1]
+                    query      : {file_use : obj}
+                    cb         : cb
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        file_use : [{project_id:projects[0], path:'foo', users:null}]
+                    cb : (err, x) ->
+                        expect(x?.file_use?.length).toEqual(1)
+                        cb(err)
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        file_use : [{project_id:projects[0], path:null, users:null}]
+                    cb : (err, x) ->
+                        if err
+                            cb(err); return
+                        expect(x.file_use.length).toEqual(2)
+                        expect(x.file_use[0].path).toEqual('foo2')  # order will be this way due to sort of last_edited
+                        expect(x.file_use[1].path).toEqual('foo')
+                        cb()
+        ], done)
+
+    it 'add a file_use notification for second project as second user; confirm total of 3 file_use entries', (done) ->
+        obj =
+            project_id  : projects[1]
+            path        : 'bar'
+            last_edited : new Date()
+        async.series([
+            (cb) =>
+                db.user_query
+                    account_id : accounts[1]
+                    query      : {file_use : obj}
+                    cb         : cb
+            (cb) ->
+                db.user_query
+                    account_id : accounts[1]
+                    query      :
+                        file_use : [{project_id:null, path:null, last_edited: null}]
+                    cb : (err, x) ->
+                        if err
+                            cb(err); return
+                        expect(x.file_use.length).toEqual(3)
+                        cb()
+            (cb) ->
+                # also check limit option works
+                db.user_query
+                    account_id : accounts[1]
+                    query      : file_use : [{project_id:null, path:null}]
+                    options    : [{limit:2}]
+                    cb : (err, x) ->
+                        if err
+                            cb(err); return
+                        expect(x.file_use.length).toEqual(2)
+                        cb()
+        ], done)
+
+    it 'verify that account 0 cannot write file_use notification to project 1; but as admin can.', (done) ->
+        obj =
+            project_id  : projects[1]
+            path        : 'bar'
+            last_edited : new Date()
+        async.series([
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      : {file_use : obj}
+                    cb         : (err) =>
+                        expect(err).toEqual('user must be an admin')
+                        cb()
+            (cb) ->
+                # now make account 0 an admin
+                db.make_user_admin
+                    account_id : accounts[0]
+                    cb         : cb
+            (cb) ->
+                # verify user 0 is admin
+                db.is_admin
+                    account_id : accounts[0]
+                    cb         : (err, is_admin) =>
+                        expect(is_admin).toEqual(true)
+                        cb(err)
+            (cb) ->
+                # ... but 1 is not
+                db.is_admin
+                    account_id : accounts[1]
+                    cb         : (err, is_admin) =>
+                        expect(is_admin).toEqual(false)
+                        cb(err)
+            (cb) ->
+                # ... , and see that it can write to project not on
+                db.user_query
+                    account_id : accounts[0]
+                    query      : {file_use : obj}
+                    cb         : cb
+        ], done)
+
+
+#describe 'test project_log table', ->
+#    before(setup)
+#    after(teardown)
+
+
+
+

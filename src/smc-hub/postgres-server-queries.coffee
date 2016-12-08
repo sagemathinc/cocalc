@@ -267,13 +267,27 @@ class exports.PostgreSQL extends PostgreSQL
                 opts.cb(undefined, account_id)
         )
 
-    is_admin: (account_id, cb) =>
+    is_admin: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
         @_query
             query : "SELECT groups FROM accounts"
-            where : 'account_id = $::UUID':account_id
+            where : 'account_id = $::UUID':opts.account_id
             cache : true
             cb    : one_result 'groups', (err, groups) =>
-                cb(err, groups? and 'admin' in groups)
+                opts.cb(err, groups? and 'admin' in groups)
+
+    make_user_admin: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query : "UPDATE accounts"
+            where : 'account_id = $::UUID':opts.account_id
+            set   :
+                groups : ['admin']
+            cb    : opts.cb
 
     # TODO: (probably) need indexes to make this fast.
     count_accounts_created_by: (opts) =>
