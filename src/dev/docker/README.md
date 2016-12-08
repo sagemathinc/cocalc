@@ -18,7 +18,7 @@ Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).  
 
 (If you get an error about the Docker daemon, instead run `sudo docker ...`.)
 
-The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer.  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost). 
+The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer. (If you want to store your worksheets and edit history elsewhere, change ~/smc to something else.)  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost). 
 
 The docker container is called `smc` and you can refer to the container and use commands like:
 
