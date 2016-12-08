@@ -313,7 +313,6 @@ exports.to_safe_str = (x) ->
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 date_parser = (k, v) ->
-    # TODO shouldn't be the length 26?
     if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
         return new Date(v)
     else
@@ -325,6 +324,23 @@ exports.from_json = (x) ->
     catch err
         console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
+
+# Returns modified version of obj with any 24-character string
+# that look like ISO dates to actual Date objects.  This mutates
+# obj in place as part of the process.
+exports.fix_json_dates = fix_json_dates = (obj) ->
+    if exports.is_object(obj)
+        for k, v of obj
+            if typeof(v) == 'object'
+                fix_json_dates(v)
+            else if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+                obj[k] = new Date(v)
+    else if exports.is_array(obj)
+        for i, x of obj
+            obj[i] = fix_json_dates(x)
+    else if typeof(obj) == 'string' and obj.length == 24 and reISO.exec(obj)
+        return new Date(obj)
+    return obj
 
 # converts a Date object to an ISO string in UTC.
 # NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
@@ -1665,7 +1681,6 @@ exports.console_init_filename = (fn) ->
     if x.head == ''
         return x.tail
     return [x.head, x.tail].join("/")
-
 
 exports.has_null_leaf = has_null_leaf = (obj) ->
     for k, v of obj

@@ -31,6 +31,27 @@ exports.teardown = (cb) ->
     # just deletes contents of tables, not schema.
     exports.db?.delete_all(cb:cb, confirm:'yes')
 
+# create n accounts
+exports.create_accounts = (n, cb) ->
+    f = (i, cb) ->
+        exports.db.create_account
+            first_name    : "Firstname#{i}"
+            last_name     : "Lastname#{i}"
+            email_address : "sage+#{i}@sagemath.com"
+            password_hash : "#{i}"
+            cb            : cb
+    async.map([0...n], f, cb)
+
+# create n projects owned by account_id
+exports.create_projects = (n, account_id, cb) ->
+    f = (i, cb) ->
+        exports.db.create_project
+            title      : "Project #{i}"
+            description: "Description #{i}"
+            account_id : account_id
+            cb         : cb
+    async.map([0...n], f, cb)
+
 # Start with a clean slate -- delete the test database -- TODO: custom rethinkdb
 dropdb = (cb) =>
     misc_node = require('smc-util-node/misc_node')

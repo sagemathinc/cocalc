@@ -421,7 +421,7 @@ schema.file_access_log =
         time       : []
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
-# TODO: for postgres rewrite after done we'll completely redo file_use to eliminate
+# TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
 # another table with a relation.  In RethinkDB this file_use table is notoriously slow,
 # and -- with indexes, etc., -- it should be super fast.
@@ -449,6 +449,9 @@ schema.file_use =
         'project_id-path'             : ["[that.r.row('project_id'), that.r.row('path')]"]
         'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
         'project_id-last_edited'      : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
+
+    pg_indexes: ['project_id', 'last_edited']
+
     user_query:
         get :
             pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']

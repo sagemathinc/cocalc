@@ -3,6 +3,8 @@ db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
 
+{create_accounts, create_projects} = pgtest
+
 async  = require('async')
 expect = require('expect')
 
@@ -145,3 +147,74 @@ describe 'some basic testing of user_queries', ->
                 expect(collabs).toEqual({collaborators:[user1,user2]})
                 done(err)
 
+
+describe 'testing file_use', ->
+    before(setup)
+    after(teardown)
+    # Create two users and two projects
+    accounts = []
+    projects = []
+    it 'setup accounts and projects', (done) ->
+        async.series([
+            (cb) =>
+                create_accounts 2, (err, x) => accounts=x; cb()
+            (cb) =>
+                create_projects 1, accounts[0], (err, x) => projects.push(x...); cb(err)
+            (cb) =>
+                create_projects 1, accounts[1], (err, x) => projects.push(x...); cb(err)
+        ], done)
+
+    time0 = new Date()
+    it 'writes a file_use entry via a user query (and gets it back)', (done) ->
+        obj =
+            project_id  : projects[0]
+            path        : 'foo'
+            users       : {"#{accounts[0]}":{edit:time0}}
+            last_edited : time0
+        async.series([
+            (cb) =>
+                db.user_query
+                    account_id : accounts[0]
+                    query      : {file_use : obj}
+                    cb         : cb
+            (cb) =>
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        file_use :
+                            project_id  : projects[0]
+                            path        : 'foo'
+                            users       : null
+                            last_edited : null
+                    cb         : (err, result) ->
+                        expect(result).toEqual(file_use:obj)
+                        cb(err)
+        ], done)
+
+    it 'writes another file_use entry and verifies that json is properly *merged*', (done) ->
+        obj =
+            project_id  : projects[0]
+            path        : 'foo'
+            users       : {"#{accounts[0]}":{read:time0}}
+        async.series([
+            (cb) =>
+                db.user_query
+                    account_id : accounts[0]
+                    query      : {file_use : obj}
+                    cb         : cb
+            (cb) =>
+                db.user_query
+                    account_id : accounts[0]
+                    query      :
+                        file_use :
+                            project_id  : projects[0]
+                            path        : 'foo'
+                            users       : null
+                            last_edited : null
+                    cb         : (err, result) ->
+                        # add rest of what we expect from previous insert in test above:
+                        obj.last_edited = time0
+                        obj.users["#{accounts[0]}"] = {read:time0, edit:time0}
+                        expect(result).toEqual(file_use:obj)
+                        cb(err)
+        ], done)

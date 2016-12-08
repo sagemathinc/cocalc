@@ -12,7 +12,7 @@ This code is currently NOT released under any license for use by anybody except 
 EventEmitter = require('events')
 async        = require('async')
 
-{PostgreSQL, one_result, all_results} = require('./postgres')
+{PostgreSQL, one_result, all_results, count_result} = require('./postgres')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -332,6 +332,8 @@ class exports.PostgreSQL extends PostgreSQL
 
         r.primary_key = s.primary_key ? 'id'
 
+        r.json_fields = @_json_fields(opts.table, r.query)
+
         for k, v of r.query
             if r.primary_key == k
                 continue
@@ -437,24 +439,80 @@ class exports.PostgreSQL extends PostgreSQL
         else
             cb()
 
+    _user_query_set_count: (r, cb) =>
+        @_query
+            query : "SELECT COUNT(*) FROM #{r.db_table}"
+            where : "#{r.primary_key} = $" : r.query[r.primary_key]
+            cb    : count_result(cb)
+
+    _user_query_set_delete: (r, cb) =>
+        @_query
+            query : "DELETE FROM #{r.db_table}"
+            where : "#{r.primary_key} = $" : r.query[r.primary_key]
+            cb    : cb
+
+    _user_query_set_upsert: (r, cb) =>
+        @_query
+            query    : "INSERT INTO #{r.db_table}"
+            values   : r.query
+            conflict : r.primary_key
+            cb       : cb
+
+    _user_query_set_upsert_and_jsonb_merge: (r, cb) =>
+        values      = {}
+        jsonb_merge = {}
+        for k of r.json_fields
+            v = r.query[k]
+            if v?
+                jsonb_merge[k] = v
+        for k, v of r.query
+            if not jsonb_merge[k]?
+                values[k] = v
+        async.parallel([
+            (cb) =>
+                @_query
+                    query       : "UPDATE #{r.db_table}"
+                    jsonb_merge : jsonb_merge
+                    where       : "#{r.primary_key} = $" : r.query[r.primary_key]
+                    cb          : cb
+            (cb) =>
+                @_query
+                    query    : "INSERT INTO #{r.db_table}"
+                    values   : values
+                    conflict : r.primary_key
+                    cb       : cb
+        ], cb)
+
     _user_set_query_main_query: (r, cb) =>
         if r.instead_of_change_hook?
             r.instead_of_change_hook(@, r.old_val, r.query, r.account_id, cb)
         else if r.options.delete
             if r.query[r.primary_key]
                 r.dbg("delete based on primary key")
-                @_query
-                    query : "DELETE FROM #{r.db_table}"
-                    where : "#{r.primary_key} = $" : r.query[r.primary_key]
-                    cb    : cb
+                @_user_query_set_delete(r, cb)
             else
                 cb("delete query must set primary key")
         else
-            @_query
-                query    : "INSERT INTO #{r.db_table}"
-                values   : r.query
-                conflict : r.primary_key
-                cb       : cb
+            if misc.len(r.json_fields) == 0
+                # easy case -- there are no jsonb merge fields; just do an upsert.
+                @_user_query_set_upsert(r, cb)
+                return
+            # HARD CASE -- there are json_fields... so we doing an insert
+            # if the object isn't already in the databse, and and update
+            # if it is, and yes there is a potential race condition (TODO).
+            cnt = undefined
+            async.series([
+                (cb) =>
+                    @_user_query_set_count r, (err, n) =>
+                        cnt = n; cb(err)
+                (cb) =>
+                    if cnt == 0
+                        # Just insert (do as upsert to avoid error in case of race)
+                        @_user_query_set_upsert(r, cb)
+                    else
+                        # Do both upsert and jsonb_merge
+                        @_user_query_set_upsert_and_jsonb_merge(r, cb)
+            ], cb)
 
     user_set_query: (opts) =>
         opts = defaults opts,
@@ -465,6 +523,7 @@ class exports.PostgreSQL extends PostgreSQL
             options    : undefined     # {delete:true} is the only supported option
             cb         : required   # cb(err)
         r = @_parse_set_query_opts(opts)
+        #r.dbg("parsed query opts = #{misc.to_json(r)}")
         if not r?  # nothing to do
             opts.cb()
             return
@@ -507,8 +566,17 @@ class exports.PostgreSQL extends PostgreSQL
                 return true
         return false
 
+    _user_get_query_json_timestamps: (obj, json_fields) =>
+        # obj is an object returned from the database via a query
+        # Postgres JSONB doesn't support timestamps, so we convert
+        # every json leaf node of obj that looks like JSON of a timestamp
+        # to a Javascript Date.
+        for k, v of obj
+            if json_fields[k]
+                misc.fix_json_dates(v)  # mutates v in place
+
     # fill in the default values for obj using the client_query spec.
-    _query_set_defaults: (client_query, obj, fields) =>
+    _user_get_query_set_defaults: (client_query, obj, fields) =>
         if not misc.is_array(obj)
             obj = [obj]
         else if obj.length == 0
@@ -763,7 +831,17 @@ class exports.PostgreSQL extends PostgreSQL
             return {err: "user_get_query -- if opts.changes is specified, then delete option must not be specified"}
 
         r.table = SCHEMA[opts.table].virtual ? opts.table
+
+        r.json_fields = @_json_fields(opts.table, opts.query)
+
         return r
+
+    _json_fields: (table, query) =>
+        json_fields = {}
+        for field, info of SCHEMA[table].fields
+            if (query[field]? or query[field] == null) and (info.type == 'map' or info.pg_type == 'JSONB')
+                json_fields[field] = true
+        return json_fields
 
     _user_get_query_where: (client_query, account_id, project_id, table, user_query, primary_key, cb) =>
         dbg = @_dbg("_user_get_query_where")
@@ -897,14 +975,20 @@ class exports.PostgreSQL extends PostgreSQL
             return {err: "slice not implemented"}
         return r
 
-    _user_get_query_do_query: (query_opts, client_query, user_query, multi, cb) =>
+    _user_get_query_do_query: (query_opts, client_query, user_query, multi, json_fields, cb) =>
         query_opts.cb = all_results (err, x) =>
             if err
                 cb(err)
             else
+                if misc.len(json_fields) > 0
+                    # Convert (likely) timestamps to Date objects.
+                    for obj in x
+                        @_user_get_query_json_timestamps(obj, json_fields)
+
                 if not multi
                     x = x[0]
-                @_query_set_defaults(client_query, x, misc.keys(user_query))
+                # Fill in default values.
+                @_user_get_query_set_defaults(client_query, x, misc.keys(user_query))
                 cb(undefined, x)
         @_query(query_opts)
 
@@ -941,13 +1025,14 @@ class exports.PostgreSQL extends PostgreSQL
         feed that calls opts.cb on changes as well.
         ###
 
-        {err, dbg, table, client_query, require_admin, delete_option, primary_key} = @_parse_get_query_opts(opts)
+        {err, dbg, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
 
         if err
             opts.cb(err)
             return
         if client_query.get.instead_of_query?
-            # custom version: instead of doing a full query, we instead call a function and that's it.
+            # Custom version: instead of doing a full query, we instead
+            # call a function and that's it.
             client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
             return
 
@@ -978,7 +1063,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
                     return
                 misc.merge(_query_opts, r)
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, (err, x) =>
+                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, x) =>
                     result = x; cb(err)
         ], (err) =>
             opts.cb(err, result if not err)
