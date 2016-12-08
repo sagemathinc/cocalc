@@ -1504,7 +1504,7 @@ class CodeMirrorEditor extends FileEditor
     restore_cursor_position: () =>
         for i, cm of [@codemirror, @codemirror1]
             if cm?
-                pos = @local_storage("cursor#{i}")
+                pos = @local_storage("cursor#{cm.name}")
                 if pos?
                     cm.setCursor(pos)
                     #console.log("#{@filename}: setting view #{cm.name} to cursor pos -- #{misc.to_json(pos)}")
@@ -1587,8 +1587,14 @@ class CodeMirrorEditor extends FileEditor
             # the flex layout with column direction is broken on Safari.
             @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
+        refresh = (cm) =>
+            return if not cm?
+            cm.refresh()
+            # See https://github.com/sagemathinc/smc/issues/1327#issuecomment-265488872
+            setTimeout((=>cm.refresh()), 1)
+
         for cm in @codemirrors()
-            cm?.refresh()
+            refresh(cm)
 
         @emit('show')
 
@@ -1628,10 +1634,10 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     wizard_handler: () =>
-        $target = @mode_display.parent().find('.react-target')
-        {render_wizard} = require('./wizard')
         # @wizard is this WizardActions object
         if not @wizard?
+            $target = @mode_display.parent().find('.react-target')
+            {render_wizard} = require('./wizard')
             @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
             @wizard.show(lang = @_current_mode)
@@ -1731,7 +1737,7 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
+        @fallback_buttons.find('a[href="#todo"]').click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -1741,6 +1747,7 @@ class CodeMirrorEditor extends FileEditor
 
         @mode_display = mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
         @_current_mode = "sage"
+        @mode_display.show()
 
         set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
