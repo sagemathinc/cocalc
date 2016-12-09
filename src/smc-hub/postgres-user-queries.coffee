@@ -32,7 +32,7 @@ class exports.PostgreSQL extends PostgreSQL
                                     #    to delete a record, and won't work unless delete:true is set in the schema
                                     #    for the table to explicitly allow deleting.
             changes    : undefined  # id of change feed
-            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+            cb         : undefined  # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         dbg = @_dbg("user_query(...)")
         if misc.is_array(opts.query)
             @_user_query_array(opts)
@@ -56,7 +56,7 @@ class exports.PostgreSQL extends PostgreSQL
         query = opts.query[table]
         if misc.is_array(query)
             if query.length > 1
-                opts.cb("array of length > 1 not yet implemented")
+                opts.cb?("array of length > 1 not yet implemented")
                 return
             multi = true
             query = query[0]
@@ -65,7 +65,7 @@ class exports.PostgreSQL extends PostgreSQL
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
-                opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
+                opts.cb?("options (=#{misc.to_json(opts.options)}) must be an array")
                 return
             for x in opts.options
                 if x.set?
@@ -82,10 +82,10 @@ class exports.PostgreSQL extends PostgreSQL
             if is_set_query
                 # do a set query
                 if changes
-                    opts.cb("changefeeds only for read queries")
+                    opts.cb?("changefeeds only for read queries")
                     return
                 if not opts.account_id? and not opts.project_id?
-                    opts.cb("no anonymous set queries")
+                    opts.cb?("no anonymous set queries")
                     return
                 @user_set_query
                     account_id : opts.account_id
@@ -94,18 +94,18 @@ class exports.PostgreSQL extends PostgreSQL
                     query      : query
                     options    : opts.options
                     cb         : (err, x) =>
-                        opts.cb(err, {"#{table}":x})
+                        opts.cb?(err, {"#{table}":x})
             else
                 # do a get query
                 if changes and not multi
-                    opts.cb("changefeeds only implemented for multi-document queries")
+                    opts.cb?("changefeeds only implemented for multi-document queries")
                     return
 
                 if changes
                     try
                         @_inc_changefeed_count(opts.account_id, opts.project_id, changes.id)
                     catch err
-                        opts.cb(err)
+                        opts.cb?(err)
                         return
 
                 @user_get_query
@@ -120,9 +120,9 @@ class exports.PostgreSQL extends PostgreSQL
                         if err and changes
                             # didn't actually make the changefeed, so don't count it.
                             @_dec_changefeed_count(changes.id)
-                        opts.cb(err, if not err then {"#{table}":x})
+                        opts.cb?(err, if not err then {"#{table}":x})
         else
-            opts.cb("invalid user_query of '#{table}' -- query must be an object")
+            opts.cb?("invalid user_query of '#{table}' -- query must be an object")
 
     ###
     TRACK CHANGEFEED COUNTS
@@ -171,7 +171,7 @@ class exports.PostgreSQL extends PostgreSQL
     user_query_cancel_changefeed: (opts) =>
         opts = defaults opts,
             id : required
-            cb : undefined
+            cb : undefined    # not really asynchronous
         feed = @_changefeeds?[opts.id]
         if feed?
             @_dec_changefeed_count(opts.id)
@@ -465,7 +465,9 @@ class exports.PostgreSQL extends PostgreSQL
         for k, v of r.query
             if not jsonb_merge[k]?
                 values[k] = v
-        async.parallel([
+        async.series([
+            (cb) =>
+                @_query(query: "BEGIN", cb:cb)
             (cb) =>
                 @_query
                     query       : "UPDATE #{r.db_table}"
@@ -478,6 +480,8 @@ class exports.PostgreSQL extends PostgreSQL
                     values   : values
                     conflict : r.primary_key
                     cb       : cb
+            (cb) =>
+                @_query(query: "COMMIT", cb:cb)
         ], cb)
 
     _user_set_query_main_query: (r, cb) =>
@@ -995,7 +999,7 @@ class exports.PostgreSQL extends PostgreSQL
         else
             return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
 
-    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, cb) =>
+    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, json_fields, cb) =>
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
@@ -1013,6 +1017,16 @@ class exports.PostgreSQL extends PostgreSQL
                 watch.push(field)
             else
                 select[field] = pg_type(SCHEMA[table]?.fields?[field])
+
+        if misc.len(json_fields) > 0
+            # Convert (likely) timestamps to Date objects.
+            process = (x) =>
+                for _, obj of x
+                    @_user_get_query_json_timestamps(obj, json_fields)
+        else
+            process = ->
+
+
         @changefeed
             table  : table
             select : select
@@ -1023,6 +1037,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
                     return
                 feed.on 'change', (x) ->
+                    process(x)
                     changes.cb(undefined, x)
                 feed.on 'error', (err) ->
                     changes.cb(err)
@@ -1098,7 +1113,8 @@ class exports.PostgreSQL extends PostgreSQL
                 misc.merge(_query_opts, x)
 
                 if opts.changes?
-                    @_user_get_query_changefeed(opts.changes, table, primary_key, opts.query, _query_opts.where, cb)
+                    @_user_get_query_changefeed(opts.changes, table, primary_key,
+                                                opts.query, _query_opts.where, json_fields, cb)
                 else
                     cb()
             (cb) =>

@@ -217,6 +217,9 @@ class exports.PostgreSQL extends EventEmitter
                         return
                     if not param?  # *IGNORE* where conditions where value is explicitly undefined
                         continue
+                    if cond.indexOf('$') == -1
+                        opts.cb?("a where condition is missing it's $ parameter -- '#{cond}'")
+                        return
                     WHERE.push(cond.replace('$', "$#{push_param(param)}"))
 
         if opts.where?

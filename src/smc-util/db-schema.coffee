@@ -141,9 +141,11 @@ schema.accounts =
             desc : 'Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?'
         first_name :
             type : 'string'
+            pg_type : "CHAR(250)"  # some limit (actually around 3000) is required for indexing
             desc : 'The first name of this user.'
         last_name :
             type : 'string'
+            pg_type : "CHAR(250)"
             desc : 'The last name of this user.'
         banned :
             type : 'boolean'
