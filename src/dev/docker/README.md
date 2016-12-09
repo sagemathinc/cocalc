@@ -37,14 +37,16 @@ If you're running this docker image on a remote server and want to use ssh port 
 
 then open your web browser to http://localhost:8080
 
-If you don't want `remote_server` to listen on port 80, you could instead create the container via
+For **much enhanced security**, instead make the container only listen on localhost
 
-    docker run --name=smc -d -v ~/smc:/projects -p  127.0.0.1:8080:80 sagemathinc/sagemathcloud
+    docker stop smc
+    docker rm smc
+    docker run --name=smc -d -v ~/smc:/projects -p  127.0.0.1:80:80 sagemathinc/sagemathcloud
     
 where 8080 is some port on your remote machine.  After doing that, the **only way** to access your SMC server is to type 
 the following on your personal computer
 
-    ssh -L 8080:localhost:8080 username@remote_server
+    ssh -L 8080:localhost:80 username@remote_server
     
 then open your web browser to http://localhost:8080   
 
