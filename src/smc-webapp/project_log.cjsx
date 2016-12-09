@@ -47,8 +47,9 @@ LogSearch = rclass
         search           : rtypes.string
         actions          : rtypes.object.isRequired
         selected         : rtypes.object
-        increment_cursor : rtypes.func
-        decrement_cursor : rtypes.func
+        increment_cursor : rtypes.func.isRequired
+        decrement_cursor : rtypes.func.isRequired
+        reset_cursor     : rtypes.func.isRequired
 
     open_selected: (value, info) ->
         e = @props.selected?.event
@@ -65,6 +66,7 @@ LogSearch = rclass
                 @props.actions.set_active_tab('settings')
 
     on_change: (value) ->
+        @props.reset_cursor()
         @props.actions.setState(search : value, page : 0)
 
     render: ->
@@ -341,9 +343,11 @@ exports.ProjectLog = rclass ({name}) ->
 
     previous_page: ->
         if @props.page > 0
+            @reset_cursor()
             @actions(name).setState(page: @props.page-1)
 
     next_page: ->
+        @reset_cursor()
         @actions(name).setState(page: @props.page+1)
 
     search_string: (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
@@ -427,6 +431,9 @@ exports.ProjectLog = rclass ({name}) ->
             return
         @setState(cursor_index : @state.cursor_index - 1)
 
+    reset_cursor: ->
+        @setState(cursor_index : 0)
+
     render_paging_buttons: (num_pages, cur_page) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@props.page<=0} >
@@ -462,6 +469,7 @@ exports.ProjectLog = rclass ({name}) ->
                         selected         = {selected}
                         increment_cursor = {@increment_cursor}
                         decrement_cursor = {@decrement_cursor}
+                        reset_cursor     = {@reset_cursor}
                     />
                 </Col>
                 <Col sm=4>
