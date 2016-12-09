@@ -145,7 +145,7 @@ class exports.PostgreSQL extends PostgreSQL
 class Changes extends EventEmitter
     constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
         @dbg = @_db._dbg("ChangeFeed(table='#{@_table}')")
-        @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}")
+        @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}, @_where=#{misc.to_json(@_where)}")
         @_init_where()
         @_db._listen @_table, @_select, @_watch, (err, tgname) =>
             if err
@@ -155,6 +155,7 @@ class Changes extends EventEmitter
             cb(undefined, @)
 
     close: (cb) =>
+        @removeAllListeners()
         @_db.removeListener(@_tgname, @_handle_change)
         @_db._stop_listening(@_table, @_select, @_watch, cb)
         delete @_tgname
@@ -164,7 +165,7 @@ class Changes extends EventEmitter
         if not @_match_condition(mesg[1])
             return
         if mesg[0] == 'DELETE'
-            @emit 'delete', mesg[1]
+            @emit 'change', {'delete': mesg[1]}
         else
             where = {}
             for k, v of mesg[1]
@@ -173,7 +174,7 @@ class Changes extends EventEmitter
                 query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
                 where : where
                 cb    : one_result (err, result) =>
-                    @emit 'change', misc.merge(result, mesg[1])
+                    @emit 'change', {"#{mesg[0].toLowerCase()}":misc.merge(result, mesg[1])}
 
     _init_where: =>
         if misc.is_object(@_where)
@@ -187,7 +188,7 @@ class Changes extends EventEmitter
                     # should be of the form "field = $":val
                     i = k.indexOf(':')
                     if i != -1
-                        k = k.slice(i)
+                        k = k.slice(0, i)
                     if k.indexOf('>') != -1
                         throw Error("NotImplementedError")
                     if k.indexOf('<') != -1

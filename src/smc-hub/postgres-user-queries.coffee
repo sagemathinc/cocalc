@@ -12,7 +12,7 @@ This code is currently NOT released under any license for use by anybody except 
 EventEmitter = require('events')
 async        = require('async')
 
-{PostgreSQL, one_result, all_results, count_result} = require('./postgres')
+{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -172,8 +172,12 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             id : required
             cb : undefined
-        @_dec_changefeed_count(opts.id)
-        opts.cb?("NotImplemented")
+        feed = @_changefeeds?[opts.id]
+        if feed?
+            @_dec_changefeed_count(opts.id)
+            delete @_changefeeds[opts.id]
+            feed.close()
+        opts.cb?()
 
     _query_is_cmp: (obj) =>
         if not misc.is_object(obj)
@@ -779,7 +783,7 @@ class exports.PostgreSQL extends PostgreSQL
         if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
             return {err: "anonymous get queries not allowed for table '#{opts.table}'"}
 
-        r.primary_key = SCHEMA[opts.table] ? 'id'
+        r.primary_key = SCHEMA[opts.table]?.primary_key ? 'id'
 
         # Are only admins allowed any get access to this table?
         r.require_admin = !!r.client_query.get.admin
@@ -991,6 +995,41 @@ class exports.PostgreSQL extends PostgreSQL
         else
             return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
 
+    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, cb) =>
+        if not misc.is_object(changes)
+            cb("changes must be an object with keys id and cb")
+            return
+        if typeof(changes.id) != 'string'
+            cb("changes.id must be a string")
+            return
+        if typeof(changes.cb) != 'function'
+            cb("changes.cb must be a function")
+            return
+
+        watch = []
+        select = {}
+        for field, val of user_query
+            if val == null and field != primary_key
+                watch.push(field)
+            else
+                select[field] = pg_type(SCHEMA[table]?.fields?[field])
+        @changefeed
+            table  : table
+            select : select
+            where  : where
+            watch  : watch
+            cb     : (err, feed) =>
+                if err
+                    cb(err)
+                    return
+                feed.on 'change', (x) ->
+                    changes.cb(undefined, x)
+                feed.on 'error', (err) ->
+                    changes.cb(err)
+                @_changefeeds ?= {}
+                @_changefeeds[changes.id] = feed
+                cb()
+
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
@@ -1059,23 +1098,10 @@ class exports.PostgreSQL extends PostgreSQL
                 misc.merge(_query_opts, x)
 
                 if opts.changes?
-                    @changefeed
-                        table     : table
-                        columns   : {account_id:'UUID'}
-                        query     : _query_opts
-                        condition : (x) -> x.account_id == opts.account_id
-                        cb        : (err, feed) =>
-                            if err
-                                dbg("ERROR registering changefeed")
-                            else
-                                dbg("successfully registered changefeed")
-                                feed.on 'change', (x) ->
-                                    dbg("changefeed: #{misc.to_json(x)}")
-                                    opts.cb(undefined, x)
-                                feed.on 'error', (err) ->
-                                    dbg("changefeed: ERROR #{err}")
-                                    opts.cb(err)
-
+                    @_user_get_query_changefeed(opts.changes, table, primary_key, opts.query, _query_opts.where, cb)
+                else
+                    cb()
+            (cb) =>
                 @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, x) =>
                     result = x; cb(err)
         ], (err) =>

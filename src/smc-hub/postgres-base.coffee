@@ -546,7 +546,7 @@ Other misc functions
 
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
-exports.pg_type = pg_type = (info, field) ->
+exports.pg_type = pg_type = (info) ->
     if typeof(info) == 'boolean'
         throw Error("pg_type: insufficient information to determine type (info=boolean)")
     if info.pg_type
