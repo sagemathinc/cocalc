@@ -138,7 +138,7 @@ LogEntry = rclass
         <span>executed mini terminal command {@render_miniterm_command(@props.event.input)}</span>
 
     project_title: ->
-        <ProjectTitleAuto style={color:"#ffeb3b" if @props.cursor} project_id={@props.event.project} />
+        <ProjectTitleAuto style={if @props.cursor then selected_item} project_id={@props.event.project} />
 
     file_link: (path, link, i, project_id) ->
         <PathLink

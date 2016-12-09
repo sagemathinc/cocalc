@@ -782,7 +782,6 @@ class ProjectActions extends Actions
             else
                 return path
 
-
     copy_paths: (opts) =>
         opts = defaults opts,
             src           : required     # Should be an array of source paths

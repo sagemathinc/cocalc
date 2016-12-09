@@ -1123,7 +1123,7 @@ ProjectFilesActionBox = rclass
                     dest : misc.path_to_file(rename_dir, destination)
             when 'duplicate'
                 @props.actions.copy_paths
-                    src           : @props.checked_files.toArray
+                    src           : @props.checked_files.toArray()
                     dest          : misc.path_to_file(rename_dir, destination)
                     only_contents : true
         @props.actions.set_file_action()
