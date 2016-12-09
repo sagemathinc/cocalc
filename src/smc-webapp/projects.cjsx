@@ -1447,15 +1447,16 @@ exports.ProjectsPage = ProjectsPage = rclass
         </div>
 
 exports.ProjectTitle = ProjectTitle = rclass
-    displayName : 'Projects-ProjectTitle'
+    displayName: 'Projects-ProjectTitle'
 
-    reduxProps :
+    reduxProps:
         projects :
             project_map : rtypes.immutable
 
-    propTypes :
+    propTypes:
         project_id   : rtypes.string.isRequired
         handle_click : rtypes.func
+        style        : rtypes.object
 
     shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
@@ -1465,17 +1466,21 @@ exports.ProjectTitle = ProjectTitle = rclass
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
+            <a onClick={@props.handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
-            <span>(Private project)</span>
+            <span style={@props.style}>(Private project)</span>
 
 exports.ProjectTitleAuto = rclass
-    displayName : 'Projects-ProjectTitleAuto'
+    displayName: 'Projects-ProjectTitleAuto'
 
-    propTypes :
-        project_id  : rtypes.string.isRequired
+    propTypes:
+        project_id : rtypes.string.isRequired
+        style      : rtypes.object
+
+    handle_click: ->
+        @actions('projects').open_project(project_id : @props.project_id)
 
     render: ->
         <Redux redux={redux}>
-            <ProjectTitle project_id={@props.project_id} />
+            <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
         </Redux>

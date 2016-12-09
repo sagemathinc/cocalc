@@ -849,7 +849,6 @@ class ProjectActions extends Actions
             action  : 'copied'
             files   : with_slashes[0...3]
             count   : if src.length > 3 then src.length
-            dest    : opts.target_path + '/'
             project : opts.target_project_id
         f = (src_path, cb) =>
             opts0 = misc.copy(opts)

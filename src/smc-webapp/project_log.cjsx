@@ -138,7 +138,7 @@ LogEntry = rclass
         <span>executed mini terminal command {@render_miniterm_command(@props.event.input)}</span>
 
     project_title: ->
-        <ProjectTitleAuto project_id={@props.event.project} />
+        <ProjectTitleAuto style={color:"#ffeb3b" if @props.cursor} project_id={@props.event.project} />
 
     file_link: (path, link, i, project_id) ->
         <PathLink
@@ -158,9 +158,7 @@ LogEntry = rclass
 
     to_link: ->
         e = @props.event
-        if e.project? and e.dest?
-            return <span>{@file_link(e.dest, true, 0, e.project)} of {@project_title()}</span>
-        else if e.project?
+        if e.project?
             return @project_title()
         else if e.dest?
             return @file_link(e.dest, true, 0)
