@@ -43,12 +43,11 @@ For **much enhanced security**, instead make the container only listen on localh
     docker rm smc
     docker run --name=smc -d -v ~/smc:/projects -p  127.0.0.1:80:80 sagemathinc/sagemathcloud
     
-where 8080 is some port on your remote machine.  After doing that, the **only way** to access your SMC server is to type 
-the following on your personal computer
+Then the **only way** to access your SMC server is to type the following on your local computer
 
     ssh -L 8080:localhost:80 username@remote_server
     
-then open your web browser to http://localhost:8080   
+and open your web browser to http://localhost:8080   
 
 ### Make all users admins
 
