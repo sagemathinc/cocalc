@@ -28,12 +28,25 @@ The docker container is called `smc` and you can refer to the container and use 
 You can watch the logs:
 
     $ docker logs smc -f
+    
+### SSH port forwarding
 
 If you're running this docker image on a remote server and want to use ssh port forwarding to connect, type
 
     ssh -L 8080:localhost:80 username@remote_server
 
 then open your web browser to http://localhost:8080
+
+If you don't want `remote_server` to listen on port 80, you could instead create the container via
+
+    docker run --name=smc -d -v ~/smc:/projects -p  127.0.0.1:8080:80 sagemathinc/sagemathcloud
+    
+where 8080 is some port on your remote machine.  After doing that, the **only way** to access your SMC server is to type 
+the following on your personal computer
+
+    ssh -L 8080:localhost:8080 username@remote_server
+    
+then open your web browser to http://localhost:8080   
 
 ### Make all users admins
 
@@ -47,6 +60,10 @@ Get a bash shell insider the container, then connect to the database and make al
     coffee> db.table('accounts').update(groups:['admin']).run(done())
 
 Refresh your browser, and then you should see an "Admin edit..." button in any project's settings.
+
+#### Account Creation Token
+
+After making your main account an admin as above, search for "Account Creation Token" in your account settings. Put some random unguessable string there and other people will not be able to create accounts in your SMC container, without knowing that token.
 
 ## Your data
 
