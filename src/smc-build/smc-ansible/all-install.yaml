@@ -260,6 +260,7 @@
     - coinor-libvol0
     - coinor-libvol-dev
     - coinor-libosi-dev
+    - cowsay
     - cmake
     - csh
     - cvs
@@ -287,6 +288,8 @@
     - flex
     - fonts-ocr-a
     - frobby
+    - fortunes
+    - fortune-mod
     - gawk
     - gcc-multilib
     - gdb
