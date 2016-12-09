@@ -1026,7 +1026,6 @@ class exports.PostgreSQL extends PostgreSQL
         else
             process = ->
 
-
         @changefeed
             table  : table
             select : select

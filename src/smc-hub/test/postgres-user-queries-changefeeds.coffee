@@ -195,8 +195,8 @@ describe 'test file_use changefeeds with multiple projects', ->
         ]
         for x in obj
             x.id = db.sha1(x.project_id, x.path)
-        
-        db.user_query
+
+        db.user_query 
             account_id : accounts[0]
             query      : {file_use:[{id: null, project_id:null, path: null, users: null, last_edited: null}]}
             changes    : id
