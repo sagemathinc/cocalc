@@ -178,20 +178,23 @@ describe 'test file_use changefeeds with multiple projects', ->
 
     accounts = []
     projects = []
-    it 'create an account and two projects', (done) ->
+    it 'create account and projects', (done) ->
         async.series([
             (cb) ->
-                create_accounts 1, (err, x) -> accounts=x; cb()
+                create_accounts 2, (err, x) -> accounts=x; cb()
             (cb) ->
                 create_projects 2, accounts[0], (err, x) -> projects.push(x...); cb(err)
+            (cb) ->
+                create_projects 1, accounts[1], (err, x) -> projects.push(x...); cb(err)
         ], done)
 
     it 'test...', (done) ->
         id   = misc.uuid()
-        t   = [misc.minutes_ago(10), misc.minutes_ago(5)]
+        t   = [misc.minutes_ago(10), misc.minutes_ago(5), misc.minutes_ago(3)]
         obj  = [
-            {project_id:projects[0], path: 'file1.txt', users:{"#{accounts[0]}":{'read':t[0]}}},
-            {project_id:projects[1], path: 'file2.txt', users:{"#{accounts[0]}":{'chat':t[1]}}}
+            {project_id:projects[0], path: 'file-in-project0.txt', users:{"#{accounts[0]}":{'read':t[0]}}},
+            {project_id:projects[1], path: 'file-in-project1.txt', users:{"#{accounts[0]}":{'chat':t[1]}}},
+            {project_id:projects[2], path: 'file-in-project2.txt', users:{"#{accounts[1]}":{'chat':t[2]}}}
         ]
         for x in obj
             x.id = db.sha1(x.project_id, x.path)
@@ -210,12 +213,25 @@ describe 'test file_use changefeeds with multiple projects', ->
                 (x, cb) ->
                     expect(x).toEqual({action:'insert', new_val: obj[0]})
 
-                    db.user_query   # insert first object
+                    db.user_query   # insert second object
                         account_id : accounts[0]
                         query      : {file_use:obj[1]}
                         cb         : cb
                 (x, cb) ->
                     expect(x).toEqual({action:'insert', new_val: obj[1]})
+
+                    db.user_query   # insert third object, which should NOT trigger change
+                        account_id : accounts[1]
+                        query      : {file_use:obj[2]}
+                        cb         : () =>
+                            obj[1].last_edited = new Date()
+                            db.user_query   # insert second object again, modified
+                                account_id : accounts[0]
+                                query      : {file_use:obj[1]}
+                                cb         : cb
+
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val: obj[1]})
                     cb()
             ], done)
 
