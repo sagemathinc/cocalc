@@ -71,10 +71,10 @@ describe 'test the accounts table changefeed', ->
                                 query      : {accounts:{account_id:account_id, first_name:'SAGE!'}}
                                 cb         : cb
                         (x, cb) ->
-                            expect(x).toEqual({ update: { account_id:account_id, first_name:'SAGE!'}})
+                            expect(x).toEqual({ action:'update', new_val: { account_id:account_id, first_name:'SAGE!'}})
                             db.delete_account(account_id:account_id, cb:cb)
                         (x, cb) ->
-                            expect(x).toEqual({ delete: { account_id:account_id } })
+                            expect(x).toEqual({ action: 'delete', old_val: { account_id:account_id } })
                             db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                         ], cb)
         ], (err) ->
@@ -117,7 +117,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
                         cb         : cb
                 (x, cb) ->
                     obj.id = db.sha1(obj.project_id, obj.path)
-                    expect(x).toEqual({insert: obj })
+                    expect(x).toEqual({action:'insert', new_val: obj })
 
                     # now mutate it by chatting on it
                     t1 = new Date()
@@ -128,7 +128,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
                 (x, cb) ->
                     # note how chat gets recursively MERGED IN -- not replacing users. (so tricky under the hood to implement...)
                     obj.users["#{accounts[0]}"].chat = t1
-                    expect(x).toEqual({update: obj})
+                    expect(x).toEqual({action:'update', new_val:obj})
 
                     # now mutate it by updating last_edited
                     t2 = new Date()
@@ -139,7 +139,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
                 (x, cb) ->
                     # note how chat gets recursively MERGED IN -- not replacing users. (so tricky under the hood to implement...)
                     obj.last_edited = t2
-                    expect(x).toEqual({update: obj})
+                    expect(x).toEqual({action:'update', new_val: obj})
 
                     # add a second file_use entry
                     db.user_query
@@ -149,7 +149,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
 
                 (x, cb) ->
                     obj2.id = db.sha1(obj2.project_id, obj2.path)
-                    expect(x).toEqual({insert:obj2})
+                    expect(x).toEqual({action:'insert', new_val:obj2})
 
                     # now delete the first entry (not through file_use, but directly)
                     db._query
@@ -157,7 +157,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
                         where : {'id = $': obj.id}
                         cb    : cb
                 (x, cb) ->
-                    expect(x).toEqual({"delete": {id:obj.id, project_id:projects[0]}})
+                    expect(x).toEqual({action:"delete", old_val:{id:obj.id, project_id:projects[0]}})
 
                     # and the second
                     db._query
@@ -166,7 +166,7 @@ describe 'test changefeeds involving the file_use table on one project with one 
                         cb    : cb
 
                 (x, cb) ->
-                    expect(x).toEqual({"delete": {id:obj2.id, project_id:projects[0]}})
+                    expect(x).toEqual({action:"delete", old_val:{id:obj2.id, project_id:projects[0]}})
 
                     db.user_query_cancel_changefeed(id:id, cb:cb)
             ], done)
@@ -196,7 +196,7 @@ describe 'test file_use changefeeds with multiple projects', ->
         for x in obj
             x.id = db.sha1(x.project_id, x.path)
 
-        db.user_query 
+        db.user_query
             account_id : accounts[0]
             query      : {file_use:[{id: null, project_id:null, path: null, users: null, last_edited: null}]}
             changes    : id
@@ -208,14 +208,14 @@ describe 'test file_use changefeeds with multiple projects', ->
                         query      : {file_use:obj[0]}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({insert: obj[0]})
+                    expect(x).toEqual({action:'insert', new_val: obj[0]})
 
                     db.user_query   # insert first object
                         account_id : accounts[0]
                         query      : {file_use:obj[1]}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({insert: obj[1]})
+                    expect(x).toEqual({action:'insert', new_val: obj[1]})
                     cb()
             ], done)
 
