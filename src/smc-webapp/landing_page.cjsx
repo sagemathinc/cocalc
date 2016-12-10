@@ -25,7 +25,7 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-
+{HelpPageUsageSection} = require('./r_help')
 #DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
 
@@ -653,6 +653,13 @@ exports.LandingPage = rclass
                             has_account   = {@props.has_account} />
                     </Col>
                 </Row>
+                <Well>
+                    <Row>
+                        <Col sm=12 className='hidden-xs'>
+                            <HelpPageUsageSection />
+                        </Col>
+                    </Row>
+                </Well>
                 <Row>
                     <Col sm=12 className='hidden-xs'>
                         <LandingPageContent />

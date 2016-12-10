@@ -46,7 +46,7 @@ li_style =
     lineHeight : 'inherit'
     marginTop  : '0.7ex'
 
-HelpPageUsageSection = rclass
+exports.HelpPageUsageSection = rclass
     reduxProps :
         server_stats :
             loading             : rtypes.bool.isRequired
