@@ -999,7 +999,7 @@ class exports.PostgreSQL extends PostgreSQL
         else
             return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
 
-    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, json_fields, cb) =>
+    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, json_fields, account_id, cb) =>
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
@@ -1021,28 +1021,51 @@ class exports.PostgreSQL extends PostgreSQL
         if misc.len(json_fields) > 0
             # Convert (likely) timestamps to Date objects.
             process = (x) =>
-                for _, obj of x
-                    @_user_get_query_json_timestamps(obj, json_fields)
+                if x?
+                    for _, obj of x
+                        @_user_get_query_json_timestamps(obj, json_fields)
         else
-            process = ->
+            process = ->  # no-op
 
-        @changefeed
-            table  : table
-            select : select
-            where  : where
-            watch  : watch
-            cb     : (err, feed) =>
-                if err
-                    cb(err)
-                    return
-                feed.on 'change', (x) ->
-                    process(x)
-                    changes.cb(undefined, x)
-                feed.on 'error', (err) ->
-                    changes.cb(err)
-                @_changefeeds ?= {}
-                @_changefeeds[changes.id] = feed
-                cb()
+        async.series([
+            (cb) =>
+                # check for alternative where test for changefeed.
+                pg_changefeed = SCHEMA[table]?.user_query?.get?.pg_changefeed
+                if not pg_changefeed?
+                    cb(); return
+                x = pg_changefeed(@, user_query, account_id)
+                if x.select?
+                    for k, v of x.select
+                        select[k] = v
+                if x.where?
+                    where = x.where
+                    # initialize user tracker needed for where tests...
+                    @project_and_user_tracker cb : (err, tracker) =>
+                        if err
+                            cb(err)
+                        else
+                            tracker.register(account_id: account_id, cb:cb)
+                else
+                    cb()
+            (cb) =>
+                @changefeed
+                    table  : table
+                    select : select
+                    where  : where
+                    watch  : watch
+                    cb     : (err, feed) =>
+                        if err
+                            cb(err)
+                            return
+                        feed.on 'change', (x) ->
+                            process(x)
+                            changes.cb(undefined, x)
+                        feed.on 'error', (err) ->
+                            changes.cb(err)
+                        @_changefeeds ?= {}
+                        @_changefeeds[changes.id] = feed
+                        cb()
+        ], cb)
 
     user_get_query: (opts) =>
         opts = defaults opts,
@@ -1113,7 +1136,7 @@ class exports.PostgreSQL extends PostgreSQL
 
                 if opts.changes?
                     @_user_get_query_changefeed(opts.changes, table, primary_key,
-                                                opts.query, _query_opts.where, json_fields, cb)
+                                                opts.query, _query_opts.where, json_fields, opts.account_id, cb)
                 else
                     cb()
             (cb) =>

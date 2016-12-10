@@ -131,7 +131,7 @@ class exports.PostgreSQL extends PostgreSQL
             select : required   # Map from field names to postgres data types. These must
                                 # determine entries of table (e.g., primary key).
             watch  : required   # Array of field names we watch for changes
-            where  : required   # Condition involving only the fields in select
+            where  : required   # Condition involving only the fields in select; or function taking obj with select and returning true or false
             cb     : required
         new Changes(@, opts.table, opts.select, opts.watch, opts.where, opts.cb)
         return
@@ -184,9 +184,8 @@ class ProjectAndUserTracker extends EventEmitter
         @_feed.close()
 
     _handle_change: (x) =>
-        console.log('handle ', x)
-        project_id = x.new_val.project_id
         if x.action == 'delete'
+            project_id = x.old_val.project_id
             if not @_users[project_id]?
                 # no users
                 return
@@ -194,6 +193,7 @@ class ProjectAndUserTracker extends EventEmitter
                 @_remove_user_from_project(account_id, project_id)
             return
         # users on a project changed or project created
+        project_id = x.new_val.project_id
         @_db._query
             query : "SELECT jsonb_object_keys(users) AS account_id FROM projects"
             where : "project_id = $::UUID":project_id
@@ -275,7 +275,6 @@ class ProjectAndUserTracker extends EventEmitter
             query  : "SELECT project_id, json_agg(o) as users FROM (select project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT) s group by s.project_id"
             params : [opts.account_id]
             cb     : all_results (err, x) =>
-                console.log(x)
                 if err
                     for cb in @_register_cbs
                         cb(err)
@@ -367,6 +366,10 @@ class Changes extends EventEmitter
                     @emit 'change', {action:action, new_val:misc.merge(result, mesg[1])}
 
     _init_where: =>
+        if typeof(@_where) == 'function'
+            # user provided function
+            @_match_condition = @_where
+            return
         if misc.is_object(@_where)
             w = [@_where]
         else
@@ -408,13 +411,13 @@ class Changes extends EventEmitter
         if misc.len(@_condition) == 0
             delete @_condition
 
-    _match_condition: (obj) =>
-        if not @_condition?
+        @_match_condition = (obj) =>
+            if not @_condition?
+                return true
+            for field, val of @_condition
+                if obj[field] != val
+                    return false
             return true
-        for field, val of @_condition
-            if obj[field] != val
-                return false
-        return true
 
 
 class SyncTable extends EventEmitter
@@ -458,7 +461,7 @@ class SyncTable extends EventEmitter
         return true  # TODO
 
     _notification: (obj) =>
-        console.log 'notification', obj
+        #console.log 'notification', obj
         if obj.action == 'DELETE'
             @_value = @_value.delete(obj[@_primary_key])
         else
