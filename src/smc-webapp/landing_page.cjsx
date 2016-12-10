@@ -641,7 +641,17 @@ exports.LandingPage = rclass
                 </Row>
                 <Row>
                     <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
-                        <SMC_Commercial />
+                        <Well style={'textAlign': 'center', 'float':'right'}>
+                            <SMC_Commercial />
+                            <br />
+                            <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'border':'1px solid blue','width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of SageMathCloud in the Mathematics for Life Scientists">
+                                <img src={require('will_conley.jpg')} style={'height':'102px'} />
+                            </a>
+                            <p>"SageMathCloud provides a user friendly interface. Students don’t need to install any software at all. 
+                            They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
+                            in, hit shift+enter and it runs and they can see if it works. It provides immediate feedback. The course
+                            management features work really well."</p>
+                        </Well>
                     </Col>
                     <Col sm=5>
                         <SignUp
