@@ -32,9 +32,6 @@ class exports.PostgreSQL extends PostgreSQL
         if misc.len(select) == 0
             cb('there must be at least one column selected')
             return
-        if watch.length == 0
-            cb('there must be at least one column where we watch for watchs')
-            return
         tgname = trigger_name(table, select, watch)
         trigger_exists = undefined
         async.series([
@@ -70,9 +67,6 @@ class exports.PostgreSQL extends PostgreSQL
             return
         if not misc.is_array(watch)
             cb('watch must be an array')
-            return
-        if watch.length == 0
-            cb('there must be at least one column where we watch for watchs')
             return
         @_listening ?= {}
         tgname = trigger_name(table, select, watch)
@@ -170,6 +164,8 @@ class ProjectAndUserTracker extends EventEmitter
         @_projects = {} # map from account_id to set of projects of a given user
         @_collabs  = {} # map from account_id to map from account_ids to *number* of projects you have in common
         # create changefeed listening on changes to projects table
+        # TODO: instead of firing on users change; fire on change of jsonb_object_keys(users),
+        # which should be easy via more customized triggers... or a custom postgres VIEW.
         @_db.changefeed
             table  : 'projects'
             select : {project_id:'UUID'}
@@ -189,8 +185,11 @@ class ProjectAndUserTracker extends EventEmitter
 
     _handle_change: (x) =>
         console.log('handle ', x)
-        project_id = x.obj.project_id
+        project_id = x.new_val.project_id
         if x.action == 'delete'
+            if not @_users[project_id]?
+                # no users
+                return
             for account_id of @_users[project_id]
                 @_remove_user_from_project(account_id, project_id)
             return
@@ -202,11 +201,18 @@ class ProjectAndUserTracker extends EventEmitter
                 if err
                     # TODO! -- will have to try again... or make a version of _query that can't fail...?
                     return
+                any = false
+                for account_id in users
+                    if @_accounts[account_id]
+                        any = true
+                        break
+                if not any
+                    # none of our tracked users are on this project.
+                    return
                 # first add any users who got added, and record which accounts are relevant
                 users_now    = {}
                 for account_id in users
-                    if @_accounts[account_id]?
-                        users_now[account_id] = true
+                    users_now[account_id] = true
                 users_before = @_users[project_id] ? {}
                 for account_id of users_now
                     if not users_before[account_id]
@@ -217,6 +223,8 @@ class ProjectAndUserTracker extends EventEmitter
 
     # add and remove user from a project, maintaining our data structures (@_accounts, @_projects, @_collabs)
     _add_user_to_project: (account_id, project_id) =>
+        if account_id?.length != 36 or project_id?.length != 36
+            throw Error("invalid account_id or project_id")
         if @_projects[account_id]?[project_id]
             return
         users = @_users[project_id] ?= {}
@@ -236,6 +244,8 @@ class ProjectAndUserTracker extends EventEmitter
                 other_collabs[account_id] = 1
 
     _remove_user_from_project: (account_id, project_id) =>
+        if account_id?.length != 36 or project_id?.length != 36
+            throw Error("invalid account_id or project_id")
         if not @_projects[account_id]?[project_id]
             return
         collabs = @_collabs[account_id] ?= {}
@@ -261,17 +271,24 @@ class ProjectAndUserTracker extends EventEmitter
         @_register_cbs ?= [opts.cb]
         if @_register_cbs.length > 1
             return
-        @_db.get_project_ids_with_user
-            account_id : opts.account_id
-            cb         : (err, projects) =>
+        @_db._query
+            query  : "SELECT project_id, json_agg(o) as users FROM (select project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT) s group by s.project_id"
+            params : [opts.account_id]
+            cb     : all_results (err, x) =>
+                console.log(x)
                 if err
                     for cb in @_register_cbs
                         cb(err)
                     delete @_register_cbs
                     return
                 @_accounts[opts.account_id] = true
-                for project_id in projects
-                    @_add_user_to_project(opts.account_id, project_id)
+                for a in x
+                    if @_users[a.project_id]?
+                        # already have data about this project
+                        continue
+                    else
+                        for account_id in a.users
+                            @_add_user_to_project(account_id, a.project_id)
                 for cb in @_register_cbs
                     cb()
                 delete @_register_cbs
@@ -280,10 +297,25 @@ class ProjectAndUserTracker extends EventEmitter
         opts = defaults opts,
             account_id : required
         if @_accounts[opts.account_id]?
+            v = []
             for project_id of @_projects[opts.account_id]
                 @_remove_user_from_project(opts.account_id, project_id)
+                v.push(project_id)
             delete @_accounts[opts.account_id]
+            # Forget about any projects they were on that are no longer
+            # necessary to watch...
+            for project_id in v
+                need = false
+                for account_id of @_users[project_id]
+                    if @_accounts[account_id]?
+                        need = true
+                        break
+                if not need
+                    for account_id of @_users[project_id]
+                        @_remove_user_from_project(account_id, project_id)
+                    delete @_users[project_id]
         return
+
 
     # return *set* of projects that this user is a collaborator on
     projects: (account_id) =>
@@ -319,8 +351,12 @@ class Changes extends EventEmitter
         if not @_match_condition(mesg[1])
             return
         if mesg[0] == 'DELETE'
-            @emit 'change', {action:'delete', obj:mesg[1]}
+            @emit 'change', {action:'delete', old_val:mesg[1]}
         else
+            action = "#{mesg[0].toLowerCase()}"
+            if @_watch.length == 0
+                @emit 'change', {action:action, new_val:mesg[1]}
+                return
             where = {}
             for k, v of mesg[1]
                 where["#{k} = $"] = v
@@ -328,7 +364,7 @@ class Changes extends EventEmitter
                 query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
                 where : where
                 cb    : one_result (err, result) =>
-                    @emit 'change', {action:"#{mesg[0].toLowerCase()}", obj:misc.merge(result, mesg[1])}
+                    @emit 'change', {action:action, new_val:misc.merge(result, mesg[1])}
 
     _init_where: =>
         if misc.is_object(@_where)
@@ -509,7 +545,9 @@ trigger_name = (table, select, watch) ->
     c.sort()
     watch = misc.copy(watch)
     watch.sort()
-    c = c.concat(watch)
+    if watch.length > 0
+        c.push('|')
+        c = c.concat(watch)
     return 'change_' + misc_node.sha1("#{table} #{c.join(' ')}").slice(0,16)
 
 ###
@@ -527,7 +565,10 @@ trigger_code = (table, select, watch) ->
     old_assign  = ("#{field} = OLD.#{field};"     for field, _ of select)
     new_assign  = ("#{field} = NEW.#{field};"     for field, _ of select)
     build_obj   = ("'#{field}', #{field}"         for field, _ of select)
-    no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch).join(' AND ')
+    if watch.length > 0
+        no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch).join(' AND ')
+    else
+        no_change = 'FALSE'
     return """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
