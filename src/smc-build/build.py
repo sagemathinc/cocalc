@@ -301,6 +301,7 @@ SAGE_PIP_PACKAGES = [
     'git+https://github.com/abelfunctions/abelfunctions.git',
     'multipolynomial_bases', # https://github.com/VivianePons/multipolynomial-bases
     'pudb', # ncurses based visual debugger
+    'quandl',
     ]
 
 # additional environment settings for specific packages
@@ -346,6 +347,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'cufflinks', 'colorlover', # plot.ly deps (mabye not py2 compatible)
     'vega', # altair
     'urwid', 'pygments', # pudb deps
+    'inflection', 'more_itertools', # quandl deps
 ]
 
 # TODO make add an additional category of pip packages, where it is always safe to install with dependencies
