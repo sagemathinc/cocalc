@@ -651,6 +651,7 @@ exports.LandingPage = rclass
                             They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
                             in, hit shift+enter and it runs and they can see if it works. It provides immediate feedback. The course
                             management features work really well."</p>
+                            <p>Read <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">other quotes</a>.</p>
                         </Well>
                     </Col>
                     <Col sm=5>
