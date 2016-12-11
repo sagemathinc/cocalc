@@ -678,12 +678,13 @@ NewProjectCreator = rclass
 
     getInitialState: ->
         state =
-            upgrading : true
-            has_subbed       : false
-            state            : 'view'    # view --> edit --> saving --> view
-            title_text       : ''
-            description_text : ''
-            error            : ''
+            upgrading         : true
+            has_subbed        : false
+            state             : 'view'    # view --> edit --> saving --> view
+            title_text        : ''
+            description_text  : ''
+            error             : ''
+            create_button_hit : ''
 
     componentWillReceiveProps: (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
@@ -700,10 +701,11 @@ NewProjectCreator = rclass
 
     cancel_editing: ->
         @setState
-            state            : 'view'
-            title_text       : ''
-            description_text : ''
-            error            : ''
+            state             : 'view'
+            title_text        : ''
+            description_text  : ''
+            error             : ''
+            create_button_hit : '' # Options are 'with_members_and_internet' and 'with_custom_upgrades'
 
     toggle_editing: ->
         if @state.state == 'view'
@@ -716,11 +718,11 @@ NewProjectCreator = rclass
             upgrades_you_can_use                 = {@props.upgrades_you_can_use}
             upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
             upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-            submit_text              = {"Create project with upgrades"}
-            disable_submit           = {@state.title_text == '' or @state.state == 'saving'}
-            submit_upgrade_quotas    = {@create_project}
-            cancel_upgrading         = {@cancel_editing}
-            quota_params             = {require('smc-util/schema').PROJECT_UPGRADES.params}
+            submit_text                          = {"Create project with upgrades"}
+            disable_submit                       = {@state.title_text == '' or @state.state == 'saving'}
+            submit_upgrade_quotas                = {@create_project}
+            cancel_upgrading                     = {@cancel_editing}
+            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
         >
             {@render_info_alert()}
         </UpgradeAdjustor>
@@ -752,17 +754,6 @@ NewProjectCreator = rclass
 
     render_upgrade_before_create: (subs) ->
         <Col sm=12>
-            <h3>Upgrade to give your project internet access and more resources</h3>
-            <p>
-                To prevent abuse the free version doesn{"'"}t have internet access.
-                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or
-                any other internet resources
-                is not possible with the free version.
-                Starting at just $7/month you can give your project(s)
-                internet access, members only hosting, 1 day Idle timeout,
-                3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
-                with any project you are a collaborator on.
-            </p>
             <div>
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
@@ -776,6 +767,75 @@ NewProjectCreator = rclass
             <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
         else if @state.state == 'saving'
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
+
+    create_project_with_members_and_internet: ->
+        remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
+        if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
+            @create_project({member_host: 1, network: 1})
+        else
+            @setState(create_button_hit: 'with_members_and_internet')
+
+    render_upgrade_buttons: ->
+        <ButtonToolbar>
+            <label>Create this project with:</label><br/>
+            
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project_with_members_and_internet()} >
+                <Icon name="arrow-circle-up" /> Core upgrades
+            </Button>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
+                bsStyle  = 'success'
+                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
+                <Icon name="cog" /> Custom upgrades
+            </Button>
+            <Button
+                disabled  = {@state.title_text == '' or @state.state == 'saving'}
+                className = 'gray-button'
+                onClick   = {=>@create_project(false)} >
+                No upgrades
+            </Button>
+            <Button
+                disabled = {@state.state is 'saving'}
+                onClick  = {@cancel_editing} >
+                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+            </Button>
+        </ButtonToolbar>
+
+    render_create_button: ->
+        <ButtonToolbar>
+            <Button
+                disabled = {@state.title_text == '' or @state.state == 'saving'}
+                bsStyle  = 'success'
+                onClick  = {=>@create_project(false)} >
+                Create project
+            </Button>
+            <Button
+                disabled = {@state.state is 'saving'}
+                onClick  = {@cancel_editing} >
+                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+            </Button>
+        </ButtonToolbar>
+
+    render_commercial_explanation_of_project: ->
+        <div>
+            Creating basic projects without upgrades is free while upgrades require a subscription. 
+            Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space. 
+            If you have any questions, please
+            email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/>
+            <span className="highlight">If you are
+            purchasing a course subscription, but need a short trial to test things out first,
+            then please immediately email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
+            </span>
+        </div>
+
+    render_no_title_warning: ->
+        <Alert bsStyle='warning'>No project title specified. Please enter title at the top.</Alert>
+
+    render_create_buttons: ->
+        if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()
 
     render_input_section: (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
@@ -811,43 +871,26 @@ NewProjectCreator = rclass
                     </FormGroup>
                 </Col>
 
-                <Col sm=2>
-                    {# potentially add users before creating a project?}
-                </Col>
             </Row>
-
             <Row>
                 <Col sm=5>
-                    <ButtonToolbar>
-                        <Button
-                            disabled = {@state.title_text == '' or @state.state == 'saving'}
-                            bsStyle  = 'success'
-                            onClick  = {=>@create_project(false)} >
-                            Create project without upgrades
-                        </Button>
-                        <Button
-                            disabled = {@state.state is 'saving'}
-                            onClick  = {@cancel_editing} >
-                            {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-                        </Button>
-                    </ButtonToolbar>
-                    {@render_error()}
                 </Col>
                 <Col sm=7>
                     <div style={marginBottom: '12px'}>You can <b>very easily</b> change the title and description at any time later.</div>
                 </Col>
             </Row>
-            <Space/>
             <Row>
-                <Col sm=12 style={color:'#555'}>
-                    <div>
-                        A <b>project</b> is your own private computational workspace that you can
-                        share with others and upgrade. {#<a href="" onClick={@go_to_upgrade}>upgrade</a>.}
-                    </div>
+                <Col sm=12>
+                    {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
+                    <br/>A <b>project</b> is your own private computational workspace that you can share
+                    with others. 
+                    {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
+                    {@render_error()}
                 </Col>
             </Row>
+            <Space/>
             <Row>
-                {@render_upgrade_before_create(subs) if require('./customize').commercial}
+                {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
             </Row>
             <Row>
                 <Col sm=12>
