@@ -43,14 +43,32 @@ exports.create_accounts = (n, cb) ->
             cb            : cb
     async.map([0...n], f, cb)
 
-# create n projects owned by account_id
-exports.create_projects = (n, account_id, cb) ->
+# create n projects owned by the account_id's in the array account_ids (or string account_id)
+exports.create_projects = (n, account_ids, cb) ->
+    if typeof(account_ids) == "string"
+        account_id = account_ids
+        collabs = []
+    else
+        account_id = account_ids[0]
+        collabs = account_ids.slice(1)
     f = (i, cb) ->
-        exports.db.create_project
-            title      : "Project #{i}"
-            description: "Description #{i}"
-            account_id : account_id
-            cb         : cb
+        project_id = undefined
+        async.series([
+            (cb) ->
+                exports.db.create_project
+                    title      : "Project #{i}"
+                    description: "Description #{i}"
+                    account_id : account_id
+                    cb         : (err, _project_id) ->
+                        project_id = _project_id; cb(err)
+            (cb) ->
+                g = (id, cb) ->
+                    exports.db.add_user_to_project
+                        account_id: id
+                        project_id: project_id
+                        cb        : cb
+                async.map(collabs, g, cb)
+        ], (err) -> cb(err, project_id))
     async.map([0...n], f, cb)
 
 # Start with a clean slate -- delete the test database -- TODO: custom rethinkdb

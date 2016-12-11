@@ -188,7 +188,7 @@ describe 'test file_use changefeeds with multiple projects', ->
                 create_projects 1, accounts[1], (err, x) -> projects.push(x...); cb(err)
         ], done)
 
-    it 'test...', (done) ->
+    it 'insert into file_use for three separate projects', (done) ->
         id   = misc.uuid()
         t   = [misc.minutes_ago(10), misc.minutes_ago(5), misc.minutes_ago(3)]
         obj  = [
@@ -232,6 +232,71 @@ describe 'test file_use changefeeds with multiple projects', ->
 
                 (x, cb) ->
                     expect(x).toEqual({action:'update', new_val: obj[1]})
+                    cb()
+            ], done)
+
+describe 'modifying a single file_use record in various ways', ->
+    before(setup)
+    after(teardown)
+
+    accounts = []
+    projects = []
+    it 'create account and projects', (done) ->
+        async.series([
+            (cb) ->
+                # 2 accounts
+                create_accounts 2, (err, x) -> accounts=x; cb()
+            (cb) ->
+                # 1 project with both accounts using it
+                create_projects 1, accounts, (err, x) -> projects.push(x...); cb(err)
+        ], done)
+
+    it 'insert a file_use entry and modify in various ways', (done) ->
+        console.log accounts
+        console.log projects
+        changefeed_id = misc.uuid()
+        time          = new Date()
+        obj           = {project_id:projects[0], path: 'file-in-project0.txt', users:{"#{accounts[0]}":{'read':time}}}
+        obj.id        = db.sha1(obj.project_id, obj.path)
+
+        db.user_query
+            account_id : accounts[0]
+            query      : {file_use:[{id: null, project_id:null, path: null, users: null, last_edited: null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x).toEqual({ file_use: [] })  # how it starts
+                    cb()
+                    db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val: obj})
+
+                    obj.last_edited = new Date()
+                    db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val: obj})
+
+                    obj.users[accounts[0]].chat = new Date()
+                    db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val: obj})
+
+                    obj.users[accounts[1]] = {seen: new Date()}
+                    db.user_query(account_id: accounts[1], query: {file_use:obj}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val: obj})
+
+                    obj.users[accounts[0]] = {chat: new Date(), read: new Date()}
+                    db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val: obj})
+
+                    db._query
+                        query : "DELETE FROM file_use"
+                        where : {'id = $': obj.id}
+                        cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:"delete", old_val:{id:obj.id, project_id:obj.project_id}})
                     cb()
             ], done)
 
