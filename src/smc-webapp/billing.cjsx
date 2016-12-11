@@ -1716,7 +1716,7 @@ BillingPage = rclass
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
             <i>
-                <Space/> Contact us if you are purchasing a course subscription, but need a short trial
+                <Space/> Contact us if you are an instructor purchasing a course subscription, but need a short trial
                 to test things out first.<Space/>
             </i>
         </span>
