@@ -157,13 +157,13 @@ class ProjectsActions extends Actions
         require('./project_store') # registers the project store with redux...
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)
-        sort_by_time = store.get('sort_by_time') ? true
-        show_hidden = store.get('show_hidden') ? false
+        sort_by_time = store.sort_by_time ? true
+        show_hidden = store.show_hidden ? false
 
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
-        actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+        actions.fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
@@ -1447,15 +1447,16 @@ exports.ProjectsPage = ProjectsPage = rclass
         </div>
 
 exports.ProjectTitle = ProjectTitle = rclass
-    displayName : 'Projects-ProjectTitle'
+    displayName: 'Projects-ProjectTitle'
 
-    reduxProps :
+    reduxProps:
         projects :
             project_map : rtypes.immutable
 
-    propTypes :
+    propTypes:
         project_id   : rtypes.string.isRequired
         handle_click : rtypes.func
+        style        : rtypes.object
 
     shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
@@ -1465,17 +1466,21 @@ exports.ProjectTitle = ProjectTitle = rclass
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
+            <a onClick={@props.handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
-            <span>(Private project)</span>
+            <span style={@props.style}>(Private project)</span>
 
 exports.ProjectTitleAuto = rclass
-    displayName : 'Projects-ProjectTitleAuto'
+    displayName: 'Projects-ProjectTitleAuto'
 
-    propTypes :
-        project_id  : rtypes.string.isRequired
+    propTypes:
+        project_id : rtypes.string.isRequired
+        style      : rtypes.object
+
+    handle_click: ->
+        @actions('projects').open_project(project_id : @props.project_id)
 
     render: ->
         <Redux redux={redux}>
-            <ProjectTitle project_id={@props.project_id} />
+            <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
         </Redux>

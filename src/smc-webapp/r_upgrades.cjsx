@@ -2,37 +2,11 @@
 {Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
-{ProjectTitle} = require('./projects') # SMELL: ProjectTitle is left undefined after this..
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 round1 = misc.round1
-
-# WARNING: ProjectTitle is required above
-{html_to_text} = require('./misc_page')
-ProjectTitle = rclass
-    displayName : 'Projects-ProjectTitle'
-
-    reduxProps :
-        projects :
-            project_map : rtypes.immutable
-
-    propTypes :
-        project_id   : rtypes.string.isRequired
-        handle_click : rtypes.func
-
-    shouldComponentUpdate: (nextProps) ->
-        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
-
-    render: ->
-        if not @props.project_map?
-            return <Loading />
-        title = @props.project_map?.get(@props.project_id)?.get('title')
-        if title?
-            <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
-        else
-            <span>(Private project)</span>
 
 exports.UpgradesPage = rclass
     propTypes :
@@ -160,6 +134,7 @@ exports.UpgradesPage = rclass
         return r_join(v)
 
     render_upgraded_project: (project_id, upgrades, darker) ->
+        {ProjectTitle} = require('./projects')
         <Row key={project_id} style={backgroundColor:'#eee' if darker}>
             <Col sm=4>
                 <ProjectTitle

@@ -367,7 +367,7 @@ ProjectMainContent = rclass
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'
-                <ProjectLog name={@props.project_name} />
+                <ProjectLog name={@props.project_name} project_id={@props.project_id} />
             when 'search'
                 <ProjectSearch name={@props.project_name} />
             when 'settings'

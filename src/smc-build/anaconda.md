@@ -89,7 +89,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras altair cufflinks tweepy
 
-       conda install -y xarray dask netcdf4 rasterio cython shapely lxml geopandas geojson folium mplleaflet cartopy rasterstats psycopg2 ipyleaflet pykml jsanimation datashader qutip
+       conda install -y xarray dask netcdf4 rasterio cython shapely lxml geopandas geojson folium mplleaflet cartopy rasterstats psycopg2 ipyleaflet pykml jsanimation datashader qutip quandl
 
 not possible to install (conflict with python 3.5):
 

@@ -25,7 +25,7 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-
+{HelpPageUsageSection} = require('./r_help')
 #DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
 
@@ -454,7 +454,7 @@ LANDING_PAGE_CONTENT =
         heading : 'LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
-SMC_Commercial = () ->
+SMC_Commercial = ->
     <iframe
         width       = "504"
         height      = "284"
@@ -462,6 +462,18 @@ SMC_Commercial = () ->
         frameBorder = "0"
         allowFullScreen>
     </iframe>
+
+SMC_Quote = ->
+    <div style={marginTop:'15px'}>
+        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of SageMathCloud in the Mathematics for Life Scientists">
+            <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
+        </a>
+        <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
+        They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
+        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback. The course
+        management features work really well."</p>
+        <p><a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">Quotes</a> | <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses</a> | <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">Course management tutorial</a></p>
+    </div>
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
@@ -641,7 +653,11 @@ exports.LandingPage = rclass
                 </Row>
                 <Row>
                     <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
-                        <SMC_Commercial />
+                        <Well style={'textAlign': 'center', 'float':'right'}>
+                            <SMC_Commercial />
+                            <br />
+                            <SMC_Quote />
+                        </Well>
                     </Col>
                     <Col sm=5>
                         <SignUp
@@ -653,6 +669,13 @@ exports.LandingPage = rclass
                             has_account   = {@props.has_account} />
                     </Col>
                 </Row>
+                <Well>
+                    <Row>
+                        <Col sm=12 className='hidden-xs'>
+                            <HelpPageUsageSection />
+                        </Col>
+                    </Row>
+                </Well>
                 <Row>
                     <Col sm=12 className='hidden-xs'>
                         <LandingPageContent />

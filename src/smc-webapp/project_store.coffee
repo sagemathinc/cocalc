@@ -165,7 +165,7 @@ class ProjectActions extends Actions
                 @set_url_to_path(store.current_path ? '')
                 sort_by_time = store.sort_by_time
                 show_hidden = store.show_hidden
-                @set_directory_files(store.current_path, sort_by_time, show_hidden)
+                @fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.current_path)
@@ -523,6 +523,8 @@ class ProjectActions extends Actions
                 # TODO!
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
+                if path[path.length - 1] == '/'
+                    path = path.slice(0, -1)
                 @foreground_project()
                 @set_current_path(path)
                 if @get_store().active_project_tab == 'files'
@@ -549,7 +551,7 @@ class ProjectActions extends Actions
             page_number            : 0
             most_recent_file_click : undefined
 
-        @set_directory_files()
+        @fetch_directory_listing()
 
     set_file_search: (search) =>
         @setState
@@ -561,7 +563,7 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    set_directory_files: (path, sort_by_time, show_hidden) =>
+    fetch_directory_listing: (path, sort_by_time, show_hidden) =>
         if not path?
             path = @get_store().current_path
         if not path?
@@ -743,7 +745,7 @@ class ProjectActions extends Actions
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
-            @set_directory_files()
+            @fetch_directory_listing()
             if err
                 @set_activity(id:id, error:err)
             else if output?.event == 'error' or output?.error
@@ -770,11 +772,34 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : @_finish_exec(id)
 
-    copy_files: (opts) =>
+    # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
+    _convert_to_displayed_path: (path) =>
+        if path.slice(-1) == '/'
+            return path
+        else
+            if @get_store().displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+                return path + '/'
+            else
+                return path
+
+    copy_paths: (opts) =>
         opts = defaults opts,
-            src  : required     # Should be an array of source paths
-            dest : required
-            id   : undefined
+            src           : required     # Should be an array of source paths
+            dest          : required
+            id            : undefined
+            only_contents : false
+
+        with_slashes = opts.src.map(@_convert_to_displayed_path)
+
+        @log
+            event  : 'file_action'
+            action : 'copied'
+            files  : with_slashes[0...3]
+            count  : if opts.src.length > 3 then opts.src.length
+            dest   : opts.dest + '/'
+
+        if opts.only_contents
+            opts.src = with_slashes
 
         # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
         deal_with_leading_dash = (src_path) ->
@@ -788,12 +813,7 @@ class ProjectActions extends Actions
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
-        @log
-            event  : 'file_action'
-            action : 'copied'
-            files  : opts.src[0...3]
-            count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest
+
         salvus_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -822,12 +842,12 @@ class ProjectActions extends Actions
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
         src = opts.src
         delete opts.src
+        with_slashes = src.map(@_convert_to_displayed_path)
         @log
             event   : 'file_action'
             action  : 'copied'
-            files   : src[0...3]
+            files   : with_slashes[0...3]
             count   : if src.length > 3 then src.length
-            dest    : opts.dest
             project : opts.target_project_id
         f = (src_path, cb) =>
             opts0 = misc.copy(opts)
@@ -872,7 +892,7 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:id, error:err)
             else
-                @set_directory_files()
+                @fetch_directory_listing()
             @log
                 event  : 'file_action'
                 action : 'moved'
@@ -1048,7 +1068,7 @@ class ProjectActions extends Actions
             timeout : FROM_WEB_TIMEOUT_S
             alert   : true
             cb      : (err) =>
-                @set_directory_files()
+                @fetch_directory_listing()
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
@@ -1174,15 +1194,28 @@ class ProjectActions extends Actions
         segments = target.split('/')
         full_path = segments.slice(1).join('/')
         parent_path = segments.slice(1, segments.length-1).join('/')
+        last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
-                    @open_file
-                        path       : full_path
-                        foreground : foreground
-                        foreground_project : foreground
+                    @fetch_directory_listing(parent_path)
+                    @get_store().wait
+                        until   : (s) => s.directory_listings.get(parent_path)
+                        timeout : 3
+                        cb      : (err, listing) =>
+                            if err
+                                alert_message(type:'error', message:'Failed to open link')
+                            else
+                                item = listing.find (val) => val.get('name') == last
+                                if item.get('isdir')
+                                    @open_directory(full_path)
+                                else
+                                    @open_file
+                                        path       : full_path
+                                        foreground : foreground
+                                        foreground_project : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)
                 @set_active_tab('new')
