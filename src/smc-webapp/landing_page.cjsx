@@ -466,7 +466,7 @@ SMC_Commercial = ->
 SMC_Quote = ->
     <div style={marginTop:'15px'}>
         <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of SageMathCloud in the Mathematics for Life Scientists">
-            <img src={require('will_conley.jpg')} style={'height':'102px'} />
+            <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
         </a>
         <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
