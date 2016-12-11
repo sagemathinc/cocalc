@@ -772,25 +772,29 @@ NewProjectCreator = rclass
         else
             @setState(create_button_hit: 'with_members_and_internet')
 
+    scroll_to_billing: ->
+        setTimeout ( ->
+            $('#smc-react-container > div').scrollTop($("#new_project_billing_section").offset().top - 30)
+        ), 500
+
     render_upgrade_buttons: ->
         <ButtonToolbar>
             <label>Create this project with:</label><br/>
-            
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
                 bsStyle  = 'success'
+                title    = 'Upgrades you to members only hosting which is more reliable and network access so you can use internet resources directly from your code'
                 onClick  = {=>@create_project_with_members_and_internet()} >
-                <Icon name="arrow-circle-up" /> Core upgrades
+                <Icon name="arrow-circle-up" /> Hosting/network upgrades
             </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
                 bsStyle  = 'success'
-                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
-                <Icon name="cog" /> Custom upgrades
+                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades');@scroll_to_billing()} >
+                <Icon name="cog" /> Custom upgrades...
             </Button>
             <Button
                 disabled  = {@state.title_text == '' or @state.state == 'saving'}
-                className = 'gray-button'
                 onClick   = {=>@create_project(false)} >
                 No upgrades
             </Button>
@@ -887,6 +891,7 @@ NewProjectCreator = rclass
             </Row>
             <Space/>
             <Row>
+                <span id="new_project_billing_section"></span>
                 {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
             </Row>
             <Row>
