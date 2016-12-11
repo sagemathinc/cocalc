@@ -26,7 +26,7 @@ immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
-{Icon, Loading, TimeAgo, PathLink, r_join, Space, Tip} = require('./r_misc')
+{Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
@@ -47,19 +47,11 @@ LogSearch = rclass
         search           : rtypes.string
         actions          : rtypes.object.isRequired
         selected         : rtypes.object
+        increment_cursor : rtypes.func.isRequired
+        decrement_cursor : rtypes.func.isRequired
+        reset_cursor     : rtypes.func.isRequired
 
-    clear_and_focus_input: ->
-        ReactDOM.findDOMNode(@refs.project_log_search).focus()
-        @props.actions.setState(search:'', page:0)
-
-    render_clear_button: ->
-        s = if @props.search?.length > 0 then 'warning' else "default"
-        <Button onClick={@clear_and_focus_input} bsStyle={s}>
-            <Icon name='times-circle' />
-        </Button>
-
-    do_open_selected: (e) ->
-        e.preventDefault()
+    open_selected: (value, info) ->
         e = @props.selected?.event
         if not e?
             return
@@ -67,38 +59,28 @@ LogSearch = rclass
             when 'open'
                 target = e.filename
                 if target?
-                    @props.actions.open_file(path:target, foreground:true)
+                    @props.actions.open_file
+                        path       : target
+                        foreground : not info.ctrl_down
             when 'set'
                 @props.actions.set_active_tab('settings')
 
-    keydown: (e) ->
-        if e.keyCode == 27
-            @props.actions.setState(search:'', page:0)
-
-    on_change: (e) ->
-        e.preventDefault()
-        x = ReactDOM.findDOMNode(@refs.project_log_search).value
-        @props.actions.setState(search : x, page : 0)
+    on_change: (value) ->
+        @props.reset_cursor()
+        @props.actions.setState(search : value, page : 0)
 
     render: ->
-        <form onSubmit={@do_open_selected}>
-            <FormGroup>
-                <InputGroup>
-                    <FormControl
-                        autoFocus
-                        type        = 'search'
-                        value       = @props.search
-                        ref         = 'project_log_search'
-                        placeholder = 'Search log...'
-                        onChange    = {@on_change}
-                        onKeyDown   = {@keydown}
-                        />
-                        <InputGroup.Button>
-                            {@render_clear_button()}
-                        </InputGroup.Button>
-                </InputGroup>
-            </FormGroup>
-        </form>
+        <SearchInput
+            autoFocus   = {true}
+            autoSelect  = {true}
+            placeholder = 'Search log...'
+            value       = {@props.search}
+            on_change   = {@on_change}
+            on_submit   = {@open_selected}
+            on_up       = {@props.decrement_cursor}
+            on_down     = {@props.increment_cursor}
+            on_escape   = {=> @props.actions.setState(search:'', page:0)}
+        />
 
 selected_item =
     backgroundColor : '#08c'
@@ -343,7 +325,12 @@ exports.ProjectLog = rclass ({name}) ->
         search : ''   # search that user has requested
         page   : 0
 
-    shouldComponentUpdate: (nextProps) ->
+    getInitialState: ->
+        cursor_index : 0
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        if @state.cursor_index != nextState.cursor_index
+            return true
         if @props.search != nextProps.search
             return true
         if @props.page != nextProps.page
@@ -362,9 +349,11 @@ exports.ProjectLog = rclass ({name}) ->
 
     previous_page: ->
         if @props.page > 0
+            @reset_cursor()
             @actions(name).setState(page: @props.page-1)
 
     next_page: ->
+        @reset_cursor()
         @actions(name).setState(page: @props.page+1)
 
     search_string: (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
@@ -438,6 +427,19 @@ exports.ProjectLog = rclass ({name}) ->
             log = (x for x in log when matches(x.search, words))
         return log
 
+    increment_cursor: ->
+        if @state.cursor_index == Math.min(PAGE_SIZE - 1, @displayed_log_size - 1)
+            return
+        @setState(cursor_index : @state.cursor_index + 1)
+
+    decrement_cursor: ->
+        if @state.cursor_index == 0
+            return
+        @setState(cursor_index : @state.cursor_index - 1)
+
+    reset_cursor: ->
+        @setState(cursor_index : 0)
+
     render_paging_buttons: (num_pages, cur_page) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@props.page<=0} >
@@ -456,10 +458,10 @@ exports.ProjectLog = rclass ({name}) ->
         num_pages = Math.ceil(log.length / PAGE_SIZE)
         page = @props.page
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
-        # make first visible entry appear "selected" (FUTURE: implement cursor to move)
+        @displayed_log_size = log.length
         if log.length > 0
-            cursor = log[0].id
-            selected = log[0]
+            cursor = log[@state.cursor_index].id
+            selected = log[@state.cursor_index]
         else
             cursor = undefined
             selected = undefined
@@ -467,7 +469,14 @@ exports.ProjectLog = rclass ({name}) ->
         <Panel>
             <Row>
                 <Col sm=4>
-                    <LogSearch actions={@actions(name)} search={@props.search} selected={selected} />
+                    <LogSearch
+                        actions          = {@actions(name)}
+                        search           = {@props.search}
+                        selected         = {selected}
+                        increment_cursor = {@increment_cursor}
+                        decrement_cursor = {@decrement_cursor}
+                        reset_cursor     = {@reset_cursor}
+                    />
                 </Col>
                 <Col sm=4>
                     {@render_paging_buttons(num_pages, @props.page)}

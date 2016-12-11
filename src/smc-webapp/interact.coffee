@@ -476,6 +476,7 @@ interact_control = (desc, update, process_html_output) ->
                     else
                         val = String(val)
                         for opt in select.find("option")
+                            opt = $(opt)
                             if opt.attr("value") == val
                                 opt.attr("selected", true)
         else
