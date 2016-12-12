@@ -339,7 +339,7 @@ class exports.PostgreSQL extends PostgreSQL
                 continue
             if r.client_query?.set?.fields?[k] != undefined
                 continue
-            if r.s.admin_query?.set?.fields?[k] != undefined
+            if s.admin_query?.set?.fields?[k] != undefined
                 r.require_admin = true
                 continue
             return {err: "changing #{r.table}.#{k} not allowed"}
@@ -478,6 +478,10 @@ class exports.PostgreSQL extends PostgreSQL
                     where       : "#{r.primary_key} = $" : r.query[r.primary_key]
                     cb          : cb
             (cb) =>
+                if values.length <= 1
+                    # no actual values to update (and primary key exists due to update above)
+                    cb()
+                    return
                 @_query
                     query    : "INSERT INTO #{r.db_table}"
                     values   : values
@@ -639,6 +643,10 @@ class exports.PostgreSQL extends PostgreSQL
             project_id     : required
             action_request : required   # action is a pair
             cb             : required
+        if opts.action_request.action == 'test'
+            # used for testing -- shouldn't trigger anything to happen.
+            opts.cb()
+            return
         dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
         dbg()
         project = undefined
@@ -997,8 +1005,11 @@ class exports.PostgreSQL extends PostgreSQL
 
                 if not multi
                     x = x[0]
-                # Fill in default values.
+                # Fill in default values and remove null's
                 @_user_get_query_set_defaults(client_query, x, misc.keys(user_query))
+                # Get rid of undefined fields -- that's the default and wastes memory and bandwidth
+                for obj in x
+                    misc.map_mutate_out_undefined(obj)
                 cb(undefined, x)
         @_query(query_opts)
 
@@ -1038,7 +1049,8 @@ class exports.PostgreSQL extends PostgreSQL
                     return false
         return true
 
-    _user_get_query_changefeed: (changes, table, primary_key, user_query, where, json_fields, account_id, cb) =>
+    _user_get_query_changefeed: (changes, table, primary_key, user_query,
+                                 where, json_fields, account_id, client_query, cb) =>
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
@@ -1066,9 +1078,13 @@ class exports.PostgreSQL extends PostgreSQL
         if misc.len(possible_time_fields) > 0
             # Convert (likely) timestamps to Date objects.
             process = (x) =>
-                if x?
-                    for _, obj of x
-                        @_user_get_query_json_timestamps(obj, possible_time_fields)
+                if not x?
+                    return
+                if x.new_val?
+                    @_user_get_query_json_timestamps(x.new_val, possible_time_fields)
+                    @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
+                if x.old_val?
+                    @_user_get_query_json_timestamps(x.old_val, possible_time_fields)
         else
             process = ->  # no-op
 
@@ -1210,7 +1226,8 @@ class exports.PostgreSQL extends PostgreSQL
 
                 if opts.changes?
                     @_user_get_query_changefeed(opts.changes, table, primary_key,
-                                                opts.query, _query_opts.where, json_fields, opts.account_id, cb)
+                                                opts.query, _query_opts.where, json_fields,
+                                                opts.account_id, client_query, cb)
                 else
                     cb()
             (cb) =>

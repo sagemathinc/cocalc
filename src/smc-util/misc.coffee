@@ -1551,6 +1551,13 @@ exports.map_without_undefined = map_without_undefined = (map) ->
             new_map[k] = if is_object(v) then map_without_undefined(v) else v
     return new_map
 
+exports.map_mutate_out_undefined = (map) ->
+    for k, v of map
+        if not v?
+            delete map[k]
+
+
+
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
     # for react.js synthetic mouse events, where e.which is undefined!

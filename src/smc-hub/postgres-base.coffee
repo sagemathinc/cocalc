@@ -198,7 +198,10 @@ class exports.PostgreSQL extends EventEmitter
                 return
             v = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
             SET.push(v...)
-            opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE "
+            if SET.length == 0
+                opts.query += " ON CONFLICT (#{opts.conflict}) DO NOTHING "
+            else
+                opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE "
 
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')

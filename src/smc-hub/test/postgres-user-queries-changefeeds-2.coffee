@@ -172,8 +172,72 @@ describe 'changefeed on a single project', ->
                             db.add_user_to_project(project_id:projects[0], account_id:accounts[0], cb:cb)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[0], description: "Description 0"} })
+                            db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                        (x, cb) ->
+                            expect(x).toEqual({action:'close'})
                             cb()
                     ], cb)
+        ], done)
+
+describe 'changefeed testing all projects fields', ->
+    before(setup)
+    after(teardown)
+
+    it 'make 2 projects, feed, and edit all fields', (done) ->
+        changefeed_id = misc.uuid()
+        accounts = projects = undefined
+        obj0 = undefined
+        last_edited = undefined
+        user_query = (opts) ->
+            opts.account_id = accounts[0]
+            db.user_query(opts)
+        async.series([
+            (cb) ->
+                create_accounts 1, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                # make 2 projects
+                create_projects 2, accounts[0], (err, v) ->
+                    projects = v
+                    cb(err)
+            (cb) ->
+                user_query
+                    query  : {projects:[{ project_id: null, title: null, description: null, users: null, invite: null, invite_requests:null, deleted: null, host: null, settings: null, status: null, state: null, last_edited: null, last_active: null, action_request: null, course: null}]}
+                    changes: changefeed_id
+                    cb     : changefeed_series([
+                        (x, cb) ->
+                            expect(x.projects.length).toEqual(2)
+                            for p in x.projects
+                                if p.project_id == projects[0]
+                                    obj0 = p
+
+                            user_query
+                                query : {projects:{project_id:projects[0], title:"Foo", description:"bar"}}
+                                cb    : cb
+                        (x, cb) ->
+                            obj0.title = 'Foo'
+                            obj0.description = 'bar'
+                            expect(x).toEqual( { action: 'update', new_val: obj0 })
+
+                            user_query
+                                query : {projects:{project_id:projects[0], deleted:true}}
+                                cb    : cb
+                        (x, cb) ->
+                            obj0.deleted = true
+                            expect(x).toEqual( { action: 'update', new_val: obj0 })
+#
+                            obj0.action_request = {action:'test', started:new Date()}
+                            user_query
+                                query : {projects:{project_id:projects[0], action_request:obj0.action_request}}
+                                cb    : cb
+                        #(x, cb) ->
+                        #    expect(x).toEqual( { action: 'update', new_val:obj })
+#
+                        #    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                        #(x, cb) ->
+                        #    expect(x).toEqual({action:'close'})
+#
+                        #    cb()
+                ], cb)
         ], done)
 
 
