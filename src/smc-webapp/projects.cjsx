@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 
 markdown = require('./markdown')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
@@ -771,7 +771,7 @@ NewProjectCreator = rclass
             @setState(create_button_hit: 'with_members_and_network')
             @scroll_to_billing()
         else
-            @setState(create_button_hit: 'custom_upgrades')
+            @setState(create_button_hit: 'with_custom_upgrades')
             @scroll_to_billing()
 
     scroll_to_billing: ->
@@ -781,7 +781,7 @@ NewProjectCreator = rclass
 
     render_upgrade_buttons: ->
         <ButtonToolbar>
-            <label>Create this project with:</label><br/>
+            <strong>Create this project with:</strong><br/>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_network'}
                 bsStyle  = 'success'
@@ -841,13 +841,12 @@ NewProjectCreator = rclass
 
     render_confirm_memebers_and_network_upgrades: ->
         <div>
-            <p>This will upgrade you to members hosting hosting and network access. Members only hosting is more reliable. Network access allows you to 
-            use network resources directly from your code.</p>
             <ButtonToolbar>
+                <strong>Create this project on a members-only host with full network access.</strong>
                 <Button
                     bsStyle  = 'success'
                     onClick  = {=>@create_project({member_host: 1, network: 1})} >
-                    Confirm create project with hosting and network upgrades
+                    Create
                 </Button> 
                 <Button
                     onClick  = {=>@setState(create_button_hit: '');$('#smc-react-container > div').scrollTop($("#new_project_title").offset().top - 30)} >
@@ -862,7 +861,7 @@ NewProjectCreator = rclass
         <Well style={backgroundColor: '#FFF', color:'#666'}>
             <Row>
                 <Col sm=5>
-                    <h4 id="create_project_title">Title</h4>
+                    <h4 id="new_project_title">Title</h4>
                     <FormGroup>
                         <FormControl
                             ref         = 'new_project_title'
