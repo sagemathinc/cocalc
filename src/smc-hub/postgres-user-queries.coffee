@@ -9,6 +9,8 @@ This code is currently NOT released under any license for use by anybody except 
 
 ###
 
+MAX_CHANGEFEEDS_PER_CLIENT = 4*100
+
 EventEmitter = require('events')
 async        = require('async')
 
@@ -185,7 +187,8 @@ class exports.PostgreSQL extends PostgreSQL
         for k, _ of obj
             if k not in ['==', '!=', '>=', '<=', '>', '<']
                 return false
-        return true
+            return k
+        return false
 
     _user_get_query_columns: (query) =>
         return misc.keys(query)
@@ -567,14 +570,14 @@ class exports.PostgreSQL extends PostgreSQL
                 return true
         return false
 
-    _user_get_query_json_timestamps: (obj, json_fields) =>
+    _user_get_query_json_timestamps: (obj, fields) =>
         # obj is an object returned from the database via a query
         # Postgres JSONB doesn't support timestamps, so we convert
         # every json leaf node of obj that looks like JSON of a timestamp
         # to a Javascript Date.
         for k, v of obj
-            if json_fields[k]
-                misc.fix_json_dates(v)  # mutates v in place
+            if fields[k]
+                obj[k] = misc.fix_json_dates(v)
 
     # fill in the default values for obj using the client_query spec.
     _user_get_query_set_defaults: (client_query, obj, fields) =>
@@ -949,7 +952,7 @@ class exports.PostgreSQL extends PostgreSQL
                     #    '<=' : 5
                     #    '>=' : 2
                     for op, v of val
-                        where['#{field} #{op} $'] = v
+                        where["#{field} #{op} $"] = v
                 else
                     where["#{field} = $"] = val
 
@@ -999,6 +1002,36 @@ class exports.PostgreSQL extends PostgreSQL
         else
             return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
 
+    _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
+        for field, value of obj
+            if possible_time_fields[field]
+                value = misc.fix_json_dates(value)
+            if (q = user_query[field])?
+                if (op = @_query_is_cmp(q))
+                    x = q[op]
+                    switch op
+                        when '=='
+                            if value != x
+                                return false
+                        when '!='
+                            if value == x
+                                return false
+                        when '>='
+                            if value < x
+                                return false
+                        when '<='
+                            if value > x
+                                return false
+                        when '>'
+                            if value <= x
+                                return false
+                        when '<'
+                            if value >= x
+                                return false
+                else if value != q
+                    return false
+        return true
+
     _user_get_query_changefeed: (changes, table, primary_key, user_query, where, json_fields, account_id, cb) =>
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
@@ -1010,20 +1043,25 @@ class exports.PostgreSQL extends PostgreSQL
             cb("changes.cb must be a function")
             return
 
-        watch = []
+        watch  = []
         select = {}
+        possible_time_fields = misc.copy(json_fields)
+
         for field, val of user_query
+            type = pg_type(SCHEMA[table]?.fields?[field])
+            if type == 'TIMESTAMP'
+                possible_time_fields[field] = true
             if val == null and field != primary_key
                 watch.push(field)
             else
-                select[field] = pg_type(SCHEMA[table]?.fields?[field])
+                select[field] = type
 
-        if misc.len(json_fields) > 0
+        if misc.len(possible_time_fields) > 0
             # Convert (likely) timestamps to Date objects.
             process = (x) =>
                 if x?
                     for _, obj of x
-                        @_user_get_query_json_timestamps(obj, json_fields)
+                        @_user_get_query_json_timestamps(obj, possible_time_fields)
         else
             process = ->  # no-op
 
@@ -1033,7 +1071,21 @@ class exports.PostgreSQL extends PostgreSQL
                 pg_changefeed = SCHEMA[table]?.user_query?.get?.pg_changefeed
                 if not pg_changefeed?
                     cb(); return
-                x = pg_changefeed(@, user_query, account_id)
+                if pg_changefeed == 'projects_read'
+                    pg_changefeed =  (db, account_id) =>
+                        where  : (obj) =>
+                            # Check that this is a project we have read access to
+                            if not db._project_and_user_tracker?.projects(account_id)[obj.project_id]
+                                return false
+                            # Now check our actual query conditions on the object.
+                            # This would normally be done by the changefeed, but since
+                            # we are passing in a custom where, we have to do it.
+                            if not @_user_get_query_satisfied_by_obj(user_query, obj, possible_time_fields)
+                                return false
+                            return true
+                        select : {'project_id':'UUID'}
+                x = pg_changefeed(@, account_id)
+
                 if x.select?
                     for k, v of x.select
                         select[k] = v
@@ -1059,6 +1111,8 @@ class exports.PostgreSQL extends PostgreSQL
                             return
                         feed.on 'change', (x) ->
                             process(x)
+                            changes.cb(undefined, x)
+                        feed.on 'close', (x) ->
                             changes.cb(undefined, x)
                         feed.on 'error', (err) ->
                             changes.cb(err)

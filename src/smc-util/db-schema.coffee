@@ -457,9 +457,7 @@ schema.file_use =
     user_query:
         get :
             pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
-            pg_changefeed: (db, obj, account_id) ->
-                where : (obj) -> db._project_and_user_tracker?.projects(account_id)[obj.project_id]
-                select : {'project_id':'UUID'}
+            pg_changefeed: 'projects_read'
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
@@ -608,11 +606,12 @@ schema.project_log =
 
     user_query:
         get :
-            pg_where : ["project_id = $::UUID": 'project_id']
+            pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
+            pg_changefeed: 'projects_read'
             all:
                 cmd     : 'getAll'
                 args    : ['project_id', index:'project_id']
-                options : [{order_by : '-time'}]
+                options : [{order_by : '-time'}, {limit : 400}]
             fields :
                 id          : null
                 project_id  : null

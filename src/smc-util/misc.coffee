@@ -311,9 +311,10 @@ exports.to_safe_str = (x) ->
     x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
+#   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 date_parser = (k, v) ->
-    if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+    if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
         return new Date(v)
     else
         return v
@@ -325,7 +326,7 @@ exports.from_json = (x) ->
         console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
-# Returns modified version of obj with any 24-character string
+# Returns modified version of obj with any string
 # that look like ISO dates to actual Date objects.  This mutates
 # obj in place as part of the process.
 exports.fix_json_dates = fix_json_dates = (obj) ->
@@ -333,12 +334,12 @@ exports.fix_json_dates = fix_json_dates = (obj) ->
         for k, v of obj
             if typeof(v) == 'object'
                 fix_json_dates(v)
-            else if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
                 obj[k] = new Date(v)
     else if exports.is_array(obj)
         for i, x of obj
             obj[i] = fix_json_dates(x)
-    else if typeof(obj) == 'string' and obj.length == 24 and reISO.exec(obj)
+    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj)
         return new Date(obj)
     return obj
 

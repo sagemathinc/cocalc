@@ -252,8 +252,6 @@ describe 'modifying a single file_use record in various ways', ->
         ], done)
 
     it 'insert a file_use entry and modify in various ways', (done) ->
-        console.log accounts
-        console.log projects
         changefeed_id = misc.uuid()
         time          = new Date()
         obj           = {project_id:projects[0], path: 'file-in-project0.txt', users:{"#{accounts[0]}":{'read':time}}}
@@ -297,7 +295,141 @@ describe 'modifying a single file_use record in various ways', ->
                         cb    : cb
                 (x, cb) ->
                     expect(x).toEqual({action:"delete", old_val:{id:obj.id, project_id:obj.project_id}})
+
+                    # Cancel the changefeed...
+                    db.user_query_cancel_changefeed
+                        id : changefeed_id
+                        cb : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
                     cb()
             ], done)
+
+
+
+describe 'test changefeeds with project_log', ->
+    before(setup)
+    after(teardown)
+
+    accounts = []
+    projects = []
+    it 'create accounts and projects', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 2, (err, x) -> accounts=x; cb()
+            (cb) ->
+                create_projects 2, accounts[0], (err, x) -> projects.push(x...); cb(err)
+            (cb) ->
+                create_projects 1, accounts[1], (err, x) -> projects.push(x...); cb(err)
+        ], done)
+
+    it 'tests a simple project_log changefeed on a single project', (done) ->
+        obj  = {id:misc.uuid(), project_id:projects[0], time:new Date(), account_id:accounts[0], event:{sample:'thing'}}
+        db.user_query
+            account_id : accounts[0]
+            query      : {project_log:[{id: null, project_id:projects[0], time: null, account_id: null, event: null}]}
+            changes    : misc.uuid()
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x).toEqual({project_log : [] })  # how it starts
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {project_log:obj}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val: obj })
+                    cb()
+            ], done)
+
+    it "tests a project_log changefeed on all of a user's project", (done) ->
+        obj1  = {id:misc.uuid(), project_id:projects[1], time:new Date(), account_id:accounts[0], event:{stuff:[1,2]}}
+        obj2  = {id:misc.uuid(), project_id:projects[2], time:new Date(), account_id:accounts[1], event:{user:1}}
+        changefeed_id = misc.uuid()
+        db.user_query
+            account_id : accounts[0]
+            query      : {project_log:[{id: null, project_id:null, time: null, account_id: null, event: null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.project_log.length).toEqual(1)  # 1 because of one added in previous test above
+
+                    # insert object in projects[1]
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {project_log:obj1}
+                        cb         : cb
+                (x, cb) ->
+                    # and see it appear
+                    expect(x).toEqual({action:'insert', new_val: obj1 })
+
+                    # insert object in projects[2], which has nothing to do with accounts[0]
+                    db.user_query
+                        account_id : accounts[1]
+                        query      : {project_log:obj2}
+                        cb         : (err) ->
+                            if err
+                                cb(err)
+                            else
+                                # close the changefeed
+                                db.user_query_cancel_changefeed
+                                    id : changefeed_id
+                                    cb : cb
+                (x, cb) ->
+                    # check that the next thing we get is close, not the insert we just made above.
+                    expect(x).toEqual({action:'close'})
+                    cb()
+            ], done)
+
+describe 'test time constrained changefeed on project_log', ->
+    before(setup)
+    after(teardown)
+
+    accounts = []
+    projects = []
+    it 'create account and project', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 1, (err, x) -> accounts=x; cb()
+            (cb) ->
+                create_projects 1, accounts[0], (err, x) -> projects.push(x...); cb(err)
+        ], done)
+
+    it "creates changefeed with time constraint by making two entries, one satisfying the constraint, and one not", (done) ->
+        changefeed_id = misc.uuid()
+        obj0 = {id:misc.uuid(),project_id:projects[0], time:new Date(), event:{foo:'bar0'}}
+        obj1 = {id:misc.uuid(),project_id:projects[0], time:misc.days_ago(2), event:{foo:'bar1'}}
+        obj2 = {id:misc.uuid(),project_id:projects[0], time:new Date(), event:{foo:'bar2'}}
+        db.user_query
+            account_id : accounts[0]
+            query      : {project_log:[{id: null, project_id:null, time:{'>=':misc.days_ago(1)}, event: null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.project_log.length).toEqual(0)
+                    # insert object that satisfies time constraint
+                    db.user_query(account_id: accounts[0], query: {project_log:obj0}, cb: cb)
+                (x, cb) ->
+                    # and see it appear
+                    expect(x).toEqual({action:'insert', new_val:obj0})
+                    # insert old object that does not satisfy time constraint
+                    db.user_query account_id: accounts[0], query: {project_log:obj1}, cb: (err) =>
+                        if err
+                            cb(err)
+                        else
+                            # then one that does satisfy constraint
+                            db.user_query(account_id: accounts[0], query: {project_log:obj2}, cb: cb)
+                (x, cb) ->
+                    # see that *only* the new one appears
+                    expect(x).toEqual({action:'insert', new_val:obj2})
+
+                    # modify the first obj so its timestamp is old, and see it get deleted
+                    obj0.time = misc.days_ago(60)
+                    db.user_query(account_id: accounts[0], query: {project_log:obj0}, cb: cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:"delete", old_val:{id:obj0.id, project_id:obj0.project_id}})
+                    cb()
+            ], done)
+
+
 
 

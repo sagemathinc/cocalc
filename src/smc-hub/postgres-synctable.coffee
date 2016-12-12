@@ -180,6 +180,7 @@ class ProjectAndUserTracker extends EventEmitter
                     cb()
 
     close: =>
+        @emit('close')
         @removeAllListeners()
         @_feed.close()
 
@@ -340,6 +341,7 @@ class Changes extends EventEmitter
             cb(undefined, @)
 
     close: (cb) =>
+        @emit('close', {action:'close'})
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_handle_change)
         @_db._stop_listening(@_table, @_select, @_watch, cb)
@@ -350,11 +352,11 @@ class Changes extends EventEmitter
         if not @_match_condition(mesg[1])
             return
         if mesg[0] == 'DELETE'
-            @emit 'change', {action:'delete', old_val:mesg[1]}
+            @emit('change', {action:'delete', old_val:mesg[1]})
         else
             action = "#{mesg[0].toLowerCase()}"
             if @_watch.length == 0
-                @emit 'change', {action:action, new_val:mesg[1]}
+                @emit('change', {action:action, new_val:mesg[1]})
                 return
             where = {}
             for k, v of mesg[1]
@@ -363,7 +365,7 @@ class Changes extends EventEmitter
                 query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
                 where : where
                 cb    : one_result (err, result) =>
-                    @emit 'change', {action:action, new_val:misc.merge(result, mesg[1])}
+                    @emit('change', {action:action, new_val:misc.merge(result, mesg[1])})
 
     _init_where: =>
         if typeof(@_where) == 'function'
