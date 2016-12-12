@@ -5,7 +5,7 @@ Test suite for PostgreSQL interface and functionality.
 DEBUG    = false
 #DEBUG = true
 RESET    = false # if true, completely deletes database before running tests -- do on schema change for now.
-RESET = true
+#RESET = true
 PORT     = 5432  # TODO
 DATABASE = 'test-fubar'
 
@@ -71,6 +71,32 @@ exports.create_projects = (n, account_ids, cb) ->
                 async.map(collabs, g, cb)
         ], (err) -> cb(err, project_id))
     async.map([0...n], f, cb)
+
+# Used to test a sequence of results from a changefeed (see usage below)
+exports.changefeed_series = (v, cb) ->
+    n = -1
+    done = (err) ->
+        cb?(err)
+        cb = undefined
+    f = (err, x) ->
+        n += 1
+        if err
+            done(err)
+            return
+        h = v[n]
+        if not h?
+            done()
+            return
+        if typeof(h) != 'function'
+            throw Error("each element of v must be a function, but v[#{n}]='#{h}' is not!")
+        h x, (err) ->
+            if err
+                done(err)
+            else
+                if n+1 >= v.length
+                    # success
+                    done()
+    return f
 
 # Start with a clean slate -- delete the test database -- TODO: custom rethinkdb
 dropdb = (cb) =>

@@ -1181,12 +1181,23 @@ class exports.PostgreSQL extends PostgreSQL
         if not @_validate_opts(opts) then return
         @_query
             query     : 'UPDATE projects'
-            jsonb_set :
-                users :
-                    "#{opts.account_id}": null
+            jsonb_set : {users : {"#{opts.account_id}": null}}
             where     :
                 'project_id :: UUID = $'                          : opts.project_id
                 "users#>>'{#{opts.account_id},group}' != $::TEXT" : 'owner'
+            cb        : opts.cb
+
+    # remove any user, even an owner.
+    remove_user_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : required  # cb(err)
+        if not @_validate_opts(opts) then return
+        @_query
+            query     : 'UPDATE projects'
+            jsonb_set : {users : {"#{opts.account_id}": null}}
+            where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
 
     # Return a list of the account_id's of all collaborators of the given users.

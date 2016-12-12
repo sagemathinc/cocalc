@@ -1,5 +1,5 @@
 ###
-TESTING of user queries specifically involving changefeeds
+TESTING of user queries specifically involving changefeeds - part 1 -- accounts, file_use, project_log
 
 **
 This code is currently NOT released under any license for use by anybody except SageMath, Inc.
@@ -9,43 +9,15 @@ This code is currently NOT released under any license for use by anybody except 
 
 ###
 
+async  = require('async')
+expect = require('expect')
+
 pgtest   = require('./pgtest')
 db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
-
-{create_accounts, create_projects} = pgtest
-
-async  = require('async')
-expect = require('expect')
-
+{create_accounts, create_projects, changefeed_series} = pgtest
 misc = require('smc-util/misc')
-
-# Used to test a sequence of results from a changefeed (see usage below)
-changefeed_series = (v, cb) ->
-    n = -1
-    done = (err) ->
-        cb?(err)
-        cb = undefined
-    f = (err, x) ->
-        n += 1
-        if err
-            done(err)
-            return
-        h = v[n]
-        if not h?
-            done()
-            return
-        if typeof(h) != 'function'
-            throw Error("each element of v must be a function, but v[#{n}]='#{h}' is not!")
-        h x, (err) ->
-            if err
-                done(err)
-            else
-                if n+1 >= v.length
-                    # success
-                    done()
-    return f
 
 describe 'test the accounts table changefeed', ->
     before(setup)
@@ -170,7 +142,6 @@ describe 'test changefeeds involving the file_use table on one project with one 
 
                     db.user_query_cancel_changefeed(id:id, cb:cb)
             ], done)
-
 
 describe 'test file_use changefeeds with multiple projects', ->
     before(setup)
@@ -304,8 +275,6 @@ describe 'modifying a single file_use record in various ways', ->
                     expect(x).toEqual({action:'close'})
                     cb()
             ], done)
-
-
 
 describe 'test changefeeds with project_log', ->
     before(setup)

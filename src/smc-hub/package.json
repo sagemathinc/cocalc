@@ -64,7 +64,7 @@
   },
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
-    "testpg": "SMC_TEST=true time node_modules/.bin/mocha --reporter progress test/postgres*",
+    "testpg": "SMC_TEST=true time node_modules/.bin/mocha -b --reporter progress test/postgres*",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },

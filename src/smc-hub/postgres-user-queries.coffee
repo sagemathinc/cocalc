@@ -1051,6 +1051,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         watch  = []
         select = {}
+        init_tracker = tracker = undefined
         possible_time_fields = misc.copy(json_fields)
 
         for field, val of user_query
@@ -1077,7 +1078,7 @@ class exports.PostgreSQL extends PostgreSQL
                 pg_changefeed = SCHEMA[table]?.user_query?.get?.pg_changefeed
                 if not pg_changefeed?
                     cb(); return
-                if pg_changefeed == 'projects_read'
+                if pg_changefeed == 'projects'
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
                             # Check that this is a project we have read access to
@@ -1089,19 +1090,31 @@ class exports.PostgreSQL extends PostgreSQL
                             if not @_user_get_query_satisfied_by_obj(user_query, obj, possible_time_fields)
                                 return false
                             return true
-                        select : {'project_id':'UUID'}
-                x = pg_changefeed(@, account_id)
 
+                        select : {'project_id':'UUID'}
+
+                        init_tracker : (tracker, feed) =>
+                            tracker.on 'add_user_to_project', (x) =>
+                                if x.account_id == account_id
+                                    feed.insert({project_id:x.project_id})
+                            tracker.on 'remove_user_from_project', (x) =>
+                                if x.account_id == account_id
+                                    feed.delete({project_id:x.project_id})
+
+                x = pg_changefeed(@, account_id)
+                if x.init_tracker?
+                    init_tracker = x.init_tracker
                 if x.select?
                     for k, v of x.select
                         select[k] = v
                 if x.where?
                     where = x.where
                     # initialize user tracker needed for where tests...
-                    @project_and_user_tracker cb : (err, tracker) =>
+                    @project_and_user_tracker cb : (err, _tracker) =>
                         if err
                             cb(err)
                         else
+                            tracker = _tracker
                             tracker.register(account_id: account_id, cb:cb)
                 else
                     cb()
@@ -1124,6 +1137,7 @@ class exports.PostgreSQL extends PostgreSQL
                             changes.cb(err)
                         @_changefeeds ?= {}
                         @_changefeeds[changes.id] = feed
+                        init_tracker?(tracker, feed)
                         cb()
         ], cb)
 

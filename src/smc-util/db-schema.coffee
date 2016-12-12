@@ -457,7 +457,7 @@ schema.file_use =
     user_query:
         get :
             pg_where : 'projects'
-            pg_changefeed: 'projects_read'
+            pg_changefeed: 'projects'
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
@@ -607,7 +607,7 @@ schema.project_log =
     user_query:
         get :
             pg_where     : 'projects'
-            pg_changefeed: 'projects_read'
+            pg_changefeed: 'projects'
             all:
                 cmd     : 'getAll'
                 args    : ['project_id', index:'project_id']
@@ -732,7 +732,8 @@ schema.projects =
 
     user_query:
         get :
-            pg_where : 'projects'
+            pg_where     : 'projects'
+            pg_changefeed: 'projects'
             all :
                 cmd  : 'getAll'
                 args : ['account_id', index:'users']

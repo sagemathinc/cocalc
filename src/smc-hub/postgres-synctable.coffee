@@ -202,14 +202,17 @@ class ProjectAndUserTracker extends EventEmitter
                 if err
                     # TODO! -- will have to try again... or make a version of _query that can't fail...?
                     return
-                any = false
-                for account_id in users
-                    if @_accounts[account_id]
-                        any = true
-                        break
-                if not any
-                    # none of our tracked users are on this project.
-                    return
+                if not @_users[project_id]?
+                    # we are not already watching this project
+                    any = false
+                    for account_id in users
+                        if @_accounts[account_id]
+                            any = true
+                            break
+                    if not any
+                        # *and* none of our tracked users are on this project... so don't care
+                        return
+
                 # first add any users who got added, and record which accounts are relevant
                 users_now    = {}
                 for account_id in users
@@ -228,6 +231,7 @@ class ProjectAndUserTracker extends EventEmitter
             throw Error("invalid account_id or project_id")
         if @_projects[account_id]?[project_id]
             return
+        @emit 'add_user_to_project', {account_id:account_id, project_id:project_id}
         users = @_users[project_id] ?= {}
         users[account_id] = true
         projects = @_projects[account_id] ?= {}
@@ -238,25 +242,33 @@ class ProjectAndUserTracker extends EventEmitter
                 collabs[other_account_id] += 1
             else
                 collabs[other_account_id] = 1
+                @emit 'add_collaborator', {account_id:account_id, collab_id:other_account_id}
             other_collabs = @_collabs[other_account_id]
             if other_collabs[account_id]?
                 other_collabs[account_id] += 1
             else
                 other_collabs[account_id] = 1
+                @emit 'add_collaborator', {account_id:other_account_id, collab_id:account_id}
 
-    _remove_user_from_project: (account_id, project_id) =>
+    _remove_user_from_project: (account_id, project_id, no_emit) =>
         if account_id?.length != 36 or project_id?.length != 36
             throw Error("invalid account_id or project_id")
         if not @_projects[account_id]?[project_id]
             return
+        if not no_emit
+            @emit 'remove_user_from_project', {account_id:account_id, project_id:project_id}
         collabs = @_collabs[account_id] ?= {}
         for other_account_id of @_users[project_id]
             @_collabs[account_id][other_account_id] -= 1
             if @_collabs[account_id][other_account_id] == 0
                 delete @_collabs[account_id][other_account_id]
+                if not no_emit
+                    @emit 'remove_collaborator', {account_id:account_id, collab_id:other_account_id}
             @_collabs[other_account_id][account_id] -= 1
             if @_collabs[other_account_id][account_id] == 0
                 delete @_collabs[other_account_id][account_id]
+                if not no_emit
+                    @emit 'remove_collaborator', {account_id:other_account_id, collab_id:account_id}
         delete @_users[project_id][account_id]
         delete @_projects[account_id][project_id]
 
@@ -296,24 +308,24 @@ class ProjectAndUserTracker extends EventEmitter
     unregister: (opts) =>
         opts = defaults opts,
             account_id : required
-        if @_accounts[opts.account_id]?
-            v = []
-            for project_id of @_projects[opts.account_id]
-                @_remove_user_from_project(opts.account_id, project_id)
-                v.push(project_id)
-            delete @_accounts[opts.account_id]
-            # Forget about any projects they were on that are no longer
-            # necessary to watch...
-            for project_id in v
-                need = false
+        if not @_accounts[opts.account_id]?
+            return
+        v = []
+        for project_id of @_projects[opts.account_id]
+            v.push(project_id)
+        delete @_accounts[opts.account_id]
+        # Forget about any projects they were on that are no longer
+        # necessary to watch...
+        for project_id in v
+            need = false
+            for account_id of @_users[project_id]
+                if @_accounts[account_id]?
+                    need = true
+                    break
+            if not need
                 for account_id of @_users[project_id]
-                    if @_accounts[account_id]?
-                        need = true
-                        break
-                if not need
-                    for account_id of @_users[project_id]
-                        @_remove_user_from_project(account_id, project_id)
-                    delete @_users[project_id]
+                    @_remove_user_from_project(account_id, project_id, true)
+                delete @_users[project_id]
         return
 
 
@@ -390,6 +402,27 @@ class Changes extends EventEmitter
                     r = {action:action, new_val:misc.merge(result, mesg[1])}
                     @_old_val(r, action, mesg)
                     @emit('change', r)
+
+    insert: (where) =>
+        where0 = {}
+        for k, v of where
+            where0["#{k} = $"] = v
+        @_db._query
+            query : "SELECT #{(@_watch.concat(misc.keys(@_select))).join(',')} FROM #{@_table}"
+            where : where0
+            cb    : all_results (err, results) =>
+                if err
+                    # TODO -- what to do -- some ugly thing involving trying again.
+                    # really just need a notion of queries that can't fail unless
+                    # they are erronous.
+                else
+                    for x in results
+                        if @_match_condition(x)
+                            @emit('change', {action:'insert', new_val:x})
+    delete: (where) =>
+        # listener is meant to delete everything that *matches* the where, so
+        # there is no need to actually do a query.
+        @emit('change', {action:'delete', old_val:where})
 
     _init_where: =>
         if typeof(@_where) == 'function'
