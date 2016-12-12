@@ -682,9 +682,9 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
                 </Tip>
             </div>
             <div style={marginBottom:'5px', marginLeft:'10px'}>
-                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
+                <Tip title="Network access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
                     <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
-                    <span style={color:'#999'}>Internet access</span>
+                    <span style={color:'#999'}>Network access</span>
                 </Tip>
             </div>
             {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
