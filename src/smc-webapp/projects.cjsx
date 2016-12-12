@@ -889,7 +889,6 @@ NewProjectCreator = rclass
                     {@render_error()}
                 </Col>
             </Row>
-            <Space/>
             <Row>
                 <span id="new_project_billing_section"></span>
                 {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
