@@ -1200,15 +1200,17 @@ class ProjectActions extends Actions
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
-                    @fetch_directory_listing(parent_path)
+                    @fetch_directory_listing(parent_path, true, true)
                     @get_store().wait
-                        until   : (s) => s.directory_listings.get(parent_path)
+                        until   : (s) =>
+                            listing = s.directory_listings.get(parent_path)
+                            return listing?.find (val) => val.get('name') == last
                         timeout : 3
-                        cb      : (err, listing) =>
+                        cb      : (err, item) =>
                             if err
-                                alert_message(type:'error', message:'Failed to open link')
+                                console.log err
+                                @open_directory(parent_path)
                             else
-                                item = listing.find (val) => val.get('name') == last
                                 if item.get('isdir')
                                     @open_directory(full_path)
                                 else
