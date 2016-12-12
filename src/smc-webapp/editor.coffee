@@ -2851,6 +2851,8 @@ class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         super(@project_id, @filename)
         @element = templates.find(".salvus-editor-static-html").clone()
+        # ATTN: we can't set src='raw-path' because the sever might not run.
+        # therefore we retrieve the content and set it directly.
         if not @content?
             @content = 'Loading...'
             # Now load the content from the backend...
@@ -2884,7 +2886,13 @@ class PublicHTML extends FileEditor
         # We do this, since otherwise just loading the iframe using
         #      @iframe.contents().find('html').html(@content)
         # messes up the parent html page...
-        @iframe.contents().find('body')[0].innerHTML = @content
+        # ... but setting the innerHTML=@content causes issue 1347!
+        # A compromise is to set the 'srcdoc' attribute to the content,
+        # but that doesn't work in IE/Edge -- http://caniuse.com/#search=srcdoc
+        if $.browser.edge or $.browser.ie
+            @iframe.contents().find('body').html(@content)
+        else
+            @iframe.attr('srcdoc', @content)
         @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
