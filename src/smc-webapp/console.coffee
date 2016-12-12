@@ -343,7 +343,8 @@ class Console extends EventEmitter
                 @update_scrollbar()
 
             setTimeout(@set_scrollbar_to_term, 10)
-            redux.getProjectActions(@project_id).flag_file_activity(@path)
+            # See https://github.com/sagemathinc/smc/issues/1301
+            #redux.getProjectActions(@project_id).flag_file_activity(@path)
         catch e
             # WARNING -- these are all basically bugs, I think...
             # That said, try/catching them is better than having
