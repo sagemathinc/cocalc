@@ -406,6 +406,9 @@ R_PACKAGES = [
     'plotly',
     'ipyleaflet', # also needs jupyter nbextension enable --py --sys-prefix ipyleaflet
     'rjags',
+    'kernlab',
+    'AppliedPredictiveModeling',
+    'ISLR',
 ]
 
 # Sage has additionally some optional packages. We try to install as many of them as feasible.
