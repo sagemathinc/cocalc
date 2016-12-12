@@ -141,3 +141,40 @@ describe 'create multiple projects with multiple collaborators', ->
             ], done)
 
 
+describe 'changefeed on a single project', ->
+    before(setup)
+    after(teardown)
+
+    it 'make 2 projects, feed on single, remove and add user', (done) ->
+        changefeed_id = misc.uuid()
+        accounts = projects = undefined
+        async.series([
+            (cb) ->
+                create_accounts 1, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                # make 2 projects; one will be comletely ignored
+                create_projects 2, accounts[0], (err, v) ->
+                    projects = v
+                    cb(err)
+            (cb) ->
+                db.user_query
+                    account_id : accounts[0]
+                    query      : {projects:[{project_id:projects[0], description:null}]}
+                    changes    : changefeed_id
+                    cb         : changefeed_series([
+                        (x, cb) ->
+                            expect(x.projects.length).toEqual(1)
+
+                            db.remove_user_from_project(project_id:projects[0], account_id:accounts[0], cb:cb)
+                        (x, cb) ->
+                            expect(x).toEqual({ action: 'delete', old_val: { project_id: projects[0]} })
+
+                            db.add_user_to_project(project_id:projects[0], account_id:accounts[0], cb:cb)
+                        (x, cb) ->
+                            expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[0], description: "Description 0"} })
+                            cb()
+                    ], cb)
+        ], done)
+
+
+
