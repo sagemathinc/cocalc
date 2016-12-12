@@ -854,6 +854,12 @@ class exports.PostgreSQL extends PostgreSQL
         pg_where = client_query.get.pg_where
         if not pg_where?
             pg_where = []
+        if pg_where == 'projects'
+            if user_query.project_id?
+                pg_where = ["project_id = $::UUID" : 'project_id']
+            else
+                pg_where = ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
+
         if typeof(pg_where) == 'function'
             pg_where = pg_where(user_query, @)
         if not misc.is_array(pg_where)

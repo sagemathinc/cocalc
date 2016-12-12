@@ -113,8 +113,8 @@ describe 'some basic testing of user_queries', ->
             account_id : account_id2
             query      : {projects:[{project_id:project_id, title:null, description:null}]}
             cb         : (err, projects) ->
-                expect(projects).toEqual(projects:[])
-                done(err)
+                expect(err).toEqual('you do not have read access to this project')
+                done()
 
     it 'queries the collaborators virtual table before there are any projects for the second user', (done) ->
         db.user_query
@@ -230,7 +230,7 @@ describe 'testing file_use', ->
                         cb(err)
         ], done)
 
-    it 'tries to read file use entry as user without project access and get no match', (done) ->
+    it 'tries to read file use entry as user without project access and fails', (done) ->
         db.user_query
             account_id : accounts[1]
             query      :
@@ -239,7 +239,7 @@ describe 'testing file_use', ->
                     path        : 'foo'
                     users       : null
             cb         : (err, result) ->
-                expect(result).toEqual(file_use:undefined)
+                expect(err).toEqual('you do not have read access to this project')
                 done()
 
     it 'adds second user to first project, then reads and finds one file_use match', (done) ->

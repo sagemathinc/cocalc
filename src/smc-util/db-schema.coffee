@@ -456,7 +456,7 @@ schema.file_use =
 
     user_query:
         get :
-            pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
+            pg_where : 'projects'
             pg_changefeed: 'projects_read'
             all :
                 cmd     : 'getAll'
@@ -606,7 +606,7 @@ schema.project_log =
 
     user_query:
         get :
-            pg_where : ["project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id']
+            pg_where     : 'projects'
             pg_changefeed: 'projects_read'
             all:
                 cmd     : 'getAll'
@@ -732,7 +732,7 @@ schema.projects =
 
     user_query:
         get :
-            pg_where : ["users ? $::TEXT" : 'account_id']
+            pg_where : 'projects'
             all :
                 cmd  : 'getAll'
                 args : ['account_id', index:'users']
