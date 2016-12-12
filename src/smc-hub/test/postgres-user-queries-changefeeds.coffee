@@ -325,10 +325,11 @@ describe 'test changefeeds with project_log', ->
 
     it 'tests a simple project_log changefeed on a single project', (done) ->
         obj  = {id:misc.uuid(), project_id:projects[0], time:new Date(), account_id:accounts[0], event:{sample:'thing'}}
+        changefeed_id = misc.uuid()
         db.user_query
             account_id : accounts[0]
             query      : {project_log:[{id: null, project_id:projects[0], time: null, account_id: null, event: null}]}
-            changes    : misc.uuid()
+            changes    : changefeed_id
             cb         : changefeed_series([
                 (x, cb) ->
                     expect(x).toEqual({project_log : [] })  # how it starts
@@ -338,6 +339,10 @@ describe 'test changefeeds with project_log', ->
                         cb         : cb
                 (x, cb) ->
                     expect(x).toEqual({action:'insert', new_val: obj })
+                    db.user_query_cancel_changefeed(id : changefeed_id, cb : cb)
+                (x, cb) ->
+                    # check that the next thing we get is close, not the insert we just made above.
+                    expect(x).toEqual({action:'close'})
                     cb()
             ], done)
 
@@ -396,9 +401,9 @@ describe 'test time constrained changefeed on project_log', ->
 
     it "creates changefeed with time constraint by making two entries, one satisfying the constraint, and one not", (done) ->
         changefeed_id = misc.uuid()
-        obj0 = {id:misc.uuid(),project_id:projects[0], time:new Date(), event:{foo:'bar0'}}
-        obj1 = {id:misc.uuid(),project_id:projects[0], time:misc.days_ago(2), event:{foo:'bar1'}}
-        obj2 = {id:misc.uuid(),project_id:projects[0], time:new Date(), event:{foo:'bar2'}}
+        obj0 = {id:misc.uuid(), project_id:projects[0], time:new Date(), event:{foo:'bar0'}}
+        obj1 = {id:misc.uuid(), project_id:projects[0], time:misc.days_ago(2), event:{foo:'bar1'}}
+        obj2 = {id:misc.uuid(), project_id:projects[0], time:new Date(), event:{foo:'bar2'}}
         db.user_query
             account_id : accounts[0]
             query      : {project_log:[{id: null, project_id:null, time:{'>=':misc.days_ago(1)}, event: null}]}
@@ -422,11 +427,12 @@ describe 'test time constrained changefeed on project_log', ->
                     # see that *only* the new one appears
                     expect(x).toEqual({action:'insert', new_val:obj2})
 
-                    # modify the first obj so its timestamp is old, and see it get deleted
-                    obj0.time = misc.days_ago(60)
-                    db.user_query(account_id: accounts[0], query: {project_log:obj0}, cb: cb)
+                    # modify the first obj so its timestamp is old, and see it gets updated to be removed (so only old_val is set)
+                    obj3 = misc.deep_copy(obj0)
+                    obj3.time = misc.days_ago(60)
+                    db.user_query(account_id: accounts[0], query: {project_log:obj3}, cb:cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:"delete", old_val:{id:obj0.id, project_id:obj0.project_id}})
+                    expect(x).toEqual({action:"update", old_val:misc.copy_without(obj0, 'event')})
                     cb()
             ], done)
 

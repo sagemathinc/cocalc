@@ -348,15 +348,37 @@ class Changes extends EventEmitter
         delete @_tgname
         delete @_condition
 
+    _old_val: (result, action, mesg) =>
+        # include only changed fields if action is 'update'
+        if action == 'update'
+            old_val = {}
+            for field, val of mesg[1]
+                old = mesg[2][field]
+                if val != old
+                   old_val[field] = old
+            if misc.len(old_val) > 0
+                result.old_val = old_val
+
     _handle_change: (mesg) =>
-        if not @_match_condition(mesg[1])
-            return
         if mesg[0] == 'DELETE'
-            @emit('change', {action:'delete', old_val:mesg[1]})
+            if not @_match_condition(mesg[2])
+                return
+            @emit('change', {action:'delete', old_val:mesg[2]})
         else
             action = "#{mesg[0].toLowerCase()}"
+            if not @_match_condition(mesg[1])
+                if action != 'update'
+                    return
+                for k, v of mesg[1]
+                    if not mesg[2][k]?
+                        mesg[2][k] = v
+                    if @_match_condition(mesg[2])
+                        @emit('change', {action:'update', old_val:mesg[2]})
+                    return
             if @_watch.length == 0
-                @emit('change', {action:action, new_val:mesg[1]})
+                r = {action:action, new_val:mesg[1]}
+                @_old_val(r, action, mesg)
+                @emit('change', r)
                 return
             where = {}
             for k, v of mesg[1]
@@ -365,7 +387,9 @@ class Changes extends EventEmitter
                 query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
                 where : where
                 cb    : one_result (err, result) =>
-                    @emit('change', {action:action, new_val:misc.merge(result, mesg[1])})
+                    r = {action:action, new_val:misc.merge(result, mesg[1])}
+                    @_old_val(r, action, mesg)
+                    @emit('change', r)
 
     _init_where: =>
         if typeof(@_where) == 'function'
@@ -565,35 +589,45 @@ Creates a trigger function that fires whenever any of the given
 columns changes, and sends the columns in select out as a notification.
 ###
 trigger_code = (table, select, watch) ->
-    tgname      = trigger_name(table, select, watch)
-    column_decl = ("#{field} #{type ? 'text'};"   for field, type of select)
-    old_assign  = ("#{field} = OLD.#{field};"     for field, _ of select)
-    new_assign  = ("#{field} = NEW.#{field};"     for field, _ of select)
-    build_obj   = ("'#{field}', #{field}"         for field, _ of select)
+    tgname          = trigger_name(table, select, watch)
+    column_decl_old = ("#{field}_old #{type ? 'text'};"   for field, type of select)
+    column_decl_new = ("#{field}_new #{type ? 'text'};"   for field, type of select)
+    assign_old      = ("#{field}_old = OLD.#{field};"     for field, _ of select)
+    assign_new      = ("#{field}_new = NEW.#{field};"     for field, _ of select)
+    build_obj_old   = ("'#{field}', #{field}_old"         for field, _ of select)
+    build_obj_new   = ("'#{field}', #{field}_new"         for field, _ of select)
     if watch.length > 0
-        no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch).join(' AND ')
+        no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch.concat(misc.keys(select))).join(' AND ')
     else
         no_change = 'FALSE'
-    return """
+    code = """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
         notification json;
-        #{column_decl.join('\n')}
+        obj_old json;
+        obj_new json;
+        #{column_decl_old.join('\n')}
+        #{column_decl_new.join('\n')}
     BEGIN
         -- TG_OP is 'DELETE', 'INSERT' or 'UPDATE'
         IF TG_OP = 'DELETE' THEN
-            #{old_assign.join('\n')}
+            #{assign_old.join('\n')}
+            obj_old = json_build_object(#{build_obj_old.join(',')});
         END IF;
         IF TG_OP = 'INSERT' THEN
-            #{new_assign.join('\n')}
+            #{assign_new.join('\n')}
+            obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
         IF TG_OP = 'UPDATE' THEN
             IF #{no_change} THEN
                 RETURN NULL;
             END IF;
-            #{new_assign.join('\n')}
+            #{assign_old.join('\n')}
+            obj_old = json_build_object(#{build_obj_old.join(',')});
+            #{assign_new.join('\n')}
+            obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
-        notification = json_build_array(TG_OP, json_build_object(#{build_obj.join(',')}));
+        notification = json_build_array(TG_OP, obj_new, obj_old);
         PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;
@@ -601,6 +635,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER #{tgname} AFTER INSERT OR UPDATE OR DELETE ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
 """
+    return code
 
 parse_cond = (cond) ->
     # TODO hack for now -- there must be space

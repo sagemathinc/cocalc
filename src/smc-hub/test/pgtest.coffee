@@ -5,6 +5,7 @@ Test suite for PostgreSQL interface and functionality.
 DEBUG    = false
 #DEBUG = true
 RESET    = false # if true, completely deletes database before running tests -- do on schema change for now.
+RESET = true
 PORT     = 5432  # TODO
 DATABASE = 'test-fubar'
 
