@@ -702,7 +702,7 @@ NewProjectCreator = rclass
             title_text        : ''
             description_text  : ''
             error             : ''
-            create_button_hit : '' # Options are 'with_members_and_internet' and 'with_custom_upgrades'
+            create_button_hit : '' # Options are 'with_members_and_network' and 'with_custom_upgrades'
 
     toggle_editing: ->
         if @state.state == 'view'
@@ -765,12 +765,14 @@ NewProjectCreator = rclass
         else if @state.state == 'saving'
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
-    create_project_with_members_and_internet: ->
+    create_project_with_members_and_network: ->
         remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
         if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
-            @create_project({member_host: 1, network: 1})
+            @setState(create_button_hit: 'with_members_and_network')
+            @scroll_to_billing()
         else
-            @setState(create_button_hit: 'with_members_and_internet')
+            @setState(create_button_hit: 'custom_upgrades')
+            @scroll_to_billing()
 
     scroll_to_billing: ->
         setTimeout ( ->
@@ -781,11 +783,10 @@ NewProjectCreator = rclass
         <ButtonToolbar>
             <label>Create this project with:</label><br/>
             <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_internet'}
+                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_network'}
                 bsStyle  = 'success'
-                title    = 'Upgrades you to members only hosting which is more reliable and network access so you can use internet resources directly from your code'
-                onClick  = {=>@create_project_with_members_and_internet()} >
-                <Icon name="arrow-circle-up" /> Hosting/network upgrades
+                onClick  = {=>@create_project_with_members_and_network()} >
+                <Icon name="arrow-circle-up" /> Hosting and network upgrades…
             </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
@@ -838,13 +839,30 @@ NewProjectCreator = rclass
     render_create_buttons: ->
         if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()
 
+    render_confirm_memebers_and_network_upgrades: ->
+        <div>
+            <p>This will upgrade you to members hosting hosting and network access. Members only hosting is more reliable. Network access allows you to 
+            use network resources directly from your code.</p>
+            <ButtonToolbar>
+                <Button
+                    bsStyle  = 'success'
+                    onClick  = {=>@create_project({member_host: 1, network: 1})} >
+                    Confirm create project with hosting and network upgrades
+                </Button> 
+                <Button
+                    onClick  = {=>@setState(create_button_hit: '');$('#smc-react-container > div').scrollTop($("#new_project_title").offset().top - 30)} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </div>
+
     render_input_section: (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
         <Well style={backgroundColor: '#FFF', color:'#666'}>
             <Row>
                 <Col sm=5>
-                    <h4>Title</h4>
+                    <h4 id="create_project_title">Title</h4>
                     <FormGroup>
                         <FormControl
                             ref         = 'new_project_title'
@@ -890,8 +908,11 @@ NewProjectCreator = rclass
                 </Col>
             </Row>
             <Row>
-                <span id="new_project_billing_section"></span>
-                {@render_upgrade_before_create(subs) if (require('./customize').commercial and @state.create_button_hit != '')}
+                <Col sm=12>
+                    <span id="new_project_billing_section"></span>
+                    {@render_upgrade_before_create(subs) if @state.create_button_hit == 'with_custom_upgrades'}
+                    {@render_confirm_memebers_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
+                </Col>
             </Row>
             <Row>
                 <Col sm=12>
