@@ -470,6 +470,9 @@
     - coda
     - mvtnorm
     - loo
+    - kernlab
+    - AppliedPredictiveModeling
+    - ISLR
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html
