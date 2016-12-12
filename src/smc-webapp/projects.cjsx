@@ -825,7 +825,7 @@ NewProjectCreator = rclass
             Creating basic projects without upgrades is free while upgrades require a subscription. 
             Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space. 
             If you have any questions, please
-            email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/>
+            email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/><br/>
             <span className="highlight">If you are
             purchasing a course subscription, but need a short trial to test things out first,
             then please immediately email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
@@ -884,7 +884,7 @@ NewProjectCreator = rclass
                 <Col sm=12>
                     {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
                     <br/>A <b>project</b> is your own private computational workspace that you can share
-                    with others. 
+                    with others. <br/><br/>
                     {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
                     {@render_error()}
                 </Col>
