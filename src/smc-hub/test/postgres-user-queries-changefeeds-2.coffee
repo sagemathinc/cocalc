@@ -397,3 +397,102 @@ describe 'test changefeed admin-only access to project', ->
                 done()
 
 
+describe 'test public_projects table -- ', ->
+    before(setup)
+    after(teardown)
+
+    accounts = project_id = undefined
+
+    it 'set things up', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 2, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                create_projects 1, accounts[0], ((err, v) -> project_id = v[0]; cb(err))
+        ], done)
+
+    it 'get error if project is not public, i.e., has no public paths', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {public_projects:{project_id:project_id, title:null, description:null}}
+            cb         : (err, x) ->
+                expect(err).toEqual("project does not have any public paths")
+                done()
+
+    it 'adds a public paths', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {public_paths:{project_id:project_id, path:"foo.txt"}}
+            cb         : done
+
+    it 'tests owner can now get title and description of project', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {public_projects:{project_id:project_id, title:null, description:null}}
+            cb         : (err, x) ->
+                expect(x).toEqual(public_projects:{project_id:project_id, title:'Project 0', description:'Description 0'})
+                done(err)
+
+    it 'tests other user can get title and description of project', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {public_projects:{project_id:project_id, title:null, description:null}}
+            cb         : (err, x) ->
+                expect(x).toEqual(public_projects:{project_id:project_id, title:'Project 0', description:'Description 0'})
+                done(err)
+
+    it 'tests anonymous user can get title and description of project', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {public_projects:{project_id:project_id, title:null, description:null}}
+            cb         : (err, x) ->
+                expect(x).toEqual(public_projects:{project_id:project_id, title:'Project 0', description:'Description 0'})
+                done(err)
+
+
+    it 'tests that project_id must be specified', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {public_projects:{project_id:null, title:null, description:null}}
+            cb         : (err, x) ->
+                expect(err).toEqual('must specify project_id')
+                done()
+
+    tests = (account_id, done) ->
+        id = misc.uuid()
+        db.user_query
+            account_id : account_id
+            query      : {public_projects:[{project_id:project_id, title:null, description:null}]}
+            changes    : id
+            cb         : changefeed_series([
+                    (x, cb) ->
+                        expect(x).toEqual(public_projects:[{project_id:project_id, title:'Project 0', description:'Description 0'}])
+                        db.user_query
+                            account_id : accounts[0]
+                            query      : {projects:{project_id:project_id, title:'TITLE', description:'DESC'}}
+                            cb         : cb
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'update', new_val: { project_id: project_id, description: 'DESC', title: 'TITLE' } })
+                        db.user_query
+                            account_id : accounts[0]
+                            query      : {projects:{project_id:project_id, title:'Project 0', description:'Description 0'}}
+                            cb         : cb
+                    (x, cb) ->
+                        db.user_query_cancel_changefeed(id:id, cb:cb)
+                    (x, cb) ->
+                        expect(x).toEqual({action:'close'})
+                        cb()
+                ], done)
+
+    it 'tests non-anonymous user on project can get a changefeed on public project', (done) ->
+        tests(accounts[0], done)
+
+    it 'tests non-anonymous NON-user on project can get a changefeed on public project', (done) ->
+        tests(accounts[1], done)
+
+    it 'tests anonymous can get a changefeed on public project', (done) ->
+        tests(undefined, done)
+
+
+
+

@@ -864,15 +864,18 @@ schema.public_projects =
                 cmd : 'getAll'
                 args : ['project_id-public']
             fields :
-                project_id : true
-                title      : true
+                project_id  : true
+                title       : true
+                description : true
 
 schema.public_paths =
     primary_key : 'id'
     anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
-            type : 'uuid'
+            type : 'string'
+            pg_type : 'CHAR(40)'
+            desc : 'sha1 hash derived from project_id and path'
         project_id  :
             type : 'uuid'
         path        :

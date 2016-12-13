@@ -862,7 +862,7 @@ class exports.PostgreSQL extends PostgreSQL
                 json_fields[field] = true
         return json_fields
 
-    _user_get_query_where: (client_query, account_id, project_id, table, user_query, primary_key, cb) =>
+    _user_get_query_where: (client_query, account_id, project_id, user_query, primary_key, table, cb) =>
         dbg = @_dbg("_user_get_query_where")
         dbg()
 
@@ -921,7 +921,7 @@ class exports.PostgreSQL extends PostgreSQL
                                 else
                                     cb("you do not have read access to this project")
                 when 'project_id-public'
-                    if not user_query.project_id
+                    if not user_query.project_id?
                         cb("must specify project_id")
                     else
                         if SCHEMA[table].anonymous
@@ -1224,7 +1224,7 @@ class exports.PostgreSQL extends PostgreSQL
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
                 # See the TODO in @_user_get_query_filter.
-                @_user_get_query_where client_query, opts.account_id, opts.project_id, table, opts.query, primary_key, (err, where) =>
+                @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, primary_key, opts.table, (err, where) =>
                     _query_opts.where = where
                     cb(err)
             (cb) =>
