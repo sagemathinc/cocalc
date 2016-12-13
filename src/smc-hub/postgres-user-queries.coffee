@@ -1092,7 +1092,7 @@ class exports.PostgreSQL extends PostgreSQL
         async.series([
             (cb) =>
                 # check for alternative where test for changefeed.
-                pg_changefeed = SCHEMA[table]?.user_query?.get?.pg_changefeed
+                pg_changefeed = client_query?.get?.pg_changefeed
                 if not pg_changefeed?
                     cb(); return
                 if pg_changefeed == 'projects'
@@ -1126,6 +1126,9 @@ class exports.PostgreSQL extends PostgreSQL
                         select[k] = v
                 if x.where?
                     where = x.where
+                    if not account_id?
+                        cb()
+                        return
                     # initialize user tracker needed for where tests...
                     @project_and_user_tracker cb : (err, _tracker) =>
                         if err
