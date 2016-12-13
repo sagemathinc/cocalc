@@ -713,7 +713,7 @@ exports.Markdown = rclass
 
     update_escaped_chars: ->
         node = $(ReactDOM.findDOMNode(@))
-        node.text(node[0].innerText.replace(/\\\$/g, '$'))
+        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     update_mathjax: ->
         if @_x?.has_mathjax?
