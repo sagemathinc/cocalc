@@ -607,3 +607,22 @@ def test_ro_data_dir(request):
     Used for tests which have read-only data files in the test dir.
     """
     return os.path.dirname(request.module.__file__)
+
+# http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    # we only look at actual failing test calls, not setup/teardown
+    if rep.when == "call" and rep.failed:
+        mode = "a" if os.path.exists("failures") else "w"
+        with open("failures", mode) as f:
+            # let's also access a fixture for the fun of it
+            if "tmpdir" in item.fixturenames:
+                extra = " (%s)" % item.funcargs["tmpdir"]
+            else:
+                extra = ""
+
+            f.write(rep.nodeid + extra + "\n")
