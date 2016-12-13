@@ -379,8 +379,7 @@ describe 'test changefeed admin-only access to project', ->
                 ], done)
 
 
-
-    it 'tests must be admin to read from projects_admin table', (done) ->
+    it 'tests that user must be an admin to read from (or get changefeed on) projects_admin table', (done) ->
         changefeed_id = misc.uuid()
         db.user_query
             account_id : accounts[1]  # NOT admin
