@@ -826,8 +826,8 @@ NewProjectCreator = rclass
 
     render_commercial_explanation_of_project: ->
         <div>
-            Creating basic projects without upgrades is free while upgrades require a subscription. 
-            Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space. 
+            Creating basic projects without upgrades is free while upgrades require a subscription.
+            Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space.
             If you have any questions, please
             email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/><br/>
             <span className="highlight">If you are
@@ -850,7 +850,7 @@ NewProjectCreator = rclass
                     bsStyle  = 'success'
                     onClick  = {=>@create_project({member_host: 1, network: 1})} >
                     Create
-                </Button> 
+                </Button>
                 <Button
                     onClick  = {=>@setState(create_button_hit: '');$('#smc-react-container > div').scrollTop($("#new_project_title").offset().top - 30)} >
                     Cancel
@@ -1006,14 +1006,13 @@ ProjectsSearch = rclass
 
     render: ->
         <SearchInput
-            ref         = 'projects_search'
-            autoFocus   = {true}
-            type        = 'search'
-            value       =  @props.search
-            default_value = @props.search
-            placeholder = 'Search for projects...'
+            ref          = 'projects_search'
+            autoFocus    = {true}
+            type         = 'search'
+            value        = @props.search
+            placeholder  = 'Search for projects...'
             on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
-            on_submit   = {@props.open_first_project}
+            on_submit    = {@props.open_first_project}
             button_after = {@delete_search_button()}
         />
 

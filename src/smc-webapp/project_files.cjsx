@@ -1719,15 +1719,15 @@ ProjectFilesSearch = rclass
     render: ->
         <span>
             <SearchInput
-                autoFocus
-                autoSelect
-                placeholder   = 'Filename'
-                value         = {@props.file_search}
-                on_change     = {@on_change}
-                on_submit     = {@search_submit}
-                on_up         = {@on_up_press}
-                on_down       = {@on_down_press}
-                on_escape     = {@on_escape}
+                autoFocus   = {true}
+                autoSelect  = {true}
+                placeholder = 'Filename'
+                value       = {@props.file_search}
+                on_change   = {@on_change}
+                on_submit   = {@search_submit}
+                on_up       = {@on_up_press}
+                on_down     = {@on_down_press}
+                on_escape   = {@on_escape}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
