@@ -231,7 +231,32 @@ describe 'changefeed testing all projects fields', ->
                                 cb    : cb
                         (x, cb) ->
                             expect(x).toEqual( { action: 'update', new_val:obj0 })
-                            cb()
+
+                            obj0.last_edited = new Date()
+                            db._query
+                                query : "UPDATE projects"
+                                set   : {last_edited : obj0.last_edited}
+                                where : {project_id : projects[0]}
+                                cb    : cb
+                        (x, cb) ->
+                            expect(x).toEqual( { action: 'update', new_val:obj0 })
+
+                            set =
+                                invite          : {a:'map'}
+                                invite_requests : {b:'map2'}
+                                host            : {host:'compute0-us'}
+                                status          : {c:'map3'}
+                                state           : {d:'map4'}
+                                last_active     : {"#{accounts[0]}":new Date()}
+                                course          : {project_id:obj0.project_id}
+                            misc.merge(obj0, set)
+                            db._query
+                                query : "UPDATE projects"
+                                set   : set
+                                where : {project_id : projects[0]}
+                                cb    : cb
+                        (x, cb) ->
+                            expect(x).toEqual( { action: 'update', new_val:obj0 })
 
                             db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                         (x, cb) ->
