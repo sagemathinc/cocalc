@@ -266,4 +266,40 @@ describe 'changefeed testing all projects fields', ->
         ], done)
 
 
+describe 'testing a changefeed from a project (instead of account)', ->
+    before(setup)
+    after(teardown)
 
+    it 'makes a projects, has project get a feed and see changes', (done) ->
+        changefeed_id = misc.uuid()
+        accounts = projects = obj = undefined
+        async.series([
+            (cb) ->
+                create_accounts 1, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                create_projects 1, accounts[0], ((err, v) -> projects = v; cb(err))
+            (cb) ->
+                db.user_query
+                    project_id : projects[0]
+                    query      : {projects:[{project_id:projects[0], title:null, description:null}]}
+                    changes    : changefeed_id
+                    cb         : changefeed_series([
+                        (x, cb) ->
+                            obj = { description: 'Description 0', project_id: projects[0], title: 'Project 0' }
+                            expect(x.projects).toEqual([obj])
+
+                            obj.title = 'Title'; obj.description = 'Description'
+                            db.user_query
+                                project_id : projects[0]
+                                query      : {projects:obj}
+                                cb         : cb
+                        (x, cb) ->
+                            expect(x).toEqual({action:'update', new_val:obj})
+
+                            db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                        (x, cb) ->
+                            expect(x).toEqual({action:'close'})
+
+                            cb()
+                    ], cb)
+        ], done)
