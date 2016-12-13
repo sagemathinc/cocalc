@@ -1008,8 +1008,9 @@ class exports.PostgreSQL extends PostgreSQL
                 # Fill in default values and remove null's
                 @_user_get_query_set_defaults(client_query, x, misc.keys(user_query))
                 # Get rid of undefined fields -- that's the default and wastes memory and bandwidth
-                for obj in x
-                    misc.map_mutate_out_undefined(obj)
+                if x?
+                    for obj in x
+                        misc.map_mutate_out_undefined(obj)
                 cb(undefined, x)
         @_query(query_opts)
 

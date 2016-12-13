@@ -224,19 +224,19 @@ describe 'changefeed testing all projects fields', ->
                         (x, cb) ->
                             obj0.deleted = true
                             expect(x).toEqual( { action: 'update', new_val: obj0 })
-#
+
                             obj0.action_request = {action:'test', started:new Date()}
                             user_query
                                 query : {projects:{project_id:projects[0], action_request:obj0.action_request}}
                                 cb    : cb
-                        #(x, cb) ->
-                        #    expect(x).toEqual( { action: 'update', new_val:obj })
-#
-                        #    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
-                        #(x, cb) ->
-                        #    expect(x).toEqual({action:'close'})
-#
-                        #    cb()
+                        (x, cb) ->
+                            expect(x).toEqual( { action: 'update', new_val:obj0 })
+                            cb()
+
+                            db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                        (x, cb) ->
+                            expect(x).toEqual({action:'close'})
+                            cb()
                 ], cb)
         ], done)
 
