@@ -539,7 +539,7 @@ exports.SearchInput = rclass
         buttonAfter     : rtypes.object
 
     getInitialState: ->
-        value     : @props.default_value ? ''
+        value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
 
     get_opts: ->
@@ -1213,7 +1213,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-NoUpgrades = rclass
+exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
     propTypes :
@@ -1260,7 +1260,10 @@ exports.UpgradeAdjustor = rclass
 
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_value = current[name] ? 0
+            if data.input_type == 'checkbox' and @props.submit_text == "Create project with upgrades"
+                current_value = current[name] ? 1
+            else
+                current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state
