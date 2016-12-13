@@ -15,7 +15,7 @@ class TestScala211Mode:
     # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
     def test_scala211_pat1(self, exec2):
         code = dedent('''
-        %scala
+        %scala211
         object MatchTest1 extends App {
           def matchTest(x: Int): String = x match {
             case 1 => "one"
