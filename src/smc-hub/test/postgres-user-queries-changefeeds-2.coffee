@@ -323,6 +323,14 @@ describe 'test changefeed admin-only access to project', ->
             query      : {projects:{project_id:project_id, title:"Better Title"}}
             cb         : done
 
+    it 'tests writing to project_admin as admin user', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {projects_admin:{project_id:project_id, title:"Better Title"}}
+            cb         : (err) ->
+                expect(err).toEqual("user set queries not allowed for table 'projects_admin'")
+                done()
+
     it 'tests project title changed properly (so reading as admin)', (done) ->
         db.user_query
             account_id : accounts[0]
@@ -377,7 +385,6 @@ describe 'test changefeed admin-only access to project', ->
 
                     cb()
                 ], done)
-
 
     it 'tests that user must be an admin to read from (or get changefeed on) projects_admin table', (done) ->
         changefeed_id = misc.uuid()
