@@ -7,6 +7,56 @@ import re
 
 from textwrap import dedent
 
+class TestErr:
+    def test_non_ascii(self, test_id, sagews):
+        # assign x to hbar to trigger non-ascii warning
+        code = ("x = " + unichr(295) + "\nx").encode('utf-8')
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        # expect 3 messages from worksheet client, including final done:true
+        # 1 stderr Error in lines 1-1
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'stderr' in mesg
+        assert 'Error in lines 1-1' in mesg['stderr']
+        # 2 stderr WARNING: Code contains non-ascii characters
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'stderr' in mesg
+        assert 'WARNING: Code contains non-ascii characters' in mesg['stderr']
+        # 3 done
+        conftest.recv_til_done(sagews, test_id)
+
+class TestLinearAlgebra:
+    def test_solve_right(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,6],[1,2,0],[1,-2,3]])
+        b=vector([1,-1,1])
+        A.solve_right(b)""")
+        exec2(code,"(-1/2, -1/4, 1/3)\n")
+
+    def test_kernel(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        kernel(A)""")
+        pat = "\[ 1  0 -1\]\n\[ 0  1 -1\]"
+        exec2(code, pattern = pat)
+
+    def test_charpoly(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A.charpoly()""")
+        exec2(code, "x^3 - 6*x^2\n")
+
+    def test_eigenvalues(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A.eigenvalues()""")
+        exec2(code, "[6, 0, 0]\n")
+
 class TestBasic:
     def test_connection_type(self, sagews):
         print("type %s"%type(sagews))
