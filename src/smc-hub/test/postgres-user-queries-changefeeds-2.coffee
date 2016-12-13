@@ -78,7 +78,6 @@ describe 'very basic test of projects table', ->
                     ], cb)
         ], done)
 
-
 describe 'create multiple projects with multiple collaborators', ->
     before(setup)
     after(teardown)
@@ -139,7 +138,6 @@ describe 'create multiple projects with multiple collaborators', ->
                             cb()
                     ], cb)
             ], done)
-
 
 describe 'changefeed on a single project', ->
     before(setup)
@@ -265,7 +263,6 @@ describe 'changefeed testing all projects fields', ->
                 ], cb)
         ], done)
 
-
 describe 'testing a changefeed from a project (instead of account)', ->
     before(setup)
     after(teardown)
@@ -303,3 +300,94 @@ describe 'testing a changefeed from a project (instead of account)', ->
                             cb()
                     ], cb)
         ], done)
+
+describe 'test changefeed admin-only access to project', ->
+    before(setup)
+    after(teardown)
+
+    accounts = project_id = undefined
+
+    it 'set things up', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 3, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                db.make_user_admin(account_id: accounts[0], cb:cb)
+            (cb) ->
+                create_projects 1, accounts[2], ((err, v) -> project_id = v[0]; cb(err))
+        ], done)
+
+    it 'tests writing to project as admin user', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {projects:{project_id:project_id, title:"Better Title"}}
+            cb         : done
+
+    it 'tests project title changed properly (so reading as admin)', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {projects:{project_id:project_id, title:null}}
+            cb         : (err, x) ->
+                expect(x).toEqual(projects:{project_id:project_id, title:"Better Title"})
+                done(err)
+
+    it 'tests writing to project as non-collab', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {projects:{project_id:project_id, title:"Even Better Title"}}
+            cb         : (err) ->
+                expect(err).toEqual('user must be an admin')
+                done()
+
+    it 'tests reading from project as non-collab', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {projects:{project_id:project_id, title:null}}
+            cb         : (err) ->
+                expect(err).toEqual('you do not have read access to this project')
+                done()
+
+    it 'tests writing to project as anonymous', (done) ->
+        db.user_query
+            query      : {projects:{project_id:project_id, title:null}}
+            cb         : (err) ->
+                expect(err).toEqual("anonymous get queries not allowed for table 'projects'")
+                done()
+
+    it 'tests admin changefeed on projects_admin table', (done) ->
+        changefeed_id = misc.uuid()
+        db.user_query
+            account_id : accounts[0]  # our admin
+            query      : {projects_admin:[{project_id:project_id, title:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.projects_admin).toEqual([{ project_id: project_id, title: 'Better Title' }])
+
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {projects:{project_id:project_id, title:"WAY Better Title"}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{project_id:project_id, title:"WAY Better Title"}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+
+                    cb()
+                ], done)
+
+
+
+    it 'tests must be admin to read from projects_admin table', (done) ->
+        changefeed_id = misc.uuid()
+        db.user_query
+            account_id : accounts[1]  # NOT admin
+            query      : {projects_admin:[{project_id:project_id, title:null}]}
+            changes    : changefeed_id
+            cb         : (err) ->
+                expect(err).toEqual('user must be an admin')
+                done()
+
+

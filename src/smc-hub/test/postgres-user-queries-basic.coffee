@@ -522,3 +522,36 @@ describe 'test project_log table', ->
         ], done)
 
 
+describe 'nonexistent tables', ->
+    before(setup)
+    after(teardown)
+
+    account_id = undefined
+    it 'creates account', (done) ->
+        create_accounts 1, (err, accounts) ->
+            account_id = accounts?[0]; done(err)
+
+    it 'write to non-existent table', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {nonexistent_table: {foo:'bar'}}
+            cb         : (err) ->
+                expect(err).toEqual("table 'nonexistent_table' does not exist")
+                done(not err)
+
+    it 'read from non-existent table (single thing)', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {nonexistent_table: {foo:null}}
+            cb         : (err) ->
+                expect(err).toEqual("get queries not allowed for table 'nonexistent_table'")
+                done(not err)
+
+    it 'read from non-existent table (multiple)', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {nonexistent_table: [{foo:null}]}
+            cb         : (err) ->
+                expect(err).toEqual("get queries not allowed for table 'nonexistent_table'")
+                done(not err)
+

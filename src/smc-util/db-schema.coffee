@@ -811,6 +811,7 @@ schema.projects_owner =
 #    smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:project_id, invite_requests:invite_requests}}})  // set it
 #    smc.redux.getStore('projects').get_project(project_id).invite_requests                 // see requests for this project
 #
+# CURRENTLY NOT USED.
 schema.project_invite_requests =
     virtual    : 'projects'
     primary_key: 'project_id'
@@ -843,7 +844,8 @@ schema.projects_admin =
     fields      : schema.projects.fields
     user_query:
         get :
-            admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
+            admin  : true   # only admins can do get queries on this table
+                            # (without this, users who have read access could read)
             pg_where : ['project_id = $::UUID':'project_id']
             all :
                 cmd  : 'getAll'

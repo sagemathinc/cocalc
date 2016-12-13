@@ -174,11 +174,15 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             id : required
             cb : undefined    # not really asynchronous
+        dbg = @_dbg("user_query_cancel_changefeed(id='#{opts.id}')")
         feed = @_changefeeds?[opts.id]
         if feed?
+            dbg("actually cancelling feed")
             @_dec_changefeed_count(opts.id)
             delete @_changefeeds[opts.id]
             feed.close()
+        else
+            dbg("already cancelled before (or not such feed)")
         opts.cb?()
 
     _query_is_cmp: (obj) =>
@@ -266,6 +270,9 @@ class exports.PostgreSQL extends PostgreSQL
             dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
             return {err:"account_id or project_id must be specified"}
+
+        if not SCHEMA[opts.table]?
+            return {err:"table '#{opts.table}' does not exist"}
 
         dbg(misc.to_json(opts.query))
 
