@@ -29,6 +29,34 @@ class TestErr:
         # 3 done
         conftest.recv_til_done(sagews, test_id)
 
+class TestLinearAlgebra:
+    def test_solve_right(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,6],[1,2,0],[1,-2,3]])
+        b=vector([1,-1,1])
+        A.solve_right(b)""")
+        exec2(code,"(-1/2, -1/4, 1/3)\n")
+
+    def test_kernel(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        kernel(A)""")
+        pat = "\[ 1  0 -1\]\n\[ 0  1 -1\]"
+        exec2(code, pattern = pat)
+
+    def test_charpoly(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A.charpoly()""")
+        exec2(code, "x^3 - 6*x^2\n")
+
+    def test_eigenvalues(self, exec2):
+        code = dedent(r"""
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A=matrix([[1,2,3],[1,2,3],[1,2,3]])
+        A.eigenvalues()""")
+        exec2(code, "[6, 0, 0]\n")
+
 class TestBasic:
     def test_connection_type(self, sagews):
         print("type %s"%type(sagews))
