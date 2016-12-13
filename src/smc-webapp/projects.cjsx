@@ -1009,7 +1009,7 @@ ProjectsSearch = rclass
             ref          = 'projects_search'
             autoFocus    = {true}
             type         = 'search'
-            value        = @props.search
+            value        = {@props.search}
             placeholder  = 'Search for projects...'
             on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
             on_submit    = {@props.open_first_project}
