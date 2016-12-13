@@ -544,7 +544,7 @@ def sagews(request):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(15)
+    sock.settimeout(45)
     print("connected to socket")
 
     # unlock
