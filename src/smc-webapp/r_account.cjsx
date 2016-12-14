@@ -540,11 +540,11 @@ DeleteAccountConfirmation = rclass
         confirmation_text : ''
 
     render: ->
-        <Well style={marginTop: '26px', textAlign:'center'}>
-            Are you sure you want to do this?<br/>
+        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
+            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To proceed, enter your first and last name below.
+            To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
                     autoFocus
@@ -561,7 +561,7 @@ DeleteAccountConfirmation = rclass
                     bsStyle='danger'
                     onClick={@props.confirm_click}
                 >
-                    <Icon name='trash' /> Confirm Deletion
+                    <Icon name='trash' /> Confirm Account Deletion
                 </Button>
                 <Button
                     style={paddingRight:'8px'}
