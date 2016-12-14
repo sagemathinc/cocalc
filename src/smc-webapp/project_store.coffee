@@ -1205,10 +1205,10 @@ class ProjectActions extends Actions
                         until   : (s) =>
                             listing = s.directory_listings.get(parent_path)
                             return listing?.find (val) => val.get('name') == last
-                        timeout : 3
+                        timeout : 30
                         cb      : (err, item) =>
                             if err
-                                console.log err
+                                alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
                                 @open_directory(parent_path)
                             else
                                 if item.get('isdir')
