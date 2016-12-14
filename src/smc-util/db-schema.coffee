@@ -1000,9 +1000,9 @@ schema.site_settings =
                 value : null
 
 schema.stats =
-    primary_key: 'id'
+    primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous : true     # allow user access, even if not signed in
+    anonymous   : true     # allow user access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1042,6 +1042,13 @@ schema.stats =
     user_query:
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
+            pg_changefeed : ->
+                where : (obj) ->
+                    if obj.time?
+                        return new Date(obj.time) >= misc.hours_ago(1)
+                    else
+                        return true
+                select : {id:'UUID', time:'TIMESTAMP'}
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]

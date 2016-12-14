@@ -718,4 +718,118 @@ describe 'test site_settings table -- ', ->
                 ], done)
 
 
+describe 'test stats changefeed: ', ->
+    before(setup)
+    after(teardown)
+
+    obj = {id: null, time: null, accounts: null, accounts_created: null, \
+           projects: null, projects_created: null, projects_edited: null, hub_servers:null}
+
+    account_id = undefined
+    it 'make an account', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 1, (err, x) -> account_id=x[0]; cb(err)
+        ], done)
+
+    it 'query the stats table anonymously (get nothing, no error)', (done) ->
+        db.user_query
+            query : {stats:[obj]}
+            cb    : (err, x) ->
+                expect(x).toEqual({ stats: [] })
+                done(err)
+
+    it 'query the stats table as user (get nothing, no error)', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {stats:[obj]}
+            cb         : (err, x) ->
+                expect(x).toEqual({ stats: [] })
+                done(err)
+
+    it 'insert some entries in the stats table', (done) ->
+        db.get_stats(cb:done)
+
+    it 'query the stats table as user and gets the one entry', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {stats:[obj]}
+            cb         : (err, x) ->
+                expect(x).toEqual({ stats: [ { accounts: 1, accounts_created: { '1d': 1, '1h': 1, '30d': 1, '7d': 1 }, hub_servers: [], id:x.stats[0].id, projects: 0, projects_created: { '1d': 0, '1h': 0, '30d': 0, '7d': 0 }, projects_edited: { '1d': 0, '1h': 0, '30d': 0, '5min': 0, '7d': 0 }, time:x.stats[0].time } ] })
+                done(err)
+
+    it 'query the stats table as anon and gets the one entry', (done) ->
+        db.user_query
+            query      : {stats:[obj]}
+            cb         : (err, x) ->
+                expect(x).toEqual({ stats: [ { accounts: 1, accounts_created: { '1d': 1, '1h': 1, '30d': 1, '7d': 1 }, hub_servers: [], id:x.stats[0].id, projects: 0, projects_created: { '1d': 0, '1h': 0, '30d': 0, '7d': 0 }, projects_edited: { '1d': 0, '1h': 0, '30d': 0, '5min': 0, '7d': 0 }, time:x.stats[0].time } ] })
+                done(err)
+
+    it 'creates some more accounts and projects and add another stats entry', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 100, 1, (err, x) -> account_id=x[0]; cb(err)
+            (cb) ->
+                create_projects 100, account_id, cb
+            (cb) ->
+                db.get_stats(cb:cb, ttl:-1)
+            (cb) ->
+                db.user_query
+                    query      : {stats:[obj]}
+                    cb         : (err, x) ->
+                        expect(x.stats[0]).toEqual({ accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.stats[0].id, projects: 100, projects_created: { '1d': 100, '1h': 100, '30d': 100, '7d': 100 }, projects_edited: { '1d': 100, '1h': 100, '30d': 100, '5min': 100, '7d': 100 }, time:x.stats[0].time })
+                        cb(err)
+        ], done)
+
+    it 'create anonymous changefeed on stats and see new entry appear', (done) ->
+        changefeed_id = misc.uuid()
+        remove_id = undefined
+        db.user_query
+            query      : {stats:[obj]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.stats.length).toEqual(2)
+                    async.series([
+                        (cb) ->
+                            create_projects(10, account_id, cb)
+                        (cb) ->
+                            db.get_stats(ttl:0, cb:cb)
+                    ], cb)
+                (x, cb) ->
+                    expect(x).toEqual({ action: 'insert', new_val: { accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.new_val.id, projects: 110, projects_created: { '1d': 110, '1h': 110, '30d': 110, '7d': 110 }, projects_edited: { '1d': 110, '1h': 110, '30d': 110, '5min': 110, '7d': 110 }, time: x.new_val.time } })
+
+                    db._query
+                        query : "UPDATE stats"
+                        set   : {projects:150}
+                        where : {id:x.new_val.id}
+                        cb    : cb
+
+                (x, cb) ->
+                    expect(x).toEqual({ action: 'update', new_val: { accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.new_val.id, projects: 150, projects_created: { '1d': 110, '1h': 110, '30d': 110, '7d': 110 }, projects_edited: { '1d': 110, '1h': 110, '30d': 110, '5min': 110, '7d': 110 }, time: x.new_val.time } })
+
+                    # remove something from the changefeed
+                    remove_id = x.new_val.id
+                    db._query
+                        query : "UPDATE stats"
+                        set   : {time:misc.hours_ago(2)}
+                        where : {id:remove_id}
+                        cb    : cb
+                (x, cb) ->
+                    expect(x.action).toEqual('update')
+                    expect(x.old_val.id).toEqual(remove_id)
+                    expect(x.new_val).toEqual(undefined)
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+
+                    cb()
+            ], done)
+
+
+# insert something older than an hour ago and don't see it
+
+
+
 

@@ -35,7 +35,10 @@ exports.teardown = (cb) ->
     exports.db?.delete_all(cb:cb, confirm:'yes')
 
 # create n accounts
-exports.create_accounts = (n, cb) ->
+exports.create_accounts = (n, m, cb) ->
+    if typeof(m) == 'function'
+        cb = m
+        m = 0
     f = (i, cb) ->
         exports.db.create_account
             first_name    : "Firstname#{i}"
@@ -43,7 +46,7 @@ exports.create_accounts = (n, cb) ->
             email_address : "sage+#{i}@sagemath.com"
             password_hash : "#{i}"
             cb            : cb
-    async.map([0...n], f, cb)
+    async.map([m...n+m], f, cb)
 
 # create n projects owned by the account_id's in the array account_ids (or string account_id)
 exports.create_projects = (n, account_ids, cb) ->
