@@ -6,6 +6,8 @@ import json
 import signal
 import struct
 import hashlib
+import time
+from datetime import datetime
 
 ###
 # much of the code here is copied from sage_server.py
@@ -607,3 +609,46 @@ def test_ro_data_dir(request):
     Used for tests which have read-only data files in the test dir.
     """
     return os.path.dirname(request.module.__file__)
+
+#
+# Write a machine-readable report file into the $HOME directory
+#
+
+report_fn = os.path.expanduser('~/sagews-test-report.json')
+results = []
+
+@pytest.hookimpl
+def pytest_configure(config):
+    if os.path.exists(report_fn):
+        os.remove(report_fn)
+
+@pytest.hookimpl
+def pytest_unconfigure(config):
+    data = {
+        'name'     : 'smc_sagews.test',
+        'version'  : 1,
+        'timestamp': str(datetime.utcnow()),
+        'fields'   : ['name', 'passed', 'duration'],
+        'results'  : results,
+    }
+    with open(report_fn, 'w') as out:
+        json.dump(data, out, indent=1)
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    if rep.when != "call":
+        return
+
+    #import pdb; pdb.set_trace() # uncomment to inspect item and rep objects
+    # the following `res` should match the `fields` above
+    # parent: item.parent.name could be interesting, but just () for auto discovery
+    name = item.name
+    test_ = 'test_'
+    if name.startswith(test_):
+        name = name[len(test_):]
+    res = [name, rep.outcome == 'passed', rep.duration]
+    results.append(res)
