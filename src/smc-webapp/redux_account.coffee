@@ -145,7 +145,7 @@ class AccountActions extends Actions
                 else
                     # Force a refresh, since otherwise there could be data
                     # left in the DOM, which could lead to a vulnerability
-                    # or blead into the next login somehow.
+                    # or bleed into the next login somehow.
                     window.location.reload(false)
 
     push_state: (url) =>
