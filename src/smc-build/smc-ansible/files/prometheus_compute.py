@@ -12,11 +12,11 @@ num_cpus.set(multiprocessing.cpu_count())
 LOOP_SLEEP_s = 5
 
 # Create a metric to track time spent and requests made.
-FAKE_METRIC = Summary('fake_compute_metric', 'just for testing ...')
+FAKE_METRIC   = Summary('fake_compute_metric', 'just for testing ...')
 RUNNING_PROCS = Summary('running_process_stats', 'how long it takes to tally up the running processes')
-g_proj = Gauge('num_projects', "Number of running projects")
-g_sage = Gauge('num_sage', "number of running sagemath instances")
-g_ipynb  = Gauge('num_ipynb', "number of running jupyter server instances")
+g_proj        = Gauge('num_projects', "Number of running projects")
+g_sage        = Gauge('num_sage', "number of running sagemath instances")
+g_ipynb       = Gauge('num_ipynb', "number of running jupyter server instances")
 
 SAGEWS_CMDLINE = "from smc_sagews.sage_server_command_line"
 
@@ -60,6 +60,23 @@ def process_request(t):
     """A dummy function that takes some time."""
     time.sleep(t)
 
+# value is the duration, passed is 0 or 1
+import os
+import json
+report_fn     = os.path.expanduser('~/sagews-test-report.json')
+g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "passed"])
+
+def sagews_test():
+    if not os.path.exists(report_fn):
+        return
+    data = None
+    try:
+        data = json.load(open(report_fn))
+    except:
+        return
+    for rep in data.get('results', []):
+        g_sagews_test.labels(rep[0], int(rep[1])).set(rep[2])
+
 if __name__ == '__main__':
     # Start up the server to expose the metrics.
     start_http_server(9090)
@@ -71,5 +88,6 @@ if __name__ == '__main__':
         g_proj.set(p)
         g_sage.set(s)
         g_ipynb.set(i)
+        sagews_test()
 
 

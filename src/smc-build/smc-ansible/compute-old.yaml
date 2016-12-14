@@ -23,6 +23,20 @@
           owner=monitoring group=monitoring mode=500
     tags: "install"
 
+  - name: 'crontab SHELL=/bin/bash'
+    tags: [cron]
+    cron: env=yes
+          name=SHELL
+          value=/bin/bash
+          user=monitoring
+
+  - name: 'crontab BASH_ENV=...'
+    tags: [cron]
+    cron: env=yes
+          name=BASH_ENV
+          value=/home/monitoring/.bashrc
+          user=monitoring
+
   - name: 'run smc_sagews tests'
     tags: [cron]
     cron: name="smc_sagews test"
