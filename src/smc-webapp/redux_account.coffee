@@ -146,6 +146,7 @@ class AccountActions extends Actions
                     # Force a refresh, since otherwise there could be data
                     # left in the DOM, which could lead to a vulnerability
                     # or bleed into the next login somehow.
+                    $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.reload(false)
 
     push_state: (url) =>
