@@ -156,7 +156,7 @@ class TestRMode:
         exec2("%r\nxx <- c(4,7,13)\nmean(xx)", html_pattern="^8$")
 
     def test_r_version(self, exec2):
-        exec2("%r\nR.version.string", html_pattern="3\.3\.2")
+        exec2("%r\nR.version.string", html_pattern="3\.2\.4")
 
     def test_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\n%r\nsum(xx)")
