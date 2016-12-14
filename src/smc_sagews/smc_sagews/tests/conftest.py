@@ -379,7 +379,7 @@ def exec2(request, sagews, test_id):
 
     - `` code `` -- string of code to run
 
-    - `` output `` -- string or list of strings of output to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -423,14 +423,14 @@ def exec2(request, sagews, test_id):
                 assert typ == 'json'
                 assert mesg['id'] == test_id
                 assert 'stdout' in mesg
-                assert mesg['stdout'] == o
+                assert o.strip() in (mesg['stdout']).strip()
         elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
             assert 'stdout' in mesg
             if output is not None:
-                assert mesg['stdout'] == output
+                assert output.strip() in (mesg['stdout']).strip()
             elif pattern is not None:
                 assert re.search(pattern, mesg['stdout']) is not None
         elif html_pattern:
