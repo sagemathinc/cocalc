@@ -980,7 +980,7 @@ schema.site_settings =
     virtual   : 'server_settings'
     anonymous : false
     user_query:
-        # NOTE: can set and get certain fields.
+        # NOTE: can set and get only fields in site_settings_fields, but not any others.
         get:
             pg_where: ['name = ANY($)': site_settings_fields]
             all :
@@ -994,7 +994,9 @@ schema.site_settings =
             admin : true
             fields:
                 name  : (obj, db) ->
-                    if obj.name in site_settings_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
+                    if obj.name in site_settings_fields
+                        return obj.name
+                    throw Error("setting name='#{obj.name}' not allowed")
                 value : null
 
 schema.stats =

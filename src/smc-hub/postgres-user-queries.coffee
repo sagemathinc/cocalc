@@ -304,7 +304,10 @@ class exports.PostgreSQL extends PostgreSQL
                 return {err: "user set query not allowed for #{opts.table}.#{field}"}
             val = r.client_query.set.fields[field]
             if typeof(val) == 'function'
-                r.query[field] = val(r.query, @)
+                try
+                    r.query[field] = val(r.query, @)
+                catch err
+                    return {err:"error setting '#{field}' -- #{err}"}
             else
                 switch val
                     when 'account_id'
@@ -326,18 +329,10 @@ class exports.PostgreSQL extends PostgreSQL
                             return {err:"must specify #{opts.table}.#{field}"}
                         r.require_project_ids_owner = [r.query[field]]
 
-        for field in misc.keys(r.query)
-            f = r.client_query.set.fields?[field]
-            if typeof(f) == 'function'
-                try
-                    r.query[field] = f(r.query, @, r.account_id)
-                catch err
-                    return {err:"error setting '#{field}' -- #{err}"}
-
         if r.client_query.set.admin
             r.require_admin = true
 
-        r.primary_key = s.primary_key ? SCHEMA[r.db_table] ? 'id'
+        r.primary_key = s.primary_key ? SCHEMA[r.db_table].primary_key ? 'id'
 
         r.json_fields = @_json_fields(opts.table, r.query)
 

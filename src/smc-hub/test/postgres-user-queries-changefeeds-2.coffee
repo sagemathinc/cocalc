@@ -601,3 +601,121 @@ describe 'test public_paths table -- ', ->
 
     it 'makes a changefeed and verifies modifying existing entry works', (done) ->
         changefeed_pub_paths(done)
+
+describe 'test site_settings table -- ', ->
+    before(setup)
+    after(teardown)
+
+    accounts = undefined
+
+    it 'make an admin and non-admin account', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 2, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                db.make_user_admin(account_id: accounts[0], cb:cb)
+        ], done)
+
+    it "check writing to wrong field gives an error", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {site_settings:{site_name:'Hacker Site!'}}
+            cb    : (err) ->
+                expect(err).toEqual("error setting 'name' -- Error: setting name='undefined' not allowed")
+                done()
+
+    it "check writing to not allowed row", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {site_settings:{name:'foobar', value:'stuff'}}
+            cb    : (err) ->
+                expect(err).toEqual("error setting 'name' -- Error: setting name='foobar' not allowed")
+                done()
+
+    it "check anon can't write", (done) ->
+        db.user_query
+            query : {site_settings:{name:'site_name', value:'Hacker Site!'}}
+            cb    : (err) ->
+                expect(err).toEqual("no anonymous set queries")
+                done()
+
+    it "check anon can't read", (done) ->
+        db.user_query
+            query : {site_settings:{name:'site_name', value:null}}
+            cb    : (err) ->
+                expect(err).toEqual("anonymous get queries not allowed for table 'site_settings'")
+                done()
+
+    it "check non-admin can't write", (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query : {site_settings:{name:'site_name', value:'Hacker Site!'}}
+            cb    : (err) ->
+                expect(err).toEqual("user must be an admin")
+                done()
+
+    it "check non-admin can't read", (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query : {site_settings:{name:'site_name', value:null}}
+            cb    : (err) ->
+                expect(err).toEqual("user must be an admin")
+                done()
+
+    it "check admin can write", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {site_settings:{name:'site_name', value:'Hacker Site!'}}
+            cb    : done
+
+    it "check admin can read", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {site_settings:{name:'site_name', value:null}}
+            cb    : (err, x) ->
+                expect(x).toEqual({ site_settings: { name: 'site_name', value: 'Hacker Site!' } } )
+                done()
+
+    it 'create admin changefeed and write some things to it', (done) ->
+        id = misc.uuid()
+        user_query = (query, cb) ->
+            db.user_query(account_id:accounts[0], query:{site_settings:query}, cb:cb)
+        db.user_query
+            account_id : accounts[0]
+            query      : {site_settings:[{name:null, value:null}]}
+            changes    : id
+            cb         : changefeed_series([
+                    (x, cb) ->
+                        expect(x).toEqual(site_settings:[{name:'site_name', value:'Hacker Site!'}])
+
+                        user_query({name:'site_name', value:'CoCalc'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'update', new_val: {name:'site_name', value:'CoCalc'} })
+
+                        user_query({name:'site_description', value:'The collaborative site'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'site_description', value:'The collaborative site'} })
+
+                        user_query({name:'terms_of_service', value:'Do nice things'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'terms_of_service', value:'Do nice things'} })
+
+                        user_query({name:'account_creation_email_instructions', value:'Create account'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'account_creation_email_instructions', value:'Create account'} })
+                        user_query({name:'help_email', value:'h@a.b.c'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'help_email', value:'h@a.b.c'} })
+
+                        user_query({name:'commercial', value:'yes'}, cb)
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'commercial', value:'yes'} })
+
+                        db.user_query_cancel_changefeed(id:id, cb:cb)
+                    (x, cb) ->
+                        expect(x).toEqual({action:'close'})
+                        cb()
+                ], done)
+
+
+

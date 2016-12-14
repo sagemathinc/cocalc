@@ -1940,3 +1940,8 @@ exports.bind_objects = (scope, arr_objects) ->
                 return bound_func
             else
                 return val
+
+# Remove all whitespace from string s.
+# see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
+exports.remove_whitespace = (s) ->
+    return s.replace(/\s/g,'')

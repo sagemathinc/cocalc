@@ -372,6 +372,7 @@ class Changes extends EventEmitter
                 result.old_val = old_val
 
     _handle_change: (mesg) =>
+        # console.log '_handle_change', mesg
         if mesg[0] == 'DELETE'
             if not @_match_condition(mesg[2])
                 return
@@ -441,6 +442,7 @@ class Changes extends EventEmitter
             if misc.is_object(obj)
                 for k, val of obj
                     # should be of the form "field = $":val
+                    k0 = misc.remove_whitespace(k.toLowerCase())
                     i = k.indexOf(':')
                     if i != -1
                         k = k.slice(0, i)
@@ -450,6 +452,9 @@ class Changes extends EventEmitter
                         throw Error("NotImplementedError")
                     if k.indexOf('!') != -1
                         throw Error("NotImplementedError")
+                    if k0.indexOf('any($)') != -1
+                        if not misc.is_array(val)
+                            throw Error("ANY($) value must be array (for now)")
                     v = k.split('=')
                     field = v[0].trim()
                     if not @_select[field]?
@@ -477,8 +482,12 @@ class Changes extends EventEmitter
             if not @_condition?
                 return true
             for field, val of @_condition
-                if obj[field] != val
-                    return false
+                if misc.is_array(val)   # OR condition
+                    if obj[field] not in val
+                        return false
+                else
+                    if obj[field] != val
+                        return false
             return true
 
 
