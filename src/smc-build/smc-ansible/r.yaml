@@ -61,28 +61,22 @@
     - r-cran-abind
     - r-cran-acepack
     - r-cran-ade4
-    - r-cran-afex
     - r-cran-amelia
     - r-cran-amore
     - r-cran-ape
     - r-cran-base64enc
     - r-cran-batchjobs
-    - r-cran-bayesfactor
     - r-cran-bayesm
     - r-cran-bbmisc
     - r-cran-beeswarm
-    - r-cran-biasedurn
-    - r-cran-bio3d
     - r-cran-bitops
     - r-cran-blockmodeling
-    - r-cran-bms
     - r-cran-boolnet
     - r-cran-bradleyterry2
     - r-cran-brew
     - r-cran-brglm
     - r-cran-cairodevice
     - r-cran-car
-    - r-cran-caret
     - r-cran-catools
     - r-cran-checkmate
     - r-cran-chron
@@ -93,14 +87,10 @@
     tags: [install, update, rpkgs]
     with_items:
     - r-cran-cluster
-    - r-cran-cmprsk
     - r-cran-coda
     - r-cran-codetools
-    - r-cran-coin
     - r-cran-colorspace
     - r-cran-combinat
-    - r-cran-contfrac
-    - r-cran-conting
     - r-cran-crayon
     - r-cran-cubature
     - r-cran-date
@@ -108,7 +98,6 @@
     - r-cran-deal
     - r-cran-deldir
     - r-cran-deoptimr
-    - r-cran-desolve
     - r-cran-diagnosismed
     - r-cran-dichromat
     - r-cran-digest
@@ -121,7 +110,6 @@
     - r-cran-eco
     - r-cran-ecodist
     - r-cran-effects
-    - r-cran-elliptic
     - r-cran-energy
     - r-cran-epi
     - r-cran-epibasix
@@ -129,8 +117,6 @@
     - r-cran-epir
     - r-cran-epitools
     - r-cran-erm
-    - r-cran-estimability
-    - r-cran-etm
     - r-cran-evaluate
     - r-cran-evd
     - r-cran-expm
@@ -156,7 +142,6 @@
     - r-cran-foptions
     - r-cran-foreach
     - r-cran-foreign
-    - r-cran-formatr
     - r-cran-formula
     - r-cran-fportfolio
     - r-cran-fregression
@@ -168,7 +153,6 @@
     - r-cran-gam
     - r-cran-gbm
     - r-cran-gdata
-    - r-cran-geepack
     - r-cran-genabel
     - r-cran-genabel.data
     - r-cran-genetics
@@ -176,7 +160,6 @@
     - r-cran-ggplot2
     - r-cran-gmaps
     - r-cran-gmodels
-    - r-cran-gnm
     - r-cran-gplots
     - r-cran-gregmisc
     - r-cran-gridextra
@@ -187,15 +170,12 @@
     - r-cran-haplo.stats
     - r-cran-hdf5
     - r-cran-hmisc
-    - r-cran-httpuv
     - r-cran-hwriter
-    - r-cran-hypergeo
     - r-cran-igraph
     - r-cran-inline
     - r-cran-int64
     - r-cran-iterators
     - r-cran-its
-    - r-cran-jsonlite
 
   - name: 'R installation (official ubuntu repo) #3'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -212,9 +192,7 @@
     - r-cran-littler
     - r-cran-lme4
     - r-cran-lmtest
-    - r-cran-logspline
     - r-cran-lpsolve
-    - r-cran-lsmeans
     - r-cran-magrittr
     - r-cran-maldiquant
     - r-cran-maldiquantforeign
@@ -224,21 +202,18 @@
     - r-cran-mass
     - r-cran-matchit
     - r-cran-matrix
-    - r-cran-matrixmodels
     - r-cran-matrixstats
     - r-cran-maxlik
     - r-cran-mcmcpack
     - r-cran-medadherence
     - r-cran-memoise
     - r-cran-mfilter
-    - r-cran-mime
     - r-cran-minqa
     - r-cran-misc3d
     - r-cran-misctools
     - r-cran-mixtools
     - r-cran-mnormt
     - r-cran-mnp
-    - r-cran-modeltools
     - r-cran-msm
     - r-cran-multcomp
     - r-cran-multicore
@@ -258,9 +233,6 @@
     - r-cran-numderiv
     - r-cran-nws
     - r-cran-optparse
-    - r-cran-pbapply
-    - r-cran-pbivnorm
-    - r-cran-pbkrtest
     - r-cran-permute
     - r-cran-phangorn
     - r-cran-pkgkitten
@@ -269,7 +241,6 @@
     - r-cran-polspline
     - r-cran-polyclip
     - r-cran-polycub
-    - r-cran-praise
     - r-cran-profilemodel
     - r-cran-proto
     - r-cran-pscl
@@ -301,7 +272,6 @@
     - r-cran-rggobi
     - r-cran-rgl
     - r-cran-rglpk
-    - r-cran-rinside
 
   - name: 'R installation (official ubuntu repo) #5'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -348,7 +318,6 @@
     - r-cran-spc
     - r-cran-stabledist
     - r-cran-statmod
-    - r-cran-stringi
     - r-cran-stringr
     - r-cran-strucchange
     - r-cran-survival
@@ -361,7 +330,6 @@
     - r-cran-tseries
     - r-cran-urca
     - r-cran-vcd
-    - r-cran-vcdextra
     - r-cran-vegan
     - r-cran-vgam
     - r-cran-vioplot
@@ -369,7 +337,6 @@
     - r-cran-xml
     - r-cran-xtable
     - r-cran-xts
-    - r-cran-yaml
     - r-cran-zelig
     - r-cran-zoo
     - r-cran-rodbc
@@ -398,7 +365,7 @@
     - r-bioc-biovizbase
     - r-bioc-bsgenome
     - r-bioc-cummerbund
-    - r-bioc-ebseq
+    #- r-bioc-ebseq
     - r-bioc-edger
     - r-bioc-genefilter
     - r-bioc-genomeinfodb
@@ -420,7 +387,7 @@
     - r-bioc-s4vectors
     - r-bioc-shortread
     - r-bioc-snpstats
-    - r-bioc-summarizedexperiment
+    #- r-bioc-summarizedexperiment
     - r-bioc-variantannotation
     - r-bioc-xvector
 
@@ -445,6 +412,8 @@
     - "data.table"
     - dplyr
     - tidyr
+    - yaml
+    - stringi
     - WGCNA
     - fields
     - circular
@@ -473,6 +442,36 @@
     - kernlab
     - AppliedPredictiveModeling
     - ISLR
+    - rinside
+    - desolve
+    - elliptic
+    - estimability
+    - etm
+    - formatr
+    - geepack
+    - gnm
+    - httpuv
+    - hypergeo
+    - jsonlite
+    - afex
+    - bayesfactor
+    - biasedurn
+    - bio3d
+    - bms
+    - caret
+    - coin
+    - cmprsk
+    - contfrac
+    - conting
+    - logspline
+    - lsmeans
+    - matrixmodels
+    - mime
+    - modeltools
+    - pbapply
+    - pbivnorm
+    - pbkrtest
+    - praise
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html
