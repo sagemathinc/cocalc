@@ -7,13 +7,26 @@
   tasks:
 
   - name: "set NLTK data directory in /etc/environment -- see build.py for setting up sagemath"
-    tags: [install, update]
-    lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/usr/share/nltk_data"'
+    tags: [setup]
+    lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/projects/data/nltk_data"'
 
   - name: "directory $NLTK_DATA"
-    tags: [install, update]
-    shell: 'mkdir -d $NLTK_DATA; chown -R salvus. $NLTK_DATA; chmod go=rx $NLTK_DATA'
+    tags: [setup]
+    shell: 'mkdir -p $NLTK_DATA; chown -R salvus. $NLTK_DATA; chmod go=rx $NLTK_DATA'
 
   - name: "download it"
-    tags: [install, update]
+    tags: [download]
     shell: 'umask 022; sage -python -m nltk.downloader all'
+
+  - name: 'install smc_sagews test runner'
+    copy: src="files/smc_sagews_test.sh" dest="/home/monitoring/smc_sagews_test.sh"
+          owner=monitoring group=monitoring mode=500
+    tags: "install"
+
+  - name: 'run smc_sagews tests'
+    tags: [cron]
+    cron: name="smc_sagews test"
+          state=present
+          user=monitoring
+          minute="*/15"
+          job="$HOME/smc_sagews_test.sh"
