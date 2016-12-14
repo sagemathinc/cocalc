@@ -281,7 +281,10 @@ class ProjectAndUserTracker extends EventEmitter
             # already registered
             opts.cb()
             return
-        @_register_cbs ?= [opts.cb]
+        if not @_register_cbs?
+            @_register_cbs = [opts.cb]
+        else
+            @_register_cbs.push(opts.cb)
         if @_register_cbs.length > 1
             return
         @_db._query

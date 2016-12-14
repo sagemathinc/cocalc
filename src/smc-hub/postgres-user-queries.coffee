@@ -1123,6 +1123,15 @@ class exports.PostgreSQL extends PostgreSQL
                                 if x.account_id == account_id
                                     feed.delete({project_id:x.project_id})
 
+                if pg_changefeed == 'one-hour'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.time?
+                                return new Date(obj.time) >= misc.hours_ago(1)
+                            else
+                                return true
+                        select : {id:'UUID', time:'TIMESTAMP'}
+
                 x = pg_changefeed(@, account_id)
                 if x.init_tracker?
                     init_tracker = x.init_tracker

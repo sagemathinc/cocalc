@@ -1002,7 +1002,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user access, even if not signed in
+    anonymous   : true     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1042,13 +1042,7 @@ schema.stats =
     user_query:
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
-            pg_changefeed : ->
-                where : (obj) ->
-                    if obj.time?
-                        return new Date(obj.time) >= misc.hours_ago(1)
-                    else
-                        return true
-                select : {id:'UUID', time:'TIMESTAMP'}
+            pg_changefeed : 'one-hour'
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
@@ -1078,6 +1072,7 @@ schema.storage_servers =
 
 schema.system_notifications =
     primary_key : 'id'
+    anonymous   : true     # allow users read access, even if not signed in
     fields :
         id :
             type : 'uuid'
@@ -1100,6 +1095,7 @@ schema.system_notifications =
     user_query:
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
+            pg_changefeed : 'one-hour'
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
@@ -1107,7 +1103,7 @@ schema.system_notifications =
                 id       : null
                 time     : null
                 text     : ''
-                priority : 0
+                priority : 'low'
                 done     : false
         set:
             admin : true
