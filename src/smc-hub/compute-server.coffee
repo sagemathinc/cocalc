@@ -982,7 +982,7 @@ get_whitelisted_users = (opts) ->
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, ['root','salvus','dd-agent'].concat((x.project_id.replace(/-/g,'') for x in results)))
+                opts.cb(undefined, ['root','salvus','monitoring'].concat((x.project_id.replace(/-/g,'') for x in results)))
 
 NO_OUTGOING_FIREWALL = false
 firewall = (opts) ->
