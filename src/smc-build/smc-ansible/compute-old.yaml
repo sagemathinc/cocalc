@@ -29,4 +29,4 @@
           state=present
           user=monitoring
           minute="*/15"
-          job="$HOME/smc_sagews_test.sh"
+          job="flock -x -n $HOME/smc_sagews_test.lock timeout 14m $HOME/smc_sagews_test.sh > $HOME/smc_sagews_test.log 2>&1"
