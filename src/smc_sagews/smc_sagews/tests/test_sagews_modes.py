@@ -26,12 +26,19 @@ class TestScala211Mode:
         }
         ''').strip()
         exec2(code, html_pattern="defined.*object.*MatchTest1")
+
     def test_scala211_pat2(self, exec2):
-        exec2("%scala211\nMatchTest1.main(Array())", "many\n")
+        exec2("%scala211\nMatchTest1.main(Array())", pattern="many")
+
+    def test_scala_version(self, exec2):
+        exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.8")
 
 class TestPython3Mode:
     def test_p3_max(self, exec2):
         exec2("%python3\nmax([],default=9)", "9")
+
+    def test_p3_version(self, exec2):
+        exec2("%python3\nimport sys\nprint(sys.version)", pattern="^3\.5\.2 ")
 
     def test_capture_p3_01(self, exec2):
         exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
@@ -148,6 +155,9 @@ class TestRMode:
     def test_assignment(self, exec2):
         exec2("%r\nxx <- c(4,7,13)\nmean(xx)", html_pattern="^8$")
 
+    def test_r_version(self, exec2):
+        exec2("%r\nR.version.string", html_pattern="3\.3\.2")
+
     def test_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\n%r\nsum(xx)")
     def test_capture_r_02(self, exec2):
@@ -206,6 +216,8 @@ class TestOctaveDefaultMode:
         exec2("%capture(stdout='output')\nx = [1,2]")
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
+    def test_octave_version(self, exec2):
+        exec2("version()", pattern="4.0.0")
 
 class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
@@ -228,4 +240,8 @@ class TestJuliaMode:
 
     def test_julia2(self, exec2):
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
+
+    def test_julia_version(self, exec2):
+        exec2("%jlk\nVERSION", pattern='"0.5.0"')
+
 
