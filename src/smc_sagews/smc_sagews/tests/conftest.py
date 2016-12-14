@@ -616,18 +616,19 @@ def test_ro_data_dir(request):
 
 report_fn = os.path.expanduser('~/sagews-test-report.json')
 results = []
+start_time = None
 
 @pytest.hookimpl
 def pytest_configure(config):
-    if os.path.exists(report_fn):
-        os.remove(report_fn)
+    start_time = str(datetime.utcnow())
 
 @pytest.hookimpl
 def pytest_unconfigure(config):
     data = {
         'name'     : 'smc_sagews.test',
         'version'  : 1,
-        'timestamp': str(datetime.utcnow()),
+        'start'    : start_time,
+        'end'      : str(datetime.utcnow())
         'fields'   : ['name', 'passed', 'duration'],
         'results'  : results,
     }
