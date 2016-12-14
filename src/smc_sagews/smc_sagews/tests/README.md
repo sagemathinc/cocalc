@@ -34,8 +34,8 @@ cat failures
 
 Names of failed tests are written to `failures` file. Example:
 ```
-smc_sagews/tests/test_sagews_modes.py::TestScalaMode::()::test_scala_list
-smc_sagews/tests/test_sagews_modes.py::TestScala211Mode::()::test_scala211_pat1
+(2016-12-14 02:59:38.708): smc_sagews/tests/test_sagews_modes.py::TestScalaMode::()::test_scala_list
+(2016-12-14 03:00:01.479): smc_sagews/tests/test_sagews_modes.py::TestScala211Mode::()::test_scala211_pat1
 ```
 
 

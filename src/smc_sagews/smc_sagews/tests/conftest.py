@@ -624,5 +624,5 @@ def pytest_runtest_makereport(item, call):
                 extra = " (%s)" % item.funcargs["tmpdir"]
             else:
                 extra = ""
-
-            f.write(rep.nodeid + extra + "\n")
+            mesg = "({}): {} {}\n".format(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], rep.nodeid, extra)
+            f.write(mesg)
