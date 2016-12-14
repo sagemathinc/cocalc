@@ -494,5 +494,110 @@ describe 'test public_projects table -- ', ->
         tests(undefined, done)
 
 
+describe 'test public_paths table -- ', ->
+    before(setup)
+    after(teardown)
 
+    accounts = projects = undefined
 
+    it 'set things up', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 3, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                db.make_user_admin(account_id: accounts[2], cb:cb)
+            (cb) ->
+                create_projects 2, accounts[0], ((err, v) -> projects = v; cb(err))
+        ], done)
+
+    it 'adds a public path to a project', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {public_paths:{project_id:projects[0], path:"foo.txt", description:"foo"}}
+            cb         : done
+
+    it 'adds a public path to a project not on as admin', (done) ->
+        db.user_query
+            account_id : accounts[2]
+            query      : {public_paths:{project_id:projects[0], path:"bar.txt", description:'bar', disabled:true}}
+            cb         : done
+
+    it 'fail to add a public path to a project user is not on', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {public_paths:{project_id:projects[0], path:"bar2.txt"}}
+            cb         : (err) ->
+                expect(err).toEqual('user must be an admin')
+                done()
+
+    it 'fail to add a public path when not logged in', (done) ->
+        db.user_query
+            query      : {public_paths:{project_id:projects[0], path:'foo2.txt'}}
+            cb         : (err) ->
+                expect(err).toEqual('no anonymous set queries')
+                done()
+
+    read_public_paths = (done) ->
+        f = (account_id, cb) ->
+            db.user_query
+                account_id : account_id
+                query      : {public_paths:[{project_id:projects[0], path:null, description:null, disabled:null}]}
+                options    : [{order_by:'path'}]
+                cb         : (err, x) ->
+                    expect(x).toEqual({ public_paths: [ { description: 'bar', disabled: true, \
+                                path: 'bar.txt', project_id: projects[0] },  { description: 'foo', \
+                                path: 'foo.txt', project_id: projects[0] } ] })
+                    cb(err)
+        async.map([accounts[0], accounts[1], undefined], f, done)
+
+    it 'reads public paths as owner, non-collab, and anon', (done) ->
+        read_public_paths(done)
+
+    it 'verifies that changefeed required id field (the primary key)', (done) ->
+        db.user_query
+            query      : {public_paths:[{project_id:projects[0], path:null}]}
+            changes    : misc.uuid()
+            cb         : (err) =>
+                expect(err).toEqual("changefeed MUST include primary key (='id') in query")
+                done()
+
+    changefeed_pub_paths = (done) ->
+        f = (account_id, cb) ->
+            changefeed_id = misc.uuid()
+            v = undefined
+            db.user_query
+                account_id : account_id
+                query      : {public_paths:[{id:null, project_id:projects[0], path:null, description:null, disabled:null}]}
+                options    : [order_by:'path']
+                changes    : changefeed_id
+                cb         : changefeed_series([
+                    (x, cb) ->
+                        v = x.public_paths
+                        expect(v.length).toEqual(2)
+                        db.user_query
+                            account_id : accounts[0]
+                            query      : {public_paths:{project_id:projects[0], path:"foo.txt",\
+                                                        description:"foo2", disabled:true}}
+                            cb         : cb
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'update', new_val: {id:v[1].id, project_id:projects[0],  \
+                                                                        path:"foo.txt", description:"foo2", disabled:true} })
+
+                        db.user_query
+                            account_id : accounts[0]
+                            query      : {public_paths:{project_id:projects[0], path:"foo.txt",  \
+                                                        description:"foo", disabled:false}}
+                            cb         : cb
+                    (x, cb) ->
+                        expect(x).toEqual({ action: 'update', new_val: {id:v[1].id, project_id:projects[0], path:"foo.txt",  \
+                                                                        description:"foo", disabled:false} })
+
+                        db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                    (x, cb) ->
+                        expect(x).toEqual({action:'close'})
+                        cb()
+                ], cb)
+        async.mapSeries([accounts[0], accounts[1], undefined], f, done)
+
+    it 'makes a changefeed and verifies modifying existing entry works', (done) ->
+        changefeed_pub_paths(done)

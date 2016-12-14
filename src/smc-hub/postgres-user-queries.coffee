@@ -337,7 +337,7 @@ class exports.PostgreSQL extends PostgreSQL
         if r.client_query.set.admin
             r.require_admin = true
 
-        r.primary_key = s.primary_key ? 'id'
+        r.primary_key = s.primary_key ? SCHEMA[r.db_table] ? 'id'
 
         r.json_fields = @_json_fields(opts.table, r.query)
 
@@ -805,7 +805,9 @@ class exports.PostgreSQL extends PostgreSQL
         if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
             return {err: "anonymous get queries not allowed for table '#{opts.table}'"}
 
-        r.primary_key = SCHEMA[opts.table]?.primary_key ? 'id'
+        r.table = SCHEMA[opts.table].virtual ? opts.table
+
+        r.primary_key = SCHEMA[opts.table]?.primary_key ? SCHEMA[r.table]?.primary_key ? 'id'
 
         # Are only admins allowed any get access to this table?
         r.require_admin = !!r.client_query.get.admin
@@ -848,8 +850,6 @@ class exports.PostgreSQL extends PostgreSQL
 
         if opts.changes? and r.delete_option
             return {err: "user_get_query -- if opts.changes is specified, then delete option must not be specified"}
-
-        r.table = SCHEMA[opts.table].virtual ? opts.table
 
         r.json_fields = @_json_fields(opts.table, opts.query)
 
@@ -1067,6 +1067,9 @@ class exports.PostgreSQL extends PostgreSQL
             return
         if typeof(changes.cb) != 'function'
             cb("changes.cb must be a function")
+            return
+        if not user_query[primary_key]? and user_query[primary_key] != null
+            cb("changefeed MUST include primary key (='#{primary_key}') in query")
             return
 
         watch  = []

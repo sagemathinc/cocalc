@@ -80,6 +80,11 @@ exports.changefeed_series = (v, cb) ->
         cb?(err)
         cb = undefined
     f = (err, x) ->
+        if DEBUG
+            if err
+                console.log("changefeed_series: err=",err)
+            else
+                console.log("changefeed_series: x=#{JSON.stringify(x)}")
         n += 1
         if err
             done(err)

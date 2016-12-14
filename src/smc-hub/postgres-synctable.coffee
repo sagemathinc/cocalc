@@ -399,6 +399,9 @@ class Changes extends EventEmitter
                 query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
                 where : where
                 cb    : one_result (err, result) =>
+                    if err
+                        @emit('error', err)
+                        return
                     r = {action:action, new_val:misc.merge(result, mesg[1])}
                     @_old_val(r, action, mesg)
                     @emit('change', r)
