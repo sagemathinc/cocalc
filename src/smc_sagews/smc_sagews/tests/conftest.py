@@ -381,7 +381,7 @@ def exec2(request, sagews, test_id):
 
     - `` code `` -- string of code to run
 
-    - `` output `` -- string or list of strings of output to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -425,14 +425,14 @@ def exec2(request, sagews, test_id):
                 assert typ == 'json'
                 assert mesg['id'] == test_id
                 assert 'stdout' in mesg
-                assert mesg['stdout'] == o
+                assert o.strip() in (mesg['stdout']).strip()
         elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
             assert 'stdout' in mesg
             if output is not None:
-                assert mesg['stdout'] == output
+                assert output.strip() in (mesg['stdout']).strip()
             elif pattern is not None:
                 assert re.search(pattern, mesg['stdout']) is not None
         elif html_pattern:
@@ -546,7 +546,7 @@ def sagews(request):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(15)
+    sock.settimeout(45)
     print("connected to socket")
 
     # unlock
@@ -612,6 +612,7 @@ def test_ro_data_dir(request):
 
 #
 # Write a machine-readable report file into the $HOME directory
+# http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
 #
 
 report_fn = os.path.expanduser('~/sagews-test-report.json')
@@ -620,16 +621,18 @@ start_time = None
 
 @pytest.hookimpl
 def pytest_configure(config):
+    global start_time
     start_time = str(datetime.utcnow())
 
 @pytest.hookimpl
 def pytest_unconfigure(config):
+    global start_time
     data = {
         'name'     : 'smc_sagews.test',
         'version'  : 1,
         'start'    : start_time,
-        'end'      : str(datetime.utcnow())
-        'fields'   : ['name', 'passed', 'duration'],
+        'end'      : str(datetime.utcnow()),
+        'fields'   : ['name', 'outcome', 'duration'],
         'results'  : results,
     }
     with open(report_fn, 'w') as out:
@@ -651,5 +654,5 @@ def pytest_runtest_makereport(item, call):
     test_ = 'test_'
     if name.startswith(test_):
         name = name[len(test_):]
-    res = [name, rep.outcome == 'passed', rep.duration]
+    res = [name, 'passed', rep.duration]
     results.append(res)
