@@ -303,7 +303,6 @@ class ProjectActions extends Actions
                             return
 
                         is_public = group == 'public'
-
                         ext = misc.filename_extension_notilde(opts.path).toLowerCase()
 
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
@@ -348,7 +347,8 @@ class ProjectActions extends Actions
                         open_files = store.open_files
 
                         # Only generate the editor component if we don't have it already
-                        if not open_files.has(opts.path)
+                        # Also regenerate if view type (public/not-public) changes
+                        if not open_files.has(opts.path) or open_files.getIn([opts.path, 'component']).is_public != is_public
                             open_files_order = store.open_files_order
 
                             # Initialize the file's store and actions
@@ -368,9 +368,12 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'component'], info)
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
+                            index = open_files_order.indexOf(opts.path)
+                            if index == -1
+                                index = open_files_order.size
                             @setState
                                 open_files       : open_files
-                                open_files_order : open_files_order.push(opts.path)
+                                open_files_order : open_files_order.set(index, opts.path)
 
                         if opts.foreground
                             @foreground_project()
