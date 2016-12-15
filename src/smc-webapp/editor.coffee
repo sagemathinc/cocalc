@@ -221,7 +221,7 @@ file_associations['ipynb'] =
     opts   : {}
     name   : "jupyter notebook"
 
-for ext in ['png', 'jpg', 'gif', 'svg']
+for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'media'
         icon   : 'fa-file-image-o'
@@ -3099,7 +3099,7 @@ exports.register_nonreact_editors = () ->
     register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex'])
     register(false, Terminal,         ['term', 'sage-term'])
-    register(false, Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS))
+    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])

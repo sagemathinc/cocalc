@@ -18,6 +18,7 @@
     copy: src="files/prometheus_compute.py"
           dest="/home/monitoring/prometheus_compute.py"
           owner=monitoring group=monitoring mode=700
+    tags: [install]
 
   - name: "install node_exporter"
     copy: src="files/node_exporter"
@@ -30,5 +31,6 @@
 
   - name: "restart daemons"
     supervisorctl: "name='prometheus:' state=restarted"
+    tags: [install]
 
 
