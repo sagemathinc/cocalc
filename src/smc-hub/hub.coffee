@@ -2772,7 +2772,7 @@ delete_account = (mesg, client, push_to_client) ->
     dbg = (m) -> winston.debug("delete_account(mesg.account_id): #{m}")
     dbg()
 
-    database.delete_account
+    database.mark_account_deleted
         account_id    : mesg.account_id
         cb            : (err) =>
             push_to_client(message.account_deleted(id:mesg.id, error:err))

@@ -539,7 +539,7 @@ exports.SearchInput = rclass
         buttonAfter     : rtypes.object
 
     getInitialState: ->
-        value     : @props.default_value ? ''
+        value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
 
     get_opts: ->
@@ -1219,7 +1219,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-NoUpgrades = rclass
+exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
     propTypes :
