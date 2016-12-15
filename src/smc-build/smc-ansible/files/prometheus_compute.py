@@ -66,7 +66,7 @@ def process_request(t):
 import os
 import json
 report_fn     = os.path.expanduser('~/sagews-test-report.json')
-g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "passed"])
+g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "outcome"])
 
 def sagews_test():
     if not os.path.exists(report_fn):
