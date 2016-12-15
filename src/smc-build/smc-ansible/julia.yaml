@@ -59,7 +59,7 @@
     shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'ENV[\"PYTHON\"]=\"\"; Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\");' | julia"
 
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
-    shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'Pkg.add(\"{{ item }}\"); using {{ item }};' | julia"
+    shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'Pkg.add(\"{{ item }}\"); Pkg.build(\"{{ item }}\"); using {{ item }};' | julia"
     tags: [install, update, juliapkgs]
     ignore_errors: yes
     with_items:
