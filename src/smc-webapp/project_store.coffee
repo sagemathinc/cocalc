@@ -176,14 +176,18 @@ class ProjectActions extends Actions
                 @push_state('search/' + store.current_path)
             when 'settings'
                 @push_state('settings')
-            else #editor...
+            else # editor...
                 path = misc.tab_to_path(key)
                 @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
                 @push_state('files/' + path)
                 @set_current_path(misc.path_split(path).head)
-                if redux.getStore('projects').get_my_group(@project_id) != store.open_files.getIn([path, 'component']).is_public
+
+                # Reopen the file if relationship has changed
+                is_public = redux.getStore('projects').get_my_group(@project_id) == 'public'
+                was_public = store.open_files.getIn([path, 'component']).is_public
+                if is_public != was_public
                     @open_file(path : path)
-                    # Reopen the file if relationship has changed
+
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().num_ghost_file_tabs
@@ -587,17 +591,14 @@ class ProjectActions extends Actions
         # get_my_group is defined.
         id = misc.uuid()
         @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        group   = undefined
-        listing = undefined
-        async.series([
+        async.waterfall([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : (err, x) =>
-                        group = x; cb(err)
-            (cb) =>
+                    cb      : cb
+            (group, cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -611,10 +612,8 @@ class ProjectActions extends Actions
                     hidden     : show_hidden
                     max_time_s : 4*60  # keep trying for up to 4 minutes
                     group      : group
-                    cb         : (err, x) =>
-                        listing = x
-                        cb(err)
-        ], (err) =>
+                    cb         : cb
+        ], (err, listing) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
@@ -623,6 +622,7 @@ class ProjectActions extends Actions
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
+            opts.cb(err, listing)
         )
 
     # Increases the selected file index by 1
@@ -1206,6 +1206,7 @@ class ProjectActions extends Actions
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
+                    # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
                     @fetch_directory_listing(parent_path, true, true)
                     @get_store().wait
                         until   : (s) =>
@@ -1214,6 +1215,11 @@ class ProjectActions extends Actions
                         timeout : 30
                         cb      : (err, item) =>
                             if err
+                                console.log "ERR", err
+                                @open_file
+                                    path       : full_path
+                                    foreground : foreground
+                                    foreground_project : foreground
                                 alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
                                 @open_directory(parent_path)
                             else
@@ -1539,6 +1545,7 @@ get_directory_listing = (opts) ->
         method = salvus_client.project_directory_listing
     else
         method = salvus_client.public_project_directory_listing
+        console.log "FETCHING WITH PUBLIC VALS"
     listing = undefined
     f = (cb) ->
         method
