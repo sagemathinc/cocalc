@@ -772,7 +772,6 @@ NewProjectCreator = rclass
         remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
         if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
             @setState(create_button_hit: 'with_members_and_network')
-            @scroll_to_billing()
         else
             @setState(create_button_hit: 'with_custom_upgrades')
             @scroll_to_billing()
