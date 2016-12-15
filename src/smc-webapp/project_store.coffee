@@ -622,7 +622,6 @@ class ProjectActions extends Actions
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
-            opts.cb(err, listing)
         )
 
     # Increases the selected file index by 1
@@ -1215,12 +1214,7 @@ class ProjectActions extends Actions
                         timeout : 30
                         cb      : (err, item) =>
                             if err
-                                console.log "ERR", err
-                                @open_file
-                                    path       : full_path
-                                    foreground : foreground
-                                    foreground_project : foreground
-                                alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
+                                alert_message(type:'error', message:"There was an error related to opening #{full_path}: #{err}")
                                 @open_directory(parent_path)
                             else
                                 item = listing?.find (val) => val.get('name') == last
@@ -1545,7 +1539,6 @@ get_directory_listing = (opts) ->
         method = salvus_client.project_directory_listing
     else
         method = salvus_client.public_project_directory_listing
-        console.log "FETCHING WITH PUBLIC VALS"
     listing = undefined
     f = (cb) ->
         method
