@@ -539,7 +539,7 @@ exports.SearchInput = rclass
         buttonAfter     : rtypes.object
 
     getInitialState: ->
-        value     : @props.default_value ? ''
+        value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
 
     get_opts: ->
@@ -711,6 +711,10 @@ exports.Markdown = rclass
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
+    update_escaped_chars: ->
+        node = $(ReactDOM.findDOMNode(@))
+        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
+
     update_mathjax: ->
         if @_x?.has_mathjax?
             $(ReactDOM.findDOMNode(@)).mathjax()
@@ -721,10 +725,12 @@ exports.Markdown = rclass
     componentDidUpdate: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     componentDidMount: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     to_html: ->
         if @props.value
@@ -1213,7 +1219,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-NoUpgrades = rclass
+exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
     propTypes :

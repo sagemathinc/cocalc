@@ -193,6 +193,10 @@
           dest=/usr/local/bin/python2-ubuntu
           owner=root group=root mode="u=rx,g=rx,o=rx"
 
+  - name: "set _JAVA_OPTIONS in /etc/environment"
+    tags: [setup]
+    lineinfile: 'dest=/etc/environment regexp=^_JAVA_OPTIONS line=_JAVA_OPTIONS="-Xms64m"'
+
   - name: "set NLTK data directory in /etc/environment -- see build.py for setting up sagemath"
     tags: [install, update]
     lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/ext/nltk_data"'
