@@ -654,5 +654,5 @@ def pytest_runtest_makereport(item, call):
     test_ = 'test_'
     if name.startswith(test_):
         name = name[len(test_):]
-    res = [name, 'passed', rep.duration]
+    res = [name, rep.outcome, rep.duration]
     results.append(res)
