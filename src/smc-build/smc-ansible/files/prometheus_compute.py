@@ -86,7 +86,7 @@ def sagews_test():
         if (t1 - t0).total_seconds() > 20 * 60:
             return
         for rep in data.get('results', []):
-            g_sagews_test.labels(rep[0], int(rep[1])).set(rep[2])
+            g_sagews_test.labels(rep[0], rep[1]).set(rep[2])
     except Exception as ex:
         print(ex)
         return
