@@ -620,10 +620,12 @@ start_time = None
 
 @pytest.hookimpl
 def pytest_configure(config):
+    global start_time
     start_time = str(datetime.utcnow())
 
 @pytest.hookimpl
 def pytest_unconfigure(config):
+    global start_time
     data = {
         'name'     : 'smc_sagews.test',
         'version'  : 1,
