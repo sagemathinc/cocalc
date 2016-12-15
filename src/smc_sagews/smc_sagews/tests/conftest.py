@@ -628,7 +628,7 @@ def pytest_unconfigure(config):
         'name'     : 'smc_sagews.test',
         'version'  : 1,
         'start'    : start_time,
-        'end'      : str(datetime.utcnow())
+        'end'      : str(datetime.utcnow()),
         'fields'   : ['name', 'passed', 'duration'],
         'results'  : results,
     }
