@@ -61,6 +61,7 @@
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
     shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'Pkg.add(\"{{ item }}\"); using {{ item }};' | julia"
     tags: [install, update, juliapkgs]
+    ignore_errors: yes
     with_items:
     - IJulia # in jupyter notebook
     - JSON
