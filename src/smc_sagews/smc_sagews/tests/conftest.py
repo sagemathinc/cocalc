@@ -6,6 +6,8 @@ import json
 import signal
 import struct
 import hashlib
+import time
+from datetime import datetime
 
 ###
 # much of the code here is copied from sage_server.py
@@ -608,21 +610,49 @@ def test_ro_data_dir(request):
     """
     return os.path.dirname(request.module.__file__)
 
+#
+# Write a machine-readable report file into the $HOME directory
 # http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
+#
+
+report_fn = os.path.expanduser('~/sagews-test-report.json')
+results = []
+start_time = None
+
+@pytest.hookimpl
+def pytest_configure(config):
+    global start_time
+    start_time = str(datetime.utcnow())
+
+@pytest.hookimpl
+def pytest_unconfigure(config):
+    global start_time
+    data = {
+        'name'     : 'smc_sagews.test',
+        'version'  : 1,
+        'start'    : start_time,
+        'end'      : str(datetime.utcnow()),
+        'fields'   : ['name', 'outcome', 'duration'],
+        'results'  : results,
+    }
+    with open(report_fn, 'w') as out:
+        json.dump(data, out, indent=1)
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     # execute all other hooks to obtain the report object
     outcome = yield
     rep = outcome.get_result()
 
-    # we only look at actual failing test calls, not setup/teardown
-    if rep.when == "call" and rep.failed:
-        mode = "a" if os.path.exists("failures") else "w"
-        with open("failures", mode) as f:
-            # let's also access a fixture for the fun of it
-            if "tmpdir" in item.fixturenames:
-                extra = " (%s)" % item.funcargs["tmpdir"]
-            else:
-                extra = ""
-            mesg = "({}): {} {}\n".format(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], rep.nodeid, extra)
-            f.write(mesg)
+    if rep.when != "call":
+        return
+
+    #import pdb; pdb.set_trace() # uncomment to inspect item and rep objects
+    # the following `res` should match the `fields` above
+    # parent: item.parent.name could be interesting, but just () for auto discovery
+    name = item.name
+    test_ = 'test_'
+    if name.startswith(test_):
+        name = name[len(test_):]
+    res = [name, 'passed', rep.duration]
+    results.append(res)
