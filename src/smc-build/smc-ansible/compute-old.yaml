@@ -42,5 +42,5 @@
     cron: name="smc_sagews test"
           state=present
           user=monitoring
-          minute="*/15"
-          job="flock -x -n $HOME/smc_sagews_test.lock timeout 14m $HOME/smc_sagews_test.sh > $HOME/smc_sagews_test.log 2>&1"
+          minute="*/10"
+          job="flock -x -n $HOME/smc_sagews_test.lock timeout 9m $HOME/smc_sagews_test.sh > $HOME/smc_sagews_test.log 2>&1"
