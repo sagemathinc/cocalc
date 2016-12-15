@@ -113,7 +113,7 @@ export LESS_TERMCAP_se=$'\E[;27m'
 # This came up with running the jupyter-scala kernel
 jtmp=~/tmp/
 eval jtmp=$jtmp  # this expands the ~ for the user since java does not do it
-export _JAVA_OPTIONS="-Djava.io.tmpdir=$jtmp"
+export _JAVA_OPTIONS="-Djava.io.tmpdir=$jtmp $_JAVA_OPTIONS"
 
 # Julia packages are globally installed right here
 export JULIA_PKGDIR=/usr/local/share/julia/site/

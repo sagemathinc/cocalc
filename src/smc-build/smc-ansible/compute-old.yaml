@@ -10,6 +10,10 @@
     tags: [setup]
     lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/projects/data/nltk_data"'
 
+  - name: "set _JAVA_OPTIONS in /etc/environment"
+    tags: [setup]
+    lineinfile: 'dest=/etc/environment regexp=^_JAVA_OPTIONS line=_JAVA_OPTIONS="-Xms64m"'
+
   - name: "directory $NLTK_DATA"
     tags: [setup]
     shell: 'mkdir -p $NLTK_DATA; chown -R salvus. $NLTK_DATA; chmod go=rx $NLTK_DATA'
