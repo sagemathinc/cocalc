@@ -2,6 +2,8 @@
 from prometheus_client import start_http_server, Summary, Gauge
 import random
 import time
+from dateutil.parser import parse as dt_parse
+from datetime import datetime
 
 # number of cores only set once
 import multiprocessing
@@ -74,8 +76,20 @@ def sagews_test():
         data = json.load(open(report_fn))
     except:
         return
-    for rep in data.get('results', []):
-        g_sagews_test.labels(rep[0], int(rep[1])).set(rep[2])
+    # only pick info if not older than 20 minutes
+    t0 = data.get('start', None)
+    if t0 is None:
+        return
+    try:
+        t0 = dt_parse(t0)
+        t1 = datetime.utcnow()
+        if (t1 - t0).total_seconds() > 20 * 60:
+            return
+        for rep in data.get('results', []):
+            g_sagews_test.labels(rep[0], int(rep[1])).set(rep[2])
+    except Exception as ex:
+        print(ex)
+        return
 
 if __name__ == '__main__':
     # Start up the server to expose the metrics.

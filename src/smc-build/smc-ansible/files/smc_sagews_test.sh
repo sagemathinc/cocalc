@@ -15,6 +15,15 @@ cd smc/src/smc_sagews/smc_sagews
 python -m pytest ./
 smc-sage-server stop
 smc-local-hub stop
-# TODO cleanup still running processes of user "monitoring" (but not all of them are bad ones)
-pkill -u monitoring # supervisord should start the prometheus tasks again
+# cleanup still running processes of user "monitoring" (but not all of them are bad ones)
+cat << EOF | python3
+import psutil as ps
+for p in ps.process_iter():
+    if p.username() != 'monitoring': continue
+    cmd = p.cmdline()
+    l = len(cmd)
+    if l >= 1 and 'node_exporter' in cmd[0]: continue
+    if l >= 2 and 'prometheus' in cmd[1]: continue
+    p.kill()
+EOF
 
