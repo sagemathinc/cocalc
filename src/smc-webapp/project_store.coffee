@@ -181,6 +181,9 @@ class ProjectActions extends Actions
                 @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
                 @push_state('files/' + path)
                 @set_current_path(misc.path_split(path).head)
+                if redux.getStore('projects').get_my_group(@project_id) != store.open_files.getIn([path, 'component']).is_public
+                    @open_file(path : path)
+                    # Reopen the file if relationship has changed
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().num_ghost_file_tabs
@@ -1214,7 +1217,8 @@ class ProjectActions extends Actions
                                 alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
                                 @open_directory(parent_path)
                             else
-                                if item.get('isdir')
+                                item = listing?.find (val) => val.get('name') == last
+                                if item?.get('isdir')
                                     @open_directory(full_path)
                                 else
                                     @open_file
