@@ -841,7 +841,7 @@ NewProjectCreator = rclass
     render_create_buttons: ->
         if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()
 
-    render_confirm_memebers_and_network_upgrades: ->
+    render_confirm_members_and_network_upgrades: ->
         <Well style={'marginTop': '20px'}>
             <ButtonToolbar>
                 <p>Create this project on a members-only host with full network access.</p>
@@ -902,7 +902,7 @@ NewProjectCreator = rclass
             <Row>
                 <Col sm=12>
                     {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
-                    {@render_confirm_memebers_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
+                    {@render_confirm_members_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
                     <br/>A <b>project</b> is your own private computational workspace that you can share
                     with others. <br/><br/>
                     {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
