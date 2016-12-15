@@ -98,6 +98,9 @@
     - GR
     - PlotlyJS
     - Nemo
+    - DifferentialEquations
+    - Compose
+    - ScikitLearn
 
   - name: "call update and then import/build all packages -- avoids local rebuilds for users, see https://github.com/sagemathinc/smc/issues/629#issuecomment-240463842"
     tags: [install, update]
