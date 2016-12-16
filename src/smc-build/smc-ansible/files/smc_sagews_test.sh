@@ -19,6 +19,7 @@ smc-local-hub stop
 function cleanup {
 # cleanup still running processes of user "monitoring" (but not all of them are bad ones)
 cat << EOF | python3
+print("cleanup -- started")
 import psutil as ps
 myself = ps.Process()
 for p in ps.process_iter():
@@ -28,7 +29,9 @@ for p in ps.process_iter():
     if l >= 1 and 'node_exporter' in cmd[0]: continue
     if l >= 2 and 'prometheus'    in cmd[1]: continue
     if p == myself or p == myself.parent():  continue
+    print('killing %s' % ' '.join(p.cmdline()))
     p.kill()
+print("cleanup -- finished")
 EOF
 }
 
