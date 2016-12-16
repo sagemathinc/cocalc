@@ -67,7 +67,7 @@ def process_request(t):
     """A dummy function that takes some time."""
     time.sleep(t)
 
-# value is the duration, passed is 0 or 1
+# reading the .json is no longer used -- instead ingest the *.prom file directly
 import os
 import json
 report_fn = os.path.expanduser('~/sagews-test-report.json')
@@ -121,4 +121,4 @@ if __name__ == '__main__':
         g_proj.set(p)
         g_sage.set(s)
         g_ipynb.set(i)
-        sagews_test()
+        # sagews_test() # disabled

@@ -611,18 +611,19 @@ def test_ro_data_dir(request):
     return os.path.dirname(request.module.__file__)
 
 #
-# Write a machine-readable report file into the $HOME directory
+# Write machine-readable report files into the $HOME directory
 # http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
 #
-
-report_fn = os.path.expanduser('~/sagews-test-report.json')
+import os
+report_json = os.path.expanduser('~/sagews-test-report.json')
+report_prom = os.path.expanduser('~/sagews-test-report.prom')
 results = []
 start_time = None
 
 @pytest.hookimpl
 def pytest_configure(config):
     global start_time
-    start_time = str(datetime.utcnow())
+    start_time = datetime.utcnow()
 
 @pytest.hookimpl
 def pytest_unconfigure(config):
@@ -630,13 +631,26 @@ def pytest_unconfigure(config):
     data = {
         'name'     : 'smc_sagews.test',
         'version'  : 1,
-        'start'    : start_time,
+        'start'    : str(start_time),
         'end'      : str(datetime.utcnow()),
         'fields'   : ['name', 'outcome', 'duration'],
         'results'  : results,
     }
-    with open(report_fn, 'w') as out:
+    with open(report_json, 'w') as out:
         json.dump(data, out, indent=1)
+    # this is a plain text prometheus report
+    # https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
+    # timestamp milliseconds since epoch
+    ts = int(1000 * time.mktime(start_time.timetuple()))
+    # first write to temp file ...
+    report_prom_tmp = report_prom + '~'
+    with open(report_prom_tmp, 'w') as prom:
+        for (name, outcome, duration) in results:
+            labels = 'name="{name}",outcome="{outcome}"'.format(**locals())
+            line = 'sagews_test{{{labels}}} {duration} {ts}'.format(**locals())
+            prom.write(line + '\n')
+    # ... then atomically overwrite the real one
+    os.rename(report_prom_tmp, report_prom)
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
