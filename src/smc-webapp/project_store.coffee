@@ -163,9 +163,7 @@ class ProjectActions extends Actions
         switch key
             when 'files'
                 @set_url_to_path(store.current_path ? '')
-                sort_by_time = store.sort_by_time
-                show_hidden = store.show_hidden
-                @fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
+                @fetch_directory_listing()
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.current_path)
@@ -573,9 +571,15 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    fetch_directory_listing: (path, sort_by_time, show_hidden) =>
-        if not path?
-            path = @get_store().current_path
+    fetch_directory_listing: (opts) =>
+        {path, sort_by_time, show_hidden} = defaults opts,
+            path         : @get_store().current_path
+            sort_by_time : undefined
+            show_hidden  : undefined
+            finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
+            # In the vast majority of cases, you just want to look at the data.
+            # Very rarely should you need something to execute exactly after this
+
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
             return
@@ -602,9 +606,9 @@ class ProjectActions extends Actions
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= store.current_path ? ""
-                sort_by_time ?= store.sort_by_time ? true
-                show_hidden  ?= store.show_hidden ? false
+                path         ?= store.current_path
+                sort_by_time ?= store.sort_by_time
+                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
@@ -622,6 +626,7 @@ class ProjectActions extends Actions
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
+            opts?.finish_cb?()
         )
 
     # Increases the selected file index by 1
@@ -1206,18 +1211,27 @@ class ProjectActions extends Actions
                     @open_directory(parent_path)
                 else
                     # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
-                    @fetch_directory_listing(parent_path, true, true)
-                    @get_store().wait
-                        until   : (s) =>
-                            listing = s.directory_listings.get(parent_path)
-                            return listing?.find (val) => val.get('name') == last
-                        timeout : 30
-                        cb      : (err, item) =>
-                            if err
-                                alert_message(type:'error', message:"There was an error related to opening #{full_path}: #{err}")
-                                @open_directory(parent_path)
-                            else
+                    # Assume that if it's loaded, it's good enough.
+                    store = @get_store()
+                    listing = store.directory_listings.get(parent_path)
+                    item = listing?.find (val) => val.get('name') == last
+                    if item?
+                        if item.get('isdir')
+                            @open_directory(full_path)
+                        else
+                            @open_file
+                                path       : full_path
+                                foreground : foreground
+                                foreground_project : foreground
+                    else
+                        @fetch_directory_listing
+                            path         : parent_path
+                            show_hidden  : true
+                            finish_cb    : =>
+                                store = @get_store()
+                                listing = store.directory_listings.get(parent_path)
                                 item = listing?.find (val) => val.get('name') == last
+
                                 if item?.get('isdir')
                                     @open_directory(full_path)
                                 else
@@ -1267,6 +1281,7 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
+        sort_by_time       : true
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
