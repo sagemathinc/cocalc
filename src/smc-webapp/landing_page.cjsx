@@ -128,7 +128,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports actions={@actions('account')} strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} />
 
     display_token_input: ->
         if @props.token
@@ -575,18 +575,19 @@ exports.LandingPage = rclass
         if not @props.remember_me
             reset_key = reset_password_key()
             <div style={margin: UNIT}>
-                    {<ResetPassword reset_key={reset_key}
-                                    reset_password_error={@props.reset_password_error}
-                                    actions={@actions('account')} /> if reset_key}
-                    {<ForgotPassword actions={@actions('account')}
-                                     forgot_password_error={@props.forgot_password_error}
-                                     forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                    {<ResetPassword
+                        reset_key={reset_key}
+                        reset_password_error={@props.reset_password_error}
+                    /> if reset_key}
+                    {<ForgotPassword
+                        forgot_password_error={@props.forgot_password_error}
+                        forgot_password_success={@props.forgot_password_success}
+                    /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
-                            actions       = {@actions('account')}
                             signing_in    = {@props.signing_in}
                             sign_in_error = {@props.sign_in_error}
                             has_account   = {@props.has_account}
@@ -608,7 +609,6 @@ exports.LandingPage = rclass
                                   float    : "right"}
                            className="smc-sign-in-form">
                           <SignIn
-                              actions       = {@actions('account')}
                               signing_in    = {@props.signing_in}
                               sign_in_error = {@props.sign_in_error}
                               has_account   = {@props.has_account}
@@ -655,7 +655,6 @@ exports.LandingPage = rclass
                     </Col>
                     <Col sm=5>
                         <SignUp
-                            actions       = {@actions('account')}
                             sign_up_error = {@props.sign_up_error}
                             strategies    = {@props.strategies}
                             token         = {@props.token}
