@@ -15,6 +15,7 @@ cd smc/src/smc_sagews/smc_sagews
 python -m pytest ./
 smc-sage-server stop
 smc-local-hub stop
+sleep 10
 
 function cleanup {
 # cleanup still running processes of user "monitoring" (but not all of them are bad ones)
