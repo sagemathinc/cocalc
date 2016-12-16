@@ -20,12 +20,14 @@ function cleanup {
 # cleanup still running processes of user "monitoring" (but not all of them are bad ones)
 cat << EOF | python3
 import psutil as ps
+myself = ps.Process()
 for p in ps.process_iter():
     if p.username() != 'monitoring': continue
     cmd = p.cmdline()
     l = len(cmd)
     if l >= 1 and 'node_exporter' in cmd[0]: continue
-    if l >= 2 and 'prometheus' in cmd[1]: continue
+    if l >= 2 and 'prometheus'    in cmd[1]: continue
+    if p == myself or p == myself.parent():  continue
     p.kill()
 EOF
 }
