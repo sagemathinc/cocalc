@@ -12,7 +12,7 @@ class TestGraphics:
         execblob("plot(cos(x),x,0,pi)", want_html = False, file_type = 'svg')
 
 class TestOctavePlot:
-    def test_plot(self,execblob):
+    def test_octave_plot(self,execblob):
         # assume octave kernel not running at start of test
         execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", file_type = 'png')
 

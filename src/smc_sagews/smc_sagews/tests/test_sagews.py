@@ -67,7 +67,7 @@ class TestBasic:
         code = "os.chdir(salvus.data[\'path\']);__file__=salvus.data[\'file\']"
         exec2(code)
 
-    def test_assignment(self, exec2):
+    def test_sage_assignment(self, exec2):
         code = "x = 42\nx\n"
         output = "42\n"
         exec2(code, output)
