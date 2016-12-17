@@ -10,6 +10,30 @@
     tags: [setup]
     lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/projects/data/nltk_data"'
 
+  - name: "set ISOCHRONES in /etc/environment"
+    # http://isochrones.readthedocs.io/en/latest/ data files (no idea how to download them automatically)
+    # https://zenodo.org/record/161241
+    tags: [setup, isochrones]
+    lineinfile: 'dest=/etc/environment regexp=^ISOCHRONES line=ISOCHRONES="/projects/data/isochrones"'
+
+  - name: "isochrones python 3"
+    tags: [isochrones]
+    pip: executable=pip3
+         state=latest
+         umask=022
+         name={{ item }}
+    with_items:
+    - pip
+    - emcee
+    - corner
+    - asciitree
+    - astropy
+    - configobj
+    - tables
+    - pandas
+    - astroquery
+    - isochrones
+
   - name: "set _JAVA_OPTIONS in /etc/environment"
     tags: [setup]
     lineinfile: 'dest=/etc/environment regexp=^_JAVA_OPTIONS line=_JAVA_OPTIONS="-Xms64m"'
