@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from prometheus_client import start_http_server, Summary, Gauge
+import prometheus_client as pc
 import random
 import time
+from dateutil.parser import parse as dt_parse
+from datetime import datetime
 
 # number of cores only set once
 import multiprocessing
@@ -13,12 +16,14 @@ LOOP_SLEEP_s = 5
 
 # Create a metric to track time spent and requests made.
 FAKE_METRIC = Summary('fake_compute_metric', 'just for testing ...')
-RUNNING_PROCS = Summary('running_process_stats', 'how long it takes to tally up the running processes')
+RUNNING_PROCS = Summary('running_process_stats',
+                        'how long it takes to tally up the running processes')
 g_proj = Gauge('num_projects', "Number of running projects")
 g_sage = Gauge('num_sage', "number of running sagemath instances")
-g_ipynb  = Gauge('num_ipynb', "number of running jupyter server instances")
+g_ipynb = Gauge('num_ipynb', "number of running jupyter server instances")
 
 SAGEWS_CMDLINE = "from smc_sagews.sage_server_command_line"
+
 
 @RUNNING_PROCS.time()
 def running_process_stats():
@@ -55,10 +60,55 @@ def running_process_stats():
     return nb_projects, nb_sage, nb_ipynb
 
 # Decorate function with metric.
+
+
 @FAKE_METRIC.time()
 def process_request(t):
     """A dummy function that takes some time."""
     time.sleep(t)
+
+# reading the .json is no longer used -- instead ingest the *.prom file directly
+import os
+import json
+report_fn = os.path.expanduser('~/sagews-test-report.json')
+g_sagews_test = None
+
+
+def init_sagews_gauge():
+    # tests change or are missing from run to run -- hence re-init the gauge
+    global g_sagews_test
+    if g_sagews_test is not None:
+        try:
+            pc.core.REGISTRY.unregister(g_sagews_test)
+        except KeyError as ke:
+            pass  # should never happen
+    g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "outcome"])
+
+
+def sagews_test():
+    global g_sagews_test
+    init_sagews_gauge()
+    if not os.path.exists(report_fn):
+        return
+    data = None
+    try:
+        data = json.load(open(report_fn))
+    except:
+        return
+    # only pick info if not older than 20 minutes
+    t0 = data.get('start', None)
+    if t0 is None:
+        return
+    try:
+        t0 = dt_parse(t0)
+        t1 = datetime.utcnow()
+        if (t1 - t0).total_seconds() > 20 * 60:
+            return
+        for rep in data.get('results', []):
+            g_sagews_test.labels(rep[0], rep[1]).set(rep[2])
+    except Exception as ex:
+        print(ex)
+        return
 
 if __name__ == '__main__':
     # Start up the server to expose the metrics.
@@ -71,5 +121,4 @@ if __name__ == '__main__':
         g_proj.set(p)
         g_sage.set(s)
         g_ipynb.set(i)
-
-
+        # sagews_test() # disabled

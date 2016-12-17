@@ -3981,7 +3981,6 @@ class RethinkDB
         # efficient, and should only be used in situations where it will rarely happen.  E.g.,
         # the collaborators of a user don't change constantly.
         killfeed      = undefined
-        require_admin = false
         async.series([
             (cb) =>
                 if client_query.get.check_hook?

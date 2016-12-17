@@ -221,7 +221,7 @@ file_associations['ipynb'] =
     opts   : {}
     name   : "jupyter notebook"
 
-for ext in ['png', 'jpg', 'gif', 'svg']
+for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'media'
         icon   : 'fa-file-image-o'
@@ -1059,14 +1059,19 @@ class CodeMirrorEditor extends FileEditor
         else
             @element.find('a[href="#print"]').remove()
 
+        # sagews2pdf conversion
+        if @ext == 'sagews'
+            button_names.push('sagews2pdf')
+        else
+            @element.find('a[href="#sagews2pdf"]').remove()
+
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
-                html = event.ctrlKey or event.metaKey
-                that.click_edit_button($(@).data('name'), html=html)
+                that.click_edit_button($(@).data('name'))
                 return false
 
-    click_edit_button: (name, html = false) =>
+    click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1113,8 +1118,10 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'goto-line'
                 @goto_line(cm)
+            when 'sagews2pdf'
+                @print(sagews2html = false)
             when 'print'
-                @print(html = html)
+                @print(sagews2html = true)
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1212,10 +1219,10 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    print: (html = false) =>
+    print: (sagews2html = true) =>
         switch @ext
             when 'sagews'
-                if html   # this is experimental html printing
+                if sagews2html
                     @print_html()
                 else
                     @print_sagews()
@@ -1256,13 +1263,12 @@ class CodeMirrorEditor extends FileEditor
                     </div>
                     <div class="content" style="text-align: center;"></div>
                     <div style="margin-top: 25px;">
-                      <p><b>How to convert to PDF?</b></p>
+                      <p><b>More information</b></p>
                       <p>
-                      First off, there is no strong necessity for PDF over HTML.
-                      This conversion creates a self-contained HTML file,
-                      which you can send out to others or archive.
-                      Still, you can use the print dialog of your browser
-                      to convert the generated document to a PDF file.
+                      This SageWS to HTML conversion transforms the current worksheet
+                      to a static HTML file.
+                      <br/>
+                      <a href="https://github.com/sagemathinc/smc/wiki/sagews2html" target='_blank'>Click here for more information</a>.
                       </p>
                     </div>
                   </div>
@@ -1498,7 +1504,7 @@ class CodeMirrorEditor extends FileEditor
     restore_cursor_position: () =>
         for i, cm of [@codemirror, @codemirror1]
             if cm?
-                pos = @local_storage("cursor#{i}")
+                pos = @local_storage("cursor#{cm.name}")
                 if pos?
                     cm.setCursor(pos)
                     #console.log("#{@filename}: setting view #{cm.name} to cursor pos -- #{misc.to_json(pos)}")
@@ -1581,8 +1587,14 @@ class CodeMirrorEditor extends FileEditor
             # the flex layout with column direction is broken on Safari.
             @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
+        refresh = (cm) =>
+            return if not cm?
+            cm.refresh()
+            # See https://github.com/sagemathinc/smc/issues/1327#issuecomment-265488872
+            setTimeout((=>cm.refresh()), 1)
+
         for cm in @codemirrors()
-            cm?.refresh()
+            refresh(cm)
 
         @emit('show')
 
@@ -1622,10 +1634,10 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     wizard_handler: () =>
-        $target = @mode_display.parent().find('.react-target')
-        {render_wizard} = require('./wizard')
         # @wizard is this WizardActions object
         if not @wizard?
+            $target = @mode_display.parent().find('.react-target')
+            {render_wizard} = require('./wizard')
             @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
             @wizard.show(lang = @_current_mode)
@@ -1725,7 +1737,7 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
+        @fallback_buttons.find('a[href="#todo"]').click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -1735,6 +1747,7 @@ class CodeMirrorEditor extends FileEditor
 
         @mode_display = mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
         @_current_mode = "sage"
+        @mode_display.show()
 
         set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
@@ -2838,6 +2851,8 @@ class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         super(@project_id, @filename)
         @element = templates.find(".salvus-editor-static-html").clone()
+        # ATTN: we can't set src='raw-path' because the sever might not run.
+        # therefore we retrieve the content and set it directly.
         if not @content?
             @content = 'Loading...'
             # Now load the content from the backend...
@@ -2871,7 +2886,13 @@ class PublicHTML extends FileEditor
         # We do this, since otherwise just loading the iframe using
         #      @iframe.contents().find('html').html(@content)
         # messes up the parent html page...
-        @iframe.contents().find('body')[0].innerHTML = @content
+        # ... but setting the innerHTML=@content causes issue 1347!
+        # A compromise is to set the 'srcdoc' attribute to the content,
+        # but that doesn't work in IE/Edge -- http://caniuse.com/#search=srcdoc
+        if $.browser.edge or $.browser.ie
+            @iframe.contents().find('body').html(@content)
+        else
+            @iframe.attr('srcdoc', @content)
         @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
@@ -3078,7 +3099,7 @@ exports.register_nonreact_editors = () ->
     register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex'])
     register(false, Terminal,         ['term', 'sage-term'])
-    register(false, Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS))
+    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])

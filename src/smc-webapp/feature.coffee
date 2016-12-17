@@ -68,6 +68,7 @@ $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
 $.browser.safari  = not $.browser.chrome and user_agent.indexOf('safari') > 0
 $.browser.ie      = not $.browser.chrome and user_agent.indexOf('windows') > 0
 $.browser.blink   = ($.browser.chrome || $.browser.opera) && !!window.CSS
+$.browser.edge    = /Edge\/\d./i.test(navigator.userAgent)
 
 exports.get_browser = () ->
     for k, v of $.browser

@@ -57,12 +57,16 @@ class WizardStore extends Store
 class WizardActions extends Actions
     get: (key) ->
         @redux.getStore(@name).get(key)
+
     set: (update) ->
         @setState(update)
+
     show: (lang='sage') =>
-        @set
-            show: true
-            lang: lang
+        if lang != @get('lang')
+            @init(lang=lang)
+        else
+            @set(show: true)
+
     reset: ->
         @set
             cat0       : null # idx integer
@@ -84,8 +88,9 @@ class WizardActions extends Actions
 
     init: (lang='sage') ->
         @reset()
-        @show(lang=lang)
+        @set(lang: lang)
         @load_data()
+        @set(show: true)
 
     init_data: (data) ->
         @set(data: data)

@@ -539,7 +539,7 @@ exports.SearchInput = rclass
         buttonAfter     : rtypes.object
 
     getInitialState: ->
-        value     : @props.default_value ? ''
+        value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
 
     get_opts: ->
@@ -711,6 +711,10 @@ exports.Markdown = rclass
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
+    update_escaped_chars: ->
+        node = $(ReactDOM.findDOMNode(@))
+        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
+
     update_mathjax: ->
         if @_x?.has_mathjax?
             $(ReactDOM.findDOMNode(@)).mathjax()
@@ -721,10 +725,12 @@ exports.Markdown = rclass
     componentDidUpdate: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     componentDidMount: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     to_html: ->
         if @props.value
@@ -854,17 +860,18 @@ exports.SaveButton = rclass
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
         </Button>
 
-exports.FileLink = rclass
-    displayName : 'Misc-FileLink'
+# Compnent to attempt opening an smc path in a project
+exports.PathLink = rclass
+    displayName : 'Misc-PathLink'
 
     propTypes :
         path         : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
         display_name : rtypes.string # if provided, show this as the link and show real name in popover
         full         : rtypes.bool   # true = show full path, false = show only basename
         trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
         style        : rtypes.object
         link         : rtypes.bool   # set to false to make it not be a link
-        actions      : rtypes.object.isRequired
 
     getDefaultProps: ->
         style : {}
@@ -873,13 +880,12 @@ exports.FileLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        if misc.endswith(@props.path, '/')
-            @props.actions.open_directory(@props.path)
-        else
-            @props.actions.open_file
-                path       : @props.path
-                foreground : misc.should_open_in_foreground(e)
-
+        path_head = 'files'
+        path_head += '/' if @props.path[0] != '/'
+        @actions('projects').open_project
+            project_id : @props.project_id
+            target     : path_head + @props.path
+            switch_to  : misc.should_open_in_foreground(e)
 
     render_link: (text) ->
         if @props.link
@@ -1213,7 +1219,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-NoUpgrades = rclass
+exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
     propTypes :
@@ -1260,7 +1266,10 @@ exports.UpgradeAdjustor = rclass
 
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_value = current[name] ? 0
+            if data.input_type == 'checkbox' and @props.submit_text == "Create project with upgrades"
+                current_value = current[name] ? 1
+            else
+                current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state

@@ -6,7 +6,7 @@ fs          = require('fs')
 path_module = require('path')
 Cookies     = require('cookies')
 util        = require('util')
-ms          = require("ms")
+ms          = require('ms')
 
 async       = require('async')
 body_parser = require('body-parser')
@@ -54,15 +54,15 @@ exports.init_express_http_server = (opts) ->
     router.use(body_parser.urlencoded({ extended: true }))
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
-    webpackHeaderControl = (res, path) ->
+    cacheLongTerm = (res, path) ->
         if not opts.dev  # ... unless in dev mode
             timeout = ms('100 days') # more than a year would be invalid
             res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
-            res.setHeader("Expires", new Date(Date.now() + timeout).toUTCString());
+            res.setHeader('Expires', new Date(Date.now() + timeout).toUTCString());
 
     # The /static content
     router.use '/static',
-        express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
+        express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
