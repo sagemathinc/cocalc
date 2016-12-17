@@ -1,0 +1,74 @@
+---
+# some setup of the current "old" compute VMs
+- hosts: compute
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+  - name: "set NLTK data directory in /etc/environment -- see build.py for setting up sagemath"
+    tags: [setup]
+    lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/projects/data/nltk_data"'
+
+  - name: "set ISOCHRONES in /etc/environment"
+    # http://isochrones.readthedocs.io/en/latest/ data files (no idea how to download them automatically)
+    # https://zenodo.org/record/161241
+    tags: [setup, isochrones]
+    lineinfile: 'dest=/etc/environment regexp=^ISOCHRONES line=ISOCHRONES="/projects/data/isochrones"'
+
+  - name: "isochrones python 3"
+    tags: [isochrones]
+    pip: executable=pip3
+         state=latest
+         umask=022
+         name={{ item }}
+    with_items:
+    - pip
+    - emcee
+    - corner
+    - asciitree
+    - astropy
+    - configobj
+    - tables
+    - pandas
+    - astroquery
+    - isochrones
+
+  - name: "set _JAVA_OPTIONS in /etc/environment"
+    tags: [setup]
+    lineinfile: 'dest=/etc/environment regexp=^_JAVA_OPTIONS line=_JAVA_OPTIONS="-Xms64m"'
+
+  - name: "directory $NLTK_DATA"
+    tags: [setup]
+    shell: 'mkdir -p $NLTK_DATA; chown -R salvus. $NLTK_DATA; chmod go=rx $NLTK_DATA'
+
+  - name: "download it"
+    tags: [download]
+    shell: 'umask 022; sage -python -m nltk.downloader all'
+
+  - name: 'install smc_sagews test runner'
+    copy: src="files/smc_sagews_test.sh" dest="/home/monitoring/smc_sagews_test.sh"
+          owner=monitoring group=monitoring mode=500
+    tags: "install"
+
+  - name: 'crontab SHELL=/bin/bash'
+    tags: [cron]
+    cron: env=yes
+          name=SHELL
+          value=/bin/bash
+          user=monitoring
+
+  - name: 'crontab BASH_ENV=...'
+    tags: [cron]
+    cron: env=yes
+          name=BASH_ENV
+          value=/home/monitoring/.bashrc
+          user=monitoring
+
+  - name: 'run smc_sagews tests'
+    tags: [cron]
+    cron: name="smc_sagews test"
+          state=present
+          user=monitoring
+          minute="*/10"
+          job="timeout 9m $HOME/smc_sagews_test.sh > $HOME/smc_sagews_test.log 2>&1"

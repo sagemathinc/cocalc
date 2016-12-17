@@ -274,15 +274,6 @@ class ProjectActions extends Actions
             chat               : undefined
             chat_width         : undefined
 
-        # grab chat state from local storage
-        local_storage = require('./editor').local_storage
-        if local_storage?
-            opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
-            opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
-
-        if misc.filename_extension(opts.path) == 'sage-chat'
-            opts.chat = false
-
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
@@ -336,11 +327,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-
                             @log
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+
+                            # grab chat state from local storage
+                            local_storage = require('./editor').local_storage
+                            if local_storage?
+                                opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
+                                opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
+
+                            if misc.filename_extension(opts.path) == 'sage-chat'
+                                opts.chat = false
 
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
@@ -1200,15 +1199,17 @@ class ProjectActions extends Actions
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
-                    @fetch_directory_listing(parent_path)
+                    @fetch_directory_listing(parent_path, true, true)
                     @get_store().wait
-                        until   : (s) => s.directory_listings.get(parent_path)
-                        timeout : 3
-                        cb      : (err, listing) =>
+                        until   : (s) =>
+                            listing = s.directory_listings.get(parent_path)
+                            return listing?.find (val) => val.get('name') == last
+                        timeout : 30
+                        cb      : (err, item) =>
                             if err
-                                alert_message(type:'error', message:'Failed to open link')
+                                alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
+                                @open_directory(parent_path)
                             else
-                                item = listing.find (val) => val.get('name') == last
                                 if item.get('isdir')
                                     @open_directory(full_path)
                                 else

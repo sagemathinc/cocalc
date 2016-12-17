@@ -711,6 +711,10 @@ exports.Markdown = rclass
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
+    update_escaped_chars: ->
+        node = $(ReactDOM.findDOMNode(@))
+        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
+
     update_mathjax: ->
         if @_x?.has_mathjax?
             $(ReactDOM.findDOMNode(@)).mathjax()
@@ -721,10 +725,12 @@ exports.Markdown = rclass
     componentDidUpdate: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     componentDidMount: ->
         @update_links()
         @update_mathjax()
+        @update_escaped_chars()
 
     to_html: ->
         if @props.value

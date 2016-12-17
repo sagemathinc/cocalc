@@ -15,7 +15,7 @@ class TestScala211Mode:
     # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
     def test_scala211_pat1(self, exec2):
         code = dedent('''
-        %scala
+        %scala211
         object MatchTest1 extends App {
           def matchTest(x: Int): String = x match {
             case 1 => "one"
@@ -26,12 +26,19 @@ class TestScala211Mode:
         }
         ''').strip()
         exec2(code, html_pattern="defined.*object.*MatchTest1")
+
     def test_scala211_pat2(self, exec2):
-        exec2("%scala211\nMatchTest1.main(Array())", "many\n")
+        exec2("%scala211\nMatchTest1.main(Array())", pattern="many")
+
+    def test_scala_version(self, exec2):
+        exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.8")
 
 class TestPython3Mode:
     def test_p3_max(self, exec2):
         exec2("%python3\nmax([],default=9)", "9")
+
+    def test_p3_version(self, exec2):
+        exec2("%python3\nimport sys\nprint(sys.version)", pattern="^3\.5\.2 ")
 
     def test_capture_p3_01(self, exec2):
         exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
@@ -115,38 +122,41 @@ class TestShMode:
         exec2("%sh xyz", pattern="command not found")
 
 class TestShDefaultMode:
-    def test_start_sh(self, exec2):
+    def test_start_sh_dflt(self, exec2):
         exec2("%default_mode sh")
     def test_start_sh2(self, exec2):
         exec2("who -b", pattern="system boot")
 
-    def test_multiline(self, exec2):
+    def test_multiline_dflt(self, exec2):
         exec2("FOO=hello\necho $FOO", pattern="^hello")
 
     def test_date(self, exec2):
         exec2("date +%Y-%m-%d", pattern = r'^\d{4}-\d{2}-\d{2}')
 
-    def test_capture_sh_01(self, exec2):
+    def test_capture_sh_01_dflt(self, exec2):
         exec2("%capture(stdout='output')\nuptime")
-    def test_capture_sh_02(self, exec2):
+    def test_capture_sh_02_dflt(self, exec2):
         exec2("%sage\noutput", pattern="up.*user.*load average")
 
-    def test_remember_settings_01(self, exec2):
+    def test_remember_settings_01_dflt(self, exec2):
         exec2("FOO='testing123'")
-    def test_remember_settings_02(self, exec2):
+    def test_remember_settings_02_dflt(self, exec2):
         exec2("echo $FOO", pattern=r"^testing123\s+")
 
-    def test_sh_display(self, execblob, image_file):
+    def test_sh_display_dflt(self, execblob, image_file):
         execblob("display < " + str(image_file), want_html=False)
 
-    def test_sh_autocomplete_01(self, exec2):
+    def test_sh_autocomplete_01_dflt(self, exec2):
         exec2("TESTVAR29=xyz")
-    def test_sh_autocomplete_02(self, execintrospect):
+    def test_sh_autocomplete_02_dflt(self, execintrospect):
         execintrospect('echo $TESTV', ["AR29"], '$TESTV')
 
 class TestRMode:
-    def test_assignment(self, exec2):
+    def test_r_assignment(self, exec2):
         exec2("%r\nxx <- c(4,7,13)\nmean(xx)", html_pattern="^8$")
+
+    def test_r_version(self, exec2):
+        exec2("%r\nR.version.string", html_pattern="3\.2\.4")
 
     def test_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\n%r\nsum(xx)")
@@ -156,12 +166,12 @@ class TestRMode:
 class TestRDefaultMode:
     def test_set_r_mode(self, exec2):
         exec2("%default_mode r")
-    def test_assignment(self, exec2):
+    def test_rdflt_assignment(self, exec2):
         exec2("xx <- c(4,7,13)\nmean(xx)", html_pattern="^8$")
 
-    def test_capture_r_01(self, exec2):
+    def test_dflt_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\nsum(xx)")
-    def test_capture_r_02(self, exec2):
+    def test_dflt_capture_r_02(self, exec2):
         exec2("%sage\nprint(output)", "24\n")
 
 class TestRWD:
@@ -206,6 +216,8 @@ class TestOctaveDefaultMode:
         exec2("%capture(stdout='output')\nx = [1,2]")
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
+    def test_octave_version(self, exec2):
+        exec2("version()", pattern="4.0.0")
 
 class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
@@ -214,7 +226,7 @@ class TestAnaconda3Mode:
     def test_issue_862(self, exec2):
         exec2('%a3\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
 
-    def test_a3_errror(self, exec2):
+    def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
 class TestSageMode:
@@ -228,4 +240,8 @@ class TestJuliaMode:
 
     def test_julia2(self, exec2):
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
+
+    def test_julia_version(self, exec2):
+        exec2("%jlk\nVERSION", pattern='"0.5.0"')
+
 
