@@ -4,8 +4,9 @@ project page react component
 {IS_MOBILE} = require('./feature')
 
 # 3rd party Libraries
-{Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
+{Button, ButtonToolbar, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row, Well} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
+{BillingPageSimplifiedRedux} = require('./billing')
 
 Draggable = require('react-draggable')
 
@@ -22,7 +23,7 @@ project_file = require('./project_file')
 {file_associations} = require('./editor')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
+{Icon, Tip, SAGE_LOGO_COLOR, Loading, UpgradeAdjustor, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -161,14 +162,32 @@ FreeProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
+        billing :
+            customer : rtypes.immutable  # similar to stripe_customer
 
     propTypes :
-        project_id : rtypes.string
+        project_id                           : rtypes.string
+        upgrades_you_can_use                 : rtypes.object
+        upgrades_you_applied_to_all_projects : rtypes.object
+        quota_params                         : rtypes.object.isRequired # from the schema
+        actions                              : rtypes.object.isRequired # projects actions
+
+    getInitialState: ->
+        state =
+            upgrading         : true
+            has_subbed        : false
+            state             : 'view'    # view --> edit --> saving --> view
+            title_text        : ''
+            description_text  : ''
+            error             : ''
+            create_button_hit : ''
 
     shouldComponentUpdate : (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or
+            @state?.create_button_hit != nextProps.state?.create_button_hit or
+            @props.customer != nextProps.customer
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
@@ -185,6 +204,72 @@ FreeProjectWarning = rclass ({name}) ->
                 <li>Upgrade <em>this</em> project in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
             </ul>
         </div>
+
+    create_project_with_members_and_network: ->
+        console.log('hello');
+        remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
+        if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
+            @setState(create_button_hit: 'with_members_and_network')
+        else
+            @setState(create_button_hit: 'with_custom_upgrades')
+
+    render_confirm_members_and_network_upgrades: ->
+        <Well>
+            <ButtonToolbar>
+                <p>Upgrade this project to a members-only host with full network access.</p>
+                <Button
+                    bsStyle  = 'success'
+                    onClick  = {=>@submit_upgrade_quotas({member_host: 1, network: 1}, false)} >
+                    Upgrade
+                </Button>
+                <Button
+                    onClick  = {=>@setState(create_button_hit: '')} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
+
+    submit_upgrade_quotas: (new_quotas, replace=true) ->
+        quotas = @props.upgrades_you_applied_to_this_project
+        if quotas and replace
+            for key, value of new_quotas
+                quotas[key] = value
+            @props.actions.apply_upgrades_to_project(@props.project_id, quotas)
+        else
+            @props.actions.apply_upgrades_to_project(@props.project_id, new_quotas)
+        @props.actions.restart_project(@props.project_id)
+
+    render_upgrades_adjustor: ->
+        <UpgradeAdjustor
+            upgrades_you_can_use                 = {@props.upgrades_you_can_use}
+            upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
+            upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
+            submit_text                          = {"Create project with upgrades"}
+            disable_submit                       = {@state.state == 'saving'}
+            submit_upgrade_quotas                = {@submit_upgrade_quotas}
+            cancel_upgrading                     = {@cancel_editing}
+            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+        >
+        </UpgradeAdjustor>
+
+    render_upgrade_before_create: ->
+        subs = @props.customer?.subscriptions?.total_count ? 0
+        <Col sm=12>
+            <div>
+                {@debug_info()}
+                {<div id="upgrade_before_creation"></div> if subs == 0}
+                <BillingPageSimplifiedRedux redux={redux} />
+                {<div id="upgrade_before_creation"></div> if subs > 0}
+                {@render_upgrades_adjustor() if subs > 0}
+            </div>
+        </Col>
+
+    update_customer: -> 
+        redux.getActions('billing')?.update_customer()
+
+    debug_info: ->
+        if @props.customer
+            <span>{ JSON.stringify(@props.customer) } <br/><hr/>{JSON.stringify(Object.keys(JSON.parse(JSON.stringify(@props.customer))))}<br/>{ JSON.stringify(@props.customer.subscriptions) }</span>
 
     render : ->
         if not require('./customize').commercial
@@ -215,10 +300,31 @@ FreeProjectWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
-            {@extra(host, internet)}
+            <ButtonToolbar>
+                <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash; 
+                <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a> 
+                <b> Fix this with</b>
+                <Button
+                    disabled = {@state.create_button_hit == 'with_members_and_network'}
+                    bsStyle  = 'success'
+                    className = 'small'
+                    onClick  = {=>@create_project_with_members_and_network(); @update_customer()}
+                    >
+                    <Icon name="arrow-circle-up" /> Hosting and network upgrades…
+                </Button>
+                <Button
+                    disabled = {@state.create_button_hit == 'with_custom_upgrades'}
+                    bsStyle  = 'success'
+                    className = 'small'
+                    onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades');@update_customer()}
+                    >
+                    <Icon name="cog" /> Custom upgrades...
+                </Button>
+                <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+                {@render_confirm_members_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
+                {@render_upgrade_before_create() if @state.create_button_hit == 'with_custom_upgrades'}
+                {@extra(host, internet)}
+            </ButtonToolbar>
         </Alert>
 
 # is_public below -- only show this tab if this is true
@@ -394,6 +500,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             open_files_order    : rtypes.immutable
             free_warning_closed : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs : rtypes.number
+        users :
+            user_map    : rtypes.immutable
+        account :
+            # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
+            stripe_customer : rtypes.immutable
+            email_address   : rtypes.string
+            user_type       : rtypes.string    # needed for projects get_my_group call in render
+        billing :
+            customer : rtypes.immutable  # similar to stripe_customer
 
     propTypes :
         project_id : rtypes.string
@@ -491,7 +606,14 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group     = @props.get_my_group(@props.project_id)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <FreeProjectWarning 
+                project_id                           = {@props.project_id} 
+                name                                 = {name}
+                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
+                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+                actions                              = {redux.getActions('projects')}
+            />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectMainContent
                 project_id      = {@props.project_id}
