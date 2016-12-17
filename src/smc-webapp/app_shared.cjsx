@@ -39,6 +39,7 @@ exports.NavTab = rclass
         actions        : rtypes.object
         style          : rtypes.object
         inner_style    : rtypes.object
+        class_name     : rtypes.string
 
     make_icon: ->
         if typeof(@props.icon) == 'string'
@@ -80,6 +81,7 @@ exports.NavTab = rclass
             active = {is_active}
             onClick = {@on_click}
             style = {outer_style}
+            className = {@props.class_name}
         >
             <div style={inner_style}>
                 {@make_icon()}

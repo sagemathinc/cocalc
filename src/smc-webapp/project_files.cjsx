@@ -1987,6 +1987,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
+    render_error_message: ->
+        <div>You are not logged in. To view non-public files or edit files in this project you{"'"}ll need to <Button bsStyle={'success'} onClick={=>$('.sign_in *').trigger('click')}>sign in</Button>. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files.</div>
+
     render_access_error: ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
@@ -1994,7 +1997,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={@render_error_message} />
                 </div>
         else
             if @props.redux.getStore('account').is_logged_in()

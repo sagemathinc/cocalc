@@ -103,11 +103,12 @@ Page = rclass
     render_sign_in_tab: ->
         <NavTab
             name           = 'account'
-            label          = 'Sign in'
+            label          = 'Sign in/up'
             icon           = 'sign-in'
             on_click       = {@sign_in_tab_clicked}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
+            class_name     = 'sign_in'
         />
 
     render_right_nav: ->
