@@ -100,6 +100,10 @@ class Connection extends client.Connection
         window.smc.schema = require('smc-util/schema')
         # use to enable/disable verbose synctable logging
         window.smc.synctable_debug = require('smc-util/synctable').set_debug
+        window.smc.test = (modules) ->
+            require('./test-client/init').run(modules)
+        window.smc.test_clear = () ->
+            require('./test-client/init').clear()
 
     _init_idle: () =>
         ###
