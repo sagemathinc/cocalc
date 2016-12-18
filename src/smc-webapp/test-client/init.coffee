@@ -30,7 +30,7 @@ exports.run = (modules) ->
             console.log "loading #{name}"
             require("./#{name}")
 
-    for name in ['account', 'projects', 'page']
+    for name in ['account', 'projects', 'page', 'project']
         load(name)
 
     mocha.run (err) ->
