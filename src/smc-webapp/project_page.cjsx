@@ -149,8 +149,8 @@ GhostTab = (props) ->
 SortableFileTab = SortableElement(FileTab)
 SortableNav = SortableContainer(NavWrapper)
 
-FreeProjectWarning = rclass ({name}) ->
-    displayName : 'FreeProjectWarning'
+ProjectWarning = rclass ({name}) ->
+    displayName : 'ProjectWarning'
 
     reduxProps :
         projects :
@@ -161,9 +161,12 @@ FreeProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
+        projects :
+            get_total_project_quotas : rtypes.func
 
     propTypes :
         project_id : rtypes.string
+        project    : rtypes.object
 
     shouldComponentUpdate : (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
@@ -187,6 +190,21 @@ FreeProjectWarning = rclass ({name}) ->
         </div>
 
     render : ->
+        if @props.project
+            status       = JSON.parse(JSON.stringify(@props.project.get('status'))) # without parse and stringify not getting this data in the right format
+            total_quotas = @props.get_total_project_quotas(@props.project_id)
+            memory     = '?'
+            disk       = '?'
+            console.log('keys', Object.keys(status));
+            if status?
+                rss = status.memory?.rss
+                if rss
+                    memory = Math.round(rss/1000)
+                disk = status.disk_MB
+                if disk
+                    disk = Math.ceil(disk)
+            console.log(total_quotas['memory'], memory)
+            console.log(total_quotas['disk_quota'], disk)
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -194,9 +212,21 @@ FreeProjectWarning = rclass ({name}) ->
         quotas = @props.get_total_project_quotas(@props.project_id)
         if not quotas?
             return null
+        if memory
+            memory_over_quota = (total_quotas['memory'] - memory) < 0
+            memory_near_quota = (total_quotas['memory'] - memory) >= 0 and (total_quotas['memory'] - memory) < 100
+        else
+            memory_over_quota = false
+            memory_near_quota = false
+        if disk
+            disk_over_quota = (total_quotas['disk_quota'] - disk) < 0
+            disk_near_quota = (total_quotas['disk_quota'] - disk) >= 0 and (total_quotas['disk_quota'] - disk) < 100
+        else
+            disk_over_quota = false
+            disk_near_quota = false
         host = not quotas.member_host
         internet = not quotas.network
-        if not host and not internet
+        if not memory_over_quota and not memory_near_quota and not disk_over_quota and not disk_near_quota and not host and not internet
             return null
         styles =
             padding      : 2
@@ -215,7 +245,7 @@ FreeProjectWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: {<span>This project is over its memory quota.</span> if memory_over_quota} {<span>This project is near its memory quota.</span> if memory_near_quota} {<span>This project runs</span> if host or internet} {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
@@ -491,7 +521,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group     = @props.get_my_group(@props.project_id)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <ProjectWarning project_id={@props.project_id} project={@props.project_map?.get(@props.project_id)} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectMainContent
                 project_id      = {@props.project_id}
@@ -595,7 +625,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             return <Loading />
 
         <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <ProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
