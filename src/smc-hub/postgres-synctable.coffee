@@ -406,6 +406,12 @@ class Changes extends EventEmitter
                     if err
                         @emit('error', err)
                         return
+                    if not result?
+                        # This happens when record isn't deleted, but some
+                        # update results in the object being removed from our
+                        # selection criterion... which we view as "delete".
+                        @emit('change', {action:'delete', old_val:mesg[1]})
+                        return
                     r = {action:action, new_val:misc.merge(result, mesg[1])}
                     @_old_val(r, action, mesg)
                     @emit('change', r)
@@ -645,9 +651,14 @@ trigger_code = (table, select, watch) ->
     build_obj_old   = ("'#{field}', #{field}_old"         for field, _ of select)
     build_obj_new   = ("'#{field}', #{field}_new"         for field, _ of select)
     if watch.length > 0
-        no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch.concat(misc.keys(select))).join(' AND ')
+        x = {}
+        for k in watch
+            x[k] = true
+        for k in misc.keys(select)
+            x[k] = true
+        update_of = "OF #{misc.keys(x).join(',')}"
     else
-        no_change = 'FALSE'
+        update_of = ""
     code = """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
@@ -658,20 +669,11 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
         #{column_decl_new.join('\n')}
     BEGIN
         -- TG_OP is 'DELETE', 'INSERT' or 'UPDATE'
-        IF TG_OP = 'DELETE' THEN
+        IF TG_OP = 'DELETE' OR TG_OP = 'UPDATE' THEN
             #{assign_old.join('\n')}
             obj_old = json_build_object(#{build_obj_old.join(',')});
         END IF;
-        IF TG_OP = 'INSERT' THEN
-            #{assign_new.join('\n')}
-            obj_new = json_build_object(#{build_obj_new.join(',')});
-        END IF;
-        IF TG_OP = 'UPDATE' THEN
-            IF #{no_change} THEN
-                RETURN NULL;
-            END IF;
-            #{assign_old.join('\n')}
-            obj_old = json_build_object(#{build_obj_old.join(',')});
+        IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
             #{assign_new.join('\n')}
             obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
@@ -681,7 +683,7 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER #{tgname} AFTER INSERT OR UPDATE OR DELETE ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
+CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
 """
     return code
 
