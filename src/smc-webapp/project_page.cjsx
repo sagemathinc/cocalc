@@ -244,7 +244,7 @@ FreeProjectWarning = rclass ({name}) ->
             upgrades_you_can_use                 = {@props.upgrades_you_can_use}
             upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
             upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-            submit_text                          = {"Create project with upgrades"}
+            submit_text                          = {"Upgrade project"}
             disable_submit                       = {@state.state == 'saving'}
             submit_upgrade_quotas                = {@submit_upgrade_quotas}
             cancel_upgrading                     = {@cancel_editing}
@@ -253,10 +253,9 @@ FreeProjectWarning = rclass ({name}) ->
         </UpgradeAdjustor>
 
     render_upgrade_before_create: ->
-        subs = @props.customer?.subscriptions?.total_count ? 0
+        subs = JSON.parse(JSON.stringify(@props.customer))?.subscriptions?.total_count ? 0 # without parese/stringify not getting the customer data in the right format
         <Col sm=12>
             <div>
-                {@debug_info()}
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
                 {<div id="upgrade_before_creation"></div> if subs > 0}
@@ -266,10 +265,6 @@ FreeProjectWarning = rclass ({name}) ->
 
     update_customer: -> 
         redux.getActions('billing')?.update_customer()
-
-    debug_info: ->
-        if @props.customer
-            <span>{ JSON.stringify(@props.customer) } <br/><hr/>{JSON.stringify(Object.keys(JSON.parse(JSON.stringify(@props.customer))))}<br/>{ JSON.stringify(@props.customer.subscriptions) }</span>
 
     render : ->
         if not require('./customize').commercial
