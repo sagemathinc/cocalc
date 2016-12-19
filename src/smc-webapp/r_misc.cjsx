@@ -1342,10 +1342,7 @@ exports.UpgradeAdjustor = rclass
 
     remove_upgrade_from_project: (project_id, name) ->
         quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
-        console.log(JSON.stringify(quotas_to_apply))
-        console.log('name', name)
         delete quotas_to_apply[name]
-        console.log(JSON.stringify(quotas_to_apply))
         redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
 
     render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
