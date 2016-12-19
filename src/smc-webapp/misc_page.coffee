@@ -160,7 +160,8 @@ $.fn.process_smc_links = (opts={}) ->
                 src = y.attr('src')
                 if src.indexOf('://') != -1
                     continue
-                new_src = "/#{opts.project_id}/raw/#{opts.file_path}/#{src}"
+                {join} = require('path')
+                new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
                 y.attr('src', new_src)
 
         return e
