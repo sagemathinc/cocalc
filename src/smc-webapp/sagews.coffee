@@ -1272,9 +1272,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # handle a links
         a = e.find('a')
 
-        # make links open in a new tab
-        a.attr("target","_blank")
-
         that = @
         for x in a
             y = $(x)
@@ -1313,6 +1310,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             target = join(that.project_id, 'files', that.file_path(), decodeURI(target))
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
+                else
+                    # make links open in a new tab
+                    a.attr("target","_blank")
 
         # make relative links to images use the raw server
         a = e.find("img")

@@ -116,8 +116,6 @@ $.fn.process_smc_links = (opts={}) ->
     @each ->
         e = $(this)
         a = e.find('a')
-        # make links open in a new tab by default
-        a.attr("target","_blank")
         for x in a
             y = $(x)
             href = y.attr('href')
@@ -137,6 +135,7 @@ $.fn.process_smc_links = (opts={}) ->
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
+                        {join} = require('path')
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -145,12 +144,15 @@ $.fn.process_smc_links = (opts={}) ->
                             target = decodeURI(target.slice(1))  # just get rid of leading slash
                         else if target[0] == '/' and opts.project_id
                             # absolute inside of project
-                            target = "#{opts.project_id}/files#{decodeURI(target)}"
+                            target = join(opts.project_id, 'files', decodeURI(target))
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
-                            target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
+                            target = join(opts.project_id, 'files', opts.file_path, decodeURI(target))
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
+                else
+                    # make links open in a new tab by default
+                    a.attr("target","_blank")
 
         # make relative links to images use the raw server
         if opts.project_id and opts.file_path?
