@@ -40,6 +40,8 @@ class exports.PostgreSQL extends EventEmitter
         @_concurrent_queries = 0
         @_connect(opts.cb)
 
+    engine: -> 'postgresql'
+
     _connect: (cb) =>
         dbg = @_dbg("connect"); dbg()
         async.series([

@@ -171,18 +171,38 @@ class ComputeServerClient
             cb("database or db_name must be specified")
 
     _init_storage_servers_feed: (cb) =>
-        @database.synctable
-            query : @database.table('storage_servers')
-            cb    : (err, synctable) =>
-                @storage_servers = synctable
-                cb(err)
+        switch @database.engine()
+            when 'rethink'
+                @database.synctable
+                    query : @database.table('storage_servers')
+                    cb    : (err, synctable) =>
+                        @storage_servers = synctable
+                        cb(err)
+            when 'postgresql'
+                @database.synctable
+                    table : 'storage_servers'
+                    cb    : (err, synctable) =>
+                        @storage_servers = synctable
+                        cb(err)
+            else
+                cb("unknown database engine")
 
     _init_compute_servers_feed: (cb) =>
-        @database.synctable
-            query : @database.table('compute_servers')
-            cb    : (err, synctable) =>
-                @compute_servers = synctable
-                cb(err)
+        switch @database.engine()
+            when 'rethink'
+                @database.synctable
+                    query : @database.table('compute_servers')
+                    cb    : (err, synctable) =>
+                        @compute_servers = synctable
+                        cb(err)
+            when 'postgresql'
+                @database.synctable
+                    table : 'compute_servers'
+                    cb    : (err, synctable) =>
+                        @compute_servers = synctable
+                        cb(err)
+            else
+                cb("unknown database engine")
 
     dbg: (method) =>
         return (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
@@ -925,9 +945,8 @@ class ProjectClient extends EventEmitter
         # It's *critical* that idle_timeout_s be used below, since I haven't come up with any
         # good way to "garbage collect" ProjectClient objects, due to the async complexity of
         # everything.
-        db.synctable
+        opts =
             idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
-            query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
                     dbg("error initializing synctable -- #{err}")
@@ -957,6 +976,19 @@ class ProjectClient extends EventEmitter
                     update()
                     @_synctable.on('change', update)
                     cb()
+        switch db.engine()
+            when 'postgresql'
+                opts.table = 'projects'
+                opts.columns = ['project_id', 'host', 'state', 'storage', 'storage_request']
+                opts.where = {"project_id = $::UUID" : @project_id}
+
+            when 'rethink'
+                opts.query = db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
+            else
+                opts.cb("unknown database engine")
+                return
+
+        db.synctable(opts)
 
     # ensure project has a storage server assigned to it (if there are any)
     _init_storage_server: (cb) =>

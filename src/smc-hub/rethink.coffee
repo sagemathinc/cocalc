@@ -198,6 +198,8 @@ class RethinkDB
             opts.cb?(err, @)
         )
 
+    engine: -> 'rethink'
+
     concurrent: () =>
         return @_concurrent_queries
 

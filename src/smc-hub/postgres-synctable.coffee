@@ -116,12 +116,13 @@ class exports.PostgreSQL extends PostgreSQL
     # on error, etc.  See SyncTable docs where the class is defined.
     synctable: (opts) =>
         opts = defaults opts,
-            table          : required
-            columns        : undefined
-            where          : undefined
-            limit          : undefined
-            order_by       : undefined
-            cb             : required
+            table    : required
+            columns  : undefined
+            where    : undefined
+            limit    : undefined
+            order_by : undefined
+            idle_timeout_s : undefined   # TODO: currently ignored
+            cb       : required
         new SyncTable(@, opts.table, opts.columns, opts.where, opts.limit, opts.order_by, opts.cb)
         return
 
@@ -555,7 +556,7 @@ class SyncTable extends EventEmitter
         async.series([
             (cb) =>
                 # ensure database client is listen for primary keys changes to our table
-                @_db._listen @_table, @_listen_columns, (err, tgname) =>
+                @_db._listen @_table, @_listen_columns, [], (err, tgname) =>
                     @_tgname = tgname
                     @_db.on(@_tgname, @_notification)
                     cb(err)

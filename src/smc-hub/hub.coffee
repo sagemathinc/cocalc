@@ -67,7 +67,6 @@ message = require('smc-util/message')     # salvus message protocol
 client_lib = require('smc-util/client')
 
 sage    = require('./sage')               # sage server
-rethink = require('./rethink')
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('./email')
 
@@ -3080,21 +3079,48 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
 Connect to database
 ###
 database = undefined
-connect_to_database = (opts) ->
+
+connect_to_database_rethink = (opts) ->
     opts = defaults opts,
         error : 120
         pool  : program.db_pool
         cb    : required
-    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    dbg = (m) -> winston.debug("connect_to_database (rethinkdb): #{m}")
     if database? # already did this
+        dbg("already done")
         opts.cb(); return
-    database = rethink.rethinkdb
+    dbg("connecting...")
+    database = require('./rethink').rethinkdb
         hosts           : program.database_nodes.split(',')
         database        : program.keyspace
         error           : opts.error
         pool            : opts.pool
         concurrent_warn : program.db_concurrent_warn
         cb              : opts.cb
+
+connect_to_database_postgresql = (opts) ->
+    opts = defaults opts,
+        error : 120
+        pool  : program.db_pool
+        cb    : required
+    dbg = (m) -> winston.debug("connect_to_database (postgreSQL): #{m}")
+    if database? # already did this
+        dbg("already done")
+        opts.cb(); return
+    dbg("connecting...")
+    require('./postgres').db
+        host     : 'localhost'  # TODO
+        database : 'smcdev'     # TODO  # and todo for other options...
+        cb       : (err, db) ->
+            if err
+                database = undefined
+                opts.cb(err)
+            else
+                database = db
+                opts.cb()
+
+#connect_to_database = connect_to_database_postgresql
+connect_to_database = connect_to_database_rethink
 
 # client for compute servers
 compute_server = undefined
