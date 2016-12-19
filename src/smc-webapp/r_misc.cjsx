@@ -1329,6 +1329,45 @@ exports.UpgradeAdjustor = rclass
     render_addon: (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
 
+    remove_upgrade_from_all: (projects_with_this_upgrade, name) ->
+        for project_id in projects_with_this_upgrade
+            @remove_upgrade_from_project(project_id, name)
+
+    render_remove_upgrade_from_all: (projects_with_this_upgrade, name) ->
+        <MenuItem
+            eventKey="0"
+            onClick={=>@remove_upgrade_from_all(projects_with_this_upgrade, name)}>
+            All
+        </MenuItem>
+
+    remove_upgrade_from_project: (project_id, name) ->
+        quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
+        console.log(JSON.stringify(quotas_to_apply))
+        console.log('name', name)
+        delete quotas_to_apply[name]
+        console.log(JSON.stringify(quotas_to_apply))
+        redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
+
+    render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
+        for project_id, i in projects_with_this_upgrade
+            <MenuItem 
+                eventKey={i}
+                onClick={=>@remove_upgrade_from_project(project_id, name)}>
+                {redux.getStore('projects')?.get_title(project_id)}
+            </MenuItem>
+
+    render_remove_upgrade_from: (name) ->
+        upgrades = redux.getStore('projects').get_projects_upgraded_by()
+        projects_with_this_upgrade = []
+        for project_id, project_upgrades of upgrades
+            if project_upgrades[name]
+                projects_with_this_upgrade.push(project_id)
+        if projects_with_this_upgrade.length > 0
+            <DropdownButton className="small" title="Remove upgrade from" key={name} id={name}>
+                {@render_remove_upgrade_from_all(projects_with_this_upgrade, name) if projects_with_this_upgrade.length > 1}
+                {@render_remove_upgrade_from_menuitems(projects_with_this_upgrade, name)}
+            </DropdownButton>
+
     render_upgrade_row: (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -1354,6 +1393,8 @@ exports.UpgradeAdjustor = rclass
                     </Tip>
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
+                    <br/>
+                    {@render_remove_upgrade_from(name)}
                 </Col>
                 <Col sm=6>
                     <form>
@@ -1412,6 +1453,8 @@ exports.UpgradeAdjustor = rclass
                     </Tip>
                     <br/>
                     {remaining_note}
+                    <br/>
+                    {@render_remove_upgrade_from(name)}
                 </Col>
                 <Col sm=6>
                     <FormGroup>
