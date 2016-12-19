@@ -725,7 +725,7 @@ exports.Markdown = rclass
     componentDidUpdate: ->
         @update_mathjax()
         @update_escaped_chars()
-        @update_links()
+        @update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
 
     componentDidMount: ->
         @update_mathjax()
