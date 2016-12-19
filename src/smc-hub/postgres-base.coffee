@@ -133,7 +133,7 @@ class exports.PostgreSQL extends EventEmitter
         SET = []
         if opts.jsonb_set?
             # This little piece of very hard to write (and clever?) code
-            # makes it so we can set or **merge in at any nested level (!)
+            # makes it so we can set or **merge in at any nested level** (!)
             # arbitrary JSON objects.  We can also delete any key at any
             # level by making the value null or undefined!  This is amazingly
             # easy to use in queries -- basically making JSONP with postgres

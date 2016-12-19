@@ -460,38 +460,25 @@ class exports.PostgreSQL extends PostgreSQL
             conflict : r.primary_key
             cb       : cb
 
+    # Record is already in DB, so we update it:
+    # this function handles a case that involves both
+    # a jsonb_merge and an update.
     _user_query_set_upsert_and_jsonb_merge: (r, cb) =>
-        values      = {}
         jsonb_merge = {}
         for k of r.json_fields
             v = r.query[k]
             if v?
                 jsonb_merge[k] = v
+        set = {}
         for k, v of r.query
-            if not jsonb_merge[k]?
-                values[k] = v
-        async.series([
-            (cb) =>
-                @_query(query: "BEGIN", cb:cb)
-            (cb) =>
-                @_query
-                    query       : "UPDATE #{r.db_table}"
-                    jsonb_merge : jsonb_merge
-                    where       : "#{r.primary_key} = $" : r.query[r.primary_key]
-                    cb          : cb
-            (cb) =>
-                if values.length <= 1
-                    # no actual values to update (and primary key exists due to update above)
-                    cb()
-                    return
-                @_query
-                    query    : "INSERT INTO #{r.db_table}"
-                    values   : values
-                    conflict : r.primary_key
-                    cb       : cb
-            (cb) =>
-                @_query(query: "COMMIT", cb:cb)
-        ], cb)
+            if v? and k != r.primary_key and not jsonb_merge[k]?
+                set[k] = v
+        @_query
+            query       : "UPDATE #{r.db_table}"
+            jsonb_merge : jsonb_merge
+            set         : set
+            where       : "#{r.primary_key} = $" : r.query[r.primary_key]
+            cb          : cb
 
     _user_set_query_main_query: (r, cb) =>
         if r.instead_of_change_hook?
@@ -508,9 +495,10 @@ class exports.PostgreSQL extends PostgreSQL
                 @_user_query_set_upsert(r, cb)
                 return
             # HARD CASE -- there are json_fields... so we doing an insert
-            # if the object isn't already in the databse, and and update
-            # if it is, and yes there is a potential race condition (TODO).
-            cnt = undefined
+            # if the object isn't already in the databse, and an update
+            # if it is.  This is ugly because I don't know how to do both
+            # a JSON merge as an upsert.
+            cnt = undefined  # will equal number of records having the primary key (so 0 or 1)
             async.series([
                 (cb) =>
                     @_user_query_set_count r, (err, n) =>
@@ -520,7 +508,11 @@ class exports.PostgreSQL extends PostgreSQL
                         # Just insert (do as upsert to avoid error in case of race)
                         @_user_query_set_upsert(r, cb)
                     else
-                        # Do both upsert and jsonb_merge
+                        # Do as an update -- record is definitely already in db since cnt > 0.
+                        # This would fail in the unlikely (but possible) case that somebody deletes
+                        # the record between the above count and when we do the UPDATE.
+                        # Using a transaction could avoid this.
+                        # Maybe such an error is reasonable and it's good to report it as such.
                         @_user_query_set_upsert_and_jsonb_merge(r, cb)
             ], cb)
 
