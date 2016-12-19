@@ -564,7 +564,8 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (path, sort_by_time, show_hidden) =>
         if not path?
-            path = @get_store().current_path
+            # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
+            path = @get_store()?.current_path
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
             return
