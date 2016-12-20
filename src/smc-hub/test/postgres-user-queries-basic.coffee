@@ -555,3 +555,77 @@ describe 'nonexistent tables', ->
                 expect(err).toEqual("get queries not allowed for table 'nonexistent_table'")
                 done(not err)
 
+
+describe 'test the get_account server query', ->
+    before(setup)
+    after(teardown)
+
+    accounts = undefined
+    it 'create two accounts', (done) ->
+        create_accounts 2, (err, x) ->
+            accounts = x; done(err)
+
+    it 'calls get_account with some columns for first account', (done) ->
+        db.get_account
+            account_id : accounts[0]
+            columns    : ['account_id', 'email_address', 'password_is_set']
+            cb         : (err, x) ->
+                expect(x).toEqual({account_id: accounts[0], email_address: "sage+0@sagemath.com", password_is_set:false})
+                done(err)
+
+    hash = 'sha512$4477684995985fb6bd2c9020d3f35c69$1000$41cc46a70ba52ade010b56ccbdca942af9271b256763479eb2d8d8283d1023e43745f4cc6fe7a970ce1cf28df6c9edb47d315d92b837a0c7db4fafbc38ed099a'
+
+    it 'sets the password hash', (done) ->
+        db.change_password
+            account_id : accounts[0]
+            password_hash : hash
+            cb : done
+
+    it 'checks that the password is now set', (done) ->
+        columns = ['password_is_set']
+        db.get_account
+            account_id : accounts[0]
+            columns    : columns
+            cb         : (err, x) ->
+                expect(x).toEqual({password_is_set:true})
+                expect(columns).toEqual(['password_is_set'])  # ensure no mutation
+                done(err)
+
+    it 'calls get_account with some columns again', (done) ->
+        db.get_account
+            account_id : accounts[0]
+            columns    : ['account_id', 'email_address', 'password_hash']
+            cb         : (err, x) ->
+                expect(x).toEqual({account_id: accounts[0], email_address: "sage+0@sagemath.com", password_hash:hash})
+                done(err)
+
+    it 'calls get_account with some columns yet again', (done) ->
+        db.get_account
+            account_id : accounts[0]
+            columns    : ['account_id', 'email_address', 'password_hash', 'password_is_set']
+            cb         : (err, x) ->
+                expect(x).toEqual({account_id: accounts[0], email_address: "sage+0@sagemath.com", password_hash:hash, password_is_set:true})
+                done(err)
+
+    it 'calls get_account on the other account', (done) ->
+        db.get_account
+            account_id : accounts[1]
+            columns    : ['account_id', 'email_address', 'password_hash', 'password_is_set']
+            cb         : (err, x) ->
+                expect(x).toEqual({account_id: accounts[1], email_address: "sage+1@sagemath.com", password_is_set:false})
+                done(err)
+
+    it 'changes the email address of the first account', (done) ->
+        db.change_email_address
+            account_id    : accounts[0]
+            email_address : 'awesome@sagemath.com'
+            cb            : done
+
+    it 'confirms the change', (done) ->
+        db.get_account
+            account_id : accounts[0]
+            columns    : ['email_address']
+            cb         : (err, x) ->
+                expect(x).toEqual({email_address: "awesome@sagemath.com"})
+                done(err)
+

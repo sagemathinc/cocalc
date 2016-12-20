@@ -661,25 +661,27 @@ class exports.PostgreSQL extends PostgreSQL
                             ]
             cb            : required
         if not @_validate_opts(opts) then return
-        if 'password_is_set' in opts.columns
-            if 'password_hash' not in opts.columns
-                opts.columns.push('password_hash')
-            misc.remove(opts.columns, 'password_is_set')
+        columns = misc.copy(opts.columns)
+        if 'password_is_set' in columns
+            if 'password_hash' not in columns
+                remove_password_hash = true
+                columns.push('password_hash')
+            misc.remove(columns, 'password_is_set')
             password_is_set = true
         @_query
-            query : "SELECT #{opts.columns.join(',')} FROM accounts"
+            query : "SELECT #{columns.join(',')} FROM accounts"
             where : @_account_where(opts)
-            cb    : (err, result) =>
+            cb    : one_result (err, z) =>
                 if err
                     opts.cb(err)
-                else if result.rows.length == 0
+                else if not z?
                     opts.cb("no such account")
                 else
-                    z = result.rows[0]
                     if password_is_set
                         z.password_is_set = !!z.password_hash
-                    delete z.password_hash
-                    for c in opts.columns
+                        if remove_password_hash
+                            delete z.password_hash
+                    for c in columns
                         if not z[c]?     # for same semantics as rethinkdb... (for now)
                             delete z[c]
                     opts.cb(undefined, z)
@@ -883,9 +885,16 @@ class exports.PostgreSQL extends PostgreSQL
             invalidate_remember_me : true
             cb                     : required
         if not @_validate_opts(opts) then return
+        if opts.password_hash.length > 173
+            opts.cb("password_hash must be at most 173 characters")
+            return
         async.series([  # don't do in parallel -- don't kill remember_me if password failed!
             (cb) =>
-                @_account(opts).update(password_hash:opts.password_hash).run(cb)
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {password_hash : opts.password_hash}
+                    where : @_account_where(opts)
+                    cb    : cb
             (cb) =>
                 if opts.invalidate_remember_me
                     @invalidate_all_remember_me
@@ -910,7 +919,11 @@ class exports.PostgreSQL extends PostgreSQL
                 else if exists
                     opts.cb("email_already_taken")
                 else
-                    @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {email_address: opts.email_address}
+                    where : @_account_where(opts)
+                    cb    : opts.cb
 
     ###
     Password reset

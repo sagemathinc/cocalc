@@ -44,7 +44,6 @@ exports.create_accounts = (n, m, cb) ->
             first_name    : "Firstname#{i}"
             last_name     : "Lastname#{i}"
             email_address : "sage+#{i}@sagemath.com"
-            password_hash : "#{i}"
             cb            : cb
     async.map([m...n+m], f, cb)
 
