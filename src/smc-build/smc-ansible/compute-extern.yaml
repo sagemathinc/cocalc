@@ -4,6 +4,7 @@
 - hosts: compute
   become: yes
   gather_facts: yes
+  strategy: free
 
   tasks:
   - name: "install opencv"

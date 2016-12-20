@@ -2,6 +2,7 @@
 - hosts: compute
   become: yes
   gather_facts: yes
+  strategy: free
   tags: r
   vars:
     repo: "https://cloud.r-project.org/"
