@@ -302,6 +302,7 @@ SAGE_PIP_PACKAGES = [
     'multipolynomial_bases', # https://github.com/VivianePons/multipolynomial-bases
     'pudb', # ncurses based visual debugger
     'quandl',
+    'git+https://github.com/timothydmorton/isochrones.git',
     ]
 
 # additional environment settings for specific packages
@@ -348,6 +349,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'vega', # altair
     'urwid', 'pygments', # pudb deps
     'inflection', 'more_itertools', # quandl deps
+    'emcee', 'corner', 'asciitree', 'astroquery', # isochrones deps
 ]
 
 # TODO make add an additional category of pip packages, where it is always safe to install with dependencies

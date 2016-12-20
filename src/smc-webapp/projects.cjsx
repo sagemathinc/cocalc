@@ -139,7 +139,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
-            token       : undefined  # if given, can use wait_until_project_is_created
+            token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
@@ -359,7 +359,7 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'restart', time:salvus_client.server_time()}
 
-    # Toggle whether or not project is hidden project
+    # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
         @redux.getTable('projects').set
             project_id : project_id
