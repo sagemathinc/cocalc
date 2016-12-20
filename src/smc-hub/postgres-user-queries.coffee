@@ -105,7 +105,7 @@ class exports.PostgreSQL extends PostgreSQL
 
                 if changes
                     try
-                        @_inc_changefeed_count(opts.account_id, opts.project_id, changes.id)
+                        @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
                     catch err
                         opts.cb?(err)
                         return
@@ -121,7 +121,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb         : (err, x) =>
                         if err and changes
                             # didn't actually make the changefeed, so don't count it.
-                            @_dec_changefeed_count(changes.id)
+                            @_dec_changefeed_count(changes.id, table)
                         opts.cb?(err, if not err then {"#{table}":x})
         else
             opts.cb?("invalid user_query of '#{table}' -- query must be an object")
@@ -130,8 +130,8 @@ class exports.PostgreSQL extends PostgreSQL
     TRACK CHANGEFEED COUNTS
     ###
 
-    # Incremen a count of the number of changefeeds by a given client so we can cap it.
-    _inc_changefeed_count: (account_id, project_id, changefeed_id) =>
+    # Increment a count of the number of changefeeds by a given client so we can cap it.
+    _inc_changefeed_count: (account_id, project_id, table, changefeed_id) =>
         client_name = "#{account_id}-#{project_id}"
         cnt = @_user_get_changefeed_counts ?= {}
         ids = @_user_get_changefeed_id_to_user ?= {}
@@ -142,17 +142,21 @@ class exports.PostgreSQL extends PostgreSQL
         else
             # increment before successfully making get_query to prevent huge bursts causing trouble!
             cnt[client_name] += 1
-        @_dbg("_inc_changefeed_count")("{#{client_name}:#{cnt[client_name]} ...}")
+        @_dbg("_inc_changefeed_count(table='#{table}')")("{#{client_name}:#{cnt[client_name]} ...}")
         ids[changefeed_id] = client_name
 
     # Corresonding decrement of count of the number of changefeeds by a given client.
-    _dec_changefeed_count: (id) =>
+    _dec_changefeed_count: (id, table) =>
         client_name = @_user_get_changefeed_id_to_user[id]
         if client_name?
             @_user_get_changefeed_counts?[client_name] -= 1
             delete @_user_get_changefeed_id_to_user[id]
             cnt = @_user_get_changefeed_counts
-            @_dbg("_dec_changefeed_count")("counts={#{client_name}:#{cnt[client_name]} ...}")
+            if table?
+                t = "(table='#{table}')"
+            else
+                t = ""
+            @_dbg("_dec_changefeed_count#{t}")("counts={#{client_name}:#{cnt[client_name]} ...}")
 
     # Handle user_query when opts.query is an array.  opts below are as for user_query.
     _user_query_array: (opts) =>
@@ -182,7 +186,7 @@ class exports.PostgreSQL extends PostgreSQL
             delete @_changefeeds[opts.id]
             feed.close()
         else
-            dbg("already cancelled before (or not such feed)")
+            dbg("already cancelled before (no such feed)")
         opts.cb?()
 
     _query_is_cmp: (obj) =>
@@ -252,8 +256,11 @@ class exports.PostgreSQL extends PostgreSQL
                         if value[0] == '-'
                             value = value.slice(1) + " DESC "
                         r.order_by = value
+                    when 'heartbeat'
+                        # not implemented
+                        @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option!")
                     when 'delete'
-                        # ignore here - is parsed elsewhere
+                        # ignore delete here - is parsed elsewhere
                     else
                         r.err = "unknown option '#{name}'"
         return r
@@ -1046,6 +1053,8 @@ class exports.PostgreSQL extends PostgreSQL
 
     _user_get_query_changefeed: (changes, table, primary_key, user_query,
                                  where, json_fields, account_id, client_query, cb) =>
+        dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
+        dbg()
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
@@ -1058,7 +1067,6 @@ class exports.PostgreSQL extends PostgreSQL
         if not user_query[primary_key]? and user_query[primary_key] != null
             cb("changefeed MUST include primary key (='#{primary_key}') in query")
             return
-
         watch  = []
         select = {}
         init_tracker = tracker = undefined
@@ -1194,7 +1202,7 @@ class exports.PostgreSQL extends PostgreSQL
         feed that calls opts.cb on changes as well.
         ###
         dbg = @_dbg("user_get_query(table='#{opts.table}')")
-        dbg()
+        dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
         {err, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
 
         if err
@@ -1230,7 +1238,7 @@ class exports.PostgreSQL extends PostgreSQL
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
                 x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.all?.options)
                 if x.err
-                    cb(err)
+                    cb(x.err)
                     return
                 misc.merge(_query_opts, x)
 
