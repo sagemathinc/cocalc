@@ -635,14 +635,16 @@ message
     account_id : required
 
 message
-    event      : 'invite_noncloud_collaborators'
-    id         : undefined
-    project_id : required
-    to         : required
-    subject    : undefined
-    email      : required    # spam vector
-    title      : required
-    link2proj  : required
+    event         : 'invite_noncloud_collaborators'
+    id            : undefined
+    project_id    : required
+    replyto       : undefined
+    replyto_name  : undefined
+    to            : required
+    subject       : undefined
+    email         : required    # spam vector
+    title         : required
+    link2proj     : required
 
 message
     event      : 'invite_noncloud_collaborators_resp'
