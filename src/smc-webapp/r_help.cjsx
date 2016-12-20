@@ -57,11 +57,6 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
-            active_projects     : rtypes.number # deprecated
-            last_hour_projects  : rtypes.number # deprecated
-            last_day_projects   : rtypes.number # deprecated
-            last_week_projects  : rtypes.number # deprecated
-            last_month_projects : rtypes.number # deprecated
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -82,7 +77,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             <ProgressBar style={marginBottom:0} now={Math.max(n / 6 , 45 / 8) } label={"#{n} active users"} />
 
     render_active_projects_stats: ->
-        n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
+        n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats: ->

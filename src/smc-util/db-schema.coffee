@@ -1021,21 +1021,6 @@ schema.stats =
             type : 'map'
         projects_edited     :
             type : 'map'
-        active_projects     :
-            type : 'integer'
-            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
-        last_hour_projects  :
-            type : 'integer'
-            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
-        last_day_projects   :
-            type : 'integer'
-            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
-        last_week_projects  :
-            type : 'integer'
-            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
-        last_month_projects :
-            type : 'integer'
-            deprecated : true   #  → projects_edited[RECENT_TIMES-key]
         hub_servers         :
             type : 'array'
             pg_type : 'JSONB[]'
@@ -1058,11 +1043,6 @@ schema.stats =
                 projects            : 0
                 projects_created    : null
                 projects_edited     : null
-                active_projects     : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_hour_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_day_projects   : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_week_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_month_projects : 0 # deprecated → projects_edited[RECENT_TIMES-key]
                 hub_servers         : []
 
 schema.storage_servers =
