@@ -16,8 +16,6 @@ pgtest   = require('./pgtest')
 db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
-{create_accounts, create_projects, changefeed_series} = pgtest
-misc = require('smc-util/misc')
 
 describe 'test storage_server synctable', ->
     before(setup)

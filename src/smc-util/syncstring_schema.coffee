@@ -14,10 +14,10 @@ schema.syncstrings =
         string_id :
             type : 'sha1'
             pg_type : 'CHAR(40)'
-            desc : 'id of this synchronized string sha1 hash of (project_id and path)'
+            desc : 'id of this synchronized string -- sha1 hash of (project_id and path)'
         project_id :
             type : 'uuid'
-            desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
+            desc : 'id of project that this synchronized string belongs to'
         last_active :
             type : 'timestamp'
             desc : 'when a user most-recently "cared" about this syncstring (syncstring will be automatically opened in running project if last_active is sufficiently recent)'
@@ -79,7 +79,9 @@ schema.syncstrings =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstrings_check(obj, account_id, project_id, cb)
         set :
-            fields :
+            fields :        # That string_id must be sha1(project_id,path) means
+                            # user can only ever query one entry from THIS table;
+                            # use recent_syncstrings_in_project below to get many.
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : true
                 last_snapshot     : true

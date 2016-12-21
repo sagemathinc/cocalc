@@ -783,6 +783,13 @@ class exports.PostgreSQL extends PostgreSQL
     GET QUERIES
     ###
 
+    # Make any functional substitutions defined by the schema.
+    # This may mutate query in place.
+    _user_get_query_functional_subs: (query, fields) =>
+        for field, val of fields
+            if typeof(val) == 'function'
+                query[field] = val(query, @)
+
     _parse_get_query_opts: (opts) =>
         if opts.changes? and not opts.changes.cb?
             return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
@@ -812,7 +819,10 @@ class exports.PostgreSQL extends PostgreSQL
             if r.client_query.get.fields?[field] == undefined
                 return {err: "user get query not allowed for #{opts.table}.#{field}"}
 
-        if r.client_query.get.instead_of_query?
+        # Functional substitutions defined by schema
+        @_user_get_query_functional_subs(opts.query, r.client_query.get?.fields)
+
+        if r.client_query.get?.instead_of_query?
             return r
 
         # Make sure there is the query that gets only things in this table that this user
@@ -1059,8 +1069,8 @@ class exports.PostgreSQL extends PostgreSQL
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
-        if typeof(changes.id) != 'string'
-            cb("changes.id must be a string")
+        if not misc.is_valid_uuid_string(changes.id)
+            cb("changes.id must be a uuid")
             return
         if typeof(changes.cb) != 'function'
             cb("changes.cb must be a function")
@@ -1396,4 +1406,34 @@ obj_key_subs = (obj, subs) ->
             s = subs[v]
             if s?
                 obj[k] = s
+
+
+_last_awaken_time = {}
+awaken_project = (db, project_id) ->
+    # throttle so that this gets called *for a given project* at most once every 30s.
+    now = new Date()
+    if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
+        return
+    _last_awaken_time[project_id] = now
+    dbg = db._dbg("_awaken_project(project_id=#{project_id})")
+    if not db.compute_server?
+        dbg("skipping since no compute_server defined")
+        return
+    dbg("doing it...")
+    db.compute_server.project
+        project_id : project_id
+        cb         : (err, project) =>
+            if err
+                dbg("err = #{err}")
+            else
+                dbg("requesting whole-project save")
+                project.save()  # this causes saves of all files to storage machines to happen periodically
+                project.ensure_running
+                    cb : (err) =>
+                        if err
+                            dbg("failed to ensure running")
+                        else
+                            dbg("also make sure there is a connection from hub to project")
+                            # This is so the project can find out that the user wants to save a file (etc.)
+                            db.ensure_connection_to_project?(project_id)
 

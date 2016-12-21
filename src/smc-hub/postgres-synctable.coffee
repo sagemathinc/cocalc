@@ -687,6 +687,7 @@ INPUT:
 Creates a trigger function that fires whenever any of the given
 columns changes, and sends the columns in select out as a notification.
 ###
+
 trigger_code = (table, select, watch) ->
     tgname          = trigger_name(table, select, watch)
     column_decl_old = ("#{field}_old #{type ? 'text'};"   for field, type of select)
@@ -695,6 +696,10 @@ trigger_code = (table, select, watch) ->
     assign_new      = ("#{field}_new = NEW.#{field};"     for field, _ of select)
     build_obj_old   = ("'#{field}', #{field}_old"         for field, _ of select)
     build_obj_new   = ("'#{field}', #{field}_new"         for field, _ of select)
+    if watch.length > 0
+        no_change   = ("OLD.#{field} = NEW.#{field}" for field in watch.concat(misc.keys(select))).join(' AND ')
+    else
+        no_change = 'FALSE'
     if watch.length > 0
         x = {}
         for k in watch
@@ -714,11 +719,20 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
         #{column_decl_new.join('\n')}
     BEGIN
         -- TG_OP is 'DELETE', 'INSERT' or 'UPDATE'
-        IF TG_OP = 'DELETE' OR TG_OP = 'UPDATE' THEN
+        IF TG_OP = 'DELETE' THEN
             #{assign_old.join('\n')}
             obj_old = json_build_object(#{build_obj_old.join(',')});
         END IF;
-        IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        IF TG_OP = 'INSERT' THEN
+            #{assign_new.join('\n')}
+            obj_new = json_build_object(#{build_obj_new.join(',')});
+        END IF;
+        IF TG_OP = 'UPDATE' THEN
+            IF #{no_change} THEN
+                RETURN NULL;
+            END IF;
+            #{assign_old.join('\n')}
+            obj_old = json_build_object(#{build_obj_old.join(',')});
             #{assign_new.join('\n')}
             obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
