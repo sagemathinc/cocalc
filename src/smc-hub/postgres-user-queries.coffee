@@ -13,6 +13,7 @@ MAX_CHANGEFEEDS_PER_CLIENT = 4*100
 
 EventEmitter = require('events')
 async        = require('async')
+underscore   = require('underscore')
 
 {PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
 

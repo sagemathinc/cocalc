@@ -637,7 +637,9 @@ class ComputeServerClient
                         for k, v of status
                             result[host][k] = v
                         # also, set in the database (don't wait on this or require success)
-                        @database.table('compute_servers').get(host).update(status:@database.r.literal(resp.status)).run()
+                        database.set_compute_server_status
+                            host   : host
+                            status : resp.status
                     cb()
         async.map(misc.keys(result), f, (err) => opts.cb(err, result))
 
@@ -1214,7 +1216,10 @@ class ProjectClient extends EventEmitter
                             if not err
                                 status = s
                                 # save status in database
-                                @compute_server.database.table('projects').get(@project_id).update(status:status).run(cb)
+                                @compute_server.database.set_project_status
+                                    project_id : @project_id
+                                    status     : status
+                                    cb         : cb
                             else
                                 cb(err)
                 # we retry getting status with exponential backoff until we hit max_time, which

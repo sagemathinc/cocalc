@@ -1879,6 +1879,20 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).update(users:{"#{opts.account_id}":{group:opts.group}}).run(opts.cb)
 
+    set_project_status: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            status     : required
+            cb         : undefined
+        @table('projects').get(opts.project_id).update(status: opts.status).run(opts.cb)
+
+    set_compute_server_status: (opts) =>
+        opts = defaults opts,
+            host   : required
+            status : required
+            cb     : undefined
+        @table('compute_servers').get(opts.host).update(status:@r.literal(opts.status)).run(opts.cb)
+
     remove_collaborator_from_project: (opts) =>
         opts = defaults opts,
             project_id : required

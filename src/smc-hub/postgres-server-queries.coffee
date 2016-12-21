@@ -1183,6 +1183,29 @@ class exports.PostgreSQL extends PostgreSQL
                 "project_id = $::UUID": opts.project_id
             cb          : opts.cb
 
+    set_project_status: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            status     : required
+            cb         : undefined
+        @_query
+            query : "UPDATE projects"
+            set   : {"status::JSONB"   : opts.status}
+            where : {"project_id = $::UUID": opts.project_id}
+            cb    : opts.cb
+
+    set_compute_server_status: (opts) =>
+        opts = defaults opts,
+            host   : required
+            status : required
+            cb     : undefined
+        @_query
+            query : "UPDATE compute_servers"
+            set   : {"status::JSONB": opts.status}
+            where : {"host = $::TEXT" : opts.host}
+            cb    : opts.cb
+
+
     # Remove the given collaborator from the project.
     # Attempts to remove an *owner* via this function will silently fail (change their group first),
     # as will attempts to remove a user not on the project, or to remove from a non-existent project.
