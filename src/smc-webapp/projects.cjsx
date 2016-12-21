@@ -139,7 +139,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
-            token       : undefined  # if given, can use wait_until_project_is_created
+            token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
@@ -284,9 +284,9 @@ class ProjectsActions extends Actions
                     err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email: (project_id, to, body, subject, silent) =>
+    invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
-            event    : 'invite_nonuser'
+            event         : 'invite_nonuser'
             invitee_email : to
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
@@ -299,13 +299,15 @@ class ProjectsActions extends Actions
         body = markdown.markdown_to_html(body).s
 
         salvus_client.invite_noncloud_collaborators
-            project_id : project_id
-            title      : title
-            link2proj  : link2proj
-            to         : to
-            email      : body
-            subject    : subject
-            cb         : (err, resp) =>
+            project_id   : project_id
+            title        : title
+            link2proj    : link2proj
+            replyto      : replyto
+            replyto_name : replyto_name
+            to           : to
+            email        : body
+            subject      : subject
+            cb           : (err, resp) =>
                 if not silent
                     if err
                         alert_message(type:'error', message:err)
@@ -356,7 +358,7 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'restart', time:salvus_client.server_time()}
 
-    # Toggle whether or not project is hidden project
+    # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
         @redux.getTable('projects').set
             project_id : project_id

@@ -60,7 +60,7 @@ Example:
  }
 ```
 
-That data is read by prometheus_compute.py for ingestion by Prometheus.
+and `$HOME/sagews-test-report.prom` for ingestion by Prometheus' node exporter.
 
 ## Test Layout
 

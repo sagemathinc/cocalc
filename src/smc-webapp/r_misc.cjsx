@@ -723,14 +723,14 @@ exports.Markdown = rclass
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
     componentDidUpdate: ->
-        @update_links()
         @update_mathjax()
         @update_escaped_chars()
+        @update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
 
     componentDidMount: ->
-        @update_links()
         @update_mathjax()
         @update_escaped_chars()
+        @update_links()
 
     to_html: ->
         if @props.value

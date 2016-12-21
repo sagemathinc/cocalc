@@ -2,6 +2,7 @@
 - hosts: compute
   become: yes
   gather_facts: yes
+  strategy: free
   tags: r
   vars:
     repo: "https://cloud.r-project.org/"
@@ -32,25 +33,15 @@
     - python3-rpy2
     - ess
 
-  # why buggy?
-  #- name: "install R wrapper (R-sage → Sage's R)"
-  #  copy: src=files/R-sage dest=/usr/local/bin/R-sage
-  #        owner=root group=root mode=ugo=rx
   - name: "copy R wrapper (R-sage → Sage's R)"
-    tags: [install]
-    shell: |
-           cp files/R-sage /usr/local/bin/R-sage
-           chmod ugo=rx /usr/local/bin/R-sage
+    copy: src=files/R-sage dest=/usr/local/bin/R-sage
+          owner=root group=root mode=ugo=rx
+    tags: [install,shell]
 
-  # why buggy?
-  #- name: "install Rscript wrapper (similar to R → Sage's R)"
-  #  copy: src=files/Rscript-sage dest=/usr/local/bin/Rscript-sage
-  #        owner=root group=root mode=ugo=rx
   - name: "copy Rscript wrapper (similar to R-sage → Sage's R)"
-    tags: [install]
-    shell: |
-           cp files/Rscript-sage /usr/local/bin/Rscript-sage
-           chmod ugo=rx /usr/local/bin/Rscript-sage
+    copy: src=files/Rscript-sage dest=/usr/local/bin/Rscript-sage
+          owner=root group=root mode=ugo=rx
+    tags: [install,shell]
 
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
@@ -472,6 +463,7 @@
     - pbivnorm
     - pbkrtest
     - praise
+    - mpoly
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html
@@ -485,8 +477,11 @@
 
   - name: "Richard McElreath's statistical rethinking package" # needs devtools, rstan, coda, mtvnorm, loo
     tags: [install, update, rpkgs]
-    shell: "echo \"library(devtools); install_github('rmcelreath/rethinking')\" | /usr/bin/R --no-save"
+    shell: "echo \"library(devtools); install_github('{{ item }}', clean = TRUE, dependencies = TRUE)\" | /usr/bin/R --no-save"
+    with_items:
+    - 'rmcelreath/rethinking'    # Richard McElreath's statistical rethinking package
+    - 'dkahle/algstat'           # https://github.com/dkahle/algstat
 
   - name: "IPython Kernel" # needs devtools, etc.
     tags: [ir, install, update, rpkgs]
-    shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir-ubuntu', displayname = 'R (Official Build)')\" | /usr/bin/R --no-save"
+    shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir', displayname = 'R (R-Project)')\" | /usr/bin/R --no-save"

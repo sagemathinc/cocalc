@@ -1272,9 +1272,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # handle a links
         a = e.find('a')
 
-        # make links open in a new tab
-        a.attr("target","_blank")
-
         that = @
         for x in a
             y = $(x)
@@ -1298,6 +1295,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
+                        {join} = require('path')
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -1306,12 +1304,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             target = decodeURI(target.slice(1))  # just get rid of leading slash
                         else if target[0] == '/'
                             # absolute inside of project
-                            target = "#{that.project_id}/files#{decodeURI(target)}"
+                            target = join(that.project_id, 'files', decodeURI(target))
                         else
                             # relative to current path
-                            target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
+                            target = join(that.project_id, 'files', that.file_path(), decodeURI(target))
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
+                else
+                    # make links open in a new tab
+                    a.attr("target","_blank")
 
         # make relative links to images use the raw server
         a = e.find("img")
@@ -1341,7 +1342,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             file_path = @file_path()
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
-            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{file_path}/#{src}"
+            {join} = require('path')
+            new_src = join(window.smc_base_url, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>

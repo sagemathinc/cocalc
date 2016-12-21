@@ -279,15 +279,6 @@ class ProjectActions extends Actions
             chat               : undefined
             chat_width         : undefined
 
-        # grab chat state from local storage
-        local_storage = require('./editor').local_storage
-        if local_storage?
-            opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
-            opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
-
-        if misc.filename_extension(opts.path) == 'sage-chat'
-            opts.chat = false
-
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
@@ -340,11 +331,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-
                             @log
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+
+                            # grab chat state from local storage
+                            local_storage = require('./editor').local_storage
+                            if local_storage?
+                                opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
+                                opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
+
+                            if misc.filename_extension(opts.path) == 'sage-chat'
+                                opts.chat = false
 
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
@@ -577,8 +576,9 @@ class ProjectActions extends Actions
     # Update the directory listing cache for the given path
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
+        # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
         {path, sort_by_time, show_hidden} = defaults opts,
-            path         : @get_store().current_path
+            path         : @get_store()?.current_path
             sort_by_time : undefined
             show_hidden  : undefined
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
@@ -710,7 +710,10 @@ class ProjectActions extends Actions
         # anything about files (highly unlikely).  Unfortunately (for this), our
         # directory listings are stored as (immutable) lists, so we have to make
         # a map out of them.
-        store.directory_listings?.get(store.current_path)?.map (x) ->
+        listing = store.directory_listings?.get(store.current_path)
+        if typeof(listing) == 'string'    # must be an error
+            return name  # simple fallback
+        listing?.map (x) ->
             files_in_dir[x.get('name')] = true
             return
         # This loop will keep trying new names until one isn't in the directory
@@ -1217,33 +1220,34 @@ class ProjectActions extends Actions
                 else
                     # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
                     # Assume that if it's loaded, it's good enough.
-                    store = @get_store()
-                    listing = store.directory_listings.get(parent_path)
-                    item = listing?.find (val) => val.get('name') == last
-                    if item?
-                        if item.get('isdir')
+                    async.waterfall [
+                        (cb) =>
+                            {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            cb(err, item)
+                        (item, cb) => # Fetch if error or nothing found
+                            if not item?
+                                @fetch_directory_listing
+                                    path         : parent_path
+                                    show_hidden  : true
+                                    finish_cb    : =>
+                                        {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        cb(err, item)
+                            else
+                                cb(undefined, item)
+                    ], (err, item) =>
+                        if err?
+                            if err == 'timeout'
+                                alert_message(type:'error', message:"Timeout opening '#{target}' -- try later")
+                            else
+                                alert_message(type:'error', message:"Error opening '#{target}': #{err}")
+                        if item?.get('isdir')
                             @open_directory(full_path)
                         else
                             @open_file
                                 path       : full_path
                                 foreground : foreground
                                 foreground_project : foreground
-                    else
-                        @fetch_directory_listing
-                            path         : parent_path
-                            show_hidden  : true
-                            finish_cb    : =>
-                                store = @get_store()
-                                listing = store.directory_listings.get(parent_path)
-                                item = listing?.find (val) => val.get('name') == last
 
-                                if item?.get('isdir')
-                                    @open_directory(full_path)
-                                else
-                                    @open_file
-                                        path       : full_path
-                                        foreground : foreground
-                                        foreground_project : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)
                 @set_active_tab('new')
@@ -1431,6 +1435,14 @@ create_project_store_def = (name, project_id) ->
     is_file_open: (path) ->
         return @getIn(['open_files', path])?
 
+    # Returns
+    # Not a property
+    get_item_in_path: (name, path) ->
+        listing = @directory_listings.get(path)
+        if typeof listing == 'string'   # must be an error
+            return {err : listing}
+        return {item : listing?.find (val) => val.get('name') == name}
+
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()
         for t in words
@@ -1559,7 +1571,8 @@ get_directory_listing = (opts) ->
         method = salvus_client.project_directory_listing
     else
         method = salvus_client.public_project_directory_listing
-    listing = undefined
+    listing     = undefined
+    listing_err = undefined
     f = (cb) ->
         method
             project_id : opts.project_id
@@ -1568,13 +1581,15 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 20
             cb         : (err, x) ->
-                listing = x
-                cb(err)
+                listing     = x
+                listing_err = err
+                # the call itself is successful, even when it returns an error
+                cb()
 
     misc.retry_until_success
         f        : f
         max_time : opts.max_time_s * 1000
         #log      : console.log
         cb       : (err) ->
-            opts.cb(err, listing)
+            opts.cb(err ? listing_err, listing)
 

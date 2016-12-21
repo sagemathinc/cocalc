@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from prometheus_client import start_http_server, Summary, Gauge
+import prometheus_client as pc
 import random
 import time
 from dateutil.parser import parse as dt_parse
@@ -14,13 +15,15 @@ num_cpus.set(multiprocessing.cpu_count())
 LOOP_SLEEP_s = 5
 
 # Create a metric to track time spent and requests made.
-FAKE_METRIC   = Summary('fake_compute_metric', 'just for testing ...')
-RUNNING_PROCS = Summary('running_process_stats', 'how long it takes to tally up the running processes')
-g_proj        = Gauge('num_projects', "Number of running projects")
-g_sage        = Gauge('num_sage', "number of running sagemath instances")
-g_ipynb       = Gauge('num_ipynb', "number of running jupyter server instances")
+FAKE_METRIC = Summary('fake_compute_metric', 'just for testing ...')
+RUNNING_PROCS = Summary('running_process_stats',
+                        'how long it takes to tally up the running processes')
+g_proj = Gauge('num_projects', "Number of running projects")
+g_sage = Gauge('num_sage', "number of running sagemath instances")
+g_ipynb = Gauge('num_ipynb', "number of running jupyter server instances")
 
 SAGEWS_CMDLINE = "from smc_sagews.sage_server_command_line"
+
 
 @RUNNING_PROCS.time()
 def running_process_stats():
@@ -57,18 +60,34 @@ def running_process_stats():
     return nb_projects, nb_sage, nb_ipynb
 
 # Decorate function with metric.
+
+
 @FAKE_METRIC.time()
 def process_request(t):
     """A dummy function that takes some time."""
     time.sleep(t)
 
-# value is the duration, passed is 0 or 1
+# reading the .json is no longer used -- instead ingest the *.prom file directly
 import os
 import json
-report_fn     = os.path.expanduser('~/sagews-test-report.json')
-g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "outcome"])
+report_fn = os.path.expanduser('~/sagews-test-report.json')
+g_sagews_test = None
+
+
+def init_sagews_gauge():
+    # tests change or are missing from run to run -- hence re-init the gauge
+    global g_sagews_test
+    if g_sagews_test is not None:
+        try:
+            pc.core.REGISTRY.unregister(g_sagews_test)
+        except KeyError as ke:
+            pass  # should never happen
+    g_sagews_test = Gauge('sagews_test', "smc/sagews_test information", ["name", "outcome"])
+
 
 def sagews_test():
+    global g_sagews_test
+    init_sagews_gauge()
     if not os.path.exists(report_fn):
         return
     data = None
@@ -102,6 +121,4 @@ if __name__ == '__main__':
         g_proj.set(p)
         g_sage.set(s)
         g_ipynb.set(i)
-        sagews_test()
-
-
+        # sagews_test() # disabled
