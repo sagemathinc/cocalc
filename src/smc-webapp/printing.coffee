@@ -360,6 +360,7 @@ class SagewsPrinter extends Printer
                         out += "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else if ext == 'webm'
                     out ?= ''
+                    # 'raw' url. later, embed_videos will be replace by the data-uri if there is no error
                     out += "<video src='#{mesg.file.url}' class='sagews-output-video' controls></video>"
                 else
                     # console.log 'msg.file', mark, mesg
@@ -384,9 +385,7 @@ class SagewsPrinter extends Printer
             # ignored
         else
             console.warn "ignored mesg", mesg
-        html = @html_post_process(out)
-        if html?
-            @_html.push(html)
+        return @html_post_process(out)
 
     html_post_process: (html) ->
         # embedding images and detecting a title
@@ -432,7 +431,8 @@ class SagewsPrinter extends Printer
         # the following fits mentally into sagews.SynchronizedWorksheet
         # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
         {MARKERS}    = require('smc-util/sagews')
-        @_html       = [] # list of elements
+        _html        = [] # list of elements
+        full_html    = '' # end result of html content
         @_title      = null # for saving the detected title
         @_output_ids = {} # identifies text marker elements, to avoid printing show-plots them more than once!
         cm           = @editor.codemirror
@@ -480,8 +480,8 @@ class SagewsPrinter extends Printer
                     break
             if input_lines.length > 0
                 input_lines = input_lines.map(process_line).join('') # no \n linebreaks!
-                #@_html.push("<div class='mode'>#{input_lines_mode ? input_lines_default_mode} mode")
-                @_html.push("<pre class='input'>#{input_lines}</pre>")
+                #_html.push("<div class='mode'>#{input_lines_mode ? input_lines_default_mode} mode")
+                _html.push("<pre class='input'>#{input_lines}</pre>")
             input_lines      = []
             input_lines_mode = null
 
@@ -490,10 +490,11 @@ class SagewsPrinter extends Printer
         process_collected_mesg_stdout = =>
             # processing leftover stdout mesgs from previous iteration
             if mesg_stdout.stdout.length > 0
-                @html_process_output_mesg(mesg_stdout)
+                # it's ok to leave `mark` undefined
+                om = @html_process_output_mesg(mesg_stdout)
+                _html.push(om) if om?
                 mesg_stdout = {stdout : ''}
 
-        _html = ''
         process_lines = (cb) =>
             # process lines in an async loop to avoid blocking on large documents
             line = 0
@@ -527,14 +528,14 @@ class SagewsPrinter extends Printer
                                     process_collected_mesg_stdout()
                                     # process the non-stdout mesg from this iteration
                                     # console.log 'output message', mesg, mark
-                                    @html_process_output_mesg(mesg, mark)
+                                    om = @html_process_output_mesg(mesg, mark)
+                                    _html.push(om) if om?
 
                 process_collected_mesg_stdout()
                 line++
             input_lines_process(final = true)
             # combine all html snippets to one html block
-            @_html = (h for h in @_html).join('\n')
-            _html = @_html
+            full_html = (h for h in _html).join('\n')
             cb()
 
         sagews_data = (cb) =>
@@ -560,31 +561,34 @@ class SagewsPrinter extends Printer
         $html = null
         embed_videos = (cb) =>
             # downloading and embedding all video files (especially for animations)
-            # _html is a string and we have to wrap this into a div
-            $html = $('<div>' + _html + '</div>')
+            # full_html is a string and we have to wrap this into a div
+            $html = $('<div>' + full_html + '</div>')
             vids = (vid for vid in $html.find('video'))
             vids_num = 0
             vids_tot = vids.length
             vembed = (vid, cb) ->
-                console.log "embedding #{vids_num}/#{vids_tot}", vid
+                # console.log "embedding #{vids_num}/#{vids_tot}", vid
                 vids_num += 1
                 progress(.4 + (5 / 10) * (vids_num / vids_tot), "video #{vids_num}/#{vids_tot}")
                 xhr = new XMLHttpRequest()
                 xhr.open('GET', vid.src)
                 xhr.responseType = 'blob'
                 xhr.onreadystatechange = ->
-                    if this.readyState == 4 and this.status == 200
-                        blob = this.response
-                        reader = new FileReader()
-                        reader.addEventListener "load", ->
-                            console.log(reader.result[..100])
-                            vid.src = reader.result
-                            cb(null)
-                        reader.readAsDataURL(blob)
-                    # TODO error handling
+                    if this.readyState == 4  # it's DONE
+                        if this.status == 200  # all OK
+                            blob = this.response
+                            reader = new FileReader()
+                            reader.addEventListener "load", ->
+                                # console.log(reader.result[..100])
+                                vid.src = reader.result
+                                cb(null)
+                            reader.readAsDataURL(blob)
+                        else
+                            # error handling
+                            cb("Error embedding video: HTTP status #{this.status}")
                 xhr.send()
             async.mapLimit vids, 2, vembed, (err, results) ->
-                _html = $html.html()
+                full_html = $html.html()
                 cb(err)
 
         finalize = (err, results) =>
@@ -600,7 +604,7 @@ class SagewsPrinter extends Printer
             content = @generate_html
                 title       : @_title ? @editor.filename
                 filename    : @editor.filename
-                content     : _html
+                content     : full_html
                 timestamp   : "#{(new Date()).toISOString()}".split('.')[0]
                 project_id  : @editor.project_id
                 author      : redux.getStore('account').get_fullname()
@@ -617,7 +621,8 @@ class SagewsPrinter extends Printer
                     console.debug("write_text_file_to_project.resp: '#{resp}'")
                     cb?(err)
 
-        async.parallel([sagews_data, process_lines, embed_videos], finalize)
+        # parallel is tempting, but videos depend on process lines
+        async.series([sagews_data, process_lines, embed_videos], finalize)
 
 # registering printers
 printers = {}
