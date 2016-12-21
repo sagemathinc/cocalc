@@ -501,6 +501,7 @@ class Changes extends EventEmitter
             return true
 
 
+# TODO: Make SyncTable robust to database reconnects.
 class SyncTable extends EventEmitter
     constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
         t = SCHEMA[@_table]
@@ -517,8 +518,14 @@ class SyncTable extends EventEmitter
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
 
-        columns = if @_columns then @_columns.join(', ') else misc.keys(SCHEMA[@_table].fields).join(', ')
-        @_select_query = "SELECT #{columns} FROM #{@_table}"
+        if @_columns
+            @_select_columns = @_columns.join(', ')
+            if @_primary_key not in @_select_columns
+                @_select_columns.push(@_primary_key)  # required
+        else
+            @_select_columns = misc.keys(SCHEMA[@_table].fields).join(', ')
+
+        @_select_query = "SELECT #{@_select_columns} FROM #{@_table}"
 
         @_init (err) => cb(err, @)
 
@@ -533,20 +540,26 @@ class SyncTable extends EventEmitter
         opts.order_by = @_order_by
         return opts
 
-    close: () =>
+    close: (cb) =>
+        @removeAllListeners()
         @_db.removeListener(@_tgname, @_notification)
         delete @_value
         @_state = 'closed'
+        @_db._stop_listening(@_table, @_listen_columns, [], cb)
 
     _satisfies_where: (obj) =>
         return true  # TODO
 
     _notification: (obj) =>
-        #console.log 'notification', obj
-        if obj.action == 'DELETE'
-            @_value = @_value.delete(obj[@_primary_key])
+        # console.log 'notification', obj
+        [action, new_val, old_val] = obj
+        if action == 'DELETE' or not new_val?
+            k = old_val[@_primary_key]
+            if @_value.has(k)
+                @_value = @_value.delete(k)
+                process.nextTick(=>@emit('change', k))
         else
-            @_changed[obj[@_primary_key]] = true
+            @_changed[new_val[@_primary_key]] = true
             @_update()
 
     _init: (cb) =>
@@ -584,9 +597,10 @@ class SyncTable extends EventEmitter
         for x in rows
             k = x[@_primary_key]
             v = immutable.fromJS(misc.map_without_undefined(x))
-            if not @_value.get(k).equals(v)
+            if not v.equals(@_value.get(k))
                 @_value = @_value.set(k, v)
-                process.nextTick(=>@emit('change', k))
+                if @_state == 'ready'   # only send out change notifications after ready.
+                    process.nextTick(=>@emit('change', k))
 
     # Grab any entries from table about which we have been notified of changes.
     _update: (cb) =>
@@ -595,6 +609,12 @@ class SyncTable extends EventEmitter
             return
         changed = @_changed
         @_changed = {}  # reset changed set -- could get modified during query below, which is fine.
+        if @_select_columns.length == 1  # special case where we don't have to query for more info
+            @_process_results((("#{@_primary_key}" : x) for x in misc.keys(changed)))
+            cb?()
+            return
+        
+        # Have to query to get actual changed data.
         @_db._query
             query : @_select_query
             where : misc.merge("#{@_primary_key} = ANY($)" : misc.keys(changed), @_where)
@@ -619,9 +639,32 @@ class SyncTable extends EventEmitter
     has: (key) =>
         return @_value.has(key)
 
+    # wait until some function of this synctable is truthy
     wait: (opts) =>
-        throw Error("NotImplementedError")
-
+        opts = defaults opts,
+            until   : required     # waits until "until(@)" evaluates to something truthy
+            timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS if 0, obviously.)
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)  # already true
+            return
+        fail_timer = undefined
+        f = =>
+            x = opts.until(@)
+            if x
+                @removeListener('change', f)
+                if fail_timer?
+                    clearTimeout(fail_timer)
+                    fail_timer = undefined
+                opts.cb(undefined, x)
+        @on('change', f)
+        if opts.timeout
+            fail = =>
+                @removeListener('change', f)
+                opts.cb('timeout')
+            fail_timer = setTimeout(fail, 1000*opts.timeout)
+        return
 
 ###
 Trigger functions

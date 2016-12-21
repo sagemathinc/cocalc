@@ -1,5 +1,5 @@
 # TODO: remove for production or when done!!
-global.db = require('./postgres').db()
+global.db = require('./postgres').db(database : 'smcdev')
 
 misc = require 'smc-util/misc'
 misc_node = require 'smc-util-node/misc_node'

@@ -3119,8 +3119,8 @@ connect_to_database_postgresql = (opts) ->
                 database = db
                 opts.cb()
 
-#connect_to_database = connect_to_database_postgresql
-connect_to_database = connect_to_database_rethink
+connect_to_database = connect_to_database_postgresql
+#connect_to_database = connect_to_database_rethink
 
 # client for compute servers
 compute_server = undefined

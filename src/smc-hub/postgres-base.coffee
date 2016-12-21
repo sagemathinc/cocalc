@@ -162,21 +162,58 @@ class exports.PostgreSQL extends EventEmitter
             if opts.where?
                 opts.cb?("where must not be defined if opts.values is defined")
                 return
-            fields = []
-            values = []
-            for field, param of opts.values
-                if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
-                    continue
-                if field.indexOf('::') != -1
-                    [field, type] = field.split('::')
-                    fields.push(field.trim())
-                    type = type.trim()
-                    values.push("$#{push_param(param, type)}::#{type}")
-                    continue
-                else
-                    fields.push(field)
-                    values.push("$#{push_param(param)}")
-            opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
+
+            if misc.is_array(opts.values)
+                # An array of numerous separate object that we will insert all at once.
+                # Determine the fields, which as the union of the keys of all values.
+                fields = {}
+                for x in opts.values
+                    if not misc.is_object(x)
+                        opts.cb?("if values is an array, every entry must be an object")
+                        return
+                    for k, p of x
+                        if p?
+                            fields[k] = true
+                # convert to array
+                fields = misc.keys(fields)
+                fields_to_index = {}
+                n = 0
+                for field in fields
+                    fields_to_index[field] = n
+                    n += 1
+                values = []
+                for x in opts.values
+                    value = []
+                    for field, param of x
+                        if field.indexOf('::') != -1
+                            [field, type] = field.split('::')
+                            type = type.trim()
+                            y = "$#{push_param(param, type)}::#{type}"
+                        else
+                            y = "$#{push_param(param)}"
+                        value[fields_to_index[field]] = y
+                    values.push(value)
+            else
+                # A single entry that we'll insert.
+
+                fields = []
+                values = []
+                for field, param of opts.values
+                    if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
+                        continue
+                    if field.indexOf('::') != -1
+                        [field, type] = field.split('::')
+                        fields.push(field.trim())
+                        type = type.trim()
+                        values.push("$#{push_param(param, type)}::#{type}")
+                        continue
+                    else
+                        fields.push(field)
+                        values.push("$#{push_param(param)}")
+                values = [values]  # just one
+
+            if values.length > 0
+                opts.query += " (#{fields.join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
 
         if opts.set?
             v = []
