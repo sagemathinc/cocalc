@@ -74,11 +74,13 @@ describe 'working with accounts: ', ->
 describe 'working with logs: ', ->
     before(setup)
     after(teardown)
+
     it 'creates a log message', (done) ->
         db.log
             event : "test"
             value : "a message"
             cb    : done
+
     it 'gets contents of the log and checks that the message we made is there', (done) ->
         db.get_log
             start : new Date(new Date() - 10000000)
@@ -88,6 +90,7 @@ describe 'working with logs: ', ->
                 expect(log.length).toBe(1)
                 expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
                 done(err)
+                
     it 'checks that there is nothing "old" in the log', (done) ->
         # no old stuff
         db.get_log

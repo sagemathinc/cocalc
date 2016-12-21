@@ -402,6 +402,7 @@ class exports.PostgreSQL extends EventEmitter
             return
         columns = []
         primary_keys = []
+        primary_key = schema.primary_key ? 'id'
         for column, info of schema.fields
             if info.deprecated
                 continue
@@ -557,7 +558,7 @@ Other misc functions
 exports.pg_type = pg_type = (info) ->
     if typeof(info) == 'boolean'
         throw Error("pg_type: insufficient information to determine type (info=boolean)")
-    if info.pg_type
+    if info.pg_type?
         return info.pg_type
     if not info.type?
         throw Error("pg_type: insufficient information to determine type (pg_type and type both not given)")
@@ -578,7 +579,7 @@ exports.pg_type = pg_type = (info) ->
         when 'number', 'double', 'float'
             return 'DOUBLE PRECISION'
         when 'array'
-            throw Error("pg_type: you must specify the array type explicitly")
+            throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")
         when 'buffer'
             return "BYTEA"
         else

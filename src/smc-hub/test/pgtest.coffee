@@ -1,5 +1,8 @@
 ###
 Test suite for PostgreSQL interface and functionality.
+
+WARNING: The server timezone **MUST BE** UTC everywhere, or tests will fail!
+
 ###
 
 DEBUG    = !!(process.env['SMC_DEBUG'] ? false)
