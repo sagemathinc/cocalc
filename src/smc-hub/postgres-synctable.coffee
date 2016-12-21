@@ -548,10 +548,7 @@ class SyncTable extends EventEmitter
         @_db._stop_listening(@_table, @_listen_columns, [], cb)
 
     connect: (opts) =>
-        throw Error("NotImplementedError")
-
-    _satisfies_where: (obj) =>
-        return true  # TODO
+        opts?.cb?() # NO-OP -- only needed for backward compatibility
 
     _notification: (obj) =>
         #console.log 'notification', obj
