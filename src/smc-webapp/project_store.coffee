@@ -1538,7 +1538,8 @@ get_directory_listing = (opts) ->
         method = salvus_client.project_directory_listing
     else
         method = salvus_client.public_project_directory_listing
-    listing = undefined
+    listing     = undefined
+    listing_err = undefined
     f = (cb) ->
         method
             project_id : opts.project_id
@@ -1547,13 +1548,15 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 20
             cb         : (err, x) ->
-                listing = x
-                cb(err)
+                listing     = x
+                listing_err = err
+                # the call itself is successful, even when it returns an error
+                cb()
 
     misc.retry_until_success
         f        : f
         max_time : opts.max_time_s * 1000
         #log      : console.log
         cb       : (err) ->
-            opts.cb(err, listing)
+            opts.cb(err ? listing_err, listing)
 
