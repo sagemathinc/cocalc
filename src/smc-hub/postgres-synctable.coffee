@@ -582,12 +582,19 @@ class SyncTable extends EventEmitter
 
     _process_results: (rows) =>
         for x in rows
-            @_value = @_value.set(x[@_primary_key], immutable.fromJS(misc.map_without_undefined(x)))
+            k = x[@_primary_key]
+            v = immutable.fromJS(misc.map_without_undefined(x))
+            if not @_value.get(k).equals(v)
+                @_value = @_value.set(k, v)
+                process.nextTick(=>@emit('change', k))
 
     # Grab any entries from table about which we have been notified of changes.
     _update: (cb) =>
+        if misc.len(@_changed) == 0 # nothing to do
+            cb?()
+            return
         changed = @_changed
-        @_changed = {}
+        @_changed = {}  # reset changed set -- could get modified during query below, which is fine.
         @_db._query
             query : @_select_query
             where : misc.merge("#{@_primary_key} = ANY($)" : misc.keys(changed), @_where)
@@ -595,7 +602,7 @@ class SyncTable extends EventEmitter
                 if err
                     @_dbg("update")("error #{err}")
                     for k of changed
-                        @_changed[k] = true   # will try again
+                        @_changed[k] = true   # will try again later
                 else
                     @_process_results(result.rows)
                 cb?()
@@ -611,9 +618,6 @@ class SyncTable extends EventEmitter
 
     has: (key) =>
         return @_value.has(key)
-
-    close: (keep_listeners) =>
-        throw Error("NotImplementedError")
 
     wait: (opts) =>
         throw Error("NotImplementedError")
