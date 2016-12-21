@@ -519,9 +519,9 @@ class SyncTable extends EventEmitter
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
 
         if @_columns
+            if @_primary_key not in @_columns
+                @_columns = @_columns.concat([@_primary_key])  # required
             @_select_columns = @_columns.join(', ')
-            if @_primary_key not in @_select_columns
-                @_select_columns.push(@_primary_key)  # required
         else
             @_select_columns = misc.keys(SCHEMA[@_table].fields).join(', ')
 
@@ -547,11 +547,14 @@ class SyncTable extends EventEmitter
         @_state = 'closed'
         @_db._stop_listening(@_table, @_listen_columns, [], cb)
 
+    connect: (opts) =>
+        throw Error("NotImplementedError")
+
     _satisfies_where: (obj) =>
         return true  # TODO
 
     _notification: (obj) =>
-        # console.log 'notification', obj
+        #console.log 'notification', obj
         [action, new_val, old_val] = obj
         if action == 'DELETE' or not new_val?
             k = old_val[@_primary_key]
@@ -613,7 +616,7 @@ class SyncTable extends EventEmitter
             @_process_results((("#{@_primary_key}" : x) for x in misc.keys(changed)))
             cb?()
             return
-        
+
         # Have to query to get actual changed data.
         @_db._query
             query : @_select_query
@@ -626,9 +629,6 @@ class SyncTable extends EventEmitter
                 else
                     @_process_results(result.rows)
                 cb?()
-
-    connect: (opts) =>
-        throw Error("NotImplementedError")
 
     get: (key) =>
         return if key? then @_value.get(key) else @_value
