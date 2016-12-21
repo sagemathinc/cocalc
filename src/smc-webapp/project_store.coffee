@@ -695,7 +695,10 @@ class ProjectActions extends Actions
         # anything about files (highly unlikely).  Unfortunately (for this), our
         # directory listings are stored as (immutable) lists, so we have to make
         # a map out of them.
-        store.directory_listings?.get(store.current_path)?.map (x) ->
+        listing = store.directory_listings?.get(store.current_path)
+        if typeof(listing) == 'string'    # must be an error
+            return name  # simple fallback
+        listing?.map (x) ->
             files_in_dir[x.get('name')] = true
             return
         # This loop will keep trying new names until one isn't in the directory
@@ -1204,9 +1207,12 @@ class ProjectActions extends Actions
                     @get_store().wait
                         until   : (s) =>
                             listing = s.directory_listings.get(parent_path)
-                            return listing?.find (val) => val.get('name') == last
+                            if typeof(listing) == 'string'   # must be an error
+                                return {err: listing}
+                            return listing?.find((val) => val.get('name') == last)
                         timeout : 30
                         cb      : (err, item) =>
+                            err = err ? item.err
                             if err
                                 alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
                                 @open_directory(parent_path)
