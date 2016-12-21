@@ -1229,20 +1229,21 @@ class Client extends EventEmitter
 
                             # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
-                                to       : email_address
-                                bcc      : 'invites@sagemath.com'
-                                fromname : 'SageMathCloud'
-                                from     : 'invites@sagemath.com'
-                                replyto  : 'help@sagemath.com'
-                                subject  : subject
-                                category : "invite"
-                                asm_group: 699
-                                body     : email + """<br/><br/>
-                                           <b>To accept the invitation, please sign up at
-                                           <a href='#{base_url}'>#{base_url}</a>
-                                           using exactly the email address '#{email_address}'.
-                                           #{direct_link}</b><br/>"""
-                                cb       : (err) =>
+                                to           : email_address
+                                bcc          : 'invites@sagemath.com'
+                                fromname     : 'SageMathCloud'
+                                from         : 'invites@sagemath.com'
+                                replyto      : mesg.replyto ? 'help@sagemath.com'
+                                replyto_name : mesg.replyto_name
+                                subject      : subject
+                                category     : "invite"
+                                asm_group    : 699
+                                body         : email + """<br/><br/>
+                                               <b>To accept the invitation, please sign up at
+                                               <a href='#{base_url}'>#{base_url}</a>
+                                               using exactly the email address '#{email_address}'.
+                                               #{direct_link}</b><br/>"""
+                                cb           : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
                                     database.sent_project_invite

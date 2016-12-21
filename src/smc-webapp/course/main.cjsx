@@ -476,14 +476,16 @@ init_redux = (course_filename, redux, course_project_id) ->
             s = get_store()
             body = s.get_email_invite()
             invite = (x) ->
+                account_store = redux.getStore('account')
+                name    = account_store.get_fullname()
+                replyto = account_store.get_email_address()
                 if '@' in x
                     if not do_not_invite_student_by_email
                         title   = s.getIn(['settings', 'title'])
                         subject = "SageMathCloud Invitation to Course #{title}"
-                        name    = redux.getStore('account').get_fullname()
                         body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                         body    = markdownlib.markdown_to_html(body).s
-                        redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
+                        redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
                 else
                     redux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
