@@ -5,6 +5,7 @@
 
 - hosts: compute
   become: yes
+  strategy: free
   tags: julia
   gather_facts: no # set it to yes, if you need to use {{ ansible_distribution_release }} to know if it is vivid etc.
   vars:

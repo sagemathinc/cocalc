@@ -832,11 +832,16 @@ CollaboratorsSearch = rclass
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
-        subject = "SageMathCloud Invitation to #{@props.project.get('title')}"
+        subject      = "SageMathCloud Invitation to #{@props.project.get('title')}"
+        replyto      = redux.getStore('account').get_email_address()
+        replyto_name = redux.getStore('account').get_fullname()
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
-                                                                         subject)
+                                                                         subject,
+                                                                         false,
+                                                                         replyto,
+                                                                         replyto_name)
         @setState(email_to:'',email_body:'')
 
     render_send_email: ->

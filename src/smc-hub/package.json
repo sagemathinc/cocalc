@@ -41,7 +41,7 @@
     "require-reload": "^0.2.2",
     "rethinkdb": "^2.3.1",
     "rimraf": "^2.4.4",
-    "sendgrid": "^1.9.2",
+    "sendgrid": "^4.7.1",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
     "temp": "^0.8.3",
