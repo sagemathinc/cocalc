@@ -1380,13 +1380,15 @@ class exports.PostgreSQL extends PostgreSQL
         #dbg(misc.to_json([obj, account_id, project_id]))
         if not misc.is_valid_uuid_string(obj?.project_id)
             cb("project_id must be a valid uuid")
-        else if project_id?
+            return
+        if project_id?
             if project_id == obj.project_id
                 # The project can access its own syncstrings
                 cb()
             else
                 cb("projects can only access their own syncstrings") # for now at least!
-        else if account_id?
+            return
+        if account_id?
             # Access request by a client user
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
