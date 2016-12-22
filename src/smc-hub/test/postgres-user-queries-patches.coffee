@@ -43,15 +43,15 @@ describe 'basic use of patches table from user -- ', ->
     it 'user creates a patch', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{string_id:string_id, time:t0, user:0, patch:patch0}}
+            query      : {patches:{string_id:string_id, time:t0, user_id:0, patch:patch0}}
             cb         : done
 
     it 'reads the patch back', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{string_id:string_id, time:t0, user:null, patch:null}}
+            query      : {patches:{string_id:string_id, time:t0, user_id:null, patch:null}}
             cb         : (err, x) ->
-                expect(x).toEqual(patches:{string_id:string_id, time:t0, user:0, patch:patch0})
+                expect(x).toEqual(patches:{string_id:string_id, time:t0, user_id:0, patch:patch0})
                 done(err)
 
     t1 = misc.minutes_ago(11)
@@ -60,21 +60,21 @@ describe 'basic use of patches table from user -- ', ->
     it 'user creates a patch with all fields', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{string_id:string_id, time:t3, user:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2}}
+            query      : {patches:{string_id:string_id, time:t3, user_id:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2}}
             cb         : done
 
     it 'reads the patch with all fields back', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{string_id:string_id, time:t3, user:1, patch:null, snapshot:null, prev:null, sent:null}}
+            query      : {patches:{string_id:string_id, time:t3, user_id:1, patch:null, snapshot:null, prev:null, sent:null}}
             cb         : (err, x) ->
-                expect(x).toEqual(patches:{string_id:string_id, time:t3, user:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2})
+                expect(x).toEqual(patches:{string_id:string_id, time:t3, user_id:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2})
                 done(err)
 
     it 'reads all patches so far', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:[{string_id:string_id, time:null, user:null, patch:null}]}
+            query      : {patches:[{string_id:string_id, time:null, user_id:null, patch:null}]}
             cb         : (err, x) ->
                 expect(x.patches.length).toEqual(2)
                 done(err)
@@ -82,7 +82,7 @@ describe 'basic use of patches table from user -- ', ->
     it 'reads only the more recent patch', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:[{string_id:string_id, time:{'>=':t0}, user:null, patch:null}]}
+            query      : {patches:[{string_id:string_id, time:{'>=':t0}, user_id:null, patch:null}]}
             cb         : (err, x) ->
                 expect(x.patches.length).toEqual(1)
                 expect(x.patches[0].time).toEqual(t0)
@@ -91,7 +91,7 @@ describe 'basic use of patches table from user -- ', ->
     it 'reads only the older patch', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:[{string_id:string_id, time:{'<':t0}, user:null, patch:null}]}
+            query      : {patches:[{string_id:string_id, time:{'<':t0}, user_id:null, patch:null}]}
             cb         : (err, x) ->
                 expect(x.patches.length).toEqual(1)
                 expect(x.patches[0].time).toEqual(t3)
@@ -119,19 +119,19 @@ describe 'access control tests on patches table -- ', ->
     it 'creates a patch', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{string_id:string_id, time:t0, user:0, patch:patch0}}
+            query      : {patches:{string_id:string_id, time:t0, user_id:0, patch:patch0}}
             cb         : done
 
     it 'tries to read as anon to patches table and fails', (done) ->
         db.user_query
-            query : {patches:{string_id:null, time:null, user:null, patch:null}}
+            query : {patches:{string_id:null, time:null, user_id:null, patch:null}}
             cb    : (err) ->
                 expect(err).toEqual("anonymous get queries not allowed for table 'patches'")
                 done()
 
     it 'tries to write as anon to patches table and fails', (done) ->
         db.user_query
-            query : {patches:{string_id:string_id, time:new Date(), user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual("no anonymous set queries")
                 done()
@@ -139,7 +139,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write as user not on the project and fails', (done) ->
         db.user_query
             account_id : accounts[1]
-            query : {patches:{string_id:string_id, time:new Date(), user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual("user must be an admin")
                 done()
@@ -147,7 +147,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write as different project and fails', (done) ->
         db.user_query
             project_id : projects[1]
-            query : {patches:{string_id:string_id, time:new Date(), user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual("project not allowed to write to syncstring in different project")
                 done()
@@ -158,7 +158,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write as admin and succeeds', (done) ->
         db.user_query
             account_id : accounts[1]
-            query : {patches:{string_id:string_id, time:misc.minutes_ago(2), user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:misc.minutes_ago(2), user_id:0, patch:patch0}}
             cb    : done
 
     it 'makes account2 a collab', (done) ->
@@ -167,28 +167,28 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write as collab and succeeds', (done) ->
         db.user_query
             account_id : accounts[2]
-            query      : {patches:{string_id:string_id, time:misc.minutes_ago(3), user:0, patch:patch0}}
+            query      : {patches:{string_id:string_id, time:misc.minutes_ago(3), user_id:0, patch:patch0}}
             cb         : done
 
     it 'tries to write as same project and succeeds', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:string_id, time:misc.minutes_ago(1), user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:misc.minutes_ago(1), user_id:0, patch:patch0}}
             cb    : (err) ->
                 done(err)
 
     it 'tries to write negative user number and fails', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user:-1, patch:patch0}}
+            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:-1, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: new row for relation "patches" violates check constraint "patches_user_check"')
+                expect(err).toEqual('postgresql error: new row for relation "patches" violates check constraint "patches_user_id_check"')
                 done()
 
     it 'tries to write invalid string_id and fails', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:'sage', time:misc.minutes_ago(4), user:0, patch:patch0}}
+            query : {patches:{string_id:'sage', time:misc.minutes_ago(4), user_id:0, patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual('no such syncstring')
                 done()
@@ -196,7 +196,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write invalid time and fails', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:string_id, time:'sage', user:0, patch:patch0}}
+            query : {patches:{string_id:string_id, time:'sage', user_id:0, patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
                 done()
@@ -204,7 +204,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write invalid sent type and fails', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user:0, sent:'sage', patch:patch0}}
+            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, sent:'sage', patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
                 done()
@@ -212,7 +212,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write invalid prev type and fails', (done) ->
         db.user_query
             project_id : projects[0]
-            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user:0, prev:'sage', patch:patch0}}
+            query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, prev:'sage', patch:patch0}}
             cb    : (err) ->
                 expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
                 done()
@@ -220,7 +220,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to change past author and fails', (done) ->
         db.user_query
             account_id : accounts[1]
-            query      : {patches:{string_id:string_id, time:t0, user:1, patch:patch0}}
+            query      : {patches:{string_id:string_id, time:t0, user_id:1, patch:patch0}}
             cb         : (err) ->
                 expect(err).toEqual('you may not change the author of a patch from 0 to 1')
                 done()
@@ -228,7 +228,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write without including time field at all (and fails)', (done) ->
         db.user_query
             account_id : accounts[1]
-            query      : {patches:{string_id:string_id, user:1, patch:patch0}}
+            query      : {patches:{string_id:string_id, user_id:1, patch:patch0}}
             cb         : (err) ->
                 expect(err).toEqual("query must specify (primary) key 'time'")
                 done()
@@ -236,7 +236,7 @@ describe 'access control tests on patches table -- ', ->
     it 'tries to write without including string field at all (and fails)', (done) ->
         db.user_query
             account_id : accounts[1]
-            query      : {patches:{time:t0, user:1, patch:patch0}}
+            query      : {patches:{time:t0, user_id:1, patch:patch0}}
             cb         : (err) ->
                 expect(err).toEqual("query must specify (primary) key 'string_id'")
                 done()
@@ -246,7 +246,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{string_id:string_id, time:t0, patch:patch0}}
             cb         : (err) ->
-                expect(err).toEqual('postgresql error: null value in column "user" violates not-null constraint')
+                expect(err).toEqual('postgresql error: null value in column "user_id" violates not-null constraint')
                 done()
 
 describe 'changefeed tests on patches table', ->
@@ -272,7 +272,7 @@ describe 'changefeed tests on patches table', ->
         changefeed_id = misc.uuid()
         db.user_query
             account_id : accounts[0]
-            query      : {patches:[{string_id:string_id, time:null, user:null, patch:null}]}
+            query      : {patches:[{string_id:string_id, time:null, user_id:null, patch:null}]}
             changes    : changefeed_id
             cb         : changefeed_series([
                 (x, cb) ->
@@ -281,15 +281,15 @@ describe 'changefeed tests on patches table', ->
                     # insert a new patch
                     db.user_query
                         account_id : accounts[0]
-                        query      : {patches:{string_id:string_id, time:t[0], user:0, patch:patch0}}
+                        query      : {patches:{string_id:string_id, time:t[0], user_id:0, patch:patch0}}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[0], user:0, patch:patch0}})
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[0], user_id:0, patch:patch0}})
 
                     # modify the just-inserted patch -- should not fire anything off since sent isn't a field we're watching
                     db.user_query
                         account_id : accounts[0]
-                        query      : {patches:{string_id:string_id, time:t[0], user:0, patch:patch0, sent:t[1]}}
+                        query      : {patches:{string_id:string_id, time:t[0], user_id:0, patch:patch0, sent:t[1]}}
                         cb         : (err) ->
                             if err
                                 cb(err)
@@ -297,10 +297,10 @@ describe 'changefeed tests on patches table', ->
                                 # insert new patch
                                 db.user_query
                                     account_id : accounts[0]
-                                    query      : {patches:{string_id:string_id, time:t[2], user:0, patch:'foo'}}
+                                    query      : {patches:{string_id:string_id, time:t[2], user_id:0, patch:'foo'}}
                                     cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[2], user:0, patch:'foo'}})
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[2], user_id:0, patch:'foo'}})
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->
@@ -312,7 +312,7 @@ describe 'changefeed tests on patches table', ->
         changefeed_id = misc.uuid()
         db.user_query
             project_id : projects[0]
-            query      : {patches:[{string_id:string_id, time:{'>=':t[2]}, user:null, patch:null, sent:null}]}
+            query      : {patches:[{string_id:string_id, time:{'>=':t[2]}, user_id:null, patch:null, sent:null}]}
             changes    : changefeed_id
             cb         : changefeed_series([
                 (x, cb) ->
@@ -321,18 +321,18 @@ describe 'changefeed tests on patches table', ->
                     # insert a new enough patch to notice
                     db.user_query
                         account_id : accounts[0]
-                        query      : {patches:{string_id:string_id, time:t[3], user:1, patch:patch0}}
+                        query      : {patches:{string_id:string_id, time:t[3], user_id:1, patch:patch0}}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[3], user:1, patch:patch0}})
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[3], user_id:1, patch:patch0}})
 
                     # modify the just-inserted patch -- should fire since we *are* watching sent column
                     db.user_query
                         account_id : accounts[0]
-                        query      : {patches:{string_id:string_id, time:t[3], user:1, sent:t[1]}}
+                        query      : {patches:{string_id:string_id, time:t[3], user_id:1, sent:t[1]}}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t[3], user:1, patch:patch0, sent:t[1]}})
+                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t[3], user_id:1, patch:patch0, sent:t[1]}})
 
                     # deletes an older patch -- shouldn't fire changefeed
                     db._query

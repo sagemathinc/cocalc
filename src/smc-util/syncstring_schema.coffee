@@ -172,10 +172,10 @@ schema.patches =
         time :
             type : 'timestamp'
             desc : 'the timestamp of the patch'
-        user     :
+        user_id  :
             type : 'integer'
-            desc : 'a nonnegative integer; this is an index into syncstrings.users'
-            pg_check : 'NOT NULL CHECK ("user" >= 0)'
+            desc : "a nonnegative integer; this is the index into the syncstrings.users array of account_id's"
+            pg_check : 'NOT NULL CHECK (user_id >= 0)'
         patch    :
             type : 'string'
             pg_type : 'TEXT'  # that's what it is in the database now...
@@ -195,7 +195,7 @@ schema.patches =
                 string_id : null
                 time      : null
                 patch     : null
-                user      : null
+                user_id   : null
                 snapshot  : null
                 sent      : null
                 prev      : null
@@ -207,14 +207,14 @@ schema.patches =
                 string_id : true
                 time      : true
                 patch     : true
-                user      : true
+                user_id   : true
                 snapshot  : true
                 sent      : true
                 prev      : true
             required_fields :
                 string_id : true
                 time      : true
-                user      : true
+                user_id   : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
@@ -224,8 +224,8 @@ schema.patches =
                     #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
                     #    cb("you may not change the sent time once it is set")
                     #    return
-                    if old_val.user? and new_val.user? and old_val.user != new_val.user
-                        cb("you may not change the author of a patch from #{old_val.user} to #{new_val.user}")
+                    if old_val.user_id? and new_val.user_id? and old_val.user_id != new_val.user_id
+                        cb("you may not change the author of a patch from #{old_val.user_id} to #{new_val.user_id}")
                         return
                     if old_val.patch? and new_val.patch? and old_val.patch != new_val.patch   # comparison is ok since it is of *strings*
                         cb("you may not change a patch")
