@@ -232,15 +232,20 @@ class exports.PostgreSQL extends EventEmitter
             if not opts.values?
                 opts.cb?("if conflict is specified then values must also be specified")
                 return
-            if typeof(opts.conflict) != 'string'
-                opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
-                return
-            v = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
+            if not misc.is_array(opts.conflict)
+                if typeof(opts.conflict) != 'string'
+                    opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+                    return
+                else
+                    conflict = [opts.conflict]
+            else
+                conflict = opts.conflict
+            v = ("#{field}=EXCLUDED.#{field}" for field in fields when field not in conflict)
             SET.push(v...)
             if SET.length == 0
-                opts.query += " ON CONFLICT (#{opts.conflict}) DO NOTHING "
+                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
             else
-                opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE "
+                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
 
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')

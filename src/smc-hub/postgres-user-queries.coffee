@@ -491,11 +491,18 @@ class exports.PostgreSQL extends PostgreSQL
             where : @_user_set_query_where(r)
             cb    : cb
 
+    _user_set_query_conflict: (r) =>
+        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
+        if misc.is_array(v)
+            return (field for field of x for x in v)
+        else
+            return r.primary_key
+
     _user_query_set_upsert: (r, cb) =>
         @_query
             query    : "INSERT INTO #{r.db_table}"
             values   : @_user_set_query_values(r)
-            conflict : r.primary_key
+            conflict : @_user_set_query_conflict(r)
             cb       : cb
 
     # Record is already in DB, so we update it:
