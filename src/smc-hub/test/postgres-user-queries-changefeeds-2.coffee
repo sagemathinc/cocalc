@@ -816,7 +816,7 @@ describe 'test stats changefeed: ', ->
                         where : {id:remove_id}
                         cb    : cb
                 (x, cb) ->
-                    expect(x.action).toEqual('update')
+                    expect(x.action).toEqual('delete')
                     expect(x.old_val.id).toEqual(remove_id)
                     expect(x.new_val).toEqual(undefined)
 

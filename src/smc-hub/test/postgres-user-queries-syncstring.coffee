@@ -1,5 +1,5 @@
 ###
-TESTING of syncstring user queries
+TESTING of syncstring user and project queries
 
 **
 This code is currently NOT released under any license for use by anybody except SageMath, Inc.
@@ -230,9 +230,6 @@ describe 'syncstring changefeed from account -- ', ->
                     cb()
             ], done)
 
-
-
-
 describe 'basic use of syncstring table from project -- ', ->
     before(setup)
     after(teardown)
@@ -342,7 +339,6 @@ describe 'basic use of syncstring table from project -- ', ->
             query      : {syncstrings:{project_id:projects[1], read_only:null}}
             cb         : done
 
-
 describe 'syncstring changefeed from project -- ', ->
     before(setup)
     after(teardown)
@@ -403,5 +399,244 @@ describe 'syncstring changefeed from project -- ', ->
                     cb()
             ], done)
 
+describe 'test syncstrings_delete -- ', ->
+    before(setup)
+    after(teardown)
+
+    accounts = projects = undefined
+    path = 'a.txt'
+    it 'creates 1 accounts', (done) ->
+        create_accounts 1, (err, x) -> accounts=x; done(err)
+    it 'creates 1 projects', (done) ->
+        create_projects 1, accounts[0], (err, x) -> projects=x; done(err)
+
+    it 'creates a syncstring entry', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path, users:accounts}}
+            cb    : done
+
+    it 'confirms syncstring was properly written', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path, users:null}}
+            cb    : (err, result) ->
+                expect(result).toEqual({syncstrings:{project_id:projects[0], path:path, users:accounts, string_id:db.sha1(projects[0], path)}})
+                done(err)
+
+    it "verifies that account can't delete (since not admin)", (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings_delete:{project_id:projects[0], path:path}}
+            cb    : (err) ->
+                expect(err).toEqual('user must be an admin')
+                done()
+
+    it 'makes account an admin', (done) ->
+        db.make_user_admin(account_id: accounts[0], cb: done)
+
+    it 'verifies that admin can delete', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings_delete:{project_id:projects[0], path:path}}
+            cb    : done
+
+    it 'confirms syncstring was deleted', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path, users:null}}
+            cb    : (err, result) ->
+                expect(result).toEqual({syncstrings:undefined})
+                done(err)
+
+describe 'test access roles for recent_syncstrings_in_project', ->
+    before(setup)
+    after(teardown)
+
+    accounts = projects = undefined
+    path = 'a.txt'
+    it 'creates 2 accounts', (done) ->
+        create_accounts 2, (err, x) -> accounts=x; done(err)
+    it 'creates 2 projects', (done) ->
+        create_projects 2, accounts[0], (err, x) -> projects=x; done(err)
+
+    it 'verifies anonymous set queries are not allowed', (done) ->
+        db.user_query
+            query : {recent_syncstrings_in_project:{project_id:projects[0], path:'foo.txt'}}
+            cb    : (err) ->
+                expect(err).toEqual("no anonymous set queries")
+                done()
+
+    it 'verifies anonymous get queries are not allowed', (done) ->
+        db.user_query
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err) ->
+                expect(err).toEqual("anonymous get queries not allowed for table 'recent_syncstrings_in_project'")
+                done()
+
+    it 'account do a valid get query and confirms no recent syncstrings', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:undefined)
+                done(err)
+
+    it 'project does a valid get query and confirms no recent syncstrings', (done) ->
+        db.user_query
+            project_id : projects[0]
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:undefined)
+                done(err)
+
+    it 'project does an invalid get query and confirms get error', (done) ->
+        db.user_query
+            project_id : projects[1]
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err, result) ->
+                expect(err).toEqual('projects can only access their own syncstrings')
+                done()
+
+    it 'account do invalid get query and error', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err, result) ->
+                expect(err).toEqual('user must be an admin')
+                done()
+
+    it 'makes account1 an admin', (done) ->
+        db.make_user_admin
+            account_id : accounts[1]
+            cb : done
+
+    it 'admin does previously disallowed get query and it works', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:undefined)
+                done(err)
+
+describe 'test writing and reading for recent_syncstrings_in_project -- ', ->
+    before(setup)
+    after(teardown)
+
+    accounts = projects = undefined
+    it 'creates 2 accounts', (done) ->
+        create_accounts 2, (err, x) -> accounts=x; done(err)
+
+    path0 = '1.txt'
+    path1 = '2.txt'
+    time0 = misc.minutes_ago(10)
+    time1 = misc.minutes_ago(20)
+    string_id0 = string_id1 = undefined
+    it 'creates 2 projects', (done) ->
+        create_projects 2, accounts[0], (err, x) ->
+            projects=x
+            string_id0 = db.sha1(projects[0], path0)
+            string_id1 = db.sha1(projects[0], path1)
+            done(err)
+
+    it 'creates a syncstring entry', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path0, users:accounts, last_active:time0}}
+            cb    : done
+
+    it 'creates an older syncstring entry', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path1, users:accounts, last_active:time1}}
+            cb    : done
+
+    it 'as user, queries for recent syncstrings and gets it', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {recent_syncstrings_in_project:[{project_id:projects[0], max_age_m:15, last_active:null, string_id:null}]}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:[{project_id:projects[0], last_active:time0, string_id:string_id0}])
+                done(err)
+
+    it 'as project, queries for recent syncstrings and gets it', (done) ->
+        db.user_query
+            project_id : projects[0]
+            query : {recent_syncstrings_in_project:[{project_id:projects[0], max_age_m:15, last_active:null, string_id:null}]}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:[{project_id:projects[0], last_active:time0, string_id:string_id0}])
+                done(err)
+
+    it 'query for older syncstrings', (done) ->
+        db.user_query
+            project_id : projects[0]
+            query : {recent_syncstrings_in_project:[{project_id:projects[0], max_age_m:30, last_active:null, string_id:null}]}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:[{project_id:projects[0], last_active:time0, string_id:string_id0}, {project_id:projects[0], last_active:time1, string_id:string_id1}])
+                done(err)
+
+    it 'ensure other project syncstrings are separate', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {recent_syncstrings_in_project:[{project_id:projects[1], max_age_m:30, last_active:null, string_id:null}]}
+            cb    : (err, result) ->
+                expect(result).toEqual(recent_syncstrings_in_project:[])
+                done(err)
+
+    changefeed_id = misc.uuid()
+    time2 = new Date()
+    time3 = new Date()
+    it 'creates and works with a changefeed', (done) ->
+        obj0 = undefined
+        db.user_query
+            project_id : projects[0]
+            query      :
+                recent_syncstrings_in_project:
+                    [{project_id:projects[0], max_age_m:15, last_active:null, string_id:null, deleted:null}]
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.recent_syncstrings_in_project.length).toEqual(1)
+                    obj0 = x.recent_syncstrings_in_project[0]
+
+                    # change time of syncstring
+                    db.user_query
+                        account_id : accounts[0]
+                        query : {syncstrings:{project_id:projects[0], path:path0, last_active:time2}}
+                        cb    : cb
+                (x, cb) ->
+                    obj0.last_active = time2
+                    expect(x).toEqual({action:'update', new_val:obj0, old_val:{last_active:time0}})
+
+                    # change time introducing a syncstring that was old
+                    db.user_query
+                        project_id : projects[0]
+                        query : {syncstrings:{project_id:projects[0], path:path1, last_active:time3}}
+                        cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{last_active:time3, project_id:projects[0], string_id:string_id1}, old_val:{last_active:time1}})
+
+                    # create new syncstring
+                    db.user_query
+                        project_id : projects[0]
+                        query : {syncstrings:{project_id:projects[0], path:'xyz', last_active:time3}}
+                        cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{last_active:time3, project_id:projects[0], string_id:db.sha1(projects[0], 'xyz')}})
+
+                    # make obj0 have old time and see get deleted
+                    db.user_query
+                        account_id : accounts[0]
+                        query : {syncstrings:{project_id:projects[0], path:path0, last_active:time1}}
+                        cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'delete', old_val:{last_active:time3, project_id:projects[0], string_id:string_id0}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+
+                    cb()
+            ], done)
 
 

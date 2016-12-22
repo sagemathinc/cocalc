@@ -401,7 +401,7 @@ describe 'test time constrained changefeed on project_log', ->
                     obj3.time = misc.days_ago(60)
                     db.user_query(account_id: accounts[0], query: {project_log:obj3}, cb:cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:"update", old_val:misc.copy_without(obj0, 'event')})
+                    expect(x).toEqual({action:"delete", old_val:misc.copy_without(obj0, 'event')})
                     cb()
             ], done)
 

@@ -1945,3 +1945,24 @@ exports.bind_objects = (scope, arr_objects) ->
 # see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
 exports.remove_whitespace = (s) ->
     return s.replace(/\s/g,'')
+
+
+# ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
+exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']
+
+exports.op_to_function = (op) ->
+    switch op
+        when '=', '=='
+            return (a,b) -> a == b
+        when '!=', '<>'
+            return (a,b) -> a != b
+        when '<='
+            return (a,b) -> a <= b
+        when '>='
+            return (a,b) -> a >= b
+        when '<'
+            return (a,b) -> a < b
+        when '>'
+            return (a,b) -> a > b
+        else
+            throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")

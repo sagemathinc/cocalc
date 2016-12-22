@@ -110,7 +110,7 @@ schema.syncstrings_delete  =
     fields      : schema.syncstrings.fields
     user_query:
         set :  # use set query since selecting only one record by its primary key
-            admin   : true   # only admins can do get queries on this virtual table
+            admin   : true   # only admins can do queries on this virtual table
             delete  : true   # allow deletes
             options : [{delete:true}]   # always delete when doing set on this table, even if not explicitly requested
             fields  :
@@ -129,16 +129,21 @@ schema.recent_syncstrings_in_project =
     fields :
         string_id   : true
         project_id  : true
-        last_active : true
         path        : true
+        last_active : true
         deleted     : true
     user_query :
         get :
             pg_where : (obj, db) ->
                 [
-                    "project_id = $::UUID" : obj.project_id,
-                    "last_active >= $"     : misc.minutes_ago(obj.max_age_m ? 15)
+                    "project_id = $::UUID"        : obj.project_id,
+                    "last_active >= $::TIMESTAMP" : misc.minutes_ago(obj.max_age_m)
                 ]
+            pg_changefeed : ->   # need to do this, since last_active won't
+                                 # be selected automatically, but it is needed by where.
+                select :
+                    project_id  : 'UUID'
+                    last_active : 'TIMESTAMP'
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.project_id, misc.minutes_ago(obj.max_age_m)], [obj.project_id, db.r.maxval], index:'project_last_active']

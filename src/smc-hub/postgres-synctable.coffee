@@ -376,7 +376,7 @@ class Changes extends EventEmitter
                 result.old_val = old_val
 
     _handle_change: (mesg) =>
-        # console.log '_handle_change', mesg
+        #console.log '_handle_change', mesg
         if mesg[0] == 'DELETE'
             if not @_match_condition(mesg[2])
                 return
@@ -390,7 +390,7 @@ class Changes extends EventEmitter
                     if not mesg[2][k]?
                         mesg[2][k] = v
                     if @_match_condition(mesg[2])
-                        @emit('change', {action:'update', old_val:mesg[2]})
+                        @emit('change', {action:'delete', old_val:mesg[2]})
                     return
             if @_watch.length == 0
                 r = {action:action, new_val:mesg[1]}
@@ -447,57 +447,93 @@ class Changes extends EventEmitter
             w = [@_where]
         else
             w = @_where
+
         @_condition = {}
+        add_condition = (field, op, val) =>
+            field = field.trim()
+            if not @_select[field]?
+                throw Error("'#{field}' must be in select")
+            if misc.is_object(val)
+                throw Error("val (=#{misc.to_json(val)}) must not be an object")
+            if misc.is_array(val)
+                if op == '=' or op == '=='
+                    # containment
+                    f = (x) ->
+                        for v in val
+                            if x == v
+                                return true
+                        return false
+                else if op == '!=' or op == '<>'
+                    # not contained in
+                    f = (x) ->
+                        for v in val
+                            if x == v
+                                return false
+                        return true
+                else
+                    throw Error("if val is an array, then op must be = or !=")
+            else if misc.is_date(val)
+                # Inputs to condition come back as JSON, which doesn't know
+                # about timestamps, so we convert them to date objects.
+                if op in ['=', '==']
+                    f = (x) -> (new Date(x) - val == 0)
+                else if op in ['!=', '<>']
+                    f = (x) -> (new Date(x) - val != 0)
+                else
+                    g = misc.op_to_function(op)
+                    f = (x) -> g(new Date(x), val)
+            else
+                g = misc.op_to_function(op)
+                f = (x) -> g(x, val)
+            @_condition[field] = f
+
         for obj in w
             if misc.is_object(obj)
                 for k, val of obj
-                    # should be of the form "field = $":val
-                    k0 = misc.remove_whitespace(k.toLowerCase())
-                    i = k.indexOf(':')
-                    if i != -1
-                        k = k.slice(0, i)
-                    if k.indexOf('>') != -1
-                        throw Error("NotImplementedError")
-                    if k.indexOf('<') != -1
-                        throw Error("NotImplementedError")
-                    if k.indexOf('!') != -1
-                        throw Error("NotImplementedError")
-                    if k0.indexOf('any($)') != -1
-                        if not misc.is_array(val)
-                            throw Error("ANY($) value must be array (for now)")
-                    v = k.split('=')
-                    field = v[0].trim()
-                    if not @_select[field]?
-                        throw Error("'#{field}' must be in select")
-                    @_condition[field] = val
+                    ###
+                    k should be of one of the following forms
+                       - "field op $::TYPE"
+                       - "field op $" or
+                       - "field op any($)"
+                       - 'field' (defaults to =)
+                    where op is one of =, <, >, <=, >=, !=
+
+                    val must be:
+                       - something where javascript === and comparisons works as you expect!
+                       - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
+                    ###
+                    found = false
+                    for op in misc.operators
+                        i = k.indexOf(op)
+                        if i != -1
+                            add_condition(k.slice(0, i).trim(), op, val)
+                            found = true
+                            break
+                    if not found
+                        throw Error("unable to parse '#{k}'")
             else if typeof(obj) == 'string'
-                if obj.indexOf('>') != -1
-                    throw Error("NotImplementedError")
-                if obj.indexOf('<') != -1
-                    throw Error("NotImplementedError")
-                if obj.indexOf('!') != -1
-                    throw Error("NotImplementedError")
-                v = obj.split('=')
-                field = v[0].trim()
-                val   = eval(v[1].trim())
-                if not @_select[field]?
-                    throw Error("'#{field}' must be in select")
-                @_condition[field] = val
+                found = false
+                for op in misc.operators
+                    i = obj.indexOf(op)
+                    if i != -1
+                        add_condition(obj.slice(0, i), op, eval(obj.slice(i+op.length).trim()))
+                        found = true
+                        break
+                if not found
+                    throw Error("unable to parse '#{obj}'")
             else
                 throw Error("NotImplementedError")
         if misc.len(@_condition) == 0
             delete @_condition
 
         @_match_condition = (obj) =>
+            #console.log '_match_condition', obj
             if not @_condition?
                 return true
-            for field, val of @_condition
-                if misc.is_array(val)   # OR condition
-                    if obj[field] not in val
-                        return false
-                else
-                    if obj[field] != val
-                        return false
+            for field, f of @_condition
+                if not f(obj[field])
+                    #console.log 'failed due to field ', field
+                    return false
             return true
 
 
