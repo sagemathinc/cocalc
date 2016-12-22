@@ -514,7 +514,7 @@ class SyncTable extends EventEmitter
             options : [{set:true}]  # force it to be a set query
             cb      : (err) =>
                 if err
-                    console.warn("_save('#{@_table}') error: #{err}")
+                    console.warn("_save('#{@_table}') error:", err)
                     cb?(err)
                 else
                     if @_state == 'closed'

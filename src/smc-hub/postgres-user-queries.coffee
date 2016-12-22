@@ -434,6 +434,36 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
         ], cb)
 
+    _user_set_query_where: (r) =>
+        # TODO -- handle compound primary key
+        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
+        if misc.is_array(v)
+            # compound primary key
+            where = {}
+            i = 0
+            for x in v
+                for field, type of x
+                    where["#{field} = $::#{type}"] = r.query[r.primary_key][i]
+                    i += 1
+            return where
+        else
+            return "#{r.primary_key} = $" : r.query[r.primary_key]
+
+    _user_set_query_values: (r) =>
+        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
+        if misc.is_array(v)
+            # compound primary key
+            query = misc.copy(r.query)
+            i = 0
+            for x in v
+                for field of x
+                    query[field] = r.query[r.primary_key][i]
+                    i += 1
+            delete query[r.primary_key]
+            return query
+        else
+            return r.query
+
     _user_set_query_hooks_prepare: (r, cb) =>
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
             if not r.query[r.primary_key]?
@@ -443,7 +473,7 @@ class exports.PostgreSQL extends PostgreSQL
             # TODO: can we restrict columns below
             @_query
                 query : "SELECT * FROM #{r.db_table}"
-                where : "#{r.primary_key} = $" : r.query[r.primary_key]
+                where : @_user_set_query_where(r)
                 cb    : one_result (err, x) =>
                     r.old_val = x; cb(err)
         else
@@ -452,19 +482,19 @@ class exports.PostgreSQL extends PostgreSQL
     _user_query_set_count: (r, cb) =>
         @_query
             query : "SELECT COUNT(*) FROM #{r.db_table}"
-            where : "#{r.primary_key} = $" : r.query[r.primary_key]
+            where : @_user_set_query_where(r)
             cb    : count_result(cb)
 
     _user_query_set_delete: (r, cb) =>
         @_query
             query : "DELETE FROM #{r.db_table}"
-            where : "#{r.primary_key} = $" : r.query[r.primary_key]
+            where : @_user_set_query_where(r)
             cb    : cb
 
     _user_query_set_upsert: (r, cb) =>
         @_query
             query    : "INSERT INTO #{r.db_table}"
-            values   : r.query
+            values   : @_user_set_query_values(r)
             conflict : r.primary_key
             cb       : cb
 
@@ -485,7 +515,7 @@ class exports.PostgreSQL extends PostgreSQL
             query       : "UPDATE #{r.db_table}"
             jsonb_merge : jsonb_merge
             set         : set
-            where       : "#{r.primary_key} = $" : r.query[r.primary_key]
+            where       : @_user_set_query_where(r)
             cb          : cb
 
     _user_set_query_main_query: (r, cb) =>
@@ -1365,14 +1395,32 @@ class exports.PostgreSQL extends PostgreSQL
         @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
     _syncstring_access_check: (string_id, account_id, project_id, cb) =>
-        # Check that string_id is the id of a syncstring the the given account_id or
+        # Check that string_id is the id of a syncstring the given account_id or
         # project_id is allowed to write to.  NOTE: We do not concern ourselves (for now at least)
         # with proof of identity (i.e., one user with full read/write access to a project
         # claiming they are another users of that project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
-        #cb('not implemented')
-        cb() # TODO!
+        @_query
+            query : "SELECT project_id FROM syncstrings"
+            where : "string_id = $::CHAR(40)" : string_id
+            cache : true
+            cb    : one_result 'project_id', (err, x) =>
+                if err
+                    cb(err)
+                else if not x
+                    # There is no such syncstring with this id -- fail
+                    cb("no such syncstring")
+                else if account_id?
+                    # Attempt to write by a user browser client
+                    @_require_project_ids_in_groups(account_id, [x], ['owner', 'collaborator'], cb)
+                else if project_id?
+                    # Attempt to write by a *project*
+                    if project_id == x
+                        cb()
+                    else
+                        cb("project not allowed to write to syncstring in different project")
+
 
     # Check permissions for querying for syncstrings in a project
     _syncstrings_check: (obj, account_id, project_id, cb) =>

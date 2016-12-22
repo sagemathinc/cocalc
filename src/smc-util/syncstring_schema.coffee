@@ -168,9 +168,7 @@ schema.patches =
     fields :
         id       :
             type : 'compound key [string_id, time]'
-            pg_type:
-                string_id : 'CHAR(40)'
-                time      : 'TIMESTAMP'
+            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}] # compound primary key
             desc : 'Primary key'
         user     :
             type : 'integer'
@@ -190,7 +188,7 @@ schema.patches =
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query :
         get :
-            pg_where : (obj, db) ->
+            pg_where : (obj) ->
                 where = ["string_id = $::CHAR(40)" : obj.id[0]]
                 if obj.id[1]?
                     where.push("time >= $::TIMESTAMP" : obj.id[1])
@@ -223,7 +221,7 @@ schema.patches =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
-            before_change : (database, old_val, new_val, account_id, cb) ->
+            xxx_before_change : (database, old_val, new_val, account_id, cb) ->
                 if old_val?
                     # CRITICAL: not allowing this seems to cause a lot of problems
                     #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
@@ -271,9 +269,7 @@ schema.cursors =
     fields:
         id   :
             type : 'compound key [string_id, user_id]'
-            pg_type:
-                string_id : 'CHAR(40)'
-                user_id   : 'INTEGER'
+            pg_type: [{string_id: 'CHAR(40)'}, {user_id: 'INTEGER'}]
             desc : '[string_id, user_id]'
         locs :
             type : 'array'
@@ -320,10 +316,7 @@ schema.eval_inputs =
     fields:
         id    :
             type : 'uuid'
-            pg_type:
-                string_id : 'CHAR(40)'
-                time      : 'TIMESTAMP'
-                user_id   : 'INTEGER'
+            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}, {user_id: 'INTEGER'}]
         input :
             type : 'map'
     user_query:
@@ -359,10 +352,7 @@ schema.eval_outputs =
     fields:
         id     :
             type : 'uuid'
-            pg_type:
-                string_id : 'CHAR(40)'
-                time      : 'TIMESTAMP'
-                number    : 'INTEGER'
+            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}, {number: 'INTEGER'}]
         output :
             type : 'map'
     user_query:

@@ -287,6 +287,7 @@ class exports.PostgreSQL extends EventEmitter
                 @_concurrent_queries -= 1
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
+                    err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) -- success")
                 opts.cb?(err, result)
@@ -443,11 +444,15 @@ class exports.PostgreSQL extends EventEmitter
         for column, info of schema.fields
             if info.deprecated
                 continue
-            if typeof(info.pg_type) == 'object'
+            if misc.is_array(info.pg_type)
                 # compound primary key
-                for field, type of info.pg_type
-                    columns.push("#{quote_field(field)} #{type}")
-                    primary_keys.push(field)
+                for x in info.pg_type
+                    if misc.len(x) != 1
+                        cb("pg_type array must be of singletons, but pg_type=#{misc.to_json(info.pg_type)}")
+                        return
+                    for field, type of x
+                        columns.push("#{quote_field(field)} #{type}")
+                        primary_keys.push(field)
                 continue
             s = "#{quote_field(column)} #{pg_type(info)}"
             if info.unique
