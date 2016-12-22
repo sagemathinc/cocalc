@@ -225,7 +225,136 @@ describe 'access control tests on patches table -- ', ->
                 expect(err).toEqual('you may not change the author of a patch from 0 to 1')
                 done()
 
+    it 'tries to write without including time field at all (and fails)', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {patches:{string_id:string_id, user:1, patch:patch0}}
+            cb         : (err) ->
+                expect(err).toEqual("query must specify (primary) key 'time'")
+                done()
 
+    it 'tries to write without including string field at all (and fails)', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {patches:{time:t0, user:1, patch:patch0}}
+            cb         : (err) ->
+                expect(err).toEqual("query must specify (primary) key 'string_id'")
+                done()
+
+    it 'tries to write without including user field at all (and fails)', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {patches:{string_id:string_id, time:t0, patch:patch0}}
+            cb         : (err) ->
+                expect(err).toEqual('postgresql error: null value in column "user" violates not-null constraint')
+                done()
+
+describe 'changefeed tests on patches table', ->
+    before(setup)
+    after(teardown)
+
+    accounts = projects = string_id = undefined
+    path = 'a.txt'
+    t = (misc.minutes_ago(10-i) for i in [0...10])
+    patch0 = misc.to_json({a:'patch'})
+    it 'creates 2 accounts', (done) ->
+        create_accounts 2, (err, x) -> accounts=x; done(err)
+    it 'creates 2 projects', (done) ->
+        create_projects 2, accounts[0], (err, x) -> projects=x; done(err)
+    it 'creates a syncstring', (done) ->
+        string_id = db.sha1(projects[0], path)
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path, users:accounts}}
+            cb    : done
+
+    it 'creates a changefeed as user', (done) ->
+        changefeed_id = misc.uuid()
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:[{string_id:string_id, time:null, user:null, patch:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x?.patches?.length).toEqual(0)
+
+                    # insert a new patch
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {patches:{string_id:string_id, time:t[0], user:0, patch:patch0}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[0], user:0, patch:patch0}})
+
+                    # modify the just-inserted patch -- should not fire anything off since sent isn't a field we're watching
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {patches:{string_id:string_id, time:t[0], user:0, patch:patch0, sent:t[1]}}
+                        cb         : (err) ->
+                            if err
+                                cb(err)
+                            else
+                                # insert new patch
+                                db.user_query
+                                    account_id : accounts[0]
+                                    query      : {patches:{string_id:string_id, time:t[2], user:0, patch:'foo'}}
+                                    cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[2], user:0, patch:'foo'}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+                    cb()
+            ], done)
+
+    it 'creates a changefeed as project', (done) ->
+        changefeed_id = misc.uuid()
+        db.user_query
+            project_id : projects[0]
+            query      : {patches:[{string_id:string_id, time:{'>=':t[2]}, user:null, patch:null, sent:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x?.patches?.length).toEqual(1)
+
+                    # insert a new enough patch to notice
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {patches:{string_id:string_id, time:t[3], user:1, patch:patch0}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[3], user:1, patch:patch0}})
+
+                    # modify the just-inserted patch -- should fire since we *are* watching sent column
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {patches:{string_id:string_id, time:t[3], user:1, sent:t[1]}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t[3], user:1, patch:patch0, sent:t[1]}})
+
+                    # deletes an older patch -- shouldn't fire changefeed
+                    db._query
+                        query : "DELETE FROM patches"
+                        where : {string_id:string_id, time:t[0]}
+                        cb    : (err) ->
+                            if err
+                                cb(err)
+                            else
+                                # delete newer patch -- should fire changefeed
+                                db._query
+                                    query : "DELETE FROM patches"
+                                    where : {string_id:string_id, time:t[3]}
+                                    cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'delete', old_val:{string_id:string_id, time:t[3]}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+                    cb()
+            ], done)
 
 
 

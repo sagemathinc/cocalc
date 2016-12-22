@@ -747,7 +747,7 @@ trigger_code = (table, select, watch) ->
             x[k] = true
         for k in misc.keys(select)
             x[k] = true
-        update_of = "OF #{misc.keys(x).join(',')}"
+        update_of = "OF #{(quote_field(field) for field in misc.keys(x)).join(',')}"
     else
         update_of = ""
     code = """
