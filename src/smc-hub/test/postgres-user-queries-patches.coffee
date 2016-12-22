@@ -1,5 +1,5 @@
 ###
-TESTING of syncstring user and project queries
+TESTING of patches table
 
 **
 This code is currently NOT released under any license for use by anybody except SageMath, Inc.

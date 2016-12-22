@@ -234,6 +234,8 @@ schema.patches =
 
 schema.patches.project_query = schema.patches.user_query
 
+###
+TODO: re-implement
 # Table to be used for deleting the patches associated to a syncstring.
 # Currently only allowed by admin.
 schema.patches_delete  =
@@ -259,6 +261,7 @@ schema.patches_delete  =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches -- redundant with admin requirement above.
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
+###
 
 schema.cursors =
     primary_key: ['string_id', 'user_id']  # this is a compound primary key as an array -- [string_id, user_id]
@@ -275,6 +278,7 @@ schema.cursors =
             type : 'array'
             pg_type : 'JSONB[]'
             desc : "[{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)"
+            pg_check : "NOT NULL"
         time :
             type : 'timestamp'
             desc : 'time when these cursor positions were sent out'
