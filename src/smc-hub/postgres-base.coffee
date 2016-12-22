@@ -79,7 +79,9 @@ class exports.PostgreSQL extends EventEmitter
 
     _query: (opts) =>
         opts  = defaults opts,
-            query     : required
+            query     : undefined    # can give select and table instead
+            select    : undefined    # if given, should be string or array of column names  -|  can give these
+            table     : undefined    # if given, name of table                              -|  two instead of query
             params    : []
             cache     : false        # TODO: implement this
             where     : undefined    # Used for SELECT: If given, can be
@@ -119,6 +121,17 @@ class exports.PostgreSQL extends EventEmitter
         if opts.params? and not misc.is_array(opts.params)
             opts.cb?("params must be an array")
             return
+        if not opts.query?
+            if not opts.table?
+                opts.cb?("if query not given, then table must be given")
+                return
+            if not opts.select?
+                opts.select = '*'
+            if misc.is_array(opts.select)
+                opts.select = (quote_field(field) for field in opts.select).join(',')
+            opts.query = "SELECT #{opts.select} FROM \"#{opts.table}\""
+            delete opts.table
+            delete opts.select
 
         push_param = (param, type) ->
             if type?.toUpperCase() == 'JSONB'
@@ -203,12 +216,12 @@ class exports.PostgreSQL extends EventEmitter
                         continue
                     if field.indexOf('::') != -1
                         [field, type] = field.split('::')
-                        fields.push(field.trim())
+                        fields.push(quote_field(field.trim()))
                         type = type.trim()
                         values.push("$#{push_param(param, type)}::#{type}")
                         continue
                     else
-                        fields.push(field)
+                        fields.push(quote_field(field))
                         values.push("$#{push_param(param)}")
                 values = [values]  # just one
 
@@ -221,10 +234,10 @@ class exports.PostgreSQL extends EventEmitter
                 if field.indexOf('::') != -1
                     [field, type] = field.split('::')
                     type = type.trim()
-                    v.push("#{field.trim()}=$#{push_param(param, type)}::#{type}")
+                    v.push("#{quote_field(field.trim())}=$#{push_param(param, type)}::#{type}")
                     continue
                 else
-                    v.push("#{field.trim()}=$#{push_param(param)}")
+                    v.push("#{quote_field(field.trim())}=$#{push_param(param)}")
             if v.length > 0
                 SET.push(v...)
 
@@ -240,7 +253,7 @@ class exports.PostgreSQL extends EventEmitter
                     conflict = [opts.conflict]
             else
                 conflict = opts.conflict
-            v = ("#{field}=EXCLUDED.#{field}" for field in fields when field not in conflict)
+            v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
             SET.push(v...)
             if SET.length == 0
                 opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
@@ -479,6 +492,8 @@ class exports.PostgreSQL extends EventEmitter
             s = "#{quote_field(column)} #{pg_type(info)}"
             if info.unique
                 s += " UNIQUE"
+            if info.pg_check
+                s += " " + info.pg_check
             columns.push(s)
         async.series([
             (cb) =>
@@ -648,10 +663,13 @@ exports.pg_type = pg_type = (info) ->
 # aren't allowed without quoting in Postgres.
 NEEDS_QUOTING =
     user : true
-quote_field = (field) ->
-    if NEEDS_QUOTING[field]
-        return "\"#{field}\""
-    return field
+exports.quote_field = quote_field = (field) ->
+    if field[0] == '"'  # already quoted
+        return field
+    return "\"#{field}\""
+    #if NEEDS_QUOTING[field]
+    #    return "\"#{field}\""
+    #return field
 
 # Timestamp the given number of seconds **in the future**.
 exports.expire_time = expire_time = (ttl) ->

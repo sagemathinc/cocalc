@@ -16,6 +16,7 @@ async        = require('async')
 underscore   = require('underscore')
 
 {PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
+{quote_field} = require('./postgres-base')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -841,8 +842,8 @@ class exports.PostgreSQL extends PostgreSQL
             return r
 
         # Make sure there is the query that gets only things in this table that this user
-        # is allowed to see.
-        if not r.client_query.get.all?.args?
+        # is allowed to see, or at least a check_hook.
+        if not r.client_query.get.all?.args? and not r.client_query.get.check_hook?
             return {err: "user get query not allowed for #{opts.table} (no getAll filter)"}
 
         # Apply default options to the get query (don't impact changefeed)
@@ -1044,7 +1045,7 @@ class exports.PostgreSQL extends PostgreSQL
         if delete_option
             return "DELETE FROM #{table}"
         else
-            return "SELECT #{@_user_get_query_columns(user_query).join(',')} FROM #{table}"
+            return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query)).join(',')} FROM #{table}"
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
         for field, value of obj
@@ -1308,72 +1309,17 @@ class exports.PostgreSQL extends PostgreSQL
 
     # Verify that writing a patch is allowed.
     _user_set_query_patches_check: (obj, account_id, project_id, cb) =>
-        #dbg = @dbg("_user_set_query_patches_check")
-        #dbg(misc.to_json([obj, account_id]))
-        # 1. Check that
-        #  obj.id = [string_id, time],
-        # where string_id is a valid sha1 hash and time is a timestamp
-        id = obj.id
-        if not misc.is_array(id)
-            cb("id must be an array")
-            return
-        if id.length != 2
-            cb("id must be of length 2")
-            return
-        string_id = id[0]; time = id[1]
-        if not misc.is_valid_sha1_string(string_id)
-            cb("id[0] must be a valid sha1 hash")
-            return
-        if not misc.is_date(time)
-            cb("id[1] must be a Date")
-            return
-        if obj.user?
-            if typeof(obj.user) != 'number'
-                cb("user must be a number")
-                return
-            if obj.user < 0
-                cb("user must be positive")
-                return
-
-        # 2. Write access
-        @_syncstring_access_check(string_id, account_id, project_id, cb)
+        # Write access
+        @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
     # Verify that writing a patch is allowed.
     _user_get_query_patches_check: (obj, account_id, project_id, cb) =>
-        #dbg = @dbg("_user_get_query_patches_check")
-        #dbg(misc.to_json([obj, account_id]))
-        string_id = obj.id?[0]
-        if not misc.is_valid_sha1_string(string_id)
-            cb("id[0] must be a valid sha1 hash")
-            return
         # Write access (no notion of read only yet -- will be easy to add later)
-        @_syncstring_access_check(string_id, account_id, project_id, cb)
+        @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
     # Verify that writing a patch is allowed.
     _user_set_query_cursors_check: (obj, account_id, project_id, cb) =>
-        #dbg = @dbg("_user_set_query_cursors_check")
-        #dbg(misc.to_json([obj, account_id]))
-        # 1. Check that
-        #  obj.id = [string_id, user_id],
-        # where string_id is a valid uuid, time is a timestamp, and user_id is a nonnegative integer.
-        id = obj.id
-        if not misc.is_array(id)
-            cb("id must be an array")
-            return
-        if id.length != 2
-            cb("id must be of length 2")
-            return
-        string_id = id[0]; user_id = id[1]
-        if not misc.is_valid_sha1_string(string_id)
-            cb("id[0] must be a valid sha1 hash")
-            return
-        if typeof(user_id) != 'number'
-            cb("id[1] must be a number")
-            return
-        if user_id < 0
-            cb("id[1] must be positive")
-            return
-        @_syncstring_access_check(string_id, account_id, project_id, cb)
+        @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
     # Verify that writing a patch is allowed.
     _user_get_query_cursors_check: (obj, account_id, project_id, cb) =>

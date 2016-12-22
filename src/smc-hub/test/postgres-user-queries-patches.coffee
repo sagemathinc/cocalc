@@ -20,7 +20,6 @@ teardown = pgtest.teardown
 {create_accounts, create_projects, changefeed_series} = pgtest
 misc = require('smc-util/misc')
 
-###
 describe 'basic use of patches table from user -- ', ->
     before(setup)
     after(teardown)
@@ -44,15 +43,17 @@ describe 'basic use of patches table from user -- ', ->
     it 'user creates a patch', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{id:[string_id, t0], patch:patch0}}
+            query      : {patches:{string_id:string_id, time:t0, user:0, patch:patch0}}
             cb         : done
 
     it 'reads the patch back', (done) ->
         db.user_query
             account_id : accounts[0]
-            query      : {patches:{id:[string_id, t0], patch:null}}
+            query      : {patches:{string_id:string_id, time:t0, user:null, patch:null}}
             cb         : (err, x) ->
-                expect(x).toEqual(patches:{id:[string_id, t0], patch:patch0})
+                if err
+                    done(err)
+                else
+                    expect(x).toEqual(patches:{string_id:string_id, time:t0, user:0, patch:patch0})
+                    done()
 
-
-###

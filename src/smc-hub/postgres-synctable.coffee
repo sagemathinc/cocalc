@@ -20,6 +20,7 @@ required = defaults.required
 misc_node = require('smc-util-node/misc_node')
 
 {PostgreSQL, pg_type, one_result, all_results} = require('./postgres')
+{quote_field} = require('./postgres-base')
 
 {SCHEMA} = require('smc-util/schema')
 
@@ -401,7 +402,8 @@ class Changes extends EventEmitter
             for k, v of mesg[1]
                 where["#{k} = $"] = v
             @_db._query
-                query : "SELECT #{@_watch.join(',')} FROM #{@_table}"
+                select: @_watch
+                table : @_table
                 where : where
                 cb    : one_result (err, result) =>
                     if err
@@ -422,9 +424,10 @@ class Changes extends EventEmitter
         for k, v of where
             where0["#{k} = $"] = v
         @_db._query
-            query : "SELECT #{(@_watch.concat(misc.keys(@_select))).join(',')} FROM #{@_table}"
-            where : where0
-            cb    : all_results (err, results) =>
+            select : @_watch.concat(misc.keys(@_select))
+            table  : @_table
+            where  : where0
+            cb     : all_results (err, results) =>
                 if err
                     # TODO -- what to do -- some ugly thing involving trying again.
                     # really just need a notion of queries that can't fail unless
@@ -557,11 +560,11 @@ class SyncTable extends EventEmitter
         if @_columns
             if @_primary_key not in @_columns
                 @_columns = @_columns.concat([@_primary_key])  # required
-            @_select_columns = @_columns.join(', ')
+            @_select_columns = @_columns
         else
-            @_select_columns = misc.keys(SCHEMA[@_table].fields).join(', ')
+            @_select_columns = misc.keys(SCHEMA[@_table].fields)
 
-        @_select_query = "SELECT #{@_select_columns} FROM #{@_table}"
+        @_select_query = "SELECT #{(quote_field(x) for x in @_select_columns)} FROM #{@_table}"
 
         @_init (err) => cb(err, @)
 

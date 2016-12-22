@@ -175,6 +175,7 @@ schema.patches =
         user     :
             type : 'integer'
             desc : 'a nonnegative integer; this is an index into syncstrings.users'
+            pg_check : 'NOT NULL CHECK ("user" >= 0)'
         patch    :
             type : 'string'
             pg_type : 'TEXT'  # that's what it is in the database now...
@@ -267,6 +268,7 @@ schema.cursors =
         user_id :
             type : 'integer'
             desc : "id index of the user into the syncstrings users array"
+            pg_check : "CHECK (user_id >= 0)"
         locs :
             type : 'array'
             pg_type : 'JSONB[]'
@@ -317,6 +319,7 @@ schema.eval_inputs =
         user_id :
             type : 'integer'
             desc : "id index of the user into the syncstrings users array"
+            pg_check : "CHECK (user_id >= 0)"
         input :
             type : 'map'
     user_query:
@@ -353,6 +356,7 @@ schema.eval_outputs =
         number :
             type : 'integer'
             desc : "output_number starting at 0"
+            pg_check : "CHECK (number >= 0)"
         output :
             type : 'map'
     user_query:

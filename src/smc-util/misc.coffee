@@ -1353,6 +1353,10 @@ exports.capitalize = (s) ->
 exports.is_array = is_array = (obj) ->
     return Object.prototype.toString.call(obj) == "[object Array]"
 
+exports.is_integer = Number.isInteger
+if not exports.is_integer?
+    exports.is_integer = (n) -> typeof(n)=='number' and (n % 1)==0
+
 # An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
 # NOT include Date.
 exports.is_object = is_object = (obj) ->
