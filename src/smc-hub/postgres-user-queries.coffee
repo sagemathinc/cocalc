@@ -340,12 +340,12 @@ class exports.PostgreSQL extends PostgreSQL
         if r.client_query.set.admin
             r.require_admin = true
 
-        r.primary_key = s.primary_key ? SCHEMA[r.db_table].primary_key ? 'id'
+        r.primary_keys = @_primary_keys(r.db_table)
 
         r.json_fields = @_json_fields(opts.table, r.query)
 
         for k, v of r.query
-            if r.primary_key == k
+            if k in r.primary_keys
                 continue
             if r.client_query?.set?.fields?[k] != undefined
                 continue
@@ -435,42 +435,23 @@ class exports.PostgreSQL extends PostgreSQL
         ], cb)
 
     _user_set_query_where: (r) =>
-        # TODO -- handle compound primary key
-        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
-        if misc.is_array(v)
-            # compound primary key
-            where = {}
-            i = 0
-            for x in v
-                for field, type of x
-                    where["#{field} = $::#{type}"] = r.query[r.primary_key][i]
-                    i += 1
-            return where
-        else
-            return "#{r.primary_key} = $" : r.query[r.primary_key]
+        where = {}
+        for primary_key in @_primary_keys(r.db_table)
+            type = pg_type(SCHEMA[r.db_table].fields[primary_key])
+            where["#{primary_key}=$::#{type}"] = r.query[primary_key]
+        return where
 
     _user_set_query_values: (r) =>
-        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
-        if misc.is_array(v)
-            # compound primary key
-            query = misc.copy(r.query)
-            i = 0
-            for x in v
-                for field of x
-                    query[field] = r.query[r.primary_key][i]
-                    i += 1
-            delete query[r.primary_key]
-            return query
-        else
-            return r.query
+        return r.query
 
     _user_set_query_hooks_prepare: (r, cb) =>
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
-            if not r.query[r.primary_key]?
-                cb("query must specify primary key '#{r.primary_key}'")
-                return
+            for primary_key in r.primary_keys
+                if not r.query[primary_key]?
+                    cb("query must specify (primary) key '#{primary_key}'")
+                    return
             # get the old value before changing it
-            # TODO: can we restrict columns below
+            # TODO: can we restrict columns below?
             @_query
                 query : "SELECT * FROM #{r.db_table}"
                 where : @_user_set_query_where(r)
@@ -492,11 +473,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb    : cb
 
     _user_set_query_conflict: (r) =>
-        v = SCHEMA[r.db_table].fields[r.primary_key].pg_type
-        if misc.is_array(v)
-            return (field for field of x for x in v)
-        else
-            return r.primary_key
+        return r.primary_keys
 
     _user_query_set_upsert: (r, cb) =>
         @_query
@@ -516,7 +493,7 @@ class exports.PostgreSQL extends PostgreSQL
                 jsonb_merge[k] = v
         set = {}
         for k, v of r.query
-            if v? and k != r.primary_key and not jsonb_merge[k]?
+            if v? and k not in r.primary_keys and not jsonb_merge[k]?
                 set[k] = v
         @_query
             query       : "UPDATE #{r.db_table}"
@@ -529,11 +506,12 @@ class exports.PostgreSQL extends PostgreSQL
         if r.instead_of_change_hook?
             r.instead_of_change_hook(@, r.old_val, r.query, r.account_id, cb)
         else if r.options.delete
-            if r.query[r.primary_key]
-                r.dbg("delete based on primary key")
-                @_user_query_set_delete(r, cb)
-            else
-                cb("delete query must set primary key")
+            for primary_key in r.primary_keys
+                if not r.query[primary_key]?
+                    cb("delete query must set primary key")
+                    return
+            r.dbg("delete based on primary key")
+            @_user_query_set_delete(r, cb)
         else
             if misc.len(r.json_fields) == 0
                 # easy case -- there are no jsonb merge fields; just do an upsert.
@@ -846,7 +824,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         r.table = SCHEMA[opts.table].virtual ? opts.table
 
-        r.primary_key = SCHEMA[opts.table]?.primary_key ? SCHEMA[r.table]?.primary_key ? 'id'
+        r.primary_keys = @_primary_keys(opts.table)
 
         # Are only admins allowed any get access to this table?
         r.require_admin = !!r.client_query.get.admin
@@ -904,7 +882,7 @@ class exports.PostgreSQL extends PostgreSQL
                 json_fields[field] = true
         return json_fields
 
-    _user_get_query_where: (client_query, account_id, project_id, user_query, primary_key, table, cb) =>
+    _user_get_query_where: (client_query, account_id, project_id, user_query, table, cb) =>
         dbg = @_dbg("_user_get_query_where")
         dbg()
 
@@ -992,16 +970,15 @@ class exports.PostgreSQL extends PostgreSQL
                         x[key] = subs[value]
 
             # impose further restrictions (more where conditions)
-            pg_where.push(@_user_get_query_filter(user_query, client_query, primary_key))
+            pg_where.push(@_user_get_query_filter(user_query, client_query))
 
             cb(undefined, pg_where)
 
     # Additional where object condition imposed by user's get query
-    _user_get_query_filter: (user_query, client_query, primary_key) =>
+    _user_get_query_filter: (user_query, client_query) =>
         # If the schema lists the value in a get query as 'null', then we remove it;
         # nulls means it was only there to be used by the initial where filter
         # part of the query.
-        # TODO: barely used in our schema; I don't like this.  there must be a better way.
         for field, val of client_query.get.fields
             if val == 'null'
                 delete user_query[field]
@@ -1099,7 +1076,7 @@ class exports.PostgreSQL extends PostgreSQL
                     return false
         return true
 
-    _user_get_query_changefeed: (changes, table, primary_key, user_query,
+    _user_get_query_changefeed: (changes, table, primary_keys, user_query,
                                  where, json_fields, account_id, client_query, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
         dbg()
@@ -1112,9 +1089,10 @@ class exports.PostgreSQL extends PostgreSQL
         if typeof(changes.cb) != 'function'
             cb("changes.cb must be a function")
             return
-        if not user_query[primary_key]? and user_query[primary_key] != null
-            cb("changefeed MUST include primary key (='#{primary_key}') in query")
-            return
+        for primary_key in primary_keys
+            if not user_query[primary_key]? and user_query[primary_key] != null
+                cb("changefeed MUST include primary key (='#{primary_key}') in query")
+                return
         watch  = []
         select = {}
         init_tracker = tracker = undefined
@@ -1124,7 +1102,7 @@ class exports.PostgreSQL extends PostgreSQL
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
                 possible_time_fields[field] = true
-            if val == null and field != primary_key
+            if val == null and field not in primary_keys
                 watch.push(field)
             else
                 select[field] = type
@@ -1251,7 +1229,7 @@ class exports.PostgreSQL extends PostgreSQL
         ###
         dbg = @_dbg("user_get_query(table='#{opts.table}')")
         dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
-        {err, table, client_query, require_admin, delete_option, primary_key, json_fields} = @_parse_get_query_opts(opts)
+        {err, table, client_query, require_admin, delete_option, primary_keys, json_fields} = @_parse_get_query_opts(opts)
 
         if err
             opts.cb(err)
@@ -1279,7 +1257,7 @@ class exports.PostgreSQL extends PostgreSQL
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
                 # See the TODO in @_user_get_query_filter.
-                @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, primary_key, opts.table, (err, where) =>
+                @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, opts.table, (err, where) =>
                     _query_opts.where = where
                     cb(err)
             (cb) =>
@@ -1291,7 +1269,7 @@ class exports.PostgreSQL extends PostgreSQL
                 misc.merge(_query_opts, x)
 
                 if opts.changes?
-                    @_user_get_query_changefeed(opts.changes, table, primary_key,
+                    @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
                                                 opts.account_id, client_query, cb)
                 else

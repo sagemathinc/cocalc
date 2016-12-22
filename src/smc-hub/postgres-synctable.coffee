@@ -546,10 +546,10 @@ class SyncTable extends EventEmitter
             cb("unknown table #{@_table}")
             return
 
-        @_primary_key = t.primary_key
-        if not @_primary_key
-            @_state = 'error'
-            cb("primary key unknown")
+        try
+            @_primary_key = @_db._primary_key(@_table)
+        catch e
+            cb(e)
             return
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}

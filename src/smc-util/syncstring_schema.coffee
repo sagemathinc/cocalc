@@ -215,7 +215,7 @@ schema.patches =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
-            TODO_before_change : (database, old_val, new_val, account_id, cb) ->
+            before_change : (database, old_val, new_val, account_id, cb) ->
                 if old_val?
                     # CRITICAL: not allowing this seems to cause a lot of problems
                     #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
@@ -258,13 +258,15 @@ schema.patches_delete  =
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
 
 schema.cursors =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
+    primary_key: ['string_id', 'user_id']  # this is a compound primary key as an array -- [string_id, user_id]
     durability : 'soft' # loss of data for the cursors table just doesn't matter
     fields:
-        id   :
-            type : 'compound key [string_id, user_id]'
-            pg_type: [{string_id: 'CHAR(40)'}, {user_id: 'INTEGER'}]
-            desc : '[string_id, user_id]'
+        string_id :
+            pg_type : 'CHAR(40)'
+            desc    : 'id of the syncstring that this patch belongs to.'
+        user_id :
+            type : 'integer'
+            desc : "id index of the user into the syncstrings users array"
         locs :
             type : 'array'
             pg_type : 'JSONB[]'
@@ -276,58 +278,56 @@ schema.cursors =
         string_id : ["that.r.row('id')(0)"]
     user_query:
         get :
-            pg_where : (obj, db) ->
-                ["string_id = $::CHAR(40)":obj.string_id]
-            all :  # query gets all cursors of *all users* with given string_id
-                cmd  : 'getAll'
-                args : (obj, db) -> [obj.string_id, index:'string_id']
             fields :
-                id        : null
+                string_id : null
+                user_id   : null
                 locs      : null
                 time      : null
-                user_id   : null
-                string_id : 'null'  # virtual -- only used for query, not kept in table
+            required_fields :
+                string_id : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these cursors
                 db._user_get_query_cursors_check(obj, account_id, project_id, cb)
         set :
             fields :
-                id     : true    # [string_id, user_id] for setting!
-                locs   : true
-                time   : true
+                string_id : null
+                user_id   : null
+                locs      : true
+                time      : true
             required_fields :
-                id     : true
-                locs   : true
-                time   : true
+                string_id : true
+                user_id   : true
+                locs      : true
+                time      : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these cursors
                 db._user_set_query_cursors_check(obj, account_id, project_id, cb)
 
 schema.eval_inputs =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
+    primary_key: ['string_id', 'time', 'user_id']
     durability : 'soft' # loss of eval requests not serious
     unique_writes: true
     fields:
-        id    :
-            type : 'uuid'
-            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}, {user_id: 'INTEGER'}]
+        string_id :
+            pg_type : 'CHAR(40)'
+            desc    : 'id of the syncstring that this patch belongs to.'
+        time :
+            type : 'timestamp'
+            desc : 'the timestamp of the input'
+        user_id :
+            type : 'integer'
+            desc : "id index of the user into the syncstrings users array"
         input :
             type : 'map'
     user_query:
         get :
-            pg_where : (obj, db) ->
-                where = ["string_id = $::CHAR(40)" : obj.id[0]]
-                if obj.id[1]?
-                    where.push("time >= $::TIMESTAMP" : obj.id[1])
-                return where
-            all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
-                id    : 'null'   # 'null' = field gets used for args above then set to null
-                input : null
+                string_id : null
+                time      : null
+                user_id   : null
+                input     : null
             check_hook : (db, obj, account_id, project_id, cb) ->
-                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
+                db._syncstring_access_check(obj.string_id, account_id, project_id, cb)
         set :
             fields :
                 id    : true
@@ -341,40 +341,42 @@ schema.eval_inputs =
 schema.eval_inputs.project_query = schema.eval_inputs.user_query
 
 schema.eval_outputs =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, output_number starting at 0]
+    primary_key: ['string_id', 'time', 'number']
     durability : 'soft' # loss of eval output not serious (in long term only used for analytics)
     fields:
-        id     :
-            type : 'uuid'
-            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}, {number: 'INTEGER'}]
+        string_id :
+            pg_type : 'CHAR(40)'
+            desc    : 'id of the syncstring that this patch belongs to.'
+        time :
+            type : 'timestamp'
+            desc : 'the timestamp of the output'
+        number :
+            type : 'integer'
+            desc : "output_number starting at 0"
         output :
             type : 'map'
     user_query:
         get :
-            pg_where : (obj, db) ->
-                where = ["string_id = $::CHAR(40)" : obj.id[0]]
-                if obj.id[1]?
-                    where.push("time >= $::TIMESTAMP" : obj.id[1])
-                return where
-            all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
-                id    : 'null'   # 'null' = field gets used for args above then set to null
-                output : null
-                time   : null
-                number : null
+                string_id : null
+                time      : null
+                number    : null
+                output    : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
         set :
             fields :
-                id    : true
-                output : true
+                string_id : true
+                time      : true
+                number    : true
+                output    : true
             required_fields :
-                id    : true
-                output : true
+                string_id : true
+                time      : true
+                number    : true
+                output    : true
             check_hook : (db, obj, account_id, project_id, cb) ->
-                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
+                db._syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
 schema.eval_outputs.project_query = schema.eval_outputs.user_query
 

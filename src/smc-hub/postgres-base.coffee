@@ -433,6 +433,32 @@ class exports.PostgreSQL extends EventEmitter
                 else
                     cb(undefined, (row.column_name for row in result.rows))
 
+    _primary_keys: (table) =>
+        @_primary_keys_cache ?= {}
+        if @_primary_keys_cache[table]?
+            return @_primary_keys_cache[table]
+        t = SCHEMA[table]
+        if t.virtual?
+            t = SCHEMA[t.virtual]
+        v = t?.primary_key
+        if not v?
+            throw Error("primary key for table '#{table}' must be explicitly specified in schema")
+        if typeof(v) == 'string'
+            return @_primary_keys_cache[table] = [v]
+        else if misc.is_array(v)
+            if v.length == 0
+                throw Error("at least one primary key must specified")
+            return @_primary_keys_cache[table] = v
+        else
+            throw Error("primary key must be a string or array of strings")
+
+    # Return *the* primary key, assuming unique; otherwise raise an exception.
+    _primary_key: (table) =>
+        v = @_primary_keys(table)
+        if v.length != 1
+            throw Error("compound primary key tables not yet supported")
+        return v[0]
+
     _create_table: (table, cb) =>
         dbg = @_dbg("_create_table('#{table}')")
         dbg()
@@ -444,30 +470,16 @@ class exports.PostgreSQL extends EventEmitter
             cb("table '#{table}' is virtual")
             return
         columns = []
-        primary_keys = []
-        primary_key = schema.primary_key ? 'id'
+        try
+            primary_keys = @_primary_keys(table)
+        catch e
+            cb(e)
+            return
         for column, info of schema.fields
-            if info.deprecated
-                continue
-            if misc.is_array(info.pg_type)
-                # compound primary key
-                for x in info.pg_type
-                    if misc.len(x) != 1
-                        cb("pg_type array must be of singletons, but pg_type=#{misc.to_json(info.pg_type)}")
-                        return
-                    for field, type of x
-                        columns.push("#{quote_field(field)} #{type}")
-                        primary_keys.push(field)
-                continue
             s = "#{quote_field(column)} #{pg_type(info)}"
             if info.unique
                 s += " UNIQUE"
-            if schema.primary_key == column
-                primary_keys.push(column)
             columns.push(s)
-        if primary_keys.length == 0
-            cb("ERROR creating table '#{table}': a valid primary key must be specified -- #{schema.primary_key}")
-            return
         async.series([
             (cb) =>
                 dbg("creating the table")
@@ -603,8 +615,8 @@ Other misc functions
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
 exports.pg_type = pg_type = (info) ->
-    if typeof(info) == 'boolean'
-        throw Error("pg_type: insufficient information to determine type (info=boolean)")
+    if not info? or typeof(info) == 'boolean'
+        throw Error("pg_type: insufficient information to determine type (info=#{typeof(info)})")
     if info.pg_type?
         return info.pg_type
     if not info.type?

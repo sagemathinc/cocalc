@@ -20,6 +20,7 @@ teardown = pgtest.teardown
 {create_accounts, create_projects, changefeed_series} = pgtest
 misc = require('smc-util/misc')
 
+###
 describe 'basic use of patches table from user -- ', ->
     before(setup)
     after(teardown)
@@ -53,5 +54,5 @@ describe 'basic use of patches table from user -- ', ->
             cb         : (err, x) ->
                 expect(x).toEqual(patches:{id:[string_id, t0], patch:patch0})
 
-                
 
+###
