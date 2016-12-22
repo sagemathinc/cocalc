@@ -242,3 +242,73 @@ describe 'access control tests on cursors table -- ', ->
                 expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
                 done()
 
+describe 'changefeed tests on cursors table', ->
+    before(setup)
+    after(teardown)
+
+    accounts = projects = string_id = undefined
+    path = 'a.txt'
+    t = (misc.minutes_ago(10-i) for i in [0...10])
+    patch0 = misc.to_json({a:'patch'})
+    it 'creates 2 accounts', (done) ->
+        create_accounts 2, (err, x) -> accounts=x; done(err)
+    it 'creates 1 projects', (done) ->
+        create_projects 1, accounts[0], (err, x) -> projects=x; done(err)
+    it 'creates a syncstring', (done) ->
+        string_id = db.sha1(projects[0], path)
+        db.user_query
+            account_id : accounts[0]
+            query : {syncstrings:{project_id:projects[0], path:path, users:accounts}}
+            cb    : done
+    it 'adds other user to project', (done) ->
+        db.add_user_to_project(account_id: accounts[1], project_id:projects[0], cb:done)
+
+    it 'creates a changefeed as user', (done) ->
+        changefeed_id = misc.uuid()
+        db.user_query
+            account_id : accounts[0]
+            query      : {cursors:[{string_id:string_id, time:null, user_id:null, locs:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x?.cursors?.length).toEqual(0)
+
+                    # insert a new cursor
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {cursors:{string_id:string_id, time:t[0], user_id:0, locs:[{x:1,y:2}]}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[0], user_id:0, locs:[{x:1,y:2}]}})
+
+                    # insert another cursor
+                    db.user_query
+                        account_id : accounts[1]
+                        query      : {cursors:{string_id:string_id, time:t[1], user_id:1, locs:[{x:5,y:10}, {x:3,y:5}]}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[1], user_id:1, locs:[{x:5,y:10}, {x:3,y:5}]}})
+
+                    # move cursor
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {cursors:{string_id:string_id, user_id:0, time:t[2], locs:[{x:10,y:20}]}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, user_id:0, time:t[2], locs:[{x:10,y:20}]}})
+
+                    # delete cursor
+                    db._query
+                        query : "DELETE FROM cursors"
+                        where :
+                            string_id : string_id
+                            user_id   : 0
+                        cb    : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'delete', old_val:{string_id:string_id, user_id:0}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+                    cb()
+            ], done)

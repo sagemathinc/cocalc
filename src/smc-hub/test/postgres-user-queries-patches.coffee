@@ -259,8 +259,8 @@ describe 'changefeed tests on patches table', ->
     patch0 = misc.to_json({a:'patch'})
     it 'creates 2 accounts', (done) ->
         create_accounts 2, (err, x) -> accounts=x; done(err)
-    it 'creates 2 projects', (done) ->
-        create_projects 2, accounts[0], (err, x) -> projects=x; done(err)
+    it 'creates 1 projects', (done) ->
+        create_projects 1, accounts[0], (err, x) -> projects=x; done(err)
     it 'creates a syncstring', (done) ->
         string_id = db.sha1(projects[0], path)
         db.user_query
