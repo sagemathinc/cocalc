@@ -51,9 +51,49 @@ describe 'basic use of patches table from user -- ', ->
             account_id : accounts[0]
             query      : {patches:{string_id:string_id, time:t0, user:null, patch:null}}
             cb         : (err, x) ->
-                if err
-                    done(err)
-                else
-                    expect(x).toEqual(patches:{string_id:string_id, time:t0, user:0, patch:patch0})
-                    done()
+                expect(x).toEqual(patches:{string_id:string_id, time:t0, user:0, patch:patch0})
+                done(err)
+
+    t1 = misc.minutes_ago(11)
+    t2 = misc.minutes_ago(12)
+    t3 = misc.minutes_ago(20)
+    it 'user creates a patch with all fields', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:{string_id:string_id, time:t3, user:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2}}
+            cb         : done
+
+    it 'reads the patch with all fields back', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:{string_id:string_id, time:t3, user:1, patch:null, snapshot:null, prev:null, sent:null}}
+            cb         : (err, x) ->
+                expect(x).toEqual(patches:{string_id:string_id, time:t3, user:1, patch:patch0, snapshot:'foo', prev:t1, sent:t2})
+                done(err)
+
+    it 'reads all patches so far', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:[{string_id:string_id, time:null, user:null, patch:null}]}
+            cb         : (err, x) ->
+                expect(x.patches.length).toEqual(2)
+                done(err)
+
+    it 'reads only the more recent patch', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:[{string_id:string_id, time:{'>=':t0}, user:null, patch:null}]}
+            cb         : (err, x) ->
+                expect(x.patches.length).toEqual(1)
+                expect(x.patches[0].time).toEqual(t0)
+                done(err)
+
+    it 'reads only the older patch', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query      : {patches:[{string_id:string_id, time:{'<':t0}, user:null, patch:null}]}
+            cb         : (err, x) ->
+                expect(x.patches.length).toEqual(1)
+                expect(x.patches[0].time).toEqual(t3)
+                done(err)
 

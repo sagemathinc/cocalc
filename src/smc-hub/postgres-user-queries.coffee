@@ -195,7 +195,7 @@ class exports.PostgreSQL extends PostgreSQL
         if not misc.is_object(obj)
             return false
         for k, _ of obj
-            if k not in ['==', '!=', '>=', '<=', '>', '<']
+            if k not in misc.operators
                 return false
             return k
         return false
@@ -993,9 +993,11 @@ class exports.PostgreSQL extends PostgreSQL
                     #    '<=' : 5
                     #    '>=' : 2
                     for op, v of val
-                        where["#{field} #{op} $"] = v
+                        if op == '=='  # not in SQL, but natural for our clients to use it
+                            op = '='
+                        where["#{quote_field(field)} #{op} $"] = v
                 else
-                    where["#{field} = $"] = val
+                    where["#{quote_field(field)} = $"] = val
 
         return where
 

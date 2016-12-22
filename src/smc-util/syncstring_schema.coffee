@@ -192,33 +192,35 @@ schema.patches =
     user_query :
         get :
             fields :
+                string_id : null
+                time      : null
                 patch     : null
                 user      : null
                 snapshot  : null
                 sent      : null
                 prev      : null
-                string_id : null
-                time      : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
         set :
             fields :
-                id       : true
-                patch    : true
-                user     : true
-                snapshot : true
-                sent     : true
-                prev     : true
+                string_id : true
+                time      : true
+                patch     : true
+                user      : true
+                snapshot  : true
+                sent      : true
+                prev      : true
             required_fields :
-                id       : true
-                patch    : true
+                string_id : true
+                time      : true
+                user      : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
             before_change : (database, old_val, new_val, account_id, cb) ->
                 if old_val?
-                    # CRITICAL: not allowing this seems to cause a lot of problems
+                    # TODO/CRITICAL: not allowing this seems to cause a lot of problems
                     #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
                     #    cb("you may not change the sent time once it is set")
                     #    return

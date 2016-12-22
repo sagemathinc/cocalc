@@ -454,6 +454,8 @@ class Changes extends EventEmitter
         @_condition = {}
         add_condition = (field, op, val) =>
             field = field.trim()
+            if field[0] == '"'  # de-quote
+                field = field.slice(1,field.length-1)
             if not @_select[field]?
                 throw Error("'#{field}' must be in select")
             if misc.is_object(val)
