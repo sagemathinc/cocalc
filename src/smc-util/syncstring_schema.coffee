@@ -163,13 +163,15 @@ schema.recent_syncstrings_in_project =
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
 schema.patches =
-    primary_key   : 'id'   # this is a compound primary key as an array -- [string_id, time]
+    primary_key   : ['string_id', 'time']   # compound primary key
     unique_writes : true   # there is no reason for a user to write exactly the same record twice
     fields :
-        id       :
-            type : 'compound key [string_id, time]'
-            pg_type: [{string_id: 'CHAR(40)'}, {time: 'TIMESTAMP'}] # compound primary key
-            desc : 'Primary key'
+        string_id :
+            pg_type : 'CHAR(40)'
+            desc    : 'id of the syncstring that this patch belongs to.'
+        time :
+            type : 'timestamp'
+            desc : 'the timestamp of the patch'
         user     :
             type : 'integer'
             desc : 'a nonnegative integer; this is an index into syncstrings.users'
@@ -188,22 +190,14 @@ schema.patches =
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query :
         get :
-            pg_where : (obj) ->
-                where = ["string_id = $::CHAR(40)" : obj.id[0]]
-                if obj.id[1]?
-                    where.push("time >= $::TIMESTAMP" : obj.id[1])
-                return where
-            all :
-                cmd : 'between'
-                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
             fields :
-                id       : 'null'   # 'null' = field gets used for args above then set to null
-                patch    : null
-                user     : null
-                snapshot : null
-                sent     : null
-                prev     : null
-                time     : null
+                patch     : null
+                user      : null
+                snapshot  : null
+                sent      : null
+                prev      : null
+                string_id : null
+                time      : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -221,7 +215,7 @@ schema.patches =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
-            xxx_before_change : (database, old_val, new_val, account_id, cb) ->
+            TODO_before_change : (database, old_val, new_val, account_id, cb) ->
                 if old_val?
                     # CRITICAL: not allowing this seems to cause a lot of problems
                     #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
