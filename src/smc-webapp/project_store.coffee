@@ -1214,7 +1214,10 @@ class ProjectActions extends Actions
                         cb      : (err, item) =>
                             err = err ? item.err
                             if err
-                                alert_message(type:'error', message:"There was an error related to opening the link: #{err}")
+                                if err == 'timeout'
+                                    alert_message(type:'error', message:"Timeout opening '#{target}' -- try later")
+                                else
+                                    alert_message(type:'error', message:"Error opening '#{target}': #{err}")
                                 @open_directory(parent_path)
                             else
                                 if item.get('isdir')
