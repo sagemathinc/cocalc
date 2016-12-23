@@ -129,7 +129,7 @@ to_key = (x) ->
         return x
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_key) ->
+    constructor: (@_query, @_options, @_client, @_debounce_interval, @_cache_key) ->
         @_init_query()
         @_init()
         @_created = new Date()
@@ -925,7 +925,7 @@ class SyncTable extends EventEmitter
             return
         # decrement the reference to this synctable
         if global_cache_decref(@)
-            # not zero -- so don't close it yet -- still in use by multiple clients.
+            # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
         # do a last attempt at a save (so we don't lose data), then really close.
         @_save()  # this will synchronously construct the last save and send it
@@ -994,9 +994,8 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
     else
         options = [{heartbeat:if client.is_project() then 5 else 10}]
 
-    key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
-    #console.log("sync_table #{key}")
-    S = synctables[key]
+    cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
+    S = synctables[cache_key]
     if S?
         if S._state == 'connected'
             # same behavior as newly created synctable
@@ -1004,11 +1003,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
                 if S._state == 'connected'
                     S.emit('connected')
         S._reference_count += 1
-        #console.log("sync_table: using cache")
         return S
     else
-        #console.log("sync_table: making new one")
-        S = synctables[key] = new SyncTable(query, options, client, debounce_interval, key)
+        S = synctables[cache_key] = new SyncTable(query, options, client, debounce_interval, cache_key)
         S._reference_count = 1
         return S
 
@@ -1016,7 +1013,7 @@ global_cache_decref = (S) ->
     if S._reference_count?
         S._reference_count -= 1
         if S._reference_count <= 0
-            delete synctables[S._key]
+            delete synctables[S._cache_key]
             return false  # not in use
         else
             return true   # still in use

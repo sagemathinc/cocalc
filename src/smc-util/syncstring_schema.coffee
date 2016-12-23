@@ -339,13 +339,17 @@ schema.eval_inputs =
                 db._syncstring_access_check(obj.string_id, account_id, project_id, cb)
         set :
             fields :
-                id    : true
-                input : true
+                string_id : true
+                time      : true
+                user_id   : true
+                input     : true
             required_fields :
-                id    : true
-                input : true
+                string_id : true
+                time      : true
+                user_id   : true
+                input     : true
             check_hook : (db, obj, account_id, project_id, cb) ->
-                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
+                db._syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
 schema.eval_inputs.project_query = schema.eval_inputs.user_query
 
@@ -373,7 +377,7 @@ schema.eval_outputs =
                 number    : null
                 output    : null
             check_hook : (db, obj, account_id, project_id, cb) ->
-                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
+                db._syncstring_access_check(obj.string_id, account_id, project_id, cb)
         set :
             fields :
                 string_id : true

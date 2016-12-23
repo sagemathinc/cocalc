@@ -1334,7 +1334,7 @@ class exports.PostgreSQL extends PostgreSQL
         # claiming they are another users of that project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
-        if not string_id?.length == 40
+        if string_id?.length != 40
             cb("string_id (='#{string_id}') must be a string of length 40")
             return
         @_query
