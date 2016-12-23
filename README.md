@@ -27,12 +27,13 @@
    * Tim Clemans -- fontend work
    * John Jeng -- frontend work
    * Hal Snyder -- backend Python-related work
-   * Simon Luu -- frontend work (chat)
-   * Todd Zimmerman -- screencasts
-   * Greg Bard -- updating the FAQ; documentation
+
 
 ### Past contributors
 
+   * Simon Luu -- frontend work (chat)
+   * Todd Zimmerman -- screencasts
+   * Greg Bard -- updating the FAQ; documentation
    * Jon Lee, University of Washington -- frontend work, history viewer
    * Rob Beezer, University of Puget Sound -- design, maintenance
    * Nicholas Ruhland, University of Washington -- frontend work, tab reordering and resizing
