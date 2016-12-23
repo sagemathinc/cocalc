@@ -3109,16 +3109,10 @@ connect_to_database_postgresql = (opts) ->
         dbg("already done")
         opts.cb(); return
     dbg("connecting...")
-    require('./postgres').db
+    database = require('./postgres').db
         host     : 'localhost'  # TODO
         database : 'smcdev'     # TODO  # and todo for other options...
-        cb       : (err, db) ->
-            if err
-                database = undefined
-                opts.cb(err)
-            else
-                database = db
-                opts.cb()
+    database.connect(cb:opts.cb)
 
 connect_to_database = connect_to_database_postgresql
 #connect_to_database = connect_to_database_rethink

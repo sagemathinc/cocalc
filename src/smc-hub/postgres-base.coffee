@@ -31,25 +31,49 @@ class exports.PostgreSQL extends EventEmitter
             database : 'smc'
             port     : 5432
             debug    : true
-            cb       : undefined
-        @setMaxListeners(200)
+        @setMaxListeners(300)
         @_debug    = opts.debug
         @_host     = opts.host
         @_port     = opts.port
         @_database = opts.database
         @_concurrent_queries = 0
-        @_connect(opts.cb)
 
     engine: -> 'postgresql'
 
+    connect: (opts) =>
+        opts = defaults opts,
+            max_time : undefined   # set to something shorter to not try forever (queries could pile up pointlessly).
+                                   # Only first max_time is used.
+            cb       : undefined
+        dbg = @_dbg("connect")
+        if @_connecting?
+            dbg('already trying to connect')
+            @_connecting.push(opts.cb)
+            return
+        dbg('will try to connect')
+        if opts.max_time
+            dbg("for up to #{opts.max_time}ms")
+        else
+            dbg("until successful")
+        @_connecting = [opts.cb]
+        misc.retry_until_success
+            f           : @_connect
+            max_delay   : 7000
+            max_time    : opts.max_time
+            start_delay : 500 + 500*Math.random()
+            log         : dbg
+            cb          : (err) =>
+                v = @_connecting
+                delete @_connecting
+                for cb in v
+                    cb?(err)
+
     _connect: (cb) =>
-        dbg = @_dbg("connect"); dbg()
+        dbg = @_dbg("_do_connect"); dbg()
+        if @_client?
+            @_client.end()
+            delete @_client
         async.series([
-            (cb) =>
-                if @_client?
-                    @_client.end(cb)
-                else
-                    cb()
             (cb) =>
                 @_concurrent_queries = 0
                 dbg("first make sure db exists")
@@ -61,6 +85,10 @@ class exports.PostgreSQL extends EventEmitter
                     database : @_database
                 if @_notification?
                     @_client.on('notification', @_notification)
+                @_client.on 'error', (err) =>
+                    dbg("error -- #{err}")
+                    @_client.end()
+                    delete @_client
                 @_client.connect(cb)
         ], (err) =>
             if err
@@ -112,6 +140,23 @@ class exports.PostgreSQL extends EventEmitter
             order_by    : undefined
             limit       : undefined
             cb          : undefined
+
+        if not @_client?
+            dbg = @_dbg("_query")
+            dbg("connecting first...")
+            @connect
+                max_time : 45000    # don't try forever; queries would pile up.
+                cb       : (err) =>
+                    if err
+                        dbg("FAILED to connect -- #{err}")
+                        opts.cb("database is down (please try later)")
+                    else
+                        dbg("connected, now doing query")
+                        @__do_query(opts)
+        else
+            @__do_query(opts)
+
+    __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
         if not @_client?
