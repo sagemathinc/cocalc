@@ -1161,12 +1161,32 @@ class exports.PostgreSQL extends PostgreSQL
                                 return true
                         select : {id:'UUID', time:'TIMESTAMP'}
 
+                if pg_changefeed == 'collaborators'
+                    if not account_id?
+                        cb("account_id must be given")
+                        return
+                    pg_changefeed = (db, account_id) ->
+                        shared_tracker = undefined
+                        where : (obj) ->  # client side test of "is a collab with me"
+                            return shared_tracker.collabs(account_id)[obj.account_id]
+
+                        init_tracker : (tracker, feed) =>
+                            shared_tracker = tracker
+                            tracker.on 'add_collaborator', (x) =>
+                                if x.account_id == account_id
+                                    feed.insert({account_id:x.collab_id})
+                            tracker.on 'remove_collaborator', (x) =>
+                                if x.account_id == account_id
+                                    feed.delete({account_id:x.collab_id})
+
+
                 x = pg_changefeed(@, account_id)
                 if x.init_tracker?
                     init_tracker = x.init_tracker
                 if x.select?
                     for k, v of x.select
                         select[k] = v
+
                 if x.where?
                     where = x.where
                     if not account_id?

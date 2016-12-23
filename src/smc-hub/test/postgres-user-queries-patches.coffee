@@ -190,7 +190,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:'sage', time:misc.minutes_ago(4), user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('no such syncstring')
+                expect(err).toEqual("string_id (='sage') must be a string of length 40")
                 done()
 
     it 'tries to write invalid time and fails', (done) ->
@@ -238,7 +238,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{time:t0, user_id:1, patch:patch0}}
             cb         : (err) ->
-                expect(err).toEqual("query must specify (primary) key 'string_id'")
+                expect(err).toEqual("string_id (='undefined') must be a string of length 40")
                 done()
 
     it 'tries to write without including user field at all (and fails)', (done) ->

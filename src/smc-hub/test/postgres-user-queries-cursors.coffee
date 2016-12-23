@@ -223,7 +223,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[0]
             query : {cursors:{string_id:'sage', time:t[4], user_id:2, locs:[{x:20,y:25}]}}
             cb    : (err) ->
-                expect(err).toEqual('no such syncstring')
+                expect(err).toEqual("string_id (='sage') must be a string of length 40")
                 done()
 
     it 'tries to write with missing locs and fail', (done) ->

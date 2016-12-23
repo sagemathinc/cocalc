@@ -377,6 +377,7 @@ schema.collaborators =
     user_query:
         get :
             pg_where : ["account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)": 'account_id']
+            pg_changefeed : 'collaborators'
             all :
                 method : 'getAll'
                 args   : ['collaborators']

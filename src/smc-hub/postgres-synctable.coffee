@@ -439,6 +439,7 @@ class Changes extends EventEmitter
                 else
                     for x in results
                         if @_match_condition(x)
+                            misc.map_mutate_out_undefined(x)
                             @emit('change', {action:'insert', new_val:x})
     delete: (where) =>
         # listener is meant to delete everything that *matches* the where, so
