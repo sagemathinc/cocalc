@@ -623,7 +623,7 @@ schema.project_log =
                 event       : null
         set :
             fields :
-                id         : true
+                id         : (obj) -> obj.id ? misc.uuid()
                 project_id : 'project_write'
                 account_id : 'account_id'
                 time       : true
@@ -1116,6 +1116,26 @@ class ClientDB
         cb()
     _user_set_query_project_change_before: (obj, old_val, new_val, cb) =>
         cb()
+
+    primary_keys: (table) =>
+        @_primary_keys_cache ?= {}
+        if @_primary_keys_cache[table]?
+            return @_primary_keys_cache[table]
+        t = schema[table]
+        if t.virtual?
+            t = schema[t.virtual]
+        v = t?.primary_key
+        if not v?
+            throw Error("primary key for table '#{table}' must be explicitly specified in schema")
+        if typeof(v) == 'string'
+            return @_primary_keys_cache[table] = [v]
+        else if misc.is_array(v)
+            if v.length == 0
+                throw Error("at least one primary key must specified")
+            return @_primary_keys_cache[table] = v
+        else
+            throw Error("primary key must be a string or array of strings")
+
 
 exports.client_db = new ClientDB()
 

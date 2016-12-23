@@ -53,8 +53,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
-DEBUG = false
-#DEBUG = true
+#DEBUG = false
+DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor: (@project_id) ->

@@ -349,7 +349,11 @@ class Changes extends EventEmitter
     constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
         @dbg = @_db._dbg("ChangeFeed(table='#{@_table}')")
         @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}, @_where=#{misc.to_json(@_where)}")
-        @_init_where()
+        try
+            @_init_where()
+        catch e
+            cb?("error initializing where conditions -- #{e}")
+            return
         @_db._listen @_table, @_select, @_watch, (err, tgname) =>
             if err
                 cb(err); return

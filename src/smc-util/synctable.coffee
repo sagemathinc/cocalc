@@ -136,10 +136,8 @@ class SyncTable extends EventEmitter
         @_init_heartbeat()
 
     # Return string key used in the immutable map in which this table is stored.
-    to_key: (x) =>
-        if immutable.Map.isMap(x)
-            x = x.get(@_primary_key).toJS()
-        return to_key(x)
+    key: (obj) =>
+        return @_key(obj)
 
     # Return true if there are changes to this synctable that
     # have NOT been confirmed as saved to the backend database.
@@ -308,11 +306,42 @@ class SyncTable extends EventEmitter
         @_schema = schema.SCHEMA[@_table]
         if not @_schema?
             throw Error("unknown schema for table #{@_table}")
-        @_primary_key = @_schema.primary_key ? "id"
+        @_primary_keys = schema.client_db.primary_keys(@_table)
         # TODO: could put in more checks on validity of query here, using schema...
-        if not @_query[@_table][0][@_primary_key]?
-            # must include primary key in query
-            @_query[@_table][0][@_primary_key] = null
+        for primary_key in @_primary_keys
+            if not @_query[@_table][0][primary_key]?
+                # must include each primary key in query
+                @_query[@_table][0][primary_key] = null
+        # Function @_to_key to extract primary key from object
+        if @_primary_keys.length == 1
+            # very common case
+            pk = @_primary_keys[0]
+            @_key = (obj) =>
+                if not obj?
+                    return
+                if immutable.Map.isMap(obj)
+                    return to_key(obj.get(pk))
+                else
+                    return to_key(obj[pk])
+        else
+            # compound primary key
+            @_key = (obj) =>
+                if not obj?
+                    return
+                v = []
+                if immutable.Map.isMap(obj)
+                    for pk in @_primary_keys
+                        a = obj.get(pk)
+                        if not a?
+                            return
+                        v.push(a)
+                else
+                    for pk in @_primary_keys
+                        a = obj[pk]
+                        if not a?
+                            return
+                        v.push(a)
+                return to_key(v)
 
         # Which fields the user is allowed to set.
         @_set_fields = []
@@ -485,10 +514,22 @@ class SyncTable extends EventEmitter
         # Send our changes to the server.
         query = []
         saved_objs = []
-        # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        # sort so that behavior is more predictable = faster (e.g., sync patches are in
+        # order); the keys are strings so default sort is fine
         for key in misc.keys(changed).sort()
             c = changed[key]
-            obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
+            obj = {}
+            # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
+            if @_primary_keys.length == 1
+                obj[@_primary_keys[0]] = key
+            else
+                # unwrap compound primary key
+                v = JSON.parse(key)
+                i = 0
+                for primary_key in @_primary_keys
+                    obj[primary_key] = v[i]
+                    i += 1
+
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
@@ -617,7 +658,7 @@ class SyncTable extends EventEmitter
         # to the corresponding record.
         x = {}
         for y in v
-            x[to_key(y[@_primary_key])] = y
+            x[@_key(y)] = y
 
         conflict = false
 
@@ -711,9 +752,9 @@ class SyncTable extends EventEmitter
         if change.new_val?
             conflict = @_handle_new_val(change.new_val, changed_keys)
 
-        if change.old_val? and to_key(change.old_val[@_primary_key]) != to_key(change.new_val?[@_primary_key])
+        if change.old_val? and @_key(change.old_val) != @_key(change.new_val)
             # Delete a record (TODO: untested)
-            key = to_key(change.old_val[@_primary_key])
+            key = @_key(change.old_val)
             @_value_local = @_value_local.delete(key)
             @_value_server = @_value_server.delete(key)
             changed_keys.push(key)
@@ -726,7 +767,7 @@ class SyncTable extends EventEmitter
                 @save()
 
     _handle_new_val: (val, changed_keys) =>
-        key       = to_key(val[@_primary_key])
+        key       = @_key(val)
         new_val   = immutable.fromJS(val)
         local_val = @_value_local.get(key)
         conflict  = false
@@ -763,12 +804,24 @@ class SyncTable extends EventEmitter
     # This function returns the computed primary key if it works,
     # and returns undefined otherwise.
     _computed_primary_key: (obj) =>
-        f = @_client_query.set.fields[@_primary_key]
-        if typeof(f) == 'function'
-            return f(obj.toJS(), schema.client_db)
+        if @_primary_keys.length == 1
+            f = @_client_query.set.fields[@_primary_keys[0]]
+            if typeof(f) == 'function'
+                return f(obj.toJS(), schema.client_db)
+            else
+                return
+        else
+            v = []
+            for pk in @_primary_keys
+                f = @_client_query.set.fields[pk]
+                if typeof(f) == 'function'
+                    v.push(f(obj.toJS(), schema.client_db))
+                else
+                    return
+            return v
 
     # Changes (or creates) one entry in the table.
-    # The input changes is either an Immutable.js Map or a JS Object map.
+    # The input field changes is either an Immutable.js Map or a JS Object map.
     # If changes does not have the primary key then a random record is updated,
     # and there *must* be at least one record.  Exception: computed primary
     # keys will be computed (see stuff about computed primary keys above).
@@ -816,18 +869,25 @@ class SyncTable extends EventEmitter
             return
 
         # Determine the primary key's value
-        id = to_key(changes.get(@_primary_key))
+        id = @_key(changes)
         if not id?
             # attempt to compute primary key if it is a computed primary key
-            id = to_key(@_computed_primary_key(changes))
-            if not id?
+            id0 = @_computed_primary_key(changes)
+            id = to_key(id0)
+            if not id? and @_primary_keys.length == 1
                 # use a "random" primary key from existing data
-                id = @_value_local.keySeq().first()
+                id0 = id = @_value_local.keySeq().first()
             if not id?
-                cb?("must specify primary key #{@_primary_key}, have at least one record, or have a computed primary key")
+                cb?("must specify primary key #{@_primary_keys.join(',')}, have at least one record, or have a computed primary key")
                 return
             # Now id is defined
-            changes = changes.set(@_primary_key, id)
+            if @_primary_keys.length == 1
+                changes = changes.set(@_primary_keys[0], id0)
+            else
+                i = 0
+                for pk in @_primary_keys
+                    changes = changes.set(pk, id0[i])
+                    i += 1
 
         # Get the current value
         cur  = @_value_local.get(id)

@@ -22,7 +22,7 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA} = require('smc-util/schema')
+{SCHEMA, client_db} = require('smc-util/schema')
 
 class exports.PostgreSQL extends EventEmitter
     constructor: (opts) ->
@@ -447,23 +447,7 @@ class exports.PostgreSQL extends EventEmitter
                     cb(undefined, (row.column_name for row in result.rows))
 
     _primary_keys: (table) =>
-        @_primary_keys_cache ?= {}
-        if @_primary_keys_cache[table]?
-            return @_primary_keys_cache[table]
-        t = SCHEMA[table]
-        if t.virtual?
-            t = SCHEMA[t.virtual]
-        v = t?.primary_key
-        if not v?
-            throw Error("primary key for table '#{table}' must be explicitly specified in schema")
-        if typeof(v) == 'string'
-            return @_primary_keys_cache[table] = [v]
-        else if misc.is_array(v)
-            if v.length == 0
-                throw Error("at least one primary key must specified")
-            return @_primary_keys_cache[table] = v
-        else
-            throw Error("primary key must be a string or array of strings")
+        return client_db.primary_keys(table)
 
     # Return *the* primary key, assuming unique; otherwise raise an exception.
     _primary_key: (table) =>
