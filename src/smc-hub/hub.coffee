@@ -1538,6 +1538,8 @@ class Client extends EventEmitter
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if result?.action == 'close'
+                    err = 'close'
                 if err
                     dbg("user_query(query='#{to_json(query)}') error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]

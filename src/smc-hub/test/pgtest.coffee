@@ -26,7 +26,8 @@ exports.setup = (cb) ->
                 # first time so delete the entire database
                 dropdb(cb)
         (cb) ->
-            exports.db = postgres.db(database:DATABASE, port:PORT, debug:DEBUG, cb:cb)
+            exports.db = postgres.db(database:DATABASE, port:PORT, debug:DEBUG)
+            exports.db.connect(cb:cb)
         (cb) ->
             exports.db.update_schema(cb:cb)
         (cb) ->

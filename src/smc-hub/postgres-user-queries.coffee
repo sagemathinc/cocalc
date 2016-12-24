@@ -1215,7 +1215,7 @@ class exports.PostgreSQL extends PostgreSQL
                             process(x)
                             changes.cb(undefined, x)
                         feed.on 'close', ->
-                            changes.cb('close')
+                            changes.cb(undefined, {action:'close'})
                         feed.on 'error', (err) ->
                             changes.cb(err)
                         @_changefeeds ?= {}

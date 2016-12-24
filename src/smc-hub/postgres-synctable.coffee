@@ -554,8 +554,6 @@ class Changes extends EventEmitter
                     return false
             return true
 
-
-# TODO: Make SyncTable robust to database reconnects.
 class SyncTable extends EventEmitter
     constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
         t = SCHEMA[@_table]
@@ -584,7 +582,7 @@ class SyncTable extends EventEmitter
         @_init (err) => cb(err, @)
 
     _dbg: (f) =>
-        return @_db._dbg("SyncTable.#{f}")
+        return @_db._dbg("SyncTable(table='#{@_table}').#{f}")
 
     _query_opts: () =>
         opts = {}
@@ -597,6 +595,7 @@ class SyncTable extends EventEmitter
     close: (cb) =>
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_notification)
+        @_db.removeListener('connect', @_reconnect)
         delete @_value
         @_state = 'closed'
         @_db._stop_listening(@_table, @_listen_columns, [], cb)
@@ -617,12 +616,20 @@ class SyncTable extends EventEmitter
             @_update()
 
     _init: (cb) =>
+        misc.retry_until_success
+            f           : @_do_init
+            start_delay : 3000
+            max_delay   : 10000
+            log         : @_dbg("_init")
+            cb          : cb
+
+    _do_init: (cb) =>
         @_state = 'init' # 'init' -> ['error', 'ready'] -> 'closed'
         @_value = immutable.Map()
         @_changed = {}
         async.series([
             (cb) =>
-                # ensure database client is listen for primary keys changes to our table
+                # ensure database client is listening for primary keys changes to our table
                 @_db._listen @_table, @_listen_columns, [], (err, tgname) =>
                     @_tgname = tgname
                     @_db.on(@_tgname, @_notification)
@@ -634,6 +641,7 @@ class SyncTable extends EventEmitter
                         cb(err)
                     else
                         @_process_results(result.rows)
+                        @_db.once('connect', @_reconnect)
                         cb()
                 @_db._query(opts)
             (cb) =>
@@ -646,6 +654,37 @@ class SyncTable extends EventEmitter
                     @_state = 'ready'
                     cb()
             )
+
+    _reconnect: (cb) =>
+        dbg = @_dbg("_reconnect")
+        if @_state != 'ready'
+            dbg("only attempt reconnect if we were already successfully connected at some point.")
+            return
+        # Everything was already initialized, but then the connection to the
+        # database was dropped... and then successfully re-connected.  Now
+        # we need to (1) setup everything again, and (2) send out notifications
+        # about anything in the table that changed.
+
+        dbg("Save state from before disconnect")
+        before = @_value
+
+        dbg("Clean up everything.")
+        @_db.removeListener(@_tgname, @_notification)
+        @_db.removeListener('connect', @_reconnect)
+        delete @_value
+
+        dbg("connect and initialize")
+        @_init (err) =>
+            if err
+                cb?(err)
+                return
+            dbg("notify about anything that changed when we were disconnected")
+            before.map (v, k) =>
+                if not v.equals(@_value.get(k))
+                    @emit('change', k)
+            @_value.map (v, k) =>
+                if not before.has(k)
+                    @emit('change', k)
 
     _process_results: (rows) =>
         for x in rows
