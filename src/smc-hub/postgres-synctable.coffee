@@ -359,15 +359,23 @@ class Changes extends EventEmitter
                 cb(err); return
             @_tgname = tgname
             @_db.on(@_tgname, @_handle_change)
+            # NOTE: we close on *connect*, not on disconnect, since then clients
+            # that try to reconnect will only try to do so when we have an actual
+            # connection to the database.  No point in worrying them while trying
+            # to reconnect, which only makes matters worse (as they panic and
+            # requests pile up!).
+            @_db.once('connect', @close)
             cb(undefined, @)
 
     close: (cb) =>
         @emit('close', {action:'close'})
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_handle_change)
+        @_db.removeListener('connect', @close)
         @_db._stop_listening(@_table, @_select, @_watch, cb)
         delete @_tgname
         delete @_condition
+        cb?()
 
     _old_val: (result, action, mesg) =>
         # include only changed fields if action is 'update'

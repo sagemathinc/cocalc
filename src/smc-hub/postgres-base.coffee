@@ -24,7 +24,7 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
-class exports.PostgreSQL extends EventEmitter
+class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
             host     : 'localhost'
@@ -67,6 +67,8 @@ class exports.PostgreSQL extends EventEmitter
                 delete @_connecting
                 for cb in v
                     cb?(err)
+                if not err
+                    @emit('connect')
 
     _connect: (cb) =>
         dbg = @_dbg("_do_connect"); dbg()
