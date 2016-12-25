@@ -1630,7 +1630,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)

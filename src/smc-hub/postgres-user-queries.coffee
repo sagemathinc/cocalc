@@ -258,11 +258,10 @@ class exports.PostgreSQL extends PostgreSQL
                         if value[0] == '-'
                             value = value.slice(1) + " DESC "
                         r.order_by = value
-                    when 'heartbeat'
-                        # not implemented
-                        @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option!")
                     when 'delete'
                         # ignore delete here - is parsed elsewhere
+                    when 'heartbeat'
+                        @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
                     else
                         r.err = "unknown option '#{name}'"
         return r
@@ -1231,7 +1230,7 @@ class exports.PostgreSQL extends PostgreSQL
             table      : required
             query      : required
             multi      : required
-            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n},
+            options    : required   # used for initial query; **IGNORED** by changefeed,
                                     # which ensures that *something* is sent every n minutes, in case no
                                     # changes are coming out of the changefeed. This is an additional
                                     # measure in case the client somehow doesn't get a "this changefeed died" message.
