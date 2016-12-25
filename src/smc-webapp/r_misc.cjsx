@@ -1271,7 +1271,7 @@ exports.UpgradeAdjustor = rclass
             else
                 current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
-
+        state['removal_history'] = []
         return state
 
      get_quota_info : ->
@@ -1341,15 +1341,18 @@ exports.UpgradeAdjustor = rclass
         </MenuItem>
 
     remove_upgrade_from_project: (project_id, name) ->
+        @state.removal_history.push({'project_id': project_id, 'name': name})
+        @setState(removal_history: @state.removal_history)
         quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
         delete quotas_to_apply[name]
         redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
 
     render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
         for project_id, i in projects_with_this_upgrade
-            <MenuItem 
+            <MenuItem
                 eventKey={i}
-                onClick={=>@remove_upgrade_from_project(project_id, name)}>
+                onClick={=>@remove_upgrade_from_project(project_id, name)}
+            >
                 {redux.getStore('projects')?.get_title(project_id)}
             </MenuItem>
 
@@ -1525,6 +1528,18 @@ exports.UpgradeAdjustor = rclass
                 changed = true
         return changed
 
+    render_removals: ->
+        for removal in @state.removal_history
+            <li>{removal.project_id}</li>
+
+    render_removal_history: ->
+        <div>
+            <b>Removal history</b>
+            <ul>
+                {@render_removals()}
+            </ul>
+        </div>
+
     render: ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
@@ -1574,6 +1589,7 @@ exports.UpgradeAdjustor = rclass
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
+                {@render_removal_history() if @state.removal_history}
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
