@@ -56,7 +56,6 @@ Passports = rclass
 
     propTypes :
         strategies : rtypes.array
-        actions    : rtypes.object.isRequired
 
     styles :
         facebook :
@@ -107,7 +106,6 @@ SignUp = rclass
 
     propTypes :
         strategies    : rtypes.array
-        actions       : rtypes.object.isRequired
         sign_up_error : rtypes.object
         token         : rtypes.bool
         has_account   : rtypes.bool
@@ -120,7 +118,7 @@ SignUp = rclass
         email    = ReactDOM.findDOMNode(@refs.email).value
         password = ReactDOM.findDOMNode(@refs.password).value
         token    = ReactDOM.findDOMNode(@refs.token)?.value
-        @props.actions.create_account(name, email, password, token)
+        @actions('account').create_account(name, email, password, token)
 
     display_error: (field)->
         if @props.sign_up_error?[field]?
@@ -130,7 +128,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports actions={@props.actions} strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} />
 
     display_token_input: ->
         if @props.token
@@ -178,7 +176,6 @@ SignIn = rclass
     displayName : "SignIn"
 
     propTypes :
-        actions       : rtypes.object.isRequired
         sign_in_error : rtypes.string
         signing_in    : rtypes.bool
         has_account   : rtypes.bool
@@ -193,22 +190,22 @@ SignIn = rclass
     sign_in: (e) ->
         if e?
             e.preventDefault()
-        @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
+        @actions('account').sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password: ->
-        @props.actions.setState(show_forgot_password : true)
+        @actions('account').setState(show_forgot_password : true)
 
     display_error: ->
         if @props.sign_in_error?
             <ErrorDisplay
                 style   = {margin:'15px'}
                 error   = {@props.sign_in_error}
-                onClose = {=>@props.actions.setState(sign_in_error: undefined)}
+                onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
     remove_error: ->
         if @props.sign_in_error
-            @props.actions.setState(sign_in_error : undefined)
+            @actions('account').setState(sign_in_error : undefined)
 
     render: ->
         if @props.xs
@@ -284,8 +281,7 @@ SignIn = rclass
 ForgotPassword = rclass
     displayName : "ForgotPassword"
 
-    propTypes :
-        actions                 : rtypes.object.isRequired
+    propTypes:
         forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string
 
@@ -297,7 +293,7 @@ ForgotPassword = rclass
         e.preventDefault()
         value = @state.email_address
         if misc.is_valid_email_address(value)
-            @props.actions.forgot_password(value)
+            @actions('account').forgot_password(value)
 
     set_email: (evt) ->
         email = evt.target.value
@@ -321,9 +317,9 @@ ForgotPassword = rclass
             </span>
 
     hide_forgot_password: ->
-        @props.actions.setState(show_forgot_password    : false)
-        @props.actions.setState(forgot_password_error   : undefined)
-        @props.actions.setState(forgot_password_success : undefined)
+        @actions('account').setState(show_forgot_password    : false)
+        @actions('account').setState(forgot_password_error   : undefined)
+        @actions('account').setState(forgot_password_success : undefined)
 
     render: ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -360,7 +356,6 @@ ForgotPassword = rclass
 
 ResetPassword = rclass
     propTypes: ->
-        actions              : rtypes.object.isRequired
         reset_key            : rtypes.string.isRequired
         reset_password_error : rtypes.string
 
@@ -368,12 +363,12 @@ ResetPassword = rclass
 
     reset_password: (e) ->
         e.preventDefault()
-        @props.actions.reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
+        @actions('account').reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
 
     hide_reset_password: (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setState(reset_key : '', reset_password_error : '')
+        @actions('account').setState(reset_key : '', reset_password_error : '')
 
     display_error: ->
         if @props.reset_password_error
@@ -562,7 +557,6 @@ RememberMe = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        actions                 : rtypes.object.isRequired
         strategies              : rtypes.array
         sign_up_error           : rtypes.object
         sign_in_error           : rtypes.string
@@ -581,18 +575,19 @@ exports.LandingPage = rclass
         if not @props.remember_me
             reset_key = reset_password_key()
             <div style={margin: UNIT}>
-                    {<ResetPassword reset_key={reset_key}
-                                    reset_password_error={@props.reset_password_error}
-                                    actions={@props.actions} /> if reset_key}
-                    {<ForgotPassword actions={@props.actions}
-                                     forgot_password_error={@props.forgot_password_error}
-                                     forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                    {<ResetPassword
+                        reset_key={reset_key}
+                        reset_password_error={@props.reset_password_error}
+                    /> if reset_key}
+                    {<ForgotPassword
+                        forgot_password_error={@props.forgot_password_error}
+                        forgot_password_success={@props.forgot_password_success}
+                    /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
-                            actions       = {@props.actions}
                             signing_in    = {@props.signing_in}
                             sign_in_error = {@props.sign_in_error}
                             has_account   = {@props.has_account}
@@ -614,7 +609,6 @@ exports.LandingPage = rclass
                                   float    : "right"}
                            className="smc-sign-in-form">
                           <SignIn
-                              actions       = {@props.actions}
                               signing_in    = {@props.signing_in}
                               sign_in_error = {@props.sign_in_error}
                               has_account   = {@props.has_account}
@@ -661,7 +655,6 @@ exports.LandingPage = rclass
                     </Col>
                     <Col sm=5>
                         <SignUp
-                            actions       = {@props.actions}
                             sign_up_error = {@props.sign_up_error}
                             strategies    = {@props.strategies}
                             token         = {@props.token}

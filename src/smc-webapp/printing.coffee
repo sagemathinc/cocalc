@@ -265,7 +265,7 @@ class SagewsPrinter extends Printer
                         .cm-keyword { font-weight: bold; color: #339; }
                         .cm-atom { color: #666; }
                         .cm-number { color: #333; }
-                        .cm-def { color: #666; }
+                        .cm-def { color: #333; font-weight: bold; }
                         .cm-variable { color: black; }
                         .cm-variable-2 { color:black; }
                         .cm-variable-3 { color: black; }
