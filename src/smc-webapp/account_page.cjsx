@@ -97,7 +97,6 @@ exports.AccountPage = rclass
     render_landing_page: ->
         <LandingPage
             redux                   = {redux}
-            actions                 = {@props.actions}
             strategies              = {@props.strategies}
             sign_up_error           = {@props.sign_up_error}
             sign_in_error           = {@props.sign_in_error}

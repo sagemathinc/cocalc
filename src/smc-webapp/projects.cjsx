@@ -157,13 +157,10 @@ class ProjectsActions extends Actions
         require('./project_store') # registers the project store with redux...
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)
-        sort_by_time = store.sort_by_time ? true
-        show_hidden = store.show_hidden ? false
-
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
-        actions.fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
+        actions.fetch_directory_listing()
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?

@@ -163,9 +163,7 @@ class ProjectActions extends Actions
         switch key
             when 'files'
                 @set_url_to_path(store.current_path ? '')
-                sort_by_time = store.sort_by_time
-                show_hidden = store.show_hidden
-                @fetch_directory_listing(store.current_path, sort_by_time, show_hidden)
+                @fetch_directory_listing()
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.current_path)
@@ -176,11 +174,18 @@ class ProjectActions extends Actions
                 @push_state('search/' + store.current_path)
             when 'settings'
                 @push_state('settings')
-            else #editor...
+            else # editor...
                 path = misc.tab_to_path(key)
                 @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
                 @push_state('files/' + path)
                 @set_current_path(misc.path_split(path).head)
+
+                # Reopen the file if relationship has changed
+                is_public = redux.getStore('projects').get_my_group(@project_id) == 'public'
+                was_public = store.open_files.getIn([path, 'component']).is_public
+                if is_public != was_public
+                    @open_file(path : path)
+
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().num_ghost_file_tabs
@@ -294,7 +299,6 @@ class ProjectActions extends Actions
                             return
 
                         is_public = group == 'public'
-
                         ext = misc.filename_extension_notilde(opts.path).toLowerCase()
 
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
@@ -347,7 +351,13 @@ class ProjectActions extends Actions
                         open_files = store.open_files
 
                         # Only generate the editor component if we don't have it already
-                        if not open_files.has(opts.path)
+                        # Also regenerate if view type (public/not-public) changes
+                        if not open_files.has(opts.path) or open_files.getIn([opts.path, 'component']).is_public != is_public
+                            was_public = open_files.getIn([opts.path, 'component'])?.is_public
+                            if was_public? and was_public != is_public
+                                @setState(open_files : store.open_files.delete(opts.path))
+                                project_file.remove(opts.path, @redux, @project_id, was_public)
+
                             open_files_order = store.open_files_order
 
                             # Initialize the file's store and actions
@@ -367,9 +377,12 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'component'], info)
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
+                            index = open_files_order.indexOf(opts.path)
+                            if index == -1
+                                index = open_files_order.size
                             @setState
                                 open_files       : open_files
-                                open_files_order : open_files_order.push(opts.path)
+                                open_files_order : open_files_order.set(index, opts.path)
 
                         if opts.foreground
                             @foreground_project()
@@ -562,10 +575,16 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    fetch_directory_listing: (path, sort_by_time, show_hidden) =>
-        if not path?
-            # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-            path = @get_store()?.current_path
+    fetch_directory_listing: (opts) =>
+        # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
+        {path, sort_by_time, show_hidden} = defaults opts,
+            path         : @get_store()?.current_path
+            sort_by_time : undefined
+            show_hidden  : undefined
+            finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
+            # In the vast majority of cases, you just want to look at the data.
+            # Very rarely should you need something to execute exactly after this
+
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
             return
@@ -581,23 +600,20 @@ class ProjectActions extends Actions
         # get_my_group is defined.
         id = misc.uuid()
         @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        group   = undefined
-        listing = undefined
-        async.series([
+        async.waterfall([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : (err, x) =>
-                        group = x; cb(err)
-            (cb) =>
+                    cb      : cb
+            (group, cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= store.current_path ? ""
-                sort_by_time ?= store.sort_by_time ? true
-                show_hidden  ?= store.show_hidden ? false
+                path         ?= store.current_path
+                sort_by_time ?= store.sort_by_time
+                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
@@ -605,10 +621,8 @@ class ProjectActions extends Actions
                     hidden     : show_hidden
                     max_time_s : 4*60  # keep trying for up to 4 minutes
                     group      : group
-                    cb         : (err, x) =>
-                        listing = x
-                        cb(err)
-        ], (err) =>
+                    cb         : cb
+        ], (err, listing) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
@@ -617,6 +631,7 @@ class ProjectActions extends Actions
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
+            opts?.finish_cb?()
         )
 
     # Increases the selected file index by 1
@@ -1203,30 +1218,36 @@ class ProjectActions extends Actions
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
-                    @fetch_directory_listing(parent_path, true, true)
-                    @get_store().wait
-                        until   : (s) =>
-                            listing = s.directory_listings.get(parent_path)
-                            if typeof(listing) == 'string'   # must be an error
-                                return {err: listing}
-                            return listing?.find((val) => val.get('name') == last)
-                        timeout : 30
-                        cb      : (err, item) =>
-                            err = err ? item.err
-                            if err
-                                if err == 'timeout'
-                                    alert_message(type:'error', message:"Timeout opening '#{target}' -- try later")
-                                else
-                                    alert_message(type:'error', message:"Error opening '#{target}': #{err}")
-                                @open_directory(parent_path)
+                    # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
+                    # Assume that if it's loaded, it's good enough.
+                    async.waterfall [
+                        (cb) =>
+                            {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            cb(err, item)
+                        (item, cb) => # Fetch if error or nothing found
+                            if not item?
+                                @fetch_directory_listing
+                                    path         : parent_path
+                                    show_hidden  : true
+                                    finish_cb    : =>
+                                        {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        cb(err, item)
                             else
-                                if item.get('isdir')
-                                    @open_directory(full_path)
-                                else
-                                    @open_file
-                                        path       : full_path
-                                        foreground : foreground
-                                        foreground_project : foreground
+                                cb(undefined, item)
+                    ], (err, item) =>
+                        if err?
+                            if err == 'timeout'
+                                alert_message(type:'error', message:"Timeout opening '#{target}' -- try later")
+                            else
+                                alert_message(type:'error', message:"Error opening '#{target}': #{err}")
+                        if item?.get('isdir')
+                            @open_directory(full_path)
+                        else
+                            @open_file
+                                path       : full_path
+                                foreground : foreground
+                                foreground_project : foreground
+
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)
                 @set_active_tab('new')
@@ -1269,6 +1290,7 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
+        sort_by_time       : true
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1412,6 +1434,14 @@ create_project_store_def = (name, project_id) ->
     # Not a property
     is_file_open: (path) ->
         return @getIn(['open_files', path])?
+
+    # Returns
+    # Not a property
+    get_item_in_path: (name, path) ->
+        listing = @directory_listings.get(path)
+        if typeof listing == 'string'   # must be an error
+            return {err : listing}
+        return {item : listing?.find (val) => val.get('name') == name}
 
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()
