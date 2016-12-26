@@ -215,6 +215,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if result?.action == 'close'
+                    err = 'close'
                 if err
                     dbg("project_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
