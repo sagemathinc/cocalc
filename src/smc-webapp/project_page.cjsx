@@ -240,7 +240,7 @@ ProjectWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: {<span>This project is over its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_over_quota} {<span>This project is near its memory quota.</span> if memory_near_quota} {<span>This project runs</span> if host or internet} {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: {<span>This project is over its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_over_quota} {<span>This project is near its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_near_quota} {<span>This project is over its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_over_quota} {<span>This project is near its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_near_quota} {<span>This project runs</span> if host or internet} {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             {@render_learn_more() if host or internet}
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
