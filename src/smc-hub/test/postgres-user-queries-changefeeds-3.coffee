@@ -88,7 +88,7 @@ describe 'test changefeed of all collaborators of a user -- ', ->
 
 
 
-describe 'test fields are updated -- ', ->
+describe 'test collaborators fields are updated -- ', ->
     before(setup)
     after(teardown)
 

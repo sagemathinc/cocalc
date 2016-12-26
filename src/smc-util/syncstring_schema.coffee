@@ -328,6 +328,7 @@ schema.eval_inputs =
             pg_check : "CHECK (user_id >= 0)"
         input :
             type : 'map'
+            desc : "For example it could be {program:'sage' or 'sh', input:{code:'...', data:'...', preparse:?, event:'execute_code', output_uuid:?, id:....}}"
     user_query:
         get :
             fields :
