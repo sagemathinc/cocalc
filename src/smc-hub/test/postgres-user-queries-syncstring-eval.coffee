@@ -20,7 +20,7 @@ teardown = pgtest.teardown
 {create_accounts, create_projects, changefeed_series} = pgtest
 misc = require('smc-util/misc')
 
-describe 'basic use of eval_inputs table --', ->
+describe 'use of eval_inputs table --', ->
     before(setup)
     after(teardown)
 
@@ -174,8 +174,50 @@ describe 'basic use of eval_inputs table --', ->
                 expect(err).toEqual('postgresql error: new row for relation "eval_inputs" violates check constraint "eval_inputs_user_id_check"')
                 done()
 
+    it 'tests uses of eval_inputs changefeed', (done) ->
+        changefeed_id = misc.uuid()
+        t2 = new Date()
+        db.user_query
+            project_id : projects[0]
+            query      : {eval_inputs:[{string_id:string_id, time:{'>=':misc.hours_ago(4)}, user_id:null, input:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.eval_inputs.length).toEqual(1)
+
+                    # write old input -- no update
+                    db.user_query
+                        account_id : accounts[0]
+                        query      : {eval_inputs:{string_id:string_id, time:misc.hours_ago(10), user_id:0, input:input}}
+                        cb         : (err) ->
+                            if err
+                                cb(err); return
+                            # write new input, which triggers a response
+                            db.user_query
+                                account_id : accounts[0]
+                                query      : {eval_inputs:{string_id:string_id, time:t2, user_id:0, input:input}}
+                                cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t2, user_id:0, input:input}})
+
+                    # modify existing input
+                    db.user_query
+                        account_id : accounts[0]              # query has deep merge semantics by default.
+                        query      : {eval_inputs:{string_id:string_id, time:t2, user_id:0, input:{foo:'bar'}}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t2, user_id:0, input:misc.merge({foo:'bar'},input)}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+
+                    cb()
+            ], done)
+
+
 # NOTE: this is very similar to eval_inputs above.
-describe 'basic use of eval_outputs table --', ->
+describe 'use of eval_outputs table --', ->
     before(setup)
     after(teardown)
 
@@ -321,3 +363,43 @@ describe 'basic use of eval_outputs table --', ->
                 expect(err).toEqual('postgresql error: new row for relation "eval_outputs" violates check constraint "eval_outputs_number_check"')
                 done()
 
+    it 'tests uses of eval_outputs changefeed', (done) ->
+        changefeed_id = misc.uuid()
+        t2 = new Date()
+        db.user_query
+            account_id : accounts[0]
+            query      : {eval_outputs:[{string_id:string_id, time:{'>=':misc.hours_ago(4)}, number:null, output:null}]}
+            changes    : changefeed_id
+            cb         : changefeed_series([
+                (x, cb) ->
+                    expect(x.eval_outputs.length).toEqual(1)
+
+                    # write old output -- no update
+                    db.user_query
+                        project_id : projects[0]
+                        query      : {eval_outputs:{string_id:string_id, time:misc.hours_ago(10), number:0, output:output}}
+                        cb         : (err) ->
+                            if err
+                                cb(err); return
+                            # write new output, which triggers a response
+                            db.user_query
+                                project_id : projects[0]
+                                query      : {eval_outputs:{string_id:string_id, time:t2, number:0, output:output}}
+                                cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t2, number:0, output:output}})
+
+                    # modify existing output
+                    db.user_query
+                        project_id : projects[0]               # query has deep merge semantics by default.
+                        query      : {eval_outputs:{string_id:string_id, time:t2, number:0, output:{foo:'bar'}}}
+                        cb         : cb
+                (x, cb) ->
+                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t2, number:0, output:misc.merge({foo:'bar'},output)}})
+
+                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                (x, cb) ->
+                    expect(x).toEqual({action:'close'})
+
+                    cb()
+            ], done)
