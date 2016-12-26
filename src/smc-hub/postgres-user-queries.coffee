@@ -259,6 +259,7 @@ class exports.PostgreSQL extends PostgreSQL
                             value = value.slice(1) + " DESC "
                         r.order_by = value
                     when 'delete'
+                        null
                         # ignore delete here - is parsed elsewhere
                     when 'heartbeat'
                         @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
