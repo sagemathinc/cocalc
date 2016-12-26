@@ -1341,10 +1341,11 @@ exports.UpgradeAdjustor = rclass
         </MenuItem>
 
     remove_upgrade_from_project: (project_id, name) ->
-        @state.removal_history.push({'project_id': project_id, 'name': name})
-        @setState(removal_history: @state.removal_history)
         quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
-        delete quotas_to_apply[name]
+        value = quotas_to_apply[name]
+        @state.removal_history.push({'project_id': project_id, 'name': name, 'value': value})
+        @setState(removal_history: @state.removal_history)
+        quotas_to_apply[name] = 0
         redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
 
     render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
@@ -1361,7 +1362,8 @@ exports.UpgradeAdjustor = rclass
         projects_with_this_upgrade = []
         for project_id, project_upgrades of upgrades
             if project_upgrades[name]
-                projects_with_this_upgrade.push(project_id)
+                if project_id != @props.project_id
+                    projects_with_this_upgrade.push(project_id)
         if projects_with_this_upgrade.length > 0
             <DropdownButton className="small" title="Remove upgrade from" key={name} id={name}>
                 {@render_remove_upgrade_from_all(projects_with_this_upgrade, name) if projects_with_this_upgrade.length > 1}
@@ -1528,16 +1530,44 @@ exports.UpgradeAdjustor = rclass
                 changed = true
         return changed
 
+    undo_removal: (removal) ->
+        for removal_value, i in @state.removal_history
+            if removal_value == removal
+                history = @state.removal_history
+                delete history[i]
+                history = history.filter (e) -> e # removes the null
+                @setState(removal_history: history)
+        quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[removal.project_id] ? {}
+        quotas_to_apply[removal.name] = removal.value
+        redux.getActions('projects').apply_upgrades_to_project(removal.project_id, quotas_to_apply)
+
     render_removals: ->
         for removal in @state.removal_history
-            <li>{removal.project_id}</li>
+            <tr key={removal.project_id+'_'+removal.name}>
+                <th>{redux.getStore('projects')?.get_title(removal.project_id)}</th>
+                <td>{@props.quota_params[removal.name]['display']}</td>
+                <td>{misc.round2(removal.value * @props.quota_params[removal.name]['display_factor'])} {misc.plural(removal.value, @props.quota_params[removal.name]['display_unit'])}</td>
+                <td><Button onClick={=>@undo_removal(removal)}>Undo</Button></td>
+            </tr>
 
     render_removal_history: ->
         <div>
+            <br/>
             <b>Removal history</b>
-            <ul>
-                {@render_removals()}
-            </ul>
+            <br/>
+            <table className="removal-history-table">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Upgrade type</th>
+                        <th>Amount</th>
+                        <th>Undo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {@render_removals()}
+                </tbody>
+            </table>
         </div>
 
     render: ->
@@ -1589,7 +1619,7 @@ exports.UpgradeAdjustor = rclass
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
-                {@render_removal_history() if @state.removal_history}
+                {@render_removal_history() if @state.removal_history.length > 0}
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
