@@ -177,10 +177,6 @@ FreeProjectWarning = rclass ({name}) ->
             upgrading         : true
             has_subbed        : false
             state             : 'view'    # view --> edit --> saving --> view
-            title_text        : ''
-            description_text  : ''
-            error             : ''
-            create_button_hit : ''
 
     shouldComponentUpdate : (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
@@ -206,7 +202,6 @@ FreeProjectWarning = rclass ({name}) ->
         </div>
 
     create_project_with_members_and_network: ->
-        console.log('hello');
         remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
         if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
             @setState(create_button_hit: 'with_members_and_network')
@@ -238,6 +233,9 @@ FreeProjectWarning = rclass ({name}) ->
         else
             @props.actions.apply_upgrades_to_project(@props.project_id, new_quotas)
         @props.actions.restart_project(@props.project_id)
+
+    cancel_editing: ->
+        @setState(create_button_hit: '')
 
     render_upgrades_adjustor: ->
         <UpgradeAdjustor
