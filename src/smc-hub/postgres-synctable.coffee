@@ -100,6 +100,9 @@ class exports.PostgreSQL extends PostgreSQL
         @_dbg('notification')(misc.to_json(mesg))
         @emit(mesg.channel, JSON.parse(mesg.payload))
 
+    _clear_listening_state: =>
+        @_listening = {}
+
     _stop_listening: (table, select, watch, cb) =>
         @_listening ?= {}
         tgname = trigger_name(table, select, watch)

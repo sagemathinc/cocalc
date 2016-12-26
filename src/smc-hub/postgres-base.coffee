@@ -31,18 +31,19 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             database : 'smc'
             port     : 5432
             debug    : true
-        @setMaxListeners(300)
+        @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_debug    = opts.debug
         @_host     = opts.host
         @_port     = opts.port
         @_database = opts.database
         @_concurrent_queries = 0
+        @connect()  # start trying to connect
 
     engine: -> 'postgresql'
 
     connect: (opts) =>
         opts = defaults opts,
-            max_time : undefined   # set to something shorter to not try forever (queries could pile up pointlessly).
+            max_time : undefined   # set to something shorter to not try forever
                                    # Only first max_time is used.
             cb       : undefined
         dbg = @_dbg("connect")
@@ -72,6 +73,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _connect: (cb) =>
         dbg = @_dbg("_do_connect"); dbg()
+        @_clear_listening_state()   # definitely not listening
         if @_client?
             @_client.end()
             delete @_client
@@ -91,6 +93,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("error -- #{err}")
                     @_client.end()
                     delete @_client
+                    @connect()  # start trying to reconnect
                 @_client.connect(cb)
         ], (err) =>
             if err
