@@ -371,7 +371,7 @@ SupportInfo = rclass
         <div>
             {what}
             <p>
-                Seeking for documentation and help? Go to
+                Looking for documentation and help? Go to
                 the <a href="#{SmcWikiUrl}" target="_blank">SageMathCloud documentation</a>.
             </p>
             <p>
