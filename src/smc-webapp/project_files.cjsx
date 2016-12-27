@@ -1987,8 +1987,11 @@ exports.ProjectFiles = rclass ({name}) ->
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
-    render_error_message: ->
+    render_public_view_not_logged_in_error_message: ->
         <div>You are not logged in. To view non-public files or edit files in this project you{"'"}ll need to <Button bsStyle={'success'} onClick={=>$('.sign_in *').trigger('click')}>sign in</Button>. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files.</div>
+
+    render_non_public_view_not_logged_in_error_message: ->
+        <div>You are not signed in. If you are collaborator on this project you need to <Button bsStyle={'success'} onClick={=>$('.sign_in *').trigger('click')}>sign in</Button> first. This project is not public.</div>
 
     render_access_error: ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
@@ -1997,14 +2000,14 @@ exports.ProjectFiles = rclass ({name}) ->
                 <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={@render_error_message} />
+                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={@render_public_view_not_logged_in_error_message} />
                 </div>
         else
             if @props.redux.getStore('account').is_logged_in()
                 <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay title="Directory is not public" error={"You are not signed in. If you are collaborator on this project you need to sign in first. This project is not public."} />
+                    <ErrorDisplay title="Directory is not public" error={@render_non_public_view_not_logged_in_error_message} error={"You are not signed in. If you are collaborator on this project you need to sign in first. This project is not public."} />
                     <AccountPage />
                 </div>
 
