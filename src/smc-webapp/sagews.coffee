@@ -1343,7 +1343,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
             {join} = require('path')
-            new_src = join(window.smc_base_url, @project_id, 'raw', file_path, src)
+            new_src = join('/', window.smc_base_url, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
