@@ -3,15 +3,15 @@ misc = require('smc-util/misc')
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
 
-{React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
-{Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
-{LandingPage}                            = require('./landing_page')
-{AccountSettingsTop}                     = require('./r_account')
-{BillingPageRedux}                       = require('./billing')
-{UpgradesPage}                           = require('./r_upgrades')
-{SupportPage}                            = require('./support')
-{Icon}                                   = require('./r_misc')
-{set_url}                                = require('./history')
+{React, ReactDOM, rclass, rtypes, redux}           = require('./smc-react')
+{Tab, Tabs, Grid, Col, Row, Button, ButtonToolbar, Well} = require('react-bootstrap')
+{LandingPage}                                      = require('./landing_page')
+{AccountSettingsTop}                               = require('./r_account')
+{BillingPageRedux}                                 = require('./billing')
+{UpgradesPage}                                     = require('./r_upgrades')
+{SupportPage}                                      = require('./support')
+{Icon}                                             = require('./r_misc')
+{set_url}                                          = require('./history')
 
 exports.AccountPage = rclass
     displayName : 'AccountPage'
@@ -126,18 +126,74 @@ exports.AccountPage = rclass
         </Tab>
         return v
 
-    render: ->
-        logged_in = @props.redux.getStore('account').is_logged_in()
-        <Grid className='constrained'>
-            {@render_landing_page() if not logged_in}
+    render_sign_out_buttons: ->
+        <ButtonToolbar className='pull-right'>
+            <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false)}>
+                <Icon name='sign-out'/> Sign out...
+            </Button>
+            <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true)}>
+                <Icon name='sign-out'/> Sign out everywhere...
+            </Button>
+        </ButtonToolbar>
+
+    render_sign_out_confirm: ->
+        if @props.everywhere
+            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
+        else
+            text = "Are you sure you want to sign out of your account on this web browser?"
+        <Well style={marginTop: '15px'}>
+            {text}
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
+                    <Icon name="external-link" /> Sign out
+                </Button>
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+            {render_sign_out_error() if @props.sign_out_error}
+        </Well>
+
+    render_landing_page_logged_in: ->
+        <Col>
+            <Row style={marginTop: '10px'}>
+                <Col md={12} style={textAlign: 'right'}>
+                    {@render_sign_out_buttons()}<br/>
+                </Col>
+            </Row>
             {<Row>
+                <Col md={9}>
+                </Col>
+                <Col md={3}>
+                    {@render_sign_out_confirm()}
+                </Col>
+            </Row> if @props.show_sign_out}
+            <Row>
                 <Col md={12}>
-                    <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                        <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
-                            {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                    <Tabs
+                        activeKey={@props.active_page}
+                        onSelect={@handle_select}
+                        animation={false}
+                        style={paddingTop: "1em"}
+                        id="account-page-tabs">
+                        <Tab
+                            key='account'
+                            eventKey="account"
+                            title={<span><Icon name='wrench'/> Account Settings</span>}
+                        >
+                            {@render_account_settings() if not @props.active_page? or @props.active_page == 'account'}
                         </Tab>
                         {@render_commercial_tabs()}
                     </Tabs>
                 </Col>
-            </Row> if logged_in}
+            </Row>
+        </Col>
+
+    render: ->
+        logged_in = @props.redux.getStore('account').is_logged_in()
+        <Grid className='constrained'>
+            {@render_landing_page()           if not logged_in}
+            {@render_landing_page_logged_in() if logged_in}
         </Grid>
