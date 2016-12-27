@@ -361,7 +361,8 @@ class exports.PostgreSQL extends PostgreSQL
 
         # 0. CHECK: Runs before doing any further processing; has callback, so this
         # provides a generic way to quickly check whether or not this query is allowed
-        # for things that can't be done declaratively.
+        # for things that can't be done declaratively.  The check_hook can also
+        # mutate the obj (the user query), e.g., to enforce limits on input size.
         r.check_hook = r.client_query.set.check_hook
 
         # 1. BEFORE: If before_change is set, it is called with input

@@ -629,3 +629,28 @@ describe 'test the get_account server query', ->
                 expect(x).toEqual({email_address: "awesome@sagemath.com"})
                 done(err)
 
+
+describe 'test of automatic first and last name truncation', ->
+    before(setup)
+    after(teardown)
+    account_id = undefined
+    it 'creates an account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) -> account_id=x; done(err))
+
+    long_first = (Math.random().toString(36) for _ in [0..15]).join('')
+    long_last  = (Math.random().toString(36) for _ in [0..15]).join('')
+    it 'sets first_name and last_name to long character strings', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {accounts:{account_id:account_id, first_name:long_first, last_name:long_last}}
+            cb         : done
+
+    # NOTE: this is entirely to prevent malicious/idiotic clients.
+    it 'reads back and sees they were (silently!) truncated to 254 characters', (done) ->
+        db.user_query
+            account_id : account_id
+            query      : {accounts:{account_id:account_id, first_name:null, last_name:null}}
+            cb         : (err, x) ->
+                expect(x?.accounts).toEqual({account_id:account_id, first_name:long_first.slice(0,254), last_name:long_last.slice(0,254)})
+                done(err)

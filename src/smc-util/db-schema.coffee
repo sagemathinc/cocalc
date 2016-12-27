@@ -128,6 +128,7 @@ schema.accounts =
             desc : "True if the account has been deleted."
         email_address :
             type : 'string'
+            pg_type : "VARCHAR(254)"  # see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
             unique : true  # only one record in database can have this email address (if given)
         email_address_before_delete :
@@ -144,11 +145,11 @@ schema.accounts =
             desc : 'Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?'
         first_name :
             type : 'string'
-            pg_type : "VARCHAR(250)"  # some limit (actually around 3000) is required for indexing
+            pg_type : "VARCHAR(254)"  # some limit (actually around 3000) is required for indexing
             desc : 'The first name of this user.'
         last_name :
             type : 'string'
-            pg_type : "VARCHAR(250)"
+            pg_type : "VARCHAR(254)"
             desc : 'The last name of this user.'
         banned :
             type : 'boolean'
@@ -260,6 +261,13 @@ schema.accounts =
                 evaluate_key    : true
                 font_size       : true
                 profile         : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                # Hook to truncate some text fields to at most 254 characters, to avoid
+                # further trouble down the line.
+                for field in ['first_name', 'last_name', 'email_address']
+                    if obj[field]?
+                        obj[field] = obj[field].slice(0,254)
+                cb()
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'

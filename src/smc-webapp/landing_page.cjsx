@@ -146,15 +146,20 @@ SignUp = rclass
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 <FormGroup>
                     {@display_error("first_name")}
-                    <FormControl ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
+                    <FormControl
+                        ref         = 'name'
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'First and last Name'
+                        maxLength   = 254 />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' />
+                    <FormControl ref='email' type='email' placeholder='Email address' maxLength=254 />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' />
+                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
                 </FormGroup>
                 <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button
