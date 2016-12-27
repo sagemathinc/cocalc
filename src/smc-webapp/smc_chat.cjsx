@@ -604,13 +604,11 @@ ChatRoom = rclass ({name}) ->
         </Button>
 
     render_video_chat_button: ->
-        <Button>
-            <VideoChatButton
-                project_id = {@props.project_id}
-                path       = {@props.path}
-                label      = {"Video Chat"}
-            />
-        </Button>
+        <VideoChatButton
+            project_id = {@props.project_id}
+            path       = {@props.path}
+            label      = {"Video Chat"}
+        />
 
     render_button_row: ->
         <Row style={marginBottom:'5px'}>
