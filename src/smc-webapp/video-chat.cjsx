@@ -22,6 +22,7 @@
 
 {debounce}    = require('underscore')
 misc          = require('smc-util/misc')
+{Button}      = require('react-bootstrap')
 {sha1}        = require('smc-util/schema').client_db
 {server_time} = require('./salvus_client').salvus_client
 
@@ -87,7 +88,7 @@ class VideoChat
         return sha1(secret_token, @path)
 
     # Open the video chat window, if it isn't already opened
-    open_video_chat_window: =>
+    open_video_chat_window: ->
         room_id = @chatroom_id()
         if video_windows[room_id]
             return
@@ -107,7 +108,7 @@ class VideoChat
 
     # User wants to close the video chat window, but not via just clicking the
     # close button on the popup window
-    close_video_chat_window: =>
+    close_video_chat_window: ->
         room_id = @chatroom_id()
         if w = video_windows[room_id]
             redux.getActions('file_use').mark_file(@project_id, @path, 'video', 0, true, 0)
@@ -174,15 +175,15 @@ exports.VideoChatButton = rclass
             style = {color: '#c9302c'}
         else
             style = {}
-        <Tip
-            title     = {<span>Toggle Video Chat</span>}
-            tip       = {@render_tip(num_users_chatting)}
-            placement = 'left'
-            delayShow = 1000
-            >
-            <span onClick={@click_video_button} style={style}>
+        <Button onClick={@click_video_button} style={style}>
+            <Tip
+                title     = {<span>Toggle Video Chat</span>}
+                tip       = {@render_tip(num_users_chatting)}
+                placement = 'left'
+                delayShow = 1000
+                >
                 <Icon name='video-camera'/>
                 {<span style={marginLeft:'5px'}>{num_users_chatting}</span> if num_users_chatting}
                 {@render_label()}
-            </span>
-        </Tip>
+            </Tip>
+        </Button>
