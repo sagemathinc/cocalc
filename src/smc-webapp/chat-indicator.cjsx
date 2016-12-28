@@ -24,7 +24,7 @@
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./smc-react')
 {Icon, Tip, Loading, Space} = require('./r_misc')
 
 {UsersViewing} = require('./other-users')
@@ -88,12 +88,13 @@ exports.ChatIndicator = rclass
             return
 
         new_chat = @is_new_chat()
-        color    = if new_chat then '#c9302c' else '#428bca'
+        color    = if new_chat then COLOR.FG_RED else COLOR.FG_BLUE
         action   = if @props.is_chat_open then 'Hide' else 'Show'
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
+        clz      = if new_chat then 'smc-chat-notification' else ''
 
-        <div style={cursor: 'pointer', color: color, marginLeft:'5px', marginRight:'5px'}>
+        <div style={cursor: 'pointer', color: color, marginLeft:'5px', marginRight:'5px'} className={clz} >
             {@render_video_button() if @props.is_chat_open}
             <Tip
                 title     = {title}
