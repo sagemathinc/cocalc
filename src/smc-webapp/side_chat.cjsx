@@ -217,7 +217,7 @@ Message = rclass
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message)}
                 </span>
