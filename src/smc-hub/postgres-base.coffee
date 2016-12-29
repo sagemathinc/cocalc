@@ -235,8 +235,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         opts.cb?("if values is an array, every entry must be an object")
                         return
                     for k, p of x
-                        if p?
-                            fields[k] = true
+                        fields[k] = true
                 # convert to array
                 fields = misc.keys(fields)
                 fields_to_index = {}
