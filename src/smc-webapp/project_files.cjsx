@@ -746,17 +746,17 @@ ProjectFilesButtons = rclass
 
     handle_refresh: (e) ->
         e.preventDefault()
-        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing()
 
     handle_sort_method: (e) ->
         e.preventDefault()
         @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.fetch_directory_listing(@props.current_path, not @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing(sort_by_time : not @props.sort_by_time)
 
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, not @props.show_hidden)
+        @props.actions.fetch_directory_listing(show_hidden : not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
@@ -1071,7 +1071,7 @@ ProjectFilesActionBox = rclass
             paths : @props.checked_files.toArray()
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
-        @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing()
 
 
     render_delete_warning: ->
@@ -1875,7 +1875,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
         @props.actions.create_folder
@@ -1885,7 +1885,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.fetch_directory_listing(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
         if num_pages > 1
