@@ -270,7 +270,7 @@ Message = rclass
 
         <Col key={1} xs={10} sm={9}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
+            <Well style={message_style} className="smc-chat-message" bsSize="small" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message)}
                 </span>
@@ -604,13 +604,11 @@ ChatRoom = rclass ({name}) ->
         </Button>
 
     render_video_chat_button: ->
-        <Button>
-            <VideoChatButton
-                project_id = {@props.project_id}
-                path       = {@props.path}
-                label      = {"Video Chat"}
-            />
-        </Button>
+        <VideoChatButton
+            project_id = {@props.project_id}
+            path       = {@props.path}
+            label      = {"Video Chat"}
+        />
 
     render_button_row: ->
         <Row style={marginBottom:'5px'}>

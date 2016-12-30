@@ -711,34 +711,41 @@ exports.Markdown = rclass
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
-    update_escaped_chars: ->
+    _update_escaped_chars: ->
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
-    update_mathjax: ->
-        if @_x?.has_mathjax?
-            $(ReactDOM.findDOMNode(@)).mathjax()
+    _update_mathjax: (cb) ->
+        #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
+        if @_x?.has_mathjax
+            # theoretically, cb is called more than once, but this is just one element
+            $(ReactDOM.findDOMNode(@)).mathjax(cb: cb)
+        else
+            cb()
 
-    update_links: ->
+    _update_links: ->
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
+    update_content: ->
+        # orchestrates the _update_* methods
+        @_update_mathjax =>
+            @_update_escaped_chars()
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+
     componentDidUpdate: ->
-        @update_mathjax()
-        @update_escaped_chars()
-        @update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+        @update_content()
 
     componentDidMount: ->
-        @update_mathjax()
-        @update_escaped_chars()
-        @update_links()
+        @update_content()
 
     to_html: ->
         if @props.value
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             @_x = markdown.markdown_to_html(v)
-            v = require('./misc_page').sanitize_html(v)
-            {__html: @_x.s}
+            html_sane = require('./misc_page').sanitize_html(@_x.s)
+            #if DEBUG then console.log('Markdown.to_html @_x', @_x)
+            {__html: html_sane}
         else
             {__html: ''}
 

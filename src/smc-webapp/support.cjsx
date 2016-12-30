@@ -28,7 +28,7 @@ misc_page       = require('./misc_page')
 {salvus_client} = require('./salvus_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -370,6 +370,10 @@ SupportInfo = rclass
                    </p>
         <div>
             {what}
+            <p>
+                Looking for documentation and help? Go to
+                the <a href="#{SmcWikiUrl}" target="_blank">SageMathCloud documentation</a>.
+            </p>
             <p>
                 After submitting a ticket, you{"'"}ll get a link, which you may
                 want to save until you receive a confirmation email.
