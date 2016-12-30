@@ -708,11 +708,18 @@ ProjectFilesPath = rclass
         v.push <PathSegmentLink path='' display={<Icon name='home' />} key='home' actions={@props.actions} />
         if @props.current_path == ""
             return v
-        path = @props.current_path.split('/')
-        for segment, i in path
-            v.push <span key={2 * i + 1}><Space/> / <Space/></span>
+        path = @props.current_path
+        root = path[0] == '/'
+        if root
+            path = path[1..]
+        path_segments = path.split('/')
+        for segment, i in path_segments
+            if i == 0 and root
+                v.push <span key={2 * i + 1}><span style={width: '2em', display:'inline-block'}>&nbsp;</span>/<Space/></span>
+            else
+                v.push <span key={2 * i + 1}><Space/>/<Space/></span>
             v.push <PathSegmentLink
-                    path      = {path[0...i + 1].join('/')}
+                    path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
                     key       = {2 * i + 2}
