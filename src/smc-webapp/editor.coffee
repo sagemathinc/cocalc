@@ -2008,13 +2008,32 @@ class PDFLatexDocument
                 y = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
                 opts.cb(false, {n:n, x:x, y:y})
 
-    default_tex_command: () =>
+    default_tex_command: (flavor) ->
         # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         # since in some cases things will hang (using )
         #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
         # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
         # See https://github.com/sagemathinc/smc/issues/156
-        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+        latexmk = (f) =>
+            # f: force even when there are errors
+            # g: ignore heuristics to stop processing latex (sagetex)
+            # silent: **don't** set -silent, also silences sagetex mesgs!
+            # bibtex: a default, run bibtex when necessary
+            # synctex: forward/inverse search in pdf
+            # nonstopmode: continue after errors (otherwise, partial files)
+            "latexmk -#{f} -f -g -bibtex -synctex=1 -interaction=nonstopmode '#{@filename_tex}'"
+
+        return switch flavor ? 'pdflatex'
+            when 'default', 'pdflatex'
+                latexmk('pdf')
+            when 'xelatex'
+                latexmk('xelatex')
+            when 'luatex'
+                latexmk('lualatex')
+            when 'old'
+                "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+            else
+                latexmk('pdf')
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
@@ -2025,65 +2044,64 @@ class PDFLatexDocument
         @pdf_updated = true
         if not opts.latex_command?
             opts.latex_command = @default_tex_command()
-        @_need_to_run = {}
+        @_need_to_run = {latex: true}
         log = ''
         status = opts.status
+
+        task_latex = (cb) =>
+            if @_need_to_run.latex
+                status?(start:'latex')
+                @_run_latex opts.latex_command, (err, _log) =>
+                    log += _log
+                    status?(end:'latex', log:_log)
+                    cb(err)
+            else
+                cb()
+
+        # TODO in the future not necessary, because of 'latexmk -bibtex'
+        _task_bibtex = (cb) =>
+            status?(start:'bibtex')
+            @_run_bibtex (err, _log) =>
+                status?(end:'bibtex', log:_log)
+                log += _log
+                cb(err)
+
+        task_bibtex = (cb) =>
+            if @_need_to_run.bibtex
+                async.series([_task_bibtex, task_latex], cb)
+            else
+                cb()
+
+        task_sage = (cb) =>
+            if @_need_to_run.sage
+                status?(start:'sage')
+                @_run_sage @_need_to_run.sage, (err, _log) =>
+                    log += _log
+                    status?(end:'sage', log:_log)
+                    cb(err)
+            else
+                cb()
+
         async.series([
-            (cb) =>
-                 status?(start:'latex')
-                 @_run_latex opts.latex_command, (err, _log) =>
-                     log += _log
-                     status?(end:'latex', log:_log)
-                     cb(err)
-            (cb) =>
-                 if @_need_to_run.sage
-                     status?(start:'sage')
-                     @_run_sage @_need_to_run.sage, (err, _log) =>
-                         log += _log
-                         status?(end:'sage', log:_log)
-                         cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.bibtex
-                     status?(start:'bibtex')
-                     @_run_bibtex (err, _log) =>
-                         status?(end:'bibtex', log:_log)
-                         log += _log
-                         cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
-            (cb) =>
-                @update_number_of_pdf_pages(cb)
+            task_latex,
+            task_sage,
+            task_bibtex,
+            task_latex,
+            @update_number_of_pdf_pages
         ], (err) =>
-            opts.cb?(err, log))
+            opts.cb?(err, log)
+        )
 
     _run_latex: (command, cb) =>
         if not command?
             command = @default_tex_command()
         sagetex_file = @base_filename + '.sagetex.sage'
+        not_latexmk = command.indexOf('latexmk') == -1
         sha_marker = 'sha1sums'
+        @_need_to_run.latex = false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         @_exec
-            command : "yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
+            command : "touch '#{@filename_tex}'; yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
             bash    : true
             timeout : 20
             err_on_exit : false
@@ -2103,7 +2121,8 @@ class PDFLatexDocument
 
                     log = output.stdout + '\n\n' + output.stderr
 
-                    if log.indexOf('Rerun to get cross-references right') != -1
+                    # TODO remove this in the future. not necessary due to latexmk
+                    if not_latexmk and log.indexOf('Rerun to get cross-references right') != -1
                         @_need_to_run.latex = true
 
                     run_sage_on = '\nRun Sage on'
@@ -2117,8 +2136,9 @@ class PDFLatexDocument
                             # or want these quotes, since we're not passing this command via bash/sh.
                             @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim().replace(/"/g,'')
 
-                    i = log.indexOf("No file #{@base_filename}.bbl.")
-                    if i != -1
+                    # TODO remove this in the future. not necessary due to latexmk
+                    no_bbl = "No file #{@base_filename}.bbl."
+                    if not_latexmk and log.indexOf(no_bbl) != -1
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
@@ -2195,11 +2215,30 @@ class PDFLatexDocument
                 cb?(err)
 
     trash_aux_files: (cb) =>
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
-        @_exec
-            command : "rm"
-            args    : (@base_filename + "." + ext for ext in EXT)
-            cb      : cb
+        log = ''
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
+        async.series([
+            (cb) =>
+                # needs to come before deleting the .log file!
+                @_exec
+                    command: 'latexmk'
+                    args   : ['-c', @base_filename]
+                    cb     : (err, output) ->
+                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        cb(err)
+            (cb) =>
+                # this in particular gets rid of the sagetex files
+                files = (@base_filename + "." + ext for ext in EXT)
+                @_exec
+                    command : "rm"
+                    args    : ['-v'].concat(files)
+                    cb      : (err, output) ->
+                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        cb(err)
+        ], (err) =>
+            log += 'done.'
+            cb?(err, log)
+        )
 
     _parse_text: (text) =>
         # FUTURE -- parse through the text file putting the pages in the correspondings @pages dict.
