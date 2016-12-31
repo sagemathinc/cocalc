@@ -526,22 +526,16 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 @update_preview()
 
     localize_image_links: (e) =>
-        # make relative links to images use the raw server
-        for x in e.find("img")
-            y = $(x)
-            src = y.attr('src')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('src', new_src)
-        # make relative links to objects use the raw server
-        for x in e.find("object")
-            y = $(x)
-            src = y.attr('data')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('data', new_src)
+        {join} = require('path')
+        # make relative links to images and objects use the raw server
+        for [tag, attr] in [['img', 'src'], ['object', 'data']]
+            for x in e.find(tag)
+                y = $(x)
+                src = y.attr(attr)
+                if not src? or src[0] == '/' or src.indexOf('://') != -1
+                    continue
+                new_src = join('/', window.smc_base_url, @project_id, 'raw', @file_path(), src)
+                y.attr(attr, new_src)
 
     init_preview_select: () =>
         @preview_content.click (evt) =>
