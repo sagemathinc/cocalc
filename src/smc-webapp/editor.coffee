@@ -2050,7 +2050,10 @@ class PDFLatexDocument
         @pdf_updated = true
         if not opts.latex_command?
             opts.latex_command = @default_tex_command()
-        @_need_to_run = {latex: true}
+        @_need_to_run =
+            latex  : true   # initially, only latex is true
+            sage   : false  # either false or a filename
+            bibtex : false
         log = ''
         status = opts.status
 
@@ -2104,7 +2107,10 @@ class PDFLatexDocument
         sagetex_file = @base_filename + '.sagetex.sage'
         not_latexmk = command.indexOf('latexmk') == -1
         sha_marker = 'sha1sums'
-        @_need_to_run.latex = false
+        @_need_to_run =
+            latex  : false
+            sage   : false  # either false or a filename
+            bibtex : false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         @_exec
             command : "touch '#{@filename_tex}'; yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
@@ -2121,6 +2127,9 @@ class PDFLatexDocument
                         output.stdout = output.stdout.slice(0,i)
                         for x in shas.split('\n')
                             v = x.split(/\s+/)
+                            if v.length != 2
+                                continue
+                            #if DEBUG then console.log(v, sagetex_file, @_sagetex_file_sha)
                             if v[1] == sagetex_file and v[0] != @_sagetex_file_sha
                                 @_need_to_run.sage = sagetex_file
                                 @_sagetex_file_sha = v[0]
@@ -2147,10 +2156,15 @@ class PDFLatexDocument
                     if not_latexmk and log.indexOf(no_bbl) != -1
                         @_need_to_run.bibtex = true
 
+                    log += "\n\n#{misc.to_json(@_need_to_run)}\n@_sagetex_file_sha: #{@_sagetex_file_sha}"
+
                     @last_latex_log = log
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
+        # don't run sage if target is false
+        if underscore.isBoolean(target) and not target
+            cb()
         if not target?
             target = @base_filename + '.sagetex.sage'
         @_exec
