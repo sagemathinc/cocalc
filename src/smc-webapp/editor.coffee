@@ -185,6 +185,12 @@ file_associations['md'] =
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
     name   : "markdown"
 
+file_associations['rmd'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    name   : "Rmd"
+
 file_associations['rst'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'

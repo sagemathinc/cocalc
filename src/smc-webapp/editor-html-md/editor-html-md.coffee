@@ -54,6 +54,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
             @opts.mode = 'gfm'
+        else if @ext == 'rmd'
+            @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
         else if @ext == 'wiki' or @ext == "mediawiki"
@@ -61,7 +63,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
         else
-            throw Error('file must have extension md or html or rst or wiki or tex')
+            throw Error('file must have extension md, html, rmd, rst, tex, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'
@@ -427,6 +429,12 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         m = require('../markdown').markdown_to_html(source)
         cb(undefined, m.s)
 
+    rmd_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "smc-rmd2html"
+            args        : [@filename]
+            cb          : cb
+
     rst_to_html: (cb) =>
         @to_html_via_exec
             command     : "rst2html"
@@ -518,22 +526,16 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 @update_preview()
 
     localize_image_links: (e) =>
-        # make relative links to images use the raw server
-        for x in e.find("img")
-            y = $(x)
-            src = y.attr('src')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('src', new_src)
-        # make relative links to objects use the raw server
-        for x in e.find("object")
-            y = $(x)
-            src = y.attr('data')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('data', new_src)
+        {join} = require('path')
+        # make relative links to images and objects use the raw server
+        for [tag, attr] in [['img', 'src'], ['object', 'data']]
+            for x in e.find(tag)
+                y = $(x)
+                src = y.attr(attr)
+                if not src? or src[0] == '/' or src.indexOf('://') != -1
+                    continue
+                new_src = join('/', window.smc_base_url, @project_id, 'raw', @file_path(), src)
+                y.attr(attr, new_src)
 
     init_preview_select: () =>
         @preview_content.click (evt) =>

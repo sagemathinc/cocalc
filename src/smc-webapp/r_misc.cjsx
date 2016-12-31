@@ -1174,10 +1174,13 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click: (name) ->
-        @props.actions.open_directory(misc.path_split(@props.filename).head)
+        path_splitted = misc.path_split(@props.filename)
+        get_basename = ->
+                path_splitted.tail
+        @props.actions.open_directory(path_splitted.head)
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)
-        @props.actions.set_file_action(name)
+        @props.actions.set_file_action(name, get_basename)
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1191,13 +1194,9 @@ EditorFileInfoDropdown = rclass
                 'download' : 'cloud-download'
                 'copy'     : 'files-o'
         else
-            items =
-                'download' : 'cloud-download'
-                'delete'   : 'trash-o'
-                'rename'   : 'pencil'
-                'move'     : 'arrows'
-                'copy'     : 'files-o'
-                'share'    : 'share-square-o'
+            # dynamically create a map from 'key' to 'icon'
+            {file_action_buttons} = require('./project_files')
+            items = _.object(([k, v.icon] for k, v of file_action_buttons))
 
         for name, icon of items
             @render_menu_item(name, icon)
