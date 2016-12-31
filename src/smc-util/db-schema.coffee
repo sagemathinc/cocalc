@@ -405,7 +405,7 @@ schema.compute_servers =
         dc           :
             type : 'string'
         port         :
-            type : 'string'
+            type : 'integer'
         secret       :
             type : 'string'
         experimental :
