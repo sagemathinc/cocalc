@@ -346,11 +346,11 @@ class exports.LatexEditor extends editor.FileEditor
 
         trash_aux_button = @element.find('a[href="#latex-trash-aux"]')
         trash_aux_button.click () =>
-            trash_aux_button.icon_spin(true)
+            trash_aux_button.icon_spin(true, disable=true)
             log_output = @log.find("textarea")
             log_output.text('')
             @preview.pdflatex.trash_aux_files (err, log) =>
-                trash_aux_button.icon_spin(false)
+                trash_aux_button.icon_spin(false, disable=true)
                 if err
                     log_output.text(err)
                 else
@@ -360,27 +360,43 @@ class exports.LatexEditor extends editor.FileEditor
         run_sage = @element.find('a[href="#latex-sage"]')
         run_sage.click () =>
             @log.find("textarea").text("Running Sage...")
-            run_sage.icon_spin(true)
+            run_sage.icon_spin(true, disable=true)
             @preview.pdflatex._run_sage undefined, (err, log) =>
-                run_sage.icon_spin(false)
+                run_sage.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
         run_latex = @element.find('a[href="#latex-latex"]')
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
-            run_latex.icon_spin(true)
+            run_latex.icon_spin(true, disable=true)
             @preview.pdflatex._run_latex @load_conf_doc().latex_command, (err, log) =>
-                run_latex.icon_spin(false)
+                run_latex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
+            return false
+
+        run_recompile = @element.find('a[href="#latex-recompile"]')
+        run_recompile.click () =>
+            log_box = @log.find("textarea")
+            log_box.text("Recompiling ...")
+            run_recompile.icon_spin(true, disable=true)
+            async.series([
+                (cb) =>
+                    @preview.pdflatex.trash_aux_files (err, _log) =>
+                        cb(err)
+                (cb) =>
+                    @update_preview(cb, force=true)
+            ], (err) =>
+                run_recompile.icon_spin(false, disable=true)
+            )
             return false
 
         run_bibtex = @element.find('a[href="#latex-bibtex"]')
         run_bibtex.click () =>
             @log.find("textarea").text("Running Bibtex...")
-            run_bibtex.icon_spin(true)
+            run_bibtex.icon_spin(true, disable=true)
             @preview.pdflatex._run_bibtex (err, log) =>
-                run_bibtex.icon_spin(false)
+                run_bibtex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
@@ -414,18 +430,18 @@ class exports.LatexEditor extends editor.FileEditor
 
     # This function isn't called on save
     # @latex_editor.save is called instead for some reason
-    save: (cb) =>
+    save: (cb, force=false) =>
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                @update_preview () =>
+                @update_preview (force=force) =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed.update()
                 @spell_check()
 
-    update_preview: (cb) =>
+    update_preview: (cb, force=false) =>
         content = @_get()
-        if content == @_last_update_preview
+        if not force and content == @_last_update_preview
             cb?()
             return
         preview_button = @element.find('a[href="#png-preview"]')
@@ -443,11 +459,11 @@ class exports.LatexEditor extends editor.FileEditor
                     command : @load_conf_doc().latex_command
                     cb      : cb
             (cb) =>
-                preview_button.icon_spin(true)
+                preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
         ], (err) =>
-            preview_button.icon_spin(false)
+            preview_button.icon_spin(false, disable=true)
             if err
                 delete @_last_update_preview
             cb?(err)
@@ -512,7 +528,7 @@ class exports.LatexEditor extends editor.FileEditor
             command : undefined
             cb      : undefined
         button = @element.find('a[href="#log"]')
-        button.icon_spin(true)
+        button.icon_spin(true, disable=true)
         @_show() # update layout, since showing spinner might cause a linebreak in the button bar
         log_output = @log.find("textarea")
         log_output.text("")
@@ -537,7 +553,7 @@ class exports.LatexEditor extends editor.FileEditor
             status        : status
             latex_command : opts.command
             cb            : (err, log) =>
-                button.icon_spin(false)
+                button.icon_spin(false, disable=true)
                 @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
