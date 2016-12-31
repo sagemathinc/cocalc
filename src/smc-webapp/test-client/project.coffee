@@ -123,7 +123,7 @@ describe 'starting and stopping a project and getting directory listing', ->
 
     it 'gets directory listing including hidden (and confirm some dirs)', (done) ->
         @timeout(5000)
-        smc.redux.getProjectActions(project_id).fetch_directory_listing('', true, true)
+        smc.redux.getProjectActions(project_id).fetch_directory_listing({path:'', sort_by_time:true, show_hidden:true})
         s = smc.redux.getProjectStore(project_id)
         s.wait
             until : => s.getIn(['directory_listings', ""])?.toJS()?.length > 0
@@ -131,7 +131,7 @@ describe 'starting and stopping a project and getting directory listing', ->
 
     it 'gets .smc directory listing', (done) ->
         @timeout(5000)
-        smc.redux.getProjectActions(project_id).fetch_directory_listing('.smc')
+        smc.redux.getProjectActions(project_id).fetch_directory_listing({path: '.smc'})
         s = smc.redux.getProjectStore(project_id)
         s.wait
             until : -> s.getIn(['directory_listings', '.smc'])?.toJS()?.length > 0
