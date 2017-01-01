@@ -22,6 +22,8 @@ templates = $("#salvus-editor-templates")
 
 MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
+TOOLTIP_CONFIG =
+    delay: {show: 500, hide: 100}
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -79,17 +81,20 @@ class exports.LatexEditor extends editor.FileEditor
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        preview_filename = misc.change_filename_extension(@filename, 'pdf')
-        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
-        @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
-        @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
-        @_pages['pdf-preview'] = @preview_embed
+        if not $.browser.firefox
+            # see https://github.com/sagemathinc/smc/issues/1313
+            preview_filename = misc.change_filename_extension(@filename, 'pdf')
+            @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
+            @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
+            @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+            @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
         @log = @element.find(".salvus-editor-latex-log")
-        @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @log.find("a").tooltip(TOOLTIP_CONFIG)
         @_pages['log'] = @log
         @log_input = @log.find("input")
+        @log_input.tooltip(TOOLTIP_CONFIG)
         save_custom_build_command = () =>
             @set_conf_doc(latex_command: @log_input.val())
             @save()
@@ -97,6 +102,18 @@ class exports.LatexEditor extends editor.FileEditor
             if e.keyCode == 13
                 save_custom_build_command()
         @log_input.on('blur', save_custom_build_command)
+
+        # Custom build command menu
+        dropdown = @element.find(".smc-editor-latex-log-cmd .dropdown-menu")
+        dropdown.on 'click', 'li', (ev) =>
+            ev.preventDefault()
+            flavor = ev.target.hash ? '#default'
+            c = @preview.pdflatex.default_tex_command(flavor[1..])
+            console.log(c)
+            @log_input.val(c)
+            @set_conf_doc(latex_command: c)
+            @save()
+            return true
 
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
@@ -252,109 +269,134 @@ class exports.LatexEditor extends editor.FileEditor
         @preview_embed.remove()
 
     _init_buttons: () =>
-        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
+        @element.find("a").tooltip(TOOLTIP_CONFIG)
 
-        @element.find("a[href=\"#forward-search\"]").click () =>
+        @element.find('a[href="#forward-search"]').click () =>
             @show_page('png-preview')
             @forward_search(active:true)
             return false
 
-        @element.find("a[href=\"#inverse-search\"]").click () =>
+        @element.find('a[href="#inverse-search"]').click () =>
             @show_page('png-preview')
             @inverse_search(active:true)
             return false
 
-        @element.find("a[href=\"#png-preview\"]").click () =>
+        @element.find('a[href="#png-preview"]').click () =>
             @show_page('png-preview')
             @preview.focus()
             @save()
             return false
 
-        @element.find("a[href=\"#zoom-preview-out\"]").click () =>
+        @element.find('a[href="#zoom-preview-out"]').click () =>
             @preview.zoom(delta: -5)
             @set_conf(zoom_width: @preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-in\"]").click () =>
+        @element.find('a[href="#zoom-preview-in"]').click () =>
             @preview.zoom(delta:5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-fullpage\"]").click () =>
+        @element.find('a[href="#zoom-preview-fullpage"]').click () =>
             @preview.zoom(width:100)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-width\"]").click () =>
+        @element.find('a[href="#zoom-preview-width"]').click () =>
             @preview.zoom(width:160)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-
-        @element.find("a[href=\"#pdf-preview\"]").click () =>
-            @show_page('pdf-preview')
-            @preview_embed.focus()
-            @preview_embed.update()
+        @element.find('a[href="#pdf-preview"]').click () =>
+            # see https://github.com/sagemathinc/smc/issues/1313
+            if $.browser.firefox
+                @download_pdf()
+            else
+                @show_page('pdf-preview')
+                @preview_embed.focus()
+                @preview_embed.update()
             return false
 
-        @element.find("a[href=\"#log\"]").click () =>
+        @element.find('a[href="#log"]').click () =>
             @show_page('log')
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
 
-        @element.find("a[href=\"#errors\"]").click () =>
+        @element.find('a[href="#errors"]').click () =>
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find("a[href=\"#errors\"]").find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find("a[href=\"#errors\"]").find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find('a[href="#errors"]').find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find('a[href="#errors"]').find(".salvus-latex-warnings-counter")
 
-        @element.find("a[href=\"#pdf-download\"]").click () =>
+        @element.find('a[href="#pdf-download"]').click () =>
             @download_pdf()
             return false
 
-        @element.find("a[href=\"#preview-resolution\"]").click () =>
+        @element.find('a[href="#preview-resolution"]').click () =>
             @set_resolution()
             return false
 
-        @element.find("a[href=\"#latex-command-undo\"]").click () =>
-            c = @preview.pdflatex.default_tex_command()
-            @log_input.val(c)
-            @set_conf_doc(latex_command: c)
-            return false
+        #@element.find("a[href=\"#latex-command-undo\"]").click () =>
+        #    c = @preview.pdflatex.default_tex_command()
+        #    @log_input.val(c)
+        #    @set_conf_doc(latex_command: c)
+        #    return false
 
-        trash_aux_button = @element.find("a[href=\"#latex-trash-aux\"]")
+        trash_aux_button = @element.find('a[href="#latex-trash-aux"]')
         trash_aux_button.click () =>
-            trash_aux_button.icon_spin(true)
-            @preview.pdflatex.trash_aux_files () =>
-                trash_aux_button.icon_spin(false)
+            trash_aux_button.icon_spin(true, disable=true)
+            log_output = @log.find("textarea")
+            log_output.text('')
+            @preview.pdflatex.trash_aux_files (err, log) =>
+                trash_aux_button.icon_spin(false, disable=true)
+                if err
+                    log_output.text(err)
+                else
+                    log_output.text(log)
             return false
 
-        run_sage = @element.find("a[href=\"#latex-sage\"]")
+        run_sage = @element.find('a[href="#latex-sage"]')
         run_sage.click () =>
             @log.find("textarea").text("Running Sage...")
-            run_sage.icon_spin(true)
+            run_sage.icon_spin(true, disable=true)
             @preview.pdflatex._run_sage undefined, (err, log) =>
-                run_sage.icon_spin(false)
+                run_sage.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
-        run_latex = @element.find("a[href=\"#latex-latex\"]")
+        run_latex = @element.find('a[href="#latex-latex"]')
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
-            run_latex.icon_spin(true)
+            run_latex.icon_spin(true, disable=true)
             @preview.pdflatex._run_latex @load_conf_doc().latex_command, (err, log) =>
-                run_latex.icon_spin(false)
+                run_latex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
-        run_bibtex = @element.find("a[href=\"#latex-bibtex\"]")
+        run_recompile = @element.find('a[href="#latex-recompile"]')
+        run_recompile.click () =>
+            log_box = @log.find("textarea")
+            log_box.text("Recompiling ...")
+            run_recompile.icon_spin(true, disable=true)
+            async.series([
+                (cb) =>
+                    @preview.pdflatex.trash_aux_files (err, _log) =>
+                        cb(err)
+                (cb) =>
+                    @update_preview(cb, force=true)
+            ], (err) =>
+                run_recompile.icon_spin(false, disable=true)
+            )
+            return false
+
+        run_bibtex = @element.find('a[href="#latex-bibtex"]')
         run_bibtex.click () =>
             @log.find("textarea").text("Running Bibtex...")
-            run_bibtex.icon_spin(true)
+            run_bibtex.icon_spin(true, disable=true)
             @preview.pdflatex._run_bibtex (err, log) =>
-                run_bibtex.icon_spin(false)
+                run_bibtex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
@@ -388,20 +430,21 @@ class exports.LatexEditor extends editor.FileEditor
 
     # This function isn't called on save
     # @latex_editor.save is called instead for some reason
-    save: (cb) =>
+    save: (cb, force=false) =>
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                @update_preview () =>
+                @update_preview (force=force) =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed.update()
                 @spell_check()
 
-    update_preview: (cb) =>
+    update_preview: (cb, force=false) =>
         content = @_get()
-        if content == @_last_update_preview
+        if not force and content == @_last_update_preview
             cb?()
             return
+        preview_button = @element.find('a[href="#png-preview"]')
         async.series([
             (cb) =>
                 @_last_update_preview = content
@@ -416,9 +459,11 @@ class exports.LatexEditor extends editor.FileEditor
                     command : @load_conf_doc().latex_command
                     cb      : cb
             (cb) =>
+                preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
         ], (err) =>
+            preview_button.icon_spin(false, disable=true)
             if err
                 delete @_last_update_preview
             cb?(err)
@@ -474,16 +519,16 @@ class exports.LatexEditor extends editor.FileEditor
                     @render_error_page()
                 else
                     page.show()
-                button.addClass('btn-primary')
+                button.parent().addClass('active')
             else
-                button.removeClass('btn-primary')
+                button.parent().removeClass('active')
 
     run_latex: (opts={}) =>
         opts = defaults opts,
             command : undefined
             cb      : undefined
-        button = @element.find("a[href=\"#log\"]")
-        button.icon_spin(true)
+        button = @element.find('a[href="#log"]')
+        button.icon_spin(true, disable=true)
         @_show() # update layout, since showing spinner might cause a linebreak in the button bar
         log_output = @log.find("textarea")
         log_output.text("")
@@ -508,7 +553,7 @@ class exports.LatexEditor extends editor.FileEditor
             status        : status
             latex_command : opts.command
             cb            : (err, log) =>
-                button.icon_spin(false)
+                button.icon_spin(false, disable=true)
                 @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
