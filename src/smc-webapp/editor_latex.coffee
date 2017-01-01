@@ -643,7 +643,7 @@ class exports.LatexEditor extends editor.FileEditor
             else
                 if @_path # make relative to home directory of project
                     file = @_path + '/' + file
-                @redux.getProjectActions(@project_id).open_file
+                redux.getProjectActions(@project_id).open_file
                     path : file
             cb?()
 
