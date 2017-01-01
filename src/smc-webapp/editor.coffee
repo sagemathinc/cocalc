@@ -2107,17 +2107,15 @@ class PDFLatexDocument
         sagetex_file = @base_filename + '.sagetex.sage'
         not_latexmk = command.indexOf('latexmk') == -1
         sha_marker = 'sha1sums'
-        @_need_to_run =
-            latex  : false
-            sage   : false  # either false or a filename
-            bibtex : false
+        @_need_to_run.latex = false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+        latex_cmd = "yes x 2> /dev/null | #{command}; echo '#{sha_marker}'; test -r '#{sagetex_file}' && sha1sum '#{sagetex_file}'"
         @_exec
-            command : "touch '#{@filename_tex}'; yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
-            bash    : true
-            timeout : 20
+            command     : latex_cmd
+            bash        : true
+            timeout     : 30
             err_on_exit : false
-            cb      : (err, output) =>
+            cb          : (err, output) =>
                 if err
                     cb?(err)
                 else
