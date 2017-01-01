@@ -2455,7 +2455,7 @@ class PDF_Preview extends FileEditor
             @zoom_width = max_width
             n = @current_page().number
             max_width = "#{max_width}%"
-            images.css
+            @output.find(".salvus-editor-pdf-preview-page-single").css
                 'max-width'   : max_width
                 width         : max_width
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
@@ -2463,9 +2463,10 @@ class PDF_Preview extends FileEditor
         @recenter()
 
     recenter: () =>
-        container_width = @output.find(":first-child:first").width()
-        content_width = @output.find("img:first-child:first").width()
-        @output.scrollLeft((content_width - container_width)/2)
+        container_width = @output.width()
+        content_width = @output.find(':first-child:first').width()
+        offset = (content_width - container_width)/2
+        @output.parent().scrollLeft(offset)
 
     watch_scroll: () =>
         if @_f?
@@ -2624,10 +2625,18 @@ class PDF_Preview extends FileEditor
             recenter = (@last_page == 0)
             that = @
             page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
+
+            set_zoom_width = (page) =>
+                if @zoom_width?
+                    max_width = "#{@zoom_width}%"
+                    page.css
+                        'max-width'   : max_width
+                        width         : max_width
+
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'>Page #{m}<br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2651,11 +2660,7 @@ class PDF_Preview extends FileEditor
 
                     page.dblclick(f)
 
-                    if self._margin_left?
-                        # A zoom was set via the zoom command -- maintain it.
-                        page.find("img").css
-                            'max-width'   : self._max_width
-                            width         : self._max_width
+                    set_zoom_width(page)
 
                     if @_first_output
                         @output.empty()
@@ -2677,6 +2682,8 @@ class PDF_Preview extends FileEditor
                     @pdflatex.page(m).element = page
 
                 @last_page = n
+            # ~END: if page.length == 0
+
             img =  page.find("img")
             #console.log("setting an img src to", url)
             img.attr('src', url).data('resolution', resolution)
@@ -2689,12 +2696,7 @@ class PDF_Preview extends FileEditor
                 img.one 'load', () =>
                     @recenter()
 
-            if @zoom_width?
-                max_width = @zoom_width
-                max_width = "#{max_width}%"
-                img.css
-                    'max-width'   : max_width
-                    width         : max_width
+            set_zoom_width(page)
 
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
