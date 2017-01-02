@@ -13,7 +13,7 @@
 #########################################################################################
 
 
-import copy, os, sys, types
+import copy, os, sys, types, re
 
 try:
     from pandas import DataFrame
@@ -3731,7 +3731,64 @@ def go(s):
         except:
             pass
 
+########################################################
+# Java mode
+########################################################
+def java(s):
+    """
+    Run a Java program.  For example,
 
+        %java
+        public class YourName {
+            public static void main(String[] args) {
+
+                System.out.println("Hello world");
+
+            }
+        }
+
+    You can set the whole worksheet to be in java mode by typing
+
+        %default_mode java
+
+    NOTE:
+
+    - There is no relation between one cell and the next.  Each is a separate
+      self-contained go program, which gets compiled and run, with the only
+      side effects being changes to the filesystem.  The program itself is
+      stored in a file named as the public class that is deleted after it is run.
+    """
+    name = re.search('public class (?P<name>[a-zA-Z0-9]+)', s)
+    if name:
+        name = name.group('name')
+    else:
+        print 'error public class name not found'
+        return
+    try:
+        open(name +'.java','w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout, child_stderr) = os.popen3('javac %s.java'%name)
+        err = child_stderr.read()
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if not os.path.exists(name+'.class'): # failed to produce executable
+            return
+        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write('\n'+child_stderr.read())
+        sys.stdout.flush()
+        sys.stderr.flush()
+    finally:
+        pass
+        try:
+            os.unlink(name+'.java')
+        except:
+            pass
+        try:
+            os.unlink(name+'.class')
+        except:
+            pass
 
 # Julia pexepect interface support
 import julia
