@@ -196,7 +196,7 @@ file_associations['java'] =
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
     name   : "Java"
-    
+
 file_associations['rst'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'

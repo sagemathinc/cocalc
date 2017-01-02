@@ -94,8 +94,10 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @spell_check()
 
         cm = @cm()
-        cm.on('change', _.debounce(@update_preview,500))
-        #cm.on 'cursorActivity', @update_preview
+        if @opts.mode == 'java'
+            @source_editor.on 'saved', _.debounce(@update_preview,500)
+        else
+            cm.on 'change', _.debounce(@update_preview,500)
 
         @init_buttons()
         @init_draggable_split()
