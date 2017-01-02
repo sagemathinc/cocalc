@@ -8,13 +8,17 @@ def rmd2html(path):
     if not os.path.exists(path):
         raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
-    (root, ext) = os.path.splitext(path)
+    absp = os.path.abspath(path)
+    (head,tail) = os.path.split(absp)
+    os.chdir(head)
+
+    (root, ext) = os.path.splitext(tail)
     if ext.lower() != ".rmd":
         raise ValueError('Rmd input file required, got {}'.format(path))
 
-    cmd = '''Rscript -e "library(knitr); knit('{}')" >/dev/null 2>/dev/null'''.format(path)
+    cmd = '''Rscript -e "library(knitr); knit('{}')" >/dev/null'''.format(tail)
     if subprocess.call(cmd, shell=True) == 0:
-        cmd2 = "pandoc -s {}.md -t html 2>/dev/null".format(root)
+        cmd2 = "pandoc -s {}.md -t html".format(root)
         subprocess.call(cmd2, shell=True)
 
 def main():
