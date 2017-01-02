@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-# rmd2html.py - used by rmd edit mode
+# java2html.py - used by java edit mode
 
 import os, sys, subprocess, errno, re
 
-def rmd2html(path):
+def java2html(path):
     if not os.path.exists(path):
         raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
@@ -45,7 +45,7 @@ def main():
     if len(sys.argv) != 2:
         raise ValueError('Usage: {} path/to/file.java'.format(sys.argv[0]))
 
-    rmd2html(sys.argv[1])
+    java2html(sys.argv[1])
 
 if __name__ == "__main__":
     main()
