@@ -51,6 +51,7 @@ COPY login /etc/defaults/login
 COPY nginx.conf /etc/nginx/sites-available/default
 COPY haproxy.conf /etc/haproxy/haproxy.cfg
 COPY rethinkdb.conf /etc/rethinkdb/instances.d/default.conf
+COPY run.py /root/run.py
 
 RUN echo "umask 077" >> /etc/bash.bashrc
 
@@ -61,8 +62,8 @@ RUN echo "umask 077" >> /etc/bash.bashrc
 #  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
 #  apt-get autoremove -y
 
-COPY run.py /run.py
-CMD ./run.py
+
+CMD /root/run.py
 
 EXPOSE 80 443
 
