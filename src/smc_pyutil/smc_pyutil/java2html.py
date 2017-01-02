@@ -10,7 +10,7 @@ def rmd2html(path):
 
     (root, ext) = os.path.splitext(path)
     if ext.lower() != ".java":
-        raise ValueError('Rmd input file required, got {}'.format(path))
+        raise ValueError('Java input file required, got {}'.format(path))
     
     with open(path, 'r') as f:
         s = f.read()
@@ -23,20 +23,19 @@ def rmd2html(path):
     try:
         open(name +'.java','w').write(s.encode("UTF-8"))
         (child_stdin, child_stdout, child_stderr) = os.popen3('javac %s'%path)
-        err = child_stderr.read()
-        sys.stdout.write(child_stdout.read())
-        sys.stderr.write(err)
+        output = child_stderr.read()
+        output += '\n' + child_stdout.read()
         sys.stdout.flush()
         sys.stderr.flush()
         if not os.path.exists(name+'.class'): # failed to produce executable
             return
         (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
-        output = child_stdout.read()
-        with open(path[:-4]+'html', 'w') as f:
-            f.write(output.replace('\n', '<br/>'))
-        sys.stderr.write('\n'+child_stderr.read())
+        output += '\n' + child_stdout.read()
+        output += '\n' + child_stderr.read()
         sys.stdout.flush()
         sys.stderr.flush()
+        with open(path[:-4]+'html', 'w') as f:
+            f.write(output.replace('\n', '<br/>'))
         with open(path[:-4]+'html', 'r') as htmlfile:
             print(htmlfile.read())
     finally:
