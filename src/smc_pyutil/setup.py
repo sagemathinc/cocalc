@@ -78,6 +78,7 @@ setup(
             'smc-git              = smc_pyutil.smc_git:main',
             'smc-html2sagews      = smc_pyutil.html2sagews:main',
             'smc-rmd2html         = smc_pyutil.rmd2html:main',
+            'smc-java2html        = smc_pyutil.java2html:main',
         ]
     },
     include_package_data = True

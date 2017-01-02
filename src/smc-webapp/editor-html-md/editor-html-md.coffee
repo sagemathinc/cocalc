@@ -58,6 +58,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
+        else if @ext == 'java'
+            @opts.mode = 'java'
         else if @ext == 'wiki' or @ext == "mediawiki"
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
@@ -432,6 +434,12 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     rmd_to_html: (cb) =>
         @to_html_via_exec
             command     : "smc-rmd2html"
+            args        : [@filename]
+            cb          : cb
+
+    java_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "smc-java2html"
             args        : [@filename]
             cb          : cb
 
