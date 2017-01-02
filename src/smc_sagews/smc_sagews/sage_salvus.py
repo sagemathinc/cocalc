@@ -3739,13 +3739,7 @@ def java(s):
     Run a Java program.  For example,
 
         %java
-        public class YourName {
-            public static void main(String[] args) {
-
-                System.out.println("Hello world");
-
-            }
-        }
+        public class YourName { public static void main(String[] args) { System.out.println("Hello world"); } }
 
     You can set the whole worksheet to be in java mode by typing
 
@@ -3754,7 +3748,7 @@ def java(s):
     NOTE:
 
     - There is no relation between one cell and the next.  Each is a separate
-      self-contained go program, which gets compiled and run, with the only
+      self-contained java program, which gets compiled and run, with the only
       side effects being changes to the filesystem.  The program itself is
       stored in a file named as the public class that is deleted after it is run.
     """
