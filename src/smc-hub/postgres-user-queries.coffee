@@ -6,7 +6,6 @@ This code is currently NOT released under any license for use by anybody except 
 
 (c) 2016 SageMath, Inc.
 **
-
 ###
 
 MAX_CHANGEFEEDS_PER_CLIENT = 4*100
@@ -1169,8 +1168,7 @@ class exports.PostgreSQL extends PostgreSQL
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
                         where : (obj) ->  # client side test of "is a collab with me"
-                            return shared_tracker.collabs(account_id)[obj.account_id]
-
+                            return shared_tracker.collabs(account_id)?[obj.account_id]
                         init_tracker : (tracker, feed) =>
                             shared_tracker = tracker
                             tracker.on 'add_collaborator', (x) =>
