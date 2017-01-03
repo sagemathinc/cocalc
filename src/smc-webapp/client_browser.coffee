@@ -92,14 +92,15 @@ class Connection extends client.Connection
         # if we are in DEBUG mode, inject the client into the global window object
         if not DEBUG
             return
-        window.smc = {}
-        window.smc.client = @
-        window.smc.misc = require('smc-util/misc')
-        window.smc.done = window.smc.misc.done
-        window.smc.sha1 = require('sha1')
-        window.smc.schema = require('smc-util/schema')
+        window.smc                     ?= {}
+        window.smc.client              = @
+        window.smc.misc                = require('smc-util/misc')
+        window.smc.done                = window.smc.misc.done
+        window.smc.sha1                = require('sha1')
+        window.smc.schema              = require('smc-util/schema')
         # use to enable/disable verbose synctable logging
-        window.smc.synctable_debug = require('smc-util/synctable').set_debug
+        window.smc.synctable_debug     = require('smc-util/synctable').set_debug
+        window.smc.idle_trigger        = => @emit('idle', 'away')
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.
@@ -130,7 +131,8 @@ class Connection extends client.Connection
         @idle_reset = _.throttle(@_idle_reset, 15 * 1000)
 
         # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
-        $(document).on("click mousemove keydown focusin", "body", @idle_reset)
+        $(document).on('click mousemove keydown focusin touchstart', @idle_reset)
+        $('#smc-idle-notification').on('click mousemove keydown focusin touchstart', @_idle_reset)
 
         delayed_disconnect = undefined
 
@@ -165,7 +167,8 @@ class Connection extends client.Connection
 
     # ATTN use @reset_idle, not this one here (see constructor above)
     _idle_reset: =>
-        # console.log("idle: _idle_reset got called")
+        #if DEBUG
+        #    console.log("idle: client_browser._idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
         @emit('idle', 'active')
 

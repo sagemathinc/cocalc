@@ -37,7 +37,9 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.COLOR =
-    BG_RED: '#d9534f' # the red bootstrap color of the button background
+    BG_RED  : '#d9534f' # the red bootstrap color of the button background
+    FG_RED  : '#c9302c' # red used for text
+    FG_BLUE : '#428bca' # blue used for text
 
 # We do this so this module can be used without having to include all the
 # project-store related functionality.  When it gets loaded, it will set the
