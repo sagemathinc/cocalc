@@ -652,13 +652,6 @@ exports.LandingPage = rclass
                     </div>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
-                        <Well style={'textAlign': 'center', 'float':'right'}>
-                            <SMC_Commercial />
-                            <br />
-                            <SMC_Quote />
-                        </Well>
-                    </Col>
                     <Col sm=5>
                         <SignUp
                             sign_up_error = {@props.sign_up_error}
@@ -666,6 +659,13 @@ exports.LandingPage = rclass
                             token         = {@props.token}
                             signing_up    = {@props.signing_up}
                             has_account   = {@props.has_account} />
+                    </Col>
+                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
+                        <Well style={'textAlign': 'center', 'float':'right'}>
+                            <SMC_Commercial />
+                            <br />
+                            <SMC_Quote />
+                        </Well>
                     </Col>
                 </Row>
                 <Well>
