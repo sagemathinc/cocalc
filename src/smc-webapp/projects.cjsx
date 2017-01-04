@@ -1473,6 +1473,13 @@ exports.ProjectsPage = ProjectsPage = rclass
                         </Col>
                     </Row>
                     <Row>
+                        <Col sm=12>
+                            <strong>For educators:</strong> To create a course first create a project, then click "Create", then click "Manage a Course". 
+                            See <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">this course management tutorial</a>. If 
+                            you need any help please email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
+                        </Col>
+                    </Row>
+                    <Row>
                         <Col sm=12 style={marginTop:'1ex'}>
                             <NewProjectCreator
                                 nb_projects = {@project_list().length}
