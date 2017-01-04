@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+export PATH=/usr/local/bin:$PATH
+
+# If you put this in crontab be sure to explicitly set USER=...
+
+cd /home/wstein/smc/src
+. smc-env
+service_hub.py --host=localhost --single  start
