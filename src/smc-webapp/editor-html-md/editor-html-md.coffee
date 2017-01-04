@@ -54,14 +54,18 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
             @opts.mode = 'gfm'
+        else if @ext == 'rmd'
+            @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
+        else if @ext == 'java'
+            @opts.mode = 'java'
         else if @ext == 'wiki' or @ext == "mediawiki"
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
         else
-            throw Error('file must have extension md or html or rst or wiki or tex')
+            throw Error('file must have extension md, html, rmd, rst, tex, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'
@@ -90,8 +94,10 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @spell_check()
 
         cm = @cm()
-        cm.on('change', _.debounce(@update_preview,500))
-        #cm.on 'cursorActivity', @update_preview
+        if @opts.mode == 'java'
+            @source_editor.on 'saved', _.debounce(@update_preview,500)
+        else
+            cm.on 'change', _.debounce(@update_preview,500)
 
         @init_buttons()
         @init_draggable_split()
@@ -427,6 +433,20 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         m = require('../markdown').markdown_to_html(source)
         cb(undefined, m.s)
 
+    rmd_to_html: (cb) =>
+        split_path = misc.path_split(@filename)
+        @to_html_via_exec
+            command     : "smc-rmd2html"
+            args        : [split_path.tail]
+            path        : split_path.head
+            cb          : cb
+
+    java_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "smc-java2html"
+            args        : [@filename]
+            cb          : cb
+
     rst_to_html: (cb) =>
         @to_html_via_exec
             command     : "rst2html"
@@ -443,6 +463,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             command     : required
             args        : required
             postprocess : undefined
+            path        : undefined  # if set, change working directory to path
             cb          : required   # cb(error, html, warnings)
         html = undefined
         warnings = undefined
@@ -454,13 +475,14 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                     project_id  : @project_id
                     command     : opts.command
                     args        : opts.args
+                    path        : opts.path
                     err_on_exit : false
                     cb          : (err, output) =>
                         #console.log("salvus_client.exec ", err, output)
                         if err
                             cb(err)
                         else
-                            html = output.stdout
+                            html     = output.stdout
                             warnings = output.stderr
                             cb()
         ], (err) =>
@@ -483,7 +505,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         t0 = misc.mswalltime()
         @_update_preview_lock = true
         #console.log("update_preview")
-        @to_html (err, source) =>
+        @to_html (err, source, warnings) =>
             @_update_preview_lock = false
             if err
                 console.log("failed to render preview: #{err}")
@@ -495,22 +517,25 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             elt.find('link').remove()
             source = elt.html()
 
-            # finally set html in the live DOM
-            @preview_content.html(source)
+            if warnings
+                @preview_content.html("<pre><code>#{warnings}</code></pre>")
+            else
+                # finally set html in the live DOM
+                @preview_content.html(source)
 
-            @localize_image_links(@preview_content)
+                @localize_image_links(@preview_content)
 
-            ## this would disable clickable links...
-            #@preview.find("a").click () =>
-            #    return false
-            # Make it so preview links can be clicked, don't close SMC page.
-            @preview_content.find("a").attr("target","_blank")
-            @preview_content.find("table").addClass('table')  # bootstrap table
+                ## this would disable clickable links...
+                #@preview.find("a").click () =>
+                #    return false
+                # Make it so preview links can be clicked, don't close SMC page.
+                @preview_content.find("a").attr("target","_blank")
+                @preview_content.find("table").addClass('table')  # bootstrap table
 
-            @preview_content.mathjax()
+                @preview_content.mathjax()
 
-            #@preview_content.find(".smc-html-cursor").scrollintoview()
-            #@preview_content.find(".smc-html-cursor").remove()
+                #@preview_content.find(".smc-html-cursor").scrollintoview()
+                #@preview_content.find(".smc-html-cursor").remove()
 
             #console.log("update_preview time=#{misc.mswalltime(t0)}ms")
             if @_update_preview_redo
@@ -518,22 +543,16 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 @update_preview()
 
     localize_image_links: (e) =>
-        # make relative links to images use the raw server
-        for x in e.find("img")
-            y = $(x)
-            src = y.attr('src')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('src', new_src)
-        # make relative links to objects use the raw server
-        for x in e.find("object")
-            y = $(x)
-            src = y.attr('data')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('data', new_src)
+        {join} = require('path')
+        # make relative links to images and objects use the raw server
+        for [tag, attr] in [['img', 'src'], ['object', 'data']]
+            for x in e.find(tag)
+                y = $(x)
+                src = y.attr(attr)
+                if not src? or src[0] == '/' or src.indexOf('://') != -1
+                    continue
+                new_src = join('/', window.smc_base_url, @project_id, 'raw', @file_path(), src)
+                y.attr(attr, new_src)
 
     init_preview_select: () =>
         @preview_content.click (evt) =>
