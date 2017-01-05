@@ -466,7 +466,7 @@ SMC_Quote = ->
         <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback. The course
-        management features work really well."
+        management features work really well." - Will Conley, Math professor, University of California at Los Angeles 
         </p>
         <p>
             <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">Quotes</a> {' | '}
@@ -662,6 +662,14 @@ exports.LandingPage = rclass
                     </Col>
                     <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
                         <Well style={'textAlign': 'center', 'float':'right'}>
+                            <h3 style={marginTop: 0}>For the next generation of innovative leaders</h3>
+                            <p>who teach courses using modern open
+                            source software, SageMathCloud is by far the most powerful and easiest way to get your
+                            class up and running. We completely eliminate frustrating installations, awkward and 
+                            closed Matlab and Mathematica clouds, and the limited functionality of Overleaf and ShareLatex.
+                            Quick, expert technical support is offered via our ridiculously collaborative environment
+                            including LaTeX, R, Jupyter, Python, SageMath, Octave, and Julia. For all the bumps and 
+                            bruises of open source software, we have your back.</p>
                             <SMC_Commercial />
                             <br />
                             <SMC_Quote />
