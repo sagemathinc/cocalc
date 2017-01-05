@@ -115,7 +115,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     render: ->
         <div>
             <h3>
-                <Icon name='dashboard' /> System usage
+                <Icon name='dashboard' /> Current active users
                 {@render_when_updated()}
             </h3>
             <ul>

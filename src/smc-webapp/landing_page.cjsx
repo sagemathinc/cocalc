@@ -451,7 +451,7 @@ LANDING_PAGE_CONTENT =
 
 SMC_Commercial = ->
     <iframe
-        width       = "504"
+        width       = "100%"
         height      = "284"
         src         = "https://www.youtube.com/embed/AEKOjac9obk"
         frameBorder = "0"
@@ -465,14 +465,14 @@ SMC_Quote = ->
         </a>
         <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
-        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback. The course
-        management features work really well."
+        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
+        The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
+        management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
         </p>
-        <p>
-            <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">Quotes</a> {' | '}
-            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses</a> {' | '}
-            <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">Course management tutorial</a> {' | '}
-            <a href="https://github.com/sagemathinc/smc/wiki/SMC-for-Students-and-Teachers" target="_blank">Advantages</a>
+        <p style={marginBottom:0} >
+            <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
+            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses using SageMathCloud</a> {' | '}
+            <a href="https://github.com/sagemathinc/smc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
         </p>
     </div>
 
@@ -482,6 +482,8 @@ LandingPageContent = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
+        # temporarily disable -- it's getting old...
+        return <div></div>
         <Well style={color:'#666'}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </Well>
@@ -518,7 +520,7 @@ SagePreview = rclass
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox title="Jupyter Notebook, Linux Terminal, ..." index={3}>
+                        <ExampleBox title="Jupyter Notebooks and Linux Terminals" index={3}>
                             <SiteName /> does not arbitrarily restrict you.
                             Work with <strong>Jupyter Notebooks</strong>,
                             {' '}<strong>upload</strong> your own files,
@@ -547,10 +549,10 @@ ExampleBox = rclass
     render: ->
         <div>
             <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
-            <div style={marginBottom:'5px'} >
+            <div style={marginBottom:'10px'} >
                 <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
-            <div>
+            <div className="lighten">
                 {@props.children}
             </div>
         </div>
@@ -652,13 +654,6 @@ exports.LandingPage = rclass
                     </div>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
-                        <Well style={'textAlign': 'center', 'float':'right'}>
-                            <SMC_Commercial />
-                            <br />
-                            <SMC_Quote />
-                        </Well>
-                    </Col>
                     <Col sm=5>
                         <SignUp
                             sign_up_error = {@props.sign_up_error}
@@ -666,6 +661,21 @@ exports.LandingPage = rclass
                             token         = {@props.token}
                             signing_up    = {@props.signing_up}
                             has_account   = {@props.has_account} />
+                    </Col>
+                    <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
+                        <Well style={'float':'right', marginBottom:'15px'} className="lighten">
+                            <h3 style={marginTop: 0}>For the next generation of innovative leaders</h3>
+                            <p style={marginBottom:'15px'}>who teach courses using modern open
+                            source software, SageMathCloud is by far the most powerful and easiest way to get your
+                            class up and running. We completely eliminate frustrating installations, awkward and
+                            closed Matlab and Mathematica clouds, and the limited functionality of Overleaf and ShareLatex.
+                            Quick, expert technical support is offered via our ridiculously collaborative environment,
+                            which includes LaTeX, R, Jupyter, Python, SageMath, Octave, and Julia. For avoiding the bumps and
+                            bruises of open source software, we have your back.</p>
+                            <SMC_Commercial />
+                            <br />
+                            <SMC_Quote />
+                        </Well>
                     </Col>
                 </Row>
                 <Well>

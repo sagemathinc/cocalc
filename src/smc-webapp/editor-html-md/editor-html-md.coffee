@@ -58,6 +58,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
+        else if @ext == 'java'
+            @opts.mode = 'java'
         else if @ext == 'wiki' or @ext == "mediawiki"
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
@@ -92,8 +94,10 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @spell_check()
 
         cm = @cm()
-        cm.on('change', _.debounce(@update_preview,500))
-        #cm.on 'cursorActivity', @update_preview
+        if @opts.mode == 'java'
+            @source_editor.on 'saved', _.debounce(@update_preview,500)
+        else
+            cm.on 'change', _.debounce(@update_preview,500)
 
         @init_buttons()
         @init_draggable_split()
@@ -435,6 +439,12 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             command     : "smc-rmd2html"
             args        : [split_path.tail]
             path        : split_path.head
+            cb          : cb
+
+    java_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "smc-java2html"
+            args        : [@filename]
             cb          : cb
 
     rst_to_html: (cb) =>
