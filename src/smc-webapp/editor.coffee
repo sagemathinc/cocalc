@@ -361,6 +361,7 @@ exports.sagews_decorator_modes = sagews_decorator_modes = [
     ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
+    ['java'        , 'text/x-java'],    # !! more specific name must be first!!!! (java vs javascript!)
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
     ['md'          , 'gfm2'],
