@@ -117,6 +117,7 @@ codemirror_associations =
     pyx    : 'python'
     r      : 'r'
     rmd    : 'gfm2'
+    rnw    : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -172,6 +173,11 @@ file_associations['tex'] =
 #    icon   : 'fa-file-code-o'
 #    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
+file_associations['rnw'] =
+    editor : 'latex'
+    icon   : 'fa-file-excel-o'
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "Knitr LaTeX"
 
 file_associations['html'] =
     editor : 'html-md'
@@ -1903,6 +1909,7 @@ class PDFLatexDocument
         @project_id = opts.project_id
         @filename   = opts.filename
         @image_type = opts.image_type
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
 
         @_pages     = {}
         @num_pages  = 0
@@ -1911,8 +1918,12 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex  = s.tail
-        @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+        if @ext == 'rnw'
+            @filename_tex = misc.change_filename_extension(s.tail, 'tex')
+            @filename_rnw = s.tail
+        else
+            @filename_tex  = s.tail
+        @base_filename = misc.separate_file_extension(@filename_tex).name
         @filename_pdf  = @base_filename + '.pdf'
 
     dbg: (mesg) =>
@@ -2060,6 +2071,7 @@ class PDFLatexDocument
         if not opts.latex_command?
             opts.latex_command = @default_tex_command()
         @_need_to_run =
+            knitr  : @ext == 'rnw'
             latex  : true   # initially, only latex is true
             sage   : false  # either false or a filename
             bibtex : false
@@ -2100,7 +2112,18 @@ class PDFLatexDocument
             else
                 cb()
 
+        task_knitr = (cb) =>
+            if @_need_to_run.knitr
+                status?(start:'knitr')
+                @_run_knitr (err, _log) =>
+                    status?(end:'knitr', log:_log)
+                    log += _log
+                    cb(err)
+            else
+                cb()
+
         async.series([
+            task_knitr,
             task_latex,
             task_sage,
             task_bibtex,
@@ -2192,6 +2215,19 @@ class PDFLatexDocument
             args    : [@base_filename]
             timeout : 10
             cb      : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_knitr: (cb) =>
+        @_exec
+            command  : "echo 'require(knitr); knit(\"#{@filename_rnw}\")' | R --no-save"
+            bash     : true
+            timeout  : 60
+            cb       : (err, output) =>
                 if err
                     cb?(err)
                 else
@@ -3165,7 +3201,7 @@ exports.register_nonreact_editors = () ->
 
     # Editors for private normal editable files.
     register(false, HTML_MD_Editor,   html_md_exts)
-    register(false, LatexEditor,      ['tex'])
+    register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
     register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
