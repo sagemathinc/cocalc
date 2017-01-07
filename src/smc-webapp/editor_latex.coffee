@@ -416,7 +416,9 @@ class exports.LatexEditor extends editor.FileEditor
                 @set_conf(resolution : res)
                 @preview.update()
             catch e
-                alert_message(type:"error", message:"Invalid resolution #{res}")
+                alert_message
+                    type    : "error"
+                    message : "Invalid resolution #{res}"
 
     get_resolution: () =>
         if not @preview?
@@ -621,7 +623,9 @@ class exports.LatexEditor extends editor.FileEditor
     _show_error_in_file: (mesg, cb) =>
         file = mesg.file
         if not file
-            alert_message(type:"error", "No way to open unknown file.")
+            alert_message
+                type    : "error"
+                message : "No way to open unknown file."
             cb?()
             return
         if not mesg.line
@@ -634,7 +638,9 @@ class exports.LatexEditor extends editor.FileEditor
                     resolution : @get_resolution()
                     cb         : cb
             else
-                alert_message(type:"error", "Unknown location in '#{file}'.")
+                alert_message
+                    type    : "error"
+                    message : "Unknown location in '#{file}'."
                 cb?()
                 return
         else
@@ -698,7 +704,9 @@ class exports.LatexEditor extends editor.FileEditor
         opts.cb = (err, res) =>
             if err
                 if active
-                    alert_message(type:"error", message: "Inverse search error -- #{err}")
+                    alert_message
+                        type    : "error"
+                        message : "Inverse search error -- #{err}"
             else
                 if res.input != @filename
                     if active

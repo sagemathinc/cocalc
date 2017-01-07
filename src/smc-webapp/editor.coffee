@@ -117,6 +117,7 @@ codemirror_associations =
     pyx    : 'python'
     r      : 'r'
     rmd    : 'gfm2'
+    rnw    : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -172,6 +173,11 @@ file_associations['tex'] =
 #    icon   : 'fa-file-code-o'
 #    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
+file_associations['rnw'] =
+    editor : 'latex'
+    icon   : 'fa-file-excel-o'
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "Knitr LaTeX"
 
 file_associations['html'] =
     editor : 'html-md'
@@ -1903,6 +1909,7 @@ class PDFLatexDocument
         @project_id = opts.project_id
         @filename   = opts.filename
         @image_type = opts.image_type
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
 
         @_pages     = {}
         @num_pages  = 0
@@ -1911,8 +1918,12 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex  = s.tail
-        @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+        if @ext == 'rnw'
+            @filename_tex = misc.change_filename_extension(s.tail, 'tex')
+            @filename_rnw = s.tail
+        else
+            @filename_tex  = s.tail
+        @base_filename = misc.separate_file_extension(@filename_tex).name
         @filename_pdf  = @base_filename + '.pdf'
 
     dbg: (mesg) =>
@@ -2005,9 +2016,10 @@ class PDFLatexDocument
             n  : required
             cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
 
+        fn = if @ext == 'tex' then @filename_tex else @filename_rnw
         @_exec
             command : 'synctex'
-            args    : ['view', '-i', "#{opts.n}:0:#{@filename_tex}", '-o', @filename_pdf]
+            args    : ['view', '-i', "#{opts.n}:0:#{fn}", '-o', @filename_pdf]
             path    : @path
             cb      : (err, output) =>
                 if err
@@ -2060,6 +2072,7 @@ class PDFLatexDocument
         if not opts.latex_command?
             opts.latex_command = @default_tex_command()
         @_need_to_run =
+            knitr  : @ext == 'rnw'
             latex  : true   # initially, only latex is true
             sage   : false  # either false or a filename
             bibtex : false
@@ -2100,11 +2113,34 @@ class PDFLatexDocument
             else
                 cb()
 
+        task_knitr = (cb) =>
+            if @_need_to_run.knitr
+                status?(start:'knitr')
+                @_run_knitr (err, _log) =>
+                    status?(end:'knitr', log:_log)
+                    log += _log
+                    cb(err)
+            else
+                cb()
+
+        # when running knitr, this patches the synctex file
+        task_patch_synctex = (cb) =>
+            if @_need_to_run.knitr
+                status?(start:'synctex')
+                @_run_patch_synctex (err, _log) =>
+                    status?(end:'synctex', log:_log)
+                    log += _log
+                    cb(err)
+            else
+                cb()
+
         async.series([
+            task_knitr,
             task_latex,
             task_sage,
             task_bibtex,
             task_latex,
+            task_patch_synctex,
             @update_number_of_pdf_pages
         ], (err) =>
             opts.cb?(err, log)
@@ -2199,6 +2235,33 @@ class PDFLatexDocument
                     @_need_to_run.latex = true
                     cb?(false, log)
 
+    _run_knitr: (cb) =>
+        @_exec
+            command  : "echo 'require(knitr); opts_knit$set(concordance = TRUE); knit(\"#{@filename_rnw}\")' | R --no-save"
+            bash     : true
+            timeout  : 60
+            cb       : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_patch_synctex: (cb) =>
+        # only for knitr, because the full chain is Rnw → tex → pdf
+        @_exec
+            command  : "echo 'require(patchSynctex);
+patchSynctex(\"#{@filename_tex}\");' | R --no-save"
+            bash     : true
+            timeout  : 10
+            cb       : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    cb?(false, log)
+
     pdfinfo: (cb) =>   # cb(err, info)
         @_exec
             command     : "pdfinfo"
@@ -2244,6 +2307,8 @@ class PDFLatexDocument
     trash_aux_files: (cb) =>
         log = ''
         EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
+        EXT = (E + '.' for E in EXT)
+        EXT.push('-concordance.tex')
         async.series([
             (cb) =>
                 # needs to come before deleting the .log file!
@@ -2255,7 +2320,7 @@ class PDFLatexDocument
                         cb(err)
             (cb) =>
                 # this in particular gets rid of the sagetex files
-                files = (@base_filename + "." + ext for ext in EXT)
+                files = (@base_filename + ext for ext in EXT)
                 @_exec
                     command : "rm"
                     args    : ['-v'].concat(files)
@@ -3165,7 +3230,7 @@ exports.register_nonreact_editors = () ->
 
     # Editors for private normal editable files.
     register(false, HTML_MD_Editor,   html_md_exts)
-    register(false, LatexEditor,      ['tex'])
+    register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
     register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
