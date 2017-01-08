@@ -49,7 +49,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         # console.log("HTML_MD_editor", @)
-
+        $('.salvus-editor-textedit-buttonbar').show()
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
@@ -62,7 +62,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else if @ext != 'java'
+        else if @ext == 'java'
+            $('.salvus-editor-textedit-buttonbar').hide()
+        else
             throw Error('file must have extension md, html, rmd, rst, tex, java, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
