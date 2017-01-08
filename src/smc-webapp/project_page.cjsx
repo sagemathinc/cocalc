@@ -173,7 +173,7 @@ ProjectWarning = rclass ({name}) ->
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host} 
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
@@ -187,19 +187,35 @@ ProjectWarning = rclass ({name}) ->
     render_learn_more : ->
         <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
 
+    get_quota_alerts : ->
+        status       = @props.project?.status
+        total_quotas = @props.get_total_project_quotas(@props.project_id)
+        memory_used     = '?'
+        disk_used       = '?'
+        if status?
+            rss = status.memory?.rss
+            if rss
+                memory_used = Math.round(rss/1000)
+            disk_used = status.disk_MB
+            if disk_used
+                disk_used = Math.ceil(disk)
+        if memory_used
+            memory_over_quota = (total_quotas['memory'] - memory_used) < 0
+            memory_near_quota = (total_quotas['memory'] - memory_used) >= 0 and (total_quotas['memory'] - memory) < 100
+        else
+            memory_over_quota = false
+            memory_near_quota = false
+        if disk_used
+            disk_over_quota = (total_quotas['disk_quota'] - disk_used) < 0
+            disk_near_quota = (total_quotas['disk_quota'] - disk_used) >= 0 and (total_quotas['disk_quota'] - disk) < 100
+        else
+            disk_over_quota = false
+            disk_near_quota = false
+        return [memory_over_quota, memory_near_quota, disk_over_quota, disk_near_quota]
+
     render : ->
-        if @props.project
-            status       = JSON.parse(JSON.stringify(@props.project.get('status'))) # without parse and stringify not getting this data in the right format
-            total_quotas = @props.get_total_project_quotas(@props.project_id)
-            memory     = '?'
-            disk       = '?'
-            if status?
-                rss = status.memory?.rss
-                if rss
-                    memory = Math.round(rss/1000)
-                disk = status.disk_MB
-                if disk
-                    disk = Math.ceil(disk)
+        if not @props.project
+            return null
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -207,20 +223,9 @@ ProjectWarning = rclass ({name}) ->
         quotas = @props.get_total_project_quotas(@props.project_id)
         if not quotas?
             return null
-        if memory
-            memory_over_quota = (total_quotas['memory'] - memory) < 0
-            memory_near_quota = (total_quotas['memory'] - memory) >= 0 and (total_quotas['memory'] - memory) < 100
-        else
-            memory_over_quota = false
-            memory_near_quota = false
-        if disk
-            disk_over_quota = (total_quotas['disk_quota'] - disk) < 0
-            disk_near_quota = (total_quotas['disk_quota'] - disk) >= 0 and (total_quotas['disk_quota'] - disk) < 100
-        else
-            disk_over_quota = false
-            disk_near_quota = false
         host = not quotas.member_host
         internet = not quotas.network
+        [memory_over_quota, memory_near_quota, disk_over_quota, disk_near_quota] = @get_quota_alerts()
         if not memory_over_quota and not memory_near_quota and not disk_over_quota and not disk_near_quota and not host and not internet
             return null
         styles =
@@ -409,7 +414,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map  : rtypes.immutable
+            project_map  : rtypes.object
             get_my_group : rtypes.func
         page :
             fullscreen : rtypes.bool
@@ -516,7 +521,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group     = @props.get_my_group(@props.project_id)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <ProjectWarning project_id={@props.project_id} project={@props.project_map?.get(@props.project_id)} name={name} />
+            <ProjectWarning project_id={@props.project_id} project={@props.project_map?[@props.project_id]} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectMainContent
                 project_id      = {@props.project_id}
