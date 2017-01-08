@@ -163,7 +163,7 @@ FreeProjectWarning = rclass ({name}) ->
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
         billing :
-            customer : rtypes.immutable  # similar to stripe_customer
+            customer : rtypes.object  # similar to stripe_customer
 
     propTypes :
         project_id                           : rtypes.string
@@ -177,13 +177,6 @@ FreeProjectWarning = rclass ({name}) ->
             upgrading         : true
             has_subbed        : false
             state             : 'view'    # view --> edit --> saving --> view
-
-    shouldComponentUpdate : (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
-            @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or
-            @state?.create_button_hit != nextProps.state?.create_button_hit or
-            @props.customer != nextProps.customer
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
@@ -251,7 +244,7 @@ FreeProjectWarning = rclass ({name}) ->
         </UpgradeAdjustor>
 
     render_upgrade_before_create: ->
-        subs = JSON.parse(JSON.stringify(@props.customer))?.subscriptions?.total_count ? 0 # without parese/stringify not getting the customer data in the right format
+        subs = @props.customer?.subscription?.total_count ? 0 # without parese/stringify not getting the customer data in the right format
         <Col sm=12>
             <div>
                 {<div id="upgrade_before_creation"></div> if subs == 0}
