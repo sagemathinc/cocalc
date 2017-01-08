@@ -244,9 +244,9 @@ FreeProjectWarning = rclass ({name}) ->
         </UpgradeAdjustor>
 
     render_upgrade_before_create: ->
-        subs = @props.customer?.subscription?.total_count ? 0 # without parese/stringify not getting the customer data in the right format
+        subs = @props.customer?.subscriptions?.total_count ? 0 # without parese/stringify not getting the customer data in the right format
         <Col sm=12>
-            <div>
+            <div style={maxWidth: '600px'}>
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
                 {<div id="upgrade_before_creation"></div> if subs > 0}
