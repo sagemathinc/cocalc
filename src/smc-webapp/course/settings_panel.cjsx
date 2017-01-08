@@ -16,6 +16,8 @@ schema = require('smc-util/schema')
 {Calendar, Icon, LabeledRow, Loading, MarkdownInput, NoUpgrades
      Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
 
+{PROJECT_UPGRADES} = require('smc-util/schema')
+
 StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
 
@@ -527,7 +529,8 @@ exports.SettingsPanel = rclass
         # total_upgrades     - the total amount of each quota that has been applied (by anybody) to these student projects
         # your_upgrades      - total amount of each quota that this user has applied to these student projects
         @_upgrade_is_invalid = false  # will get set to true by render_upgrade_row if invalid.
-        for quota, total of purchased_upgrades
+        for quota in PROJECT_UPGRADES.field_order
+            total     = purchased_upgrades[quota]
             yours     = your_upgrades[quota] ? 0
             available = total - (applied_upgrades[quota] ? 0) + yours
             current   = total_upgrades[quota] ? 0
