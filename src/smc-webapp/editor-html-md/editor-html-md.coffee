@@ -58,14 +58,12 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
-        else if @ext == 'java'
-            @opts.mode = 'java'
         else if @ext == 'wiki' or @ext == "mediawiki"
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else
-            throw Error('file must have extension md, html, rmd, rst, tex, or wiki')
+        else if @ext != 'java'
+            throw Error('file must have extension md, html, rmd, rst, tex, java, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'
@@ -90,11 +88,13 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
+        if @ext == 'java'
+            @update_preview()
 
         @spell_check()
 
         cm = @cm()
-        if @opts.mode == 'java'
+        if @ext == 'java'
             @source_editor.on 'saved', _.debounce(@update_preview,500)
         else
             cm.on 'change', _.debounce(@update_preview,500)

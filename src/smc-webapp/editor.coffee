@@ -198,13 +198,11 @@ file_associations['rmd'] =
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
     name   : "Rmd"
 
-###
 file_associations['java'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
     name   : "Java"
-###
 
 file_associations['rst'] =
     editor : 'html-md'

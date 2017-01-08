@@ -11,33 +11,17 @@ def java2html(path):
     (root, ext) = os.path.splitext(path)
     if ext.lower() != ".java":
         raise ValueError('Java input file required, got {}'.format(path))
-    
+
     with open(path, 'r') as f:
         s = f.read()
-    name = re.search('public class (?P<name>[a-zA-Z0-9]+)', s)
-    if name:
-        name = name.group('name')
-    else:
-        print 'error public class name not found'
-        return
     try:
-        open(name +'.java','w').write(s.encode("UTF-8"))
-        (child_stdin, child_stdout, child_stderr) = os.popen3('javac %s'%path)
+        (path, file)  = os.path.split(path)
+        (child_stdin, child_stdout, child_stderr) = os.popen3('cd "%s"; javac "%s"; java "%s"' % (path, file, file[:-5]))
         output = child_stderr.read()
         output += '\n' + child_stdout.read()
         sys.stdout.flush()
         sys.stderr.flush()
-        if not os.path.exists(name+'.class'): # failed to produce executable
-            return
-        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
-        output += '\n' + child_stdout.read()
-        output += '\n' + child_stderr.read()
-        sys.stdout.flush()
-        sys.stderr.flush()
-        with open(path[:-4]+'html', 'w') as f:
-            f.write(output.replace('\n', '<br/>'))
-        with open(path[:-4]+'html', 'r') as htmlfile:
-            print(htmlfile.read())
+        print(output.replace('\n', '<br/>'))
     finally:
         pass
 
