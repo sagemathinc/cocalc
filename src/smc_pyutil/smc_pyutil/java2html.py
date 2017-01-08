@@ -27,17 +27,14 @@ def java2html(path):
         output += '\n' + child_stdout.read()
         sys.stdout.flush()
         sys.stderr.flush()
-        if not os.path.exists(name+'.class'): # failed to produce executable
+        if not os.path.exists(path[:-5]+'.class'): # failed to produce executable
             return
-        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
+        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s' % path[:-5])
         output += '\n' + child_stdout.read()
         output += '\n' + child_stderr.read()
         sys.stdout.flush()
         sys.stderr.flush()
-        with open(path[:-4]+'html', 'w') as f:
-            f.write(output.replace('\n', '<br/>'))
-        with open(path[:-4]+'html', 'r') as htmlfile:
-            print(htmlfile.read())
+        print(output.replace('\n', '<br/>'))
     finally:
         pass
 
