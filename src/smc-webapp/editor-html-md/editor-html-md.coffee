@@ -90,7 +90,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
-        if @ext == 'java'
+        if @ext == 'java' and not @disable_preview
             @update_preview()
 
         @spell_check()
