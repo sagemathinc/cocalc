@@ -16,7 +16,7 @@ def java2html(path):
         s = f.read()
     try:
         (path, file)  = os.path.split(path)
-        (child_stdin, child_stdout, child_stderr) = os.popen3('cd %s; javac %s; java %s' % (path, file, file[:-5]))
+        (child_stdin, child_stdout, child_stderr) = os.popen3('cd "%s"; javac "%s"; java "%s"' % (path, file, file[:-5]))
         output = child_stderr.read()
         output += '\n' + child_stdout.read()
         sys.stdout.flush()
