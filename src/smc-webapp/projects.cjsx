@@ -664,8 +664,8 @@ NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
     propTypes :
-        nb_projects : rtypes.number.isRequired
-        customer    : rtypes.object
+        nb_projects                          : rtypes.number.isRequired
+        customer                             : rtypes.object
         upgrades_you_can_use                 : rtypes.object
         upgrades_you_applied_to_all_projects : rtypes.object
         quota_params                         : rtypes.object.isRequired # from the schema
@@ -679,7 +679,7 @@ NewProjectCreator = rclass
         state =
             upgrading         : true
             has_subbed        : false
-            state             : 'view'    # view --> edit --> saving --> view
+            state             : if @props.nb_projects == 0 then 'edit' else 'view'    # view --> edit --> saving --> view
             title_text        : ''
             description_text  : ''
             error             : ''
