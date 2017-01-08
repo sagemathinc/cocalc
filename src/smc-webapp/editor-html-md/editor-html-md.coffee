@@ -49,7 +49,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         # console.log("HTML_MD_editor", @)
-
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
@@ -78,6 +77,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         # create the textedit button bar.
         @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
         @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+
+        if @ext == 'java'
+            @element.find(".salvus-editor-html-md-textedit-buttonbar").hide()
 
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
