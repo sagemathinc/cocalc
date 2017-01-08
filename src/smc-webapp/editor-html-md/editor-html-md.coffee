@@ -75,9 +75,11 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @element = templates.find(".salvus-editor-html-md").clone()
 
         # create the textedit button bar.
-        if @ext != 'java'
-            @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
-            @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
+        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+
+        if @ext == 'java'
+            @element.find(".salvus-editor-html-md-textedit-buttonbar").hide()
 
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
