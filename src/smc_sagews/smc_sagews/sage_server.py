@@ -1787,7 +1787,7 @@ def serve(port, host, extra_imports=False):
 
         for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
                      'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
-                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
                      'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
