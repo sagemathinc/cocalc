@@ -49,7 +49,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         # console.log("HTML_MD_editor", @)
-        $('.salvus-editor-textedit-buttonbar').show()
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
@@ -62,9 +61,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else if @ext == 'java'
-            $('.salvus-editor-textedit-buttonbar').hide()
-        else
+        else if @ext != 'java'
             throw Error('file must have extension md, html, rmd, rst, tex, java, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
@@ -78,8 +75,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @element = templates.find(".salvus-editor-html-md").clone()
 
         # create the textedit button bar.
-        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
-        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+        if @ext != 'java'
+            @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
+            @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
 
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
