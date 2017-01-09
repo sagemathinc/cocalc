@@ -14,7 +14,7 @@ def new_file(path):
     if base and not os.path.exists(base):
         os.makedirs(base)
 
-    ext = os.path.splitext(path)[1]
+    ext = os.path.splitext(path)[1].lower()
     for places in [os.environ['HOME'], os.path.dirname(os.path.realpath(__file__))]:
         template = os.path.join(places, 'templates', PLATFORM, 'default' + ext)
         if os.path.exists(template):
