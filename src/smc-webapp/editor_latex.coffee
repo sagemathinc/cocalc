@@ -39,6 +39,8 @@ class exports.LatexEditor extends editor.FileEditor
         @element = templates.find(".salvus-editor-latex").clone()
 
         @_pages = {}
+
+        # this maps tex line numbers to the ones in the Rnw file via an array
         @_rnw_concordance = null
 
         # initialize the latex_editor
@@ -547,10 +549,7 @@ class exports.LatexEditor extends editor.FileEditor
                 log_output.text(log_output.text() + '\n\n-----------------------------------------------------\nRunning ' + mesg.start + '...\n\n\n\n')
             else
                 if mesg.end == 'latex'
-                    async.series([
-                        @get_rnw_concordance,
-                        @render_error_page
-                    ])
+                    @render_error_page()
                 build_status.text('')
                 log_output.text(log_output.text() + '\n' + mesg.log + '\n')
             # Scroll to the bottom of the textarea
@@ -564,7 +563,14 @@ class exports.LatexEditor extends editor.FileEditor
                 @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
-    render_error_page: (cb) =>
+    render_error_page: () =>
+        # looks bad, but it isn't: @_render_error_page is synchronized at it's heart
+        async.series([
+            @get_rnw_concordance,
+            @_render_error_page
+        ])
+
+    _render_error_page: (cb) =>
         log = @preview.pdflatex.last_latex_log
         if not log?
             cb()
@@ -573,10 +579,10 @@ class exports.LatexEditor extends editor.FileEditor
 
         if p.errors.length
             @number_of_errors.text("  (#{p.errors.length})")
-            @element.find("a[href=\"#errors\"]").addClass("btn-danger")
+            @element.find('a[href="#errors"]').addClass("btn-danger")
         else
             @number_of_errors.text('')
-            @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
+            @element.find('a[href="#errors"]').removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
         if k and p.errors.length == 0  # don't show if there are errors
@@ -633,7 +639,7 @@ class exports.LatexEditor extends editor.FileEditor
         if not file
             alert_message
                 type    : "error"
-                message : "No way to open unknown file."
+                message : "Unable to open unknown file."
             cb?()
             return
         if not mesg.line
@@ -678,8 +684,9 @@ class exports.LatexEditor extends editor.FileEditor
         if mesg.file?.slice(0,2) == './'
             mesg.file = mesg.file.slice(2)
 
-        if mesg.line and mesg.file == preview.pdflatex.filename_rnw
+        if mesg.line and @preview.pdflatex.ext == 'rnw'
             mesg.line = @rnw_concordance(mesg.line)
+            mesg.file = @preview.pdflatex.filename_rnw
 
         elt = @_error_message_template.clone().show()
         elt.find("a:first").click () =>
@@ -705,9 +712,14 @@ class exports.LatexEditor extends editor.FileEditor
     # convert line number of tex file to line number in Rnw file
     rnw_concordance: (line) =>
         if not @_rnw_concordance?
+            # TODO linear interpolation using line number of tex vs. @latex_editor.lineCount()
             return line
+        ret = @_rnw_concordance[line - 1] ? line
+        # console.log("associated line of #{line} is #{ret}")
+        return ret
 
     get_rnw_concordance: (cb) =>
+        # always call the cb without an error -- otherwise the errors don't show up at all
         if @preview.pdflatex.ext == 'rnw'
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
             salvus_client.read_text_file_from_project
@@ -718,12 +730,29 @@ class exports.LatexEditor extends editor.FileEditor
                     if err
                         alert_message
                             type    : "error"
-                            message : "Unable to read concordance file -- #{err}"
+                            message : "Unable to read concordance file #{conc_fn} -- #{err}"
                     else
-                        c = res.content
-                        c = c.split('%')[1..].join(' ').replace(/\n/g, '')
-                        c = c[...c.indexOf('}')]
-                        @_rnw_concordance = (parseInt(n) for n in c.split(/[ ]+/))
+                        # concordance file is explained here:
+                        # https://cran.r-project.org/web/packages/patchDVI/vignettes/patchDVI.pdf
+                        try
+                            c = res.content
+                            c = c.split('%')[1..].join(' ').replace(/\n/g, '')
+                            c = c[...c.indexOf('}')]
+                            enc  = (parseInt(n) for n in c.split(/[ ]+/))
+                            # enc is now the list of RLE encoded numbers
+                            line = enc[0] - 1 # start line, zero-based
+                            orig = 0
+                            dec  = []     # decoded RLE encoding
+                            for idx in [1...enc.length] by 2
+                                for i in [0...enc[idx]]
+                                    orig += enc[idx + 1]
+                                    dec.push(orig)
+                            # console.log('@_rnw_concordance', @_rnw_concordance)
+                            @_rnw_concordance = dec
+                        catch e
+                            # don't reset @_rnw_concordance, the old one could be good enough
+                            console.warn("problem reading and processing #{conc_fn}:", e)
+                            console.trace()
                     cb()
         else
             cb()
