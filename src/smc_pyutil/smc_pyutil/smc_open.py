@@ -37,7 +37,8 @@ def process(paths):
                     os.makedirs(dir)
             if path[-1] != '/':
                 sys.stderr.write("creating file '%s'\n"%path)
-                open(path,'w').close()
+                import new_file
+                new_file.new_file(path)   # see https://github.com/sagemathinc/smc/issues/1476
 
         path = os.path.abspath(path)
 
