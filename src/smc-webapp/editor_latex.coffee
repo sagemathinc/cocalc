@@ -17,6 +17,7 @@ misc_page = require('./misc_page')
 editor          = require('./editor')
 printing        = require('./printing')
 {project_tasks} = require('./project_tasks')
+{salvus_client} = require('./salvus_client')
 
 templates = $("#salvus-editor-templates")
 
@@ -38,6 +39,7 @@ class exports.LatexEditor extends editor.FileEditor
         @element = templates.find(".salvus-editor-latex").clone()
 
         @_pages = {}
+        @_rnw_concordance = null
 
         # initialize the latex_editor
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
@@ -545,7 +547,10 @@ class exports.LatexEditor extends editor.FileEditor
                 log_output.text(log_output.text() + '\n\n-----------------------------------------------------\nRunning ' + mesg.start + '...\n\n\n\n')
             else
                 if mesg.end == 'latex'
-                    @render_error_page()
+                    async.series([
+                        @get_rnw_concordance,
+                        @render_error_page
+                    ])
                 build_status.text('')
                 log_output.text(log_output.text() + '\n' + mesg.log + '\n')
             # Scroll to the bottom of the textarea
@@ -559,9 +564,10 @@ class exports.LatexEditor extends editor.FileEditor
                 @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
-    render_error_page: () =>
+    render_error_page: (cb) =>
         log = @preview.pdflatex.last_latex_log
         if not log?
+            cb()
             return
         p = (new LatexParser(log)).parse()
 
@@ -579,6 +585,7 @@ class exports.LatexEditor extends editor.FileEditor
             @number_of_warnings.text('')
 
         if @_current_page != 'errors'
+            cb()
             return
 
         elt = @errors.find(".salvus-latex-errors")
@@ -619,6 +626,7 @@ class exports.LatexEditor extends editor.FileEditor
                     elt.append($("<h4>(Not showing #{p.typesetting.length - cnt + 1} additional typesetting issues.)</h4>"))
                     break
                 elt.append(@render_error_message(mesg))
+        cb()
 
     _show_error_in_file: (mesg, cb) =>
         file = mesg.file
@@ -644,7 +652,7 @@ class exports.LatexEditor extends editor.FileEditor
                 cb?()
                 return
         else
-            if @preview.pdflatex.filename_tex == file
+            if file in [@preview.pdflatex.filename_tex, @preview.pdflatex.filename_rnw]
                 @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
             else
                 if @_path # make relative to home directory of project
@@ -654,10 +662,9 @@ class exports.LatexEditor extends editor.FileEditor
             cb?()
 
     _show_error_in_preview: (mesg) =>
-        if @preview.pdflatex.filename_tex == mesg.file
-            @_show_error_in_file mesg, () =>
-                @show_page('png-preview')
-                @forward_search(active:true)
+        @_show_error_in_file mesg, () =>
+            @show_page('png-preview')
+            @forward_search(active:true)
 
     render_error_message: (mesg) =>
         if not mesg.line
@@ -670,6 +677,9 @@ class exports.LatexEditor extends editor.FileEditor
 
         if mesg.file?.slice(0,2) == './'
             mesg.file = mesg.file.slice(2)
+
+        if mesg.line and mesg.file == preview.pdflatex.filename_rnw
+            mesg.line = @rnw_concordance(mesg.line)
 
         elt = @_error_message_template.clone().show()
         elt.find("a:first").click () =>
@@ -691,6 +701,32 @@ class exports.LatexEditor extends editor.FileEditor
         if mesg.content
             elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
         return elt
+
+    # convert line number of tex file to line number in Rnw file
+    rnw_concordance: (line) =>
+        if not @_rnw_concordance?
+            return line
+
+    get_rnw_concordance: (cb) =>
+        if @preview.pdflatex.ext == 'rnw'
+            conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
+            salvus_client.read_text_file_from_project
+                project_id : @project_id
+                path       : @_path + '/' + conc_fn
+                cb         : (err, res) =>
+                    err ?= res.error
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Unable to read concordance file -- #{err}"
+                    else
+                        c = res.content
+                        c = c.split('%')[1..].join(' ').replace(/\n/g, '')
+                        c = c[...c.indexOf('}')]
+                        @_rnw_concordance = (parseInt(n) for n in c.split(/[ ]+/))
+                    cb()
+        else
+            cb()
 
     download_pdf: (print = false) =>
         redux.getProjectActions(@project_id).download_file
