@@ -178,7 +178,7 @@ file_associations['rnw'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-    name   : "Knitr LaTeX"
+    name   : "R/knitr LaTeX"
 
 file_associations['html'] =
     editor : 'html-md'
