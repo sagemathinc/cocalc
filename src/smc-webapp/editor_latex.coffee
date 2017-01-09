@@ -461,6 +461,7 @@ class exports.LatexEditor extends editor.FileEditor
             (cb) =>
                 if @latex_editor.has_uncommitted_changes()
                     delete @_last_update_preview  # running latex on stale version
+                    @get_rnw_concordance_error = false
                 @run_latex
                     command : @load_conf_doc().latex_command
                     cb      : cb
@@ -719,6 +720,8 @@ class exports.LatexEditor extends editor.FileEditor
         return ret
 
     get_rnw_concordance: (cb) =>
+        if @get_rnw_concordance_error
+            cb(); return
         # always call the cb without an error -- otherwise the errors don't show up at all
         if @preview.pdflatex.ext == 'rnw'
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
@@ -728,9 +731,8 @@ class exports.LatexEditor extends editor.FileEditor
                 cb         : (err, res) =>
                     err ?= res.error
                     if err
-                        alert_message
-                            type    : "error"
-                            message : "Unable to read concordance file #{conc_fn} -- #{err}"
+                        console.warn("Unable to read concordance file #{conc_fn} -- #{misc.to_json(err)}")
+                        @get_rnw_concordance_error = true
                     else
                         # concordance file is explained here:
                         # https://cran.r-project.org/web/packages/patchDVI/vignettes/patchDVI.pdf
