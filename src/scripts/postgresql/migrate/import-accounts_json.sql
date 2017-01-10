@@ -4,7 +4,6 @@ psql -d migrate -a -f import-accounts_json.sql
 Copies data from RethinkDB JSON to the proper accounts table.
 */
 
-
 CREATE OR REPLACE FUNCTION jsonb_array_to_text_array(
   p_input jsonb
 ) RETURNS TEXT[] AS $BODY$
@@ -53,4 +52,6 @@ INSERT INTO accounts (
 );
 
 UPDATE accounts SET deleted=true WHERE email_address_before_delete IS NOT NULL;
+
+DROP TABLE accounts_json;
 

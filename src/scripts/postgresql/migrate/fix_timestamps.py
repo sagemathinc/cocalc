@@ -13,13 +13,14 @@ def fix_timestamps(obj, sub=False):
                     fix_timestamps(v, True)
     return obj
 
-def fix_timestamps_file(file):
+def process(file):
     print "fix timestamps in %s"%file
     base = os.path.splitext(file)[0]
     out = open(base + '-time.csv','w')
     for x in open(file).xreadlines():
         out.write(json.dumps(fix_timestamps(json.loads(x[:-1]))) + '\n')
     out.close()
-    
-for file in sys.argv[1:]:
-    fix_timestamps_file(file)
+
+if __name__ == "__main__":
+    for file in sys.argv[1:]:
+        process(file)
