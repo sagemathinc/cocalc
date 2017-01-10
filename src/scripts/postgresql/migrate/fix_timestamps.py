@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import datetime, os, json, sys
+import datetime, os, json, sys, timing
 
 # fix timestamps *only* in nested objects, *NOT* at the top level (that's done by sql).
 
@@ -16,10 +16,12 @@ def fix_timestamps(obj, sub=False):
 def process(file):
     print "fix timestamps in %s"%file
     base = os.path.splitext(file)[0]
+    timing.start(os.path.split(base)[-1], 'fix_timestamps')
     out = open(base + '-time.csv', 'w')
     for x in open(file).xreadlines():
         out.write(json.dumps(fix_timestamps(json.loads(x[:-1]))) + '\n')
     out.close()
+    timing.start(os.path.split(base)[-1], 'fix_timestamps')
 
 if __name__ == "__main__":
     for file in sys.argv[1:]:

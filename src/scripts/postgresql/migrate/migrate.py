@@ -21,7 +21,7 @@ tables = {
    'eval_outputs':{},
    'file_access_log':{},
    'file_use':{},
-   'hub_servers':{},
+   'hub_servers':{'skip':True},  # ephemeral
    'instance_actions_log':{},
    'instances':{},
    'passport_settings':{},
@@ -41,12 +41,16 @@ tables = {
 
 import os, sys, threading
 
-import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, export_from_rethinkdb
+import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, export_from_rethinkdb, timing
+
+timing.init()
 
 def process(table):
     if table not in tables:
         raise RuntimeError("no such table: '%s'"%table)
     T = tables[table]
+    if T.get('skip', False):
+        return
     print "dump from rethinkdb as csv"
     path_to_json = export_from_rethinkdb.process(table)
     print "convert json to csv"
@@ -64,6 +68,11 @@ def run(table):
 
 if __name__ == "__main__":
     v = sys.argv[1:]
+    if len(v) > 1 and v[0] == '-p':
+        parallel = True
+        v = v[1:]
+    else:
+        parallel = False
     if len(v) == 1:
         if v[0] == 'all':
             v = list(tables)
@@ -73,6 +82,11 @@ if __name__ == "__main__":
     if len(v) == 1:
         process(v[0])
     elif len(v) > 1:
-        # run in parallel
-        for table in v:
-            run(table)
+        if parallel:
+            # run in parallel
+            for table in v:
+                run(table)
+        else:
+            # serial
+            for table in v:
+                process(table)

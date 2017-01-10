@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-import os
+import os, timing
 
 def process(table):
+    timing.start(table, 'export_from_rethinkdb')
     out = '/migrate/data/%s'%table
     if os.path.exists(out):
         os.system("rm -rf %s"%out)
@@ -10,6 +11,7 @@ def process(table):
     print s
     if os.system(s):
         raise RuntimeError("error exporting from rethinkdb - %s"%table)
+    timing.done(table, 'export_from_rethinkdb')
     return out + '/smc/%s.json'%table
 
 if __name__ == "__main__":

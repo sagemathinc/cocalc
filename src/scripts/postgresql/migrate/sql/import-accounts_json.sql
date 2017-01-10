@@ -49,7 +49,7 @@ INSERT INTO accounts (
     (a#>'{profile}'),
     jsonb_array_to_text_array(a#>'{groups}')
     FROM accounts_json
-) ON CONFLICT (account_id) DO UPDATE SET account_id=EXCLUDED.account_id;
+); /* ON CONFLICT (account_id) DO UPDATE SET account_id=EXCLUDED.account_id; */
 
 UPDATE accounts SET deleted=true WHERE email_address_before_delete IS NOT NULL;
 
