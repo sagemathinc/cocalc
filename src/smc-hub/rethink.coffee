@@ -1120,7 +1120,7 @@ class RethinkDB
                     email_address = x?.email_address
                     cb(err)
             (cb) =>
-                query.update({first_name: 'Deleted', last_name:'User', email_address_before_delete:email_address}).run(cb)
+                query.update({email_address_before_delete:email_address}).run(cb)
             (cb) =>
                 query.replace(@r.row.without('email_address')).run(cb)
             (cb) =>
