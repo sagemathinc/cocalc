@@ -3113,7 +3113,7 @@ connect_to_database_postgresql = (opts) ->
     dbg("connecting...")
     database = require('./postgres').db
         host     : 'localhost'  # TODO
-        database : 'smcdev'     # TODO  # and todo for other options...
+        database : program.keyspace
     database.connect(cb:opts.cb)
 
 connect_to_database = connect_to_database_postgresql

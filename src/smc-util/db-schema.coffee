@@ -689,10 +689,6 @@ schema.projects =
         storage :
             type : 'map'
             desc : "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}."
-        storage_history :
-            type : 'array'
-            pg_type : 'JSONB[]'
-            desc : 'Array of maps {host:?, assigned:?} of *previous* servers; add an entry to this array each time storage location changes.'
         last_backup :
             type : 'timestamp'
             desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"

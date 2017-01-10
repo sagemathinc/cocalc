@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+cd /home/wstein/smc/src/
+. smc-env
+/home/wstein/smc/src/smc-hub/scripts/compute  --single  start  > /home/wstein/.compute.log 2>/home/wstein/.compute.err &
