@@ -1828,6 +1828,7 @@ exports.ProjectFiles = rclass ({name}) ->
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
+            file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
             show_upload         : rtypes.bool
             new_name            : rtypes.string
