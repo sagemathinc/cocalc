@@ -28,7 +28,7 @@ to the octave Jupyter kernel.
 Authors:
 
 * Hal Snyder <hsnyder@sagemath.com>, started January 2017
-* Mostly copied from ipynb2sagews.py, by Harald Schilly <hsy@sagemath.com>, started June 2016
+* Harald Schilly <hsy@sagemath.com>, started June 2016
 """
 
 from __future__ import print_function
@@ -36,109 +36,8 @@ import sys
 import os
 import codecs
 import textwrap
-import json
-# reading the ipynb via http://nbformat.readthedocs.io/en/latest/api.html
 
-from sws2sagews import MARKERS, uuid
-
-class MCell(object):
-
-    '''
-    Create a single suitable sagews cell representation,
-    that is then inserted into the worksheet.
-
-    see http://nbformat.readthedocs.io/en/latest/format_description.html
-    '''
-
-    def __init__(self, input='', outputs=None, md=None):
-        '''
-        Either specify `md` as markdown text, which is used for the text boxes in ipynb,
-        or specify `outputs` as the list of output data dictionaries from ipynb (format version 4)
-        '''
-        if outputs is not None and md is not None:
-            raise ArgumentError('Either specify md or outputs -- not both!')
-        # inline: only the essential html, no header with styling, etc.
-        # linkify: detects URLs
-        # input data
-        self.input = input or ''
-        # cell states data
-        self.md = md or ''
-        self.html = ''
-        self.output = ''
-        self.ascii = ''
-        self.error = ''
-        self.stdout = ''
-        # process outputs list
-        if outputs is not None:
-            self.process_outputs(outputs)
-
-    def process_outputs(self, outputs):
-        """
-        Each cell has one or more outputs of different types.
-        They are collected by type and transformed later.
-        """
-        stdout = []
-        html = []
-        # ascii: for actual html content, that has been converted from ansi-encoded ascii
-        ascii = []
-        # errors are similar to ascii content
-        errors = []
-
-        self.stdout = u'\n'.join(stdout)
-        self.html = u'<br/>'.join(html)
-        self.error = u'<br/>'.join(errors)
-        self.ascii = u'<br/>'.join(ascii)
-
-    def convert(self):
-        cell = None
-        html = self.html.strip()
-        input = self.input.strip()
-        stdout = self.stdout.strip()
-        ascii = self.ascii.strip()
-        error = self.error.strip()
-        md = self.md.strip()
-
-        def mkcell(input='', output='', type='stdout', modes=''):
-            '''
-            This is a generalized template for creating a single sagews cell.
-
-            - sagews modes:
-               * '%auto' → 'a'
-               * '%hide' → 'i'
-               * '%hideall' → 'o'
-
-            - type:
-               * err/ascii: html formatted error or ascii/ansi content
-               * stdout: plain text
-               * html/md: explicit input of html code or md, as display_data
-            '''
-            cell = MARKERS['cell'] + uuid() + modes + MARKERS['cell'] + u'\n'
-            if type == 'md':
-                cell += '%%%s\n' % type
-                output = input
-            cell += input
-            # input is done, now the output part
-            if type in ['err', 'ascii']:
-                # mangle type of output to html
-                type = 'html'
-            cell += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                     json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
-            return cell
-
-        # depending on the typed arguments, construct the sagews cell
-        if html:
-            cell = mkcell(input=input, output = html, type='html', modes='')
-        elif md:
-            cell = mkcell(input=md, type = 'md', modes='i')
-        elif error:
-            cell = mkcell(input=input, output=error, type='err')
-        elif ascii:
-            cell = mkcell(input=input, output=ascii, type='ascii')
-
-        if cell is None and (input or stdout):
-            cell = mkcell(input, stdout)
-
-        return cell
+from smc_pyutil.lib import SagewsCell
 
 
 class M2SageWS(object):
@@ -207,14 +106,14 @@ class M2SageWS(object):
         # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
         # Here, it starts the Jupyter octave kernel and sets it as the default mode for this worksheet.
         %default_mode octave'''
-        self.write(MCell(input=textwrap.dedent(cell)).convert())
+        self.write(SagewsCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
         """
         Convert input to body of the sagews document.
         """
         fhead = "# {}\n".format(self.infile)
-        self.write(MCell(input=fhead+self.m).convert())
+        self.write(SagewsCell(input=fhead+self.m).convert())
 
 
 def main():
