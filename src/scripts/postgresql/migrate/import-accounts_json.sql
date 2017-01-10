@@ -5,8 +5,6 @@ Copies data from RethinkDB JSON to the proper accounts table.
 */
 
 
-ALTER TABLE accounts DROP CONSTRAINT accounts_email_address_key;
-
 CREATE OR REPLACE FUNCTION jsonb_array_to_text_array(
   p_input jsonb
 ) RETURNS TEXT[] AS $BODY$
@@ -33,7 +31,7 @@ INSERT INTO accounts (
     (a#>>'{created_by}')::INET,
     (a#>>'{creation_actions_done}')::BOOL,
     (a#>>'{password_hash}'),
-    (a#>>'{deleted}')::BOOL,
+    NULL,    /* there is no deleted field in the old db */
     (a#>>'{email_address}'),
     (a#>>'{email_address_before_delete}'),
     (a#>'{passports}'),
@@ -52,4 +50,7 @@ INSERT INTO accounts (
     (a#>'{profile}'),
     jsonb_array_to_text_array(a#>'{groups}')
     FROM accounts_json
-) ON CONFLICT (account_id) DO UPDATE set account_id=EXCLUDED.account_id;
+);
+
+UPDATE accounts SET deleted=true WHERE email_address_before_delete IS NOT NULL;
+
