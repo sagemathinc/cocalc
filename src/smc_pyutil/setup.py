@@ -14,7 +14,7 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # This checks, if setup.py is run with 'install --user'
 # in that case we assume it is installed for development and do NOT change the python executable.
@@ -47,7 +47,7 @@ setup(
     author           = 'SageMath, Inc.',
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
-    packages         = ['smc_pyutil'],
+    packages         = find_packages(),
     install_requires = ['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
     zip_safe         = False,
     classifiers      = [
