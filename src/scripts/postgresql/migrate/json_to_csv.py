@@ -9,7 +9,8 @@ def process(path_to_json):
     path_to_csv = "%s.csv"%base
     s = "time sed 's/,$//' %s | head -n -1 | tail -n +2 | grep -v '\\\\u0000' > %s"%(path_to_json, path_to_csv)
     print(s)
-    os.system(s)
+    if os.system(s):
+        raise RuntimeError("error converting json to csv - %s"%path_to_json)
     return path_to_csv
 
 if __name__ == "__main__":

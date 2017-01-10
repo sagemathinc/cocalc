@@ -8,7 +8,8 @@ def process(table):
     s = "time rethinkdb export --password-file /migrate/secrets/rethinkdb --format json  -d %s -c db3 -e smc.%s"%(
         out, table)
     print s
-    os.system(s)
+    if os.system(s):
+        raise RuntimeError("error exporting from rethinkdb - %s"%table)
     return out + '/smc/%s.json'%table
 
 if __name__ == "__main__":

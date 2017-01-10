@@ -39,7 +39,7 @@ tables = {
    'system_notifications':{}
 }
 
-import os, sys
+import os, sys, threading
 
 import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, export_from_rethinkdb
 
@@ -59,10 +59,20 @@ def process(table):
     print "parse JSONB data in the database to relational data"
     populate_relational_table.process(table)
 
+def run(table):
+    threading.Thread(target = lambda : process(table)).start()
+
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == 'all':
-        for table in tables:
-            process(table)
-    else:
-        for table in sys.argv[1:]:
-            process(table)
+    v = sys.argv[1:]
+    if len(v) == 1:
+        if v[0] == 'all':
+            v = list(tables)
+        elif v[0].startswith('-h'):
+            print 'Usage: ' + sys.argv[0] + ' ' + ' '.join(sorted(list(tables)))
+            sys.exit(1)
+    if len(v) == 1:
+        process(v[0])
+    elif len(v) > 1:
+        # run in parallel
+        for table in v:
+            run(table)
