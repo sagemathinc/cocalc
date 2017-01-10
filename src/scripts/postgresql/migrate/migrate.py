@@ -45,18 +45,21 @@ import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, ex
 
 timing.init()
 
+
+parallel = export = False
+
 def process(table):
     if table not in tables:
         raise RuntimeError("no such table: '%s'"%table)
     T = tables[table]
     if T.get('skip', False):
         return
-    print "dump from rethinkdb as csv"
-    path_to_json = export_from_rethinkdb.process(table)
+    print "get from rethinkdb as csv"
+    path_to_json = export_from_rethinkdb.process(table, export)
     print "convert json to csv"
-    path_to_csv = json_to_csv.process(path_to_json)
+    path_to_csv = json_to_csv.process(path_to_json, export)
     print "fix timestamps in the csv file"
-    if T.get('fix_timestamps'):
+    if T.get('fix_timestamps') and export:
         fix_timestamps.process(path_to_csv)
     print "load csv into database"
     read_from_csv.process(path_to_csv)
@@ -66,19 +69,29 @@ def process(table):
 def run(table):
     threading.Thread(target = lambda : process(table)).start()
 
+def usage():
+    print 'Usage: ' + sys.argv[0] + ' ' + ' '.join(sorted(list(tables)))
+    sys.exit(1)
+
 if __name__ == "__main__":
     v = sys.argv[1:]
-    if len(v) > 1 and v[0] == '-p':
-        parallel = True
-        v = v[1:]
-    else:
-        parallel = False
+    if len(v) == 0:
+        usage()
+    for i in range(len(v)):
+        if v[i] == '-p':
+            parallel = True
+            del v[i]
+            break
+    for i in range(len(v)):
+        if v[i] == '-e':
+            export = True
+            del v[i]
+            break
     if len(v) == 1:
         if v[0] == 'all':
             v = list(tables)
         elif v[0].startswith('-h'):
-            print 'Usage: ' + sys.argv[0] + ' ' + ' '.join(sorted(list(tables)))
-            sys.exit(1)
+            usage()
     if len(v) == 1:
         process(v[0])
     elif len(v) > 1:

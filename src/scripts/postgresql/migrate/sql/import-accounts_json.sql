@@ -49,7 +49,8 @@ INSERT INTO accounts (
     (a#>'{profile}'),
     jsonb_array_to_text_array(a#>'{groups}')
     FROM accounts_json
-); /* ON CONFLICT (account_id) DO UPDATE SET account_id=EXCLUDED.account_id; */
+) ON CONFLICT (account_id) DO UPDATE SET creation_actions_done=EXCLUDED.creation_actions_done, password_hash=EXCLUDED.password_hash, deleted=EXCLUDED.deleted, email_address=EXCLUDED.email_address, email_address_before_delete=EXCLUDED.email_address_before_delete, passports=EXCLUDED.passports, editor_settings=EXCLUDED.editor_settings, other_settings=EXCLUDED.other_settings, first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, banned=EXCLUDED.banned, terminal=EXCLUDED.terminal, autosave=EXCLUDED.autosave, evaluate_key=EXCLUDED.evaluate_key, font_size=EXCLUDED.font_size, last_active=EXCLUDED.last_active, stripe_customer_id=EXCLUDED.stripe_customer_id, stripe_customer=EXCLUDED.stripe_customer, profile=EXCLUDED.profile, groups=EXCLUDED.groups;
+
 
 UPDATE accounts SET deleted=true WHERE email_address_before_delete IS NOT NULL;
 

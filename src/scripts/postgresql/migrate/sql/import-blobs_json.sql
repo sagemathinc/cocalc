@@ -19,4 +19,4 @@ INSERT INTO blobs
     (a#>>'{gcloud}'),
     (a#>>'{backup}')::BOOL
   FROM blobs_json WHERE CHAR_LENGTH(a#>>'{id}') = 36
-);
+) ON CONFLICT(id) DO UPDATE SET blob=EXCLUDED.blob, expire=EXCLUDED.expire, last_active=EXCLUDED.last_active, count=EXCLUDED.count, gcloud=EXCLUDED.gcloud, backup=EXCLUDED.backup;

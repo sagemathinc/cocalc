@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # migrate_times
 
 import os, time
@@ -25,3 +26,6 @@ def done(table, what):
     print s
     if os.system(s):
         raise RuntimeError("error recording timing")
+
+if __name__ == "__main__":
+    os.system("echo 'select * from migrate_times order by time desc;' | %s | more"%cmd)

@@ -2,12 +2,14 @@
 
 import os, sys, timing
 
-def process(path_to_json):
+def process(path_to_json, do_it=True):
     base, ext = os.path.splitext(path_to_json)
-    timing.start(os.path.split(base)[-1], 'json_to_csv')
     # The grep -v '\\\\u0000' skips any json record with null bytes.  These are not valid/meaningful
     # for postgres, and happen in a very small handful of non-important records.
     path_to_csv = "%s.csv"%base
+    if not do_it:
+        return path_to_csv
+    timing.start(os.path.split(base)[-1], 'json_to_csv')
     s = "time sed 's/,$//' %s | head -n -1 | tail -n +2 | grep -v '\\\\u0000' > %s"%(path_to_json, path_to_csv)
     print(s)
     if os.system(s):

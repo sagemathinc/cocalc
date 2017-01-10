@@ -542,6 +542,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_create_indexes('#{table}')")
         dbg()
         schema = SCHEMA[table]
+        console.log schema.pg_indexes
         pg_indexes = schema.pg_indexes ? []
         if schema.fields.expire? and 'expire' not in pg_indexes
             pg_indexes.push('expire')

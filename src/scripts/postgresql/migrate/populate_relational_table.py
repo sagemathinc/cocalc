@@ -6,7 +6,7 @@ db = os.environ.get('SMC_DB', 'migrate')
 
 def process(table):
     timing.start(table, 'populate_relational_table')
-    s = "psql -d %s -a -f sql/import-%s_json.sql"%(db, table)
+    s = "psql --set ON_ERROR_STOP=1 -d %s -a -f sql/import-%s_json.sql"%(db, table)
     print(s)
     if os.system(s):
         raise RuntimeError("error populating relational data - %s"%table)
