@@ -60,6 +60,7 @@ Page = rclass
             cookie_warning    : rtypes.bool
             local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
+            status            : rtypes.string
         file_use :
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
@@ -176,6 +177,7 @@ Page = rclass
             zIndex        : '100'
             opacity       : '0.8'
 
+
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
@@ -193,6 +195,26 @@ Page = rclass
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            <Statusbar status={@props.status}/>
+        </div>
+
+Statusbar = rclass
+    displayName : "Statusbar"
+
+    propTypes :
+        status : rtypes.string
+
+    render: ->
+        style_statusbar =
+            height    : '16pt'
+            fontSize  : '10pt'
+            padding   : '1pt 2pt'
+            margin    : '0pt'
+            borderTop : '1px solid #d3d3d3'
+            background: '#efefef'
+
+        <div style={style_statusbar}>
+            Status: {@props.status}
         </div>
 
 page = <Redux redux={redux}>

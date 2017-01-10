@@ -149,6 +149,9 @@ class PageActions extends Actions
     show_local_storage_warning: =>
         @setState(local_storage_warning : true)
 
+    set_status: (status) =>
+        @setState(status: status)
+
     check_unload: (e) =>
         if redux.getStore('account')?.get_confirm_close()
             return "Changes you make may not have been saved."
@@ -177,6 +180,7 @@ redux.createStore
         active_top_tab        : 'account'
 
     stateTypes:
+        status                : rtypes.string
         active_top_tab        : rtypes.string    # key of the active tab
         show_connection       : rtypes.bool
         ping                  : rtypes.number

@@ -830,6 +830,8 @@ class CodeMirrorEditor extends FileEditor
             @_layout = 0
         @_last_layout = undefined
 
+        redux_page = redux.getActions('page')
+
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
@@ -871,6 +873,11 @@ class CodeMirrorEditor extends FileEditor
 
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
+
+            cm.on 'cursorActivity', ->
+                cur = cm.getCursor()
+                status = "Line #{cur.line + 1} / Character #{cur.ch}"
+                redux_page.set_status(status)
 
             # The Codemirror themes impose their own weird fonts, but most users want whatever
             # they've configured as "monospace" in their browser.  So we force that back:
@@ -1827,6 +1834,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
     ext = filename_extension_notilde(filename).toLowerCase()
 
     E = new CodeMirrorEditor(project_id, filename, "", extra_opts)
+
     # Enhance the editor with synchronized session capabilities.
     opts =
         cursor_interval : E.opts.cursor_interval
