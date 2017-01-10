@@ -17,11 +17,14 @@ misc_page = require('./misc_page')
 editor          = require('./editor')
 printing        = require('./printing')
 {project_tasks} = require('./project_tasks')
+{salvus_client} = require('./salvus_client')
 
 templates = $("#salvus-editor-templates")
 
 MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
+TOOLTIP_CONFIG =
+    delay: {show: 500, hide: 100}
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -36,6 +39,9 @@ class exports.LatexEditor extends editor.FileEditor
         @element = templates.find(".salvus-editor-latex").clone()
 
         @_pages = {}
+
+        # this maps tex line numbers to the ones in the Rnw file via an array
+        @_rnw_concordance = null
 
         # initialize the latex_editor
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
@@ -79,17 +85,20 @@ class exports.LatexEditor extends editor.FileEditor
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        preview_filename = misc.change_filename_extension(@filename, 'pdf')
-        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
-        @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
-        @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
-        @_pages['pdf-preview'] = @preview_embed
+        if not $.browser.firefox
+            # see https://github.com/sagemathinc/smc/issues/1313
+            preview_filename = misc.change_filename_extension(@filename, 'pdf')
+            @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
+            @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
+            @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+            @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
         @log = @element.find(".salvus-editor-latex-log")
-        @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @log.find("a").tooltip(TOOLTIP_CONFIG)
         @_pages['log'] = @log
         @log_input = @log.find("input")
+        @log_input.tooltip(TOOLTIP_CONFIG)
         save_custom_build_command = () =>
             @set_conf_doc(latex_command: @log_input.val())
             @save()
@@ -97,6 +106,18 @@ class exports.LatexEditor extends editor.FileEditor
             if e.keyCode == 13
                 save_custom_build_command()
         @log_input.on('blur', save_custom_build_command)
+
+        # Custom build command menu
+        dropdown = @element.find(".smc-editor-latex-log-cmd .dropdown-menu")
+        dropdown.on 'click', 'li', (ev) =>
+            ev.preventDefault()
+            flavor = ev.target.hash ? '#default'
+            c = @preview.pdflatex.default_tex_command(flavor[1..])
+            console.log(c)
+            @log_input.val(c)
+            @set_conf_doc(latex_command: c)
+            @save()
+            return true
 
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
@@ -252,109 +273,134 @@ class exports.LatexEditor extends editor.FileEditor
         @preview_embed.remove()
 
     _init_buttons: () =>
-        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
+        @element.find("a").tooltip(TOOLTIP_CONFIG)
 
-        @element.find("a[href=\"#forward-search\"]").click () =>
+        @element.find('a[href="#forward-search"]').click () =>
             @show_page('png-preview')
             @forward_search(active:true)
             return false
 
-        @element.find("a[href=\"#inverse-search\"]").click () =>
+        @element.find('a[href="#inverse-search"]').click () =>
             @show_page('png-preview')
             @inverse_search(active:true)
             return false
 
-        @element.find("a[href=\"#png-preview\"]").click () =>
+        @element.find('a[href="#png-preview"]').click () =>
             @show_page('png-preview')
             @preview.focus()
             @save()
             return false
 
-        @element.find("a[href=\"#zoom-preview-out\"]").click () =>
+        @element.find('a[href="#zoom-preview-out"]').click () =>
             @preview.zoom(delta: -5)
             @set_conf(zoom_width: @preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-in\"]").click () =>
+        @element.find('a[href="#zoom-preview-in"]').click () =>
             @preview.zoom(delta:5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-fullpage\"]").click () =>
+        @element.find('a[href="#zoom-preview-fullpage"]').click () =>
             @preview.zoom(width:100)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=\"#zoom-preview-width\"]").click () =>
+        @element.find('a[href="#zoom-preview-width"]').click () =>
             @preview.zoom(width:160)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-
-        @element.find("a[href=\"#pdf-preview\"]").click () =>
-            @show_page('pdf-preview')
-            @preview_embed.focus()
-            @preview_embed.update()
+        @element.find('a[href="#pdf-preview"]').click () =>
+            # see https://github.com/sagemathinc/smc/issues/1313
+            if $.browser.firefox
+                @download_pdf()
+            else
+                @show_page('pdf-preview')
+                @preview_embed.focus()
+                @preview_embed.update()
             return false
 
-        @element.find("a[href=\"#log\"]").click () =>
+        @element.find('a[href="#log"]').click () =>
             @show_page('log')
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
 
-        @element.find("a[href=\"#errors\"]").click () =>
+        @element.find('a[href="#errors"]').click () =>
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find("a[href=\"#errors\"]").find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find("a[href=\"#errors\"]").find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find('a[href="#errors"]').find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find('a[href="#errors"]').find(".salvus-latex-warnings-counter")
 
-        @element.find("a[href=\"#pdf-download\"]").click () =>
+        @element.find('a[href="#pdf-download"]').click () =>
             @download_pdf()
             return false
 
-        @element.find("a[href=\"#preview-resolution\"]").click () =>
+        @element.find('a[href="#preview-resolution"]').click () =>
             @set_resolution()
             return false
 
-        @element.find("a[href=\"#latex-command-undo\"]").click () =>
-            c = @preview.pdflatex.default_tex_command()
-            @log_input.val(c)
-            @set_conf_doc(latex_command: c)
-            return false
+        #@element.find("a[href=\"#latex-command-undo\"]").click () =>
+        #    c = @preview.pdflatex.default_tex_command()
+        #    @log_input.val(c)
+        #    @set_conf_doc(latex_command: c)
+        #    return false
 
-        trash_aux_button = @element.find("a[href=\"#latex-trash-aux\"]")
+        trash_aux_button = @element.find('a[href="#latex-trash-aux"]')
         trash_aux_button.click () =>
-            trash_aux_button.icon_spin(true)
-            @preview.pdflatex.trash_aux_files () =>
-                trash_aux_button.icon_spin(false)
+            trash_aux_button.icon_spin(true, disable=true)
+            log_output = @log.find("textarea")
+            log_output.text('')
+            @preview.pdflatex.trash_aux_files (err, log) =>
+                trash_aux_button.icon_spin(false, disable=true)
+                if err
+                    log_output.text(err)
+                else
+                    log_output.text(log)
             return false
 
-        run_sage = @element.find("a[href=\"#latex-sage\"]")
+        run_sage = @element.find('a[href="#latex-sage"]')
         run_sage.click () =>
             @log.find("textarea").text("Running Sage...")
-            run_sage.icon_spin(true)
+            run_sage.icon_spin(true, disable=true)
             @preview.pdflatex._run_sage undefined, (err, log) =>
-                run_sage.icon_spin(false)
+                run_sage.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
-        run_latex = @element.find("a[href=\"#latex-latex\"]")
+        run_latex = @element.find('a[href="#latex-latex"]')
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
-            run_latex.icon_spin(true)
+            run_latex.icon_spin(true, disable=true)
             @preview.pdflatex._run_latex @load_conf_doc().latex_command, (err, log) =>
-                run_latex.icon_spin(false)
+                run_latex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
-        run_bibtex = @element.find("a[href=\"#latex-bibtex\"]")
+        run_recompile = @element.find('a[href="#latex-recompile"]')
+        run_recompile.click () =>
+            log_box = @log.find("textarea")
+            log_box.text("Recompiling ...")
+            run_recompile.icon_spin(true, disable=true)
+            async.series([
+                (cb) =>
+                    @preview.pdflatex.trash_aux_files (err, _log) =>
+                        cb(err)
+                (cb) =>
+                    @update_preview(cb, force=true)
+            ], (err) =>
+                run_recompile.icon_spin(false, disable=true)
+            )
+            return false
+
+        run_bibtex = @element.find('a[href="#latex-bibtex"]')
         run_bibtex.click () =>
             @log.find("textarea").text("Running Bibtex...")
-            run_bibtex.icon_spin(true)
+            run_bibtex.icon_spin(true, disable=true)
             @preview.pdflatex._run_bibtex (err, log) =>
-                run_bibtex.icon_spin(false)
+                run_bibtex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
             return false
 
@@ -374,7 +420,9 @@ class exports.LatexEditor extends editor.FileEditor
                 @set_conf(resolution : res)
                 @preview.update()
             catch e
-                alert_message(type:"error", message:"Invalid resolution #{res}")
+                alert_message
+                    type    : "error"
+                    message : "Invalid resolution #{res}"
 
     get_resolution: () =>
         if not @preview?
@@ -388,20 +436,21 @@ class exports.LatexEditor extends editor.FileEditor
 
     # This function isn't called on save
     # @latex_editor.save is called instead for some reason
-    save: (cb) =>
+    save: (cb, force=false) =>
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                @update_preview () =>
+                @update_preview (force=force) =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed.update()
                 @spell_check()
 
-    update_preview: (cb) =>
+    update_preview: (cb, force=false) =>
         content = @_get()
-        if content == @_last_update_preview
+        if not force and content == @_last_update_preview
             cb?()
             return
+        preview_button = @element.find('a[href="#png-preview"]')
         async.series([
             (cb) =>
                 @_last_update_preview = content
@@ -412,13 +461,16 @@ class exports.LatexEditor extends editor.FileEditor
             (cb) =>
                 if @latex_editor.has_uncommitted_changes()
                     delete @_last_update_preview  # running latex on stale version
+                    @get_rnw_concordance_error = false
                 @run_latex
                     command : @load_conf_doc().latex_command
                     cb      : cb
             (cb) =>
+                preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
         ], (err) =>
+            preview_button.icon_spin(false, disable=true)
             if err
                 delete @_last_update_preview
             cb?(err)
@@ -474,16 +526,16 @@ class exports.LatexEditor extends editor.FileEditor
                     @render_error_page()
                 else
                     page.show()
-                button.addClass('btn-primary')
+                button.parent().addClass('active')
             else
-                button.removeClass('btn-primary')
+                button.parent().removeClass('active')
 
     run_latex: (opts={}) =>
         opts = defaults opts,
             command : undefined
             cb      : undefined
-        button = @element.find("a[href=\"#log\"]")
-        button.icon_spin(true)
+        button = @element.find('a[href="#log"]')
+        button.icon_spin(true, disable=true)
         @_show() # update layout, since showing spinner might cause a linebreak in the button bar
         log_output = @log.find("textarea")
         log_output.text("")
@@ -508,22 +560,30 @@ class exports.LatexEditor extends editor.FileEditor
             status        : status
             latex_command : opts.command
             cb            : (err, log) =>
-                button.icon_spin(false)
+                button.icon_spin(false, disable=true)
                 @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
     render_error_page: () =>
+        # looks bad, but it isn't: @_render_error_page is synchronized at it's heart
+        async.series([
+            @get_rnw_concordance,
+            @_render_error_page
+        ])
+
+    _render_error_page: (cb) =>
         log = @preview.pdflatex.last_latex_log
         if not log?
+            cb()
             return
         p = (new LatexParser(log)).parse()
 
         if p.errors.length
             @number_of_errors.text("  (#{p.errors.length})")
-            @element.find("a[href=\"#errors\"]").addClass("btn-danger")
+            @element.find('a[href="#errors"]').addClass("btn-danger")
         else
             @number_of_errors.text('')
-            @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
+            @element.find('a[href="#errors"]').removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
         if k and p.errors.length == 0  # don't show if there are errors
@@ -532,6 +592,7 @@ class exports.LatexEditor extends editor.FileEditor
             @number_of_warnings.text('')
 
         if @_current_page != 'errors'
+            cb()
             return
 
         elt = @errors.find(".salvus-latex-errors")
@@ -572,11 +633,14 @@ class exports.LatexEditor extends editor.FileEditor
                     elt.append($("<h4>(Not showing #{p.typesetting.length - cnt + 1} additional typesetting issues.)</h4>"))
                     break
                 elt.append(@render_error_message(mesg))
+        cb()
 
     _show_error_in_file: (mesg, cb) =>
         file = mesg.file
         if not file
-            alert_message(type:"error", "No way to open unknown file.")
+            alert_message
+                type    : "error"
+                message : "Unable to open unknown file."
             cb?()
             return
         if not mesg.line
@@ -589,24 +653,25 @@ class exports.LatexEditor extends editor.FileEditor
                     resolution : @get_resolution()
                     cb         : cb
             else
-                alert_message(type:"error", "Unknown location in '#{file}'.")
+                alert_message
+                    type    : "error"
+                    message : "Unknown location in '#{file}'."
                 cb?()
                 return
         else
-            if @preview.pdflatex.filename_tex == file
+            if file in [@preview.pdflatex.filename_tex, @preview.pdflatex.filename_rnw]
                 @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
             else
                 if @_path # make relative to home directory of project
                     file = @_path + '/' + file
-                @redux.getProjectActions(@project_id).open_file
+                redux.getProjectActions(@project_id).open_file
                     path : file
             cb?()
 
     _show_error_in_preview: (mesg) =>
-        if @preview.pdflatex.filename_tex == mesg.file
-            @_show_error_in_file mesg, () =>
-                @show_page('png-preview')
-                @forward_search(active:true)
+        @_show_error_in_file mesg, () =>
+            @show_page('png-preview')
+            @forward_search(active:true)
 
     render_error_message: (mesg) =>
         if not mesg.line
@@ -619,6 +684,10 @@ class exports.LatexEditor extends editor.FileEditor
 
         if mesg.file?.slice(0,2) == './'
             mesg.file = mesg.file.slice(2)
+
+        if mesg.line and @preview.pdflatex.ext == 'rnw'
+            mesg.line = @rnw_concordance(mesg.line)
+            mesg.file = @preview.pdflatex.filename_rnw
 
         elt = @_error_message_template.clone().show()
         elt.find("a:first").click () =>
@@ -641,6 +710,55 @@ class exports.LatexEditor extends editor.FileEditor
             elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
         return elt
 
+    # convert line number of tex file to line number in Rnw file
+    rnw_concordance: (line) =>
+        if not @_rnw_concordance?
+            # TODO linear interpolation using line number of tex vs. @latex_editor.lineCount()
+            return line
+        ret = @_rnw_concordance[line - 1] ? line
+        # console.log("associated line of #{line} is #{ret}")
+        return ret
+
+    get_rnw_concordance: (cb) =>
+        if @get_rnw_concordance_error
+            cb(); return
+        # always call the cb without an error -- otherwise the errors don't show up at all
+        if @preview.pdflatex.ext == 'rnw'
+            conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
+            salvus_client.read_text_file_from_project
+                project_id : @project_id
+                path       : @_path + '/' + conc_fn
+                cb         : (err, res) =>
+                    err ?= res.error
+                    if err
+                        console.warn("Unable to read concordance file #{conc_fn} -- #{misc.to_json(err)}")
+                        @get_rnw_concordance_error = true
+                    else
+                        # concordance file is explained here:
+                        # https://cran.r-project.org/web/packages/patchDVI/vignettes/patchDVI.pdf
+                        try
+                            c = res.content
+                            c = c.split('%')[1..].join(' ').replace(/\n/g, '')
+                            c = c[...c.indexOf('}')]
+                            enc  = (parseInt(n) for n in c.split(/[ ]+/))
+                            # enc is now the list of RLE encoded numbers
+                            line = enc[0] - 1 # start line, zero-based
+                            orig = 0
+                            dec  = []     # decoded RLE encoding
+                            for idx in [1...enc.length] by 2
+                                for i in [0...enc[idx]]
+                                    orig += enc[idx + 1]
+                                    dec.push(orig)
+                            # console.log('@_rnw_concordance', @_rnw_concordance)
+                            @_rnw_concordance = dec
+                        catch e
+                            # don't reset @_rnw_concordance, the old one could be good enough
+                            console.warn("problem reading and processing #{conc_fn}:", e)
+                            console.trace()
+                    cb()
+        else
+            cb()
+
     download_pdf: (print = false) =>
         redux.getProjectActions(@project_id).download_file
             path : misc.change_filename_extension(@filename, 'pdf')
@@ -653,7 +771,9 @@ class exports.LatexEditor extends editor.FileEditor
         opts.cb = (err, res) =>
             if err
                 if active
-                    alert_message(type:"error", message: "Inverse search error -- #{err}")
+                    alert_message
+                        type    : "error"
+                        message : "Inverse search error -- #{err}"
             else
                 if res.input != @filename
                     if active

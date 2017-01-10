@@ -100,6 +100,7 @@ codemirror_associations =
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
+    jsx    : 'jsx'
     json   : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
@@ -117,6 +118,7 @@ codemirror_associations =
     pyx    : 'python'
     r      : 'r'
     rmd    : 'gfm2'
+    rnw    : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -172,6 +174,11 @@ file_associations['tex'] =
 #    icon   : 'fa-file-code-o'
 #    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
+file_associations['rnw'] =
+    editor : 'latex'
+    icon   : 'fa-file-excel-o'
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "R/knitr LaTeX"
 
 file_associations['html'] =
     editor : 'html-md'
@@ -184,6 +191,18 @@ file_associations['md'] =
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
     name   : "markdown"
+
+file_associations['rmd'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    name   : "Rmd"
+
+file_associations['java'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
+    name   : "Java"
 
 file_associations['rst'] =
     editor : 'html-md'
@@ -347,6 +366,7 @@ exports.sagews_decorator_modes = sagews_decorator_modes = [
     ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
+    ['java'        , 'text/x-java'],    # !! more specific name must be first!!!! (java vs javascript!)
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
     ['md'          , 'gfm2'],
@@ -1888,6 +1908,7 @@ class PDFLatexDocument
         @project_id = opts.project_id
         @filename   = opts.filename
         @image_type = opts.image_type
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
 
         @_pages     = {}
         @num_pages  = 0
@@ -1896,8 +1917,12 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex  = s.tail
-        @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+        if @ext == 'rnw'
+            @filename_tex = misc.change_filename_extension(s.tail, 'tex')
+            @filename_rnw = s.tail
+        else
+            @filename_tex  = s.tail
+        @base_filename = misc.separate_file_extension(@filename_tex).name
         @filename_pdf  = @base_filename + '.pdf'
 
     dbg: (mesg) =>
@@ -1990,9 +2015,10 @@ class PDFLatexDocument
             n  : required
             cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
 
+        fn = if @ext == 'tex' then @filename_tex else @filename_rnw
         @_exec
             command : 'synctex'
-            args    : ['view', '-i', "#{opts.n}:0:#{@filename_tex}", '-o', @filename_pdf]
+            args    : ['view', '-i', "#{opts.n}:0:#{fn}", '-o', @filename_pdf]
             path    : @path
             cb      : (err, output) =>
                 if err
@@ -2008,13 +2034,32 @@ class PDFLatexDocument
                 y = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
                 opts.cb(false, {n:n, x:x, y:y})
 
-    default_tex_command: () =>
+    default_tex_command: (flavor) ->
         # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         # since in some cases things will hang (using )
         #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
         # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
         # See https://github.com/sagemathinc/smc/issues/156
-        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+        latexmk = (f) =>
+            # f: force even when there are errors
+            # g: ignore heuristics to stop processing latex (sagetex)
+            # silent: **don't** set -silent, also silences sagetex mesgs!
+            # bibtex: a default, run bibtex when necessary
+            # synctex: forward/inverse search in pdf
+            # nonstopmode: continue after errors (otherwise, partial files)
+            "latexmk -#{f} -f -g -bibtex -synctex=1 -interaction=nonstopmode '#{@filename_tex}'"
+
+        return switch flavor ? 'pdflatex'
+            when 'default', 'pdflatex'
+                latexmk('pdf')
+            when 'xelatex'
+                latexmk('xelatex')
+            when 'luatex'
+                latexmk('lualatex')
+            when 'old'
+                "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+            else
+                latexmk('pdf')
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
@@ -2025,69 +2070,96 @@ class PDFLatexDocument
         @pdf_updated = true
         if not opts.latex_command?
             opts.latex_command = @default_tex_command()
-        @_need_to_run = {}
+        @_need_to_run =
+            knitr  : @ext == 'rnw'
+            latex  : true   # initially, only latex is true
+            sage   : false  # either false or a filename
+            bibtex : false
         log = ''
         status = opts.status
+
+        task_latex = (cb) =>
+            if @_need_to_run.latex
+                status?(start:'latex')
+                @_run_latex opts.latex_command, (err, _log) =>
+                    log += _log
+                    status?(end:'latex', log:_log)
+                    cb(err)
+            else
+                cb()
+
+        # TODO in the future not necessary, because of 'latexmk -bibtex'
+        _task_bibtex = (cb) =>
+            status?(start:'bibtex')
+            @_run_bibtex (err, _log) =>
+                status?(end:'bibtex', log:_log)
+                log += _log
+                cb(err)
+
+        task_bibtex = (cb) =>
+            if @_need_to_run.bibtex
+                async.series([_task_bibtex, task_latex], cb)
+            else
+                cb()
+
+        task_sage = (cb) =>
+            if @_need_to_run.sage
+                status?(start:'sage')
+                @_run_sage @_need_to_run.sage, (err, _log) =>
+                    log += _log
+                    status?(end:'sage', log:_log)
+                    cb(err)
+            else
+                cb()
+
+        task_knitr = (cb) =>
+            if @_need_to_run.knitr
+                status?(start:'knitr')
+                @_run_knitr (err, _log) =>
+                    status?(end:'knitr', log:_log)
+                    log += _log
+                    cb(err)
+            else
+                cb()
+
+        # when running knitr, this patches the synctex file
+        task_patch_synctex = (cb) =>
+            if @_need_to_run.knitr
+                status?(start:'synctex')
+                @_run_patch_synctex (err, _log) =>
+                    status?(end:'synctex', log:_log)
+                    log += _log
+                    cb(err)
+            else
+                cb()
+
         async.series([
-            (cb) =>
-                 status?(start:'latex')
-                 @_run_latex opts.latex_command, (err, _log) =>
-                     log += _log
-                     status?(end:'latex', log:_log)
-                     cb(err)
-            (cb) =>
-                 if @_need_to_run.sage
-                     status?(start:'sage')
-                     @_run_sage @_need_to_run.sage, (err, _log) =>
-                         log += _log
-                         status?(end:'sage', log:_log)
-                         cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.bibtex
-                     status?(start:'bibtex')
-                     @_run_bibtex (err, _log) =>
-                         status?(end:'bibtex', log:_log)
-                         log += _log
-                         cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
-            (cb) =>
-                @update_number_of_pdf_pages(cb)
+            task_knitr,
+            task_latex,
+            task_sage,
+            task_bibtex,
+            task_latex,
+            task_patch_synctex,
+            @update_number_of_pdf_pages
         ], (err) =>
-            opts.cb?(err, log))
+            opts.cb?(err, log)
+        )
 
     _run_latex: (command, cb) =>
         if not command?
             command = @default_tex_command()
         sagetex_file = @base_filename + '.sagetex.sage'
+        not_latexmk = command.indexOf('latexmk') == -1
         sha_marker = 'sha1sums'
+        @_need_to_run.latex = false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+        latex_cmd = "yes x 2> /dev/null | #{command}; echo '#{sha_marker}'; test -r '#{sagetex_file}' && sha1sum '#{sagetex_file}'"
         @_exec
-            command : "yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
-            bash    : true
-            timeout : 20
+            command     : latex_cmd
+            bash        : true
+            timeout     : 30
             err_on_exit : false
-            cb      : (err, output) =>
+            cb          : (err, output) =>
                 if err
                     cb?(err)
                 else
@@ -2097,13 +2169,17 @@ class PDFLatexDocument
                         output.stdout = output.stdout.slice(0,i)
                         for x in shas.split('\n')
                             v = x.split(/\s+/)
+                            if v.length != 2
+                                continue
+                            #if DEBUG then console.log(v, sagetex_file, @_sagetex_file_sha)
                             if v[1] == sagetex_file and v[0] != @_sagetex_file_sha
                                 @_need_to_run.sage = sagetex_file
                                 @_sagetex_file_sha = v[0]
 
                     log = output.stdout + '\n\n' + output.stderr
 
-                    if log.indexOf('Rerun to get cross-references right') != -1
+                    # TODO remove this in the future. not necessary due to latexmk
+                    if not_latexmk and log.indexOf('Rerun to get cross-references right') != -1
                         @_need_to_run.latex = true
 
                     run_sage_on = '\nRun Sage on'
@@ -2117,14 +2193,20 @@ class PDFLatexDocument
                             # or want these quotes, since we're not passing this command via bash/sh.
                             @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim().replace(/"/g,'')
 
-                    i = log.indexOf("No file #{@base_filename}.bbl.")
-                    if i != -1
+                    # TODO remove this in the future. not necessary due to latexmk
+                    no_bbl = "No file #{@base_filename}.bbl."
+                    if not_latexmk and log.indexOf(no_bbl) != -1
                         @_need_to_run.bibtex = true
+
+                    log += "\n\n#{misc.to_json(@_need_to_run)}\n@_sagetex_file_sha: #{@_sagetex_file_sha}"
 
                     @last_latex_log = log
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
+        # don't run sage if target is false
+        if underscore.isBoolean(target) and not target
+            cb()
         if not target?
             target = @base_filename + '.sagetex.sage'
         @_exec
@@ -2150,6 +2232,33 @@ class PDFLatexDocument
                 else
                     log = output.stdout + '\n\n' + output.stderr
                     @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_knitr: (cb) =>
+        @_exec
+            command  : "echo 'require(knitr); opts_knit$set(concordance = TRUE); knit(\"#{@filename_rnw}\")' | R --no-save"
+            bash     : true
+            timeout  : 60
+            cb       : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_patch_synctex: (cb) =>
+        # only for knitr, because the full chain is Rnw → tex → pdf
+        @_exec
+            command  : "echo 'require(patchSynctex);
+patchSynctex(\"#{@filename_tex}\");' | R --no-save"
+            bash     : true
+            timeout  : 10
+            cb       : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
                     cb?(false, log)
 
     pdfinfo: (cb) =>   # cb(err, info)
@@ -2195,11 +2304,32 @@ class PDFLatexDocument
                 cb?(err)
 
     trash_aux_files: (cb) =>
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
-        @_exec
-            command : "rm"
-            args    : (@base_filename + "." + ext for ext in EXT)
-            cb      : cb
+        log = ''
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
+        EXT = (E + '.' for E in EXT)
+        EXT.push('-concordance.tex')
+        async.series([
+            (cb) =>
+                # needs to come before deleting the .log file!
+                @_exec
+                    command: 'latexmk'
+                    args   : ['-c', @base_filename]
+                    cb     : (err, output) ->
+                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        cb(err)
+            (cb) =>
+                # this in particular gets rid of the sagetex files
+                files = (@base_filename + ext for ext in EXT)
+                @_exec
+                    command : "rm"
+                    args    : ['-v'].concat(files)
+                    cb      : (err, output) ->
+                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        cb(err)
+        ], (err) =>
+            log += 'done.'
+            cb?(err, log)
+        )
 
     _parse_text: (text) =>
         # FUTURE -- parse through the text file putting the pages in the correspondings @pages dict.
@@ -2398,7 +2528,7 @@ class PDF_Preview extends FileEditor
             @zoom_width = max_width
             n = @current_page().number
             max_width = "#{max_width}%"
-            images.css
+            @output.find(".salvus-editor-pdf-preview-page-single").css
                 'max-width'   : max_width
                 width         : max_width
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
@@ -2406,9 +2536,10 @@ class PDF_Preview extends FileEditor
         @recenter()
 
     recenter: () =>
-        container_width = @output.find(":first-child:first").width()
-        content_width = @output.find("img:first-child:first").width()
-        @output.scrollLeft((content_width - container_width)/2)
+        container_width = @output.width()
+        content_width = @output.find(':first-child:first').width()
+        offset = (content_width - container_width)/2
+        @output.parent().scrollLeft(offset)
 
     watch_scroll: () =>
         if @_f?
@@ -2567,10 +2698,18 @@ class PDF_Preview extends FileEditor
             recenter = (@last_page == 0)
             that = @
             page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
+
+            set_zoom_width = (page) =>
+                if @zoom_width?
+                    max_width = "#{@zoom_width}%"
+                    page.css
+                        'max-width'   : max_width
+                        width         : max_width
+
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'>Page #{m}<br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2594,11 +2733,7 @@ class PDF_Preview extends FileEditor
 
                     page.dblclick(f)
 
-                    if self._margin_left?
-                        # A zoom was set via the zoom command -- maintain it.
-                        page.find("img").css
-                            'max-width'   : self._max_width
-                            width         : self._max_width
+                    set_zoom_width(page)
 
                     if @_first_output
                         @output.empty()
@@ -2620,6 +2755,8 @@ class PDF_Preview extends FileEditor
                     @pdflatex.page(m).element = page
 
                 @last_page = n
+            # ~END: if page.length == 0
+
             img =  page.find("img")
             #console.log("setting an img src to", url)
             img.attr('src', url).data('resolution', resolution)
@@ -2632,12 +2769,7 @@ class PDF_Preview extends FileEditor
                 img.one 'load', () =>
                     @recenter()
 
-            if @zoom_width?
-                max_width = @zoom_width
-                max_width = "#{max_width}%"
-                img.css
-                    'max-width'   : max_width
-                    width         : max_width
+            set_zoom_width(page)
 
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
@@ -3097,7 +3229,7 @@ exports.register_nonreact_editors = () ->
 
     # Editors for private normal editable files.
     register(false, HTML_MD_Editor,   html_md_exts)
-    register(false, LatexEditor,      ['tex'])
+    register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
     register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 

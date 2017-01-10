@@ -664,8 +664,8 @@ NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
     propTypes :
-        nb_projects : rtypes.number.isRequired
-        customer    : rtypes.object
+        nb_projects                          : rtypes.number.isRequired
+        customer                             : rtypes.object
         upgrades_you_can_use                 : rtypes.object
         upgrades_you_applied_to_all_projects : rtypes.object
         quota_params                         : rtypes.object.isRequired # from the schema
@@ -679,7 +679,7 @@ NewProjectCreator = rclass
         state =
             upgrading         : true
             has_subbed        : false
-            state             : 'view'    # view --> edit --> saving --> view
+            state             : if @props.nb_projects == 0 then 'edit' else 'view'    # view --> edit --> saving --> view
             title_text        : ''
             description_text  : ''
             error             : ''
@@ -747,10 +747,6 @@ NewProjectCreator = rclass
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
-    go_to_upgrade: (e) ->
-        e.preventDefault();
-        $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
-
     render_upgrade_before_create: (subs) ->
         <Col sm=12>
             <div>
@@ -773,32 +769,26 @@ NewProjectCreator = rclass
             @setState(create_button_hit: 'with_members_and_network')
         else
             @setState(create_button_hit: 'with_custom_upgrades')
-            @scroll_to_billing()
-
-    scroll_to_billing: ->
-        setTimeout ( ->
-            $('#smc-react-container > div').scrollTop($("#new_project_billing_section").offset().top - 30)
-        ), 500
 
     render_upgrade_buttons: ->
         <ButtonToolbar>
-            <strong>Create this project with:</strong><br/>
+            <Button
+                disabled  = {@state.title_text == '' or @state.state == 'saving'}
+                onClick   = {=>@create_project(false)}
+                bsStyle  = 'success' >
+                Create project
+            </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_network'}
                 bsStyle  = 'success'
                 onClick  = {=>@create_project_with_members_and_network()} >
-                <Icon name="arrow-circle-up" /> Hosting and network upgrades…
+                <Icon name="arrow-circle-up" /> Create with hosting and network upgrades…
             </Button>
             <Button
                 disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
                 bsStyle  = 'success'
-                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades');@scroll_to_billing()} >
-                <Icon name="cog" /> Custom upgrades...
-            </Button>
-            <Button
-                disabled  = {@state.title_text == '' or @state.state == 'saving'}
-                onClick   = {=>@create_project(false)} >
-                No upgrades
+                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
+                <Icon name="cog" /> Create with custom upgrades...
             </Button>
             <Button
                 disabled = {@state.state is 'saving'}
@@ -850,7 +840,7 @@ NewProjectCreator = rclass
                     Create
                 </Button>
                 <Button
-                    onClick  = {=>@setState(create_button_hit: '');$('#smc-react-container > div').scrollTop($("#new_project_title").offset().top - 30)} >
+                    onClick  = {=>@setState(create_button_hit: '')} >
                     Cancel
                 </Button>
             </ButtonToolbar>

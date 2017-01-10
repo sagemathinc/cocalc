@@ -336,10 +336,10 @@ Editor for files in a project
         <div class="salvus-editor-pdf-preview-highlight hide"></div>
         <div class="salvus-editor-pdf-preview-buttons">
             <span class="btn-group">
-                <a href="#zoom-preview-out" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Zoom out some"><i class="fa fa-search-minus"></i></a>
+                <a href="#zoom-preview-out" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom out some"><i class="fa fa-search-minus"></i></a>
                 <a href="#zoom-preview-in" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in some"><i class="fa fa-search-plus"></i></a>
-                <a href="#zoom-preview-fullpage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom so page width matches viewport"><i class="fa fa-minus-square-o"></i></a>
-                <a href="#zoom-preview-width" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in close"><i class="fa fa-plus-square-o"></i></a>
+                <a href="#zoom-preview-fullpage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom so page width matches viewport"><i class="fa fa-file-o"></i></a>
+                <a href="#zoom-preview-width" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in close"><i class="fa fa-arrows-alt"></i></a>
                 <a href="#preview-resolution" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Change the preview resolution"><i class="fa fa-th"></i></a>
                 <a href="#pdf-download" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Download the PDF file"><i class="fa fa-download"></i></a>
             </span>
@@ -385,16 +385,25 @@ Editor for files in a project
             <div class="salvus-editor-latex-resize-bar">
             </div>
             <div class="salvus-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto; background: #efefef;">
-                <div class="btn-group">
-                    <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                    <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
-                    <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                    <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
-                        <span class="salvus-latex-build-status"></span></a>
-                </div>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active">
+                        <a href="#png-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#errors" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#pdf-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#log" role="tab" data-toggle="tooltip" data-placement="bottom" title="Build control and compilation log"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
+                        <span class="salvus-latex-build-status"></span>
+                        </a>
+                    </li>
+                </ul>
                 <div class="salvus-editor-latex-pdf-preview smc-vfill hide">
                 </div>
-                <div class="salvus-editor-latex-png-preview smc-vfill hide" style="border:1px solid grey">
+                <div class="salvus-editor-latex-png-preview smc-vfill hide">
                 </div>
                 <div class="salvus-editor-latex-errors hide" style="overflow-y: auto; border: 1px solid lightgrey;">
                     <div style="margin-left:2em">
@@ -426,13 +435,26 @@ Editor for files in a project
                 </div>
                 <div class="salvus-editor-latex-log smc-vfill hide">
                     <span class="btn-group">
+                        <a href="#latex-recompile" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Recompile everything"><i class="fa fa-bolt"></i> Recompile</a>
                         <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
                         <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
-                        <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
-                        <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
-                        <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Reset build command."><i class="fa fa-times-circle"></i></a>
+                        <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex"><i class="fa fa-bolt"></i> Sage</a>
+                        <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i> Clean</a>
                     </span>
-                    <input type="text" class="form-control">
+
+                    <div class="input-group smc-editor-latex-log-cmd">
+                      <input type="text" class="form-control" data-toggle="tooltip" data-placement="bottom" title="Hit return after customizing build command">
+                      <div class="input-group-btn">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span style="white-space: nowrap;">Command <span class="caret"></span></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                          <li><a href="#pdflatex">PDFLatex (default)</a></li>
+                          <li><a href="#xelatex">XeLaTeX</a></li>
+                          <li><a href="#luatex">LuaTex</a></li>
+                          <li role="separator" class="divider"></li>
+                          <li><a href="#old">Old command</a></li>
+                        </ul>
+                      </div>
+                    </div>
                     <textarea  readonly="" style="padding:15px; flex:1; width:100%; color:#666; background: #f8f8f0;">You have not run LaTeX yet.</textarea>
                 </div>
                 <div class="salvus-editor-latex-settings hide">

@@ -110,7 +110,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     render: ->
         <div>
             <h3>
-                <Icon name='dashboard' /> System usage
+                <Icon name='dashboard' /> Current active users
                 {@render_when_updated()}
             </h3>
             <ul>
@@ -483,6 +483,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render: ->
+        {SmcWikiUrl} = require('./customize')
         <Row style={padding:'10px', margin:'0px'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
@@ -495,7 +496,7 @@ exports.HelpPage = HelpPage = rclass
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
                     <hr/>
-                    <a href="https://github.com/sagemathinc/smc/wiki/Portal" target="_blank">The SageMathCloud Documentation</a>
+                    <a href="#{SmcWikiUrl}" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
                 <h3>

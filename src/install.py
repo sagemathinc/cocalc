@@ -32,12 +32,12 @@ def pull():
     cmd("git pull")
 
 def install_pyutil():
-    cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_pyutil")
+    cmd(SUDO+"pip2 install --upgrade ./smc_pyutil")
 
 def install_sagews():
     if os.system('which sage') == 0:
         cmd("sage -pip install --upgrade ./smc_sagews")
-    cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_sagews")   # as a fallback
+    cmd(SUDO+"pip2 install --upgrade ./smc_sagews")   # as a fallback
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
