@@ -31,6 +31,8 @@ Administration and Launch control of salvus components
 ####################
 import json, logging, os, shutil, signal, socket, stat, subprocess, sys, time, tempfile
 
+DISK_THRESHOLD = int(os.environ.get("SMC_DISK_THRESHOLD", '96'))
+
 from string import Template
 
 import misc
@@ -1378,7 +1380,7 @@ class Monitor(object):
         print s
         return json.loads(s)
 
-    def disk_usage(self, hosts='all', disk_threshold=96):
+    def disk_usage(self, hosts='all', disk_threshold=DISK_THRESHOLD):
         """
         Verify that no disk is more than disk_threshold (=disk_threshold%).
         """
