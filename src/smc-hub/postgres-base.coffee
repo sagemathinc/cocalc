@@ -352,7 +352,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
 
-        dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
+        dbg("query='#{opts.query}'")
+
+        # params can easily be huge, e.g., a blob.  But this may be
+        # needed at some point for debugging.
+        #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
         @_concurrent_queries += 1
         try

@@ -1,4 +1,4 @@
-global.db = require('./postgres').db(database : process.env['SMC_DB'] ? 'smcdev')
+global.db = require('./postgres').db()
 
 misc = require 'smc-util/misc'
 misc_node = require 'smc-util-node/misc_node'
