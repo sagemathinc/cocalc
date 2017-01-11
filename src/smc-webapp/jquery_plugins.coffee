@@ -6,11 +6,13 @@ Will hopefully all go away with react rewrite.
 $ = window.$
 {defaults} = require('smc-util/misc')
 
-$.fn.icon_spin = (start) ->
+$.fn.icon_spin = (start, disable = false) ->
+    # when disable=true, additionally the disable-class will be added
+    # don't forget to also tell it to remove later (unless it should stay disabled)
     if typeof(start) == "object"
         {start, delay} = defaults start,
-            start : true
-            delay : 0
+            start   : true
+            delay   : 0
     else
         delay = 0
     @each () ->
@@ -19,6 +21,8 @@ $.fn.icon_spin = (start) ->
             if elt.data('fa-spin')?  # means that there is a timeout that hasn't gone off yet
                 return
             f = () ->
+                if disable
+                    elt.addClass('disabled')
                 elt.data('fa-spin', null)
                 if elt.find("i.fa-spinner").length == 0  # fa-spin
                     elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
@@ -28,6 +32,8 @@ $.fn.icon_spin = (start) ->
             else
                 f()
         else
+            if disable
+                elt.removeClass('disabled')
             t = elt.data('fa-spin')
             if t?
                 clearTimeout(t)

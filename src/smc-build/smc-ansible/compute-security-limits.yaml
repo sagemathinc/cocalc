@@ -2,6 +2,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
+  strategy: free
 
   tasks:
 

@@ -130,7 +130,7 @@ Message = rclass
         if is_editing(@props.message, @props.account_id)
             if other_editors.size == 1
                 # This user and someone else is also editing
-                text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
+                text = "#{@props.get_user_name(other_editors.first(), @props.user_map)} is also editing this!"
             else if other_editors.size > 1
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
@@ -141,7 +141,7 @@ Message = rclass
         else
             if other_editors.size == 1
                 # One person is editing
-                text = "#{@props.get_user_name(other_editors.first())} is editing this message"
+                text = "#{@props.get_user_name(other_editors.first(), @props.user_map)} is editing this message"
             else if other_editors.size > 1
                 # Multiple editors
                 text = "#{other_editors.size} people are editing this message"
@@ -217,7 +217,7 @@ Message = rclass
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message)}
                 </span>

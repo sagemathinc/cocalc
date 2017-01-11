@@ -46,7 +46,7 @@ li_style =
     lineHeight : 'inherit'
     marginTop  : '0.7ex'
 
-HelpPageUsageSection = rclass
+exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     reduxProps :
         server_stats :
             loading             : rtypes.bool.isRequired
@@ -57,11 +57,6 @@ HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
-            active_projects     : rtypes.number # deprecated
-            last_hour_projects  : rtypes.number # deprecated
-            last_day_projects   : rtypes.number # deprecated
-            last_week_projects  : rtypes.number # deprecated
-            last_month_projects : rtypes.number # deprecated
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -79,10 +74,10 @@ HelpPageUsageSection = rclass
             <li style={li_style}> Live server stats <Loading /> </li>
         else
             n = @number_of_clients()
-            <ProgressBar now={Math.max(n / 6 , 45 / 8) } label={"#{n} active users"} />
+            <ProgressBar style={marginBottom:0} now={Math.max(n / 6 , 45 / 8) } label={"#{n} active users"} />
 
     render_active_projects_stats: ->
-        n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
+        n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats: ->
@@ -92,17 +87,14 @@ HelpPageUsageSection = rclass
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_hour]  ? @props.last_hour_projects} projects</strong> in the last hour,
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_day]   ? @props.last_day_projects} projects</strong> in the last day,
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_week]  ? @props.last_week_projects} projects</strong> in the last week and
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month.
+                <Space/> <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                <Icon name='line-chart' fixedWidth /> More data...
+                </a>
             </li>
 
-    render_historical_usage: ->
-        <li key='usage_data' style={li_style}>
-            <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                <Icon name='line-chart' fixedWidth />Historical usage statistics
-            </a> &mdash; number of projects and users over time
-        </li>
-
     render_historical_metrics: ->
+        return  # disabled, due to being broken...
         <li key='usage_metrics' style={li_style}>
             <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
                 <Icon name='area-chart' fixedWidth />Historical system metrics
@@ -118,14 +110,13 @@ HelpPageUsageSection = rclass
     render: ->
         <div>
             <h3>
-                <Icon name='dashboard' /> System usage
+                <Icon name='dashboard' /> Current active users
                 {@render_when_updated()}
             </h3>
             <ul>
                 {@render_signed_in_stats()}
-                {@render_active_projects_stats()}
+                {# @render_active_projects_stats()}
                 {@render_recent_usage_stats()}
-                {@render_historical_usage()}
                 {@render_historical_metrics()}
             </ul>
         </div>
@@ -492,6 +483,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render: ->
+        {SmcWikiUrl} = require('./customize')
         <Row style={padding:'10px', margin:'0px'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
@@ -504,7 +496,7 @@ exports.HelpPage = HelpPage = rclass
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
                     <hr/>
-                    <a href="https://github.com/sagemathinc/smc/wiki/Portal" target="_blank">The SageMathCloud Documentation</a>
+                    <a href="#{SmcWikiUrl}" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
                 <h3>

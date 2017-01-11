@@ -328,15 +328,17 @@ class JupyterWrapper extends EventEmitter
     monkey_patch_methods: () =>
         # Some of the stupid Jupyter methods don't properly set the dirty flag. It's just flat out bugs that they don't
         # care about, evidently.  However, they VERY MUCH matter when doing sync.
-        the_notebook = @nb
-        @frame.IPython.Notebook.prototype.smc_move_selection_down = @frame.IPython.Notebook.prototype.move_selection_down
-        @frame.IPython.Notebook.prototype.move_selection_down = () ->
+        Notebook = @frame.require("notebook/js/notebook").Notebook
+        Notebook.prototype.smc_move_selection_down = Notebook.prototype.move_selection_down
+        Notebook.prototype.move_selection_down = () ->
             this.smc_move_selection_down()
-            the_notebook.dirty = true
-        @frame.IPython.Notebook.prototype.smc_move_selection_up = @frame.IPython.Notebook.prototype.move_selection_up
-        @frame.IPython.Notebook.prototype.move_selection_up = () ->
+            this.dirty = true
+        Notebook.prototype.smc_move_selection_up = Notebook.prototype.move_selection_up
+        Notebook.prototype.move_selection_up = () ->
             this.smc_move_selection_up()
-            the_notebook.dirty = true
+            this.dirty = true
+        # See https://github.com/sagemathinc/smc/issues/1262 -- this is especially broken on Firefox.
+        @frame.require("notebook/js/outputarea").OutputArea.prototype._should_scroll = ->  # no op
 
     font_size_set: (font_size) =>
         # initialization, if necessary
@@ -782,13 +784,13 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
-        #if not opts.read_only
-        #    window.w = @
+        ###
         if $.browser.firefox
             @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1262' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
             @element.data("jupyter_notebook", @)
             opts.cb?()
             return
+        ###
         @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only

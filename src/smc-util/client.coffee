@@ -903,22 +903,26 @@ class exports.Connection extends EventEmitter
 
     invite_noncloud_collaborators: (opts) =>
         opts = defaults opts,
-            project_id : required
-            title      : required
-            link2proj  : required
-            to         : required
-            email      : required   # body in HTML format
-            subject    : undefined
-            cb         : required
+            project_id   : required
+            title        : required
+            link2proj    : required
+            replyto      : undefined
+            replyto_name : undefined
+            to           : required
+            email        : required   # body in HTML format
+            subject      : undefined
+            cb           : required
 
         @call
             message: message.invite_noncloud_collaborators
-                project_id : opts.project_id
-                title      : opts.title
-                link2proj  : opts.link2proj
-                email      : opts.email
-                to         : opts.to
-                subject    : opts.subject
+                project_id    : opts.project_id
+                title         : opts.title
+                link2proj     : opts.link2proj
+                email         : opts.email
+                replyto       : opts.replyto
+                replyto_name  : opts.replyto_name
+                to            : opts.to
+                subject       : opts.subject
             cb : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1626,7 +1630,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)

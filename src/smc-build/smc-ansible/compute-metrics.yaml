@@ -2,6 +2,7 @@
 - hosts: compute
   become: salvus
   gather_facts: no
+  strategy: free
 
   tasks:
 

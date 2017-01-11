@@ -1,4 +1,4 @@
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -100,7 +100,7 @@ exports.NotificationBell = rclass
     notification_count: ->
         count_styles =
             fontSize   : '10pt'
-            color      : '#c9302c'
+            color      : COLOR.FG_RED
             position   : 'absolute'
             left       : '17.5px'
             fontWeight : 700
@@ -125,12 +125,18 @@ exports.NotificationBell = rclass
             color    : '#666'
             cursor   : 'pointer'
 
+        clz = ''
+        bell_style = {}
+        if @props.count > 0
+            clz = 'smc-bell-notification'
+            bell_style = {color: COLOR.FG_RED}
+
         <NavItem
             style={outer_styles}
             onClick={@on_click}
         >
-            <div style={inner_styles} >
-                <Icon name='bell-o' />
+            <div style={inner_styles}>
+                <Icon name='bell-o' className={clz} style={bell_style} />
                 {@notification_count()}
             </div>
         </NavItem>

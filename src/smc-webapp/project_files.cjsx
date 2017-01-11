@@ -678,7 +678,7 @@ FileListing = rclass
 
         dropzone_handler =
             dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.set_directory_files(@props.current_path)
+            complete  : => @props.actions.fetch_directory_listing(@props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
@@ -708,11 +708,18 @@ ProjectFilesPath = rclass
         v.push <PathSegmentLink path='' display={<Icon name='home' />} key='home' actions={@props.actions} />
         if @props.current_path == ""
             return v
-        path = @props.current_path.split('/')
-        for segment, i in path
-            v.push <span key={2 * i + 1}><Space/> / <Space/></span>
+        path = @props.current_path
+        root = path[0] == '/'
+        if root
+            path = path[1..]
+        path_segments = path.split('/')
+        for segment, i in path_segments
+            if i == 0 and root
+                v.push <span key={2 * i + 1}><span style={width: '2em', display:'inline-block'}>&nbsp;</span>/<Space/></span>
+            else
+                v.push <span key={2 * i + 1}><Space/>/<Space/></span>
             v.push <PathSegmentLink
-                    path      = {path[0...i + 1].join('/')}
+                    path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
                     key       = {2 * i + 2}
@@ -739,24 +746,24 @@ ProjectFilesButtons = rclass
         if @props.default_sort != next.default_sort
             if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
                 @props.actions.setState(sort_by_time : next.sort_by_time)
-                @props.actions.set_directory_files(next.current_path, next.sort_by_time, next.show_hidden)
+                @props.actions.fetch_directory_listing(next.current_path, next.sort_by_time, next.show_hidden)
             else
                 @props.actions.setState(sort_by_time : not next.sort_by_time)
-                @props.actions.set_directory_files(next.current_path, not next.sort_by_time, next.show_hidden)
+                @props.actions.fetch_directory_listing(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh: (e) ->
         e.preventDefault()
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing()
 
     handle_sort_method: (e) ->
         e.preventDefault()
         @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.set_directory_files(@props.current_path, not @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing(sort_by_time : not @props.sort_by_time)
 
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, not @props.show_hidden)
+        @props.actions.fetch_directory_listing(show_hidden : not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
@@ -1071,7 +1078,7 @@ ProjectFilesActionBox = rclass
             paths : @props.checked_files.toArray()
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
-        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+        @props.actions.fetch_directory_listing()
 
 
     render_delete_warning: ->
@@ -1122,18 +1129,10 @@ ProjectFilesActionBox = rclass
                     src  : @props.checked_files.toArray()
                     dest : misc.path_to_file(rename_dir, destination)
             when 'duplicate'
-                # Add a / after any directory names, so that the contents are copied, not the directory itself.
-                # Otherwise, we end up with copying foo to foo-1, resulting in a foo-1/foo/...
-                # See https://github.com/sagemathinc/smc/issues/1235
-                # Note that src has length 1 so the whole iteration business is overkill.
-                f = (path) =>
-                    if @props.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
-                        return path + '/'
-                    else
-                        return path
-                @props.actions.copy_files
-                    src  : (f(path) for path in @props.checked_files.toArray())
-                    dest : misc.path_to_file(rename_dir, destination)
+                @props.actions.copy_paths
+                    src           : @props.checked_files.toArray()
+                    dest          : misc.path_to_file(rename_dir, destination)
+                    only_contents : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1320,7 +1319,7 @@ ProjectFilesActionBox = rclass
         destination_project_id = @state.copy_destination_project_id
         overwrite_newer        = @state.overwrite_newer
         delete_extra_files     = @state.delete_extra_files
-        paths = @props.checked_files.toArray()
+        paths                  = @props.checked_files.toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
                 public            : @props.public_view
@@ -1331,7 +1330,7 @@ ProjectFilesActionBox = rclass
                 overwrite_newer   : overwrite_newer
                 delete_missing    : delete_extra_files
         else
-            @props.actions.copy_files
+            @props.actions.copy_paths
                 src  : paths
                 dest : destination_directory
         @props.actions.set_file_action()
@@ -1727,15 +1726,15 @@ ProjectFilesSearch = rclass
     render: ->
         <span>
             <SearchInput
-                autoFocus
-                autoSelect
-                placeholder   = 'Filename'
-                value         = {@props.file_search}
-                on_change     = {@on_change}
-                on_submit     = {@search_submit}
-                on_up         = {@on_up_press}
-                on_down       = {@on_down_press}
-                on_escape     = {@on_escape}
+                autoFocus   = {true}
+                autoSelect  = {true}
+                placeholder = 'Filename'
+                value       = {@props.file_search}
+                on_change   = {@on_change}
+                on_submit   = {@search_submit}
+                on_up       = {@on_up_press}
+                on_down     = {@on_down_press}
+                on_escape   = {@on_escape}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1758,7 +1757,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span><Icon name='plus-circle' /> Create</span>
@@ -1883,7 +1882,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
         @props.actions.create_folder
@@ -1893,7 +1892,7 @@ exports.ProjectFiles = rclass ({name}) ->
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
-            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
+            @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
         if num_pages > 1
@@ -1995,14 +1994,23 @@ exports.ProjectFiles = rclass ({name}) ->
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
-    render_not_public_error: ->
-        if @props.redux.getStore('account').is_logged_in()
-            <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+    render_access_error: ->
+        public_view = @props.get_my_group(@props.project_id) == 'public'
+        if public_view
+            if @props.redux.getStore('account').is_logged_in()
+                <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
+            else
+                <div>
+                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                </div>
         else
-            <div>
-                <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />
-                <AccountPage />
-            </div>
+            if @props.redux.getStore('account').is_logged_in()
+                <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+            else
+                <div>
+                    <ErrorDisplay title="Directory is not public" error={"You are not signed in. If you are collaborator on this project you need to sign in first. This project is not public."} />
+                    <AccountPage />
+                </div>
 
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
@@ -2013,7 +2021,7 @@ exports.ProjectFiles = rclass ({name}) ->
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
                 when '"not_public"'
-                    e = @render_not_public_error()
+                    e = @render_access_error()
                 when 'no_dir'
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
                 when 'not_a_dir'
@@ -2059,7 +2067,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </div>
 
     update_current_listing: ->
-        setTimeout((=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)), 0)
+        setTimeout(@props.actions.fetch_directory_listing, 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)
@@ -2151,6 +2159,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
+            {@render_access_error() if public_view}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}

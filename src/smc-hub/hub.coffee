@@ -67,7 +67,6 @@ message = require('smc-util/message')     # salvus message protocol
 client_lib = require('smc-util/client')
 
 sage    = require('./sage')               # sage server
-rethink = require('./rethink')
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('./email')
 
@@ -1230,20 +1229,21 @@ class Client extends EventEmitter
 
                             # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
-                                to       : email_address
-                                bcc      : 'invites@sagemath.com'
-                                fromname : 'SageMathCloud'
-                                from     : 'invites@sagemath.com'
-                                replyto  : 'help@sagemath.com'
-                                subject  : subject
-                                category : "invite"
-                                asm_group: 699
-                                body     : email + """<br/><br/>
-                                           <b>To accept the invitation, please sign up at
-                                           <a href='#{base_url}'>#{base_url}</a>
-                                           using exactly the email address '#{email_address}'.
-                                           #{direct_link}</b><br/>"""
-                                cb       : (err) =>
+                                to           : email_address
+                                bcc          : 'invites@sagemath.com'
+                                fromname     : 'SageMathCloud'
+                                from         : 'invites@sagemath.com'
+                                replyto      : mesg.replyto ? 'help@sagemath.com'
+                                replyto_name : mesg.replyto_name
+                                subject      : subject
+                                category     : "invite"
+                                asm_group    : 699
+                                body         : email + """<br/><br/>
+                                               <b>To accept the invitation, please sign up at
+                                               <a href='#{base_url}'>#{base_url}</a>
+                                               using exactly the email address '#{email_address}'.
+                                               #{direct_link}</b><br/>"""
+                                cb           : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
                                     database.sent_project_invite
@@ -1538,8 +1538,10 @@ class Client extends EventEmitter
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if result?.action == 'close'
+                    err = 'close'
                 if err
-                    dbg("user_query error: #{misc.to_json(err)}")
+                    dbg("user_query(query='#{to_json(query)}') error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
@@ -2772,7 +2774,7 @@ delete_account = (mesg, client, push_to_client) ->
     dbg = (m) -> winston.debug("delete_account(mesg.account_id): #{m}")
     dbg()
 
-    database.delete_account
+    database.mark_account_deleted
         account_id    : mesg.account_id
         cb            : (err) =>
             push_to_client(message.account_deleted(id:mesg.id, error:err))
@@ -3080,21 +3082,42 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
 Connect to database
 ###
 database = undefined
-connect_to_database = (opts) ->
+
+connect_to_database_rethink = (opts) ->
     opts = defaults opts,
         error : 120
         pool  : program.db_pool
         cb    : required
-    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    dbg = (m) -> winston.debug("connect_to_database (rethinkdb): #{m}")
     if database? # already did this
+        dbg("already done")
         opts.cb(); return
-    database = rethink.rethinkdb
+    dbg("connecting...")
+    database = require('./rethink').rethinkdb
         hosts           : program.database_nodes.split(',')
         database        : program.keyspace
         error           : opts.error
         pool            : opts.pool
         concurrent_warn : program.db_concurrent_warn
         cb              : opts.cb
+
+connect_to_database_postgresql = (opts) ->
+    opts = defaults opts,
+        error : 120
+        pool  : program.db_pool
+        cb    : required
+    dbg = (m) -> winston.debug("connect_to_database (postgreSQL): #{m}")
+    if database? # already did this
+        dbg("already done")
+        opts.cb(); return
+    dbg("connecting...")
+    database = require('./postgres').db
+        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database : program.keyspace
+    database.connect(cb:opts.cb)
+
+connect_to_database = connect_to_database_postgresql
+#connect_to_database = connect_to_database_rethink
 
 # client for compute servers
 compute_server = undefined

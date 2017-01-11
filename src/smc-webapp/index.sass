@@ -280,3 +280,49 @@ footer
   color : gray
   a
     color : gray
+
+@keyframes pulse
+  0%
+    color: #c9302c
+    transform: translateY(0px)
+  2%
+    color: #cc0000
+    transform: translateY(-4px)
+  4%
+    color: #c9302c
+    transform: translateY(0px)
+  6%
+    color: #cc0000
+    transform: translateY(-4px)
+  8%
+    color: #c9302c
+    transform: translateY(0px)
+  100%
+    color: #c9302c
+
+@keyframes ring
+  0%
+    transform: rotate(-15deg)
+  1%
+    transform: rotate(12deg)
+  2%
+    transform: rotate(-10deg)
+  3%
+    transform: rotate(8deg)
+  5%
+    transform: rotate(-4deg)
+  7%
+    transform: rotate(2deg)
+  10%
+    transform: rotate(0deg)
+  100%
+    transform: rotate(0deg)
+
+.smc-chat-notification
+  animation: pulse 10s ease infinite
+
+.smc-bell-notification
+  animation: ring 10s ease infinite
+
+
+

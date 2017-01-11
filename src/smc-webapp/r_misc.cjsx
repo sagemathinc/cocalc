@@ -539,7 +539,7 @@ exports.SearchInput = rclass
         buttonAfter     : rtypes.object
 
     getInitialState: ->
-        value     : @props.default_value ? ''
+        value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
 
     get_opts: ->
@@ -711,28 +711,41 @@ exports.Markdown = rclass
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
-    update_mathjax: ->
-        if @_x?.has_mathjax?
-            $(ReactDOM.findDOMNode(@)).mathjax()
+    _update_escaped_chars: ->
+        node = $(ReactDOM.findDOMNode(@))
+        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
-    update_links: ->
+    _update_mathjax: (cb) ->
+        #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
+        if @_x?.has_mathjax
+            # theoretically, cb is called more than once, but this is just one element
+            $(ReactDOM.findDOMNode(@)).mathjax(cb: cb)
+        else
+            cb()
+
+    _update_links: ->
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
+    update_content: ->
+        # orchestrates the _update_* methods
+        @_update_mathjax =>
+            @_update_escaped_chars()
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+
     componentDidUpdate: ->
-        @update_links()
-        @update_mathjax()
+        @update_content()
 
     componentDidMount: ->
-        @update_links()
-        @update_mathjax()
+        @update_content()
 
     to_html: ->
         if @props.value
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             @_x = markdown.markdown_to_html(v)
-            v = require('./misc_page').sanitize_html(v)
-            {__html: @_x.s}
+            html_sane = require('./misc_page').sanitize_html(@_x.s)
+            #if DEBUG then console.log('Markdown.to_html @_x', @_x)
+            {__html: html_sane}
         else
             {__html: ''}
 
@@ -854,17 +867,18 @@ exports.SaveButton = rclass
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
         </Button>
 
-exports.FileLink = rclass
-    displayName : 'Misc-FileLink'
+# Compnent to attempt opening an smc path in a project
+exports.PathLink = rclass
+    displayName : 'Misc-PathLink'
 
     propTypes :
         path         : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
         display_name : rtypes.string # if provided, show this as the link and show real name in popover
         full         : rtypes.bool   # true = show full path, false = show only basename
         trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
         style        : rtypes.object
         link         : rtypes.bool   # set to false to make it not be a link
-        actions      : rtypes.object.isRequired
 
     getDefaultProps: ->
         style : {}
@@ -873,13 +887,12 @@ exports.FileLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        if misc.endswith(@props.path, '/')
-            @props.actions.open_directory(@props.path)
-        else
-            @props.actions.open_file
-                path       : @props.path
-                foreground : misc.should_open_in_foreground(e)
-
+        path_head = 'files'
+        path_head += '/' if @props.path[0] != '/'
+        @actions('projects').open_project
+            project_id : @props.project_id
+            target     : path_head + @props.path
+            switch_to  : misc.should_open_in_foreground(e)
 
     render_link: (text) ->
         if @props.link
@@ -1161,10 +1174,13 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click: (name) ->
-        @props.actions.open_directory(misc.path_split(@props.filename).head)
+        path_splitted = misc.path_split(@props.filename)
+        get_basename = ->
+                path_splitted.tail
+        @props.actions.open_directory(path_splitted.head)
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)
-        @props.actions.set_file_action(name)
+        @props.actions.set_file_action(name, get_basename)
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1178,13 +1194,9 @@ EditorFileInfoDropdown = rclass
                 'download' : 'cloud-download'
                 'copy'     : 'files-o'
         else
-            items =
-                'download' : 'cloud-download'
-                'delete'   : 'trash-o'
-                'rename'   : 'pencil'
-                'move'     : 'arrows'
-                'copy'     : 'files-o'
-                'share'    : 'share-square-o'
+            # dynamically create a map from 'key' to 'icon'
+            {file_action_buttons} = require('./project_files')
+            items = _.object(([k, v.icon] for k, v of file_action_buttons))
 
         for name, icon of items
             @render_menu_item(name, icon)
@@ -1213,7 +1225,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-NoUpgrades = rclass
+exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
     propTypes :
@@ -1260,7 +1272,10 @@ exports.UpgradeAdjustor = rclass
 
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_value = current[name] ? 0
+            if data.input_type == 'checkbox' and @props.submit_text == "Create project with upgrades"
+                current_value = current[name] ? 1
+            else
+                current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state

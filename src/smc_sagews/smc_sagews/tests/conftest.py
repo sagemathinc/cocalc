@@ -6,6 +6,8 @@ import json
 import signal
 import struct
 import hashlib
+import time
+from datetime import datetime
 
 ###
 # much of the code here is copied from sage_server.py
@@ -379,7 +381,7 @@ def exec2(request, sagews, test_id):
 
     - `` code `` -- string of code to run
 
-    - `` output `` -- string or list of strings of output to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -423,14 +425,14 @@ def exec2(request, sagews, test_id):
                 assert typ == 'json'
                 assert mesg['id'] == test_id
                 assert 'stdout' in mesg
-                assert mesg['stdout'] == o
+                assert o.strip() in (mesg['stdout']).strip()
         elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
             assert 'stdout' in mesg
             if output is not None:
-                assert mesg['stdout'] == output
+                assert output.strip() in (mesg['stdout']).strip()
             elif pattern is not None:
                 assert re.search(pattern, mesg['stdout']) is not None
         elif html_pattern:
@@ -544,7 +546,7 @@ def sagews(request):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(15)
+    sock.settimeout(45)
     print("connected to socket")
 
     # unlock
@@ -607,3 +609,64 @@ def test_ro_data_dir(request):
     Used for tests which have read-only data files in the test dir.
     """
     return os.path.dirname(request.module.__file__)
+
+#
+# Write machine-readable report files into the $HOME directory
+# http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
+#
+import os
+report_json = os.path.expanduser('~/sagews-test-report.json')
+report_prom = os.path.expanduser('~/sagews-test-report.prom')
+results = []
+start_time = None
+
+@pytest.hookimpl
+def pytest_configure(config):
+    global start_time
+    start_time = datetime.utcnow()
+
+@pytest.hookimpl
+def pytest_unconfigure(config):
+    global start_time
+    data = {
+        'name'     : 'smc_sagews.test',
+        'version'  : 1,
+        'start'    : str(start_time),
+        'end'      : str(datetime.utcnow()),
+        'fields'   : ['name', 'outcome', 'duration'],
+        'results'  : results,
+    }
+    with open(report_json, 'w') as out:
+        json.dump(data, out, indent=1)
+    # this is a plain text prometheus report
+    # https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
+    # timestamp milliseconds since epoch
+    ts = int(1000 * time.mktime(start_time.timetuple()))
+    # first write to temp file ...
+    report_prom_tmp = report_prom + '~'
+    with open(report_prom_tmp, 'w') as prom:
+        for (name, outcome, duration) in results:
+            labels = 'name="{name}",outcome="{outcome}"'.format(**locals())
+            line = 'sagews_test{{{labels}}} {duration} {ts}'.format(**locals())
+            prom.write(line + '\n')
+    # ... then atomically overwrite the real one
+    os.rename(report_prom_tmp, report_prom)
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    if rep.when != "call":
+        return
+
+    #import pdb; pdb.set_trace() # uncomment to inspect item and rep objects
+    # the following `res` should match the `fields` above
+    # parent: item.parent.name could be interesting, but just () for auto discovery
+    name = item.name
+    test_ = 'test_'
+    if name.startswith(test_):
+        name = name[len(test_):]
+    res = [name, rep.outcome, rep.duration]
+    results.append(res)

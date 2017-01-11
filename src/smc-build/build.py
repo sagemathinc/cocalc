@@ -300,6 +300,9 @@ SAGE_PIP_PACKAGES = [
     'nilearn', # https://nilearn.github.io/index.html
     'git+https://github.com/abelfunctions/abelfunctions.git',
     'multipolynomial_bases', # https://github.com/VivianePons/multipolynomial-bases
+    'pudb', # ncurses based visual debugger
+    'quandl',
+    'git+https://github.com/timothydmorton/isochrones.git',
     ]
 
 # additional environment settings for specific packages
@@ -344,6 +347,9 @@ SAGE_PIP_PACKAGES_DEPS = [
     'vpnotebook', 'ivisual', 'ujson', 'crayola', # vpython deps
     'cufflinks', 'colorlover', # plot.ly deps (mabye not py2 compatible)
     'vega', # altair
+    'urwid', 'pygments', # pudb deps
+    'inflection', 'more_itertools', # quandl deps
+    'emcee', 'corner', 'asciitree', 'astroquery', # isochrones deps
 ]
 
 # TODO make add an additional category of pip packages, where it is always safe to install with dependencies
@@ -402,6 +408,9 @@ R_PACKAGES = [
     'plotly',
     'ipyleaflet', # also needs jupyter nbextension enable --py --sys-prefix ipyleaflet
     'rjags',
+    'kernlab',
+    'AppliedPredictiveModeling',
+    'ISLR',
 ]
 
 # Sage has additionally some optional packages. We try to install as many of them as feasible.

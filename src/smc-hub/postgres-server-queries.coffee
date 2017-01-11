@@ -267,6 +267,28 @@ class exports.PostgreSQL extends PostgreSQL
                 opts.cb(undefined, account_id)
         )
 
+    is_admin: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query : "SELECT groups FROM accounts"
+            where : 'account_id = $::UUID':opts.account_id
+            cache : true
+            cb    : one_result 'groups', (err, groups) =>
+                opts.cb(err, groups? and 'admin' in groups)
+
+    make_user_admin: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query : "UPDATE accounts"
+            where : 'account_id = $::UUID':opts.account_id
+            set   :
+                groups : ['admin']
+            cb    : opts.cb
+
     # TODO: (probably) need indexes to make this fast.
     count_accounts_created_by: (opts) =>
         opts = defaults opts,
@@ -584,8 +606,8 @@ class exports.PostgreSQL extends PostgreSQL
                 @_query
                     query : 'SELECT account_id, first_name, last_name, email_address FROM accounts'
                     where : 'email_address = ANY($::TEXT[])' : email_queries
-                    cb    : (err, result) =>
-                        cb(err, if result? then results.push(result.rows...))
+                    cb    : all_results (err, rows) =>
+                        cb(err, if rows? then results.push(rows...))
             (cb) =>
                 dbg("do all string queries")
                 if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
@@ -614,8 +636,8 @@ class exports.PostgreSQL extends PostgreSQL
                 @_query
                     query  : query
                     params : params
-                    cb     : (err, result) =>
-                        cb(err, if result? then results.push(result.rows...))
+                    cb     : all_results (err, rows) =>
+                        cb(err, if rows? then results.push(rows...))
             ], (err) => opts.cb(err, results))
 
     _account_where: (opts) =>
@@ -639,25 +661,27 @@ class exports.PostgreSQL extends PostgreSQL
                             ]
             cb            : required
         if not @_validate_opts(opts) then return
-        if 'password_is_set' in opts.columns
-            if 'password_hash' not in opts.columns
-                opts.columns.push('password_hash')
-            misc.remove(opts.columns, 'password_is_set')
+        columns = misc.copy(opts.columns)
+        if 'password_is_set' in columns
+            if 'password_hash' not in columns
+                remove_password_hash = true
+                columns.push('password_hash')
+            misc.remove(columns, 'password_is_set')
             password_is_set = true
         @_query
-            query : "SELECT #{opts.columns.join(',')} FROM accounts"
+            query : "SELECT #{columns.join(',')} FROM accounts"
             where : @_account_where(opts)
-            cb    : (err, result) =>
+            cb    : one_result (err, z) =>
                 if err
                     opts.cb(err)
-                else if result.rows.length == 0
+                else if not z?
                     opts.cb("no such account")
                 else
-                    z = result.rows[0]
                     if password_is_set
                         z.password_is_set = !!z.password_hash
-                    delete z.password_hash
-                    for c in opts.columns
+                        if remove_password_hash
+                            delete z.password_hash
+                    for c in columns
                         if not z[c]?     # for same semantics as rethinkdb... (for now)
                             delete z[c]
                     opts.cb(undefined, z)
@@ -672,7 +696,7 @@ class exports.PostgreSQL extends PostgreSQL
         @_query
             query : 'SELECT banned FROM accounts'
             where : @_account_where(opts)
-            cb    : one_result('banned', opts.cb)
+            cb    : one_result('banned', (err, banned) => opts.cb(err, !!banned))
 
     _set_ban_user: (opts) =>
         opts = defaults opts,
@@ -861,9 +885,16 @@ class exports.PostgreSQL extends PostgreSQL
             invalidate_remember_me : true
             cb                     : required
         if not @_validate_opts(opts) then return
+        if opts.password_hash.length > 173
+            opts.cb("password_hash must be at most 173 characters")
+            return
         async.series([  # don't do in parallel -- don't kill remember_me if password failed!
             (cb) =>
-                @_account(opts).update(password_hash:opts.password_hash).run(cb)
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {password_hash : opts.password_hash}
+                    where : @_account_where(opts)
+                    cb    : cb
             (cb) =>
                 if opts.invalidate_remember_me
                     @invalidate_all_remember_me
@@ -888,7 +919,11 @@ class exports.PostgreSQL extends PostgreSQL
                 else if exists
                     opts.cb("email_already_taken")
                 else
-                    @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {email_address: opts.email_address}
+                    where : @_account_where(opts)
+                    cb    : opts.cb
 
     ###
     Password reset
@@ -1072,7 +1107,7 @@ class exports.PostgreSQL extends PostgreSQL
             project_id  : undefined    # don't specify both project_id and project_ids
             project_ids : undefined
             path        : undefined    # if given, project_id must be given
-            cb          : required     # entry if path given; otherwise, an array
+            cb          : required     # one entry if path given; otherwise, an array of entries.
         if opts.project_id?
             if opts.project_ids?
                 opts.cb("don't specify both project_id and project_ids")
@@ -1089,7 +1124,7 @@ class exports.PostgreSQL extends PostgreSQL
                 'project_id   = ANY($)'       : opts.project_ids
                 'path         = $::TEXT'      : opts.path
             order_by : 'last_edited'
-            cb       : all_results(opts.cb)
+            cb       : if opts.path? then one_result(opts.cb) else all_results(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts
@@ -1148,6 +1183,29 @@ class exports.PostgreSQL extends PostgreSQL
                 "project_id = $::UUID": opts.project_id
             cb          : opts.cb
 
+    set_project_status: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            status     : required
+            cb         : undefined
+        @_query
+            query : "UPDATE projects"
+            set   : {"status::JSONB"   : opts.status}
+            where : {"project_id = $::UUID": opts.project_id}
+            cb    : opts.cb
+
+    set_compute_server_status: (opts) =>
+        opts = defaults opts,
+            host   : required
+            status : required
+            cb     : undefined
+        @_query
+            query : "UPDATE compute_servers"
+            set   : {"status::JSONB": opts.status}
+            where : {"host = $::TEXT" : opts.host}
+            cb    : opts.cb
+
+
     # Remove the given collaborator from the project.
     # Attempts to remove an *owner* via this function will silently fail (change their group first),
     # as will attempts to remove a user not on the project, or to remove from a non-existent project.
@@ -1159,12 +1217,23 @@ class exports.PostgreSQL extends PostgreSQL
         if not @_validate_opts(opts) then return
         @_query
             query     : 'UPDATE projects'
-            jsonb_set :
-                users :
-                    "#{opts.account_id}": null
+            jsonb_set : {users : {"#{opts.account_id}": null}}
             where     :
                 'project_id :: UUID = $'                          : opts.project_id
                 "users#>>'{#{opts.account_id},group}' != $::TEXT" : 'owner'
+            cb        : opts.cb
+
+    # remove any user, even an owner.
+    remove_user_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : required  # cb(err)
+        if not @_validate_opts(opts) then return
+        @_query
+            query     : 'UPDATE projects'
+            jsonb_set : {users : {"#{opts.account_id}": null}}
+            where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
 
     # Return a list of the account_id's of all collaborators of the given users.
@@ -1307,7 +1376,16 @@ class exports.PostgreSQL extends PostgreSQL
             where :
                 'project_id :: UUID = $' : opts.project_id
                 "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups
-            cb    : count_result (err, n) -> opts.cb(err, n > 0)
+            cb    : count_result (err, n) =>
+                if err
+                    opts.cb(err)
+                else if n == 0
+                    # one more chance -- admin?
+                    @is_admin
+                        account_id : opts.account_id
+                        cb         : opts.cb
+                else
+                    opts.cb(err, n > 0)
 
     # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>

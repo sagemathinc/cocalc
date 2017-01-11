@@ -163,9 +163,7 @@ class ProjectActions extends Actions
         switch key
             when 'files'
                 @set_url_to_path(store.current_path ? '')
-                sort_by_time = store.sort_by_time
-                show_hidden = store.show_hidden
-                @set_directory_files(store.current_path, sort_by_time, show_hidden)
+                @fetch_directory_listing()
             when 'new'
                 @setState(file_creation_error: undefined)
                 @push_state('new/' + store.current_path)
@@ -176,11 +174,18 @@ class ProjectActions extends Actions
                 @push_state('search/' + store.current_path)
             when 'settings'
                 @push_state('settings')
-            else #editor...
+            else # editor...
                 path = misc.tab_to_path(key)
                 @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
                 @push_state('files/' + path)
                 @set_current_path(misc.path_split(path).head)
+
+                # Reopen the file if relationship has changed
+                is_public = redux.getStore('projects').get_my_group(@project_id) == 'public'
+                was_public = store.open_files.getIn([path, 'component']).is_public
+                if is_public != was_public
+                    @open_file(path : path)
+
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().num_ghost_file_tabs
@@ -274,15 +279,6 @@ class ProjectActions extends Actions
             chat               : undefined
             chat_width         : undefined
 
-        # grab chat state from local storage
-        local_storage = require('./editor').local_storage
-        if local_storage?
-            opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
-            opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
-
-        if misc.filename_extension(opts.path) == 'sage-chat'
-            opts.chat = false
-
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
@@ -303,7 +299,6 @@ class ProjectActions extends Actions
                             return
 
                         is_public = group == 'public'
-
                         ext = misc.filename_extension_notilde(opts.path).toLowerCase()
 
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
@@ -336,11 +331,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-
                             @log
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+
+                            # grab chat state from local storage
+                            local_storage = require('./editor').local_storage
+                            if local_storage?
+                                opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
+                                opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
+
+                            if misc.filename_extension(opts.path) == 'sage-chat'
+                                opts.chat = false
 
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
@@ -348,7 +351,13 @@ class ProjectActions extends Actions
                         open_files = store.open_files
 
                         # Only generate the editor component if we don't have it already
-                        if not open_files.has(opts.path)
+                        # Also regenerate if view type (public/not-public) changes
+                        if not open_files.has(opts.path) or open_files.getIn([opts.path, 'component']).is_public != is_public
+                            was_public = open_files.getIn([opts.path, 'component'])?.is_public
+                            if was_public? and was_public != is_public
+                                @setState(open_files : store.open_files.delete(opts.path))
+                                project_file.remove(opts.path, @redux, @project_id, was_public)
+
                             open_files_order = store.open_files_order
 
                             # Initialize the file's store and actions
@@ -368,9 +377,12 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'component'], info)
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
+                            index = open_files_order.indexOf(opts.path)
+                            if index == -1
+                                index = open_files_order.size
                             @setState
                                 open_files       : open_files
-                                open_files_order : open_files_order.push(opts.path)
+                                open_files_order : open_files_order.set(index, opts.path)
 
                         if opts.foreground
                             @foreground_project()
@@ -523,6 +535,8 @@ class ProjectActions extends Actions
                 # TODO!
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
+                if path[path.length - 1] == '/'
+                    path = path.slice(0, -1)
                 @foreground_project()
                 @set_current_path(path)
                 if @get_store().active_project_tab == 'files'
@@ -549,7 +563,7 @@ class ProjectActions extends Actions
             page_number            : 0
             most_recent_file_click : undefined
 
-        @set_directory_files()
+        @fetch_directory_listing()
 
     set_file_search: (search) =>
         @setState
@@ -561,9 +575,16 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    set_directory_files: (path, sort_by_time, show_hidden) =>
-        if not path?
-            path = @get_store().current_path
+    fetch_directory_listing: (opts) =>
+        # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
+        {path, sort_by_time, show_hidden} = defaults opts,
+            path         : @get_store()?.current_path
+            sort_by_time : undefined
+            show_hidden  : undefined
+            finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
+            # In the vast majority of cases, you just want to look at the data.
+            # Very rarely should you need something to execute exactly after this
+
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
             return
@@ -579,23 +600,20 @@ class ProjectActions extends Actions
         # get_my_group is defined.
         id = misc.uuid()
         @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        group   = undefined
-        listing = undefined
-        async.series([
+        async.waterfall([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : (err, x) =>
-                        group = x; cb(err)
-            (cb) =>
+                    cb      : cb
+            (group, cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= store.current_path ? ""
-                sort_by_time ?= store.sort_by_time ? true
-                show_hidden  ?= store.show_hidden ? false
+                path         ?= store.current_path
+                sort_by_time ?= store.sort_by_time
+                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
@@ -603,10 +621,8 @@ class ProjectActions extends Actions
                     hidden     : show_hidden
                     max_time_s : 4*60  # keep trying for up to 4 minutes
                     group      : group
-                    cb         : (err, x) =>
-                        listing = x
-                        cb(err)
-        ], (err) =>
+                    cb         : cb
+        ], (err, listing) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
@@ -615,6 +631,7 @@ class ProjectActions extends Actions
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
+            opts?.finish_cb?()
         )
 
     # Increases the selected file index by 1
@@ -693,7 +710,10 @@ class ProjectActions extends Actions
         # anything about files (highly unlikely).  Unfortunately (for this), our
         # directory listings are stored as (immutable) lists, so we have to make
         # a map out of them.
-        store.directory_listings?.get(store.current_path)?.map (x) ->
+        listing = store.directory_listings?.get(store.current_path)
+        if typeof(listing) == 'string'    # must be an error
+            return name  # simple fallback
+        listing?.map (x) ->
             files_in_dir[x.get('name')] = true
             return
         # This loop will keep trying new names until one isn't in the directory
@@ -743,7 +763,7 @@ class ProjectActions extends Actions
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
-            @set_directory_files()
+            @fetch_directory_listing()
             if err
                 @set_activity(id:id, error:err)
             else if output?.event == 'error' or output?.error
@@ -770,11 +790,34 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : @_finish_exec(id)
 
-    copy_files: (opts) =>
+    # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
+    _convert_to_displayed_path: (path) =>
+        if path.slice(-1) == '/'
+            return path
+        else
+            if @get_store().displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+                return path + '/'
+            else
+                return path
+
+    copy_paths: (opts) =>
         opts = defaults opts,
-            src  : required     # Should be an array of source paths
-            dest : required
-            id   : undefined
+            src           : required     # Should be an array of source paths
+            dest          : required
+            id            : undefined
+            only_contents : false
+
+        with_slashes = opts.src.map(@_convert_to_displayed_path)
+
+        @log
+            event  : 'file_action'
+            action : 'copied'
+            files  : with_slashes[0...3]
+            count  : if opts.src.length > 3 then opts.src.length
+            dest   : opts.dest + '/'
+
+        if opts.only_contents
+            opts.src = with_slashes
 
         # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
         deal_with_leading_dash = (src_path) ->
@@ -788,12 +831,7 @@ class ProjectActions extends Actions
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
-        @log
-            event  : 'file_action'
-            action : 'copied'
-            files  : opts.src[0...3]
-            count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest
+
         salvus_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -822,12 +860,12 @@ class ProjectActions extends Actions
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
         src = opts.src
         delete opts.src
+        with_slashes = src.map(@_convert_to_displayed_path)
         @log
             event   : 'file_action'
             action  : 'copied'
-            files   : src[0...3]
+            files   : with_slashes[0...3]
             count   : if src.length > 3 then src.length
-            dest    : opts.dest
             project : opts.target_project_id
         f = (src_path, cb) =>
             opts0 = misc.copy(opts)
@@ -872,7 +910,7 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:id, error:err)
             else
-                @set_directory_files()
+                @fetch_directory_listing()
             @log
                 event  : 'file_action'
                 action : 'moved'
@@ -1048,7 +1086,7 @@ class ProjectActions extends Actions
             timeout : FROM_WEB_TIMEOUT_S
             alert   : true
             cb      : (err) =>
-                @set_directory_files()
+                @fetch_directory_listing()
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
@@ -1174,15 +1212,42 @@ class ProjectActions extends Actions
         segments = target.split('/')
         full_path = segments.slice(1).join('/')
         parent_path = segments.slice(1, segments.length-1).join('/')
+        last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
                     @open_directory(parent_path)
                 else
-                    @open_file
-                        path       : full_path
-                        foreground : foreground
-                        foreground_project : foreground
+                    # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
+                    # Assume that if it's loaded, it's good enough.
+                    async.waterfall [
+                        (cb) =>
+                            {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            cb(err, item)
+                        (item, cb) => # Fetch if error or nothing found
+                            if not item?
+                                @fetch_directory_listing
+                                    path         : parent_path
+                                    show_hidden  : true
+                                    finish_cb    : =>
+                                        {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        cb(err, item)
+                            else
+                                cb(undefined, item)
+                    ], (err, item) =>
+                        if err?
+                            if err == 'timeout'
+                                alert_message(type:'error', message:"Timeout opening '#{target}' -- try later")
+                            else
+                                alert_message(type:'error', message:"Error opening '#{target}': #{err}")
+                        if item?.get('isdir')
+                            @open_directory(full_path)
+                        else
+                            @open_file
+                                path       : full_path
+                                foreground : foreground
+                                foreground_project : foreground
+
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)
                 @set_active_tab('new')
@@ -1225,6 +1290,7 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
+        sort_by_time       : true
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1369,6 +1435,14 @@ create_project_store_def = (name, project_id) ->
     is_file_open: (path) ->
         return @getIn(['open_files', path])?
 
+    # Returns
+    # Not a property
+    get_item_in_path: (name, path) ->
+        listing = @directory_listings.get(path)
+        if typeof listing == 'string'   # must be an error
+            return {err : listing}
+        return {item : listing?.find (val) => val.get('name') == name}
+
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()
         for t in words
@@ -1497,7 +1571,8 @@ get_directory_listing = (opts) ->
         method = salvus_client.project_directory_listing
     else
         method = salvus_client.public_project_directory_listing
-    listing = undefined
+    listing     = undefined
+    listing_err = undefined
     f = (cb) ->
         method
             project_id : opts.project_id
@@ -1506,13 +1581,15 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 20
             cb         : (err, x) ->
-                listing = x
-                cb(err)
+                listing     = x
+                listing_err = err
+                # the call itself is successful, even when it returns an error
+                cb()
 
     misc.retry_until_success
         f        : f
         max_time : opts.max_time_s * 1000
         #log      : console.log
         cb       : (err) ->
-            opts.cb(err, listing)
+            opts.cb(err ? listing_err, listing)
 

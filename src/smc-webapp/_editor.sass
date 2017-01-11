@@ -114,6 +114,23 @@
 .salvus-editor-latex-mesg-template-warning, .salvus-editor-latex-mesg-template-typesetting
   border: 2px solid #FDB600
 
+.salvus-editor-latex-right-pane
+  > .nav > li
+    > a:hover
+      background-color: #fff
+    > a.btn-danger:hover
+      background-color: #d9534f
+  > .nav-tabs > li
+    &.active > a
+      color: #333
+      &.btn-danger
+        background-color: #d9534f
+    > a
+      color: #555
+      margin-top     : 2px
+      padding-top    : 6px
+      padding-bottom : 6px
+
 .salvus-latex-mesg-message
   font-size   : 13pt
   margin-left : 1em
@@ -125,10 +142,18 @@
 .salvus-editor-pdf-preview-page
   background-color : #666
   color            : #fff
+  margin           : 0 auto
+  overflow         : visible
 
 .salvus-editor-pdf-preview-page-single
+  background-color : #666
   text-align       : center
   min-height       : 3em
+  margin           : 0 auto
+  img
+    display        : block
+    max-width      : 100%
+    width          : 100%
 
 .salvus-editor-pdf-preview-spinner
   position : absolute
@@ -356,7 +381,7 @@
 
 .salvus-editor-static-html-content
   overflow-y : auto
-  margin     : 1em
+  margin     : 0
   border-top : 1px solid lightgray
 
 
@@ -375,7 +400,7 @@
     position    : absolute
     top         : -8px
     margin-left : -6px
-    z-index     : 200
+    z-index     : 5
     outline     : none
 
 .smc-history-diff-wrap-delete
@@ -499,7 +524,7 @@ code
 
 .salvus-editor-codeedit-buttonbar-mode
   background : #fafafa
-  padding    : 4px
+  padding    : 6px 12px
   border     : 1px solid #ddd
   cursor     : pointer
   color      : darkblue
@@ -589,3 +614,6 @@ h6 { font-size: 110% }
 
 .smc-message-from-viewer a:link, .smc-message-from-viewer a:visited
    color : #FFEB3B
+
+.smc-chat-message img
+  max-width: 100%

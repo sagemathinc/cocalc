@@ -25,7 +25,7 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-
+{HelpPageUsageSection} = require('./r_help')
 #DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
 
@@ -56,7 +56,6 @@ Passports = rclass
 
     propTypes :
         strategies : rtypes.array
-        actions    : rtypes.object.isRequired
 
     styles :
         facebook :
@@ -107,7 +106,6 @@ SignUp = rclass
 
     propTypes :
         strategies    : rtypes.array
-        actions       : rtypes.object.isRequired
         sign_up_error : rtypes.object
         token         : rtypes.bool
         has_account   : rtypes.bool
@@ -120,7 +118,7 @@ SignUp = rclass
         email    = ReactDOM.findDOMNode(@refs.email).value
         password = ReactDOM.findDOMNode(@refs.password).value
         token    = ReactDOM.findDOMNode(@refs.token)?.value
-        @props.actions.create_account(name, email, password, token)
+        @actions('account').create_account(name, email, password, token)
 
     display_error: (field)->
         if @props.sign_up_error?[field]?
@@ -130,7 +128,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports actions={@props.actions} strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} />
 
     display_token_input: ->
         if @props.token
@@ -148,15 +146,20 @@ SignUp = rclass
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 <FormGroup>
                     {@display_error("first_name")}
-                    <FormControl ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
+                    <FormControl
+                        ref         = 'name'
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'First and last Name'
+                        maxLength   = 254 />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' />
+                    <FormControl ref='email' type='email' placeholder='Email address' maxLength=254 />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' />
+                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
                 </FormGroup>
                 <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button
@@ -178,7 +181,6 @@ SignIn = rclass
     displayName : "SignIn"
 
     propTypes :
-        actions       : rtypes.object.isRequired
         sign_in_error : rtypes.string
         signing_in    : rtypes.bool
         has_account   : rtypes.bool
@@ -193,22 +195,22 @@ SignIn = rclass
     sign_in: (e) ->
         if e?
             e.preventDefault()
-        @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
+        @actions('account').sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password: ->
-        @props.actions.setState(show_forgot_password : true)
+        @actions('account').setState(show_forgot_password : true)
 
     display_error: ->
         if @props.sign_in_error?
             <ErrorDisplay
                 style   = {margin:'15px'}
                 error   = {@props.sign_in_error}
-                onClose = {=>@props.actions.setState(sign_in_error: undefined)}
+                onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
     remove_error: ->
         if @props.sign_in_error
-            @props.actions.setState(sign_in_error : undefined)
+            @actions('account').setState(sign_in_error : undefined)
 
     render: ->
         if @props.xs
@@ -284,8 +286,7 @@ SignIn = rclass
 ForgotPassword = rclass
     displayName : "ForgotPassword"
 
-    propTypes :
-        actions                 : rtypes.object.isRequired
+    propTypes:
         forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string
 
@@ -297,7 +298,7 @@ ForgotPassword = rclass
         e.preventDefault()
         value = @state.email_address
         if misc.is_valid_email_address(value)
-            @props.actions.forgot_password(value)
+            @actions('account').forgot_password(value)
 
     set_email: (evt) ->
         email = evt.target.value
@@ -321,9 +322,9 @@ ForgotPassword = rclass
             </span>
 
     hide_forgot_password: ->
-        @props.actions.setState(show_forgot_password    : false)
-        @props.actions.setState(forgot_password_error   : undefined)
-        @props.actions.setState(forgot_password_success : undefined)
+        @actions('account').setState(show_forgot_password    : false)
+        @actions('account').setState(forgot_password_error   : undefined)
+        @actions('account').setState(forgot_password_success : undefined)
 
     render: ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -360,7 +361,6 @@ ForgotPassword = rclass
 
 ResetPassword = rclass
     propTypes: ->
-        actions              : rtypes.object.isRequired
         reset_key            : rtypes.string.isRequired
         reset_password_error : rtypes.string
 
@@ -368,12 +368,12 @@ ResetPassword = rclass
 
     reset_password: (e) ->
         e.preventDefault()
-        @props.actions.reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
+        @actions('account').reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
 
     hide_reset_password: (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setState(reset_key : '', reset_password_error : '')
+        @actions('account').setState(reset_key : '', reset_password_error : '')
 
     display_error: ->
         if @props.reset_password_error
@@ -454,14 +454,32 @@ LANDING_PAGE_CONTENT =
         heading : 'LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
-SMC_Commercial = () ->
+SMC_Commercial = ->
     <iframe
-        width       = "504"
+        width       = "100%"
         height      = "284"
         src         = "https://www.youtube.com/embed/AEKOjac9obk"
         frameBorder = "0"
         allowFullScreen>
     </iframe>
+
+SMC_Quote = ->
+    <div style={marginTop:'15px'}>
+        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of SageMathCloud in the Mathematics for Life Scientists">
+            <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
+        </a>
+        <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
+        They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
+        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
+        The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
+        management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
+        </p>
+        <p style={marginBottom:0} >
+            <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
+            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses using SageMathCloud</a> {' | '}
+            <a href="https://github.com/sagemathinc/smc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
+        </p>
+    </div>
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
@@ -469,6 +487,8 @@ LandingPageContent = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
+        # temporarily disable -- it's getting old...
+        return <div></div>
         <Well style={color:'#666'}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </Well>
@@ -505,7 +525,7 @@ SagePreview = rclass
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox title="Jupyter Notebook, Linux Terminal, ..." index={3}>
+                        <ExampleBox title="Jupyter Notebooks and Linux Terminals" index={3}>
                             <SiteName /> does not arbitrarily restrict you.
                             Work with <strong>Jupyter Notebooks</strong>,
                             {' '}<strong>upload</strong> your own files,
@@ -534,10 +554,10 @@ ExampleBox = rclass
     render: ->
         <div>
             <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
-            <div style={marginBottom:'5px'} >
+            <div style={marginBottom:'10px'} >
                 <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
-            <div>
+            <div className="lighten">
                 {@props.children}
             </div>
         </div>
@@ -550,7 +570,6 @@ RememberMe = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        actions                 : rtypes.object.isRequired
         strategies              : rtypes.array
         sign_up_error           : rtypes.object
         sign_in_error           : rtypes.string
@@ -569,18 +588,19 @@ exports.LandingPage = rclass
         if not @props.remember_me
             reset_key = reset_password_key()
             <div style={margin: UNIT}>
-                    {<ResetPassword reset_key={reset_key}
-                                    reset_password_error={@props.reset_password_error}
-                                    actions={@props.actions} /> if reset_key}
-                    {<ForgotPassword actions={@props.actions}
-                                     forgot_password_error={@props.forgot_password_error}
-                                     forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                    {<ResetPassword
+                        reset_key={reset_key}
+                        reset_password_error={@props.reset_password_error}
+                    /> if reset_key}
+                    {<ForgotPassword
+                        forgot_password_error={@props.forgot_password_error}
+                        forgot_password_success={@props.forgot_password_success}
+                    /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
-                            actions       = {@props.actions}
                             signing_in    = {@props.signing_in}
                             sign_in_error = {@props.sign_in_error}
                             has_account   = {@props.has_account}
@@ -602,7 +622,6 @@ exports.LandingPage = rclass
                                   float    : "right"}
                            className="smc-sign-in-form">
                           <SignIn
-                              actions       = {@props.actions}
                               signing_in    = {@props.signing_in}
                               sign_in_error = {@props.sign_in_error}
                               has_account   = {@props.has_account}
@@ -640,19 +659,37 @@ exports.LandingPage = rclass
                     </div>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
-                        <SMC_Commercial />
-                    </Col>
                     <Col sm=5>
                         <SignUp
-                            actions       = {@props.actions}
                             sign_up_error = {@props.sign_up_error}
                             strategies    = {@props.strategies}
                             token         = {@props.token}
                             signing_up    = {@props.signing_up}
                             has_account   = {@props.has_account} />
                     </Col>
+                    <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
+                        <Well style={'float':'right', marginBottom:'15px'} className="lighten">
+                            <h3 style={marginTop: 0}>For the next generation of innovative leaders</h3>
+                            <p style={marginBottom:'15px'}>who teach courses using modern open
+                            source software, SageMathCloud is by far the most powerful and easiest way to get your
+                            class up and running. We completely eliminate frustrating installations, awkward and
+                            closed Matlab and Mathematica clouds, and the limited functionality of Overleaf and ShareLatex.
+                            Quick, expert technical support is offered via our ridiculously collaborative environment,
+                            which includes LaTeX, R, Jupyter, Python, SageMath, Octave, and Julia. For avoiding the bumps and
+                            bruises of open source software, we have your back.</p>
+                            <SMC_Commercial />
+                            <br />
+                            <SMC_Quote />
+                        </Well>
+                    </Col>
                 </Row>
+                <Well>
+                    <Row>
+                        <Col sm=12 className='hidden-xs'>
+                            <HelpPageUsageSection />
+                        </Col>
+                    </Row>
+                </Well>
                 <Row>
                     <Col sm=12 className='hidden-xs'>
                         <LandingPageContent />

@@ -2,6 +2,7 @@
 - hosts: compute
   become: no
   gather_facts: yes
+  strategy: free
 
   tasks:
   - name: "get metrics-* filenames"

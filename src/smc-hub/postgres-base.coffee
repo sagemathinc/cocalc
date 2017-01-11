@@ -22,42 +22,84 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA} = require('smc-util/schema')
+{SCHEMA, client_db} = require('smc-util/schema')
 
-class exports.PostgreSQL extends EventEmitter
+class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
-            host     : 'localhost'
-            database : 'smc'
-            port     : 5432
+            host     : process.env['SMC_DB_HOST'] ? 'localhost'    # or 'hostname:port'
+            database : process.env['SMC_DB'] ? 'smc'
             debug    : true
-            cb       : undefined
-        @_debug    = opts.debug
-        @_host     = opts.host
-        @_port     = opts.port
+            connect  : true
+        @setMaxListeners(10000)  # because of a potentially large number of changefeeds
+        @_debug = opts.debug
+        i = opts.host.indexOf(':')
+        if i != -1
+            @_host = opts.host.slice(0, i)
+            @_port = parseInt(opts.host.slice(i+1))
+        else
+            @_host = opts.host
+            @_port = 5432
         @_database = opts.database
         @_concurrent_queries = 0
-        @_connect(opts.cb)
+        if opts.connect
+            @connect()  # start trying to connect
+
+    engine: -> 'postgresql'
+
+    connect: (opts) =>
+        opts = defaults opts,
+            max_time : undefined   # set to something shorter to not try forever
+                                   # Only first max_time is used.
+            cb       : undefined
+        dbg = @_dbg("connect")
+        if @_connecting?
+            dbg('already trying to connect')
+            @_connecting.push(opts.cb)
+            return
+        dbg('will try to connect')
+        if opts.max_time
+            dbg("for up to #{opts.max_time}ms")
+        else
+            dbg("until successful")
+        @_connecting = [opts.cb]
+        misc.retry_until_success
+            f           : @_connect
+            max_delay   : 7000
+            max_time    : opts.max_time
+            start_delay : 500 + 500*Math.random()
+            log         : dbg
+            cb          : (err) =>
+                v = @_connecting
+                delete @_connecting
+                for cb in v
+                    cb?(err)
+                if not err
+                    @emit('connect')
 
     _connect: (cb) =>
-        dbg = @_dbg("connect"); dbg()
+        dbg = @_dbg("_do_connect"); dbg()
+        @_clear_listening_state()   # definitely not listening
+        if @_client?
+            @_client.end()
+            delete @_client
         async.series([
-            (cb) =>
-                if @_client?
-                    @_client.end(cb)
-                else
-                    cb()
             (cb) =>
                 @_concurrent_queries = 0
                 dbg("first make sure db exists")
                 @_ensure_database_exists(cb)
             (cb) =>
                 @_client = new pg.Client
-                    host     : @_host
+                    #host     : if @_host then @_host    # undefined if @_host=''
                     port     : @_port
                     database : @_database
                 if @_notification?
                     @_client.on('notification', @_notification)
+                @_client.on 'error', (err) =>
+                    dbg("error -- #{err}")
+                    @_client.end()
+                    delete @_client
+                    @connect()  # start trying to reconnect
                 @_client.connect(cb)
         ], (err) =>
             if err
@@ -76,7 +118,9 @@ class exports.PostgreSQL extends EventEmitter
 
     _query: (opts) =>
         opts  = defaults opts,
-            query     : required
+            query     : undefined    # can give select and table instead
+            select    : undefined    # if given, should be string or array of column names  -|  can give these
+            table     : undefined    # if given, name of table                              -|  two instead of query
             params    : []
             cache     : false        # TODO: implement this
             where     : undefined    # Used for SELECT: If given, can be
@@ -107,6 +151,23 @@ class exports.PostgreSQL extends EventEmitter
             order_by    : undefined
             limit       : undefined
             cb          : undefined
+
+        if not @_client?
+            dbg = @_dbg("_query")
+            dbg("connecting first...")
+            @connect
+                max_time : 45000    # don't try forever; queries would pile up.
+                cb       : (err) =>
+                    if err
+                        dbg("FAILED to connect -- #{err}")
+                        opts.cb("database is down (please try later)")
+                    else
+                        dbg("connected, now doing query")
+                        @__do_query(opts)
+        else
+            @__do_query(opts)
+
+    __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
         dbg()
         if not @_client?
@@ -116,6 +177,17 @@ class exports.PostgreSQL extends EventEmitter
         if opts.params? and not misc.is_array(opts.params)
             opts.cb?("params must be an array")
             return
+        if not opts.query?
+            if not opts.table?
+                opts.cb?("if query not given, then table must be given")
+                return
+            if not opts.select?
+                opts.select = '*'
+            if misc.is_array(opts.select)
+                opts.select = (quote_field(field) for field in opts.select).join(',')
+            opts.query = "SELECT #{opts.select} FROM \"#{opts.table}\""
+            delete opts.table
+            delete opts.select
 
         push_param = (param, type) ->
             if type?.toUpperCase() == 'JSONB'
@@ -132,7 +204,7 @@ class exports.PostgreSQL extends EventEmitter
         SET = []
         if opts.jsonb_set?
             # This little piece of very hard to write (and clever?) code
-            # makes it so we can set or **merge in at any nested level (!)
+            # makes it so we can set or **merge in at any nested level** (!)
             # arbitrary JSON objects.  We can also delete any key at any
             # level by making the value null or undefined!  This is amazingly
             # easy to use in queries -- basically making JSONP with postgres
@@ -159,21 +231,57 @@ class exports.PostgreSQL extends EventEmitter
             if opts.where?
                 opts.cb?("where must not be defined if opts.values is defined")
                 return
-            fields = []
-            values = []
-            for field, param of opts.values
-                if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
-                    continue
-                if field.indexOf('::') != -1
-                    [field, type] = field.split('::')
-                    fields.push(field.trim())
-                    type = type.trim()
-                    values.push("$#{push_param(param, type)}::#{type}")
-                    continue
-                else
-                    fields.push(field)
-                    values.push("$#{push_param(param)}")
-            opts.query += " (#{fields.join(', ')}) VALUES (#{values.join(', ')}) "
+
+            if misc.is_array(opts.values)
+                # An array of numerous separate object that we will insert all at once.
+                # Determine the fields, which as the union of the keys of all values.
+                fields = {}
+                for x in opts.values
+                    if not misc.is_object(x)
+                        opts.cb?("if values is an array, every entry must be an object")
+                        return
+                    for k, p of x
+                        fields[k] = true
+                # convert to array
+                fields = misc.keys(fields)
+                fields_to_index = {}
+                n = 0
+                for field in fields
+                    fields_to_index[field] = n
+                    n += 1
+                values = []
+                for x in opts.values
+                    value = []
+                    for field, param of x
+                        if field.indexOf('::') != -1
+                            [field, type] = field.split('::')
+                            type = type.trim()
+                            y = "$#{push_param(param, type)}::#{type}"
+                        else
+                            y = "$#{push_param(param)}"
+                        value[fields_to_index[field]] = y
+                    values.push(value)
+            else
+                # A single entry that we'll insert.
+
+                fields = []
+                values = []
+                for field, param of opts.values
+                    if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
+                        continue
+                    if field.indexOf('::') != -1
+                        [field, type] = field.split('::')
+                        fields.push(quote_field(field.trim()))
+                        type = type.trim()
+                        values.push("$#{push_param(param, type)}::#{type}")
+                        continue
+                    else
+                        fields.push(quote_field(field))
+                        values.push("$#{push_param(param)}")
+                values = [values]  # just one
+
+            if values.length > 0
+                opts.query += " (#{fields.join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
 
         if opts.set?
             v = []
@@ -181,10 +289,10 @@ class exports.PostgreSQL extends EventEmitter
                 if field.indexOf('::') != -1
                     [field, type] = field.split('::')
                     type = type.trim()
-                    v.push("#{field.trim()}=$#{push_param(param, type)}::#{type}")
+                    v.push("#{quote_field(field.trim())}=$#{push_param(param, type)}::#{type}")
                     continue
                 else
-                    v.push("#{field.trim()}=$#{push_param(param)}")
+                    v.push("#{quote_field(field.trim())}=$#{push_param(param)}")
             if v.length > 0
                 SET.push(v...)
 
@@ -192,12 +300,20 @@ class exports.PostgreSQL extends EventEmitter
             if not opts.values?
                 opts.cb?("if conflict is specified then values must also be specified")
                 return
-            if typeof(opts.conflict) != 'string'
-                opts.cb?("conflict must be a string (the field name), for now")
-                return
-            v = ("#{field}=EXCLUDED.#{field}" for field in fields when field != opts.conflict)
+            if not misc.is_array(opts.conflict)
+                if typeof(opts.conflict) != 'string'
+                    opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+                    return
+                else
+                    conflict = [opts.conflict]
+            else
+                conflict = opts.conflict
+            v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
             SET.push(v...)
-            opts.query += " ON CONFLICT (#{opts.conflict}) DO UPDATE "
+            if SET.length == 0
+                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
+            else
+                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
 
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')
@@ -216,6 +332,9 @@ class exports.PostgreSQL extends EventEmitter
                         return
                     if not param?  # *IGNORE* where conditions where value is explicitly undefined
                         continue
+                    if cond.indexOf('$') == -1
+                        # where condition is missing it's $ parameter -- default to equality
+                        cond += " = $"
                     WHERE.push(cond.replace('$', "$#{push_param(param)}"))
 
         if opts.where?
@@ -233,7 +352,11 @@ class exports.PostgreSQL extends EventEmitter
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
 
-        dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
+        dbg("query='#{opts.query}'")
+
+        # params can easily be huge, e.g., a blob.  But this may be
+        # needed at some point for debugging.
+        #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
         @_concurrent_queries += 1
         try
@@ -241,6 +364,7 @@ class exports.PostgreSQL extends EventEmitter
                 @_concurrent_queries -= 1
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
+                    err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) -- success")
                 opts.cb?(err, result)
@@ -284,10 +408,11 @@ class exports.PostgreSQL extends EventEmitter
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
+        args = ['--host', @_host, '--port', @_port, '--list', '--tuples-only']
+        dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
-            args    : ['--host', @_host, '--port', @_port,
-                       '--list', '--tuples-only']
+            args    : args
             cb      : (err, output) =>
                 if err
                     cb(err)
@@ -380,6 +505,16 @@ class exports.PostgreSQL extends EventEmitter
                 else
                     cb(undefined, (row.column_name for row in result.rows))
 
+    _primary_keys: (table) =>
+        return client_db.primary_keys(table)
+
+    # Return *the* primary key, assuming unique; otherwise raise an exception.
+    _primary_key: (table) =>
+        v = @_primary_keys(table)
+        if v.length != 1
+            throw Error("compound primary key tables not yet supported")
+        return v[0]
+
     _create_table: (table, cb) =>
         dbg = @_dbg("_create_table('#{table}')")
         dbg()
@@ -391,25 +526,18 @@ class exports.PostgreSQL extends EventEmitter
             cb("table '#{table}' is virtual")
             return
         columns = []
-        primary_keys = []
+        try
+            primary_keys = @_primary_keys(table)
+        catch e
+            cb(e)
+            return
         for column, info of schema.fields
-            if info.deprecated
-                continue
-            if typeof(info.pg_type) == 'object'
-                # compound primary key
-                for field, type of info.pg_type
-                    columns.push("#{quote_field(field)} #{type}")
-                    primary_keys.push(field)
-                continue
             s = "#{quote_field(column)} #{pg_type(info)}"
             if info.unique
                 s += " UNIQUE"
-            if schema.primary_key == column
-                primary_keys.push(column)
+            if info.pg_check
+                s += " " + info.pg_check
             columns.push(s)
-        if primary_keys.length == 0
-            cb("ERROR creating table '#{table}': a valid primary key must be specified -- #{schema.primary_key}")
-            return
         async.series([
             (cb) =>
                 dbg("creating the table")
@@ -500,11 +628,9 @@ class exports.PostgreSQL extends EventEmitter
 
     # Go through every table in the schema with a column called "expire", and
     # delete every entry where expire is <= right now.
-    # TODO: I took out everything related to throttling from the RethinkDB
-    # version -- maybe postgres is much more efficient!
     delete_expired: (opts) =>
         opts = defaults opts,
-            count_only : true       # if true, only count the number of rows that would be deleted
+            count_only : false      # if true, only count the number of rows that would be deleted
             table      : undefined  # only delete from this table
             cb         : required
         dbg = @_dbg("delete_expired(...)")
@@ -531,8 +657,14 @@ class exports.PostgreSQL extends EventEmitter
             tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
         async.map(tables, f, opts.cb)
 
-
-
+    # count number of entries in a table
+    count: (opts) =>
+        opts = defaults opts,
+            table : required
+            cb    : required
+        @_query
+            query : "SELECT COUNT(*) FROM #{opts.table}"
+            cb    : count_result(opts.cb)
 
 ###
 Other misc functions
@@ -540,10 +672,10 @@ Other misc functions
 
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
-exports.pg_type = pg_type = (info, field) ->
-    if typeof(info) == 'boolean'
-        throw Error("pg_type: insufficient information to determine type (info=boolean)")
-    if info.pg_type
+exports.pg_type = pg_type = (info) ->
+    if not info? or typeof(info) == 'boolean'
+        throw Error("pg_type: insufficient information to determine type (info=#{typeof(info)})")
+    if info.pg_type?
         return info.pg_type
     if not info.type?
         throw Error("pg_type: insufficient information to determine type (pg_type and type both not given)")
@@ -564,7 +696,7 @@ exports.pg_type = pg_type = (info, field) ->
         when 'number', 'double', 'float'
             return 'DOUBLE PRECISION'
         when 'array'
-            throw Error("pg_type: you must specify the array type explicitly")
+            throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")
         when 'buffer'
             return "BYTEA"
         else
@@ -574,10 +706,13 @@ exports.pg_type = pg_type = (info, field) ->
 # aren't allowed without quoting in Postgres.
 NEEDS_QUOTING =
     user : true
-quote_field = (field) ->
-    if NEEDS_QUOTING[field]
-        return "\"#{field}\""
-    return field
+exports.quote_field = quote_field = (field) ->
+    if field[0] == '"'  # already quoted
+        return field
+    return "\"#{field}\""
+    #if NEEDS_QUOTING[field]
+    #    return "\"#{field}\""
+    #return field
 
 # Timestamp the given number of seconds **in the future**.
 exports.expire_time = expire_time = (ttl) ->
@@ -642,7 +777,7 @@ exports.all_results = all_results = (pattern, cb) ->
         else
             rows = result.rows
             if not pattern?
-                cb(undefined, rows)
+                cb(undefined, (misc.copy(x) for x in rows))  # TODO: stupid misc.copy to unwrap from pg driver type -- investigate better!
             else if typeof(pattern) == 'string'
                 cb(undefined, ((x[pattern] ? undefined) for x in rows))
             else

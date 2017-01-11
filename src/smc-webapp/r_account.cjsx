@@ -46,10 +46,11 @@ TextSetting = rclass
     displayName : 'Account-TextSetting'
 
     propTypes :
-        label    : rtypes.string.isRequired
-        value    : rtypes.string
-        onChange : rtypes.func.isRequired
-        onBlur   : rtypes.func
+        label     : rtypes.string.isRequired
+        value     : rtypes.string
+        onChange  : rtypes.func.isRequired
+        onBlur    : rtypes.func
+        maxLength : rtypes.number
 
     getValue: ->
         ReactDOM.findDOMNode(@refs.input).value
@@ -63,6 +64,7 @@ TextSetting = rclass
                     value    = {@props.value}
                     onChange = {@props.onChange}
                     onBlur   = {@props.onBlur}
+                    maxLength= {@props.maxLength}
                 />
             </FormGroup>
         </LabeledRow>
@@ -135,6 +137,7 @@ EmailAddressSetting = rclass
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
+                    maxLength   = 254
                 />
             </FormGroup>
             Current password
@@ -321,7 +324,7 @@ AccountSettings = rclass
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
-        @props.redux.getActions('account').setState("#{field}": value)
+        @actions('account').setState("#{field}": value)
 
     save_change: (evt, field) ->
         value = evt.target.value
@@ -404,7 +407,7 @@ AccountSettings = rclass
             </Button>
 
     render_sign_out_error: ->
-        <ErrorDisplay error={@props.sign_out_error} onClose={=>@props.redux.getActions('account').setState(sign_out_error : '')} />
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>@actions('account').setState(sign_out_error : '')} />
 
     render_sign_out_confirm: ->
         if @props.everywhere
@@ -414,10 +417,10 @@ AccountSettings = rclass
         <Well style={marginTop: '15px'}>
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>@props.redux.getActions('account').sign_out(@props.everywhere)}>
+                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>@props.redux.getActions('account').setState(show_sign_out : false)}} >
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -427,11 +430,11 @@ AccountSettings = rclass
     render_sign_out_buttons: ->
         <ButtonToolbar className='pull-right'>
             <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
-                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false)}>
                 <Icon name='sign-out'/> Sign out...
             </Button>
             <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
-                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true)}>
                 <Icon name='sign-out'/> Sign out everywhere...
             </Button>
         </ButtonToolbar>
@@ -453,11 +456,12 @@ AccountSettings = rclass
     render: ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
-                label    = 'First name'
-                value    = {@props.first_name}
-                ref      = 'first_name'
-                onChange = {(e)=>@handle_change(e, 'first_name')}
-                onBlur   = {(e)=>@save_change(e, 'first_name')}
+                label     = 'First name'
+                value     = {@props.first_name}
+                ref       = 'first_name'
+                onChange  = {(e)=>@handle_change(e, 'first_name')}
+                onBlur    = {(e)=>@save_change(e, 'first_name')}
+                maxLength = 254
                 />
             <TextSetting
                 label    = 'Last name'
@@ -465,15 +469,18 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
+                maxLength = 254
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
-                redux      = {@props.redux}
-                ref        = 'email_address'
+                redux         = {@props.redux}
+                ref           = 'email_address'
+                maxLength     = 254
                 />
             <PasswordSetting
                 email_address = {@props.email_address}
                 ref   = 'password'
+                maxLength = 64
                 />
             <Row style={marginTop: '1ex'}>
                 <Col xs=12>
@@ -486,7 +493,7 @@ AccountSettings = rclass
                     <DeleteAccount
                         style={marginTop:'1ex'}
                         initial_click = {()=>@setState(show_delete_confirmation:true)}
-                        confirm_click = {=>@props.redux.getActions('account').delete_account()}
+                        confirm_click = {=>@actions('account').delete_account()}
                         cancel_click  = {()=>@setState(show_delete_confirmation:false)}
                         user_name     = {@props.first_name + ' ' + @props.last_name}
                         show_confirmation={@state.show_delete_confirmation}
@@ -540,11 +547,11 @@ DeleteAccountConfirmation = rclass
         confirmation_text : ''
 
     render: ->
-        <Well style={marginTop: '26px', textAlign:'center'}>
-            Are you sure you want to do this?<br/>
+        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
+            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To proceed, enter your first and last name below.
+            To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
                     autoFocus
@@ -561,7 +568,7 @@ DeleteAccountConfirmation = rclass
                     bsStyle='danger'
                     onClick={@props.confirm_click}
                 >
-                    <Icon name='trash' /> Confirm Deletion
+                    <Icon name='trash' /> Confirm Account Deletion
                 </Button>
                 <Button
                     style={paddingRight:'8px'}

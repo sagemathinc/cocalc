@@ -4,7 +4,7 @@
 ## Changelog
 
 * Started to write down on 2015-12-28, hopefully helpful for the next time.
-* Maintained and working well at least until 2016-10
+* Maintained and working well at least until 2016-12
 
 TODO: transform this into a `setup_anaconda.sh` file (similar to the `update_anaconda.sh` in `scripts`)
 
@@ -40,17 +40,24 @@ where root just stands for the base environment of anaconda (not the root user)
 
 ## Regularly update Anaconda:
 
+run as salvus (and don't worry, sometimes it takes a while to compute the update graph)
+
+    update_anaconda.sh
+
+old:
+
 1. activate the environment (see above)
 1. `umask 002`
 1. Update the conda package manager itself: `conda update conda`
 1. Now update everything: `conda update --all`
+
 ## Anaconda Channels
 
 **.condarc**
 
 at 2016-07-12 for setting up the env in the external volume for the smc-project containers, it was:
 
-    > cat .condarc
+    > cat /projects/anaconda3/.condarc
     channels:
       - amueller
       - vpython
@@ -89,7 +96,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras altair cufflinks tweepy
 
-       conda install -y xarray dask netcdf4 rasterio cython shapely lxml geopandas geojson folium mplleaflet cartopy rasterstats psycopg2 ipyleaflet pykml jsanimation datashader qutip
+       conda install -y xarray dask netcdf4 rasterio cython shapely lxml geopandas geojson folium mplleaflet cartopy rasterstats psycopg2 ipyleaflet pykml jsanimation datashader qutip quandl emcee astroquery asciitree corner
 
 not possible to install (conflict with python 3.5):
 
@@ -98,6 +105,33 @@ not possible to install (conflict with python 3.5):
 ## CLEANUP!
 
     conda clean --all --yes
+
+## isochrones
+
+1. activate anaconda env
+
+2. only exists as github repo (pypi broken), maybe at some point in astropy
+
+    pip install --no-deps git+https://github.com/timothydmorton/isochrones.git
+
+3. getting the data-files is weird. some hard-coded paths are wrong (in the code, as of dec 2016)
+   and running it from the ipython shell causes it to crash because there is no X server. however:
+
+       python -c 'from isochrones import get_ichrone; print(get_ichrone("mist"))'
+       python -c 'from isochrones import get_ichrone; print(get_ichrone("dartmouth"))'
+       python -c 'from isochrones import get_ichrone; print(get_ichrone("dartmouthfast"))'
+       python -c 'from isochrones.mist import MIST_Isochrone; print(MIST_Isochrone().radius(1.0, 9.7, 0.0))'
+       python -c "from isochrones.dartmouth import Dartmouth_Isochrone; print(Dartmouth_Isochrone(['z', 'B', 'W3', 'LSST_r', 'J', 'UK_J']))"
+
+  or maybe (?)
+
+       /projects/anaconda3/lib/python3.5/site-packages$ nosetests isochrones
+
+   Then delete the tarballs from $ISOCHRONES
+
+       cd $ISOCHRONES && find -name '*.tgz' -delete
+
+   and `push $ISOCHRONES` out.
 
 ## **(!!!)** uninstall boto
 
@@ -152,6 +186,12 @@ To learn about them, do `anaconda search -t conda PACKAGENAMEPATTERN` and then `
 
 
 ### fix permissions (umask 022 not always works)
+
+run
+
+    smc-fix-permissions.sh /projects/anaconda3
+
+old
 
     chmod a+r -R . || true
     find . -perm /u+x -execdir chmod a+x {} \; || true

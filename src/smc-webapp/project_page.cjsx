@@ -355,6 +355,7 @@ ProjectMainContent = rclass
                 <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
                     {editor}
                 </div>
+
         # Finally render it
         <div style={position:'relative', height:0, flex:1}>
             {content}
@@ -367,7 +368,7 @@ ProjectMainContent = rclass
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'
-                <ProjectLog name={@props.project_name} />
+                <ProjectLog name={@props.project_name} project_id={@props.project_id} />
             when 'search'
                 <ProjectSearch name={@props.project_name} />
             when 'settings'

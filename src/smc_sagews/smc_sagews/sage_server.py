@@ -919,6 +919,14 @@ class Salvus(object):
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
 
+        ascii_warn = False
+        code_error = False
+        if sys.getdefaultencoding() == 'ascii':
+            for c in code:
+                if ord(c) >= 128:
+                    ascii_warn = True
+                    break
+
         if namespace is None:
             namespace = self.namespace
 
@@ -969,11 +977,15 @@ class Salvus(object):
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
+                code_error = True
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
                 traceback.print_exc()
                 sys.stderr.flush()
                 break
+        if code_error and ascii_warn:
+            sys.stderr.write('*** WARNING: Code contains non-ascii characters ***\n')
+            sys.stderr.flush()
 
     def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
         """
@@ -1775,7 +1787,7 @@ def serve(port, host, extra_imports=False):
 
         for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
                      'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
-                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
                      'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
