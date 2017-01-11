@@ -12,6 +12,7 @@ path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.in
 util.chdir()
 
 ports = util.get_ports()
+port = ports['postgres']
 
 PG_DATA = os.path.join(path, "postgres_data")
 
@@ -20,4 +21,4 @@ if not os.path.exists(PG_DATA):
 
 # TODO: custom ports
 # TODO: setting a random password (?).
-util.cmd("postgres  -D '%s'"%PG_DATA)
+util.cmd("postgres -p %s -D '%s'"%(port, PG_DATA))

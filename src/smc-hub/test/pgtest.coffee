@@ -10,7 +10,6 @@ DEBUG    = !!(process.env['SMC_DEBUG'] ? false)
 # if true, completely deletes database before running tests -- do on schema change for now.
 RESET    = !!(process.env['SMC_DB_RESET'] ? false)
 #RESET = true
-PORT     = 5432  # TODO
 DATABASE = 'test-fubar'
 
 async = require('async')
@@ -20,13 +19,16 @@ exports.db = undefined
 exports.setup = (cb) ->
     async.series([
         (cb) ->
-            if exports.db? or not RESET
+            if exports.db?
                 cb()
-            else
+                return
+            exports.db = postgres.db(database:DATABASE, debug:DEBUG, connect:false)
+            if RESET
                 # first time so delete the entire database
                 dropdb(cb)
+            else
+                cb()
         (cb) ->
-            exports.db = postgres.db(database:DATABASE, port:PORT, debug:DEBUG)
             exports.db.connect(cb:cb)
         (cb) ->
             exports.db.update_schema(cb:cb)
@@ -110,11 +112,11 @@ exports.changefeed_series = (v, cb) ->
                     done()
     return f
 
-# Start with a clean slate -- delete the test database -- TODO: custom rethinkdb
+# Start with a clean slate -- delete the test database
 dropdb = (cb) =>
     misc_node = require('smc-util-node/misc_node')
     misc_node.execute_code
         command : 'dropdb'
-        args    : ['--port', PORT, DATABASE]
+        args    : ['--port', exports.db._port, '--host', exports.db._host, DATABASE]
         cb      : (err) -> cb()  # non-fatal -- would give error if db doesn't exist
 

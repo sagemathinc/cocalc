@@ -398,7 +398,7 @@ class exports.PostgreSQL extends PostgreSQL
             blobs_per_tarball : 10000
             throttle          : 0
             cb                : undefined
-        dbg = @dbg("blob_maintenance()")
+        dbg = @_dbg("blob_maintenance()")
         dbg()
         async.series([
             (cb) =>
@@ -475,4 +475,164 @@ class exports.PostgreSQL extends PostgreSQL
 
 
 
+    ###
+    # Syncstring maintainence
+    ###
+    syncstring_maintenance: (opts) =>
+        opts = defaults opts,
+            age_days          : 60    # archive patches of syncstrings that are inactive for at least this long
+            map_limit         : 1     # how much parallelism to use
+            limit             : 1000 # do only this many
+            repeat_until_done : true
+            cb                : undefined
+        dbg = @_dbg("syncstring_maintenance")
+        dbg(opts)
+        syncstrings = undefined
+        async.series([
+            (cb) =>
+                dbg("determine inactive syncstring ids")
+                cutoff = misc.days_ago(opts.age_days)
+                filter = (@r.row('last_active').le(cutoff)).and(@r.row.hasFields('archived').not())
+                @table('syncstrings').filter(filter).limit(opts.limit).run (err, v) =>
+                    if v?
+                        syncstrings = (x.string_id for x in v)
+                    cb(err)
+            (cb) =>
+                dbg("archive patches for inactive syncstrings")
+                i = 0
+                f = (string_id, cb) =>
+                    i += 1
+                    console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
+                    @archive_patches
+                        string_id : string_id
+                        cb        : cb
+                async.mapLimit(syncstrings, opts.map_limit, f, cb)
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if opts.repeat_until_done and syncstrings.length == opts.limit
+                dbg("doing it again")
+                @syncstring_maintenance(opts)
+            else
+                opts.cb?()
+        )
+
+
+    archive_patches: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+        dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
+        syncstring = patches = blob_uuid = project_id = undefined
+        patches_query = @table('patches').between([opts.string_id, @r.minval], [opts.string_id, @r.maxval])
+        async.series([
+            (cb) =>
+                dbg("get project_id")
+                @table('syncstrings').get(opts.string_id).pluck('project_id', 'archived').run (err, x) =>
+                    if err
+                        cb(err)
+                    else if not x?
+                        cb("no such syncstring with id '#{opts.string_id}'")
+                    else if x.archived
+                        cb("already archived")
+                    else
+                        project_id = x.project_id
+                        cb()
+            (cb) =>
+                dbg("get patches")
+                patches_query.run (err, x) =>
+                    patches = x; cb(err)
+            (cb) =>
+                dbg("create blob from patches")
+                blob = JSON.stringify(patches)
+                dbg('save blob')
+                blob_uuid = misc_node.uuidsha1(blob)
+                @save_blob
+                    uuid       : blob_uuid
+                    blob       : blob
+                    project_id : project_id
+                    cb         : cb
+            (cb) =>
+                dbg("update syncstring to indicate patches have been archived in a blob")
+                @table('syncstrings').get(opts.string_id).update(archived:blob_uuid).run(cb)
+            (cb) =>
+                dbg("actually delete patches")
+                patches_query.delete().run(cb)
+        ], (err) => opts.cb?(err))
+
+    unarchive_patches: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+        opts.cb?(); return # TODO
+        dbg = @_dbg("unarchive_patches(string_id='#{opts.string_id}')")
+        syncstring_query = @table('syncstrings').get(opts.string_id)
+        syncstring_query.pluck('archived').run (err, x) =>
+            if err
+                opts.cb?(err)
+                return
+            blob_uuid = x.archived
+            if not blob_uuid
+                opts.cb()
+                return
+            blob = undefined
+            async.series([
+                (cb) =>
+                    dbg("download blob")
+                    @get_blob
+                        uuid : blob_uuid
+                        cb   : (err, x) =>
+                            if err
+                                cb(err)
+                            else if not x?
+                                cb("blob is gone")
+                            else
+                                blob = x
+                                cb(err)
+                (cb) =>
+                    dbg("extract blob")
+                    try
+                        patches = JSON.parse(blob)
+                    catch e
+                        cb("corrupt patches blob -- #{e}")
+                        return
+                    dbg("insert patches into patches table")
+                    @table('patches').insert(patches, conflict:'update').run(cb)
+                (cb) =>
+                    async.parallel([
+                        (cb) =>
+                            dbg("update syncstring to indicate that patches are now available")
+                            syncstring_query.replace(@r.row.without('archived')).run(cb)
+                        (cb) =>
+                            dbg('delete blob, which is no longer needed')
+                            @delete_blob
+                                uuid : blob_uuid
+                                cb   : cb
+                    ], cb)
+            ], (err) => opts.cb?(err))
+
+    delete_blob: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            cb   : undefined
+        gcloud = undefined
+        dbg = @_dbg("delete_blob(uuid='#{opts.uuid}')")
+        async.series([
+            (cb) =>
+                dbg("check if blob in gcloud")
+                @table('blobs').get(opts.uuid).pluck('gcloud').run (err, x) =>
+                    gcloud = x?.gcloud
+                    cb(err)
+            (cb) =>
+                if not gcloud
+                    cb()
+                    return
+                dbg("delete from gcloud")
+                @gcloud().bucket(name:gcloud).delete  #TODO -- needs test
+                    name : opts.uuid
+                    cb   : cb
+            (cb) =>
+                dbg("delete from local database")
+                @table('blobs').get(opts.uuid).delete().run(cb)
+        ], (err) => opts.cb?(err))
 

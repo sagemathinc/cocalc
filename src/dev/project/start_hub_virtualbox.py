@@ -19,7 +19,7 @@ base_url=''
 
 cmd = "service_hub.py --dev --foreground --db=localhost:{db_port} --db_concurrent_warn=100 --db_pool=10 --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
     hostname=hostname, base_url=base_url,
-    db_port=ports['rethinkdb'], hub_port=ports['hub'])
+    db_port=ports['postgres'], hub_port=ports['hub'])
 
 util.cmd(cmd)
 

@@ -3112,7 +3112,7 @@ connect_to_database_postgresql = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : 'localhost'  # TODO
+        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
         database : program.keyspace
     database.connect(cb:opts.cb)
 

@@ -27,17 +27,23 @@ required = defaults.required
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
-            host     : 'localhost'
-            database : 'smc'
-            port     : 5432
+            host     : process.env['SMC_DB_HOST'] ? 'localhost'    # or 'hostname:port'
+            database : process.env['SMC_DB'] ? 'smc'
             debug    : true
+            connect  : true
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
-        @_debug    = opts.debug
-        @_host     = opts.host
-        @_port     = opts.port
+        @_debug = opts.debug
+        i = opts.host.indexOf(':')
+        if i != -1
+            @_host = opts.host.slice(0, i)
+            @_port = parseInt(opts.host.slice(i+1))
+        else
+            @_host = opts.host
+            @_port = 5432
         @_database = opts.database
         @_concurrent_queries = 0
-        @connect()  # start trying to connect
+        if opts.connect
+            @connect()  # start trying to connect
 
     engine: -> 'postgresql'
 
@@ -542,7 +548,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_create_indexes('#{table}')")
         dbg()
         schema = SCHEMA[table]
-        console.log schema.pg_indexes
         pg_indexes = schema.pg_indexes ? []
         if schema.fields.expire? and 'expire' not in pg_indexes
             pg_indexes.push('expire')

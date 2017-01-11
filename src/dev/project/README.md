@@ -8,7 +8,7 @@ Scripts for doing development of SMC inside of an SMC project.
 
 Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
 
-- `./start_rethinkdb.py`
+- `./start_postgres.py`
 
 - `./start_hub.py`
 
@@ -43,24 +43,29 @@ Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./star
 
 ## Connecting directly to the compute client from command line
 
-Determine the port of rethinkdb:
+Determine the port of postgreSQL:
 
     \$ cd ~/smc/src
-    \$ cat dev/project$ more ports/rethinkdb
+    \$ cat dev/project/ports/postgres
     51974
 
-Then use it (from `~/smc/src`):
+Then use it:
+
+    \$ psql -p 51974 smcdev
+
+or from the directory `~/smc/src`:
 
     \$ coffee
-    coffee> require('smc-hub/compute-client').compute_server(db_hosts:['localhost:51974'], dev:true, cb:(e,s)->console.log(e);global.s=s)
-    coffee> s.[tab
-
-## Creating an admin user
+    coffee> require './c'; db()
 
 Add this to your ~/.bashrc, where you get the port as above:
 
     cd ~/smc/src; source smc-env
-    export SMC_DB_HOSTS=localhost:`cat ~/smc/src/dev/project/ports/rethinkdb`
+    export SMC_DB_HOST=localhost:`cat ~/smc/src/dev/project/ports/postgres`
+
+## Creating an admin user
+
+** IMPORTANT TODO -- rewrite for postgreSQL!!!! **
 
 You can get your account id by typing `./info.py` in `dev/project` and logging in to your own SMC server, then typing `smc.client.account_id` in the JavaScript console.  You might see something like "86b29017-644e-481d-aac2-c14ea52b930c" as output.  Then, to make your user and admin, do this from the root of your install:
 
