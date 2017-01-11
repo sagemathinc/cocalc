@@ -78,7 +78,7 @@ schema.syncstrings =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstrings_check obj, account_id, project_id, (err) ->
                     if not err
-                        database.unarchive_patches(string_id: obj.string_id, cb:cb)
+                        db.unarchive_patches(string_id: obj.string_id, cb:cb)
                     else
                         cb(err)
 

@@ -3114,17 +3114,29 @@ class RethinkDB
                 dbg("determine inactive syncstring ids")
                 cutoff = misc.days_ago(opts.age_days)
                 filter = (@r.row('last_active').le(cutoff)).and(@r.row.hasFields('archived').not())
-                @table('syncstrings').filter(filter).limit(opts.limit).run (err, x) =>
-                    syncstrings = x
+                @table('syncstrings').filter(filter).limit(opts.limit).run (err, v) =>
+                    if v?
+                        syncstrings = (x.string_id for x in v)
                     cb(err)
             (cb) =>
                 dbg("archive patches for inactive syncstrings")
+                i = 0
                 f = (string_id, cb) =>
+                    i += 1
+                    console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
                     @archive_patches
                         string_id : string_id
                         cb        : cb
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
-        ], (err) => opts.cb?(err))
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if opts.repeat_until_done and syncstrings.length == opts.limit
+                dbg("doing it again")
+                @syncstring_maintenance(opts)
+            else
+                opts.cb?()
+        )
 
 
     archive_patches: (opts) =>
