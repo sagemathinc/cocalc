@@ -23,7 +23,7 @@ describe 'very basic test of projects table', ->
     before(setup)
     after(teardown)
 
-    it 'create account, project feed, a project, and see it appear', (done) ->
+    it 'creates account, project feed, a project, and see it appear', (done) ->
         changefeed_id = misc.uuid()
         accounts = undefined
         projects = []
@@ -82,6 +82,8 @@ describe 'create multiple projects with multiple collaborators', ->
     before(setup)
     after(teardown)
 
+    #log = console.log
+    log = ->
     it 'create 3 accounts and several projects, and see them appear in one projects feed properly', (done) ->
         accounts = undefined
         projects = []
@@ -97,34 +99,37 @@ describe 'create multiple projects with multiple collaborators', ->
                     cb         : changefeed_series([
                         (x, cb) ->
                             expect(x.projects.length).toEqual(0)
+
+                            log 'create fist project'
                             create_projects 1, accounts[0], (err, v) ->
                                 projects.push(v[0])
                                 cb(err)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[0], users:{"#{accounts[0]}":{group:"owner"}} } })
+                            log 'create another project'
                             create_projects 1, accounts[0], (err, v) ->
                                 projects.push(v[0])
                                 cb(err)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[1], users:{"#{accounts[0]}":{group:"owner"}} } })
 
-                            # create a project that will get ignored by the feed...
+                            log 'create a project that will get ignored by the feed...'
                             create_projects 1, accounts[1], (err, v) ->
                                 if err
                                     cb(err); return
                                 projects.push(v[0])
-                                # ... until we add the first user to it, in which case....
+                                log '... until we add the first user to it, in which case....'
                                 db.add_user_to_project(project_id:v[0], account_id:accounts[0], cb:cb)
                         (x, cb) ->
-                            # ... it appears!
+                            log '... it appears!'
                             expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[2], users:{"#{accounts[0]}":{group:"collaborator"}, "#{accounts[1]}":{group:"owner"}} } })
 
-                            # Now add another collaborator
+                            log 'Now add another collaborator'
                             db.add_user_to_project(project_id:projects[2], account_id:accounts[2], cb:cb)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'update', new_val: { project_id: projects[2], users:{"#{accounts[0]}":{group:"collaborator"}, "#{accounts[1]}":{group:"owner"}, "#{accounts[2]}":{group:"collaborator"}} } })
 
-                            # Now take first user back off
+                            log 'Now take first user back off'
                             db.remove_user_from_project(project_id:projects[2], account_id:accounts[0], cb:cb)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'update', new_val: { project_id: projects[2], users:{"#{accounts[1]}":{group:"owner"}, "#{accounts[2]}":{group:"collaborator"}} } })
@@ -132,6 +137,7 @@ describe 'create multiple projects with multiple collaborators', ->
                         (x, cb) ->
                             expect(x).toEqual({ action: 'delete', old_val: { project_id: projects[2] }})
 
+                            log 'cancel feed'
                             db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                         (x, cb) ->
                             expect(x).toEqual({action:'close'})
