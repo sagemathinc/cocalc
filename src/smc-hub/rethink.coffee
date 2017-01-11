@@ -3108,12 +3108,14 @@ class RethinkDB
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
-        inactive_syncstrings = undefined
+        syncstrings = undefined
         async.series([
             (cb) =>
                 dbg("determine inactive syncstring ids")
-                # TODO
-                cb()
+                cutoff = misc.days_ago(opts.age_days)
+                @table('syncstrings').filter(@r.row('last_active').le(cutoff)).limit(opts.limit).run (err, x) =>
+                    syncstrings = x
+                    cb(err)
             (cb) =>
                 dbg("archive patches for inactive syncstrings")
                 f = (string_id, cb) =>
@@ -3130,19 +3132,12 @@ class RethinkDB
             cb        : undefined
         dbg = @dbg("archive_syncstring(string_id='#{opts.string_id}')")
         syncstring = patches = blob_uuid = undefined
+        patches_query = @table('patches').between([opts.string_id, @r.minval], [opts.string_id, @r.maxval])
         async.series([
             (cb) =>
-                dbg("get info about syncstring and patches")
-                async.parallel([
-                    (cb) =>
-                        dbg("get syncstring")
-                        # TODO
-                        cb()
-                    (cb) =>
-                        dbg("get patches")
-                        # TODO
-                        cb()
-                ], cb)
+                dbg("get patches")
+                patches_query.get (err, x) =>
+                    patches = x; cb(err)
             (cb) =>
                 dbg("create blob from patches")
                 blob = JSON.stringify(patches)
@@ -3155,12 +3150,10 @@ class RethinkDB
                     cb         : cb
             (cb) =>
                 dbg("update syncstring to indicate patches have been archived in a blob")
-                # TODO
-                cb()
+                @table('syncstring').get(opts.string_id).update(archived:blob_uuid).run(cb)
             (cb) =>
-                dbg("delete patches")
-                # TODO
-                cb()
+                dbg("actually delete patches")
+                patches_query.delete().run(cb)
         ], (err) => opts.cb?(err))
 
     unarchive_syncstring: (opts) =>
@@ -3168,33 +3161,32 @@ class RethinkDB
             string_id : required
             cb        : undefined
         dbg = @dbg("unarchive_syncstring(string_id='#{opts.string_id}')")
-        syncstring = blob = undefined
-        async.series([
-            (cb) =>
-                dbg("get info about syncstring")
-                # TODO
-                cb()
-            (cb) =>
-                if not syncstring.archived
-                    cb(); return
-                dbg("download blob")
-                # TODO
-                cb()
-            (cb) =>
-                if not syncstring.archived
-                    cb(); return
-                dbg("extract blob")
-                patches = JSON.parse(blob)
-                dbg("insert patches into patches table")
-                # TODO
-                cb()
-            (cb) =>
-                if not syncstring.archived
-                    cb(); return
-                dbg("update syncstring to indicate that patches are now available")
-                # TODO: delete archived field of syncstring object
-                cb()
-        ], (err) => opts.cb?(err))
+        syncstring_query = @table('syncstring').get(opts.string_id)
+        syncstring_query.pluck('archived').run (err, x) =>
+            if err
+                opts.cb?(err)
+                return
+            blob_uuid = x.archived
+            if not blob_uuid
+                opts.cb()
+                return
+            blob = undefined
+            async.series([
+                (cb) =>
+                    dbg("download blob")
+                    @get_blob
+                        uuid : blob_uuid
+                        cb   : (err, x) =>
+                            blob = x; cb(err)
+                (cb) =>
+                    dbg("extract blob")
+                    patches = JSON.parse(blob)
+                    dbg("insert patches into patches table")
+                    @table('patches').insert(patches, conflict:'update').run(cb)
+                (cb) =>
+                    dbg("update syncstring to indicate that patches are now available")
+                    syncstring_query.replace(@r.row.without('archived')).run(cb)
+            ], (err) => opts.cb?(err))
 
     ###
     # User queries
