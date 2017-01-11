@@ -199,7 +199,7 @@ FreeProjectWarning = rclass ({name}) ->
         if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
             @setState(create_button_hit: 'with_members_and_network')
         else
-            @setState(create_button_hit: 'with_custom_upgrades')
+            @setState(create_button_hit: 'with_members_and_network_unavailable')
 
     render_confirm_members_and_network_upgrades: ->
         <Well>
@@ -291,7 +291,7 @@ FreeProjectWarning = rclass ({name}) ->
                 <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a> 
                 <b> Fix this with</b>
                 <Button
-                    disabled = {@state.create_button_hit == 'with_members_and_network'}
+                    disabled = {@state.create_button_hit == 'with_members_and_network' or @state.create_button_hit == 'with_members_and_network_unavailable'}
                     bsStyle  = 'success'
                     className = 'small'
                     onClick  = {=>@create_project_with_members_and_network(); @update_customer()}
@@ -308,7 +308,7 @@ FreeProjectWarning = rclass ({name}) ->
                 </Button>
                 <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
                 {@render_confirm_members_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
-                {@render_upgrade_before_create() if @state.create_button_hit == 'with_custom_upgrades'}
+                {@render_upgrade_before_create() if @state.create_button_hit == 'with_custom_upgrades' or @state.create_button_hit == 'with_members_and_network_unavailable'}
                 {@extra(host, internet)}
             </ButtonToolbar>
         </Alert>

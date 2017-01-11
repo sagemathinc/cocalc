@@ -176,8 +176,9 @@ AddPaymentMethod = rclass
     displayName : "AddPaymentMethod"
 
     propTypes :
-        redux    : rtypes.object.isRequired
-        on_close : rtypes.func.isRequired  # called when this should be closed
+        redux         : rtypes.object.isRequired
+        on_close      : rtypes.func.isRequired  # called when this should be closed
+        is_simplified : rtypes.bool
 
     getInitialState: ->
         new_payment_info :
@@ -442,7 +443,7 @@ AddPaymentMethod = rclass
 
     render: ->
         <Row>
-            <Col sm=6 smOffset=3>
+            <Col sm={if @props.is_simplified then 12 else 6} smOffset={if @props.is_simplified then 0 else 3}>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
@@ -561,9 +562,10 @@ PaymentMethods = rclass
     displayName : 'PaymentMethods'
 
     propTypes :
-        redux   : rtypes.object.isRequired
-        sources : rtypes.object.isRequired
-        default : rtypes.string
+        redux         : rtypes.object.isRequired
+        sources       : rtypes.object.isRequired
+        default       : rtypes.string
+        is_simplified : rtypes.bool
 
     getInitialState: ->
         state : 'view'   #  'delete' <--> 'view' <--> 'add_new'
@@ -574,7 +576,7 @@ PaymentMethods = rclass
 
     render_add_payment_method: ->
         if @state.state == 'add_new'
-            <AddPaymentMethod redux={@props.redux} on_close={=>@setState(state:'view')} />
+            <AddPaymentMethod redux={@props.redux} on_close={=>@setState(state:'view')} is_simplified={@props.is_simplified} />
 
     render_add_payment_method_button: ->
         <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' className='pull-right'>
@@ -1842,7 +1844,7 @@ BillingPage = rclass
         else if not @props.customer?
             # user not initialized yet -- only thing to do is add a card.
             <div>
-                <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+                <PaymentMethods redux={@props.redux} sources={data:[]} default='' is_simplified={@props.is_simplified} />
             </div>
         else
             # data loaded and customer exists
@@ -1850,7 +1852,7 @@ BillingPage = rclass
                 <div>
                     <Accordion>
                         <Panel header={@get_panel_header('credit-card', 'Payment Methods')} eventKey='1'>
-                            <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                            <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} is_simplified={@props.is_simplified} />
                         </Panel>
                         <Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
                             <Subscriptions
@@ -1863,7 +1865,7 @@ BillingPage = rclass
                 </div>
             else if @props.is_simplified
                 <div>
-                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} is_simplified={@props.is_simplified} />
                     <Subscriptions
                         subscriptions = {@props.customer.subscriptions}
                         sources       = {@props.customer.sources}
@@ -1872,7 +1874,7 @@ BillingPage = rclass
                 </div>
             else
                 <div>
-                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} is_simplified={@props.is_simplified} />
                     <Subscriptions
                         subscriptions = {@props.customer.subscriptions}
                         sources       = {@props.customer.sources}
