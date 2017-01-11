@@ -47,6 +47,9 @@ schema.syncstrings =
         snapshot_interval :
             type : 'integer'
             desc : 'If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.'
+        archived :
+            type : 'uuid'
+            desc : "if set, then syncstring patches array have been archived in the blob with given uuid."
 
     indexes:
         project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
@@ -73,7 +76,12 @@ schema.syncstrings =
                 path              : true
                 project_id        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
-                db._syncstrings_check(obj, account_id, project_id, cb)
+                db._syncstrings_check obj, account_id, project_id, (err) ->
+                    if not err
+                        database.unarchive_syncstring(string_id: obj.string_id, cb:cb)
+                    else
+                        cb(err)
+
         set :
             fields :
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)

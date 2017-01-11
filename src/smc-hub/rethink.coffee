@@ -3095,6 +3095,107 @@ class RethinkDB
 
         )
 
+
+    ###
+    # Syncstring maintainence
+    ###
+    syncstring_maintenance: (opts) =>
+        opts = defaults opts,
+            age_days          : 60    # archive patches of syncstrings that are inactive for at least this long
+            map_limit         : 1     # how much parallelism to use
+            limit             : 10000 # do only this many
+            repeat_until_done : true
+            cb                : undefined
+        dbg = @dbg("syncstring_maintenance")
+        dbg(opts)
+        inactive_syncstrings = undefined
+        async.series([
+            (cb) =>
+                dbg("determine inactive syncstring ids")
+                # TODO
+                cb()
+            (cb) =>
+                dbg("archive patches for inactive syncstrings")
+                f = (string_id, cb) =>
+                    @archive_syncstring
+                        string_id : string_id
+                        cb        : cb
+                async.mapLimit(inactive_syncstrings, opts.map_limit, f, cb)
+        ], (err) => opts.cb?(err))
+
+
+    archive_syncstring: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+        dbg = @dbg("archive_syncstring(string_id='#{opts.string_id}')")
+        syncstring = patches = blob_uuid = undefined
+        async.series([
+            (cb) =>
+                dbg("get info about syncstring and patches")
+                async.parallel([
+                    (cb) =>
+                        dbg("get syncstring")
+                        # TODO
+                        cb()
+                    (cb) =>
+                        dbg("get patches")
+                        # TODO
+                        cb()
+                ], cb)
+            (cb) =>
+                dbg("create blob from patches")
+                blob = JSON.stringify(patches)
+                dbg('save blob')
+                blob_uuid = misc_node.uuidsha1(blob)
+                @save_blob
+                    uuid       : blob_uuid
+                    blob       : blob
+                    project_id : syncstring.project_id
+                    cb         : cb
+            (cb) =>
+                dbg("update syncstring to indicate patches have been archived in a blob")
+                # TODO
+                cb()
+            (cb) =>
+                dbg("delete patches")
+                # TODO
+                cb()
+        ], (err) => opts.cb?(err))
+
+    unarchive_syncstring: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+        dbg = @dbg("unarchive_syncstring(string_id='#{opts.string_id}')")
+        syncstring = blob = undefined
+        async.series([
+            (cb) =>
+                dbg("get info about syncstring")
+                # TODO
+                cb()
+            (cb) =>
+                if not syncstring.archived
+                    cb(); return
+                dbg("download blob")
+                # TODO
+                cb()
+            (cb) =>
+                if not syncstring.archived
+                    cb(); return
+                dbg("extract blob")
+                patches = JSON.parse(blob)
+                dbg("insert patches into patches table")
+                # TODO
+                cb()
+            (cb) =>
+                if not syncstring.archived
+                    cb(); return
+                dbg("update syncstring to indicate that patches are now available")
+                # TODO: delete archived field of syncstring object
+                cb()
+        ], (err) => opts.cb?(err))
+
     ###
     # User queries
     ###
