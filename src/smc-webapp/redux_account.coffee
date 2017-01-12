@@ -147,7 +147,8 @@ class AccountActions extends Actions
                     # left in the DOM, which could lead to a vulnerability
                     # or bleed into the next login somehow.
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
-                    window.location.reload(false)
+                    window.location.hash = ''
+                    window.location = window.location.pathname.slice(0, -8) # remove settings hashtag so that on login the projects page shows instead of settings page
 
     push_state: (url) =>
         {set_url} = require('./history')
