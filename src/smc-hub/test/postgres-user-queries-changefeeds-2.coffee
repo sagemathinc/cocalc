@@ -90,7 +90,8 @@ describe 'create multiple projects with multiple collaborators', ->
         changefeed_id = misc.uuid()
         async.series([
             (cb) ->
-                create_accounts 3, (err, x) -> accounts=x; cb(err)
+                create_accounts 3, (err, x) ->
+                    accounts=x; cb(err)
             (cb) ->
                 db.user_query
                     account_id : accounts[0]
@@ -100,7 +101,7 @@ describe 'create multiple projects with multiple collaborators', ->
                         (x, cb) ->
                             expect(x.projects.length).toEqual(0)
 
-                            log 'create fist project'
+                            log 'create first project'
                             create_projects 1, accounts[0], (err, v) ->
                                 projects.push(v[0])
                                 cb(err)

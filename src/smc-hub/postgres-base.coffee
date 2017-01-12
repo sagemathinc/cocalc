@@ -53,6 +53,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                    # Only first max_time is used.
             cb       : undefined
         dbg = @_dbg("connect")
+        if @_client?
+            dbg("already connected")
+            opts.cb?()
+            return
         if @_connecting?
             dbg('already trying to connect')
             @_connecting.push(opts.cb)
