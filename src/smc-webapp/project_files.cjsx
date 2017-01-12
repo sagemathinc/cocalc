@@ -1665,7 +1665,7 @@ ProjectFilesSearch = rclass
 
     render_file_creation_error: ->
         if @props.file_creation_error
-            <Alert style={wordWrap:'break-word'} bsStyle='warning' onDismiss=@dismiss_alert>
+            <Alert style={wordWrap:'break-word'} bsStyle='danger' onDismiss=@dismiss_alert>
                 {@props.file_creation_error}
             </Alert>
 
@@ -1771,7 +1771,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(file_creation_error : "You must enter file name above to create it")
+            @props.actions.setState(file_creation_error : "You must enter a filename above.")
         else
             @props.create_file(ext)
 
