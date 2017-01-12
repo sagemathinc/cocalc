@@ -1,6 +1,0 @@
-- targets: ['compute0-us:9090', 'compute1-us:9090', 'compute2-us:9090', 'compute3-us:9090', 'compute0-us:9100', 'compute1-us:9100', 'compute2-us:9100', 'compute3-us:9100']
-  labels:
-    groups: 'free'
-- targets: ['compute4-us:9090', 'compute5-us:9090', 'compute6-us:9090', 'compute7-us:9090', 'compute8-us:9090', 'compute4-us:9100', 'compute5-us:9100', 'compute6-us:9100', 'compute7-us:9100', 'compute8-us:9100']
-  labels:
-    groups: 'premium'
