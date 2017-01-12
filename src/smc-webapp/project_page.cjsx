@@ -258,6 +258,7 @@ FreeProjectWarning = rclass ({name}) ->
         redux.getActions('billing')?.update_customer()
 
     render : ->
+        console.log(JSON.stringify(@state))
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -308,6 +309,7 @@ FreeProjectWarning = rclass ({name}) ->
                 </Button>
                 <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
                 {@render_confirm_members_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
+                {<p>Insufficient resources. Please purchase more upgrades.</p> if 'with_members_and_network_unavailable'}
                 {@render_upgrade_before_create() if @state.create_button_hit == 'with_custom_upgrades' or @state.create_button_hit == 'with_members_and_network_unavailable'}
                 {@extra(host, internet)}
             </ButtonToolbar>
