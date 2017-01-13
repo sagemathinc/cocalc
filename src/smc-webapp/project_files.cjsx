@@ -788,22 +788,12 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
         </a>
 
-    render_collaborators: ->
-        if @props.public_view
-            return
-        <div>
-            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_active_tab('settings')} style={marginLeft:'7px'}>
-                <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Add Collaborators</span>
-            </a>
-        </div>
-
     render: ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
             {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_backup()}
-            {@render_collaborators()}
         </div>
 
 ProjectFilesActions = rclass
@@ -2161,7 +2151,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
             {@render_access_error() if public_view}
-            {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
