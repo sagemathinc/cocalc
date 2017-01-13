@@ -161,14 +161,12 @@ ProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
-        projects :
-            get_total_project_quotas : rtypes.func
 
     propTypes :
         project_id : rtypes.string
         project    : rtypes.object
 
-    extra : (host, internet) ->
+    render_extra_info : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
@@ -214,9 +212,7 @@ ProjectWarning = rclass ({name}) ->
         return [memory_over_quota, memory_near_quota, disk_over_quota, disk_near_quota]
 
     render : ->
-        if not @props.project
-            return null
-        if not require('./customize').commercial
+        if not @props.project or not require('./customize').commercial
             return null
         if @props.free_warning_closed
             return null
@@ -248,7 +244,7 @@ ProjectWarning = rclass ({name}) ->
             <Icon name='exclamation-triangle' /> WARNING: {<span>This project is over its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_over_quota} {<span>This project is near its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_near_quota} {<span>This project is over its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_over_quota} {<span>This project is near its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_near_quota} {<span>This project runs</span> if host or internet} {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             {@render_learn_more() if host or internet}
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
-            {@extra(host, internet)}
+            {@render_extra_info(host, internet)}
         </Alert>
 
 # is_public below -- only show this tab if this is true
