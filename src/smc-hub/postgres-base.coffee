@@ -32,6 +32,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             debug    : true
             connect  : true
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
+        @_state = 'init'
         @_debug = opts.debug
         i = opts.host.indexOf(':')
         if i != -1
@@ -45,6 +46,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.connect
             @connect()  # start trying to connect
 
+    close: =>
+        if @_state == 'closed'
+            return  # nothing to do
+        @_state = 'closed'
+        @emit('close')
+        @removeAllListeners()
+        if @_client?
+            @_client.removeAllListeners()
+            @_client.end()
+            delete @_client
+
     engine: -> 'postgresql'
 
     connect: (opts) =>
@@ -52,6 +64,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             max_time : undefined   # set to something shorter to not try forever
                                    # Only first max_time is used.
             cb       : undefined
+        if @_state == 'closed'
+            opts.cb?("closed")
+            return
         dbg = @_dbg("connect")
         if @_client?
             dbg("already connected")
@@ -62,6 +77,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_connecting.push(opts.cb)
             return
         dbg('will try to connect')
+        @_state = 'init'
         if opts.max_time
             dbg("for up to #{opts.max_time}ms")
         else
@@ -79,7 +95,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 for cb in v
                     cb?(err)
                 if not err
+                    @_state = 'connected'
                     @emit('connect')
+
+    disconnect: () =>
+        @_client?.end()
+        delete @_client
 
     _connect: (cb) =>
         dbg = @_dbg("_do_connect"); dbg()
@@ -475,6 +496,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if not @_confirm_delete(opts)
             return
         tables = undefined
+
+        # Delete anything cached in the db object.  Obviously, not putting something here
+        # is a natural place in which to cause bugs... but they will probably all be bugs
+        # of the form "the test suite fails", so we'll find them.
+        delete @_stats_cached
+
+        # Actually delete tables
         async.series([
             (cb) =>
                 @_get_tables (err, t) =>

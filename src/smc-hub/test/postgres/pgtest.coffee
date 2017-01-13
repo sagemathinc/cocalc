@@ -15,26 +15,39 @@ DATABASE = 'test-fubar'
 async = require('async')
 postgres = require('../../postgres')
 
+if DEBUG
+    log = (args...) -> console.log('pgtest: ', args...)
+else
+    log = ->
+
 exports.db = undefined
 exports.setup = (cb) ->
     async.series([
         (cb) ->
             if exports.db?
+                log("db already defined")
                 cb()
-                return
-            exports.db = postgres.db(database:DATABASE, debug:DEBUG, connect:false)
-            if RESET
-                # first time so delete the entire database
-                dropdb(cb)
             else
-                cb()
+                exports.db = postgres.db(database:DATABASE, debug:DEBUG, connect:false)
+                if RESET
+                    log("delete the entire database (e.g., since schema could have changed from previous runs)")
+                    dropdb(cb)
+                else
+                    cb()
         (cb) ->
+            log("ensure db defined and we are connected")
             exports.db.connect(cb:cb)
         (cb) ->
+            log("connected")
             exports.db.update_schema(cb:cb)
         (cb) ->
+            log("drop contents of tables")
             exports.teardown(cb)
-    ], cb)
+    ], (err) ->
+        if err
+            log("ERROR running setup", err)
+        cb(err)
+    )
 
 exports.teardown = (cb) ->
     # just deletes contents of tables, not schema.
@@ -113,10 +126,22 @@ exports.changefeed_series = (v, cb) ->
     return f
 
 # Start with a clean slate -- delete the test database
-dropdb = (cb) =>
+dropdb = (cb) ->
     misc_node = require('smc-util-node/misc_node')
+    log 'delete the test database'
+    if not exports.db?
+        console.log "ERROR -- exports.db is not defined!"
+        cb()
+        return
+    port = exports.db._port
+    host = exports.db._host
     misc_node.execute_code
         command : 'dropdb'
-        args    : ['--port', exports.db._port, '--host', exports.db._host, DATABASE]
-        cb      : (err) -> cb()  # non-fatal -- would give error if db doesn't exist
+        args    : ['--port', port, '--host', host, DATABASE]
+        cb      : (err) ->
+            exports.db.disconnect()
+            log 'done deleting test database'
+            if err
+                log('WARNING: dropdb error', err)
+            cb()  # non-fatal -- would give error if db doesn't exist
 
