@@ -3,7 +3,7 @@
 
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2016, SageMath, Inc.
+#    Copyright (C) 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -21,12 +21,13 @@
 #
 
 """
-This script converts an .ipynb jupyter notebook file to an SMC sagews file.
-It relies on the sagews command `jupyter()` to instantiate the communication bridge
-to the Jupyter kernel.
+This script converts a .m GNU Octave file to an SMC sagews file.
+It relies on the sagews built-in mode `%octave` to instantiate a communication bridge
+to the octave Jupyter kernel.
 
 Authors:
 
+* Hal Snyder <hsnyder@sagemath.com>, started January 2017
 * Harald Schilly <hsy@sagemath.com>, started June 2016
 """
 
@@ -35,19 +36,18 @@ import sys
 import os
 import codecs
 import textwrap
-# reading the ipynb via http://nbformat.readthedocs.io/en/latest/api.html
-import nbformat
 
 from smc_pyutil.lib import SagewsCell
 
-class Ipynb2SageWS(object):
+
+class M2SageWS(object):
 
     def __init__(self, filename, overwrite=True):
         """
-        Convert a Jupyter Notebook .ipynb file to a SageMathCloud .sagews file.
+        Convert a GNU Octave .m file to a SageMathCloud .sagews file.
 
         INPUT:
-        - ``filename`` -- the name of an ipynb file, say foo.ipynb
+        - ``filename`` -- the name of an m file, say foo.m
 
         OUTPUT:
         - creates a file foo.sagews if it doesn't already exist
@@ -59,7 +59,7 @@ class Ipynb2SageWS(object):
             raise Exception(
                 "%s: Warning --SageMathCloud worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
 
-        self.nb = None  # holds the notebook data
+        self.m = None  # holds the notebook data
         self.output = None  # use self.write([line]) to write to output
 
     def convert(self):
@@ -73,9 +73,10 @@ class Ipynb2SageWS(object):
 
     def read(self):
         """
-        Reads the ipynb file, regardless of version, and converts to API version 4
+        Reads the m file
         """
-        self.nb = nbformat.read(self.infile, 4)
+        with open(self.infile, 'r') as inf:
+            self.m = inf.read()
 
     def write(self, line):
         if line is not None:
@@ -98,58 +99,38 @@ class Ipynb2SageWS(object):
 
     def kernel(self):
         """
-        The first cell contains a small info text and defines the global jupyter mode,
-        based on the kernel name in the ipynb file!
+        The first cell contains a small info text and sets the global octave mode.
         """
-        spec = self.nb['metadata']
-        name = spec['kernelspec']['name']
         cell = '''\
         %auto
         # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
-        # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
-        jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
-        %default_mode jupyter_kernel'''.format(name)
+        # Here, it starts the Jupyter octave kernel and sets it as the default mode for this worksheet.
+        %default_mode octave'''
         self.write(SagewsCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
         """
-        Converting all cells of the ipynb as the body of the sagews document.
-
-        see http://nbformat.readthedocs.io/en/latest/format_description.html
+        Convert input to body of the sagews document.
         """
-
-        for cell in self.nb.cells:
-            ct = cell['cell_type']
-            source = cell.get('source', None)
-            outputs = cell.get('outputs', [])
-
-            if ct == 'markdown':
-                self.write(SagewsCell(md=source).convert())
-
-            elif ct == 'code':
-                self.write(SagewsCell(input=source, outputs=outputs).convert())
-
-            elif ct == 'raw':
-                self.write(SagewsCell(input=source).convert())
-
-            else:
-                print("ERROR: cell type '%s' not recognized:\n%s" %
-                      (ct, json.dumps(cell, indent=2)))
+        fhead = "# {}\n".format(self.infile)
+        self.write(SagewsCell(input=fhead+self.m).convert())
 
 
 def main():
     if len(sys.argv) == 1:
         sys.stderr.write("""
-Convert a Jupyter Notebook .ipynb file to a SageMathCloud .sagews file.
+Convert a GNU Octave .m file to a SageMathCloud .sagews file.
 
-    Usage: %s path/to/filename.ipynb [path/to/filename2.ipynb ...]
+    Usage: %s path/to/filename.m [path/to/filename2.m ...]
 
-Creates corresponding file path/to/filename.sagews, if it doesn't exist.
+Creates corresponding file path/to/filename.sagews, if it doesn't exist. Sets
+default_mode to %octave. Places the .m file in a single sagews cell with
+file name in a comment at the start.
 """ % sys.argv[0])
         sys.exit(1)
 
     for path in sys.argv[1:]:
-        Ipynb2SageWS(path).convert()
+        M2SageWS(path).convert()
 
 if __name__ == "__main__":
     main()

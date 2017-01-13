@@ -787,7 +787,7 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
-                    {@render_allow_any_collaborators()}
+                    {# @render_allow_any_collaborators() -- see https://github.com/sagemathinc/smc/issues/1494 }
                 </Col>
             </Row>
         </div>

@@ -788,22 +788,12 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
         </a>
 
-    render_collaborators: ->
-        if @props.public_view
-            return
-        <div>
-            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_active_tab('settings')} style={marginLeft:'7px'}>
-                <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Add Collaborators</span>
-            </a>
-        </div>
-
     render: ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
             {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_backup()}
-            {@render_collaborators()}
         </div>
 
 ProjectFilesActions = rclass
@@ -1665,7 +1655,7 @@ ProjectFilesSearch = rclass
 
     render_file_creation_error: ->
         if @props.file_creation_error
-            <Alert style={wordWrap:'break-word'} bsStyle='warning' onDismiss=@dismiss_alert>
+            <Alert style={wordWrap:'break-word'} bsStyle='danger' onDismiss=@dismiss_alert>
                 {@props.file_creation_error}
             </Alert>
 
@@ -1771,7 +1761,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(file_creation_error : "You must enter file name above to create it")
+            @props.actions.setState(file_creation_error : "You must enter a filename above.")
         else
             @props.create_file(ext)
 
@@ -1828,6 +1818,7 @@ exports.ProjectFiles = rclass ({name}) ->
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
+            file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
             show_upload         : rtypes.bool
             new_name            : rtypes.string
@@ -2160,7 +2151,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
             {@render_access_error() if public_view}
-            {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
