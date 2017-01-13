@@ -302,7 +302,7 @@ Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account
 
 Run the compute daemon as follows:
 
-    git clone https://github.com/sagemathinc/smc.git salvus
+    git clone https://github.com/sagemathinc/smc.git smc
     cd ~/smc/src/
     ./install.py compute --all
 
