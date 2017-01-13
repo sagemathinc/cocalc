@@ -13,7 +13,7 @@ RESET    = !!(process.env['SMC_DB_RESET'] ? false)
 DATABASE = 'test-fubar'
 
 async = require('async')
-postgres = require('../postgres')
+postgres = require('../../postgres')
 
 exports.db = undefined
 exports.setup = (cb) ->
