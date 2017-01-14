@@ -3112,6 +3112,7 @@ class RethinkDB
             map_limit         : 1     # how much parallelism to use
             limit             : 1000 # do only this many
             repeat_until_done : true
+            delay             : 0    # artifical delay in ms between archiving.
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
@@ -3133,7 +3134,11 @@ class RethinkDB
                     console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
                     @archive_patches
                         string_id : string_id
-                        cb        : cb
+                        cb        : (err) ->
+                           if err or not opts.delay
+                               cb(err)
+                           else
+                               setTimeout(cb, opts.delay) 
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
         ], (err) =>
             if err
