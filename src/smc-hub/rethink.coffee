@@ -34,6 +34,8 @@ async      = require('async')
 underscore = require('underscore')
 moment     = require('moment')
 uuid       = require('node-uuid')
+zlib       = require('zlib')
+snappy     = require('snappy')
 
 json_stable_stringify = require('json-stable-stringify')
 
@@ -2685,6 +2687,8 @@ class RethinkDB
                                    # infinite ttl = 0 or undefined.
             project_id : required  # the id of the project that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
+            compress   : undefined # optional compression to use: 'gzip', 'zlib', 'snappy'; only used if blob not already in db.
+            level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         if opts.check
             uuid = misc_node.uuidsha1(opts.blob)
@@ -2701,12 +2705,32 @@ class RethinkDB
                         blob       : opts.blob
                         project_id : opts.project_id
                         count      : 0
-                        size       : opts.blob.length
                         created    : new Date()
                     if opts.ttl
                         x.expire = expire_time(opts.ttl)
-                    @table('blobs').insert(x).run (err) =>
+                    async.series([
+                        (cb) =>
+                            if not opts.compress?
+                                cb(); return
+                            x.compress = opts.compress
+                            switch opts.compress
+                                when 'gzip'
+                                    zlib.gzip x.blob, {level:opts.level}, (err, blob) =>
+                                        x.blob = blob; cb(err)
+                                when 'zlib'
+                                    zlib.deflate x.blob, {level:opts.level}, (err, blob) =>
+                                        x.blob = blob; cb(err)
+                                when 'snappy'
+                                    snappy.compress x.blob, (err, blob) =>
+                                        x.blob = blob; cb(err)
+                                else
+                                    cb("compression format '#{opts.compress}' not implemented")
+                        (cb) =>
+                            x.size = x.blob.length  # set here, since may change on compression above.
+                            @table('blobs').insert(x).run(cb)
+                    ], (err) =>
                         opts.cb(err, opts.ttl)
+                    )
                 else
                     # some other error
                     opts.cb(err)
@@ -2779,6 +2803,21 @@ class RethinkDB
                 else
                     # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
                     cb()
+            (cb) =>
+                if not x.compress
+                    cb(); return
+                switch x.compress
+                    when 'gzip'
+                        zlib.gunzip x.blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    when 'zlib'
+                        zlib.inflate x.blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    when 'snappy'
+                        snappy.uncompress x.blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    else
+                        cb("compression format '#{x.compress}' not implemented")
         ], (err) =>
             opts.cb(err, blob)
             if blob? and opts.touch
@@ -3154,6 +3193,8 @@ class RethinkDB
     archive_patches: (opts) =>
         opts = defaults opts,
             string_id : required
+            compress  : 'zlib'
+            level     : -1   # the default
             cb        : undefined
         dbg = @dbg("archive_patches(string_id='#{opts.string_id}')")
         syncstring = patches = blob_uuid = project_id = undefined
@@ -3184,6 +3225,8 @@ class RethinkDB
                     uuid       : blob_uuid
                     blob       : blob
                     project_id : project_id
+                    compress   : opts.compress
+                    level      : opts.level
                     cb         : cb
             (cb) =>
                 dbg("update syncstring to indicate patches have been archived in a blob")

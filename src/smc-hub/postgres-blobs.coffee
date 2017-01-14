@@ -15,6 +15,8 @@ This code is currently NOT released under any license for use by anybody except 
 BLOB_GCLOUD_BUCKET = 'smc-blobs'
 
 async   = require('async')
+snappy  = require('snappy')
+zlib    = require('zlib')
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -34,6 +36,8 @@ class exports.PostgreSQL extends PostgreSQL
                                    # infinite ttl = 0.
             project_id : required  # the id of the project that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
+            compress   : undefined # optional compression to use: 'gzip', 'zlib', 'snappy'; only used if blob not already in db.
+            level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         if not opts.uuid?
             opts.uuid = misc_node.uuidsha1(opts.blob)
@@ -51,6 +55,23 @@ class exports.PostgreSQL extends PostgreSQL
                     cb    : (err, x) =>
                         rows = x.rows; cb(err)
             (cb) =>
+                if rows.length == 0 and opts.compress
+                    # compression requested and blob not already saved, so we compress blob
+                    switch opts.compress
+                        when 'gzip'
+                            zlib.gzip opts.blob, {level:opts.level}, (err, blob) =>
+                                opts.blob = blob; cb(err)
+                        when 'zlib'
+                            zlib.deflate opts.blob, {level:opts.level}, (err, blob) =>
+                                opts.blob = blob; cb(err)
+                        when 'snappy'
+                            snappy.compress opts.blob, (err, blob) =>
+                                opts.blob = blob; cb(err)
+                        else
+                            cb("compression format '#{opts.compress}' not implemented")
+                else
+                    cb()
+            (cb) =>
                 if rows.length == 0
                     # nothing in DB, so we insert the blob.
                     ttl = opts.ttl
@@ -63,6 +84,7 @@ class exports.PostgreSQL extends PostgreSQL
                             count      : 0
                             size       : opts.blob.length
                             created    : new Date()
+                            compress   : opts.compress
                             expire     : if ttl then expire_time(ttl)
                         cb     : cb
                 else
@@ -121,7 +143,7 @@ class exports.PostgreSQL extends PostgreSQL
         async.series([
             (cb) =>
                 @_query
-                    query : "SELECT expire, blob, gcloud FROM blobs"
+                    query : "SELECT expire, blob, gcloud, compress FROM blobs"
                     where : "id = $::UUID" : opts.uuid
                     cb    : one_result (err, _x) =>
                         x = _x; cb(err)
@@ -158,6 +180,22 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
                     cb()
+            (cb) =>
+                if not blob? or not x?.compress?
+                    cb(); return
+                # blob is compressed -- decompress it
+                switch x.compress
+                    when 'gzip'
+                        zlib.gunzip blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    when 'zlib'
+                        zlib.inflate blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    when 'snappy'
+                        snappy.uncompress blob, (err, _blob) =>
+                            blob = _blob; cb(err)
+                    else
+                        cb("compression format '#{x.compress}' not implemented")
         ], (err) =>
             opts.cb(err, blob)
             if blob? and opts.touch
@@ -521,6 +559,8 @@ class exports.PostgreSQL extends PostgreSQL
     archive_patches: (opts) =>
         opts = defaults opts,
             string_id : required
+            compress  : 'zlib'
+            level     : -1   # the default
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
         syncstring = patches = blob_uuid = project_id = undefined
@@ -558,6 +598,8 @@ class exports.PostgreSQL extends PostgreSQL
                     uuid       : blob_uuid
                     blob       : blob
                     project_id : project_id
+                    compress   : opts.compress
+                    level      : opts.level
                     cb         : cb
             (cb) =>
                 dbg("update syncstring to indicate patches have been archived in a blob")

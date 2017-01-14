@@ -24,8 +24,8 @@ get_db = (cb) ->
         return db
 
 # get a connection to the db
-global.db = ->
-    return global.db = get_db()
+global.db = (cb) ->
+    return global.db = get_db(cb)
 console.log("db() -- sets global variable db to a database")
 
 global.gcloud = ->
@@ -199,3 +199,8 @@ global.load = (filename) ->
     if filename.slice(filename.length - 5) != '.json'
         filename += '.json'
     JSON.parse(fs.readFileSync(filename))
+
+global.stripe = (account_id) ->
+    get_db (err, db) -> 
+        db.stripe_update_customer(account_id:account_id,cb:done())
+console.log 'stripe [account_id] -- update stripe info about user'

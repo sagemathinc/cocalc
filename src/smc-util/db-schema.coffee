@@ -303,6 +303,9 @@ schema.blobs =
         backup :
             type : 'boolean'
             desc : 'if true, then this blob was saved to an offsite backup'
+        compress :
+            type : 'string'
+            desc : "optional compression used: 'gzip', 'zlib', 'snappy'"
     indexes:
         expire : []   # when expired
         needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')

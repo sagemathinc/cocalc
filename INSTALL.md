@@ -141,7 +141,7 @@ server {
 
 Put this in the `crontab -e` for the salvus user (this is really horrible):
 
-    */2 * * * * /home/salvus/smc/src/hub start --host='`hostname`' --port=5000 --database_nodes db0,db1,db2,db3,db4
+    */2 * * * * $HOME/smc/src/hub start --host='`hostname`' --port=5000 --database_nodes db0,db1,db2,db3,db4
 
 NOTE: specifying the port is required, even though it looks optional.
 
@@ -266,7 +266,7 @@ frontend https
 
 Note: obviously you will need your own
 
-    /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem
+    $HOME/smc/src/data/secrets/sagemath.com/nopassphrase.pem
 
 with your own site for this to work for you...  These costs money.
 You can also create a self-signed cert, but it will scare users.
@@ -277,7 +277,7 @@ You can also create a self-signed cert, but it will scare users.
 
 ### Setup Rethinkdb password
 
-From and admin or web node, in `/home/salvus/smc/src`, run coffee and type
+From and admin or web node, in `$HOME/smc/src`, run coffee and type
 
     coffee> db=require('rethink').rethinkdb()
     coffee> # this will cause an error as the old password will no longer be valid
@@ -285,7 +285,7 @@ From and admin or web node, in `/home/salvus/smc/src`, run coffee and type
 
 
 
-Then copy the file `/home/salvus/smc/src/data/secrets/rethinkdb` to
+Then copy the file `$HOME/smc/src/data/secrets/rethinkdb` to
 each of the web nodes (careful about permissions), so they can access the database.
 
 ## Setup Compute
@@ -302,15 +302,15 @@ Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account
 
 Run the compute daemon as follows:
 
-    git clone https://github.com/sagemathinc/smc.git salvus
+    git clone https://github.com/sagemathinc/smc.git
     cd ~/smc/src/
-    ./install.py compute --all
+    ./install.py all --compute
 
 Start daemon on boot:
 
     crontab -e
 
-    @reboot /home/salvus/smc/src/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
+    @reboot $HOME/smc/src/scripts/start-compute > $HOME/.compute.log 2>$HOME/.compute.err
 
 If on a single-node deploy (optional -- you could also just type a password below):
 
@@ -413,7 +413,7 @@ Then as salvus, which will take a few minutes:
 Then in crontab:
 
 
-    0 */12 * * * /home/salvus/backups/db/backup  > /home/salvus/.db_backups.log     2>/home/salvus/.db_backups.err
+    0 */12 * * * $HOME/backups/db/backup  > $HOME/.db_backups.log     2>$HOME/.db_backups.err
 
 Regularly offsite the above database dumps.
 

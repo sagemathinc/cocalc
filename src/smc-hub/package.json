@@ -44,6 +44,7 @@
     "rethinkdb": "^2.3.1",
     "rimraf": "^2.4.4",
     "sendgrid": "^4.7.1",
+    "snappy": "^5.0.5",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
     "temp": "^0.8.3",
