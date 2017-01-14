@@ -2797,17 +2797,17 @@ class RethinkDB
                     # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
                     cb()
             (cb) =>
-                if not x.compress
+                if not blob? or not x?.compress
                     cb(); return
                 switch x.compress
                     when 'gzip'
-                        zlib.gunzip x.blob, (err, _blob) =>
+                        zlib.gunzip blob, (err, _blob) =>
                             blob = _blob; cb(err)
                     when 'zlib'
-                        zlib.inflate x.blob, (err, _blob) =>
+                        zlib.inflate blob, (err, _blob) =>
                             blob = _blob; cb(err)
                     when 'snappy'
-                        snappy.uncompress x.blob, (err, _blob) =>
+                        snappy.uncompress blob, (err, _blob) =>
                             blob = _blob; cb(err)
                     else
                         cb("compression format '#{x.compress}' not implemented")

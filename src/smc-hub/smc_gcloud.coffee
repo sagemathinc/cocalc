@@ -1124,6 +1124,14 @@ class Bucket
 
     dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
 
+    delete: (opts) =>
+        opts = defaults opts,
+            name    : required
+            cb      : undefined
+        dbg = @dbg("delete(name='#{opts.name}')")
+        dbg()
+        @_bucket.file(opts.name).delete (err) => opts.cb?(err)
+
     write: (opts) =>
         opts = defaults opts,
             name    : required
