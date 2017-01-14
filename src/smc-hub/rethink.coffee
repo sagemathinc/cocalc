@@ -3149,12 +3149,17 @@ class RethinkDB
         opts = defaults opts,
             age_days          : 60    # archive patches of syncstrings that are inactive for at least this long
             map_limit         : 1     # how much parallelism to use
-            limit             : 1000 # do only this many
+            limit             : 1000 # do only this many per get query loop
             repeat_until_done : true
             delay             : 0    # artifical delay in ms between archiving.
+            count             : 0    # used internally for logging
+            total_limit       : 0    # only do this many **total**
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
+        if opts.total_limit and opts.total_limit <= opts.count
+            opts.cb?()
+            return
         syncstrings = undefined
         async.series([
             (cb) =>
@@ -3170,7 +3175,8 @@ class RethinkDB
                 i = 0
                 f = (string_id, cb) =>
                     i += 1
-                    console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
+                    opts.count += 1
+                    console.log("\n***** #{opts.count} -- #{i}/#{syncstrings.length}: archiving string #{string_id} ***** \n")
                     @archive_patches
                         string_id : string_id
                         cb        : (err) ->
