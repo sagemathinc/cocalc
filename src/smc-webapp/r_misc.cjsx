@@ -1400,14 +1400,8 @@ exports.UpgradeAdjustor = rclass
 
             unit = misc.plural(show_remaining, display_unit)
             if total_limit < remaining
-                if unit == 'MB'
-                    in_gb = (remaining_all / 1000).toFixed(2)
-                    in_gb = "(#{in_gb} GB)"
-                    total_limit_in_gb = (total_limit / 1000).toFixed(2)
-                    total_limit_in_gb = "(#{total_limit_in_gb} GB)"
-                    remaining_note = <span> You have {remaining_all} unallocated {unit}{in_gb} (you may allocate up to {total_limit} {unit} {total_limit_in_gb} here)</span>
-                else
-                    remaining_note = <span> You have {remaining_all} unallocated {unit} (you may allocate up to {total_limit} {unit} here)</span>
+                remaining_note = <span> You have {remaining_all} unallocated {unit} (you may allocate up to {total_limit} {unit} here)</span>
+
             else
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
 
