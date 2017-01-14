@@ -1,4 +1,4 @@
-{React, rclass, rtypes}  = require('./smc-react')
+{React, rclass, rtypes, redux}  = require('./smc-react')
 {Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
