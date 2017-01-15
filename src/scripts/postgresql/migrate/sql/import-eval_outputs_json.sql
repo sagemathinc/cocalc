@@ -1,10 +1,10 @@
-INSERT INTO eval_inputs (
+INSERT INTO eval_outputs (
   SELECT
     (a#>>'{id,0}')::CHAR(40),
     to_timestamp((a#>>'{id,1,epoch_time}')::FLOAT),
     (a#>>'{id,2}')::INTEGER,
     (a#>'{input}')
-  FROM eval_inputs_json WHERE to_timestamp((a#>>'{id,1,epoch_time}')::FLOAT) is NOT NULL
+  FROM eval_outputs_json WHERE to_timestamp((a#>>'{id,1,epoch_time}')::FLOAT) is NOT NULL
 );
 
 /* The timestamp not null business is because a very small number of the
