@@ -3152,8 +3152,9 @@ class RethinkDB
             limit             : 1000 # do only this many per get query loop
             repeat_until_done : true
             delay             : 0    # artifical delay in ms between archiving.
-            count             : 0    # used internally for logging
             total_limit       : 0    # only do this many **total**
+            count             : 0    # used internally for logging
+            start_time        : new Date()   # used internally for loggin
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
@@ -3176,7 +3177,7 @@ class RethinkDB
                 f = (string_id, cb) =>
                     i += 1
                     opts.count += 1
-                    console.log("\n***** #{opts.count} -- #{i}/#{syncstrings.length}: archiving string #{string_id} ***** \n")
+                    console.log("\n***** #{opts.count} (#{(new Date() - opts.start_time)/1000} seconds) -- #{i}/#{syncstrings.length}: archiving string #{string_id} ***** \n")
                     @archive_patches
                         string_id : string_id
                         cb        : (err) ->
