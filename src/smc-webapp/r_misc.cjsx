@@ -1329,17 +1329,6 @@ exports.UpgradeAdjustor = rclass
     render_addon: (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
 
-    remove_upgrade_from_all: (projects_with_this_upgrade, name) ->
-        for project_id in projects_with_this_upgrade
-            @remove_upgrade_from_project(project_id, name)
-
-    render_remove_upgrade_from_all: (projects_with_this_upgrade, name) ->
-        <MenuItem
-            eventKey="0"
-            onClick={=>@remove_upgrade_from_all(projects_with_this_upgrade, name)}>
-            All
-        </MenuItem>
-
     remove_upgrade_from_project: (project_id, name) ->
         quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
         value = quotas_to_apply[name]
@@ -1347,6 +1336,13 @@ exports.UpgradeAdjustor = rclass
         @setState(removal_history: @state.removal_history)
         quotas_to_apply[name] = 0
         redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
+        @setState("upgrade_#{name}" : 1)
+
+    render_upgrade_amount: (project_id, name) ->
+        unit_params = PROJECT_UPGRADES.params[name]
+        amount = redux.getStore('projects').get_projects_upgraded_by()[project_id][name]
+        s = ' (' + (amount * unit_params.display_factor) + ' ' + misc.plural(amount, unit_params.display_unit) + ')'
+        <span>{s}</span> 
 
     render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
         for project_id, i in projects_with_this_upgrade
@@ -1354,7 +1350,8 @@ exports.UpgradeAdjustor = rclass
                 eventKey={i}
                 onClick={=>@remove_upgrade_from_project(project_id, name)}
             >
-                {redux.getStore('projects')?.get_title(project_id)}
+                {redux.getStore('projects')?.get_title(project_id)} 
+                {@render_upgrade_amount(project_id, name) if PROJECT_UPGRADES.params[name].input_type != 'checkbox'}
             </MenuItem>
 
     render_remove_upgrade_from: (name) ->
@@ -1364,9 +1361,14 @@ exports.UpgradeAdjustor = rclass
             if project_upgrades[name]
                 if project_id != @props.project_id
                     projects_with_this_upgrade.push(project_id)
+        # show 10 projects with this upgrade by user sorted by when last edited in ascending order
+        # idea is that one is more likely to want to remove quota from projects they haven't touched
+        # in a long time
+        projects_with_this_upgrade = underscore(projects_with_this_upgrade).sortBy (project_id) -> 
+            [redux.getStore("projects").get_project(project_id).last_edited]
+        projects_with_this_upgrade = projects_with_this_upgrade.slice(0, 10)
         if projects_with_this_upgrade.length > 0
-            <DropdownButton className="small" title="Remove upgrade from" key={name} id={name}>
-                {@render_remove_upgrade_from_all(projects_with_this_upgrade, name) if projects_with_this_upgrade.length > 1}
+            <DropdownButton className="small" title="Steal upgrade from" key={name} id={name}>
                 {@render_remove_upgrade_from_menuitems(projects_with_this_upgrade, name)}
             </DropdownButton>
 
@@ -1396,7 +1398,7 @@ exports.UpgradeAdjustor = rclass
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                     <br/>
-                    {@render_remove_upgrade_from(name)}
+                    {@render_remove_upgrade_from(name) if input_type == 'checkbox' and ((val == 0 and show_remaining == 0) or not @is_upgrade_input_valid(val, limit))}
                 </Col>
                 <Col sm=6>
                     <form>
@@ -1540,6 +1542,7 @@ exports.UpgradeAdjustor = rclass
         quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[removal.project_id] ? {}
         quotas_to_apply[removal.name] = removal.value
         redux.getActions('projects').apply_upgrades_to_project(removal.project_id, quotas_to_apply)
+        @setState("upgrade_#{removal.name}" : 0)
 
     render_removals: ->
         for removal in @state.removal_history
@@ -1553,7 +1556,7 @@ exports.UpgradeAdjustor = rclass
     render_removal_history: ->
         <div>
             <br/>
-            <b>Removal history</b>
+            <b>Stealing history</b>
             <br/>
             <table className="removal-history-table">
                 <thead>
