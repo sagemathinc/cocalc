@@ -20,7 +20,8 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:1, cb:cb)
+        db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:10, cb:cb)
+        db._error_thresh = 100000
         return db
 
 # get a connection to the db
