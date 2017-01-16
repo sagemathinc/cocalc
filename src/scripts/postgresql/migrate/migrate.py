@@ -71,7 +71,7 @@ def process(table):
     print T
     if T.get('skip', False):
         return
-    print "get from rethinkdb as csv"
+    print "get from rethinkdb as json"
     path_to_json = export_from_rethinkdb.process(table, export)
     print "convert json to csv"
     path_to_csv = json_to_csv.process(path_to_json, export)

@@ -7,6 +7,8 @@ def process(path_to_json, do_it=True):
     # The grep -v '\\\\u0000' skips any json record with null bytes.  These are not valid/meaningful
     # for postgres, and happen in a very small handful of non-important records.
     path_to_csv = "%s.csv"%base
+    if not os.path.exists(path_to_csv):
+        do_it = True
     if not do_it:
         return path_to_csv
     timing.start(os.path.split(base)[-1], 'json_to_csv')
