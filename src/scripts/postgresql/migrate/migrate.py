@@ -9,6 +9,10 @@ Import all data from **all** json files in the given path:
 
 """
 
+import os
+
+db = os.environ.get('SMC_DB', 'migrate')
+
 tables = {
    'account_creation_actions':{},
    'accounts':{},
@@ -46,11 +50,23 @@ import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, ex
 timing.init()
 
 
-parallel = export = False
+parallel = export = count = False
 
 def process(table):
     if table not in tables:
         raise RuntimeError("no such table: '%s'"%table)
+    if count:
+        # only count
+        timing.start(table, 'count')
+        print "%s:"%table,
+        sys.stdout.flush()
+        s = "echo 'select count(*) FROM %s' | psql %s"%(table, db)
+        c = os.popen(s).read()
+        i = c.rfind('-') + 1; j = c.rfind("(")
+        print c[i:j].strip()
+        timing.done(table, 'count')
+        return
+
     T = tables[table]
     if T.get('skip', False):
         return
@@ -87,9 +103,15 @@ if __name__ == "__main__":
             export = True
             del v[i]
             break
+    for i in range(len(v)):
+        if v[i] == '-c':
+            count = True
+            del v[i]
+            break
     if len(v) == 1:
         if v[0] == 'all':
             v = list(tables)
+            v.sort()
         elif v[0].startswith('-h'):
             usage()
     if len(v) == 1:
