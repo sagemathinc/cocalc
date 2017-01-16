@@ -280,10 +280,10 @@ ProjectNewForm = rclass ({name}) ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
             <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button onClick={=>@create_file()} bsStyle='success'>
+                <Button onClick={=>@create_file()} bsStyle='default'>
                     Create file with no extension
                 </Button>
-                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='success'>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -307,7 +307,7 @@ ProjectNewForm = rclass ({name}) ->
                                 type        = 'text'
                                 disabled    = @state.extension_warning
                                 placeholder = 'Name your file, folder, or paste in a link...'
-                                onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                                onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
                         </FormGroup>
                     </form>
                     {if @state.extension_warning then @render_no_extension_alert()}
