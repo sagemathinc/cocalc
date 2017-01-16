@@ -4,6 +4,8 @@ import os, timing
 def process(table, export=True):
     out = '/migrate/data/%s'%table
     path_to_json = out + '/smc/%s.json'%table
+    if not os.path.exists(out):
+        export = True
     if not export:
         return path_to_json
     timing.start(table, 'export_from_rethinkdb')
