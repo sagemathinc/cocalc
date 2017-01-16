@@ -16,12 +16,17 @@ def fix_timestamps(obj, sub=False):
 def process(file):
     print "fix timestamps in %s"%file
     base = os.path.splitext(file)[0]
+    out_filename_csv = base + '-time.csv'
+    if os.path.exists(out_filename_csv):
+        print("output file %s already exists; not overwriting it"%out_filename_csv)
+        return out_filename_csv
     timing.start(os.path.split(base)[-1], 'fix_timestamps')
-    out = open(base + '-time.csv', 'w')
+    out = open(out_filename_csv, 'w')
     for x in open(file).xreadlines():
         out.write(json.dumps(fix_timestamps(json.loads(x[:-1]))) + '\n')
     out.close()
-    timing.start(os.path.split(base)[-1], 'fix_timestamps')
+    timing.done(os.path.split(base)[-1], 'fix_timestamps')
+    return out_filename_csv
 
 if __name__ == "__main__":
     for file in sys.argv[1:]:

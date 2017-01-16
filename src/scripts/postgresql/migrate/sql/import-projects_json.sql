@@ -1,8 +1,3 @@
-/*
-psql -d migrate -a -f import-projects_json.sql
-
-Copies data from RethinkDB JSON to the proper projects table.
-*/
 
 
 INSERT INTO projects (
@@ -34,4 +29,4 @@ INSERT INTO projects (
     (a#>>'{preemptible}')::BOOL,
     (a#>>'{idle_timeout}')::INTEGER
   FROM projects_json
-) ON CONFLICT (project_id) DO UPDATE set project_id=EXCLUDED.project_id;
+);
