@@ -1019,19 +1019,22 @@ schema.stats =
             type : 'uuid'
         time                :
             type : 'timestamp'
+            pg_check : 'NOT NULL'
         accounts            :
             type : 'integer'
+            pg_check : 'NOT NULL CHECK (accounts >= 0)'
         accounts_created    :
             type : 'map'
         projects            :
             type : 'integer'
+            pg_check : 'NOT NULL CHECK (projects >= 0)'
         projects_created    :
             type : 'map'
         projects_edited     :
             type : 'map'
         hub_servers         :
             type : 'array'
-            pg_type : 'JSONB[]'
+            pg_type : 'JSONB'
     indexes:
         time : []
     pg_indexes : ['time']
