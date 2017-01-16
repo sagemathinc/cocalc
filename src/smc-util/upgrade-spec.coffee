@@ -43,7 +43,7 @@ upgrades.params =
         pricing_unit   : 'GB'
         pricing_factor : 1/1000
         input_type     : 'number'
-        desc           : 'The maximum amount of disk space (in MB) that a project may use.'
+        desc           : 'The maximum amount of disk space (in GB) that a project may use.'
     memory :
         display        : 'Memory'
         unit           : 'MB'
