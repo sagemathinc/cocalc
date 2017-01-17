@@ -5150,15 +5150,30 @@ class RethinkDB
                 s = '[\n' + (JSON.stringify(x) for x in patches).join(',\n') + '\n]\n'
                 fs.writeFile(opts.path, s, opts.cb)
 
-
-
-
     update_syncstrings: (opts) =>
         opts = defaults opts,
             start : misc.days_ago(1)
             path  : '/migrate/data/syncstrings/smc/update-syncstrings.json'
             cb    : required
-        opts.cb()
+        # needs index! -- db.table('syncstrings').indexCreate('last_active').run(done())
+        query = @table('syncstrings').between(opts.start, @r.maxval, index:'last_active')
+        query.run (err, syncstrings) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+                for x in syncstrings
+                    for k in ['last_active', 'last_file_change', 'last_snapshot']
+                        if x[k]?
+                            x[k] = json_time(x[k])
+                    if x.init?.time?
+                        x.init.time = json_time(x.init.time)
+
+                s = '[\n' + (JSON.stringify(x) for x in syncstrings).join(',\n') + '\n]\n'
+                fs.writeFile(opts.path, s, opts.cb)
 
     update_blobs: (opts) =>
         opts = defaults opts,
@@ -5168,9 +5183,11 @@ class RethinkDB
         opts.cb()
 
 json_time = (x) ->
+    if not x? or x == 0
+        return undefined
     if typeof(x) == 'string'
         x = new Date(x)
-    {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
+    return {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->
