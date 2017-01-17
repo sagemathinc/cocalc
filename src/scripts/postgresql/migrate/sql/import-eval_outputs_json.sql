@@ -5,7 +5,7 @@ INSERT INTO eval_outputs (
     (a#>>'{id,2}')::INTEGER,
     (a#>'{input}')
   FROM eval_outputs_json WHERE to_timestamp((a#>>'{id,1,epoch_time}')::FLOAT) is NOT NULL
-);
+) ON CONFLICT(string_id, time, number) DO NOTHING;
 
 /* The timestamp not null business is because a very small number of the
    inputs have the wrong timestamp format.
