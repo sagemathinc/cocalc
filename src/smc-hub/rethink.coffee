@@ -5057,6 +5057,8 @@ class RethinkDB
                         fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
                     catch
                         # ignore
+                    for x in log
+                        x.time = {"$reql_type$": "TIME", "epoch_time":(x.time - 0)/1000}
                     s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
                     fs.writeFile(opts.path, s, opts.cb)
 
