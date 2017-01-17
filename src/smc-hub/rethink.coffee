@@ -5044,7 +5044,7 @@ class RethinkDB
 
     update_client_error_log: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/client_error_log/smc/update-client_error_log.json'
             cb    : required
         @get_client_error_log
@@ -5064,7 +5064,7 @@ class RethinkDB
 
     update_central_log: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/central_log/smc/update-central_log.json'
             cb    : required
         @get_log
@@ -5084,7 +5084,7 @@ class RethinkDB
 
     update_project_log: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/project_log/smc/update-project_log.json'
             cb    : required
         @get_log
@@ -5105,7 +5105,7 @@ class RethinkDB
 
     update_file_access_log: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/file_access_log/smc/update-file_access_log.json'
             cb    : required
         @get_log
@@ -5126,7 +5126,7 @@ class RethinkDB
 
     update_patches: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/patches/smc/update-patches.json'
             cb    : required
         # needs index! -- db.table('patches').indexCreate('time',db.r.row('id')(1)).run(done())
@@ -5152,7 +5152,7 @@ class RethinkDB
 
     update_syncstrings: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/syncstrings/smc/update-syncstrings.json'
             cb    : required
         # needs index! -- db.table('syncstrings').indexCreate('last_active').run(done())
@@ -5177,10 +5177,27 @@ class RethinkDB
 
     update_blobs: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
+            start : required
             path  : '/migrate/data/blobs/smc/update-blobs.json'
             cb    : required
-        opts.cb()
+        # needs index! -- db.table('blobs').indexCreate('created').run(done())
+        # we do NOT copy over the actual blobs -- they **have** to get uploaded to gcloud before we'll ever
+        # see them from postgresql, as we didn't implement the binary format.
+        query = @table('blobs').between(opts.start, @r.maxval, index:'created').pluck('id','expire','created','project_id','last_activd','count','size','gcloud','backup')
+        query.run (err, blobs) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+                for x in blobs
+                    for k in ['expire', 'created', 'last_active']
+                        if x[k]?
+                            x[k] = json_time(x[k])
+                s = '[\n' + (JSON.stringify(x) for x in blobs).join(',\n') + '\n]\n'
+                fs.writeFile(opts.path, s, opts.cb)
 
 json_time = (x) ->
     if not x? or x == 0
