@@ -5035,7 +5035,7 @@ class RethinkDB
     update_migrate: (opts) =>
         opts = defaults opts,
             start  : misc.hours_ago(1)
-            tables : ['central_log', 'client_error_log', 'project_log']
+            tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log']
             #tables : ['project_log']
             cb     : required
         f = (table, cb) =>
@@ -5103,6 +5103,26 @@ class RethinkDB
                     s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
                     fs.writeFile(opts.path, s, opts.cb)
 
+    update_file_access_log: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/file_access_log/smc/update-file_access_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            log   : 'file_access_log'
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
 
 json_time = (x) ->
     {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
