@@ -1401,7 +1401,6 @@ ProjectFilesActionBox = rclass
     share_click: ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), description)
-        @props.actions.set_file_action()
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
@@ -1414,12 +1413,16 @@ ProjectFilesActionBox = rclass
             <p>In order to stop sharing it, you must stop sharing the parent.</p>
         </Alert>
 
-    render_public_share_url: (single_item) ->
+    construct_public_share_url: (single_file) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
-        if @props.file_map[misc.path_split(single_item).tail]?.isdir
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_file)}"
+        if @props.file_map[misc.path_split(single_file).tail]?.isdir
             display_url += '/'
+        return display_url
+
+    render_public_share_url: (single_file) ->
+        display_url = @construct_public_share_url(single_file)
         <pre style={@pre_styles}>
             <a href={display_url} target='_blank'>
                 {display_url}
@@ -1436,6 +1439,7 @@ ProjectFilesActionBox = rclass
         else
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
+        show_social_media = require('./customize').commercial and single_file_data.is_public
         <div>
             <Row>
                 <Col sm=4 style={color:'#666'}>
@@ -1464,7 +1468,7 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm=8>
                     <ButtonToolbar>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
                             <Icon name='share-square-o' /><Space/>
@@ -1478,8 +1482,42 @@ ProjectFilesActionBox = rclass
                         </Button>
                     </ButtonToolbar>
                 </Col>
+                <Col sm=4>
+                    {<ButtonToolbar>
+                        <Button onClick={=>@share_social_network('facebook', single_file)}>
+                            <Icon name='facebook' /> Facebook
+                        </Button>
+                        <Button onClick={=>@share_social_network('twitter', single_file)}>
+                             <Icon name='twitter' /> Twitter
+                        </Button>
+                        <Button onClick={=>@share_social_network('google_plus', single_file)}>
+                            <Icon name='google-plus' /> Google+
+                        </Button>
+                    </ButtonToolbar> if show_social_media}
+                </Col>
             </Row>
         </div>
+
+    share_social_network: (where, single_file) ->
+        public_url = encodeURIComponent(@construct_public_share_url(single_file))
+        filename   = misc.path_split(single_file).tail
+        text       = encodeURIComponent("Check out #{filename}")
+        switch where
+            when 'facebook'
+                # https://developers.facebook.com/docs/sharing/reference/share-dialog
+                # 806558949398043 is the ID of "SageMathCloud"
+                url = """https://www.facebook.com/dialog/share?app_id=806558949398043&display=popup&
+                href=#{public_url}&redirect_uri=https%3A%2F%2Ffacebook.com&quote=#{text}"""
+            when 'twitter'
+                # https://dev.twitter.com/web/tweet-button/web-intent
+                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=sagemath"
+            when 'google_plus'
+                url = "https://plus.google.com/share?url=#{public_url}"
+        if url?
+            {open_popup_window} = require('./misc_page')
+            open_popup_window(url)
+        else
+            console.warn("Unknown social media channel '#{where}'")
 
     submit_action_share: () ->
         single_file = @props.checked_files.first()
