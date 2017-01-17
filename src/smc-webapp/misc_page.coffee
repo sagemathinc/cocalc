@@ -589,7 +589,7 @@ exports.define_codemirror_extensions = () ->
                     if j != -1
                         level -= 1
                         if level == 0
-                            return [i, j + END.length]
+                            return [i, j + END.length - 1]
 
             else if startswith(line, "\\[")
                 for i in [start.line+1..cm.lastLine()]
