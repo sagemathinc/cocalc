@@ -5035,7 +5035,7 @@ class RethinkDB
     update_migrate: (opts) =>
         opts = defaults opts,
             start  : misc.hours_ago(1)
-            tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log']
+            tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log', 'blobs', 'syncstrings', 'patches']
             #tables : ['project_log']
             cb     : required
         f = (table, cb) =>
@@ -5124,7 +5124,52 @@ class RethinkDB
                     s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
                     fs.writeFile(opts.path, s, opts.cb)
 
+    update_patches: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/patches/smc/update-patches.json'
+            cb    : required
+        # needs index! -- db.table('patches').indexCreate('time',db.r.row('id')(1)).run(done())
+        # query = @table('patches').between(opts.start, @r.maxval, index:'time')
+        # for dev:
+        query = @table('patches').limit(1000)   # COMMENT this out and replace by above query to do it right... but needs index
+        query.run (err, patches) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+                for x in patches
+                    x.id[1] = json_time(x.id[1])
+                    if x.sent?
+                        x.sent = json_time(x.sent)
+                    if x.prev?
+                        x.prev = json_time(x.prev)
+                s = '[\n' + (JSON.stringify(x) for x in patches).join(',\n') + '\n]\n'
+                fs.writeFile(opts.path, s, opts.cb)
+
+
+
+
+    update_syncstrings: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/syncstrings/smc/update-syncstrings.json'
+            cb    : required
+        opts.cb()
+
+    update_blobs: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/blobs/smc/update-blobs.json'
+            cb    : required
+        opts.cb()
+
 json_time = (x) ->
+    if typeof(x) == 'string'
+        x = new Date(x)
     {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
 
 # modify obj in place substituting keys as given.
