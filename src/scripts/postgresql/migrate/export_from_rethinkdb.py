@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 import os, timing
 
-def process(table, export=True):
+def process(table, export=True, update=False):
     out = '/migrate/data/%s'%table
-    path_to_json = out + '/smc/%s.json'%table
+    if update:
+        path_to_json = out + '/smc/update-%s.json'%table
+        if not os.path.exists(path_to_json):
+            raise RuntimeError("run the update query")
+            return path_to_json
+    else:
+        path_to_json = out + '/smc/%s.json'%table
     if not os.path.exists(out):
         export = True
     if not export:

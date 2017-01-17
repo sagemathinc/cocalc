@@ -3184,7 +3184,7 @@ class RethinkDB
                            if err or not opts.delay
                                cb(err)
                            else
-                               setTimeout(cb, opts.delay) 
+                               setTimeout(cb, opts.delay)
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
         ], (err) =>
             if err
@@ -5028,6 +5028,37 @@ class RethinkDB
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
     ###
+
+    ###
+    One off database migration code.  Will get deleted.
+    ###
+    update_migrate: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            cb    : required
+        f = (table, cb) =>
+            @["update_#{table}"](start:opts.start, cb:cb)
+        tables = ['client_error_log']
+        async.map(tables, f, opts.cb)
+
+
+    update_client_error_log: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/client_error_log/smc/update-client_error_log.json'
+            cb    : required
+        @get_client_error_log
+            start : opts.start
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->

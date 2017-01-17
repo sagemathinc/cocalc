@@ -50,7 +50,7 @@ import fix_timestamps, json_to_csv, read_from_csv, populate_relational_table, ex
 timing.init()
 
 
-parallel = export = count = False
+parallel = export = count = update = False
 
 def process(table):
     if table not in tables:
@@ -72,7 +72,7 @@ def process(table):
     if T.get('skip', False):
         return
     print "get from rethinkdb as json"
-    path_to_json = export_from_rethinkdb.process(table, export)
+    path_to_json = export_from_rethinkdb.process(table, export, update)
     print "convert json to csv"
     path_to_csv = json_to_csv.process(path_to_json, export)
     if T.get('fix_timestamps', False):
@@ -107,6 +107,11 @@ if __name__ == "__main__":
     for i in range(len(v)):
         if v[i] == '-c':
             count = True
+            del v[i]
+            break
+    for i in range(len(v)):
+        if v[i] == '-u':
+            update = True
             del v[i]
             break
     if len(v) == 1:
