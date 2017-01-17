@@ -813,7 +813,12 @@ class CodeMirrorEditor extends FileEditor
                 evaluate_key = "Enter"
             else
                 evaluate_key = "Shift-Enter"
-            extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
+            extraKeys[evaluate_key] = (editor) => @action_key(execute: true, advance:true, split:false)
+        else
+            extraKeys["Shift-Enter"] = =>
+                alert_message
+                    type    : "error"
+                    message : "You can only evaluate code in a file that ends with the extension 'sagews'.   Create a Sage Worksheet instead."
 
         # Layouts:
         #   0 - one single editor

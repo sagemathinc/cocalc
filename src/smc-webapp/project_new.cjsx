@@ -149,8 +149,8 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         <div>
             <Row style={row_style}>
                 <Col sm=6>
-                    <Tip icon='file-code-o' title='SageMath Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                        <NewFileButton icon='file-code-o' name='SageMath Worksheet' on_click={@props.create_file} ext='sagews' />
+                    <Tip icon='file-code-o' title='Sage Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='file-code-o' name='Sage Worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
                     <Tip icon='file-code-o' title='Jupyter Notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='file-code-o' name='Jupyter Notebook' on_click={@props.create_file} ext={'ipynb'}} />
@@ -280,10 +280,10 @@ ProjectNewForm = rclass ({name}) ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
             <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button onClick={=>@create_file()} bsStyle='success'>
+                <Button onClick={=>@create_file()} bsStyle='default'>
                     Create file with no extension
                 </Button>
-                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='success'>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -307,7 +307,7 @@ ProjectNewForm = rclass ({name}) ->
                                 type        = 'text'
                                 disabled    = @state.extension_warning
                                 placeholder = 'Name your file, folder, or paste in a link...'
-                                onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                                onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
                         </FormGroup>
                     </form>
                     {if @state.extension_warning then @render_no_extension_alert()}
