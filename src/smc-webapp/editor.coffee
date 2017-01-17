@@ -1158,6 +1158,10 @@ class CodeMirrorEditor extends FileEditor
             else if @default_font_size?
                 @set_font_size(cm, @default_font_size)
 
+    get_font_size: (cm) ->
+        elt = $(cm.getWrapperElement())
+        elt.data('font-size') ? @default_font_size
+
     set_font_size: (cm, size) =>
         if size > 1
             elt = $(cm.getWrapperElement())
@@ -2505,7 +2509,7 @@ class PDF_Preview extends FileEditor
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
-        @output.text("Loading preview...")
+        @output.text('Loading preview...')
         @_first_output = true
         @_needs_update = true
 
