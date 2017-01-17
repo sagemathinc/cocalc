@@ -1484,22 +1484,37 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=4>
                     {<ButtonToolbar>
-                        <Button onClick={=>@share_social_network('facebook', single_file)}>
-                            <Icon name='facebook' /> Facebook
-                        </Button>
-                        <Button onClick={=>@share_social_network('twitter', single_file)}>
-                             <Icon name='twitter' /> Twitter
-                        </Button>
-                        <Button onClick={=>@share_social_network('google_plus', single_file)}>
-                            <Icon name='google-plus' /> Google+
-                        </Button>
+                        {@render_social_buttons(single_file)}
                     </ButtonToolbar> if show_social_media}
                 </Col>
             </Row>
         </div>
 
+    render_social_buttons: (single_file) ->
+        # sort like in account settings
+        btns =  # button title and icon name
+            email    : ['Email', 'envelope']
+            facebook : ['Facebook', 'facebook']
+            google   : ['Google+', 'google-plus']
+            twitter  : ['Twitter', 'twitter']
+        strategies = smc.redux.getStore('account').get('strategies')?.toArray() ? []
+        _ = require('underscore')
+        btn_keys = _.sortBy(_.keys(btns), (b) ->
+            i = strategies.indexOf(b)
+            return if i >= 0 then i else btns.length + 1
+        )
+        ret = []
+        for b in btn_keys
+            do (b) =>
+                [title, icon] = btns[b]
+                ret.push(<Button onClick={=>@share_social_network(b, single_file)} key={b}>
+                    <Icon name={icon} /> {title}
+                </Button>)
+        return ret
+
     share_social_network: (where, single_file) ->
-        public_url = encodeURIComponent(@construct_public_share_url(single_file))
+        file_url   = @construct_public_share_url(single_file)
+        public_url = encodeURIComponent(file_url)
         filename   = misc.path_split(single_file).tail
         text       = encodeURIComponent("Check out #{filename}")
         switch where
@@ -1511,8 +1526,11 @@ ProjectFilesActionBox = rclass
             when 'twitter'
                 # https://dev.twitter.com/web/tweet-button/web-intent
                 url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=sagemath"
-            when 'google_plus'
+            when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
+            when 'email'
+                url = """mailto:?to=&subject=#{filename} on SageMathCloud&
+                body=A file is shared with you: #{file_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
             open_popup_window(url)
