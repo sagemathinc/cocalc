@@ -362,6 +362,7 @@ schema.central_log =
         time  : []
         event : []
         user_log : ["[that.r.row('value')('account_id'), that.r.row('event'), that.r.row('time')]"]
+    pg_indexes : ['time', 'event']
 
 schema.client_error_log =
     primary_key : 'id'
@@ -380,6 +381,7 @@ schema.client_error_log =
     indexes:
         time : []
         event : []
+    pg_indexes : ['time', 'event']
 
 schema.collaborators =
     primary_key : 'account_id'
@@ -616,6 +618,7 @@ schema.project_log =
     indexes:
         project_id        : []
         'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
+        time              : []   # entirely for migrating to postgres!
 
     pg_indexes : ['project_id', 'time']
 

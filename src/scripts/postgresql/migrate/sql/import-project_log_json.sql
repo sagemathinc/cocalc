@@ -9,4 +9,4 @@ INSERT INTO project_log (
     (a#>>'{account_id}')::UUID,
     (a#>'{event}')
   FROM project_log_json
-) ON CONFLICT (id) DO UPDATE set id=EXCLUDED.id;
+) ON CONFLICT (id) DO NOTHING;

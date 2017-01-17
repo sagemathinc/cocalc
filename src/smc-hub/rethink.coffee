@@ -5034,13 +5034,13 @@ class RethinkDB
     ###
     update_migrate: (opts) =>
         opts = defaults opts,
-            start : misc.days_ago(1)
-            cb    : required
+            start  : misc.hours_ago(1)
+            tables : ['central_log', 'client_error_log', 'project_log']
+            #tables : ['project_log']
+            cb     : required
         f = (table, cb) =>
             @["update_#{table}"](start:opts.start, cb:cb)
-        tables = ['client_error_log']
-        async.map(tables, f, opts.cb)
-
+        async.map(opts.tables, f, opts.cb)
 
     update_client_error_log: (opts) =>
         opts = defaults opts,
@@ -5058,9 +5058,54 @@ class RethinkDB
                     catch
                         # ignore
                     for x in log
-                        x.time = {"$reql_type$": "TIME", "epoch_time":(x.time - 0)/1000}
+                        x.time = json_time(x.time)
                     s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
                     fs.writeFile(opts.path, s, opts.cb)
+
+    update_central_log: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/central_log/smc/update-central_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+    update_project_log: (opts) =>
+        opts = defaults opts,
+            start : misc.days_ago(1)
+            path  : '/migrate/data/project_log/smc/update-project_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            log   : 'project_log'
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+
+json_time = (x) ->
+    {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->

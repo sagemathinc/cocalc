@@ -10,5 +10,5 @@ INSERT INTO central_log (
     (a#>>'{event}'),
     (a#>'{value}'),
     to_timestamp((a#>>'{time,epoch_time}')::FLOAT)
-  FROM central_log_json
-) ON CONFLICT (id) DO UPDATE SET id=EXCLUDED.id;
+  FROM central_log_json 
+) ON CONFLICT (id) DO NOTHING;
