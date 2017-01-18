@@ -129,12 +129,13 @@ class exports.PostgreSQL extends PostgreSQL
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
 
-    # TODO: optimization -- this could be done as a changefeed (and is in rethink.coffee)
+    # TODO: optimization -- site_settings could be done as a changefeed (and is done as one in rethink.coffee)
     get_site_settings: (opts) =>
         opts = defaults opts,
             cb : required   # (err, settings)
         @_query
             query : 'SELECT name, value FROM server_settings'
+            cache : true
             where :
                 "name = ANY($)" : misc.keys(site_settings_conf)
             cb : (err, result) =>
@@ -290,7 +291,6 @@ class exports.PostgreSQL extends PostgreSQL
                 groups : ['admin']
             cb    : opts.cb
 
-    # TODO: (probably) need indexes to make this fast.
     count_accounts_created_by: (opts) =>
         opts = defaults opts,
             ip_address : required
@@ -436,8 +436,11 @@ class exports.PostgreSQL extends PostgreSQL
                                     dbg("Error adding user to project: #{err}")
                                 cb(err)
                     else
-                        # TODO: need to report this some better way, maybe email?
-                        dbg("skipping unknown action -- #{action.action}")
+                        # TODO: need to report this some better way, maybe email or insertion in a table
+                        # of messages for admin.  That's probably best -- we could also make tracebacks
+                        # of any time insert in that table, then just scan it periodically.  Basically,
+                        # if anything is there, then warn.
+                        dbg("ERROR: skipping unknown action -- #{action.action}")
                         cb()
                 async.map actions, f, (err) =>
                     if not err
@@ -1282,7 +1285,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb         : required
         # Get all public paths for the given project_id, then check if path is "in" one according
         # to the definition in misc.
-        # TODO: implement caching + changefeeds so that we only do the get once.
+        # TODO: maybe (?) implement caching + changefeeds so that we only do the get once.
         @get_public_paths
             project_id : opts.project_id
             cb         : (err, public_paths) =>

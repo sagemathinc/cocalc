@@ -833,7 +833,9 @@ exports.all_results = all_results = (pattern, cb) ->
         else
             rows = result.rows
             if not pattern?
-                cb(undefined, (misc.copy(x) for x in rows))  # TODO: stupid misc.copy to unwrap from pg driver type -- investigate better!
+                # TODO: we use stupid (?) misc.copy to unwrap from pg driver type -- investigate better!
+                # Maybe this is fine.  I don't know.
+                cb(undefined, (misc.copy(x) for x in rows))
             else if typeof(pattern) == 'string'
                 cb(undefined, ((x[pattern] ? undefined) for x in rows))
             else

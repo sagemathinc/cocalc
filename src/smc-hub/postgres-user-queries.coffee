@@ -452,7 +452,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb("query must specify (primary) key '#{primary_key}'")
                     return
             # get the old value before changing it
-            # TODO: can we restrict columns below?
+            # TODO: optimization -- can we restrict columns below?
             @_query
                 query : "SELECT * FROM #{r.db_table}"
                 where : @_user_set_query_where(r)

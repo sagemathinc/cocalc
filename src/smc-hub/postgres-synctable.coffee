@@ -446,7 +446,8 @@ class Changes extends EventEmitter
                 if err
                     # TODO -- what to do -- some ugly thing involving trying again.
                     # really just need a notion of queries that can't fail unless
-                    # they are erronous.
+                    # they are erronous.  I.e., if they fail due to "database is down",
+                    # then they always get retried.
                 else
                     for x in results
                         if @_match_condition(x)
@@ -842,12 +843,5 @@ CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{tabl
 """
     return code
 
-parse_cond = (cond) ->
-    # TODO hack for now -- there must be space
-    i = cond.indexOf(' ')
-    if i == -1
-        return {field:cond}
-    else
-        return {field:cond.slice(0,i)}
 
 

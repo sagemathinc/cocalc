@@ -282,9 +282,6 @@ class exports.PostgreSQL extends PostgreSQL
     so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
     then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
     If we don't have the blobs table in the DB, make dummy entries from the blob names in the tarballs.
-
-    TODO : there's a whole bunch of throttling code that was critical with RethinkDB below;
-           however, maybe this isn't needed with Postgres!
     ###
     backup_blobs_to_tarball: (opts) =>
         opts = defaults opts,
@@ -691,7 +688,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
                     return
                 dbg("delete from gcloud")
-                @gcloud().bucket(name:gcloud).delete  #TODO -- needs test
+                @gcloud().bucket(name:gcloud).delete
                     name : opts.uuid
                     cb   : cb
             (cb) =>
