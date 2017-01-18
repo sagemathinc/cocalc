@@ -1492,7 +1492,7 @@ ProjectFilesActionBox = rclass
 
     render_social_buttons: (single_file) ->
         # sort like in account settings
-        btns =  # button title and icon name
+        btns =  # mapping ID to button title and icon name
             email    : ['Email', 'envelope']
             facebook : ['Facebook', 'facebook']
             google   : ['Google+', 'google-plus']
@@ -1529,6 +1529,7 @@ ProjectFilesActionBox = rclass
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
+                # don't do encodeURIComponent -- strangely messes up everything for email
                 url = """mailto:?to=&subject=#{filename} on SageMathCloud&
                 body=A file is shared with you: #{file_url}"""
         if url?
