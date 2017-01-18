@@ -834,7 +834,8 @@ class exports.LatexEditor extends editor.FileEditor
                         type    : "error"
                         message : "Inverse search error -- #{err}"
             else
-                if res.input != @filename
+                # lowercase needed, because synctex automatically uppercases .Rnw
+                if res.input.toLocaleLowerCase() != @filename.toLocaleLowerCase()
                     if active
                         redux.getProjectActions(@project_id).open_file
                             path : res.input

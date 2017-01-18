@@ -2029,7 +2029,14 @@ class PDFLatexDocument
             n  : required
             cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
 
-        fn = if @ext == 'tex' then @filename_tex else @filename_rnw
+        fn = switch @ext
+            when 'tex'
+                @filename_tex
+            when 'rnw'
+                # extensions are considered lowercase, but for synctex it needs to be .Rnw
+                misc.change_filename_extension(@filename_rnw, 'Rnw')
+            else
+                opts.cb("latex forward search: known extension '#{@ext}'")
         @_exec
             command : 'synctex'
             args    : ['view', '-i', "#{opts.n}:0:#{fn}", '-o', @filename_pdf]
