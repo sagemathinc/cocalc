@@ -835,6 +835,11 @@ class CodeMirrorEditor extends FileEditor
             @_layout = 0
         @_last_layout = undefined
 
+        if feature.isMobile.Android()
+            # see https://github.com/sragemathinc/smc/issues/1360
+            opts.style_active_line = false
+
+
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
