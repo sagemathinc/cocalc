@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
 {Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
@@ -323,6 +323,17 @@ Message = rclass
                 {cols}
             </Row>
 
+Array::bisect = (val) ->
+    idx = undefined
+    if @length == 0
+        return 0
+    idx = 0
+    while idx < @length
+        if val < @[idx]
+            return idx
+        idx++
+    idx
+
 ChatLog = rclass
     displayName: "ChatLog"
 
@@ -332,6 +343,7 @@ ChatLog = rclass
         account_id   : rtypes.string
         project_id   : rtypes.string   # optional -- used to render links more effectively
         file_path    : rtypes.string   # optional -- ...
+        path         : rtypes.string
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
@@ -362,6 +374,30 @@ ChatLog = rclass
                 else
                     @props.actions.set_editing(@props.messages.get(date), false)
 
+    find_read_tos: (read_dates_by_user, message_dates) ->
+        read_indexes_to_user_ids = {}
+        [user_ids, read_dates] = [Object.keys(read_dates_by_user), underscore.values(read_dates_by_user)]
+        find_between = (read_date) ->
+            answer = message_dates.bisect(read_date)
+            answer -= 1
+            if answer == -1
+                return null
+            return answer
+        indexes_for_read_up_to = (find_between(date) for date in read_dates)
+        for index_for_read_up_to, i in indexes_for_read_up_to
+            user_id = user_ids[i]
+            if index_for_read_up_to is null
+                continue
+            if String(index_for_read_up_to) in Object.keys(read_indexes_to_user_ids)
+                read_indexes_to_user_ids[index_for_read_up_to].push(user_id)
+            else
+                read_indexes_to_user_ids[index_for_read_up_to] = [user_id]
+        return read_indexes_to_user_ids
+
+    render_read_avatars: (account_ids) ->
+        for account_id in account_ids
+            <Avatar key={'read_by_'+account_id} size={16} account_id={account_id} />
+
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
             if index + 1 == dates.length
@@ -378,6 +414,11 @@ ChatLog = rclass
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        file_use_users = redux.getStore('file_use').get_file_info(@props.project_id, @props.path).users
+        read_dates_by_user = {}
+        for u in file_use_users
+            read_dates_by_user[u.account_id] = u.last_read
+        read_indexes_to_user_ids = @find_read_tos(read_dates_by_user, sorted_dates)
         v = []
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
@@ -405,6 +446,9 @@ ChatLog = rclass
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
                     />
+            console.log(read_indexes_to_user_ids[i])
+            if read_indexes_to_user_ids?[i]
+                v.push <div>{@render_read_avatars(read_indexes_to_user_ids[i])}</div>
 
         return v
 
@@ -649,6 +693,7 @@ ChatRoom = rclass ({name}) ->
                             project_id   = {@props.project_id}
                             font_size    = {@props.font_size}
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                            path         = {@props.path}
                             actions      = {@props.actions}
                             saved_mesg   = {@props.saved_mesg}
                             set_scroll   = {@set_chat_log_state}
