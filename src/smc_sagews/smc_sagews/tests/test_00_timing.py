@@ -133,6 +133,6 @@ class TestStartSageServer:
 
         # check timing
         print("elapsed 2+2 %s"%elapsed)
-        assert elapsed < 8.0
+        assert elapsed < 10.0
 
         return

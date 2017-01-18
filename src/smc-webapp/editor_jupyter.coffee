@@ -172,6 +172,11 @@ class JupyterWrapper extends EventEmitter
             if not @frame
                 setTimeout(f, 250)
                 return
+            try
+                # See https://github.com/sagemathinc/smc/issues/1262 -- this is especially broken on Firefox.
+                @frame.require("notebook/js/outputarea").OutputArea.prototype._should_scroll = ->  # no op
+            catch
+                # nothing.
             innerHTML = @frame?.document?.body?.innerHTML
 
             if new Date() - start >= max_time_ms

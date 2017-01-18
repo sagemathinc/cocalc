@@ -469,7 +469,7 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png'):
+    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png', ignore_stdout=False):
 
         SHA_LEN = 36
 
@@ -503,6 +503,8 @@ def execblob(request, sagews, test_id):
                     assert want_javascript
                     want_javascript = False
                     print('got javascript')
+                elif ignore_stdout and 'stdout' in mesg:
+                    pass
                 else:
                     assert want_name
                     want_name = False

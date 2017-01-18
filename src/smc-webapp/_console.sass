@@ -61,49 +61,19 @@
   border-radius : 3px
 
 .salvus-console-cursor-focus
-  -webkit-animation : salvus-cursor-blink 1.3s linear 0s infinite
-  -moz-animation    : salvus-cursor-blink 1.3s linear 0s infinite
-  -ms-animation     : salvus-cursor-blink 1.3s linear 0s infinite
-  -o-animation      : salvus-cursor-blink 1.3s linear 0s infinite
-  background        : #000
-  color             : #fff
-  /* Fallback for browsers without animation support */
+  animation      : salvus-cursor-blink 1.3s linear 0s infinite
+  background     : #fff
+  color          : #555
+  border         : 1px solid #555
+  margin         : -1px
 
-@-webkit-keyframes salvus-cursor-blink
+@keyframes salvus-cursor-blink
   0%, 40%
-    background : #000
-    color      : #fff
+    -webkit-filter: invert(1.0)
+    filter: invert(1.0)
   50%, 90%
-    background : #fff
-    color      : #000
-
-
-@-moz-keyframes salvus-cursor-blink
-  0%, 40%
-    background : #000
-    color      : #fff
-  50%, 90%
-    background : #fff
-    color      : #000
-
-
-@-ms-keyframes salvus-cursor-blink
-  0%, 40%
-    background : #000
-    color      : #fff
-  50%, 90%
-    background : #fff
-    color      : #000
-
-
-@-o-keyframes salvus-cursor-blink
-  0%, 40%
-    background : #000
-    color      : #fff
-  50%, 90%
-    background : #fff
-    color      : #000
-
+    -webkit-filter: invert(0.0)
+    filter: invert(0.0)
 
 .salvus-console-textarea
   height   : 0px

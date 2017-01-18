@@ -29,6 +29,12 @@ You can watch the logs:
 
     $ docker logs smc -f
     
+### Clock skew on OS X
+
+It is **critical** that the Docker container have the correct time, since SMC assumes that the server has the correct time.
+On a laptop running Docker under OS X, the clock will get messed up any time you suspend/resume your laptop.  A very easy to install workaround is at https://github.com/arunvelsriram/docker-time-sync-agent/.
+
+    
 ### SSH port forwarding
 
 If you're running this docker image on a remote server and want to use ssh port forwarding to connect, type
