@@ -27,10 +27,12 @@ required = defaults.required
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
-            host     : process.env['SMC_DB_HOST'] ? 'localhost'    # or 'hostname:port'
-            database : process.env['SMC_DB'] ? 'smc'
-            debug    : true
-            connect  : true
+            host         : process.env['SMC_DB_HOST'] ? 'localhost'    # or 'hostname:port'
+            database     : process.env['SMC_DB'] ? 'smc'
+            debug        : true
+            connect      : true
+            cache_expiry : 15000  # expire cached queries after this many milliseconds (default: 15s)
+            cache_size   : 250    # cache this many queries; use @_query(cache:true, ...) to cache result
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
@@ -43,6 +45,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_port = 5432
         @_database = opts.database
         @_concurrent_queries = 0
+        if opts.cache_expiry and opts.cache_size
+            @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
         if opts.connect
             @connect()  # start trying to connect
 
@@ -147,7 +151,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             select    : undefined    # if given, should be string or array of column names  -|  can give these
             table     : undefined    # if given, name of table                              -|  two instead of query
             params    : []
-            cache     : false        # TODO: implement this
+            cache     : false        # Will cache results for a few seconds or use cache.  Use this
+                                     # when speed is very important, and results that are a few seconds
+                                     # out of date are fine.
             where     : undefined    # Used for SELECT: If given, can be
                                      #  - a map with keys clauses with $::TYPE  (not $1::TYPE!)  and values
                                      #    the corresponding params.  Also, WHERE must not be in the query already.
@@ -378,6 +384,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " LIMIT #{opts.limit} "
 
         dbg("query='#{opts.query}'")
+        if opts.cache and @_query_cache?
+            # check for cached result
+            full_query_string = JSON.stringify([opts.query, opts.params])
+            if (x = @_query_cache.get(full_query_string))?
+                dbg("using cache for '#{opts.query}'")
+                opts.cb?(x...)
+                return
 
         # params can easily be huge, e.g., a blob.  But this may be
         # needed at some point for debugging.
@@ -392,6 +405,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) -- success")
+                if opts.cache and @_query_cache?
+                    @_query_cache.set(full_query_string, [err, result])
                 opts.cb?(err, result)
         catch e
             # this should never ever happen
