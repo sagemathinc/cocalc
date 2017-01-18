@@ -337,8 +337,6 @@ class JupyterWrapper extends EventEmitter
         Notebook.prototype.move_selection_up = () ->
             this.smc_move_selection_up()
             this.dirty = true
-        # See https://github.com/sagemathinc/smc/issues/1262 -- this is especially broken on Firefox.
-        @frame.require("notebook/js/outputarea").OutputArea.prototype._should_scroll = ->  # no op
 
     font_size_set: (font_size) =>
         # initialization, if necessary
