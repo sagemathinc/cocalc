@@ -1163,6 +1163,10 @@ class CodeMirrorEditor extends FileEditor
             else if @default_font_size?
                 @set_font_size(cm, @default_font_size)
 
+    get_font_size: (cm) ->
+        elt = $(cm.getWrapperElement())
+        elt.data('font-size') ? @default_font_size
+
     set_font_size: (cm, size) =>
         if size > 1
             elt = $(cm.getWrapperElement())
@@ -2025,7 +2029,14 @@ class PDFLatexDocument
             n  : required
             cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
 
-        fn = if @ext == 'tex' then @filename_tex else @filename_rnw
+        fn = switch @ext
+            when 'tex'
+                @filename_tex
+            when 'rnw'
+                # extensions are considered lowercase, but for synctex it needs to be .Rnw
+                misc.change_filename_extension(@filename_rnw, 'Rnw')
+            else
+                opts.cb("latex forward search: known extension '#{@ext}'")
         @_exec
             command : 'synctex'
             args    : ['view', '-i', "#{opts.n}:0:#{fn}", '-o', @filename_pdf]
@@ -2510,7 +2521,7 @@ class PDF_Preview extends FileEditor
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
-        @output.text("Loading preview...")
+        @output.text('Loading preview...')
         @_first_output = true
         @_needs_update = true
 
