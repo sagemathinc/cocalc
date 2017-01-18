@@ -581,7 +581,8 @@ class exports.LatexEditor extends editor.FileEditor
         if not log?
             cb()
             return
-        p = (new LatexParser(log)).parse()
+        {LatexParser} = require('latex/latex-log-parser.coffee')
+        p = (new LatexParser(log, {ignoreDuplicates: true})).parse()
 
         if p.errors.length
             @number_of_errors.text("  (#{p.errors.length})")
@@ -657,9 +658,9 @@ class exports.LatexEditor extends editor.FileEditor
             cm._smc_inline_errors = {}
 
     _render_inline_error: (line, message, content, error_type) =>
-        line -= 1 # to get 0-based numbering here
-        if error_type == 'typesetting'
-            # typesetting warnings are too verbose
+        line -= 1 # to get 0-based numbering for the remaining code
+        if error_type != 'error'
+            # only show errors, warnings and typesettings are too verbose
             return
         # at most one error widget per line ...
         if line of @latex_editor.codemirror._smc_inline_errors
@@ -674,8 +675,8 @@ class exports.LatexEditor extends editor.FileEditor
             con = document.createElement('pre')
             con.className = 'smc-latex-inline-error-content'
             con_lines = content.split(/\r?\n/)
-            if con_lines.length >= 4
-                con_lines = con_lines[...3]
+            if con_lines.length >= 5
+                con_lines = con_lines[...4]
                 con_lines.push('[...]')
             content = con_lines.join('\n')
             con.appendChild(document.createTextNode(content))
