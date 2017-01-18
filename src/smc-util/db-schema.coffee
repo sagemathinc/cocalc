@@ -1037,7 +1037,7 @@ schema.stats =
             type : 'map'
         hub_servers         :
             type : 'array'
-            pg_type : 'JSONB'
+            pg_type : 'JSONB[]'
     indexes:
         time : []
     pg_indexes : ['time']

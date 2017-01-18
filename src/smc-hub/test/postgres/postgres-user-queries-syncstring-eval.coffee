@@ -90,6 +90,7 @@ describe 'use of eval_inputs table --', ->
         db.make_user_admin(account_id:accounts[2], cb:done)
 
     test_write_and_read = (account_id, project_id, cb) ->
+        db.clear_cache()
         async.series([
             (cb) ->
                 # deletes records
@@ -279,6 +280,7 @@ describe 'use of eval_outputs table --', ->
         db.make_user_admin(account_id:accounts[2], cb:done)
 
     test_write_and_read = (account_id, project_id, cb) ->
+        db.clear_cache()
         async.series([
             (cb) ->
                 # deletes records

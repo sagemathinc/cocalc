@@ -31,8 +31,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             database     : process.env['SMC_DB'] ? 'smc'
             debug        : true
             connect      : true
-            cache_expiry : 15000  # expire cached queries after this many milliseconds (default: 15s)
-            cache_size   : 250    # cache this many queries; use @_query(cache:true, ...) to cache result
+            cache_expiry : 2000  # expire cached queries after this many milliseconds
+                                 # keep this very short; it's just meant to reduce impact of a bunch of
+                                 # identical permission checks in a single user query.
+            cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
@@ -49,6 +51,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
         if opts.connect
             @connect()  # start trying to connect
+
+    clear_cache: =>
+        @_query_cache?.reset()
 
     close: =>
         if @_state == 'closed'
@@ -510,6 +515,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg("deleting all contents of tables in '#{@_database}'")
         if not @_confirm_delete(opts)
             return
+
+        # If the cache is enabled, be sure to also clear it.
+        @clear_cache()
+
         tables = undefined
 
         # Delete anything cached in the db object.  Obviously, not putting something here

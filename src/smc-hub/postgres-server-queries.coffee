@@ -282,6 +282,7 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             account_id : required
             cb         : required
+        @clear_cache()  # caching is mostly for permissions so this is exactly when it would be nice to clear it.
         @_query
             query : "UPDATE accounts"
             where : 'account_id = $::UUID':opts.account_id
