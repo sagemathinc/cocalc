@@ -323,18 +323,7 @@ Message = rclass
                 {cols}
             </Row>
 
-Array::bisect = (val) ->
-    idx = undefined
-    if @length == 0
-        return 0
-    idx = 0
-    while idx < @length
-        if val < @[idx]
-            return idx
-        idx++
-    idx
-
-sortCopy = (arr) -> 
+sortCopy = (arr) ->
     return arr.slice(0).sort()
 
 are_dicts_equal = (a, b) ->
@@ -366,6 +355,7 @@ ChatLog = rclass
         messages     : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
         user_map     : rtypes.object              # immutable js map {collaborators} --> account info
         read_dates_by_user : rtypes.object
+        message_dates: rtypes.array
         account_id   : rtypes.string
         project_id   : rtypes.string   # optional -- used to render links more effectively
         file_path    : rtypes.string   # optional -- ...
@@ -378,7 +368,7 @@ ChatLog = rclass
         set_scroll   : rtypes.func
 
     getInitialState: ->
-        read_indexes_to_user_ids: @find_read_tos(@props.read_dates_by_user, @props.messages.keySeq().sort(misc.cmp_Date).toJS())
+        read_indexes_to_user_ids: @find_read_tos(@props.read_dates_by_user, @props.message_dates)
         prev_read_dates_by_user: @props.read_dates_by_user
 
     mixins: [SetIntervalMixin]
@@ -389,14 +379,7 @@ ChatLog = rclass
     update_read_indexes_to_user_ids: ->
         if are_dicts_equal(@props.read_dates_by_user, @state.prev_read_dates_by_user)
             return
-        message_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         read_indexes_to_user_ids = @state.read_indexes_to_user_ids
-        find_between = (read_date) ->
-            answer = message_dates.bisect(read_date)
-            answer -= 1
-            if answer == -1
-                return null
-            return answer
         # figure out which users to update
         diff = diffArray(Object.keys(@props.read_dates_by_user), Object.keys(@state.prev_read_dates_by_user))
         for account_id in Object.keys(@props.read_dates_by_user)
@@ -407,11 +390,9 @@ ChatLog = rclass
             # remove account_id from read_indexes_to_user_ids
             for i in Object.keys(read_indexes_to_user_ids)
                 read_indexes_to_user_ids[parseInt(i)] = read_indexes_to_user_ids[parseInt(i)].filter (x) -> x isnt account_id
-            index_for_read = find_between(@props.read_dates_by_user[account_id])
-            if String(index_for_read) in Object.keys(read_indexes_to_user_ids)
-                read_indexes_to_user_ids[index_for_read].push(account_id)
-            else
-                read_indexes_to_user_ids[index_for_read] = [account_id]
+            index_for_read_up_to = @find_between(@props.read_dates_by_user[account_id])
+            read_indexes_to_user_ids[index_for_read_up_to] ?= []
+            read_indexes_to_user_ids[index_for_read_up_to].push(account_id)
         @setState(prev_read_dates_by_user: @props.read_dates_by_user)
         @setState(read_indexes_to_user_ids: read_indexes_to_user_ids)
         @forceUpdate()
@@ -440,24 +421,23 @@ ChatLog = rclass
                 else
                     @props.actions.set_editing(@props.messages.get(date), false)
 
+    find_between: (read_date) ->
+        answer = misc.array_bisect(@props.message_dates, read_date)
+        answer -= 1
+        if answer == -1
+            return null
+        return answer
+
     find_read_tos: (read_dates_by_user, message_dates) ->
         read_indexes_to_user_ids = {}
         [user_ids, read_dates] = [Object.keys(read_dates_by_user), underscore.values(read_dates_by_user)]
-        find_between = (read_date) ->
-            answer = message_dates.bisect(read_date)
-            answer -= 1
-            if answer == -1
-                return null
-            return answer
-        indexes_for_read_up_to = (find_between(date) for date in read_dates)
+        indexes_for_read_up_to = (@find_between(date) for date in read_dates)
         for index_for_read_up_to, i in indexes_for_read_up_to
             user_id = user_ids[i]
             if index_for_read_up_to is null
                 continue
-            if String(index_for_read_up_to) in Object.keys(read_indexes_to_user_ids)
-                read_indexes_to_user_ids[index_for_read_up_to].push(user_id)
-            else
-                read_indexes_to_user_ids[index_for_read_up_to] = [user_id]
+            read_indexes_to_user_ids[index_for_read_up_to] ?= []
+            read_indexes_to_user_ids[index_for_read_up_to].push(user_id)
         return read_indexes_to_user_ids
 
     get_name: (account_id) ->
@@ -764,7 +744,8 @@ ChatRoom = rclass ({name}) ->
             margin       : "0"
             height       : '90px'
             fontSize     : @props.font_size
-
+        message_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        message_dates = message_dates.map (x) -> parseInt(x)
         <Grid fluid={true} className='smc-vfill' style={maxWidth: '1200px', display:'flex', flexDirection:'column'}>
             {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
@@ -772,6 +753,7 @@ ChatRoom = rclass ({name}) ->
                     <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
                         <ChatLog
                             messages     = {@props.messages}
+                            message_dates= {message_dates}
                             account_id   = {@props.account_id}
                             user_map     = {@props.user_map}
                             project_id   = {@props.project_id}

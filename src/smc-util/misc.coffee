@@ -1898,3 +1898,17 @@ exports.bind_objects = (scope, arr_objects) ->
                 return bound_func
             else
                 return val
+
+# Provide the index that a value would be inserted
+# into an array where the val is between the number before
+# and after it
+exports.array_bisect = (arr, val) ->
+    idx = undefined
+    if arr.length == 0
+        return 0
+    idx = 0
+    while idx < arr.length
+        if val < arr[idx]
+            return idx
+        idx++
+    idx

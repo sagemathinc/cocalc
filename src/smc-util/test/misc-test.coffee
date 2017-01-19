@@ -1389,3 +1389,8 @@ describe 'bind_objects', ->
 
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
+
+describe 'array bisect function', ->
+    array_bisect = misc.array_bisect
+    it 'returns insertion index of 3 for a value of 11 for array of [0,3,5,15,30,90]', ->
+        array_bisect([0,3,5,15,30,90], 11).should.eql 3
