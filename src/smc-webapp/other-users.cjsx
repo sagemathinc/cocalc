@@ -60,6 +60,7 @@ exports.Avatar = Avatar = rclass
         account_id : rtypes.string.isRequired
         size       : rtypes.number.isRequired
         max_age_s  : rtypes.number.isRequired
+        tooltip    : rtypes.string   # if given, showing custom tooltip string
         project_id : rtypes.string   # if given, showing avatar info for a project (or specific file)
         path       : rtypes.string   # if given, showing avatar for a specific file
         activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
@@ -125,17 +126,20 @@ exports.Avatar = Avatar = rclass
             return undefined
 
     render_tooltip_content: ->
-        name = @get_name()
-        if not @props.activity?
-            return <span>{name}</span>
-        switch @viewing_what()
-            when 'projects'
-                {ProjectTitle} = require('./projects')  # MUST be imported here.
-                <span>{name} last seen at <ProjectTitle project_id={@props.activity.project_id} /></span>
-            when 'project'
-                <span>{name} last seen at {@props.activity.path}</span>
-            when 'file'
-                <span>{name} {@render_line()}</span>
+        if @props.tooltip
+            <span>{@props.tooltip}</span>
+        else
+            name = @get_name()
+            if not @props.activity?
+                return <span>{name}</span>
+            switch @viewing_what()
+                when 'projects'
+                    {ProjectTitle} = require('./projects')  # MUST be imported here.
+                    <span>{name} last seen at <ProjectTitle project_id={@props.activity.project_id} /></span>
+                when 'project'
+                    <span>{name} last seen at {@props.activity.path}</span>
+                when 'file'
+                    <span>{name} {@render_line()}</span>
 
     render_tooltip: ->
         <Tooltip id={@props.account_id}>
