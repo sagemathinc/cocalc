@@ -62,6 +62,9 @@ require('./console')
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('smc-util/misc')
 
+{rclass, rtypes, ReactDOM, React} = require('./smc-react')
+{NotPublicError, AccountPage} = require('./account_page')
+
 syncdoc  = require('./syncdoc')
 sagews   = require('./sagews')
 printing = require('./printing')
@@ -3015,7 +3018,7 @@ class PublicHTML extends FileEditor
                 timeout    : 60
                 cb         : (err, content) =>
                     if err
-                        @content = "Error opening file -- #{err}"
+                        @element.html('Error')
                     else
                         @content = content
                     if @iframe?
@@ -3062,7 +3065,11 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
             timeout    : 60
             cb         : (err, content) =>
                 if err
-                    content = "Error opening file -- #{err}"
+                    if err == 'not_public'
+                        @element.html('<div id="not_public_error"></div>')
+                        ReactDOM.render(React.createElement(NotPublicError), document.getElementById('not_public_error'))
+                    else
+                        content = "Error opening file -- #{err}"
                 @_set(content)
                 cb?(err)
 

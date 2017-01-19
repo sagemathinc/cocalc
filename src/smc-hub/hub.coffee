@@ -1389,7 +1389,9 @@ class Client extends EventEmitter
                         cb         : opts.cb
                 else
                     # no
-                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
+                    opts.cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
+                    # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
+                    # to provide user with helpful context based error about why they can't access a given directory
 
     mesg_public_get_directory_listing: (mesg) =>
         for k in ['path', 'project_id']
