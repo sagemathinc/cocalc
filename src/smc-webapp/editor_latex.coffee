@@ -784,9 +784,11 @@ class exports.LatexEditor extends editor.FileEditor
         # always call the cb without an error -- otherwise the errors don't show up at all
         if @preview.pdflatex.ext == 'rnw'
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
+            if @_path # make relative to home directory of project
+                conc_fn = @_path + '/' + conc_fn
             salvus_client.read_text_file_from_project
                 project_id : @project_id
-                path       : @_path + '/' + conc_fn
+                path       : conc_fn
                 cb         : (err, res) =>
                     err ?= res.error
                     if err
