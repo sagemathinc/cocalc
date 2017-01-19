@@ -153,9 +153,10 @@ FileRow = rclass
         @props.no_select != next.no_select
 
     render_icon: ->
-        ext   = misc.filename_extension(@props.name)
-        name  = file_associations[ext]?.icon ? 'file'
-        style =
+        # get the file_associations[ext] just like it is defined in the editor
+        {file_options} = require('./editor')
+        name           = file_options(@props.name)?.icon ? 'file'
+        style          =
             color         : if @props.mask then '#bbbbbb'
             verticalAlign : 'sub'
         <a style={style}>
@@ -189,7 +190,6 @@ FileRow = rclass
             </Tip>
         else
             @render_name_link(styles, name, ext)
-
 
     render_public_file_info_popover: ->
         <Popover title='This file is being shared publicly' id='public_share' >
