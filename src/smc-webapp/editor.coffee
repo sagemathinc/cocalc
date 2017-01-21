@@ -228,6 +228,13 @@ file_associations['css'] =
     opts   : {mode:'css', indent_unit:4, tab_size:4}
     name   : "CSS"
 
+for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
+    file_associations[m] =
+        editor : 'codemirror'
+        icon   : 'cogs'
+        opts   : {mode:'makefile', indent_unit:4, tab_size:4, spaces_instead_of_tabs: false}
+        name   : "Makefile"
+
 file_associations['term'] =
     editor : 'terminal'
     icon   : 'fa-terminal'
