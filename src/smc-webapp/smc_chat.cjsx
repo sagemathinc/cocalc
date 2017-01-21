@@ -323,19 +323,19 @@ Message = rclass
                 {cols}
             </Row>
 
-sortCopy = (arr) ->
-    return arr.slice(0).sort()
-
+# allows us to know that {"a": 5, "c": 7} is equal
+# to {"c": 7, "a": 5}
 are_dicts_equal = (a, b) ->
-    # assuming maps to lists
+    # assuming maps to non array
     sorteda = {}
-    for key in sortCopy(Object.keys(a))
+    for key in underscore.sortBy(Object.keys(a))
         sorteda[key] = a[key]
     sortedb = {}
-    for key in sortCopy(Object.keys(b))
+    for key in underscore.sortBy(Object.keys(b))
         sortedb[key] = b[key]
     return JSON.stringify(sorteda) == JSON.stringify(sortedb)
 
+# assumes these are arrays of numbers
 diffArray = (arr1, arr2) ->
     newArr = []
     arr1.forEach (val) ->
@@ -374,7 +374,10 @@ ChatLog = rclass
     mixins: [SetIntervalMixin]
 
     componentWillMount: ->
-        setInterval(@update_read_indexes_to_user_ids, 300)
+        @update_interval = setInterval(@update_read_indexes_to_user_ids, 300)
+
+    componentWillUnmount: ->
+        clearInterval(@update_interval)
 
     update_read_indexes_to_user_ids: ->
         if are_dicts_equal(@props.read_dates_by_user, @state.prev_read_dates_by_user)
@@ -422,8 +425,7 @@ ChatLog = rclass
                     @props.actions.set_editing(@props.messages.get(date), false)
 
     find_between: (read_date) ->
-        answer = misc.array_bisect(@props.message_dates, read_date)
-        answer -= 1
+        answer = misc.find_smaller_number(@props.message_dates, read_date)
         if answer == -1
             return null
         return answer
@@ -495,16 +497,16 @@ ChatLog = rclass
                      set_scroll       = {@props.set_scroll}
                     />
 
-            if @state?.read_indexes_to_user_ids?[i]
-                if @state?.read_indexes_to_user_ids?[i].length > 0
-                    user_ids_for_this_index = @state.read_indexes_to_user_ids[i]?.filter (x) -> x isnt message.get('sender_id')
-                    account_id = @props.account_id
-                    collaborators = Object.keys(redux.getStore("projects").get_project(@props.project_id).users).filter (x) -> x isnt account_id and x isnt message.get('sender_id')
-                    read_by_all_collaborators = diffArray(user_ids_for_this_index, collaborators).length == 0
-                    if read_by_all_collaborators
-                        v.push <div key={date+'read_status'} className="small" style={color: 'rgb(136, 136, 136)'}>Read by all collaborators</div>
-                    else
-                        v.push <div key={date+'read_status'}>{@render_read_avatars(user_ids_for_this_index)}</div>
+            user_ids_for_this_index = @state.read_indexes_to_user_ids?[i] ? []
+            if user_ids_for_this_index.length > 0
+                user_ids_for_this_index = user_ids_for_this_index.filter (x) -> x isnt message.get('sender_id')
+                account_id = @props.account_id
+                collaborators = Object.keys(redux.getStore("projects").get_project(@props.project_id).users).filter (x) -> x isnt account_id and x isnt message.get('sender_id')
+                read_by_all_collaborators = diffArray(user_ids_for_this_index, collaborators).length == 0 and collaborators.length > 1
+                if read_by_all_collaborators
+                    v.push <div key={date+'read_status'} className="small" style={color: 'rgb(136, 136, 136)'}>Read by all collaborators</div>
+                else
+                    v.push <div key={date+'read_status'}>{@render_read_avatars(user_ids_for_this_index)}</div>
 
         return v
 
