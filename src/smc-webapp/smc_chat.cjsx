@@ -504,9 +504,9 @@ ChatLog = rclass
                 collaborators = Object.keys(redux.getStore("projects").get_project(@props.project_id).users).filter (x) -> x isnt account_id and x isnt message.get('sender_id')
                 read_by_all_collaborators = diffArray(user_ids_for_this_index, collaborators).length == 0 and collaborators.length > 1
                 if read_by_all_collaborators
-                    v.push <div key={date+'read_status'} className="small" style={color: 'rgb(136, 136, 136)'}>Read by all collaborators</div>
+                    v.push <div key={date+'read_status'} className="small" style={textAlign: 'right', color: 'rgb(136, 136, 136)'}>Read by all collaborators</div>
                 else
-                    v.push <div key={date+'read_status'}>{@render_read_avatars(user_ids_for_this_index)}</div>
+                    v.push <div key={date+'read_status'} style={textAlign: 'right'}>{@render_read_avatars(user_ids_for_this_index)}</div>
 
         return v
 
