@@ -119,6 +119,8 @@ class exports.LatexEditor extends editor.FileEditor
             @save()
             return true
 
+        for cm in @cms()
+            cm._smc_inline_errors = {}
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
         @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
@@ -137,6 +139,9 @@ class exports.LatexEditor extends editor.FileEditor
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
         ###
+
+    cms: =>
+        [@latex_editor.codemirror, @latex_editor.codemirror1]
 
     spell_check: (cb) =>
         @preview.pdflatex.spell_check
@@ -576,7 +581,8 @@ class exports.LatexEditor extends editor.FileEditor
         if not log?
             cb()
             return
-        p = (new LatexParser(log)).parse()
+        {LatexParser} = require('latex/latex-log-parser.coffee')
+        p = (new LatexParser(log, {ignoreDuplicates: true})).parse()
 
         if p.errors.length
             @number_of_errors.text("  (#{p.errors.length})")
@@ -591,7 +597,15 @@ class exports.LatexEditor extends editor.FileEditor
         else
             @number_of_warnings.text('')
 
+        @_reset_inline_errors()
+
         if @_current_page != 'errors'
+            # just render the error messages for the inline information
+            for [t, msgs] in [['error', p.errors],
+                              ['warning', p.warnings],
+                              ['typesetting', p.typesetting]]
+                for msg in msgs
+                    @render_error_message(msg, t, inline_only = true)
             cb()
             return
 
@@ -606,7 +620,7 @@ class exports.LatexEditor extends editor.FileEditor
                 if cnt > MAX_LATEX_ERRORS
                     elt.append($("<h4>(Not showing #{p.errors.length - cnt + 1} additional errors.)</h4>"))
                     break
-                elt.append(@render_error_message(mesg))
+                elt.append(@render_error_message(mesg, 'error'))
 
         elt = @errors.find(".salvus-latex-warnings")
         if p.warnings.length == 0
@@ -619,7 +633,7 @@ class exports.LatexEditor extends editor.FileEditor
                 if cnt > MAX_LATEX_WARNINGS
                     elt.append($("<h4>(Not showing #{p.warnings.length - cnt + 1} additional warnings.)</h4>"))
                     break
-                elt.append(@render_error_message(mesg))
+                elt.append(@render_error_message(mesg, 'warning'))
 
         elt = @errors.find(".salvus-latex-typesetting")
         if p.typesetting.length == 0
@@ -632,8 +646,46 @@ class exports.LatexEditor extends editor.FileEditor
                 if cnt > MAX_LATEX_WARNINGS
                     elt.append($("<h4>(Not showing #{p.typesetting.length - cnt + 1} additional typesetting issues.)</h4>"))
                     break
-                elt.append(@render_error_message(mesg))
+                elt.append(@render_error_message(mesg, 'typesetting'))
         cb()
+
+    _reset_inline_errors: () =>
+        for cm in @cms()
+            for line, err_widget of cm._smc_inline_errors
+                # use err_widget.line to always find the correct line
+                cm.removeLineClass(err_widget.line, 'background')
+                cm.removeLineWidget(err_widget)
+            cm._smc_inline_errors = {}
+
+    _render_inline_error: (line, message, content, error_type) =>
+        line -= 1 # to get 0-based numbering for the remaining code
+        if error_type != 'error'
+            # only show errors, warnings and typesettings are too verbose
+            return
+        # at most one error widget per line ...
+        if line of @latex_editor.codemirror._smc_inline_errors
+            return
+        err = document.createElement("div")
+        err.className = "smc-latex-inline-error smc-latex-inline-error-#{error_type}"
+        msg = document.createElement('pre')
+        msg.className = 'smc-latex-inline-error-message'
+        msg.appendChild(document.createTextNode(message))
+        err.appendChild(msg)
+        if content?
+            con = document.createElement('pre')
+            con.className = 'smc-latex-inline-error-content'
+            con_lines = content.split(/\r?\n/)
+            if con_lines.length >= 5
+                con_lines = con_lines[...4]
+                con_lines.push('[...]')
+            content = con_lines.join('\n')
+            con.appendChild(document.createTextNode(content))
+            err.appendChild(con)
+        conf = {coverGutter: false, noHScroll: false}
+        for cm in @cms()
+            err_widget = cm.addLineWidget(line, err, conf)
+            cm.addLineClass(line, 'background', "smc-latex-inline-error-#{error_type}")
+            cm._smc_inline_errors[line] = err_widget
 
     _show_error_in_file: (mesg, cb) =>
         file = mesg.file
@@ -673,7 +725,21 @@ class exports.LatexEditor extends editor.FileEditor
             @show_page('png-preview')
             @forward_search(active:true)
 
-    render_error_message: (mesg) =>
+    render_error_message: (mesg, error_type, inline_only = false) =>
+        if mesg.file?.slice(0,2) == './'
+            mesg.file = mesg.file.slice(2)
+
+        if mesg.line and @preview.pdflatex.ext == 'rnw'
+            mesg.line = @rnw_concordance(mesg.line)
+            mesg.file = @preview.pdflatex.filename_rnw
+
+        # render inline error information
+        if mesg.line and mesg.file in [@preview.pdflatex.filename_tex, @preview.pdflatex.filename_rnw]
+            @_render_inline_error(mesg.line, mesg.message, mesg.content, error_type)
+
+        if inline_only
+            return
+
         if not mesg.line
             r = mesg.raw
             i = r.lastIndexOf('[')
@@ -681,13 +747,6 @@ class exports.LatexEditor extends editor.FileEditor
             while j < r.length and r[j] >= '0' and r[j] <= '9'
                 j += 1
             mesg.page = r.slice(i+1,j)
-
-        if mesg.file?.slice(0,2) == './'
-            mesg.file = mesg.file.slice(2)
-
-        if mesg.line and @preview.pdflatex.ext == 'rnw'
-            mesg.line = @rnw_concordance(mesg.line)
-            mesg.file = @preview.pdflatex.filename_rnw
 
         elt = @_error_message_template.clone().show()
         elt.find("a:first").click () =>
@@ -725,9 +784,11 @@ class exports.LatexEditor extends editor.FileEditor
         # always call the cb without an error -- otherwise the errors don't show up at all
         if @preview.pdflatex.ext == 'rnw'
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
+            if @_path # make relative to home directory of project
+                conc_fn = @_path + '/' + conc_fn
             salvus_client.read_text_file_from_project
                 project_id : @project_id
-                path       : @_path + '/' + conc_fn
+                path       : conc_fn
                 cb         : (err, res) =>
                     err ?= res.error
                     if err
@@ -775,7 +836,8 @@ class exports.LatexEditor extends editor.FileEditor
                         type    : "error"
                         message : "Inverse search error -- #{err}"
             else
-                if res.input != @filename
+                # lowercase needed, because synctex automatically uppercases .Rnw
+                if res.input.toLocaleLowerCase() != @filename.toLocaleLowerCase()
                     if active
                         redux.getProjectActions(@project_id).open_file
                             path : res.input

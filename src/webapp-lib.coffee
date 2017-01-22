@@ -84,9 +84,6 @@ require("script!datetimepicker/bootstrap-datetimepicker.min.js")
 require("script!term/term.js")
 require("script!term/color_themes.js")
 
-# LaTeX log parser
-require("script!latex/latex-log-parser.js")
-
 # Make html look nice
 require("script!jsbeautify/beautify-html.min.js")
 

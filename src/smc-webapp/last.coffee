@@ -115,7 +115,8 @@ $ ->
         MathJax.Hub?.Queue([mathjax_finish_startup])
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
-    if $.browser.firefox and window.navigator.platform != "MacIntel"
+    # hsy: showing firefox warning on all platforms (no idea why MacIntel was excluded)
+    if $.browser.firefox    # and window.navigator.platform != "MacIntel"
         # See https://github.com/sagemathinc/smc/issues/1314
         {alert_message} = require('./alerts')
         alert_message

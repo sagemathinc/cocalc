@@ -153,9 +153,10 @@ FileRow = rclass
         @props.no_select != next.no_select
 
     render_icon: ->
-        ext   = misc.filename_extension(@props.name)
-        name  = file_associations[ext]?.icon ? 'file'
-        style =
+        # get the file_associations[ext] just like it is defined in the editor
+        {file_options} = require('./editor')
+        name           = file_options(@props.name)?.icon ? 'file'
+        style          =
             color         : if @props.mask then '#bbbbbb'
             verticalAlign : 'sub'
         <a style={style}>
@@ -189,7 +190,6 @@ FileRow = rclass
             </Tip>
         else
             @render_name_link(styles, name, ext)
-
 
     render_public_file_info_popover: ->
         <Popover title='This file is being shared publicly' id='public_share' >
@@ -1401,7 +1401,6 @@ ProjectFilesActionBox = rclass
     share_click: ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), description)
-        @props.actions.set_file_action()
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
@@ -1414,12 +1413,16 @@ ProjectFilesActionBox = rclass
             <p>In order to stop sharing it, you must stop sharing the parent.</p>
         </Alert>
 
-    render_public_share_url: (single_item) ->
+    construct_public_share_url: (single_file) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
-        if @props.file_map[misc.path_split(single_item).tail]?.isdir
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_file)}"
+        if @props.file_map[misc.path_split(single_file).tail]?.isdir
             display_url += '/'
+        return display_url
+
+    render_public_share_url: (single_file) ->
+        display_url = @construct_public_share_url(single_file)
         <pre style={@pre_styles}>
             <a href={display_url} target='_blank'>
                 {display_url}
@@ -1436,6 +1439,7 @@ ProjectFilesActionBox = rclass
         else
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
+        show_social_media = require('./customize').commercial and single_file_data.is_public
         <div>
             <Row>
                 <Col sm=4 style={color:'#666'}>
@@ -1464,7 +1468,7 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm=8>
                     <ButtonToolbar>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
                             <Icon name='share-square-o' /><Space/>
@@ -1478,8 +1482,61 @@ ProjectFilesActionBox = rclass
                         </Button>
                     </ButtonToolbar>
                 </Col>
+                <Col sm=4>
+                    {<ButtonToolbar>
+                        {@render_social_buttons(single_file)}
+                    </ButtonToolbar> if show_social_media}
+                </Col>
             </Row>
         </div>
+
+    render_social_buttons: (single_file) ->
+        # sort like in account settings
+        btns =  # mapping ID to button title and icon name
+            email    : ['Email', 'envelope']
+            facebook : ['Facebook', 'facebook']
+            google   : ['Google+', 'google-plus']
+            twitter  : ['Twitter', 'twitter']
+        strategies = smc.redux.getStore('account').get('strategies')?.toArray() ? []
+        _ = require('underscore')
+        btn_keys = _.sortBy(_.keys(btns), (b) ->
+            i = strategies.indexOf(b)
+            return if i >= 0 then i else btns.length + 1
+        )
+        ret = []
+        for b in btn_keys
+            do (b) =>
+                [title, icon] = btns[b]
+                ret.push(<Button onClick={=>@share_social_network(b, single_file)} key={b}>
+                    <Icon name={icon} /> {title}
+                </Button>)
+        return ret
+
+    share_social_network: (where, single_file) ->
+        file_url   = @construct_public_share_url(single_file)
+        public_url = encodeURIComponent(file_url)
+        filename   = misc.path_split(single_file).tail
+        text       = encodeURIComponent("Check out #{filename}")
+        switch where
+            when 'facebook'
+                # https://developers.facebook.com/docs/sharing/reference/share-dialog
+                # 806558949398043 is the ID of "SageMathCloud"
+                url = """https://www.facebook.com/dialog/share?app_id=806558949398043&display=popup&
+                href=#{public_url}&redirect_uri=https%3A%2F%2Ffacebook.com&quote=#{text}"""
+            when 'twitter'
+                # https://dev.twitter.com/web/tweet-button/web-intent
+                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=sagemath"
+            when 'google'
+                url = "https://plus.google.com/share?url=#{public_url}"
+            when 'email'
+                # don't do encodeURIComponent -- strangely messes up everything for email
+                url = """mailto:?to=&subject=#{filename} on SageMathCloud&
+                body=A file is shared with you: #{file_url}"""
+        if url?
+            {open_popup_window} = require('./misc_page')
+            open_popup_window(url)
+        else
+            console.warn("Unknown social media channel '#{where}'")
 
     submit_action_share: () ->
         single_file = @props.checked_files.first()

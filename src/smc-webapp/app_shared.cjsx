@@ -116,13 +116,11 @@ exports.NotificationBell = rclass
     render: ->
         outer_styles =
             position    : 'relative'
-            marginRight : '-10px'
             float       : 'left'
 
         inner_styles =
             padding  : '10px'
             fontSize : '17pt'
-            color    : '#666'
             cursor   : 'pointer'
 
         clz = ''

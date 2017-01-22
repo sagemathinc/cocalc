@@ -1,6 +1,7 @@
 \documentclass{article}
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{breakurl}
+\usepackage{url}
 \begin{document}
 
 % learn more about knitr: https://yihui.name/knitr/
@@ -8,12 +9,12 @@
 <<setup, include=FALSE, cache=FALSE>>=
 library(knitr)
 opts_chunk$set(cache=TRUE, autodep=TRUE)
-options(formatR.arrow=TRUE,width=90)
+options(formatR.arrow=TRUE, width=90)
 @
 
 \title{Knitr in SMC}
 
-\author{Harald Schilly}
+\author{Author Name}
 
 \maketitle
 
@@ -22,7 +23,7 @@ x <- c(2,3,4,5,1,2,3,2,1)
 summary(x)
 @
 
-<<boring-plots, fig.width=4, fig.height=4, out.width='.4\\linewidth'>>=
+<<histogram-plot, fig.width=4, fig.height=4, out.width='.4\\linewidth'>>=
 hist(x)
 @
 
