@@ -1478,7 +1478,7 @@ ProjectFilesActionBox = rclass
                             <Icon name='shield' /> Stop sharing item publicly
                         </Button>
                         <Button onClick={@cancel_action}>
-                            Cancel
+                            Close
                         </Button>
                     </ButtonToolbar>
                 </Col>
@@ -1497,7 +1497,7 @@ ProjectFilesActionBox = rclass
             facebook : ['Facebook', 'facebook']
             google   : ['Google+', 'google-plus']
             twitter  : ['Twitter', 'twitter']
-        strategies = smc.redux.getStore('account').get('strategies')?.toArray() ? []
+        strategies = redux.getStore('account').get('strategies')?.toArray() ? []
         _ = require('underscore')
         btn_keys = _.sortBy(_.keys(btns), (b) ->
             i = strategies.indexOf(b)

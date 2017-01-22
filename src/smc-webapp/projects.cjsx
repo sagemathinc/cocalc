@@ -1032,13 +1032,13 @@ ProjectsListingDescription = rclass
     displayName : 'Projects-ProjectsListingDescription'
 
     propTypes :
-        deleted             : rtypes.bool
-        hidden              : rtypes.bool
-        selected_hashtags   : rtypes.object
-        search              : rtypes.string
-        nb_projects         : rtypes.number.isRequired
-        nb_projects_visible : rtypes.number.isRequired
-        on_cancel           : rtypes.func
+        deleted           : rtypes.bool
+        hidden            : rtypes.bool
+        selected_hashtags : rtypes.object
+        search            : rtypes.string
+        nb_projects       : rtypes.number.isRequired
+        visible_projects  : rtypes.array
+        on_cancel         : rtypes.func
 
     getDefaultProps: ->
         deleted           : false
@@ -1046,19 +1046,22 @@ ProjectsListingDescription = rclass
         selected_hashtags : {}
         search            : ''
 
+    getInitialState: ->
+        show_remove_from_all : false
+
     render_header: ->
         if @props.nb_projects > 0 and (@props.hidden or @props.deleted)
             d = if @props.deleted then 'deleted ' else ''
             h = if @props.hidden then 'hidden ' else ''
             a = if @props.hidden and @props.deleted then ' and ' else ''
-            n = @props.nb_projects_visible
+            n = @props.visible_projects.length
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
     render_span: (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
-        <Button onClick={@props.on_cancel}>
+        <Button onClick={=>@setState(show_remove_from_all:false); @props.on_cancel()}>
             Cancel
         </Button></span>
 
@@ -1068,17 +1071,76 @@ ProjectsListingDescription = rclass
         if query != '' and hashtags_string != '' then query += ' '
         query += hashtags_string
 
-        if query isnt '' or @props.deleted or @props.hidden
+        if query != '' or @props.deleted or @props.hidden
             <Alert bsStyle='warning' style={'fontSize':'1.3em'}>
                 Only showing<Space/>
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
                 {if query isnt '' then @render_span(query)}
+                {@render_remove_from_all_button() if @props.visible_projects.length > 0}
+                {@render_remove_from_all() if @state.show_remove_from_all}
             </Alert>
+
+    render_remove_from_all_button: ->
+        <Button
+            className = 'pull-right'
+            disabled  = {@state.show_remove_from_all}
+            onClick   = {=>@setState(show_remove_from_all:true)}
+            >
+            <Icon name='user-times'/>  Remove Myself...
+        </Button>
+
+    collab_projects: ->
+        # Determine visible projects this user does NOT own.
+        return (project for project in @props.visible_projects when project.users?[salvus_client.account_id]?.group != 'owner')
+
+    render_remove_from_all: ->
+        if @props.visible_projects.length == 0
+            return
+        v = @collab_projects()
+        head = <h4><Icon name='user-times'/>  Remove Myself from Projects</h4>
+        if v.length == 0
+            <Alert key='remove_all' style={marginTop:'15px'}>
+                {head}
+                You are the owner of every displayed project.  You can only remove yourself from projects that you do not own.
+
+                <Button onClick={=>@setState(show_remove_from_all:false)} >
+                    Cancel
+                </Button>
+            </Alert>
+        else
+            if v.length < @props.visible_projects.length
+                other = @props.visible_projects.length - v.length
+                desc = "You are a collaborator on #{v.length} of the #{@props.visible_projects.length} #{misc.plural(@props.visible_projects.length, 'project')} listed below (you own the other #{misc.plural(other, 'one')})."
+            else
+                if v.length == 1
+                    desc = "You are a collaborator on the one project listed below."
+                else
+                    desc = "You are a collaborator on ALL of the #{v.length} #{misc.plural(v.length, 'project')} listed below."
+            <Alert  style={marginTop:'15px'}>
+                {head} {desc}
+
+                <p/>
+                Are you sure you want to remove yourself from the {v.length} {misc.plural(v.length, 'project')} listed below that you collaborate on?  <b>You will no longer have access and cannot add yourself back.</b>
+
+                <ButtonToolbar style={marginTop:'15px'}>
+                    <Button bsStyle='danger' onClick={@do_remove_from_all}  >
+                        <Icon name='user-times'/> Remove myself from {v.length} {misc.plural(v.length, 'project')}
+                    </Button>
+                    <Button onClick={=>@setState(show_remove_from_all:false)} >
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Alert>
+
+    do_remove_from_all: ->
+        for project in @collab_projects()
+            @actions('projects').remove_collaborator(project.project_id, salvus_client.account_id)
+        @setState(show_remove_from_all:false)
 
     render: ->
         <div>
-            <Space/>
+            <Space />
             {@render_header()}
             {@render_alert_message()}
         </div>
@@ -1476,13 +1538,13 @@ exports.ProjectsPage = ProjectsPage = rclass
                     <Row>
                         <Col sm=12>
                             <ProjectsListingDescription
-                                nb_projects           = {@project_list().length}
-                                nb_projects_visible   = {visible_projects.length}
-                                hidden                = {@props.hidden}
-                                deleted               = {@props.deleted}
-                                search                = {@props.search}
-                                selected_hashtags     = {@props.selected_hashtags[@filter()]}
-                                on_cancel             = {@clear_filters_and_focus_search_input}
+                                nb_projects       = {@project_list().length}
+                                visible_projects  = {visible_projects}
+                                hidden            = {@props.hidden}
+                                deleted           = {@props.deleted}
+                                search            = {@props.search}
+                                selected_hashtags = {@props.selected_hashtags[@filter()]}
+                                on_cancel         = {@clear_filters_and_focus_search_input}
                             />
                         </Col>
                     </Row>
