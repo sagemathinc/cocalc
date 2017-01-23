@@ -27,7 +27,7 @@ required = defaults.required
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
-            host         : process.env['SMC_DB_HOST'] ? 'localhost'    # or 'hostname:port'
+            host         : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
             database     : process.env['SMC_DB'] ? 'smc'
             debug        : true
             connect      : true
