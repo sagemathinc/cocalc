@@ -15,7 +15,7 @@ RUN \
 
 RUN \
   apt-get update && \
-  apt-get install -y texlive tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc sagemath-upstream-binary haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 postgresql postgresql-contrib
+  apt-get install -y texlive tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc sagemath-upstream-binary haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 postgresql postgresql-contrib latexmk
 
 # Jupyter from pip (since apt-get is ancient)
 RUN \
@@ -37,7 +37,7 @@ RUN \
 # Grab an initial version of the source code for SMC (do NOT use --depth=1,
 # since we want to be able to checkout any commit later, and use git in
 # container for dev).
-RUN git  clone https://github.com/sagemathinc/smc.git
+RUN git clone https://github.com/sagemathinc/smc.git
 
 # Do initial build of hub (this means installing all dependencies using npm)
 RUN \
