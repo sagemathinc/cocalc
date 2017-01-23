@@ -9,10 +9,10 @@ The functiosns below in some cases return things, and in some cases set global v
 
 async = require('async')
 
-db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['localhost']
-
 global.misc = require('smc-util/misc')
 global.done = misc.done
+global.done1 = misc.done1
+global.done2 = misc.done2
 
 db = undefined
 get_db = (cb) ->
@@ -20,9 +20,15 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:10, cb:cb)
-        db._error_thresh = 100000
-        return db
+        # old rethinkdb version...
+        #db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['localhost']
+        #db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:10, cb:cb)
+        #db._error_thresh = 100000
+
+        # new postgreSQL version
+        db = require('./smc-hub/postgres').db()
+        db.connect(cb:cb)
+        return
 
 # get a connection to the db
 global.db = (cb) ->
@@ -36,13 +42,10 @@ global.gcloud = ->
 console.log("gcloud() -- sets global variable g to gcloud instance")
 
 global.vms = () ->
-    require('./smc-hub/rethink').rethinkdb
-        hosts : db_hosts
-        pool  : 1
-        cb    : (err, db) =>
-            global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:db)
-            global.vms = global.g.vm_manager(manage:false)
-    console.log("setting global variable g to a gcloud interface and vms to vm manager")
+    get_db (err) ->
+        global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:db)
+        global.vms = global.g.vm_manager(manage:false)
+console.log("setting global variable g to a gcloud interface and vms to vm manager")
 
 console.log("vms() -- sets vms to gcloud VM manager (and g to gcloud interface)")
 
@@ -78,20 +81,18 @@ global.activity = (opts={}) ->
 console.log("activity()  -- makes activity the activity monitor object")
 
 global.delete_account = (email) ->
-    require('./smc-hub/rethink').rethinkdb
-        hosts:db_hosts
-        pool:1
-        cb: (err, db) ->
-            if err
-                done("FAIL -- #{err}")
-                return
-            db.mark_account_deleted
-                email_address: email
-                cb           : (err) ->
-                    if err
-                        done("FAIL -- #{err}")
-                    else
-                        done("SUCCESS!")
+    get_db (err) ->
+        if err
+            done("FAIL -- #{err}")
+            return
+        db.mark_account_deleted
+            email_address: email
+            cb           : (err) ->
+                if err
+                    done("FAIL -- #{err}")
+                else
+                    done("SUCCESS!")
+
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
 
 DEFAULT_CLOSE_DAYS = 60
@@ -122,74 +123,49 @@ console.log("close_unused_free_projects() -- closes all projects on all free hos
 
 global.active_students = (cb) ->
     cb ?= done()
-    require('./smc-hub/rethink').rethinkdb
-        hosts:db_hosts
-        pool:1
-        cb: (err, db) ->
+    get_db (err) ->
+        if err
+            cb("FAIL -- #{err}")
+            return
+        q = db.table('projects').hasFields('course')
+        # only consider courses that have been touched in the last month
+        q = q.filter(db.r.row("last_edited").gt(misc.days_ago(30)))
+        q.pluck('project_id', 'course', 'last_edited', 'settings', 'users').run (err, t) ->
             if err
-                cb("FAIL -- #{err}")
+                cb(err)
                 return
-            q = db.table('projects').hasFields('course')
-            # only consider courses that have been touched in the last month
-            q = q.filter(db.r.row("last_edited").gt(misc.days_ago(30)))
-            q.pluck('project_id', 'course', 'last_edited', 'settings', 'users').run (err, t) ->
-                if err
-                    cb(err)
-                    return
-                days14 = misc.days_ago(14)
-                days7  = misc.days_ago(7)
-                days1  = misc.days_ago(1)
-                # student pay means that the student is required to pay
-                num_student_pay = (x for x in t when x.course.pay).length
-                # prof pay means that student isn't required to pay but nonetheless project is on members only host
-                num_prof_pay    = 0
-                for x in t
-                    if not x.course.pay  # student isn't paying
-                        if x.settings?.member_host
+            days14 = misc.days_ago(14)
+            days7  = misc.days_ago(7)
+            days1  = misc.days_ago(1)
+            # student pay means that the student is required to pay
+            num_student_pay = (x for x in t when x.course.pay).length
+            # prof pay means that student isn't required to pay but nonetheless project is on members only host
+            num_prof_pay    = 0
+            for x in t
+                if not x.course.pay  # student isn't paying
+                    if x.settings?.member_host
+                        num_prof_pay += 1
+                        continue
+                    for _, d of x.users
+                        if d.upgrades?.member_host
                             num_prof_pay += 1
                             continue
-                        for _, d of x.users
-                            if d.upgrades?.member_host
-                                num_prof_pay += 1
-                                continue
-                # free - neither student pays and project not on members only server
-                num_free        = t.length - num_prof_pay - num_student_pay
-                conversion_rate = 100*(num_student_pay + num_prof_pay) / t.length
-                data =
-                    conversion_rate : conversion_rate
-                    num_student_pay : num_student_pay
-                    num_prof_pay    : num_prof_pay
-                    num_free        : num_free
-                    num_1days       : (x for x in t when x.last_edited >= days1).length
-                    num_7days       : (x for x in t when x.last_edited >= days7).length
-                    num_14days      : (x for x in t when x.last_edited >= days14).length
-                    num_30days      : t.length
-                console.log(data)
-                cb(undefined, data)
+            # free - neither student pays and project not on members only server
+            num_free        = t.length - num_prof_pay - num_student_pay
+            conversion_rate = 100*(num_student_pay + num_prof_pay) / t.length
+            data =
+                conversion_rate : conversion_rate
+                num_student_pay : num_student_pay
+                num_prof_pay    : num_prof_pay
+                num_free        : num_free
+                num_1days       : (x for x in t when x.last_edited >= days1).length
+                num_7days       : (x for x in t when x.last_edited >= days7).length
+                num_14days      : (x for x in t when x.last_edited >= days14).length
+                num_30days      : t.length
+            console.log(data)
+            cb(undefined, data)
 
 console.log("active_students() -- stats about student course projects during the last 30 days")
-
-last_backup_refill = undefined
-global.backfill = (server='backup') ->
-    db.r.db("rethinkdb").table("jobs").filter(type:'backfill', info:{destination_server:server}).run (e,t) ->
-        if t.length == 0
-            console.log("done")
-            return
-        num = t.length
-        if last_backup_refill?.num? and t.length < last_backup_refill.num
-            for i in [t.length...last_backup_refill.num]
-                t.push({info:{progress:1}})
-        complete = ((a.info.progress for a in t).reduce (x,y)-> x+y)/t.length * 100
-        console.log("progress: #{complete}% complete")
-        console.log("tasks:    #{num}")
-        now = new Date() - 0
-        if last_backup_refill?
-            elapsed = now - last_backup_refill.time
-            how_much_per_ms = (complete - last_backup_refill.complete)/elapsed
-            est_ms = (100 - complete)/how_much_per_ms
-            console.log("est time remaining: #{est_ms/1000/60} minutes")
-        last_backup_refill = {time:now, complete:complete, num:t.length}
-
 
 global.save = (obj, filename) ->
     if filename.slice(filename.length - 5) != '.json'
@@ -202,6 +178,6 @@ global.load = (filename) ->
     JSON.parse(fs.readFileSync(filename))
 
 global.stripe = (account_id) ->
-    get_db (err, db) -> 
+    get_db (err, db) ->
         db.stripe_update_customer(account_id:account_id,cb:done())
 console.log 'stripe [account_id] -- update stripe info about user'

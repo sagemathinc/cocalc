@@ -28,7 +28,7 @@ if not os.path.exists(PG_DATA):
     socket_dir = os.path.join(PG_DATA, 'socket')
     s += "unix_socket_directories = '%s'"%socket_dir
     os.makedirs(socket_dir)
-    os.system("chmod og-rwx '%s'"%socket_dir)  # just in case -- be paranoid...
+    os.system("chmod og-rwx '%s'"%PG_DATA)  # just in case -- be paranoid...
     open(conf,'w').write(s)
 
     # Create script so that clients will know where socket dir is.
