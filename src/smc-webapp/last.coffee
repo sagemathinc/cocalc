@@ -37,6 +37,9 @@ $(document).on "click", (e) ->
     if e.button == 1 and $(e.target).hasClass("salvus-no-middle-click")
         e.preventDefault()
         e.stopPropagation() # ?
+    # hide popover on click
+    if $(e.target).data('toggle') != 'popover' and $(e.target).parents('.popover.in').length == 0
+        $('[data-toggle="popover"]').popover('hide')
 
 remember_me = salvus_client.remember_me_key()
 if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'

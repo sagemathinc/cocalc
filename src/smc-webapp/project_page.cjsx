@@ -418,9 +418,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         return tabs
 
     file_tab: (path, index) ->
-        ext = misc.filename_extension(path).toLowerCase()
-        icon = file_associations[ext]?.icon ? 'code-o'
-        display_name = misc.trunc(misc.path_split(path).tail, 64)
+        filename         = misc.path_split(path).tail
+        # get the file_associations[ext] just like it is defined in the editor
+        {file_options}   = require('./editor')
+        icon             = file_options(filename)?.icon ? 'code-o'
+        display_name     = misc.trunc(filename, 64)
         <SortableFileTab
             index        = {index}
             key          = {path}
@@ -543,9 +545,11 @@ exports.MobileProjectPage = rclass ({name}) ->
         @actions(project_id:@props.project_id).close_tab(path)
 
     file_menu_item: (path, index) ->
-        ext = misc.filename_extension(path).toLowerCase()
-        icon = file_associations[ext]?.icon ? 'code-o'
-        display_name = misc.trunc(misc.path_split(path).tail, 64)
+        filename        = misc.path_split(path).tail
+        # get the file_associations[ext] just like it is defined in the editor
+        {file_options}  = require('./editor')
+        icon            = file_options(filename)?.icon ? 'code-o'
+        display_name    = misc.trunc(filename, 64)
 
         label_styles =
             whiteSpace   : 'nowrap'

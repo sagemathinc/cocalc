@@ -285,10 +285,12 @@ class Console extends EventEmitter
 
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
+            @_reconnecting = new Date()
             @element.find(".salvus-console-terminal").css('opacity':'.5')
             @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
         @session.on 'reconnect', () =>
+            delete @_reconnecting
             partial_code = false
             @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
@@ -911,6 +913,13 @@ class Console extends EventEmitter
         $(@terminal.element).addClass('salvus-console-blur').removeClass('salvus-console-focus')
 
     focus: (force) =>
+        if @_reconnecting? and new Date() - @_reconnecting > 10000
+            # reconnecting not working, so try again.  Also, this handles the case
+            # when terminal switched to reconnecting state, user closed computer, comes
+            # back later, etc. Without this, would not attempt to reconnect until
+            # user touches keys.
+            @reconnect_if_no_recent_data()
+
         if @is_focused and not force
             return
 

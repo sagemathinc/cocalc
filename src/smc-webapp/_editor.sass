@@ -136,30 +136,43 @@
   padding            : 10px
 
   &.smc-latex-inline-error-error
-    border           : 3px solid #FFAAAA
-    background-color : #FFDFDD
+    border           : 3px solid #FFBBBB
 
   &.smc-latex-inline-error-warning
     border           : 3px solid #FDB600
-    background-color : #FFDAAA
 
   &.smc-latex-inline-error-typesetting
     border           : 3px solid #AAAAFF
-    background-color : #DDDFFF
 
   > .smc-latex-inline-error-message
-    font-size: 115%
     padding-bottom: .5em
 
   > .smc-latex-inline-error-content
     font-family: monospace
 
 .smc-latex-inline-error-error
-  background-color: #FFAAAA
+  background-color: #FFE0D9
 .smc-latex-inline-error-warning
   background-color: #DFFFCC
 .smc-latex-inline-error-typesetting
   background-color: #CCDFFF
+
+.smc-latex-error-popover
+  background-color: #FFCDCC
+  > pre
+    background-color: #FFCDCC
+    border: 0
+    font-size: 85%
+  > .arrow:after
+    border-right-color: #FFCDCC !important
+  > .popover-title
+    background-color: #FFACAA
+
+.Codemirror-latex-errors
+  padding          : 0 2px 0 4px
+  min-width        : 15px
+  text-align       : right
+  white-space      : nowrap
 
 .salvus-latex-mesg-message
   font-size   : 13pt
