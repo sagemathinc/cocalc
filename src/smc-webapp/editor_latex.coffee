@@ -44,6 +44,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_rnw_concordance = null
 
         # initialize the latex_editor
+        opts.latex_editor = true
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
@@ -651,10 +652,10 @@ class exports.LatexEditor extends editor.FileEditor
 
     _reset_inline_errors: () =>
         for cm in @cms()
-            for line, err_widget of cm._smc_inline_errors
-                # use err_widget.line to always find the correct line
-                cm.removeLineClass(err_widget.line, 'background')
-                cm.removeLineWidget(err_widget)
+            cm.clearGutter('Codemirror-latex-errors')
+            for line, line_handler of cm._smc_inline_errors
+                # use line_handler to always find the correct line
+                cm.removeLineClass(line_handler, 'background')
             cm._smc_inline_errors = {}
 
     _render_inline_error: (line, message, content, error_type) =>
@@ -665,14 +666,9 @@ class exports.LatexEditor extends editor.FileEditor
         # at most one error widget per line ...
         if line of @latex_editor.codemirror._smc_inline_errors
             return
-        err = document.createElement("div")
-        err.className = "smc-latex-inline-error smc-latex-inline-error-#{error_type}"
-        msg = document.createElement('pre')
-        msg.className = 'smc-latex-inline-error-message'
-        msg.appendChild(document.createTextNode(message))
-        err.appendChild(msg)
+
         if content?
-            con = document.createElement('pre')
+            con = document.createElement('code')
             con.className = 'smc-latex-inline-error-content'
             con_lines = content.split(/\r?\n/)
             if con_lines.length >= 5
@@ -680,12 +676,39 @@ class exports.LatexEditor extends editor.FileEditor
                 con_lines.push('[...]')
             content = con_lines.join('\n')
             con.appendChild(document.createTextNode(content))
-            err.appendChild(con)
-        conf = {coverGutter: false, noHScroll: false}
+            content = con.outerHTML
+
+        icon = $("""
+            <i style="color: #d9534f;"
+            class="fa fa-exclamation-triangle"
+            aria-hidden="true"
+            data-container="body"
+            data-toggle="popover"
+            data-placement="right"
+            title="#{message}">
+            </i>""")
+
+        # from http://getbootstrap.com/javascript/#popovers-options
+        popup_template = """<div class="popover smc-latex-error-popover" role="tooltip">
+        <div class="arrow"></div>
+        <h3 class="popover-title"></h3>
+        <pre class="popover-content"></pre>
+        </div>
+        """
+
+        icon.popover(
+            trigger  : 'hover click'
+            html     : true
+            content  : content ? ''
+            delay    : { "show": 10, "hide": 100 }
+            template : popup_template
+        )
+
+        conf = {coverGutter: false, noHScroll: true}
         for cm in @cms()
-            err_widget = cm.addLineWidget(line, err, conf)
-            cm.addLineClass(line, 'background', "smc-latex-inline-error-#{error_type}")
-            cm._smc_inline_errors[line] = err_widget
+            cm.setGutterMarker(line, 'Codemirror-latex-errors', icon.get(0))
+            line_handler = cm.addLineClass(line, 'background', "smc-latex-inline-error-#{error_type}")
+            cm._smc_inline_errors[line] = line_handler
 
     _show_error_in_file: (mesg, cb) =>
         file = mesg.file
