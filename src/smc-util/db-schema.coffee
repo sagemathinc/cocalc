@@ -98,6 +98,13 @@ schema.account_creation_actions =
         expire        :
             type : 'timestamp'
             desc : 'When this action should be expired.'
+        foo :
+            type : 'string'
+            desc : 'stuff'
+        user :
+            type : 'string'
+            pg_type : 'VARCHAR(173)'
+            desc : 'hash of the password'
     indexes :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
         expire        : []  # only used by delete_expired
@@ -121,7 +128,7 @@ schema.accounts =
             desc : 'Set to true after all creation actions (e.g., add to projects) associated to this account are succesfully completed.'
         password_hash :
             type : 'string'
-            pg_type : 'CHAR(173)'
+            pg_type : 'VARCHAR(173)'
             desc : 'hash of the password'
         deleted :
             type : 'boolean'

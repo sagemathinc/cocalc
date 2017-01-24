@@ -629,6 +629,113 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 cb    : cb
         async.map(pg_indexes, f, cb)
 
+    # Ensure that for the given table, the actual schema and indexes
+    # in the database matches the one defined in SCHEMA.
+    _update_table_schema: (table, cb) =>
+        dbg = @_dbg("_update_table_schema('#{table}')")
+        dbg()
+        schema = SCHEMA[table]
+        if not schema?
+            cb("no table '#{table}' in schema")
+            return
+        if schema.virtual
+            cb("table '#{table}' is virtual")
+            return
+        async.series([
+            (cb) => @_update_table_schema_columns(table, cb)
+            (cb) => @_update_table_schema_indexes(table, cb)
+        ], cb)
+
+    _update_table_schema_columns: (table, cb) =>
+        dbg = @_dbg("_update_table_schema_columns('#{table}')")
+        dbg()
+        schema   = SCHEMA[table]
+        columns  = {}
+        to_add   = {}
+        to_alter = {}
+        async.series([
+            (cb) =>
+                @_query
+                    query : "select column_name, data_type, character_maximum_length from information_schema.columns"
+                    where : {table_name: table}
+                    cb    : all_results (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            for y in x
+                                if y.character_maximum_length
+                                    columns[y.column_name] = "varchar(#{y.character_maximum_length})"
+                                else
+                                    columns[y.column_name] = y.data_type
+                            cb()
+            (cb) =>
+                # Note: changing column ordering is NOT supported in PostgreSQL, so
+                # it's critical to not depend on it!
+                # https://wiki.postgresql.org/wiki/Alter_column_position
+                tasks = []
+                for column, info of schema.fields
+                    cur_type  = columns[column]?.toLowerCase()
+                    if cur_type?
+                        cur_type = cur_type.split(' ')[0]
+                    try
+                        goal_type = pg_type(info).toLowerCase()
+                    catch err
+                        cb(err)
+                        return
+                    goal_type = goal_type.split(' ')[0]
+                    if goal_type.slice(0,4) == 'char'
+                        # we do NOT support changing between fixed length and variable length strength
+                        goal_type = 'var' + goal_type
+                    if not cur_type?
+                        # column is in our schema, but not in the actual database
+                        dbg("will add column '#{column}' to the database")
+                        tasks.push({action:'add', column:column})
+                    else if cur_type != goal_type
+                        if goal_type.indexOf('[]') != -1
+                            # NO support for array schema changes (even detecting)!
+                            continue
+                        dbg("type difference for column '#{column}' -- cur='#{cur_type}' versus goal='#{goal_type}'")
+                        tasks.push({action:'alter', column:column})
+                # Note: we do not delete columns in the database, since that's scary
+                # and they don't cause any harm (except wasting space).
+
+                if tasks.length == 0
+                    dbg("no changes to table are needed")
+                    cb()
+                    return
+                dbg("#{tasks.length} columns will be altered")
+                alter = (task, cb) =>
+                    info = schema.fields[task.column]
+                    col  = quote_field(task.column)
+                    try
+                        type = pg_type(info)
+                    catch err
+                        cb(err)
+                        return
+                    desc = type
+                    if info.unique
+                        desc += " UNIQUE"
+                    if info.pg_check
+                        desc += " " + info.pg_check
+                    switch task.action
+                        when 'alter'
+                            @_query
+                                query : "ALTER TABLE #{quote_field(table)} ALTER COLUMN #{col} TYPE #{desc} USING #{col}::#{type}"
+                                cb    : cb
+                        when 'add'
+                            @_query
+                                query : "ALTER TABLE #{quote_field(table)} ADD COLUMN #{col} #{desc}"
+                                cb    : cb
+                        else
+                            cb("unknown action '#{task.action}")
+                async.mapSeries(tasks, alter, cb)
+        ], cb)
+
+    _update_table_schema_indexes: (table, cb) =>
+        dbg = @_dbg("_update_table_schema_indexes('#{table}')")
+        dbg()
+        cb()
+
     _throttle: (name, time_s, key...) =>
         key = misc.to_json(key)
         x = "_throttle_#{name}"
@@ -640,15 +747,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         return false
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
-    # TODO: we do NOT do anything related to the actual columns or datatypes yet!
+    # This creates the initial schema, adds new columns fine, and in a VERY LIMITED
+    # range of cases, *might be* be able to change the data type of a column.
     update_schema: (opts) =>
         opts = defaults opts,
             cb : undefined
         dbg = @_dbg("update_schema"); dbg()
 
-        psql_tables = goal_tables = undefined
+        psql_tables = goal_tables = created_tables = undefined
         async.series([
             (cb) =>
+                # Get a list of all tables that should exist
                 dbg("get tables")
                 @_get_tables (err, t) =>
                     psql_tables = t
@@ -657,14 +766,33 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("goal_tables = #{misc.to_json(goal_tables)}")
                     cb(err)
             (cb) =>
+                # Create from scratch any missing tables -- usually this creates all tables and
+                # indexes the first time around.
                 to_create = (table for table in goal_tables when table not in psql_tables)
+                created_tables = {}
+                for table in to_create
+                    created_tables[table] = true
                 if to_create.length == 0
                     dbg("there are no missing tables in psql")
                     cb()
                     return
+                dbg("creating #{to_create.length} missing tables")
                 async.map to_create, @_create_table, (err) =>
                     if err
                         dbg("error creating tables -- #{err}")
+                    cb(err)
+            (cb) =>
+                # For each table that already exists, ensure that the columns are correct,
+                # have the correct type, and all indexes exist.
+                old_tables = (table for table in psql_tables when not created_tables[table])
+                if old_tables.length == 0
+                    dbg("no old tables to update")
+                    cb()
+                    return
+                dbg("verifying schema and indexes for #{old_tables.length} existing tables")
+                async.map old_tables, @_update_table_schema, (err) =>
+                    if err
+                        dbg("error updating table schemas -- #{err}")
                     cb(err)
         ], (err) => opts.cb?(err))
 
@@ -741,7 +869,7 @@ exports.pg_type = pg_type = (info) ->
             return 'UUID'
         when 'timestamp'
             return 'TIMESTAMP'
-        when 'string'
+        when 'string', 'text'
             return 'TEXT'
         when 'boolean'
             return 'BOOLEAN'
