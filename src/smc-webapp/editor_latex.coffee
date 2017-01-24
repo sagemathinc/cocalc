@@ -122,6 +122,8 @@ class exports.LatexEditor extends editor.FileEditor
 
         for cm in @cms()
             cm._smc_inline_errors = {}
+        @element.on 'blur', ->
+            $('[data-toggle="popover"]').popover('hide')
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
         @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
@@ -651,6 +653,7 @@ class exports.LatexEditor extends editor.FileEditor
         cb()
 
     _reset_inline_errors: () =>
+        $('[data-toggle="popover"]').popover('hide')
         for cm in @cms()
             cm.clearGutter('Codemirror-latex-errors')
             for line, line_handler of cm._smc_inline_errors
@@ -679,7 +682,7 @@ class exports.LatexEditor extends editor.FileEditor
             content = con.outerHTML
 
         icon = $("""
-            <i style="color: #d9534f;"
+            <i style="color: #d9534f; cursor: pointer;"
             class="fa fa-exclamation-triangle"
             aria-hidden="true"
             data-container="body"
@@ -697,7 +700,7 @@ class exports.LatexEditor extends editor.FileEditor
         """
 
         icon.popover(
-            trigger  : 'hover click'
+            trigger  : 'hover'
             html     : true
             content  : content ? ''
             delay    : { "show": 10, "hide": 100 }
