@@ -570,7 +570,7 @@ exports.pad_right = (s, n) ->
 exports.plural = (number, singular, plural="#{singular}s") ->
     if singular in ['GB', 'MB']
         return singular
-    if number is 1 then singular else plural
+    if number == 1 then singular else plural
 
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"

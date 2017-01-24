@@ -3020,13 +3020,21 @@ class RethinkDB
     blob_maintenance: (opts) =>
         opts = defaults opts,
             path              : '/backup/blobs'
-            map_limit         : 2
+            map_limit         : 1
             blobs_per_tarball : 10000
             throttle          : 0
             cb                : undefined
         dbg = @dbg("blob_maintenance()")
         dbg()
         async.series([
+            (cb) =>
+                dbg("maintain the patches and syncstrings")
+                @syncstring_maintenance
+                    repeat_until_done : true
+                    limit             : 500
+                    map_limit         : opts.map_limit
+                    delay             : 1000    # 1s, since syncstring_maintence heavily loads db
+                    cb                : cb
             (cb) =>
                 dbg("backup_blobs_to_tarball")
                 @backup_blobs_to_tarball
@@ -3144,6 +3152,7 @@ class RethinkDB
             map_limit         : 1     # how much parallelism to use
             limit             : 1000 # do only this many
             repeat_until_done : true
+            delay             : 0
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
@@ -3165,7 +3174,11 @@ class RethinkDB
                     console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
                     @archive_patches
                         string_id : string_id
-                        cb        : cb
+                        cb        : (err) ->
+                           if err or not opts.delay
+                               cb(err)
+                           else
+                               setTimeout(cb, opts.delay)
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
         ], (err) =>
             if err

@@ -720,7 +720,7 @@ def main():
     global extra_data
 
     parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
-    parser.add_argument("filename", help="name of sagews file (required)", type=str)
+    parser.add_argument("filename", nargs='+', help="name of sagews file (required)", type=str)
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
     parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
     parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
@@ -745,34 +745,38 @@ def main():
 
     remove_tmpdir=args.remove_tmpdir
 
-    if args.subdir:
-        from os.path import dirname, basename, splitext, join
-        dir = dirname(args.filename)
-        subdir = '%s-sagews2pdf' % splitext(basename(args.filename))[0]
-        work_dir = join(dir, subdir)
-        remove_tmpdir = False
-    elif args.work_dir is not None:
-        work_dir = os.path.abspath(os.path.expanduser(args.work_dir))
-        remove_tmpdir = False
-    else:
-        work_dir = None
+    curdir = os.path.abspath('.')
+    for filename in args.filename:
+        os.chdir(curdir)  # stuff below can change away from curdir
 
-    from subprocess import CalledProcessError
-    try:
-        sagews_to_pdf(args.filename,
-                      title=args.title.decode('utf8'),
-                      author=args.author.decode('utf8'),
-                      date=args.date,
-                      outfile=args.outfile,
-                      contents=args.contents,
-                      remove_tmpdir=remove_tmpdir,
-                      work_dir=work_dir,
-                      style=args.style
-                     )
-    # subprocess.check_call might throw
-    except CalledProcessError as e:
-        sys.stderr.write('CalledProcessError: %s\n' % e)
-        exit(1)
+        if args.subdir:
+            from os.path import dirname, basename, splitext, join
+            dir           = dirname(filename)
+            subdir        = '%s-sagews2pdf' % splitext(basename(filename))[0]
+            work_dir      = join(dir, subdir)
+            remove_tmpdir = False
+        elif args.work_dir is not None:
+            work_dir      = os.path.abspath(os.path.expanduser(args.work_dir))
+            remove_tmpdir = False
+        else:
+            work_dir = None
+
+        from subprocess import CalledProcessError
+        try:
+            sagews_to_pdf(filename,
+                          title         = args.title.decode('utf8'),
+                          author        = args.author.decode('utf8'),
+                          date          = args.date,
+                          outfile       = args.outfile,
+                          contents      = args.contents,
+                          remove_tmpdir = remove_tmpdir,
+                          work_dir      = work_dir,
+                          style         = args.style
+                         )
+        # subprocess.check_call might throw
+        except CalledProcessError as e:
+            sys.stderr.write('CalledProcessError: %s\n' % e)
+            exit(1)
 
 if __name__ == "__main__":
     main()

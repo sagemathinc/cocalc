@@ -1404,7 +1404,7 @@ add_menu = (bar, entries) ->
     dropdown = $("<span class='btn-group'></span>")
     dropdown.append($("""
     <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="#{entries[1]}">
-     <i class="fa">#{entries[0]}</i> <b class="caret"></b>
+     #{entries[0]} <b class="caret"></b>
     </span>
     """))
 
