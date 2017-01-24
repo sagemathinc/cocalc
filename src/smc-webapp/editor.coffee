@@ -736,6 +736,7 @@ class CodeMirrorEditor extends FileEditor
             theme                     : editor_settings.theme
             track_revisions           : editor_settings.track_revisions
             public_access             : false
+            latex_editor              : false
 
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
@@ -878,6 +879,10 @@ class CodeMirrorEditor extends FileEditor
                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
                 options.foldGutter  = true
                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+
+            if opts.latex_editor
+                options.gutters     ?= []
+                options.gutters.push("Codemirror-latex-errors")
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
