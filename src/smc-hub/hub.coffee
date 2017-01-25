@@ -1,11 +1,13 @@
 ###
-This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
+This is the SMC Global HUB.  It runs as a daemon, sitting in the
 middle of the action, connected to potentially thousands of clients,
-many Sage sessions, and a RethinkDB database cluster.  There are
-many HUBs running on VM's all over the installation.
+many Sage sessions, and PostgreSQL database.  There are
+many HUBs running.
 
 GPLv3
 ###
+require('coffee-cache')
+
 
 DEBUG = DEBUG2 = false
 

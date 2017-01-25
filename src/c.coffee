@@ -52,7 +52,6 @@ console.log("vms() -- sets vms to gcloud VM manager (and g to gcloud interface)"
 # make the global variable s be the compute server
 global.compute_server = () ->
     return require('smc-hub/compute-client').compute_server
-        db_hosts : db_hosts
         cb       : (e,s)->
             global.s = s
 console.log("compute_server() -- sets global variable s to compute server")
@@ -60,7 +59,6 @@ console.log("compute_server() -- sets global variable s to compute server")
 # make the global variable p be the project with given id and the global variable s be the compute server
 global.proj = global.project = (id) ->
     require('smc-hub/compute-client').compute_server
-        db_hosts : db_hosts
         cb       : (e,s)->
             global.s=s
             s.project
@@ -100,7 +98,6 @@ DEFAULT_CLOSE_DAYS = 60
 global.close_unused_projects = (host, cb) ->
     cb ?= done()
     require('smc-hub/compute-client').compute_server
-        db_hosts : db_hosts
         cb       : (err, s)->
             if err
                 cb("FAIL -- #{err}")
