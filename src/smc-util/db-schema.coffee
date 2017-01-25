@@ -13,6 +13,7 @@ schema.table_name =
         ...
     indexes :  # description of the indexes, mapping from index name to args that get passed to rethinkdb comand.
         index_name : [list of args that define this index]
+    pg_indexes : [array of column names]  # also some more complicated ways to define indexes; see the examples.
     user_query :  # queries that are directly exposed to the client via a friendly "fill in what result looks like" query language
         get :     # describes get query for reading data from this table
             all :  # this gets run first on the table before
@@ -98,16 +99,10 @@ schema.account_creation_actions =
         expire        :
             type : 'timestamp'
             desc : 'When this action should be expired.'
-        foo :
-            type : 'string'
-            desc : 'stuff'
-        user :
-            type : 'string'
-            pg_type : 'VARCHAR(173)'
-            desc : 'hash of the password'
     indexes :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
         expire        : []  # only used by delete_expired
+    pg_indexes : ['email_address']
 
 schema.accounts =
     desc : 'All user accounts.'

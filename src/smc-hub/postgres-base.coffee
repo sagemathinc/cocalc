@@ -604,26 +604,32 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @_create_indexes(table, cb)
         ], cb)
 
+    _create_indexes_queries: (table) =>
+        schema = SCHEMA[table]
+        v = schema.pg_indexes ? []
+        if schema.fields.expire? and 'expire' not in v
+            v.push('expire')
+        queries = []
+        for query in v
+            name = "#{table}_#{misc.make_valid_name(query)}_idx"  # this first, then...
+            if query.indexOf('(') == -1                           # do this **after** making name.
+                query = "(#{query})"
+            queries.push({name:name, query:query})
+        return queries
+
     _create_indexes: (table, cb) =>
         dbg = @_dbg("_create_indexes('#{table}')")
         dbg()
-        schema = SCHEMA[table]
-        pg_indexes = schema.pg_indexes ? []
-        if schema.fields.expire? and 'expire' not in pg_indexes
-            pg_indexes.push('expire')
+        pg_indexes = @_create_indexes_queries(table)
         if pg_indexes.length == 0
-            dbg("no indexes defined")
+            dbg("no indexes")
             cb()
             return
         dbg("creating indexes")
-        f = (query, cb) =>
-            s = query.toLowerCase()
-            if s.indexOf('create') == -1 or s.indexOf('index') == -1
-                # Shorthand index is just the part in parens.
-                # Schema can also give a full create index command.
-                if query.indexOf('(') == -1
-                    query = "(#{query})"
-                query = "CREATE INDEX ON #{table} #{query}"
+        f = (info, cb) =>
+            query = info.query
+            # Shorthand index is just the part in parens.
+            query = "CREATE INDEX #{info.name} ON #{table} #{query}"
             @_query
                 query : query
                 cb    : cb
@@ -651,8 +657,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg()
         schema   = SCHEMA[table]
         columns  = {}
-        to_add   = {}
-        to_alter = {}
         async.series([
             (cb) =>
                 @_query
@@ -704,7 +708,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb()
                     return
                 dbg("#{tasks.length} columns will be altered")
-                alter = (task, cb) =>
+                do_task = (task, cb) =>
                     info = schema.fields[task.column]
                     col  = quote_field(task.column)
                     try
@@ -728,13 +732,52 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                 cb    : cb
                         else
                             cb("unknown action '#{task.action}")
-                async.mapSeries(tasks, alter, cb)
-        ], cb)
+                async.mapSeries(tasks, do_task, cb)
+        ], (err) -> cb?(err))
 
     _update_table_schema_indexes: (table, cb) =>
         dbg = @_dbg("_update_table_schema_indexes('#{table}')")
-        dbg()
-        cb()
+        cur_indexes = {}
+        async.series([
+            (cb) =>
+                dbg("getting list of existing indexes")
+                @_query   # See http://www.alberton.info/postgresql_meta_info.html#.WIfyPLYrLdQ
+                    query : "SELECT c.relname AS name FROM pg_class AS a JOIN pg_index AS b ON (a.oid = b.indrelid) JOIN pg_class AS c ON (c.oid = b.indexrelid)"
+                    where : {'a.relname': table}
+                    cb    : all_results 'name', (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            for name in x
+                                cur_indexes[name] = true
+                            cb()
+            (cb) =>
+                # these are the indexes we are supposed to have
+                goal_indexes = @_create_indexes_queries(table)
+                goal_indexes_map = {}
+                tasks = []
+                for x in goal_indexes
+                    goal_indexes_map[x.name] = true
+                    if not cur_indexes[x.name]
+                        tasks.push({action:'create', name:x.name, query:x.query})
+                for name of cur_indexes
+                    # only delete indexes that end with _idx; don't want to delete, e.g., pkey primary key indexes.
+                    if misc.endswith(name, '_idx') and not goal_indexes_map[name]
+                        tasks.push({action:'delete', name:name})
+                do_task = (task, cb) =>
+                    switch task.action
+                        when 'create'
+                            @_query
+                                query : "CREATE INDEX #{task.name} ON #{table} #{task.query}"
+                                cb    : cb
+                        when 'delete'
+                            @_query
+                                query : "DROP INDEX #{task.name}"
+                                cb    : cb
+                        else
+                            cb("unknown action '#{task.action}")
+                async.map(tasks, do_task, cb)
+        ], (err) -> cb?(err))
 
     _throttle: (name, time_s, key...) =>
         key = misc.to_json(key)
