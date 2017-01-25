@@ -32,9 +32,6 @@ if __name__ == '__main__':
         open(os.path.join(PG_DATA,'pg_hba.conf'), 'w').write('local all all trust\n')
         cmd("chmod og-rwx '%s'"%PG_DATA)  # just in case -- be paranoid...
 
-        # Generate random password and write
-        password = 'sk8'
-
         # Start database running in background as daemon
         cmd("postgres -D '%s' >%s/postgres.log 2>&1 &"%(PG_DATA, PG_DATA))
         time.sleep(1)
@@ -49,7 +46,7 @@ if __name__ == '__main__':
         # (TODO: Note -- connection (so data) isn't necessarily encrypted unless we build
         # postgreSQL properly -- see https://www.postgresql.org/docs/9.6/static/auth-pg-hba-conf.html)
         open(os.path.join(PG_DATA,'pg_hba.conf'), 'w').write('host all smc all md5\n')
-        
+
     # Start database daemon listening on all network interfaces.
     cmd("postgres -h 0.0.0.0 -D '%s' >%s/postgres.log 2>&1 &"%(PG_DATA, PG_DATA))
 

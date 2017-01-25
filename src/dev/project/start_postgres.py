@@ -15,7 +15,14 @@ if not os.path.exists(PG_DATA):
     util.cmd("pg_ctl init -D '%s'"%PG_DATA)
 
     # Lock down authentication so it is ONLY via unix socket
-    open(os.path.join(PG_DATA,'pg_hba.conf'), 'w').write('local all all trust\n')
+    open(os.path.join(PG_DATA,'pg_hba.conf'), 'w').write(
+"""
+# This is safe since we only enable a socket protected by filesystem permissions:
+local all all trust
+
+# You can uncomment this and comment out the above if you want to test password auth.
+#local all all md5
+""")
 
     # Make it so the socket is n this subdirectory, so that it is
     # protected by UNIX permissions.  This approach avoids any need
@@ -33,6 +40,7 @@ if not os.path.exists(PG_DATA):
 
     # Create script so that clients will know where socket dir is.
     open("postgres-env", 'w').write("""#!/bin/sh
+export PGUSER='smc'
 export PGHOST='%s'
 """%socket_dir)
 

@@ -28,7 +28,7 @@ get_db = (cb) ->
         # new postgreSQL version
         db = require('./smc-hub/postgres').db()
         db.connect(cb:cb)
-        return
+        return db
 
 # get a connection to the db
 global.db = (cb) ->

@@ -6,10 +6,12 @@ This code is currently NOT released under any license for use by anybody except 
 
 (c) 2016 SageMath, Inc.
 **
+
 ###
 
 EventEmitter = require('events')
 
+fs      = require('fs')
 async   = require('async')
 pg      = require('pg')
 
@@ -24,6 +26,14 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
+read_password_from_disk = ->
+    filename = (process.env.SMC_ROOT ? '.') + '/data/secrets/postgres'
+    try
+        return fs.readFileSync(filename).toString().trim()
+    catch
+        # no password file
+        return
+
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
@@ -31,6 +41,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             database     : process.env['SMC_DB'] ? 'smc'
             debug        : true
             connect      : true
+            password     : undefined
             cache_expiry : 2000  # expire cached queries after this many milliseconds
                                  # keep this very short; it's just meant to reduce impact of a bunch of
                                  # identical permission checks in a single user query.
@@ -47,6 +58,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_port = 5432
         @_database = opts.database
         @_concurrent_queries = 0
+        @_password = opts.password ? read_password_from_disk()
+
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
         if opts.connect
@@ -124,8 +137,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @_ensure_database_exists(cb)
             (cb) =>
                 @_client = new pg.Client
-                    #host     : if @_host then @_host    # undefined if @_host=''
+                    user     : 'smc'
+                    host     : if @_host then @_host    # undefined if @_host=''
                     port     : @_port
+                    password : @_password
                     database : @_database
                 if @_notification?
                     @_client.on('notification', @_notification)
@@ -458,6 +473,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         misc_node.execute_code
             command : 'psql'
             args    : args
+            env     :
+                PGPASSWORD : @_password
             cb      : (err, output) =>
                 if err
                     cb(err)
