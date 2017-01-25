@@ -3,6 +3,9 @@ We do two inserts, since we deprecated the stats format about half way through.
 After this all data will be in the new format (yeah!).
 
 There are 25 stupid old entries with no time, so we exclude those...
+
+NOTE that we ignore the hub_servers field below, because it uses a lot of space,
+is hard to translate, and has no real value.
 */
 
 
@@ -15,8 +18,7 @@ INSERT INTO stats (
     a#>'{accounts_created}',
     (a#>>'{projects}')::INTEGER,
     a#>'{projects_created}',
-    a#>'{projects_edited}',
-    a#>'{hub_servers}'
+    a#>'{projects_edited}'
   FROM stats_json where a#>>'{active_projects}' IS NULL  and a#>>'{time}' IS NOT NULL
 ) ON CONFLICT(id) DO NOTHING;
 
@@ -43,8 +45,7 @@ INSERT INTO stats (
     a#>'{accounts_created}',
     (a#>>'{projects}')::INTEGER,
     a#>'{projects_created}',
-    json_build_object('5min', (a#>>'{active_projects}')::INTEGER, '1h', (a#>>'{last_hour_projects}')::INTEGER, '1d', (a#>>'{last_day_projects}')::INTEGER, '7d', (a#>>'{last_week_projects}')::INTEGER, '30d', (a#>>'{last_month_projects}')::INTEGER),
-    a#>'{hub_servers}'
+    json_build_object('5min', (a#>>'{active_projects}')::INTEGER, '1h', (a#>>'{last_hour_projects}')::INTEGER, '1d', (a#>>'{last_day_projects}')::INTEGER, '7d', (a#>>'{last_week_projects}')::INTEGER, '30d', (a#>>'{last_month_projects}')::INTEGER)
   FROM stats_json where a#>>'{active_projects}' IS NOT NULL and a#>>'{time}' IS NOT NULL
 ) ON CONFLICT(id) DO NOTHING;
 
