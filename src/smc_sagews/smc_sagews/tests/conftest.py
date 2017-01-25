@@ -431,10 +431,11 @@ def exec2(request, sagews, test_id):
             assert typ == 'json'
             assert mesg['id'] == test_id
             assert 'stdout' in mesg
+            mout = mesg['stdout']
             if output is not None:
-                assert output.strip() in (mesg['stdout']).strip()
+                assert output in mout
             elif pattern is not None:
-                assert re.search(pattern, mesg['stdout']) is not None
+                assert re.search(pattern, mout) is not None
         elif html_pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
