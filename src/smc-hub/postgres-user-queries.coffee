@@ -333,7 +333,7 @@ class exports.PostgreSQL extends PostgreSQL
                             return {err: "must specify #{opts.table}.#{field}"}
                         r.require_project_ids_write_access = [r.query[field]]
                     when 'project_owner'
-                        if not query[field]?
+                        if not r.query[field]?
                             return {err:"must specify #{opts.table}.#{field}"}
                         r.require_project_ids_owner = [r.query[field]]
 
