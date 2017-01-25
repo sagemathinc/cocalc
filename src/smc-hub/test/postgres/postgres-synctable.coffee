@@ -18,6 +18,7 @@ setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
 
 describe 'test storage_server synctable', ->
+    @timeout(5000)
     before(setup)
     after(teardown)
 

@@ -20,6 +20,7 @@ NOTES:
   - In the first pass, I'm not worrying about indexes.  This may hurt
     scalable performance.
 ###
+require('coffee-cache')
 
 fs           = require('fs')
 
@@ -30,7 +31,7 @@ for f in ['pg_type', 'expire_time', 'one_result', 'all_results', 'count_result']
 # Add further functionality to PostgreSQL class -- must be at the bottom of this file.
 # Each of the following calls extends the PostgreSQL class with further important functionality.
 # Order matters.
-for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries']
+for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries', 'ops']
     exports.PostgreSQL = require("./postgres-#{module}").PostgreSQL
 
 exports.db = (opts) ->

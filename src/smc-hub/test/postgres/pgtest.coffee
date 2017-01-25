@@ -5,6 +5,8 @@ WARNING: The server timezone **MUST BE** UTC everywhere, or tests will fail!
 
 ###
 
+require('coffee-cache')
+
 DEBUG    = !!(process.env['SMC_DEBUG'] ? false)
 #DEBUG = true
 # if true, completely deletes database before running tests -- do on schema change for now.
