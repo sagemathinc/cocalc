@@ -1790,6 +1790,12 @@ main = () ->
         winston.debug("Uncaught exception: " + err)
         winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
+        require('smc-hub/rethink').rethinkdb
+            hosts : DB
+            pool  : 1
+            cb    : (e, db) ->
+                if not e
+                    db?.uncaught_exception(err)
 
     async.series([
         (cb) ->

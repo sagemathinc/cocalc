@@ -3556,6 +3556,7 @@ command_line = () ->
             winston.debug("Uncaught exception: " + err)
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
+            database?.uncaught_exception(err)
 
         if program.passwd
             console.log("Resetting password")

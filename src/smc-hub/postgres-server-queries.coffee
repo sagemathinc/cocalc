@@ -45,6 +45,17 @@ class exports.PostgreSQL extends PostgreSQL
                 'time::TIMESTAMP' : 'NOW()'
             cb     : (err) => opts.cb?(err)
 
+    uncaught_exception: (err) =>
+        # call when things go to hell in some unexpected way; at least
+        # we attempt to record this in the database...
+        try
+            @log
+                event : 'uncaught_exception'
+                value : {error:"#{err}", stack:"#{err.stack}", host:require('os').hostname()}
+        catch e
+            # IT IS CRITICAL THAT uncaught_exception not raise an exception, since if it
+            # did then we would hit a horrible infinite loop!
+
     # dump a range of data from the central_log table
     get_log: (opts) =>
         opts = defaults opts,
