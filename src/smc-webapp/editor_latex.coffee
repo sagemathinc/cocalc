@@ -169,7 +169,7 @@ class exports.LatexEditor extends editor.FileEditor
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
         ###
-            @preview.output.on 'scroll', @_passive_inverse_search
+            @preview.page.on 'scroll', @_passive_inverse_search
             cm0 = @latex_editor.codemirror
             cm1 = @latex_editor.codemirror1
             cm0.on 'cursorActivity', @_passive_forward_search
@@ -1011,9 +1011,9 @@ class exports.LatexEditor extends editor.FileEditor
         if not elt?
             opts.cb?("Preview not yet loaded.")
             return
-        output = @preview.output
+        page   = @preview.page
         nH     = elt.find("img")[0].naturalHeight
-        y      = (output.height()/2 + output.offset().top - elt.offset().top) * nH / elt.height()
+        y      = (page.height()/2 + page.offset().top - elt.offset().top) * nH / elt.height()
         @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution, cb:opts.cb})
 
     forward_search: (opts={}) =>
