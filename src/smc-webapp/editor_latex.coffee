@@ -1,3 +1,23 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014--2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 #############################################
 # Editor for LaTeX documents
@@ -20,6 +40,16 @@ printing        = require('./printing')
 {salvus_client} = require('./salvus_client')
 
 templates = $("#salvus-editor-templates")
+
+# this regex matches the `@_get()` content iff it is a compileable latex document
+RE_FULL_LATEX_CODE = new RegExp('\\\\documentclass{[^}]*}[^]*?\\\\begin{document}[^]*?\\\\end{document}', 'g')
+
+# local storage keys -- prevents typos (and keys can be shorter)
+LSkey =
+    ignore_invalid_latex : 'iil'
+    split_pos            : 'split_pos'
+    config               : 'conf'
+    render_preview       : 'rp'
 
 MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
@@ -131,6 +161,11 @@ class exports.LatexEditor extends editor.FileEditor
         @_init_buttons()
         @init_draggable_split()
 
+        # if the latex file should be compiled and the preview rendered
+        # must come after _init_buttons
+        @_render_preview = @local_storage(LSkey.render_preview) ? true
+        @set_toggle_preview_state(@_render_preview)
+
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
         ###
@@ -157,7 +192,7 @@ class exports.LatexEditor extends editor.FileEditor
                     @latex_editor.codemirror1.spellcheck_highlight(words)
 
     init_draggable_split: () =>
-        @_split_pos = @local_storage("split_pos")
+        @_split_pos = @local_storage(LSkey.split_pos)
         @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
         @set_dragbar_position()
         update = =>
@@ -167,7 +202,7 @@ class exports.LatexEditor extends editor.FileEditor
             width = @element.width()
             p     = dragbar.offset().left
             @_split_pos = (p - left) / width
-            @local_storage('split_pos', @_split_pos)
+            @local_storage(LSkey.split_pos, @_split_pos)
             dragbar.css(left: 0)
             @set_dragbar_position()
 
@@ -180,7 +215,7 @@ class exports.LatexEditor extends editor.FileEditor
             start       : misc_page.drag_start_iframe_disable
 
     set_dragbar_position: =>
-        @_split_pos ?= @local_storage('split_pos') ? 0.5
+        @_split_pos ?= @local_storage(LSkey.split_pos) ? 0.5
         @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
         @element.find(".salvus-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
 
@@ -192,13 +227,13 @@ class exports.LatexEditor extends editor.FileEditor
         @save_conf(conf)
 
     load_conf: () =>
-        conf = @local_storage('conf')
+        conf = @local_storage(LSkey.config)
         if not conf?
             conf = {}
         return conf
 
     save_conf: (conf) =>
-        @local_storage('conf', conf)
+        @local_storage(LSkey.config, conf)
 
     set_conf_doc: (obj) =>
         conf = @load_conf_doc()
@@ -350,6 +385,11 @@ class exports.LatexEditor extends editor.FileEditor
             @set_resolution()
             return false
 
+        @_toggle_preview_button = @element.find('a[href="#toggle-preview"]')
+        @_toggle_preview_button.click () =>
+            @toggle_preview()
+            return false
+
         #@element.find("a[href=\"#latex-command-undo\"]").click () =>
         #    c = @preview.pdflatex.default_tex_command()
         #    @log_input.val(c)
@@ -454,10 +494,31 @@ class exports.LatexEditor extends editor.FileEditor
                 @spell_check()
 
     update_preview: (cb, force=false) =>
+        if not @_render_preview
+            cb?()
+            return
+
         content = @_get()
         if not force and content == @_last_update_preview
             cb?()
             return
+
+        latex_command = @load_conf_doc().latex_command
+        filename_tex  = @preview.pdflatex.filename_tex
+        # a check, if we're really compiling the edited latex file
+        if latex_command?  # could be undefined
+            compiling_this_file = latex_command.indexOf(filename_tex) >= 0
+        else
+            compiling_this_file = true
+
+        # check if latex file is invalid iff we're compiling it
+        iil = @local_storage(LSkey.ignore_invalid_latex) ? false
+        if not iil and not content.match(RE_FULL_LATEX_CODE) and compiling_this_file
+            msg = @invalid_latex(filename_tex)
+            @preview.show_message(msg)
+            cb?()
+            return
+        @preview.show_pages(true)
         preview_button = @element.find('a[href="#png-preview"]')
         async.series([
             (cb) =>
@@ -850,6 +911,74 @@ class exports.LatexEditor extends editor.FileEditor
         redux.getProjectActions(@project_id).download_file
             path : misc.change_filename_extension(@filename, 'pdf')
             print: print
+
+    # this sets the "visual state" for @_render_preview
+    set_toggle_preview_state: (enabled) =>
+        @local_storage(LSkey.render_preview, enabled)
+        if enabled
+            # when enabling preview (again), reset ignore to false
+            @local_storage(LSkey.ignore_invalid_latex, false)
+        @_toggle_preview_button.toggleClass('active', enabled)
+        @_toggle_preview_button.attr('aria-pressed', enabled)
+        icon = @_toggle_preview_button.find('i')
+        icon.toggleClass('fa-check-square-o', enabled)
+        icon.toggleClass('fa-square-o', !enabled)
+
+        if enabled
+            @preview.show_pages(true)
+        else
+            m = $('<div>Preview disabled. Click <a href="#">here</a> to enable.</div>')
+            m.find('a').click =>
+                @toggle_preview(true)
+            @preview.show_message(m)
+
+    toggle_preview: (enabled) =>
+        # enabled could be undefined, but @_render_preview is always defined
+        enabled = @_render_preview = (enabled ? ! @_render_preview)
+        @set_toggle_preview_state(enabled)
+        hide_errors = =>
+            if not enabled
+                @preview.pdflatex.last_latex_log = ''
+                @render_error_page()
+        @save(hide_errors, force=enabled)
+
+    # Warning text, if regex RE_FULL_LATEX_CODE doesn't match content
+    invalid_latex: (filename) =>
+        msg = $("""
+        <h2>Invalid LaTeX document</h2>
+        <div>
+        Sorry, it is not possible to render a preview of the document
+        <code>#{filename}</code>.
+        A minimal LaTeX document must consist of:
+
+        <pre>
+        \\documentclass{...}  % e.g. \\documentclass{article}
+        % preamble ...
+        \\begin{document}
+        ...
+        \\end{document}
+        </pre>
+
+        <div>
+        For more information:
+        <a href="https://en.wikibooks.org/wiki/LaTeX/Document_Structure"
+            target="_blank">WikiBooks LaTeX</a>
+        </div>
+
+        <div style="margin-top: 25px; text-align: center;">
+        <a class="btn btn-lg btn-primary" href="#ignore">
+            Ignore this warning and compile
+        </a>
+        </div>
+        </div>
+        """)
+        msg.find('a[href="#ignore"]').click =>
+            @ignore_invalid_latex()
+        return msg
+
+    ignore_invalid_latex: =>
+        @local_storage(LSkey.ignore_invalid_latex, true)
+        @save(null, force=true)
 
     _inverse_search: (opts) =>
         active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.

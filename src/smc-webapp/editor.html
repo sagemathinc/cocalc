@@ -343,9 +343,16 @@ Editor for files in a project
                 <a href="#preview-resolution" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Change the preview resolution"><i class="fa fa-th"></i></a>
                 <a href="#pdf-download" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Download the PDF file"><i class="fa fa-download"></i></a>
             </span>
+            <span class="btn-group pull-right">
+                <a href="#toggle-preview" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="If enabled, the LaTeX file is compiled and a preview is rendered.">
+                    <i class="fa fa-check-square-o"></i> Preview
+                </a>
+            </span>
         </div>
         <div style="flex:1;overflow-y:auto;overflow-x:auto" class="salvus-editor-pdf-preview-output">
             <div class="salvus-editor-pdf-preview-page">
+            </div>
+            <div class="salvus-editor-pdf-preview-message hide">
             </div>
         </div>
     </div>
