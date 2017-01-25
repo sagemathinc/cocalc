@@ -58,6 +58,7 @@ class exports.PostgreSQL extends PostgreSQL
         dbg(cmd)
         misc_node.execute_code
             command : cmd
+            timeout : 0
             home    : '.'
             env     :
                 PGPASSWORD : @_password
@@ -109,6 +110,7 @@ class exports.PostgreSQL extends PostgreSQL
                 dbg(cmd)
                 misc_node.execute_code
                     command : cmd
+                    timeout : 0
                     home    : '.'
                     env     :
                         PGPASSWORD : @_password
