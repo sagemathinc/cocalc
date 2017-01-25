@@ -447,11 +447,15 @@ class exports.PostgreSQL extends PostgreSQL
                                     dbg("Error adding user to project: #{err}")
                                 cb(err)
                     else
-                        # TODO: need to report this some better way, maybe email or insertion in a table
-                        # of messages for admin.  That's probably best -- we could also make tracebacks
-                        # of any time insert in that table, then just scan it periodically.  Basically,
-                        # if anything is there, then warn.
                         dbg("ERROR: skipping unknown action -- #{action.action}")
+                        # also store in database so we can look into this later.
+                        @log
+                            event : 'unknown_action'
+                            value :
+                                error      : "unknown_action"
+                                action     : action
+                                account_id : opts.account_id
+                                host       : require('os').hostname()
                         cb()
                 async.map actions, f, (err) =>
                     if not err
