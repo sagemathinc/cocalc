@@ -1827,6 +1827,23 @@ def python3(code=None,**kwargs):
     return python3.jupyter_kernel(code,**kwargs)
 python3.jupyter_kernel = None
 
+def singular_kernel(code=None,**kwargs):
+    """
+    Block decorator to run code in a Singular mode session.
+
+    To use this, put %singular_kernel by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using singular_kernel.
+
+    .. note::
+
+        State is preserved between cells.
+        SMC %singular_kernel mode uses the jupyter `singular` kernel.
+    """
+    if singular_kernel.jupyter_kernel is None:
+        singular_kernel.jupyter_kernel = jupyter("singular")
+    return singular_kernel.jupyter_kernel(code,**kwargs)
+singular_kernel.jupyter_kernel = None
 
 def perl(code):
     """
