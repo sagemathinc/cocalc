@@ -1835,9 +1835,15 @@ def singular_kernel(code=None,**kwargs):
     the rest of the cell, or put it at the beginning of a line to
     run just that line using singular_kernel.
 
+    State is preserved between cells.
+
+    This is completely different than the singular command in Sage itself, which
+    supports things like x = singular(sage_object), and *also* provides a way
+    to execute code by beginning cells with %singular. The singular interface in
+    Sage uses pexpect, so might be less robust than singular_kernel.
+
     .. note::
 
-        State is preserved between cells.
         SMC %singular_kernel mode uses the jupyter `singular` kernel:
         https://github.com/sebasguts/jupyter_kernel_singular
     """
