@@ -1,5 +1,8 @@
 ###
 Test suite for PostgreSQL interface and functionality.
+
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 pgtest   = require('./pgtest')
@@ -90,7 +93,7 @@ describe 'working with logs: ', ->
                 expect(log.length).toBe(1)
                 expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
                 done(err)
-                
+
     it 'checks that there is nothing "old" in the log', (done) ->
         # no old stuff
         db.get_log

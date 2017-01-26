@@ -2,11 +2,8 @@
 PostgreSQL -- implementation of queries needed for storage and managing blobs,
 including backups, integration with google cloud storage, etc.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).

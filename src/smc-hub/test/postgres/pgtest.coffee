@@ -3,6 +3,8 @@ Test suite for PostgreSQL interface and functionality.
 
 WARNING: The server timezone **MUST BE** UTC everywhere, or tests will fail!
 
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 require('coffee-cache')

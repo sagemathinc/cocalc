@@ -3,8 +3,10 @@ Some convenient command-line shortcuts.  If you're working on the command line, 
 
     require('./c.coffee')
 
-The functiosns below in some cases return things, and in some cases set global variables!  Read docs.
+The functions below in some cases return things, and in some cases set global variables!  Read docs.
 
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 async = require('async')

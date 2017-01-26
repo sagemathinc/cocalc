@@ -4,11 +4,8 @@ PostgreSQL -- implementation of all the queries needed for the backend servers
 These are all the non-reactive non-push queries, e.g., adding entries to logs,
 checking on cookies, creating accounts and projects, etc.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel

@@ -1,24 +1,8 @@
 ###
-Similar to rethink.coffee... but built around PostgreSQL.
+PostgreSQL database entry point.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
----
-
-p = (require('./postgres')).pg()
-
----
-
-NOTES:
-
-  - Some of the methods in the main class below are also in rethink.coffee.
-    Since rethink will likely get deleted once postgres is up and running,
-    this doesn't concern me.
-  - In the first pass, I'm not worrying about indexes.  This may hurt
-    scalable performance.
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 require('coffee-cache')
 
