@@ -17,6 +17,11 @@ def process(table, export=True, update=False):
     timing.start(table, 'export_from_rethinkdb')
     if os.path.exists(out):
         os.system("rm -rf %s"%out)
+    if table == 'accounts':
+        s = "cd /migrate/smc/src&& . smc-env&& cd /migrate/smc/src/scripts/postgresql/migrate/&&time coffee repeated_emails.coffee"
+        print s
+        if os.system(s):
+            raise RuntimeError("error deduplicating emails")
     s = "time rethinkdb export --password-file /migrate/secrets/rethinkdb --format json  -d %s -c db3 -e smc.%s"%(
         out, table)
     print s

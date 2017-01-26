@@ -47,21 +47,22 @@ fix_duplicate_emails = (db) ->
             multi = (v for _, v of by_email when v.length > 1)
             console.log "found #{multi.length} users with more than one email address"
             console.log(multi)
-            process = (v, cb) ->
+            process_it = (v, cb) ->
                 v.sort(cmp_users)
                 console.log("process ", v)
                 del = (x, cb) ->
                     account_id = x.account_id
                     console.log "deleting #{account_id}"
-                    cb()
-                    ##db.mark_account_deleted(account_id:account_id, cb:cb)
+                    db.mark_account_deleted(account_id:account_id, cb:cb)
                 async.mapSeries(v.slice(0,v.length-1), del, cb)
-            async.mapSeries(multi, process, cb)
+            async.mapSeries(multi, process_it, cb)
     ],(err) ->
         if err
             console.log("ERROR", err)
+            process.exit(1)
         else
             console.log('done')
+            process.exit(0)
     )
 
 

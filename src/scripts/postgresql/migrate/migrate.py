@@ -14,12 +14,12 @@ import os
 db = os.environ.get('SMC_DB', 'migrate')
 
 tables = {
-   'account_creation_actions':{},
-   'accounts':{},
+   'account_creation_actions':{'replace':True},
+   'accounts':{'replace':True},
    'blobs':{},
    'central_log':{},
    'client_error_log':{},
-   'compute_servers':{},
+   'compute_servers':{'replace':True},
    'cursors':{},
    'eval_inputs':{},
    'eval_outputs':{},
@@ -27,20 +27,20 @@ tables = {
    'file_use':{'fix_timestamps':True},
    'hub_servers':{'skip':True},  # ephemeral
    'instance_actions_log':{},
-   'instances':{},
-   'passport_settings':{},
-   'password_reset':{},
-   'password_reset_attempts':{},
+   'instances':{'replace':True},
+   'passport_settings':{'replace':True},
+   'password_reset':{'replace':True},
+   'password_reset_attempts':{'replace':True},
    'patches':{},
    'project_log':{},
-   'projects':{'fix_timestamps':True},
-   'public_paths':{},
-   'remember_me':{},
-   'server_settings':{},
+   'projects':{'fix_timestamps':True, 'replace':True},
+   'public_paths':{'replace':True},
+   'remember_me':{'replace':True},
+   'server_settings':{'replace':True},
    'stats':{},
-   'storage_servers':{},
+   'storage_servers':{'replace':True},
    'syncstrings':{},
-   'system_notifications':{}
+   'system_notifications':{'replace':True}
 }
 
 import os, sys, threading
@@ -81,7 +81,7 @@ def process(table):
     print "load csv into database"
     read_from_csv.process(path_to_csv)
     print "parse JSONB data in the database to relational data"
-    populate_relational_table.process(table)
+    populate_relational_table.process(table, T.get('replace',False))
 
 def run(table):
     threading.Thread(target = lambda : process(table)).start()
@@ -114,12 +114,13 @@ if __name__ == "__main__":
             update = True
             del v[i]
             break
+    if v[0] == '-h':
+       usage()
     if len(v) == 1:
         if v[0] == 'all':
             v = list(tables)
             v.sort()
-        elif v[0].startswith('-h'):
-            usage()
+            print(v)
     if len(v) == 1:
         process(v[0])
     elif len(v) > 1:
