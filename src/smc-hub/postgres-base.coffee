@@ -147,7 +147,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     @_client.on('notification', @_notification)
                 @_client.on 'error', (err) =>
                     dbg("error -- #{err}")
-                    @_client.end()
+                    @_client?.end()
                     delete @_client
                     @connect()  # start trying to reconnect
                 @_client.connect(cb)
@@ -208,7 +208,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             dbg = @_dbg("_query")
             dbg("connecting first...")
             @connect
-                max_time : 45000    # don't try forever; queries would pile up.
+                max_time : 45000    # don't try forever; queries could pile up.
                 cb       : (err) =>
                     if err
                         dbg("FAILED to connect -- #{err}")

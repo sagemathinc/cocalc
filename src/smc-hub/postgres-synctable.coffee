@@ -154,6 +154,8 @@ class exports.PostgreSQL extends PostgreSQL
             x = new ProjectAndUserTracker @, (err) =>
                 if not err
                     @_project_and_user_tracker = x
+                    x.on 'error', =>
+                        delete @_project_and_user_tracker
                 else
                     x = undefined
                 for cb in @_project_and_user_tracker_cbs
@@ -163,14 +165,14 @@ class exports.PostgreSQL extends PostgreSQL
 
 class ProjectAndUserTracker extends EventEmitter
     constructor: (@_db, cb) ->
+        dbg = @_dbg('constructor')
+        dbg("Initializing Project and user tracker...")
         # by a "set" we mean map to bool
         @_accounts = {} # set of accounts we care about
         @_users    = {} # map from from project_id to set of users of a given project
         @_projects = {} # map from account_id to set of projects of a given user
         @_collabs  = {} # map from account_id to map from account_ids to *number* of projects you have in common
         # create changefeed listening on changes to projects table
-        # TODO: instead of firing on users change; fire on change of jsonb_object_keys(users),
-        # which should be easy via more customized triggers... or a custom postgres VIEW.
         @_db.changefeed
             table  : 'projects'
             select : {project_id:'UUID'}
@@ -178,18 +180,36 @@ class ProjectAndUserTracker extends EventEmitter
             where  : {}
             cb     : (err, feed) =>
                 if err
+                    dbg("Error = #{err}")
                     cb(err)
                 else
+                    dbg("Done")
                     @_feed = feed
                     @_feed.on 'change', @_handle_change
+                    @_feed.on 'error', @_handle_error
+                    @_feed.on 'close', (=> @_handle_error("changefeed closed"))
                     cb()
     _dbg: (f) =>
         return @_db._dbg("Tracker.#{f}")
 
+    _handle_error: (err) =>
+        if @_closed
+            return
+        # There was an error in the changefeed.
+        # Error is totally fatal, so we close up shop.
+        dbg = @_dbg("_handle_error")
+        dbg("err='#{err}'")
+        @emit('error', err)
+        @close()
+
     close: =>
+        if @_closed
+            return
+        @_closed = true
         @emit('close')
         @removeAllListeners()
-        @_feed.close()
+        @_feed?.close()
+        delete @_feed
 
     _handle_change: (x) =>
         if x.action == 'delete'
@@ -353,7 +373,7 @@ class ProjectAndUserTracker extends EventEmitter
         for project_id of @_projects[opts.account_id]
             v.push(project_id)
         delete @_accounts[opts.account_id]
-        # Forget about any projects they were on that are no longer
+        # Forget about any projects they we are on that are no longer
         # necessary to watch...
         for project_id in v
             need = false
@@ -367,7 +387,6 @@ class ProjectAndUserTracker extends EventEmitter
                 delete @_users[project_id]
         return
 
-
     # return *set* of projects that this user is a collaborator on
     projects: (account_id) =>
         if not @_accounts[account_id]?
@@ -378,7 +397,16 @@ class ProjectAndUserTracker extends EventEmitter
     collabs: (account_id) =>
         return @_collabs[account_id]
 
+###
+The Changes class is a useful building block
+for making changefeeds.  It lets you watch when given
+columns change in a given table, and be notified
+when a where condition is satisfied.
 
+IMPORTANT: If an error event is emitted then then
+Changes object will close and not work any further!
+You must recreate it.
+###
 class Changes extends EventEmitter
     constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
         @dbg = @_dbg("constructor")
@@ -390,7 +418,7 @@ class Changes extends EventEmitter
             return
         @_db._listen @_table, @_select, @_watch, (err, tgname) =>
             if err
-                cb(err); return
+                cb?(err); return
             @_tgname = tgname
             @_db.on(@_tgname, @_handle_change)
             # NOTE: we close on *connect*, not on disconnect, since then clients
@@ -399,12 +427,25 @@ class Changes extends EventEmitter
             # to reconnect, which only makes matters worse (as they panic and
             # requests pile up!).
             @_db.once('connect', @close)
-            cb(undefined, @)
+            cb?(undefined, @)
 
     _dbg: (f) =>
         return @_db._dbg("Changes(table='#{@_table}').#{f}")
 
+    # this breaks the changefeed -- client must recreate it; nothing further will work at all.
+    _fail: (err) =>
+        if @_closed
+            return
+        dbg = @_dbg("_fail")
+        dbg("err='#{err}'")
+        @emit('error', new Error(err))
+        @close()
+
     close: (cb) =>
+        if @_closed
+            cb?()
+            return
+        @_closed = true
         @emit('close', {action:'close'})
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_handle_change)
@@ -456,7 +497,7 @@ class Changes extends EventEmitter
                 where : where
                 cb    : one_result (err, result) =>
                     if err
-                        @emit('error', err)
+                        @_fail(err)
                         return
                     if not result?
                         # This happens when record isn't deleted, but some
@@ -477,11 +518,13 @@ class Changes extends EventEmitter
             table  : @_table
             where  : where0
             cb     : all_results (err, results) =>
+                ## Useful for testing that the @_fail thing below actually works.
+                ##if Math.random() < .7
+                ##    err = "simulated error"
                 if err
-                    # TODO -- what to do -- some ugly thing involving trying again.
-                    # really just need a notion of queries that can't fail unless
-                    # they are erronous.  I.e., if they fail due to "database is down",
-                    # then they always get retried.
+                    @_dbg("insert")("FAKE ERROR!")
+                    @_fail(err)    # this is game over
+                    return
                 else
                     for x in results
                         if @_match_condition(x)

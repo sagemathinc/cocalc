@@ -1186,12 +1186,12 @@ class exports.PostgreSQL extends PostgreSQL
                     for k, v of x.select
                         select[k] = v
 
-                if x.where?
+                if x.where? or x.init_tracker?
                     where = x.where
                     if not account_id?
                         cb()
                         return
-                    # initialize user tracker needed for where tests...
+                    # initialize user tracker is needed for where tests...
                     @project_and_user_tracker cb : (err, _tracker) =>
                         if err
                             cb(err)
@@ -1216,10 +1216,14 @@ class exports.PostgreSQL extends PostgreSQL
                         feed.on 'close', ->
                             changes.cb(undefined, {action:'close'})
                         feed.on 'error', (err) ->
-                            changes.cb(err)
+                            changes.cb("feed error - #{err}")
                         @_changefeeds ?= {}
                         @_changefeeds[changes.id] = feed
                         init_tracker?(tracker, feed)
+                        # Any tracker error means this changefeed is now broken and
+                        # has to be recreated.
+                        tracker?.on 'error', (err) ->
+                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 
