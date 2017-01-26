@@ -1139,7 +1139,7 @@ update_states = (cb) ->
             async.mapLimit(projects, 8, f, cb)
         ], (err) ->
             # slow down during the first 10 minutes after startup
-            startup = ((new Date().getTime()) - START_TIME) > 10*60*1000
+            startup = ((new Date().getTime()) - START_TIME) < 10*60*1000
             delay_s = if startup then 10 else 2
             setTimeout(update_states, delay_s * 60 * 1000)
             cb?(err)
