@@ -39,7 +39,7 @@ printing        = require('./printing')
 {project_tasks} = require('./project_tasks')
 {salvus_client} = require('./salvus_client')
 
-templates = $("#salvus-editor-templates")
+templates       = $("#salvus-editor-templates")
 
 # this regex matches the `@_get()` content iff it is a compileable latex document
 RE_FULL_LATEX_CODE = new RegExp('\\\\documentclass{[^}]*}[^]*?\\\\begin{document}[^]*?\\\\end{document}', 'g')
@@ -401,12 +401,16 @@ class exports.LatexEditor extends editor.FileEditor
             trash_aux_button.icon_spin(true, disable=true)
             log_output = @log.find("textarea")
             log_output.text('')
+            # now we actually delete the files and report any errors in the log
             @preview.pdflatex.trash_aux_files (err, log) =>
-                trash_aux_button.icon_spin(false, disable=true)
                 if err
                     log_output.text(err)
                 else
                     log_output.text(log)
+                # after deleting the log also clear all issues!
+                @preview.pdflatex.last_latex_log = ''
+                @render_error_page()
+                trash_aux_button.icon_spin(false, disable=true)
             return false
 
         run_sage = @element.find('a[href="#latex-sage"]')
@@ -423,8 +427,10 @@ class exports.LatexEditor extends editor.FileEditor
             @log.find("textarea").text("Running Latex...")
             run_latex.icon_spin(true, disable=true)
             @preview.pdflatex._run_latex @load_conf_doc().latex_command, (err, log) =>
-                run_latex.icon_spin(false, disable=true)
                 @log.find("textarea").text(log)
+                # the log changed, there could be issues, render them
+                @render_error_page()
+                run_latex.icon_spin(false, disable=true)
             return false
 
         run_recompile = @element.find('a[href="#latex-recompile"]')
@@ -495,6 +501,11 @@ class exports.LatexEditor extends editor.FileEditor
 
     update_preview: (cb, force=false) =>
         if not @_render_preview
+            cb?()
+            return
+
+        # no content available, hence nothing to preview
+        if not @latex_editor.syncdoc._fully_loaded
             cb?()
             return
 
@@ -915,9 +926,6 @@ class exports.LatexEditor extends editor.FileEditor
     # this sets the "visual state" for @_render_preview
     set_toggle_preview_state: (enabled) =>
         @local_storage(LSkey.render_preview, enabled)
-        if enabled
-            # when enabling preview (again), reset ignore to false
-            @local_storage(LSkey.ignore_invalid_latex, false)
         @_toggle_preview_button.toggleClass('active', enabled)
         @_toggle_preview_button.attr('aria-pressed', enabled)
         icon = @_toggle_preview_button.find('i')
