@@ -1837,7 +1837,6 @@ BillingPage = rclass
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
-        console.log('for course', @props.for_course)
         if not @props.loaded
             # nothing loaded yet from backend
             <Loading />
