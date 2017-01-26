@@ -32,7 +32,8 @@ get_db = (cb) ->
 
 # get a connection to the db
 global.db = (cb) ->
-    return global.db = get_db(cb)
+    global.db = get_db(cb)
+    return
 console.log("db() -- sets global variable db to a database")
 
 global.gcloud = ->
