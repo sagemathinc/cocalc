@@ -30,6 +30,8 @@ CONF = '/projects/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
+START_TIME = new Date().getTime() # milliseconds
+
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
 
@@ -1134,9 +1136,12 @@ update_states = (cb) ->
                                 cb(err)
                             else
                                 project.state(update:true, cb:cb)
-            async.mapLimit(projects, 20, f, cb)
+            async.mapLimit(projects, 8, f, cb)
         ], (err) ->
-            setTimeout(update_states, 2*60*1000)
+            # slow down during the first 10 minutes after startup
+            startup = ((new Date().getTime()) - START_TIME) > 10*60*1000
+            delay_s = if startup then 10 else 2
+            setTimeout(update_states, delay_s * 60 * 1000)
             cb?(err)
         )
 
