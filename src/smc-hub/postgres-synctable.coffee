@@ -183,6 +183,8 @@ class ProjectAndUserTracker extends EventEmitter
                     @_feed = feed
                     @_feed.on 'change', @_handle_change
                     cb()
+    _dbg: (f) =>
+        return @_db._dbg("Tracker.#{f}")
 
     close: =>
         @emit('close')
@@ -277,7 +279,9 @@ class ProjectAndUserTracker extends EventEmitter
         delete @_users[project_id][account_id]
         delete @_projects[account_id][project_id]
 
-    # TODO: only register one at a time!!
+    # Register the given account so that this client watches the database
+    # in order to be aware of all projects and collaborators of the
+    # given account.
     register: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -286,32 +290,59 @@ class ProjectAndUserTracker extends EventEmitter
             # already registered
             opts.cb()
             return
-        if not @_register_cbs?
-            @_register_cbs = [opts.cb]
+        @_register_todo ?= {}
+        if misc.len(@_register_todo) == 0
+            # no registration is currently happening
+            @_register_todo[opts.account_id] = [opts.cb]
+            # kick things off -- this will keep registering accounts
+            # until everything is done, then set @_register_todo to undefined
+            @_register()
         else
-            @_register_cbs.push(opts.cb)
-        if @_register_cbs.length > 1
+            # Accounts are being registered right now.  Add to the todo list.
+            v = @_register_todo[opts.account_id]
+            if v?
+                v.push(opts.cb)
+            else
+                @_register_todo[opts.account_id] = [opts.cb]
+
+    # Call _register to completely clear the work @_register_todo work queue.
+    # NOTE: _register does each account, *one after another*, rather than doing
+    # everything in parallel.   WARNING: DO NOT rewrite this to do everything in parallel,
+    # unless you think you thoroughly understand the algorithm, since I think
+    # doing things in parallel would horribly break!
+    _register: =>
+        account_id = misc.keys(@_register_todo)?[0]
+        if not account_id?
+            # no work
             return
+        # Register this account
+        dbg = @_dbg("_register")
+        dbg("registering account='#{account_id}'...")
         @_db._query
             query  : "SELECT project_id, json_agg(o) as users FROM (select project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT) s group by s.project_id"
-            params : [opts.account_id]
+            params : [account_id]
             cb     : all_results (err, x) =>
+                if not err
+                    @_accounts[account_id] = true
+                    for a in x
+                        if @_users[a.project_id]?
+                            # already have data about this project
+                            continue
+                        else
+                            for collab_account_id in a.users
+                                @_add_user_to_project(collab_account_id, a.project_id)
+                # call the callbacks
                 if err
-                    for cb in @_register_cbs
-                        cb(err)
-                    delete @_register_cbs
-                    return
-                @_accounts[opts.account_id] = true
-                for a in x
-                    if @_users[a.project_id]?
-                        # already have data about this project
-                        continue
-                    else
-                        for account_id in a.users
-                            @_add_user_to_project(account_id, a.project_id)
-                for cb in @_register_cbs
-                    cb()
-                delete @_register_cbs
+                    dbg("error registering '#{account_id}' -- err=#{err}")
+                else
+                    dbg("successfully registered '#{account_id}'")
+                for cb in @_register_todo[account_id]
+                    cb?(err)
+                # We are done (trying to) register account_id, for good or ill.
+                delete @_register_todo[account_id]
+                if misc.len(@_register_todo) > 0
+                    # Deal with next account that needs to be registered
+                    @_register()
 
     unregister: (opts) =>
         opts = defaults opts,
@@ -350,7 +381,7 @@ class ProjectAndUserTracker extends EventEmitter
 
 class Changes extends EventEmitter
     constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
-        @dbg = @_db._dbg("ChangeFeed(table='#{@_table}')")
+        @dbg = @_dbg("constructor")
         @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}, @_where=#{misc.to_json(@_where)}")
         try
             @_init_where()
@@ -369,6 +400,9 @@ class Changes extends EventEmitter
             # requests pile up!).
             @_db.once('connect', @close)
             cb(undefined, @)
+
+    _dbg: (f) =>
+        return @_db._dbg("Changes(table='#{@_table}').#{f}")
 
     close: (cb) =>
         @emit('close', {action:'close'})
