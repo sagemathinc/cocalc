@@ -1834,6 +1834,13 @@ BillingPage = rclass
             <Icon name={icon} fixedWidth /> {header}
         </div>
 
+    render_subscriptions: ->
+        <Subscriptions
+            subscriptions = {@props.customer.subscriptions}
+            sources       = {@props.customer.sources}
+            selected_plan = {@props.selected_plan}
+            redux         = {@props.redux} />
+
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
@@ -1854,31 +1861,19 @@ BillingPage = rclass
                             <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
                         </Panel>
                         {<Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
-                            <Subscriptions
-                                subscriptions = {@props.customer.subscriptions}
-                                sources       = {@props.customer.sources}
-                                selected_plan = {@props.selected_plan}
-                                redux         = {@props.redux} />
+                            {@render_subscriptions()}
                         </Panel> if not @props.for_course}
                     </Accordion>
                 </div>
             else if @props.is_simplified
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    {<Subscriptions
-                        subscriptions = {@props.customer.subscriptions}
-                        sources       = {@props.customer.sources}
-                        selected_plan = {@props.selected_plan}
-                        redux         = {@props.redux} /> if not @props.for_course}
+                    {@render_subscriptions() if not @props.for_course}
                 </div>
             else
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    {<Subscriptions
-                        subscriptions = {@props.customer.subscriptions}
-                        sources       = {@props.customer.sources}
-                        selected_plan = {@props.selected_plan}
-                        redux         = {@props.redux} /> if not @props.for_course}
+                    {@render_subscriptions() if not @props.for_course}
                     <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
                 </div>
 
