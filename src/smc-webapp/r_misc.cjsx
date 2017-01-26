@@ -1492,71 +1492,68 @@ exports.UpgradeAdjustor = rclass
         return changed
 
     render: ->
-        if misc.is_zero_map(@props.upgrades_you_can_use)
-            # user has no upgrades on their account
+        # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
+        quota_params = @props.quota_params
+        # how much upgrade you have used between all projects
+        used_upgrades = @props.upgrades_you_applied_to_all_projects
+        # how much upgrade you currently use on this one project
+        current = @props.upgrades_you_applied_to_this_project
+        # how much unused upgrade you have remaining
+        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+        # maximums you can use, including the upgrades already on this project
+        limits = misc.map_sum(current, remaining)
+        # additionally, the limits are capped by the maximum per project
+        maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+        limits = misc.map_limit(limits, maximum)
+
+        <Alert bsStyle='warning'>
             <NoUpgrades cancel={@props.cancel_upgrading} />
-        else
-            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-            quota_params = @props.quota_params
-            # how much upgrade you have used between all projects
-            used_upgrades = @props.upgrades_you_applied_to_all_projects
-            # how much upgrade you currently use on this one project
-            current = @props.upgrades_you_applied_to_this_project
-            # how much unused upgrade you have remaining
-            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-            # maximums you can use, including the upgrades already on this project
-            limits = misc.map_sum(current, remaining)
-            # additionally, the limits are capped by the maximum per project
-            maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-            limits = misc.map_limit(limits, maximum)
+            <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
-            <Alert bsStyle='warning'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
-
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
-                <hr/>
-                <Row>
-                    <Col md=1>
-                        <b style={fontSize:'12pt'}>Quota</b>
-                    </Col>
-                    <Col md=5>
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@max_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Max all upgrades
-                        </Button>
-                        {' '}
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@clear_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Remove all upgrades
-                        </Button>
-                    </Col>
-                    <Col md=6>
-                        <b style={fontSize:'12pt'}>Your contribution</b>
-                    </Col>
-                </Row>
-                <hr/>
-
-                {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
-                {@props.children}
-                <ButtonToolbar style={marginTop:'10px'}>
+            <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+            <hr/>
+            <Row>
+                <Col md=1>
+                    <b style={fontSize:'12pt'}>Quota</b>
+                </Col>
+                <Col md=5>
                     <Button
-                        bsStyle  = 'success'
-                        onClick  = {=>@save_upgrade_quotas(remaining)}
-                        disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
+                        bsSize  = 'xsmall'
+                        onClick = {@max_upgrades}
+                        style   = {padding:'0px 5px'}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                        Max all upgrades
                     </Button>
-                    <Button onClick={@props.cancel_upgrading}>
-                        Cancel
+                    {' '}
+                    <Button
+                        bsSize  = 'xsmall'
+                        onClick = {@clear_upgrades}
+                        style   = {padding:'0px 5px'}
+                    >
+                        Remove all upgrades
                     </Button>
-                </ButtonToolbar>
-            </Alert>
+                </Col>
+                <Col md=6>
+                    <b style={fontSize:'12pt'}>Your contribution</b>
+                </Col>
+            </Row>
+            <hr/>
+
+            {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
+            {@props.children}
+            <ButtonToolbar style={marginTop:'10px'}>
+                <Button
+                    bsStyle  = 'success'
+                    onClick  = {=>@save_upgrade_quotas(remaining)}
+                    disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
+                >
+                    <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                </Button>
+                <Button onClick={@props.cancel_upgrading}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
 
 
 ###
