@@ -1527,8 +1527,8 @@ exports.ProjectsPage = ProjectsPage = rclass
                     <Row>
                         <Col sm=12 style={marginTop:'1ex'}>
                             <NewProjectCreator
-                                nb_projects = {@project_list().length}
-                                customer    = {@props.customer}
+                                nb_projects                          = {@project_list().length}
+                                customer                             = {@props.customer}
                                 upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
                                 upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
                                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
