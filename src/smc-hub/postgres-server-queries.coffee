@@ -45,6 +45,17 @@ class exports.PostgreSQL extends PostgreSQL
                 'time::TIMESTAMP' : 'NOW()'
             cb     : (err) => opts.cb?(err)
 
+    uncaught_exception: (err) =>
+        # call when things go to hell in some unexpected way; at least
+        # we attempt to record this in the database...
+        try
+            @log
+                event : 'uncaught_exception'
+                value : {error:"#{err}", stack:"#{err.stack}", host:require('os').hostname()}
+        catch e
+            # IT IS CRITICAL THAT uncaught_exception not raise an exception, since if it
+            # did then we would hit a horrible infinite loop!
+
     # dump a range of data from the central_log table
     get_log: (opts) =>
         opts = defaults opts,
@@ -436,11 +447,15 @@ class exports.PostgreSQL extends PostgreSQL
                                     dbg("Error adding user to project: #{err}")
                                 cb(err)
                     else
-                        # TODO: need to report this some better way, maybe email or insertion in a table
-                        # of messages for admin.  That's probably best -- we could also make tracebacks
-                        # of any time insert in that table, then just scan it periodically.  Basically,
-                        # if anything is there, then warn.
                         dbg("ERROR: skipping unknown action -- #{action.action}")
+                        # also store in database so we can look into this later.
+                        @log
+                            event : 'unknown_action'
+                            value :
+                                error      : "unknown_action"
+                                action     : action
+                                account_id : opts.account_id
+                                host       : require('os').hostname()
                         cb()
                 async.map actions, f, (err) =>
                     if not err
@@ -1869,6 +1884,50 @@ class exports.PostgreSQL extends PostgreSQL
         ], (err) =>
             opts.cb?(err, stats)
         )
+
+    get_active_student_stats: (opts) =>
+        opts = defaults opts,
+            cb  : required
+        dbg = @_dbg('get_active_student_stats')
+        dbg()
+        @_query
+            query  : "SELECT project_id, course, last_edited, settings, users FROM projects WHERE course IS NOT NULL AND last_edited >= $1"
+            params : [misc.days_ago(30)]
+            cb     : all_results (err, t) =>
+                if err
+                    opts.cb(err)
+                    return
+                days14 = misc.days_ago(14)
+                days7  = misc.days_ago(7)
+                days1  = misc.days_ago(1)
+                # student pay means that the student is required to pay
+                num_student_pay = (x for x in t when x.course.pay).length
+                # prof pay means that student isn't required to pay but
+                # nonetheless project is on members only host
+                num_prof_pay    = 0
+                for x in t
+                    if not x.course.pay  # student isn't paying
+                        if x.settings?.member_host
+                            num_prof_pay += 1
+                            continue
+                        for _, d of x.users
+                            if d.upgrades?.member_host
+                                num_prof_pay += 1
+                                continue
+                # free - neither student pays, and also project not on members only server
+                num_free        = t.length - num_prof_pay - num_student_pay
+                conversion_rate = if t.length then 100*(num_student_pay + num_prof_pay) / t.length else 0
+                data =
+                    conversion_rate : conversion_rate
+                    num_student_pay : num_student_pay
+                    num_prof_pay    : num_prof_pay
+                    num_free        : num_free
+                    num_1days       : (x for x in t when x.last_edited >= days1).length
+                    num_7days       : (x for x in t when x.last_edited >= days7).length
+                    num_14days      : (x for x in t when x.last_edited >= days14).length
+                    num_30days      : t.length
+                opts.cb(undefined, data)
+
 
     ###
     Hub servers

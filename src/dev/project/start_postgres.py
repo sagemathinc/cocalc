@@ -5,7 +5,7 @@ This is a script for starting postgres for development purposes
 in an SMC project.
 """
 
-import os, sys, util
+import os, sys, time, util
 
 path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.insert(0, path)
 
@@ -35,7 +35,7 @@ local all all trust
     socket_dir = os.path.join(PG_DATA, 'socket')
     s += "unix_socket_directories = '%s'"%socket_dir
     os.makedirs(socket_dir)
-    os.system("chmod og-rwx '%s'"%PG_DATA)  # just in case -- be paranoid...
+    util.cmd("chmod og-rwx '%s'"%PG_DATA)  # just in case -- be paranoid...
     open(conf,'w').write(s)
 
     # Create script so that clients will know where socket dir is.
@@ -44,6 +44,19 @@ export PGUSER='smc'
 export PGHOST='%s'
 """%socket_dir)
 
-    os.system('chmod +x postgres-env')
+    util.cmd('chmod +x postgres-env')
+
+    # Start database running in background as daemon
+    util.cmd("postgres -D '%s' >%s/postgres.log 2>&1 &"%(PG_DATA, PG_DATA))
+    time.sleep(5)
+
+    # Create the smc user with no password (not needed since we are using local file permissions)
+    util.cmd("createuser -sE smc")
+
+    # Stop database daemon
+    util.cmd("kill %s"%(open(os.path.join(PG_DATA, 'postmaster.pid')).read().split()[0]))
+    # Let it die and remove lock file.
+    time.sleep(3)
+
 
 util.cmd("postgres -D '%s'"%PG_DATA)

@@ -42,6 +42,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             debug        : true
             connect      : true
             password     : undefined
+            pool         : undefined   # IGNORED for now.
             cache_expiry : 2000  # expire cached queries after this many milliseconds
                                  # keep this very short; it's just meant to reduce impact of a bunch of
                                  # identical permission checks in a single user query.

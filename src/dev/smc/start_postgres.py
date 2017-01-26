@@ -19,6 +19,7 @@ def cmd(s):
 def stop_server():
     try:
         cmd("kill %s"%(open(os.path.join(PG_DATA, 'postmaster.pid')).read().split()[0]))
+        time.sleep(3)
     except Exception, err:
         print "WARNING", err
 
@@ -34,10 +35,10 @@ if __name__ == '__main__':
 
         # Start database running in background as daemon
         cmd("postgres -D '%s' >%s/postgres.log 2>&1 &"%(PG_DATA, PG_DATA))
-        time.sleep(1)
+        time.sleep(5)
 
-        # Create the smc user
-        cmd("createuser -sEP smc")
+        # Create the smc user (with no password -- you better do that!!)
+        cmd("createuser -sE smc")
 
         # Stop database daemon
         stop_server()

@@ -52,16 +52,14 @@ console.log("vms() -- sets vms to gcloud VM manager (and g to gcloud interface)"
 # make the global variable s be the compute server
 global.compute_server = () ->
     return require('smc-hub/compute-client').compute_server
-        db_hosts:db_hosts
-        cb:(e,s)->
-            global.s=s
+        cb       : (e,s)->
+            global.s = s
 console.log("compute_server() -- sets global variable s to compute server")
 
 # make the global variable p be the project with given id and the global variable s be the compute server
 global.proj = global.project = (id) ->
     require('smc-hub/compute-client').compute_server
-        db_hosts: db_hosts
-        cb:(e,s)->
+        cb       : (e,s)->
             global.s=s
             s.project
                 project_id:id
@@ -86,8 +84,8 @@ global.delete_account = (email) ->
             done("FAIL -- #{err}")
             return
         db.mark_account_deleted
-            email_address: email
-            cb           : (err) ->
+            email_address : email
+            cb            : (err) ->
                 if err
                     done("FAIL -- #{err}")
                 else
@@ -100,7 +98,6 @@ DEFAULT_CLOSE_DAYS = 60
 global.close_unused_projects = (host, cb) ->
     cb ?= done()
     require('smc-hub/compute-client').compute_server
-        db_hosts : db_hosts
         cb       : (err, s)->
             if err
                 cb("FAIL -- #{err}")
@@ -127,43 +124,15 @@ global.active_students = (cb) ->
         if err
             cb("FAIL -- #{err}")
             return
-        q = db.table('projects').hasFields('course')
-        # only consider courses that have been touched in the last month
-        q = q.filter(db.r.row("last_edited").gt(misc.days_ago(30)))
-        q.pluck('project_id', 'course', 'last_edited', 'settings', 'users').run (err, t) ->
-            if err
-                cb(err)
-                return
-            days14 = misc.days_ago(14)
-            days7  = misc.days_ago(7)
-            days1  = misc.days_ago(1)
-            # student pay means that the student is required to pay
-            num_student_pay = (x for x in t when x.course.pay).length
-            # prof pay means that student isn't required to pay but nonetheless project is on members only host
-            num_prof_pay    = 0
-            for x in t
-                if not x.course.pay  # student isn't paying
-                    if x.settings?.member_host
-                        num_prof_pay += 1
-                        continue
-                    for _, d of x.users
-                        if d.upgrades?.member_host
-                            num_prof_pay += 1
-                            continue
-            # free - neither student pays and project not on members only server
-            num_free        = t.length - num_prof_pay - num_student_pay
-            conversion_rate = 100*(num_student_pay + num_prof_pay) / t.length
-            data =
-                conversion_rate : conversion_rate
-                num_student_pay : num_student_pay
-                num_prof_pay    : num_prof_pay
-                num_free        : num_free
-                num_1days       : (x for x in t when x.last_edited >= days1).length
-                num_7days       : (x for x in t when x.last_edited >= days7).length
-                num_14days      : (x for x in t when x.last_edited >= days14).length
-                num_30days      : t.length
-            console.log(data)
-            cb(undefined, data)
+        db.get_active_student_stats
+            cb : (err, stats) ->
+                if err
+                    console.log("FAILED")
+                    cb(err)
+                else
+                    console.log(stats)
+                    cb()
+
 
 console.log("active_students() -- stats about student course projects during the last 30 days")
 
