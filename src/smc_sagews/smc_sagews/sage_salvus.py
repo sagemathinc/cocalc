@@ -1838,7 +1838,8 @@ def singular_kernel(code=None,**kwargs):
     .. note::
 
         State is preserved between cells.
-        SMC %singular_kernel mode uses the jupyter `singular` kernel.
+        SMC %singular_kernel mode uses the jupyter `singular` kernel:
+        https://github.com/sebasguts/jupyter_kernel_singular
     """
     if singular_kernel.jupyter_kernel is None:
         singular_kernel.jupyter_kernel = jupyter("singular")
