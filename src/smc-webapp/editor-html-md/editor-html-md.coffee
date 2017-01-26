@@ -108,6 +108,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @init_keybindings()
 
+    remove: =>
+        @source_editor?.remove?()
+
     cm: () =>
         return @source_editor.syncdoc.focused_codemirror()
 

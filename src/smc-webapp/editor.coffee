@@ -691,6 +691,7 @@ class FileEditor extends EventEmitter
         #@element?.hide()
 
     remove: () =>
+        @syncdoc?.close()
         @element?.remove()
         @removeAllListeners()
 
@@ -2184,6 +2185,7 @@ class PDFLatexDocument
         sagetex_file = @base_filename + '.sagetex.sage'
         not_latexmk = command.indexOf('latexmk') == -1
         sha_marker = 'sha1sums'
+        @_need_to_run ?= {}
         @_need_to_run.latex = false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         latex_cmd = "yes x 2> /dev/null | #{command}; echo '#{sha_marker}'; test -r '#{sagetex_file}' && sha1sum '#{sagetex_file}'"
@@ -2237,6 +2239,7 @@ class PDFLatexDocument
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
+        @_need_to_run ?= {}
         # don't run sage if target is false
         if underscore.isBoolean(target) and not target
             cb()
@@ -2255,6 +2258,7 @@ class PDFLatexDocument
                     cb?(false, log)
 
     _run_bibtex: (cb) =>
+        @_need_to_run ?= {}
         @_exec
             command : 'bibtex'
             args    : [@base_filename]
@@ -2268,6 +2272,7 @@ class PDFLatexDocument
                     cb?(false, log)
 
     _run_knitr: (cb) =>
+        @_need_to_run ?= {}
         @_exec
             command  : "echo 'require(knitr); opts_knit$set(concordance = TRUE); knit(\"#{@filename_rnw}\")' | R --no-save"
             bash     : true
@@ -2531,7 +2536,8 @@ class PDF_Preview extends FileEditor
             @path = './'
         @file = s.tail
         @last_page = 0
-        @output = @element.find(".salvus-editor-pdf-preview-page")
+        @output  = @element.find(".salvus-editor-pdf-preview-page")
+        @message = @element.find(".salvus-editor-pdf-preview-message")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
         @output.text('Loading preview...')
         @_first_output = true
@@ -2573,6 +2579,15 @@ class PDF_Preview extends FileEditor
         content_width = @output.find(':first-child:first').width()
         offset = (content_width - container_width)/2
         @output.parent().scrollLeft(offset)
+
+    show_pages: (show) =>
+        @output.toggle(show)
+        @message.toggle(!show)
+
+    show_message: (message_el) =>
+        @show_pages(false)
+        @message.empty()
+        @message.append(message_el)
 
     watch_scroll: () =>
         if @_f?
