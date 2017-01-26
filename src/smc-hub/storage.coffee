@@ -1457,13 +1457,15 @@ start_server = (cb) ->
         (cb) ->
             dbg("create synchronized table")
 
-            # TODO
             # Get every project assigned to this host that has done a storage
             # request starting within the last two hours.
             age   = misc.hours_ago(2)
-            query = database.table('projects').between([host, age], [host, database.r.maxval], index:'storage_request').pluck(FIELDS...)
             database.synctable
-                query : query
+                table   : 'projects'
+                columns : FIELDS
+                where   :
+                    "host = $" : host
+                    "storage_request#>'{requested}' >= $" : age
                 cb    : (err, synctable) ->
                     if err
                         cb(err)
@@ -1592,11 +1594,12 @@ class Activity
                 age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
-                query = database.table('projects').between(age,  database.r.maxval, index:'storage_request_requested')
-                query = query.pluck(FIELDS...)
                 database.synctable
-                    query : query
-                    cb    : (err, synctable) =>
+                    table   : 'projects'
+                    columns : FIELDS
+                    where   :
+                        "storage_request#>'{requested}' >= $" : age
+                    cb      : (err, synctable) =>
                         if err
                             dbg("fail: #{err}")
                         else
@@ -1691,25 +1694,21 @@ exports.ignored_storage_requests = (opts) ->
                 cb(err)
         (cb) ->
             dbg("doing query")
-            # Projects...
-            q = db.table('projects')
-            # ... that had a storage request recently (in the last age_m minutes)...
-            q = q.between(misc.minutes_ago(opts.age_m), db.r.maxval, index:'storage_request_requested')
-            # the fields we care about are:
-            FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
-            q = q.pluck(FIELDS...)
+            # Projects that had a storage request recently (in the last age_m minutes)...
             # and we only want the ignored requests...
-            # First, get the ones with a request at all
-            q = q.hasFields(storage_request:{requested:true})
             # And the ones that haven't started and haven't finished
-            q = q.filter(db.r.row.hasFields(storage_request:{started:true}).not())
-            q = q.filter(db.r.row.hasFields(storage_request:{finished:true}).not())
+            query = "SELECT project_id storage_request storage host state FROM projects WHERE "
+            params = [misc.minutes_ago(opts.age_m)]
+            query += " storage_request#>'{requested}' >= $1 AND storage_request#>'{started}' IS NULL AND storage_request#>'{finished}' IS NULL "
             if not opts.all
-                # Only get the ones on *this* host.
-               q = q.filter(storage:{host:os.hostname()})
-            q.run (err, x) ->
-                v = x
-                cb(err)
+                query += " AND host=$2 "
+                params.push(os.hostname())
+            db._query
+                query  : query
+                params : params
+                cb     : postgres.all_results (err, x) ->
+                    v = x
+                    cb(err)
     ], (err) ->
         opts.cb(err, v)
     )
