@@ -2556,10 +2556,12 @@ class PDF_Preview extends FileEditor
 
         @page.on 'mousedown', (e) =>
             e.preventDefault()
+            # weird next line removes the focus from the codemirror textarea
+            # otherwise, space-key and others have no effect on scrolling
+            document.activeElement.blur()
             @_dragpos =
                 left : e.clientX
                 top  : e.clientY
-            @page.css('cursor', 'move')
             return false
 
         @page.on 'mouseup', (e) =>
@@ -2577,6 +2579,7 @@ class PDF_Preview extends FileEditor
             if e.which != 1
                 reset()
                 return
+            @page.css('cursor', 'move')
             delta =
                 left : e.clientX - @_dragpos.left
                 top  : e.clientY - @_dragpos.top
