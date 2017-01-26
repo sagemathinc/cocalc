@@ -20,7 +20,7 @@ tables = {
    'central_log':{},
    'client_error_log':{},
    'compute_servers':{'replace':True},
-   'cursors':{},
+   'cursors':{'skip':True},
    'eval_inputs':{},
    'eval_outputs':{},
    'file_access_log':{},
