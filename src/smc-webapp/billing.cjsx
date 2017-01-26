@@ -1566,7 +1566,7 @@ InvoiceHistory = rclass
             {@render_invoices()}
         </Panel>
 
-PayCourseFee = rclass
+exports.PayCourseFee = PayCourseFee = rclass
     propTypes :
         project_id : rtypes.string.isRequired
         redux      : rtypes.object.isRequired
@@ -1699,6 +1699,7 @@ BillingPage = rclass
     propTypes :
         redux         : rtypes.object
         is_simplified : rtypes.bool
+        for_course    : rtypes.bool
 
     render_action: ->
         if @props.action
@@ -1833,6 +1834,13 @@ BillingPage = rclass
             <Icon name={icon} fixedWidth /> {header}
         </div>
 
+    render_subscriptions: ->
+        <Subscriptions
+            subscriptions = {@props.customer.subscriptions}
+            sources       = {@props.customer.sources}
+            selected_plan = {@props.selected_plan}
+            redux         = {@props.redux} />
+
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
@@ -1852,42 +1860,30 @@ BillingPage = rclass
                         <Panel header={@get_panel_header('credit-card', 'Payment Methods')} eventKey='1'>
                             <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
                         </Panel>
-                        <Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
-                            <Subscriptions
-                                subscriptions = {@props.customer.subscriptions}
-                                sources       = {@props.customer.sources}
-                                selected_plan = {@props.selected_plan}
-                                redux         = {@props.redux} />
-                        </Panel>
+                        {<Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
+                            {@render_subscriptions()}
+                        </Panel> if not @props.for_course}
                     </Accordion>
                 </div>
             else if @props.is_simplified
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    <Subscriptions
-                        subscriptions = {@props.customer.subscriptions}
-                        sources       = {@props.customer.sources}
-                        selected_plan = {@props.selected_plan}
-                        redux         = {@props.redux} />
+                    {@render_subscriptions() if not @props.for_course}
                 </div>
             else
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    <Subscriptions
-                        subscriptions = {@props.customer.subscriptions}
-                        sources       = {@props.customer.sources}
-                        selected_plan = {@props.selected_plan}
-                        redux         = {@props.redux} />
+                    {@render_subscriptions() if not @props.for_course}
                     <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
                 </div>
 
     render: ->
         <div>
             <div>
-                {@render_info_link()}
+                {@render_info_link() if not @props.for_course}
                 {@render_action() if not @props.no_stripe}
                 {@render_error()}
-                {@render_course_payment_instructions() if not @props.no_stripe}
+                {@render_course_payment_instructions() if not @props.no_stripe and not @props.for_course}
                 {@render_page() if not @props.no_stripe}
             </div>
             {<Footer/> if not @props.is_simplified}
@@ -1904,6 +1900,12 @@ exports.BillingPageSimplifiedRedux = rclass
 
     render: ->
         <BillingPage is_simplified={true} redux={redux} />
+
+exports.BillingPageForCourseRedux = rclass
+    displayName : 'BillingPage-redux'
+
+    render: ->
+        <BillingPage is_simplified={true} for_course={true} redux={redux} />
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>
