@@ -45,7 +45,7 @@ masked_file_exts =
     'py'   : ['pyc']
     'java' : ['class']
     'cs'   : ['exe']
-    'tex'  : 'aux bbl blg fdb_latexmk glo idx ilg ind lof log nav out snm synctex.gz toc xyc'.split(' ')
+    'tex'  : 'aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc'.split(' ')
 
 BAD_FILENAME_CHARACTERS       = '\\'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
