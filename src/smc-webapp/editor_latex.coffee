@@ -42,7 +42,7 @@ printing        = require('./printing')
 templates       = $("#salvus-editor-templates")
 
 # this regex matches the `@_get()` content iff it is a compileable latex document
-RE_FULL_LATEX_CODE = new RegExp('\\\\documentclass{[^}]*}[^]*?\\\\begin{document}[^]*?\\\\end{document}', 'g')
+RE_FULL_LATEX_CODE = new RegExp('\\\\documentclass[^}]*}[^]*?\\\\begin{document}[^]*?\\\\end{document}', 'g')
 
 # local storage keys -- prevents typos (and keys can be shorter)
 LSkey =
@@ -443,7 +443,7 @@ class exports.LatexEditor extends editor.FileEditor
                     @preview.pdflatex.trash_aux_files (err, _log) =>
                         cb(err)
                 (cb) =>
-                    @update_preview(cb, force=true)
+                    @update_preview(cb, force=true, only_compile=true)
             ], (err) =>
                 run_recompile.icon_spin(false, disable=true)
             )
@@ -499,8 +499,11 @@ class exports.LatexEditor extends editor.FileEditor
                         @preview_embed.update()
                 @spell_check()
 
-    update_preview: (cb, force=false) =>
-        if not @_render_preview
+    update_preview: (cb, force=false, only_compile=false) =>
+        # force: continue, even when content hasn't changed
+        # only_compile: avoid the preview rendering
+        # obvious TODO: untangle preview update and run_latex
+        if not only_compile and not @_render_preview
             cb?()
             return
 
@@ -524,12 +527,14 @@ class exports.LatexEditor extends editor.FileEditor
 
         # check if latex file is invalid iff we're compiling it
         iil = @local_storage(LSkey.ignore_invalid_latex) ? false
-        if not iil and not content.match(RE_FULL_LATEX_CODE) and compiling_this_file
+        if not iil and not content.match(RE_FULL_LATEX_CODE) and compiling_this_file and not only_compile
             msg = @invalid_latex(filename_tex)
             @preview.show_message(msg)
             cb?()
             return
-        @preview.show_pages(true)
+
+        if @_render_preview and not only_compile
+            @preview.show_pages(true)
         preview_button = @element.find('a[href="#png-preview"]')
         async.series([
             (cb) =>
@@ -543,14 +548,17 @@ class exports.LatexEditor extends editor.FileEditor
                     delete @_last_update_preview  # running latex on stale version
                     @get_rnw_concordance_error = false
                 @run_latex
-                    command : @load_conf_doc().latex_command
-                    cb      : cb
+                    command      : @load_conf_doc().latex_command
+                    cb           : cb
             (cb) =>
+                if only_compile
+                    cb(); return
                 preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
         ], (err) =>
-            preview_button.icon_spin(false, disable=true)
+            if not only_compile
+                preview_button.icon_spin(false, disable=true)
             if err
                 delete @_last_update_preview
             cb?(err)
@@ -612,8 +620,8 @@ class exports.LatexEditor extends editor.FileEditor
 
     run_latex: (opts={}) =>
         opts = defaults opts,
-            command : undefined
-            cb      : undefined
+            command      : undefined
+            cb           : undefined
         button = @element.find('a[href="#log"]')
         button.icon_spin(true, disable=true)
         @_show() # update layout, since showing spinner might cause a linebreak in the button bar
@@ -934,6 +942,7 @@ class exports.LatexEditor extends editor.FileEditor
 
         if enabled
             @preview.show_pages(true)
+            @preview.update()
         else
             m = $('<div>Preview disabled. Click <a href="#">here</a> to enable.</div>')
             m.find('a').click =>

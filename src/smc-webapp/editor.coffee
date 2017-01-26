@@ -2342,8 +2342,8 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
 
     trash_aux_files: (cb) =>
         log = ''
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
-        EXT = (E + '.' for E in EXT)
+        EXT = ['aux', 'log', 'bbl', 'fls', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
+        EXT = ('.' + E for E in EXT)
         EXT.push('-concordance.tex')
         async.series([
             (cb) =>
@@ -2357,9 +2357,11 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
             (cb) =>
                 # this in particular gets rid of the sagetex files
                 files = (@base_filename + ext for ext in EXT)
+                # -f: don't complain when it doesn't exist
+                # --: then it works with filenames starting with a "-"
                 @_exec
                     command : "rm"
-                    args    : ['-v'].concat(files)
+                    args    : ['-v', '-f', '--'].concat(files)
                     cb      : (err, output) ->
                         log += output.stdout + '\n\n' + output.stderr + '\n\n'
                         cb(err)
