@@ -20,7 +20,7 @@ underscore   = require('underscore')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA} = require('smc-util/schema')
+{PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
 class exports.PostgreSQL extends PostgreSQL
 
@@ -628,10 +628,8 @@ class exports.PostgreSQL extends PostgreSQL
 
     _user_set_query_project_users: (obj, account_id) =>
         dbg = @_dbg("_user_set_query_project_users")
-        dbg("disabled")
-        return obj.users
-        # TODO:  disabling the real checks for now -- fix this!
-
+        ##dbg("disabled")
+        ##return obj.users
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
         #   - and format is:
         #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
@@ -648,7 +646,7 @@ class exports.PostgreSQL extends PostgreSQL
                 if x.hide? and typeof(x.hide) != 'boolean'
                     throw Error("invalid type for field 'hide'")
                 if x.upgrades?
-                    if typeof(x.upgrades) != 'object'
+                    if not misc.is_object(x.upgrades)
                         throw Error("invalid type for field 'upgrades'")
                     for k,_ of x.upgrades
                         if not upgrade_fields[k]
