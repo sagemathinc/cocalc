@@ -1837,6 +1837,7 @@ BillingPage = rclass
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
+        console.log('for course', @props.for_course)
         if not @props.loaded
             # nothing loaded yet from backend
             <Loading />
@@ -1853,13 +1854,13 @@ BillingPage = rclass
                         <Panel header={@get_panel_header('credit-card', 'Payment Methods')} eventKey='1'>
                             <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
                         </Panel>
-                        <Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
+                        {<Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
                             <Subscriptions
                                 subscriptions = {@props.customer.subscriptions}
                                 sources       = {@props.customer.sources}
                                 selected_plan = {@props.selected_plan}
                                 redux         = {@props.redux} />
-                        </Panel>
+                        </Panel> if not @props.for_course}
                     </Accordion>
                 </div>
             else if @props.is_simplified
@@ -1874,11 +1875,11 @@ BillingPage = rclass
             else
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    <Subscriptions
+                    {<Subscriptions
                         subscriptions = {@props.customer.subscriptions}
                         sources       = {@props.customer.sources}
                         selected_plan = {@props.selected_plan}
-                        redux         = {@props.redux} />
+                        redux         = {@props.redux} /> if not @props.for_course}
                     <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
                 </div>
 

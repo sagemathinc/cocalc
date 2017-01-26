@@ -2027,7 +2027,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_upgrade_in_place: ->
         cards = @props.customer?.sources?.total_count ? 0
-        <div>
+        <div style={marginTop: '10px'}>
             <BillingPageForCourseRedux redux={redux} />
             {@render_pay() if cards}
         </div>
