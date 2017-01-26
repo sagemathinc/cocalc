@@ -2035,14 +2035,14 @@ exports.ProjectFiles = rclass ({name}) ->
     render_course_payment_required: () ->
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to <a onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project.
+                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
             </h4>
             {@render_upgrade_in_place()}
         </Alert>
 
     render_course_payment_warning: (pay) ->
         <Alert bsStyle='warning'>
-            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <a onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project
+            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project
             within <TimeAgo date={pay}/>.
             {@render_upgrade_in_place() if @state.show_pay}
         </Alert>

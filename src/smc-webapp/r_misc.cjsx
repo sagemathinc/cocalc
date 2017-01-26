@@ -1081,8 +1081,10 @@ exports.CourseProjectWarning = (opts) ->
 
 exports.NonMemberProjectWarning = (opts) ->
     {total, used, avail, course_warning} = project_warning_opts(opts)
-    if course_warning
-        return exports.CourseProjectWarning(opts)
+
+    ## Disabled until a pay-in-place version gets implemented
+    #if course_warning
+    #    return exports.CourseProjectWarning(opts)
 
     if avail > 0
         # have upgrade available
