@@ -337,6 +337,79 @@ ProjectNewForm = rclass ({name}) ->
             </Row>
         </div>
 
+FileUpload = rclass ({name}) ->
+    displayName : 'ProjectNew-FileUpload'
+
+    reduxProps :
+        "#{name}" :
+            current_path : rtypes.string
+
+    propTypes :
+        project_id   : rtypes.string.isRequired
+        actions      : rtypes.object.isRequired
+
+    mixins : [ImmutablePureRenderMixin]
+
+    render: ->
+        <Row>
+            <Col sm=12 style={textAlign:'center'}>
+                File upload moved to <PathLink default='Files tab' actions = {@props.actions} />
+            </Col>
+        </Row>
+
+        #{SMC_Dropzone} = require('./r_misc')
+        #<Row>
+        #    <Col sm=3>
+        #        <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
+        #    </Col>
+        #    <Col sm=8>
+        #        <SMC_Dropzone
+        #            dropzone_handler     = {{}}
+        #            project_id           = @props.project_id
+        #            current_path         = @props.current_path />
+        #    </Col>
+        #</Row>
+
+Library = rclass ({name}) ->
+    displayName : 'ProjectNew-Library'
+
+    reduxProps :
+        "#{name}" :
+            current_path : rtypes.string
+
+    propTypes :
+        project_id : rtypes.string.isRequired
+
+    render: ->
+        {join} = require('path')
+        <div>
+            Library at {join('~', @props.current_path)}
+        </div>
+
+exports.ProjectNew = rclass ({name}) ->
+    propTypes :
+        project_id : rtypes.string
+        name : rtypes.string
+
+    render: ->
+        actions = @actions(name)
+        <div style={padding:'15px'}>
+            <ProjectNewForm
+                project_id={@props.project_id}
+                name={@props.name}
+                actions={actions} />
+            <hr />
+            <FileUpload
+                project_id={@props.project_id}
+                name={@props.name}
+                actions={actions} />
+            <hr />
+            <Library
+                project_id={@props.project_id}
+                name={@props.name}
+                actions={actions} />
+        </div>
+
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
@@ -356,42 +429,3 @@ exports.render_new = (project_id, dom_node, redux) ->
 exports.unmount = (dom_node) ->
     #console.log("unmount project_new")
     ReactDOM.unmountComponentAtNode(dom_node)
-
-FileUpload = rclass ({name}) ->
-    displayName : 'ProjectNew-FileUpload'
-
-    reduxProps :
-        "#{name}" :
-            current_path : rtypes.string
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    mixins : [ImmutablePureRenderMixin]
-
-    render: ->
-        {SMC_Dropzone} = require('./r_misc')
-
-        <Row>
-            <Col sm=3>
-                <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
-            </Col>
-            <Col sm=8>
-                <SMC_Dropzone
-                    dropzone_handler     = {{}}
-                    project_id           = @props.project_id
-                    current_path         = @props.current_path />
-            </Col>
-        </Row>
-
-exports.ProjectNew = rclass ({name}) ->
-    propTypes :
-        project_id : rtypes.string
-        name : rtypes.string
-
-    render: ->
-        <div style={padding:'15px'}>
-            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
-            <hr />
-            <FileUpload project_id={@props.project_id} name={@props.name} />
-        </div>
