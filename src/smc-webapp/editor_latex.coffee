@@ -311,6 +311,7 @@ class exports.LatexEditor extends editor.FileEditor
         @forward_search(active:true)
 
     remove: () =>
+        @latex_editor.remove()
         @element.remove()
         @preview.remove()
         @preview_embed.remove()

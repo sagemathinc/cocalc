@@ -691,6 +691,7 @@ class FileEditor extends EventEmitter
         #@element?.hide()
 
     remove: () =>
+        @syncdoc?.close()
         @element?.remove()
         @removeAllListeners()
 

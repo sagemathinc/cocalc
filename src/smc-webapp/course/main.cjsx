@@ -1901,6 +1901,7 @@ remove_redux = (course_filename, redux, course_project_id) ->
     # Remove the store and actions.
     redux.removeStore(the_redux_name)
     redux.removeActions(the_redux_name)
+    syncdbs[the_redux_name]?.destroy()
     delete syncdbs[the_redux_name]
     return the_redux_name
 
