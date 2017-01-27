@@ -260,13 +260,25 @@ ProjectMainContent = rclass
         group           : rtypes.string
         save_scroll     : rtypes.func
 
+    componentDidMount: ->
+        @restore_scroll_position()
+
+    componentWillUnmount: ->
+        @save_scroll_position()
+
     componentDidUpdate: ->
+        @restore_scroll_position()
+
+    componentWillUpdate: ->
+        @save_scroll_position()
+
+    restore_scroll_position: ->
         path         = misc.tab_to_path(@props.active_tab_name)
         saved_scroll = @props.open_files.getIn([path, 'component'])?.scroll_position
         if saved_scroll?
             @refs.editor_container.scrollTop = saved_scroll
 
-    componentWillUpdate: ->
+    save_scroll_position: ->
         if @refs.editor_container? and @props.save_scroll?
             val = @refs.editor_container.scrollTop
             @props.save_scroll(val)
