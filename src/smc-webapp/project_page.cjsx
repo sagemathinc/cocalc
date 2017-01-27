@@ -156,8 +156,9 @@ FreeProjectWarning = rclass ({name}) ->
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
-            project_map              : rtypes.immutable.Map
-            get_total_project_quotas : rtypes.func
+            project_map                       : rtypes.immutable.Map
+            get_total_project_quotas          : rtypes.func
+            date_when_course_payment_required : rtypes.func
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
@@ -190,6 +191,9 @@ FreeProjectWarning = rclass ({name}) ->
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
+            return null
+        pay = @props.date_when_course_payment_required(@props.project_id)
+        if pay
             return null
         quotas = @props.get_total_project_quotas(@props.project_id)
         if not quotas?
