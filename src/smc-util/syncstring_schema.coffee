@@ -173,6 +173,7 @@ schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_i
 schema.patches =
     primary_key   : ['string_id', 'time']   # compound primary key
     unique_writes : true   # there is no reason for a user to write exactly the same record twice
+    pg_indexes    : ['time']
     fields :
         string_id :
             pg_type : 'CHAR(40)'
