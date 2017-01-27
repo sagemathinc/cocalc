@@ -1507,7 +1507,7 @@ exports.UpgradeAdjustor = rclass
         limits = misc.map_limit(limits, maximum)
 
         <Alert bsStyle='warning'>
-            <NoUpgrades cancel={@props.cancel_upgrading} />
+            {<NoUpgrades cancel={@props.cancel_upgrading} /> if misc.is_zero_map(@props.upgrades_you_can_use)}
             <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
             <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
