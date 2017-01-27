@@ -258,6 +258,18 @@ ProjectMainContent = rclass
         open_files      : rtypes.object
         active_tab_name : rtypes.string
         group           : rtypes.string
+        save_scroll     : rtypes.func
+
+    componentDidUpdate: ->
+        path         = misc.tab_to_path(@props.active_tab_name)
+        saved_scroll = @props.open_files.getIn([path, 'component'])?.scroll_position
+        if saved_scroll?
+            @refs.editor_container.scrollTop = saved_scroll
+
+    componentWillUpdate: ->
+        if @refs.editor_container? and @props.save_scroll?
+            val = @refs.editor_container.scrollTop
+            @props.save_scroll(val)
 
     render_editor: (path) ->
         {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
@@ -266,7 +278,7 @@ ProjectMainContent = rclass
         if not Editor?
             <Loading />
         else
-            <div style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
+            <div ref='editor_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}
@@ -490,8 +502,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render : ->
         if not @props.open_files_order?
             return <Loading />
-
-        group     = @props.get_my_group(@props.project_id)
+        group = @props.get_my_group(@props.project_id)
+        path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
@@ -502,6 +514,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 active_tab_name = {@props.active_project_tab}
                 group           = {group}
                 open_files      = {@props.open_files}
+                save_scroll     = {@actions(name).get_scroll_saver_for(path)}
             />
         </div>
 
