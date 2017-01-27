@@ -2,12 +2,8 @@
 Server side synchronized tables built on PostgreSQL, and basic support
 for user get query updates.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
-
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 EventEmitter = require('events')
@@ -167,6 +163,7 @@ class ProjectAndUserTracker extends EventEmitter
     constructor: (@_db, cb) ->
         dbg = @_dbg('constructor')
         dbg("Initializing Project and user tracker...")
+        @setMaxListeners(10000)  # every changefeed might result in a listener on this one object.
         # by a "set" we mean map to bool
         @_accounts = {} # set of accounts we care about
         @_users    = {} # map from from project_id to set of users of a given project

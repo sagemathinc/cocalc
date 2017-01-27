@@ -1,5 +1,8 @@
 ###
 Hub Registration (recording number of clients)
+
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 winston = require('winston')

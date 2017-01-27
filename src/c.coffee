@@ -3,8 +3,10 @@ Some convenient command-line shortcuts.  If you're working on the command line, 
 
     require('./c.coffee')
 
-The functiosns below in some cases return things, and in some cases set global variables!  Read docs.
+The functions below in some cases return things, and in some cases set global variables!  Read docs.
 
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 async = require('async')
@@ -32,7 +34,8 @@ get_db = (cb) ->
 
 # get a connection to the db
 global.db = (cb) ->
-    return global.db = get_db(cb)
+    global.db = get_db(cb)
+    return
 console.log("db() -- sets global variable db to a database")
 
 global.gcloud = ->

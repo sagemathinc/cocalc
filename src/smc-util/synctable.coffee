@@ -894,6 +894,9 @@ class SyncTable extends EventEmitter
         return
 
 synctables = {}
+# for debugging; in particular, verify that synctables are freed.
+# Do not leave in production; could be slight security risk.
+## window?.synctables = synctables
 
 exports.sync_table = (query, options, client, debounce_interval=2000) ->
 

@@ -411,6 +411,7 @@ class Project(object):
         pid = os.fork()
         if pid == 0:
             try:
+                os.nice(-os.nice(0))  # Reset nice-ness to 0
                 os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.environ['HOME'] = self.project_path

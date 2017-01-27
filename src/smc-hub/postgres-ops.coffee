@@ -1,11 +1,8 @@
 ###
 PostgreSQL -- operations code, e.g., backups, maintenance, etc.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 fs         = require('fs')

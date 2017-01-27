@@ -4,11 +4,8 @@ PostgreSQL -- implementation of all the queries needed for the backend servers
 These are all the non-reactive non-push queries, e.g., adding entries to logs,
 checking on cookies, creating accounts and projects, etc.
 
-**
-This code is currently NOT released under any license for use by anybody except SageMath, Inc.
-
-(c) 2016 SageMath, Inc.
-**
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
@@ -292,15 +289,32 @@ class exports.PostgreSQL extends PostgreSQL
 
     make_user_admin: (opts) =>
         opts = defaults opts,
-            account_id : required
-            cb         : required
-        @clear_cache()  # caching is mostly for permissions so this is exactly when it would be nice to clear it.
-        @_query
-            query : "UPDATE accounts"
-            where : 'account_id = $::UUID':opts.account_id
-            set   :
-                groups : ['admin']
-            cb    : opts.cb
+            account_id    : undefined
+            email_address : undefined
+            cb            : required
+        if not opts.account_id? and not opts.email_address?
+            opts.cb?("account_id or email_address must be given")
+            return
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                else
+                    @get_account
+                        email_address : opts.email_address
+                        columns       : ['account_id']
+                        cb            : (err, x) =>
+                            opts.account_id = x.account_id
+                            cb(err)
+            (cb) =>
+                @clear_cache()  # caching is mostly for permissions so this is exactly when it would be nice to clear it.
+                @_query
+                    query : "UPDATE accounts"
+                    where : 'account_id = $::UUID':opts.account_id
+                    set   :
+                        groups : ['admin']
+                    cb    : cb
+        ], opts.cb)
 
     count_accounts_created_by: (opts) =>
         opts = defaults opts,

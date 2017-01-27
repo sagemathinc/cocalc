@@ -88,8 +88,11 @@ class exports.HistoryEditor extends FileEditor
                     @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
+        @remove()
+
+    remove: () =>
         @syncstring?.close()
-        @view_doc?.close()
+        @view_doc?.remove()
 
     disconnect_from_session: =>
         @close()

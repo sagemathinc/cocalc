@@ -270,10 +270,11 @@ exports.init_redux = (path, redux, project_id) ->
 
 exports.remove_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    actions?.syncdb?.destroy()
     store = redux.getStore(name)
     if not store?
         return
-    store.syncdb?.destroy()
     delete store.state
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
