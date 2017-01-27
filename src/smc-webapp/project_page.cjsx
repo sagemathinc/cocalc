@@ -251,12 +251,13 @@ fixed_project_pages =
         is_public : false
 
 # Children must define their own padding from navbar and screen borders
-ProjectMainContent = rclass
+ProjectContentViewer = rclass
     propTypes :
         project_id      : rtypes.string.isRequired
         project_name    : rtypes.string.isRequired
-        open_files      : rtypes.object
         active_tab_name : rtypes.string
+        opened_file     : rtypes.object
+        file_path       : rtypes.string
         group           : rtypes.string
         save_scroll     : rtypes.func
 
@@ -273,8 +274,7 @@ ProjectMainContent = rclass
         @save_scroll_position()
 
     restore_scroll_position: ->
-        path         = misc.tab_to_path(@props.active_tab_name)
-        saved_scroll = @props.open_files.getIn([path, 'component'])?.scroll_position
+        saved_scroll = @props.opened_file?.get('component')?.scroll_position
         if saved_scroll?
             @refs.editor_container.scrollTop = saved_scroll
 
@@ -284,7 +284,7 @@ ProjectMainContent = rclass
             @props.save_scroll(val)
 
     render_editor: (path) ->
-        {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
+        {Editor, redux_name} = @props.opened_file.get('component') ? {}
         if redux_name?
             editor_actions = redux.getActions(redux_name)
         if not Editor?
@@ -344,15 +344,14 @@ ProjectMainContent = rclass
         </Draggable>
 
     render_editor_tab: ->
-        path         = misc.tab_to_path(@props.active_tab_name)
         if IS_MOBILE
             # Side chat is not supported at all on mobile.
             is_chat_open = false
         else
-            chat_width   = @props.open_files.getIn([path, 'chat_width']) ? DEFAULT_CHAT_WIDTH
-            is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+            chat_width   = @props.opened_file.get('chat_width') ? DEFAULT_CHAT_WIDTH
+            is_chat_open = @props.opened_file.get('is_chat_open')
 
-        editor  = @render_editor(path)
+        editor  = @render_editor(@props.file_path)
 
         # WARNING: every CSS style below is hard won.  Don't f!$k with them without knowing what
         # you are doing and testing on all supported browser.  - wstein
@@ -366,11 +365,11 @@ ProjectMainContent = rclass
                     <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
-                    {@render_drag_bar(path)}
+                    {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
                         style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
-                        {@render_side_chat(path)}
+                        {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
@@ -398,7 +397,7 @@ ProjectMainContent = rclass
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
             else
-                if not @props.open_files? or not @props.active_tab_name?
+                if not @props.opened_file? or not @props.active_tab_name?
                     <Loading />
                 else
                     @render_editor_tab()
@@ -515,18 +514,19 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         if not @props.open_files_order?
             return <Loading />
         group = @props.get_my_group(@props.project_id)
-        path = misc.tab_to_path(@props.active_project_tab)
+        active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
-            <ProjectMainContent
+            <ProjectContentViewer
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
                 active_tab_name = {@props.active_project_tab}
+                opened_file     = {@props.open_files.getIn([active_path])}
+                file_path       = {active_path}
                 group           = {group}
-                open_files      = {@props.open_files}
-                save_scroll     = {@actions(name).get_scroll_saver_for(path)}
+                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
             />
         </div>
 
@@ -623,6 +623,8 @@ exports.MobileProjectPage = rclass ({name}) ->
     render : ->
         if not @props.open_files_order?
             return <Loading />
+        group = @props.get_my_group(@props.project_id)
+        active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
@@ -643,11 +645,13 @@ exports.MobileProjectPage = rclass ({name}) ->
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
             </div> if not @props.fullscreen}
-            <ProjectMainContent
+            <ProjectContentViewer
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
                 active_tab_name = {@props.active_project_tab}
-                group           = {@props.get_my_group(@props.project_id)}
-                open_files      = {@props.open_files}
+                opened_file     = {@props.open_files.getIn([active_path])}
+                file_path       = {active_path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
             />
         </div>
