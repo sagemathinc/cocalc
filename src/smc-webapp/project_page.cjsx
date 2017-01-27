@@ -276,11 +276,11 @@ ProjectContentViewer = rclass
     restore_scroll_position: ->
         saved_scroll = @props.opened_file?.get('component')?.scroll_position
         if saved_scroll?
-            @refs.editor_container.scrollTop = saved_scroll
+            @refs.editor_inner_container.scrollTop = saved_scroll
 
     save_scroll_position: ->
-        if @refs.editor_container? and @props.save_scroll?
-            val = @refs.editor_container.scrollTop
+        if @refs.editor_inner_container? and @props.save_scroll?
+            val = @refs.editor_inner_container.scrollTop
             @props.save_scroll(val)
 
     render_editor: (path) ->
@@ -290,7 +290,7 @@ ProjectContentViewer = rclass
         if not Editor?
             <Loading />
         else
-            <div ref='editor_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
+            <div ref='editor_inner_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}
