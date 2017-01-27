@@ -375,6 +375,7 @@ class Project(object):
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
         os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=os.environ['HOME'])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
+        os.environ['SMC_PROJECT_ID'] = self.project_id
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
@@ -415,6 +416,7 @@ class Project(object):
                 os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.environ['HOME'] = self.project_path
+                os.environ['SMC_PROJECT_ID'] = self.project_id
                 os.environ['SMC'] = self.smc_path
                 os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                 os.environ['MAIL'] = '/var/mail/%s'%self.username
@@ -465,6 +467,7 @@ class Project(object):
             if os.path.exists(self.smc_path):
                 try:
                     os.environ['HOME'] = self.project_path
+                    os.environ['SMC_PROJECT_ID'] = self.project_id
                     os.environ['SMC']  = self.smc_path
                     t = os.popen("smc-status").read()
                     t = json.loads(t)
@@ -533,6 +536,7 @@ class Project(object):
             if os.path.exists(self.smc_path):
                 try:
                     os.environ['HOME'] = self.project_path
+                    os.environ['SMC_PROJECT_ID'] = self.project_id
                     os.environ['SMC'] = self.smc_path
                     os.chdir(self.smc_path)
                     t = json.loads(os.popen("smc-status").read())
@@ -556,6 +560,7 @@ class Project(object):
                 os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.environ['HOME'] = self.project_path
+                os.environ['SMC_PROJECT_ID'] = self.project_id
                 os.environ['SMC'] = self.smc_path
                 os.chdir(self.smc_path)
                 t = json.loads(os.popen("smc-status").read())

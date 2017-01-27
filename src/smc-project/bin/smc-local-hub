@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys
+import os, sys, uuid
 
 if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
@@ -21,6 +21,9 @@ target = os.path.abspath(os.path.join(path, 'local_hub.coffee'))
 # concatenate all additional arguments and pass them to the node.js server
 local_hub_args = ' '.join(sys.argv[2:])
 
-cmd  = "forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s %s"%(sys.argv[1], target, local_hub_args)
+# lock exclusively on a file in /tmp (not ~/.smc!), fallback to something random
+project_id = os.environ.get('SMC_PROJECT_ID', str(uuid.uuid4()))
+
+cmd  = "flock -xn /tmp/%s.lock forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s %s"%(project_id, sys.argv[1], target, local_hub_args)
 
 os.system(cmd)
