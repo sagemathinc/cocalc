@@ -5042,7 +5042,7 @@ class RethinkDB
     ###
     update_migrate: (opts) =>
         opts = defaults opts,
-            start  : misc.hours_ago(1)
+            start  : misc.hours_ago(24)
             tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log', 'blobs', 'syncstrings', 'patches']
             #tables : ['project_log']
             cb     : required

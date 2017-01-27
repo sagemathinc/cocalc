@@ -11,35 +11,36 @@ Import all data from **all** json files in the given path:
 
 import os
 
-db = os.environ.get('SMC_DB', 'migrate')
+db = os.environ['SMC_DB'] = 'smc'
+# db = os.environ.get('SMC_DB', 'migrate')
 
 tables = {
    'account_creation_actions':{'replace':True},
    'accounts':{'replace':True},
-   'blobs':{},
-   'central_log':{},
-   'client_error_log':{},
+   'blobs':{'update':True},
+   'central_log':{'update':True},
+   'client_error_log':{'update':True},
    'compute_servers':{'replace':True},
    'cursors':{'skip':True},
    'eval_inputs':{},
    'eval_outputs':{},
-   'file_access_log':{},
+   'file_access_log':{'update':True},
    'file_use':{'fix_timestamps':True},
    'hub_servers':{'skip':True},  # ephemeral
    'instance_actions_log':{},
-   'instances':{'replace':True},
+   'instances':{'skip':True},
    'passport_settings':{'replace':True},
-   'password_reset':{'replace':True},
+   'password_reset':{'skip':True},
    'password_reset_attempts':{'replace':True},
-   'patches':{},
-   'project_log':{},
+   'patches':{'update':True},
+   'project_log':{'update':True},
    'projects':{'fix_timestamps':True, 'replace':True},
    'public_paths':{'replace':True},
    'remember_me':{'replace':True},
    'server_settings':{'replace':True},
    'stats':{},
    'storage_servers':{'replace':True},
-   'syncstrings':{},
+   'syncstrings':{'update':True},
    'system_notifications':{'replace':True}
 }
 
@@ -71,6 +72,8 @@ def process(table):
     print T
     if T.get('skip', False):
         return
+    if update and not T.get('update', False):
+        return
     print "get from rethinkdb as json"
     path_to_json = export_from_rethinkdb.process(table, export, update)
     print "convert json to csv"
@@ -81,7 +84,7 @@ def process(table):
     print "load csv into database"
     read_from_csv.process(path_to_csv)
     print "parse JSONB data in the database to relational data"
-    populate_relational_table.process(table, T.get('replace',False))
+    populate_relational_table.process(table, T.get('replace',False) or not update)
 
 def run(table):
     threading.Thread(target = lambda : process(table)).start()

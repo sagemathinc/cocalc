@@ -17,6 +17,10 @@ def process(table, replace=False):
     print(s)
     if os.system(s):
         raise RuntimeError("error populating relational data - %s"%table)
+    s = "time echo 'drop table %s_json' | psql %s"%(table, db)
+    print(s)
+    if os.system(s):
+        raise RuntimeError("error dropping intermediate table %s_json"%table)
     timing.done(table, 'populate_relational_table')
 
 if __name__ == "__main__":
