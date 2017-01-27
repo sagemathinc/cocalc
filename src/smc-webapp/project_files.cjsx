@@ -27,7 +27,7 @@ misc = require('smc-util/misc')
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
-{BillingPageLink}     = require('./billing')
+{BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
 {file_associations}   = require('./editor')
@@ -1863,6 +1863,8 @@ exports.ProjectFiles = rclass ({name}) ->
 
         account :
             other_settings : rtypes.immutable
+        billing :
+            customer      : rtypes.object
 
         "#{name}" :
             current_path        : rtypes.string
@@ -1894,9 +1896,11 @@ exports.ProjectFiles = rclass ({name}) ->
         redux   : redux
 
     getInitialState: ->
+        show_pay : false
         shift_is_down : false
 
     componentDidMount: ->
+        @props.redux.getActions('billing')?.update_customer()
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
 
@@ -2018,17 +2022,29 @@ exports.ProjectFiles = rclass ({name}) ->
             activity = {underscore.values(@props.activity)}
             on_clear = {=>@props.actions.clear_all_activity()} />
 
+    render_pay: ->
+        <PayCourseFee project_id={@props.project_id} redux={@props.redux} />
+
+    render_upgrade_in_place: ->
+        cards = @props.customer?.sources?.total_count ? 0
+        <div style={marginTop: '10px'}>
+            <BillingPageForCourseRedux redux={redux} />
+            {@render_pay() if cards}
+        </div>
+
     render_course_payment_required: () ->
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to <BillingPageLink text='pay the course fee'/> for this project.
+                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
             </h4>
+            {@render_upgrade_in_place()}
         </Alert>
 
     render_course_payment_warning: (pay) ->
         <Alert bsStyle='warning'>
-            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <BillingPageLink text='pay the course fee'/> for this project
+            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project
             within <TimeAgo date={pay}/>.
+            {@render_upgrade_in_place() if @state.show_pay}
         </Alert>
 
     render_deleted: ->

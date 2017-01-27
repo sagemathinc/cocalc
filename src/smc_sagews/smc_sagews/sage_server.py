@@ -1791,8 +1791,8 @@ def serve(port, host, extra_imports=False):
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
                      'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
-                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
-                     'timeit', 'typeset_mode', 'var', 'wiki']:
+                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'singular_kernel',
+                     'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself

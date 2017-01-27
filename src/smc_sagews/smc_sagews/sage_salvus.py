@@ -1827,6 +1827,30 @@ def python3(code=None,**kwargs):
     return python3.jupyter_kernel(code,**kwargs)
 python3.jupyter_kernel = None
 
+def singular_kernel(code=None,**kwargs):
+    """
+    Block decorator to run code in a Singular mode session.
+
+    To use this, put %singular_kernel by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using singular_kernel.
+
+    State is preserved between cells.
+
+    This is completely different than the singular command in Sage itself, which
+    supports things like x = singular(sage_object), and *also* provides a way
+    to execute code by beginning cells with %singular. The singular interface in
+    Sage uses pexpect, so might be less robust than singular_kernel.
+
+    .. note::
+
+        SMC %singular_kernel mode uses the jupyter `singular` kernel:
+        https://github.com/sebasguts/jupyter_kernel_singular
+    """
+    if singular_kernel.jupyter_kernel is None:
+        singular_kernel.jupyter_kernel = jupyter("singular")
+    return singular_kernel.jupyter_kernel(code,**kwargs)
+singular_kernel.jupyter_kernel = None
 
 def perl(code):
     """

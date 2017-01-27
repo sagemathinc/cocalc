@@ -6,6 +6,17 @@ import re
 import os
 from textwrap import dedent
 
+class TestSingularMode:
+    def test_singular_version(self, exec2):
+        exec2('%singular_kernel\nsystem("version");','4100\n')
+    def test_singular_factor_polynomial(self, exec2):
+        code = dedent('''
+        %singular_kernel
+        ring R1 = 0,(x,y),dp;
+        poly f = 9x16 - 18x13y2 - 9x12y3 + 9x10y4 - 18x11y2 + 36x8y4 + 18x7y5 - 18x5y6 + 9x6y4 - 18x3y6 - 9x2y7 + 9y8;
+        factorize(f);''').strip()
+        exec2(code,
+             u'[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n')
 class TestScalaMode:
     def test_scala_list(self, exec2):
         exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
