@@ -179,6 +179,8 @@ class GCE(object):
 
         v.append(('kubectl', ''))
 
+        v.append(('postgres', 0))
+
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))
 
@@ -256,6 +258,9 @@ class GCE(object):
     def create_all_data_snapshots(self, zone='us-central1-c'):
         # database backup disk
         #self.create_data_snapshot(node='-backup', prefix='db', zone=zone, devel=False)
+
+        log("snapshotting postgres0 data")
+        self.create_data_snapshot(node=0, prefix='postgres', zone=zone, devel=False)
 
         for i in range(6):
             log("snapshotting storage%s storage data"%i)
