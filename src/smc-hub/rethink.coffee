@@ -353,6 +353,12 @@ class RethinkDB
                     else
                         run_cbs[full_query_string] = [cb]
 
+                if opts.leave_cursor
+                    delete opts.leave_cursor
+                    leave_cursor = true
+                else
+                    leave_cursor = false
+
                 error = result = undefined
                 f = (cb) ->
                     start = new Date()
@@ -430,7 +436,7 @@ class RethinkDB
                                 error = err
                                 cb()  # done -- will report error back to original query
                             else
-                                if "#{x}" == "[object Cursor]"
+                                if "#{x}" == "[object Cursor]" and not leave_cursor
                                     # It's a cursor, so we convert it to an array, which is more convenient to work with, and is OK
                                     # by default, given the size of our data (typically very small -- all one pickle to client usually).
                                     x.toArray (err, x) ->   # converting to an array gets result as callback
@@ -5049,7 +5055,7 @@ class RethinkDB
         @_error_thresh = 1000000
         f = (table, cb) =>
             @["update_#{table}"](start:misc.hours_ago(opts.hours), cb:cb)
-        async.map(opts.tables, f, opts.cb)
+        async.mapSeries(opts.tables, f, opts.cb)
 
     update_client_error_log: (opts) =>
         opts = defaults opts,
@@ -5058,6 +5064,7 @@ class RethinkDB
             cb    : required
         @get_client_error_log
             start : opts.start
+            end   : misc.minutes_ago(-60)
             cb    : (err, log) =>
                 if err
                     opts.cb(err)
@@ -5078,6 +5085,7 @@ class RethinkDB
             cb    : required
         @get_log
             start : opts.start
+            end   : misc.minutes_ago(-60)
             cb    : (err, log) =>
                 if err
                     opts.cb(err)
@@ -5099,6 +5107,7 @@ class RethinkDB
         @get_log
             start : opts.start
             log   : 'project_log'
+            end   : misc.minutes_ago(-60)
             cb    : (err, log) =>
                 if err
                     opts.cb(err)
@@ -5119,6 +5128,7 @@ class RethinkDB
             cb    : required
         @get_log
             start : opts.start
+            end   : misc.minutes_ago(-60)
             log   : 'file_access_log'
             cb    : (err, log) =>
                 if err
@@ -5139,10 +5149,10 @@ class RethinkDB
             path  : '/migrate/data/patches/smc/update-patches.json'
             cb    : required
         # needs index! -- db.table('patches').indexCreate('time',db.r.row('id')(1)).run(done())
-        # query = @table('patches').between(opts.start, @r.maxval, index:'time')
+        query = @table('patches').between(opts.start, misc.minutes_ago(-60), index:'time')
         # for dev:
-        query = @table('patches').limit(1000)   # COMMENT this out and replace by above query to do it right... but needs index
-        query.run (err, patches) =>
+        #query = @table('patches').limit(1000)   # COMMENT this out and replace by above query to do it right... but needs index
+        query.run {leave_cursor:true}, (err, cursor) =>
             if err
                 opts.cb(err)
             else
@@ -5150,14 +5160,31 @@ class RethinkDB
                     fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
                 catch
                     # ignore
-                for x in patches
+
+                first = true
+                process = (err, x) =>
+                    if err
+                        throw Error(err)
                     x.id[1] = json_time(x.id[1])
                     if x.sent?
                         x.sent = json_time(x.sent)
                     if x.prev?
                         x.prev = json_time(x.prev)
-                s = '[\n' + (JSON.stringify(x) for x in patches).join(',\n') + '\n]\n'
-                fs.writeFile(opts.path, s, opts.cb)
+                    if first
+                        s = '[\n'
+                        first = false
+                        flag = 'w'
+                    else
+                        s = ',\n'
+                        flag = 'a'
+                    s += JSON.stringify(x)
+                    fs.writeFileSync(opts.path, s, {flag:flag})
+                try
+                    cursor.each process, () =>
+                        fs.writeFileSync(opts.path, '\n]\n', {flag:'a'})
+                        opts.cb()
+                catch e
+                    opts.cb(e)
 
     update_syncstrings: (opts) =>
         opts = defaults opts,
@@ -5165,7 +5192,7 @@ class RethinkDB
             path  : '/migrate/data/syncstrings/smc/update-syncstrings.json'
             cb    : required
         # needs index! -- db.table('syncstrings').indexCreate('last_active').run(done())
-        query = @table('syncstrings').between(opts.start, @r.maxval, index:'last_active')
+        query = @table('syncstrings').between(opts.start, misc.minutes_ago(-60), index:'last_active')
         query.run (err, syncstrings) =>
             if err
                 opts.cb(err)
@@ -5192,7 +5219,7 @@ class RethinkDB
         # needs index! -- db.table('blobs').indexCreate('created').run(done())
         # we do NOT copy over the actual blobs -- they **have** to get uploaded to gcloud before we'll ever
         # see them from postgresql, as we didn't implement the binary format.
-        query = @table('blobs').between(opts.start, @r.maxval, index:'created').pluck('id','expire','created','project_id','last_active','count','size','gcloud','backup')
+        query = @table('blobs').between(opts.start, misc.minutes_ago(-60), index:'created').pluck('id','expire','created','project_id','last_active','count','size','gcloud','backup')
         query.run (err, blobs) =>
             if err
                 opts.cb(err)
