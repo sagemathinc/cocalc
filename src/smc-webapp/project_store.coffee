@@ -45,7 +45,8 @@ MASKED_FILE_EXTENSIONS =
     'py'   : ['pyc']
     'java' : ['class']
     'cs'   : ['exe']
-    'tex'  : 'aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py NODOT-concordance.tex'.split(' ')
+    'tex'  : 'aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME'.split(' ')
+    'rnw'  : ['tex', 'NODOT-concordance.tex']
 
 BAD_FILENAME_CHARACTERS       = '\\'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
@@ -1464,6 +1465,7 @@ create_project_store_def = (name, project_id) ->
     _compute_file_masks: (listing) ->
         filename_map = misc.dict( ([item.name, item] for item in listing) ) # map filename to file
         for file in listing
+            # note: never skip already masked files, because of rnw->tex
             filename = file.name
 
             # mask items beginning with '.'
@@ -1478,6 +1480,9 @@ create_project_store_def = (name, project_id) ->
                 if misc.startswith(mask_ext, 'NODOT')
                     bn = basename[... -1]  # exclude the trailing dot
                     mask_ext = mask_ext['NODOT'.length ...]
+                else if mask_ext.indexOf('FILENAME') >= 0
+                    bn = mask_ext.replace('FILENAME', filename)
+                    mask_ext = ''
                 else
                     bn = basename
                 filename_map["#{bn}#{mask_ext}"]?.mask = true
