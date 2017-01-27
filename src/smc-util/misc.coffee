@@ -1898,3 +1898,18 @@ exports.bind_objects = (scope, arr_objects) ->
                 return bound_func
             else
                 return val
+
+# Assuming a sorted array of numbers return the index
+# where val is between the number in that index and
+# the number after it. Return the last index
+# if val is greater than the largest number in the array
+exports.find_smaller_number = (arr, val) ->
+    idx = undefined
+    if arr.length == 0
+        return -1
+    idx = 0
+    while idx < arr.length
+        if val < arr[idx]
+            return idx - 1
+        idx++
+    idx - 1

@@ -31,8 +31,8 @@ misc_page = require('./misc_page')
 {defaults, required} = misc
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
+{Icon, Loading, Markdown, TimeAgo, Tip, SetIntervalMixin} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -319,15 +319,43 @@ Message = rclass
                 {cols}
             </Row>
 
+# allows us to know that {"a": 5, "c": 7} is equal
+# to {"c": 7, "a": 5}
+are_dicts_equal = (a, b) ->
+    # assuming maps to non array
+    sorteda = {}
+    for key in underscore.sortBy(Object.keys(a))
+        sorteda[key] = a[key]
+    sortedb = {}
+    for key in underscore.sortBy(Object.keys(b))
+        sortedb[key] = b[key]
+    return JSON.stringify(sorteda) == JSON.stringify(sortedb)
+
+# assumes these are arrays of numbers
+diffArray = (arr1, arr2) ->
+    newArr = []
+    arr1.forEach (val) ->
+        if arr2.indexOf(val) < 0
+            newArr.push val
+        return
+    arr2.forEach (val) ->
+        if arr1.indexOf(val) < 0
+            newArr.push val
+        return
+    newArr
+
 ChatLog = rclass
     displayName: "ChatLog"
 
     propTypes:
         messages     : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
         user_map     : rtypes.object              # immutable js map {collaborators} --> account info
+        read_dates_by_user : rtypes.object
+        message_dates: rtypes.array
         account_id   : rtypes.string
         project_id   : rtypes.string   # optional -- used to render links more effectively
         file_path    : rtypes.string   # optional -- ...
+        path         : rtypes.string
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
@@ -335,11 +363,45 @@ ChatLog = rclass
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
 
+    getInitialState: ->
+        read_indexes_to_user_ids: @find_read_tos(@props.read_dates_by_user, @props.message_dates)
+        prev_read_dates_by_user: @props.read_dates_by_user
+
+    mixins: [SetIntervalMixin]
+
+    componentWillMount: ->
+        @update_interval = setInterval(@update_read_indexes_to_user_ids, 300)
+
+    componentWillUnmount: ->
+        clearInterval(@update_interval)
+
+    update_read_indexes_to_user_ids: ->
+        if are_dicts_equal(@props.read_dates_by_user, @state.prev_read_dates_by_user)
+            return
+        read_indexes_to_user_ids = @state.read_indexes_to_user_ids
+        # figure out which users to update
+        diff = diffArray(Object.keys(@props.read_dates_by_user), Object.keys(@state.prev_read_dates_by_user))
+        for account_id in Object.keys(@props.read_dates_by_user)
+            if @props.read_dates_by_user[account_id] != @state.prev_read_dates_by_user[account_id]
+                if account_id not in diff
+                    diff.push(account_id)
+        for account_id in diff
+            # remove account_id from read_indexes_to_user_ids
+            for i in Object.keys(read_indexes_to_user_ids)
+                read_indexes_to_user_ids[parseInt(i)] = read_indexes_to_user_ids[parseInt(i)].filter (x) -> x isnt account_id
+            index_for_read_up_to = @find_between(@props.read_dates_by_user[account_id])
+            read_indexes_to_user_ids[index_for_read_up_to] ?= []
+            read_indexes_to_user_ids[index_for_read_up_to].push(account_id)
+        @setState(prev_read_dates_by_user: @props.read_dates_by_user)
+        @setState(read_indexes_to_user_ids: read_indexes_to_user_ids)
+        @forceUpdate()
+
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or
                @props.user_map != next.user_map or
                @props.account_id != next.account_id or
-               @props.saved_mesg != next.saved_mesg
+               @props.saved_mesg != next.saved_mesg or
+               not are_dicts_equal(@props.read_dates_by_user, next.read_dates_by_user)
 
     get_user_name: (account_id) ->
         account = @props.user_map?.get(account_id)
@@ -357,6 +419,35 @@ ChatLog = rclass
                     @props.actions.send_edit(@props.messages.get(date), saved_message)
                 else
                     @props.actions.set_editing(@props.messages.get(date), false)
+
+    find_between: (read_date) ->
+        answer = misc.find_smaller_number(@props.message_dates, read_date)
+        if answer == -1
+            return null
+        return answer
+
+    find_read_tos: (read_dates_by_user, message_dates) ->
+        read_indexes_to_user_ids = {}
+        [user_ids, read_dates] = [Object.keys(read_dates_by_user), underscore.values(read_dates_by_user)]
+        indexes_for_read_up_to = (@find_between(date) for date in read_dates)
+        for index_for_read_up_to, i in indexes_for_read_up_to
+            user_id = user_ids[i]
+            if index_for_read_up_to is null
+                continue
+            read_indexes_to_user_ids[index_for_read_up_to] ?= []
+            read_indexes_to_user_ids[index_for_read_up_to].push(user_id)
+        return read_indexes_to_user_ids
+
+    get_name: (account_id) ->
+        return misc.trunc_middle(redux.getStore('users').get_name(account_id)?.trim(), 20)
+
+    render_read_avatars: (account_ids) ->
+        @props.set_scroll()
+        for account_id in account_ids
+            date = new Date(@props.read_dates_by_user[account_id])
+            date = String(date)
+            tooltip = @get_name(account_id) + ' last read at ' + date
+            <Avatar key={'read_by_'+account_id} size={16} account_id={account_id} tooltip={tooltip} />
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
@@ -378,12 +469,12 @@ ChatLog = rclass
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
             last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
-
+            message = @props.messages.get(date)
             v.push <Message key={date}
                      account_id       = {@props.account_id}
                      history          = {@props.messages.get(date).get('history')}
                      user_map         = {@props.user_map}
-                     message          = {@props.messages.get(date)}
+                     message          = {message}
                      date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
@@ -401,6 +492,17 @@ ChatLog = rclass
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
                     />
+
+            user_ids_for_this_index = @state.read_indexes_to_user_ids?[i] ? []
+            if user_ids_for_this_index.length > 0
+                user_ids_for_this_index = user_ids_for_this_index.filter (x) -> x isnt message.get('sender_id')
+                account_id = @props.account_id
+                collaborators = Object.keys(redux.getStore("projects").get_project(@props.project_id).users).filter (x) -> x isnt account_id and x isnt message.get('sender_id')
+                read_by_all_collaborators = diffArray(user_ids_for_this_index, collaborators).length == 0 and collaborators.length > 1
+                if read_by_all_collaborators
+                    v.push <div key={date+'read_status'} className="small" style={textAlign: 'right', color: 'rgb(136, 136, 136)'}>Read by all collaborators</div>
+                else
+                    v.push <div key={date+'read_status'} style={textAlign: 'right'}>{@render_read_avatars(user_ids_for_this_index)}</div>
 
         return v
 
@@ -617,6 +719,14 @@ ChatRoom = rclass ({name}) ->
             </Col>
         </Row>
 
+    get_read_dates_by_user: ->
+        file_use_users = redux.getStore('file_use').get_file_info(@props.project_id, @props.path).users
+        read_dates_by_user = {}
+        for u in file_use_users
+            if u.account_id != @props.account_id
+                read_dates_by_user[u.account_id] = u.last_read
+
+        return read_dates_by_user
 
     render_body: ->
         chat_log_style =
@@ -632,7 +742,8 @@ ChatRoom = rclass ({name}) ->
             margin       : "0"
             height       : '90px'
             fontSize     : @props.font_size
-
+        message_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        message_dates = message_dates.map (x) -> parseInt(x)
         <Grid fluid={true} className='smc-vfill' style={maxWidth: '1200px', display:'flex', flexDirection:'column'}>
             {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
@@ -640,14 +751,17 @@ ChatRoom = rclass ({name}) ->
                     <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
                         <ChatLog
                             messages     = {@props.messages}
+                            message_dates= {message_dates}
                             account_id   = {@props.account_id}
                             user_map     = {@props.user_map}
                             project_id   = {@props.project_id}
                             font_size    = {@props.font_size}
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                            path         = {@props.path}
                             actions      = {@props.actions}
                             saved_mesg   = {@props.saved_mesg}
                             set_scroll   = {@set_chat_log_state}
+                            read_dates_by_user = {@get_read_dates_by_user()}
                             show_heads   = true />
                         {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
                     </Well>

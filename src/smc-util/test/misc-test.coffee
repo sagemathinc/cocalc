@@ -1389,3 +1389,12 @@ describe 'bind_objects', ->
 
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
+
+describe 'find smaller number function', ->
+    find_smaller_number = misc.find_smaller_number
+    it 'returns index of 2 for a value of 11 for array of [0,3,5,15,30,90]', ->
+        find_smaller_number([0,3,5,15,30,90], 11).should.eql 3
+    it 'returns index of -1 for a value of 3 for array of [5,10,15]', ->
+        find_smaller_number([5,10,15], 3).should.eql -1
+    it 'returns index of -1 for a value of 9 for array of []', ->
+        find_smaller_number([], 9).should.eql -1

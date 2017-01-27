@@ -1811,9 +1811,10 @@ ProjectFilesNew = rclass
 
     file_dropdown_item: (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onClick={=>@on_menu_item_clicked(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
-        </MenuItem>
+        if data
+            <MenuItem eventKey=i key={i} onClick={=>@on_menu_item_clicked(ext)}>
+                <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            </MenuItem>
 
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0

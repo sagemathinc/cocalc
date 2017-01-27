@@ -126,9 +126,10 @@ NewFileDropdown = rclass
 
     file_dropdown_item: (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
-        </MenuItem>
+        if data
+            <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
+                <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            </MenuItem>
 
     render: ->
         <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
