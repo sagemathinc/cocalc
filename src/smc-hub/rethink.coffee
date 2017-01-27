@@ -5042,12 +5042,13 @@ class RethinkDB
     ###
     update_migrate: (opts) =>
         opts = defaults opts,
-            start  : misc.hours_ago(24)
+            hours  : 24
             tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log', 'blobs', 'syncstrings', 'patches']
             #tables : ['project_log']
             cb     : required
+        @_error_thresh = 1000000
         f = (table, cb) =>
-            @["update_#{table}"](start:opts.start, cb:cb)
+            @["update_#{table}"](start:misc.hours_ago(opts.hours), cb:cb)
         async.map(opts.tables, f, opts.cb)
 
     update_client_error_log: (opts) =>
