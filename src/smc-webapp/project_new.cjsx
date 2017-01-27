@@ -237,16 +237,21 @@ ProjectNewForm = rclass ({name}) ->
             ext          : ext
             current_path : @props.current_path
 
-    submit: (e) ->
-        e.preventDefault()
+    submit: (ext) ->
         if not @state.filename  # empty filename
             return
-        if @state.filename[@state.filename.length - 1] == '/'
+        if ext
+            @create_file(ext)
+        else if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
         else if misc.filename_extension(@state.filename)
             @create_file()
         else
             @setState(extension_warning : true)
+
+    submit_via_enter: (e) ->
+        e.preventDefault()
+        @submit()
 
     render_header: ->
         if @props.current_path?
@@ -298,7 +303,7 @@ ProjectNewForm = rclass ({name}) ->
                 </Col>
                 <Col sm=9>
                     <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
-                    <form onSubmit={@submit}>
+                    <form onSubmit={@submit_via_enter}>
                         <FormGroup>
                             <FormControl
                                 autoFocus
@@ -313,7 +318,7 @@ ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
-                    <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
+                    <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
                         <Row>
                             <Col sm=6>
                                 <Tip title='Download files from the Internet'  icon = 'cloud'
