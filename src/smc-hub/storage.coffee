@@ -1700,7 +1700,7 @@ exports.ignored_storage_requests = (opts) ->
             # Projects that had a storage request recently (in the last age_m minutes)...
             # and we only want the ignored requests...
             # And the ones that haven't started and haven't finished
-            query = "SELECT project_id storage_request storage host state FROM projects WHERE "
+            query = "SELECT project_id,storage_request,storage,host,state FROM projects WHERE "
             params = [misc.minutes_ago(opts.age_m)]
             query += " storage_request#>'{requested}' >= $1 AND storage_request#>'{started}' IS NULL AND storage_request#>'{finished}' IS NULL "
             if not opts.all
