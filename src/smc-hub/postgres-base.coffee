@@ -27,6 +27,7 @@ read_password_from_disk = ->
     try
         return fs.readFileSync(filename).toString().trim()
     catch
+        winston.debug("NO PASSWORD FILE!")
         # no password file
         return
 
