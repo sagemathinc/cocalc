@@ -1871,7 +1871,7 @@ class exports.PostgreSQL extends PostgreSQL
                     (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_month, cb: (err, x) => stats.accounts_created[K.last_month] = x; cb(err))
                     (cb) =>
                         @_query
-                            query : 'SELECT expire, host FROM hub_servers'
+                            query : 'SELECT expire, host, clients FROM hub_servers'
                             cb    : all_results (err, hub_servers) =>
                                 if err
                                     cb(err)
