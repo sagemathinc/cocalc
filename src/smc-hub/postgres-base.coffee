@@ -335,7 +335,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 values = [values]  # just one
 
             if values.length > 0
-                opts.query += " (#{fields.join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
+                opts.query += " (#{(quote_field(field) for field in fields).join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
 
         if opts.set?
             v = []
