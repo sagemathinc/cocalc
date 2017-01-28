@@ -200,6 +200,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
             limit       : undefined
+            safety_check: true
             cb          : undefined
 
         if not @_client?
@@ -404,13 +405,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         dbg("query='#{opts.query}'")
 
-        safety_check = opts.query.toLowerCase()
-        if safety_check.indexOf('update') != -1 and  safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1
-            # This is always a bug.
-            err = "ERROR -- Dangerous UPDATE without a WHERE, TRIGGER, or INSERT:  query='#{opts.query}'"
-            dbg(err)
-            opts.cb?(err)
-            return
+        if opts.safety_check
+            safety_check = opts.query.toLowerCase()
+            if (safety_check.indexOf('update') != -1 or safety_check.indexOf('delete') != -1)  and  (safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1 and safety_check.indexOf('create') == -1)
+                # This is always a bug.
+                err = "ERROR -- Dangerous UPDATE or DELETE without a WHERE, TRIGGER, or INSERT:  query='#{opts.query}'"
+                dbg(err)
+                opts.cb?(err)
+                return
 
         if opts.cache and @_query_cache?
             # check for cached result
@@ -559,8 +561,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             (cb) =>
                 f = (table, cb) =>
                     @_query
-                        query : "DELETE FROM #{table}"
-                        cb    : cb
+                        query        : "DELETE FROM #{table}"
+                        safety_check : false
+                        cb           : cb
                 async.map(tables, f, cb)
         ], opts.cb)
 

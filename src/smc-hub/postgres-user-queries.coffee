@@ -893,16 +893,20 @@ class exports.PostgreSQL extends PostgreSQL
         if not misc.is_array(pg_where)
             cb("pg_where must be an array (of strings or objects)")
             return
+
+        # Do NOT mutate the schema itself!
+        pg_where = misc.deep_copy(pg_where)
+
+        # expand 'projects' in query, depending on whether project_id is specified or not.
+        # This is just a convenience to make the db schema simpler.
         for i in [0...pg_where.length]
             if pg_where[i] == 'projects'
-                if user_query.project_id?
+                if user_query.project_id
                     pg_where[i] = {"project_id = $::UUID" : 'project_id'}
                 else
                     pg_where[i] = {"project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id'}
 
-        # Now we just fill in all the parametrized substitions in the pg_where list.
-        pg_where = misc.deep_copy(pg_where)
-
+        # Now we fill in all the parametrized substitions in the pg_where list.
         subs = {}
         for x in pg_where
             if misc.is_object(x)

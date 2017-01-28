@@ -509,6 +509,6 @@ describe 'doing a "naked update"', ->
         db._query
             query : "UPDATE accounts SET first_name='William'"
             cb    : (err) ->
-                expect(err).toEqual("ERROR -- Dangerous UPDATE without a WHERE, TRIGGER, or INSERT:  query='UPDATE accounts SET first_name='William''")
+                expect(err).toEqual("ERROR -- Dangerous UPDATE or DELETE without a WHERE, TRIGGER, or INSERT:  query='UPDATE accounts SET first_name='William''")
                 done()
 

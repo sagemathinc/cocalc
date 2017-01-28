@@ -155,7 +155,7 @@ describe 'some basic testing of user_queries', ->
                 done(err)
 
 
-describe 'testing file_use', ->
+describe 'testing file_use -- ', ->
     before(setup)
     after(teardown)
     # Create two users and two projects
@@ -291,39 +291,39 @@ describe 'testing file_use', ->
                         cb()
         ], done)
 
-    it 'add a file_use notification for second project as second user; confirm total of 3 file_use entries', (done) ->
+    it 'add a file_use notification for second project as second user', (done) ->
         obj =
             project_id  : projects[1]
             path        : 'bar'
             last_edited : new Date()
-        async.series([
-            (cb) ->
-                db.user_query
-                    account_id : accounts[1]
-                    query      : {file_use : obj}
-                    cb         : cb
-            (cb) ->
-                db.user_query
-                    account_id : accounts[1]
-                    query      :
-                        file_use : [{project_id:null, path:null, last_edited: null}]
-                    cb : (err, x) ->
-                        if err
-                            cb(err); return
-                        expect(x.file_use.length).toEqual(3)
-                        cb()
-            (cb) ->
-                # also check limit option works
-                db.user_query
-                    account_id : accounts[1]
-                    query      : file_use : [{project_id:null, path:null}]
-                    options    : [{limit:2}]
-                    cb : (err, x) ->
-                        if err
-                            cb(err); return
-                        expect(x.file_use.length).toEqual(2)
-                        cb()
-        ], done)
+        db.user_query
+            account_id : accounts[1]
+            query      : {file_use : obj}
+            cb         : done
+
+    it 'confirm total of 3 file_use entries', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      :
+                file_use : [{project_id:null, path:null, last_edited: null}]
+            cb : (err, x) ->
+                if err
+                    done(err)
+                else
+                    expect(x.file_use.length).toEqual(3)
+                    done()
+
+    it 'also check limit option works', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : file_use : [{project_id:null, path:null}]
+            options    : [{limit:2}]
+            cb : (err, x) ->
+                if err
+                    done(err)
+                else
+                    expect(x.file_use.length).toEqual(2)
+                    done()
 
     it 'verify that account 0 cannot write file_use notification to project 1; but as admin can.', (done) ->
         obj =

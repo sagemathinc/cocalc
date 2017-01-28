@@ -92,6 +92,7 @@ describe 'use of eval_inputs table --', ->
                 # deletes records
                 db._query
                     query : "DELETE FROM eval_inputs"
+                    safety_check : false
                     cb    : cb
             (cb) ->
                 db.user_query
@@ -282,6 +283,7 @@ describe 'use of eval_outputs table --', ->
                 # deletes records
                 db._query
                     query : "DELETE FROM eval_outputs"
+                    safety_check : false
                     cb    : cb
             (cb) ->
                 db.user_query
