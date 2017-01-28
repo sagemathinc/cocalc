@@ -1131,6 +1131,7 @@ class exports.PostgreSQL extends PostgreSQL
                     query       : 'UPDATE file_use'
                     jsonb_merge :
                         users : {"#{opts.account_id}": {"#{opts.action}": now}}
+                    where : {id : entry.id}
                     cb          : cb
         ], opts.cb)
 

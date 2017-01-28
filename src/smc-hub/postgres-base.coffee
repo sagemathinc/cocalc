@@ -403,6 +403,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " LIMIT #{opts.limit} "
 
         dbg("query='#{opts.query}'")
+
+        safety_check = opts.query.toLowerCase()
+        if safety_check.indexOf('update') != -1 and  safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1
+            # This is always a bug.
+            err = "ERROR -- Dangerous UPDATE without a WHERE, TRIGGER, or INSERT:  query='#{opts.query}'"
+            dbg(err)
+            opts.cb?(err)
+            return
+
         if opts.cache and @_query_cache?
             # check for cached result
             full_query_string = JSON.stringify([opts.query, opts.params])
