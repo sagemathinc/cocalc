@@ -1467,8 +1467,8 @@ start_server = (cb) ->
                 table   : 'projects'
                 columns : FIELDS
                 where   :
-                    "host = $" : host
-                    "storage_request#>'{requested}' >= $" : age
+                    "storage#>>'{host}' = $" : host
+                    "storage_request#>>'{requested}' >= $" : age.toISOString()
                 cb    : (err, synctable) ->
                     if err
                         cb(err)
@@ -1601,7 +1601,7 @@ class Activity
                     table   : 'projects'
                     columns : FIELDS
                     where   :
-                        "storage_request#>'{requested}' >= $" : age
+                        "storage_request#>>'{requested}' >= $" : age.toISOString()
                     cb      : (err, synctable) =>
                         if err
                             dbg("fail: #{err}")
