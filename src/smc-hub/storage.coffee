@@ -58,6 +58,9 @@ misc        = require('smc-util/misc')
 
 postgres = require('./postgres')
 
+process.env['PGHOST'] = 'postgres0'   # just hardcode this since all this storage stuff is going away anyways
+
+
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -1813,6 +1816,7 @@ main = () ->
 
 if program._name.split('.')[0] == 'storage'
     main()
-
+else
+    winston.debug("imported storage as a library -- #{program._name}")
 
 
