@@ -3116,6 +3116,7 @@ connect_to_database_postgresql = (opts) ->
     database = require('./postgres').db
         host     : program.database_nodes.split(',')[0]  # postgres has only one master server
         database : program.keyspace
+        concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 
 connect_to_database = connect_to_database_postgresql
