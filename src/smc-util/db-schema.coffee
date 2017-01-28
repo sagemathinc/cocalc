@@ -475,7 +475,7 @@ schema.file_use =
 
     user_query:
         get :
-            pg_where : 'projects'
+            pg_where : ['projects', 'last_edited IS NOT NULL']
             pg_changefeed: 'projects'
             all :
                 cmd     : 'getAll'

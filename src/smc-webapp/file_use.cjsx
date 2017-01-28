@@ -397,7 +397,7 @@ FileUse = rclass
             return r_join(v)
 
     render_last_edited: ->
-        if @info.last_edited?
+        if @info.last_edited
             <span key='last_edited' >
                 was edited <TimeAgo date={@info.last_edited} />
             </span>
