@@ -2343,8 +2343,8 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
 
     trash_aux_files: (cb) =>
         log = ''
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
-        EXT = (E + '.' for E in EXT)
+        EXT = ['aux', 'log', 'bbl', 'fls', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.sage.py', 'sagetex.scmd', 'sagetex.sout']
+        EXT = ('.' + E for E in EXT)
         EXT.push('-concordance.tex')
         async.series([
             (cb) =>
@@ -2358,9 +2358,11 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
             (cb) =>
                 # this in particular gets rid of the sagetex files
                 files = (@base_filename + ext for ext in EXT)
+                # -f: don't complain when it doesn't exist
+                # --: then it works with filenames starting with a "-"
                 @_exec
                     command : "rm"
-                    args    : ['-v'].concat(files)
+                    args    : ['-v', '-f', '--'].concat(files)
                     cb      : (err, output) ->
                         log += output.stdout + '\n\n' + output.stderr + '\n\n'
                         cb(err)
@@ -2536,22 +2538,68 @@ class PDF_Preview extends FileEditor
             @path = './'
         @file = s.tail
         @last_page = 0
-        @output  = @element.find(".salvus-editor-pdf-preview-page")
-        @message = @element.find(".salvus-editor-pdf-preview-message")
+        @output    = @element.find(".salvus-editor-pdf-preview-output")
+        @page      = @element.find(".salvus-editor-pdf-preview-page")
+        @message   = @element.find(".salvus-editor-pdf-preview-message")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
-        @output.text('Loading preview...')
+        @page.text('Loading preview...')
         @_first_output = true
         @_needs_update = true
+        @_dragpos = null
+        @_init_dragging()
 
     dbg: (mesg) =>
         #console.log("PDF_Preview: #{mesg}")
+
+    # TODO refactor this into misc_page
+    _init_dragging: =>
+        reset = =>
+            @page.css('cursor', '')
+            @_dragpos = null
+
+        @page.on 'mousedown', (e) =>
+            e.preventDefault()
+            # weird next line removes the focus from the codemirror textarea
+            # otherwise, space-key and others have no effect on scrolling
+            document.activeElement.blur()
+            @_dragpos =
+                left : e.clientX
+                top  : e.clientY
+            return false
+
+        @page.on 'mouseup', (e) =>
+            e.preventDefault()
+            reset()
+            return false
+
+        {throttle} = require('underscore')
+        mousemove_handler = (e) =>
+            e.preventDefault()
+            if not @_dragpos?
+                return
+            # this checks, if we come back into the viewport after leaving it
+            # but the mouse is no longer pressed
+            if e.which != 1
+                reset()
+                return
+            @page.css('cursor', 'move')
+            delta =
+                left : e.clientX - @_dragpos.left
+                top  : e.clientY - @_dragpos.top
+            @output.scrollLeft(@output.scrollLeft() - delta.left)
+            @output.scrollTop (@output.scrollTop()  - delta.top)
+            @_dragpos =
+                left : e.clientX
+                top  : e.clientY
+            return false
+        @page.on 'mousemove', throttle(mousemove_handler, 20)
 
     zoom: (opts) =>
         opts = defaults opts,
             delta : undefined
             width : undefined
 
-        images = @output.find("img")
+        images = @page.find("img")
         if images.length == 0
             return # nothing to do
 
@@ -2567,7 +2615,7 @@ class PDF_Preview extends FileEditor
             @zoom_width = max_width
             n = @current_page().number
             max_width = "#{max_width}%"
-            @output.find(".salvus-editor-pdf-preview-page-single").css
+            @page.find(".salvus-editor-pdf-preview-page-single").css
                 'max-width'   : max_width
                 width         : max_width
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
@@ -2575,13 +2623,13 @@ class PDF_Preview extends FileEditor
         @recenter()
 
     recenter: () =>
-        container_width = @output.width()
-        content_width = @output.find(':first-child:first').width()
+        container_width = @page.width()
+        content_width = @page.find(':first-child:first').width()
         offset = (content_width - container_width)/2
-        @output.parent().scrollLeft(offset)
+        @page.parent().scrollLeft(offset)
 
     show_pages: (show) =>
-        @output.toggle(show)
+        @page.toggle(show)
         @message.toggle(!show)
 
     show_message: (message_el) =>
@@ -2593,7 +2641,7 @@ class PDF_Preview extends FileEditor
         if @_f?
             clearInterval(@_f)
         timeout = undefined
-        @element.find(".salvus-editor-pdf-preview-output").on 'scroll', () =>
+        @output.on 'scroll', () =>
             @_needs_update = true
         f = () =>
             if @_needs_update and @element.is(':visible')
@@ -2636,7 +2684,7 @@ class PDF_Preview extends FileEditor
 
     current_page: () =>
         tp = @element.offset().top
-        for _page in @output.children()
+        for _page in @page.children()
             page = $(_page)
             offset = page.offset()
             if offset.top - tp > 0   # starts on the visible page
@@ -2666,7 +2714,7 @@ class PDF_Preview extends FileEditor
         if @pdflatex.num_pages?
             @dbg("update: num_pages = #{@pdflatex.num_pages}")
             # This is O(N), but behaves better given the async nature...
-            for p in @output.children()
+            for p in @page.children()
                 page = $(p)
                 if page.data('number') > @pdflatex.num_pages
                     @dbg("update: removing page number #{page.data('number')}")
@@ -2737,7 +2785,7 @@ class PDF_Preview extends FileEditor
         if not url?
             # delete page and all following it from DOM
             for m in [n .. @last_page]
-                @output.remove(".salvus-editor-pdf-preview-page-#{m}")
+                @page.remove(".salvus-editor-pdf-preview-page-#{m}")
             if @last_page >= n
                 @last_page = n-1
         else
@@ -2745,7 +2793,7 @@ class PDF_Preview extends FileEditor
             # update page
             recenter = (@last_page == 0)
             that = @
-            page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
+            page = @page.find(".salvus-editor-pdf-preview-page-#{n}")
 
             set_zoom_width = (page) =>
                 if @zoom_width?
@@ -2784,21 +2832,21 @@ class PDF_Preview extends FileEditor
                     set_zoom_width(page)
 
                     if @_first_output
-                        @output.empty()
+                        @page.empty()
                         @_first_output = false
 
                     # Insert page in the right place in the output.  Since page creation
                     # can happen in parallel/random order (esp because of deletes of trailing pages),
                     # we have to work at this a bit.
                     done = false
-                    for p in @output.children()
+                    for p in @page.children()
                         pg = $(p)
                         if pg.data('number') > m
                             page.insertBefore(pg)
                             done = true
                             break
                     if not done
-                        @output.append(page)
+                        @page.append(page)
 
                     @pdflatex.page(m).element = page
 

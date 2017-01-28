@@ -251,6 +251,7 @@ def tex_escape(s):
     replacements = [
         ('\\',                 '{\\textbackslash}'),
         ('_',                  r'\_'),
+        ('^',                  r'\^'),
         (r'{\textbackslash}$', r'\$' ),
         ('%',                  r'\%'),
         ('#',                  r'\#'),
