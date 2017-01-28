@@ -657,6 +657,23 @@ class exports.PostgreSQL extends PostgreSQL
                         catch e
                             cb("corrupt patches blob -- #{e}")
                             return
+                        if patches.length == 0
+                            cb()
+                            return
+                        if patches[0].id?
+                            # convert from OLD RethinkDB format!
+                            v = []
+                            for x in patches
+                                patch =
+                                    string_id : x.id[0]
+                                    time      : new Date(x.id[1])
+                                    user_id   : x.user
+                                    patch     : x.patch
+                                    snapshot  : x.snapshot
+                                    sent      : x.sent
+                                    prev      : x.prev
+                                v.push(patch)
+                            patches = v
                         dbg("insert patches into patches table")
                         @_query
                             query  : 'INSERT INTO patches'
