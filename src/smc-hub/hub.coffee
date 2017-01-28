@@ -3543,7 +3543,7 @@ command_line = () ->
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
-        .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+        .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .parse(process.argv)
 
