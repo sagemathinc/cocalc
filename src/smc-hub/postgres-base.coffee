@@ -35,6 +35,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         opts = defaults opts,
             host         : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
             database     : process.env['SMC_DB'] ? 'smc'
+            user         : process.env['PGUSER'] ? 'smc'
             debug        : true
             connect      : true
             password     : undefined
@@ -53,6 +54,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         else
             @_host = opts.host
             @_port = 5432
+        @_user = opts.user
         @_database = opts.database
         @_concurrent_queries = 0
         @_password = opts.password ? read_password_from_disk()
@@ -465,7 +467,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
-        args = ['--host', @_host, '--port', @_port, '--list', '--tuples-only']
+        args = ['--user', @_user, '--host', @_host, '--port', @_port, '--list', '--tuples-only']
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
