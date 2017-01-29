@@ -663,7 +663,7 @@ class SyncTable extends EventEmitter
 
         @_select_query = "SELECT #{(quote_field(x) for x in @_select_columns)} FROM #{@_table}"
 
-        @_update = underscore.throttle(@_update, 500)
+        #@_update = underscore.throttle(@_update, 500)
 
         @_init (err) => cb(err, @)
 
