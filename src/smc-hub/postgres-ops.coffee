@@ -79,7 +79,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb    : required
         dbg = @_dbg("_backup_bup(path='#{opts.path}')")
         # We use no compression because the backup files are already all highly compressed.
-        cmd = "mkdir -p '#{opts.path}' && export  && bup init && bup index '#{opts.path}' && bup save --compress=0 '#{opts.path}' -n master"
+        cmd = "mkdir -p '#{opts.path}' && export  && bup init && bup index '#{opts.path}' && bup save --strip --compress=0 '#{opts.path}' -n master"
         dbg(cmd)
         misc_node.execute_code
             command : cmd
