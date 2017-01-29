@@ -971,6 +971,8 @@ class ProjectClient extends EventEmitter
                 opts.table = 'projects'
                 opts.columns = ['project_id', 'host', 'state', 'storage', 'storage_request']
                 opts.where = {"project_id = $::UUID" : @project_id}
+                opts.where_function = (project_id) =>
+                    return project_id == @project_id  # fast easy test for matching
 
             when 'rethink'
                 opts.query = db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')

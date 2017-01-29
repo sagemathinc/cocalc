@@ -93,7 +93,7 @@ class exports.PostgreSQL extends PostgreSQL
         )
 
     _notification: (mesg) =>
-        @_dbg('notification')(misc.to_json(mesg))
+        #@_dbg('notification')(misc.to_json(mesg))  # this is way too verbose...
         @emit(mesg.channel, JSON.parse(mesg.payload))
 
     _clear_listening_state: =>
@@ -121,9 +121,10 @@ class exports.PostgreSQL extends PostgreSQL
             where    : undefined
             limit    : undefined
             order_by : undefined
+            where_function : undefined # if given; a function of the *primary* key that returns true if and only if it matches the changefeed
             idle_timeout_s : undefined   # TODO: currently ignored
             cb       : required
-        new SyncTable(@, opts.table, opts.columns, opts.where, opts.limit, opts.order_by, opts.cb)
+        new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
         return
 
     changefeed: (opts) =>
@@ -633,7 +634,7 @@ class Changes extends EventEmitter
             return true
 
 class SyncTable extends EventEmitter
-    constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
+    constructor: (@_db, @_table, @_columns, @_where, @_where_function, @_limit, @_order_by, cb) ->
         t = SCHEMA[@_table]
         if not t?
             @_state = 'error'
@@ -694,7 +695,11 @@ class SyncTable extends EventEmitter
                 @_value = @_value.delete(k)
                 process.nextTick(=>@emit('change', k))
         else
-            @_changed[new_val[@_primary_key]] = true
+            k = new_val[@_primary_key]
+            if @_where_function? and not @_where_function(k)
+                # doesn't match -- nothing to do -- ignore
+                return
+            @_changed[k] = true
             @_update()
 
     _init: (cb) =>
