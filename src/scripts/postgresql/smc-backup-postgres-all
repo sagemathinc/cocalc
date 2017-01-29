@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+set -v
+cd /home/salvus/smc/src
+. smc-env
+export PGUSER=smc
+export PGHOST=/tmp
+export PGDATABASE=smc
+time echo "db=require('./smc-hub/postgres').db();db.connect(cb:->db.backup_tables(tables:'all', path:'/backup/postgres', cb:process.exit, limit:1))" | coffee

@@ -25,18 +25,21 @@ class exports.PostgreSQL extends PostgreSQL
     # table.  For SMC, this tends to be fine, due to our design.
     # The advantage of this is that we can backup huge tables
     # only once a week, and other smaller tables much more frequently.
+
+    # For tables:
+    #    - a list of tables
+    #    - 'all' (the string) -- backs up everything in the SMC schema (not the database!)
+    #    - 'critical' -- backs up only smaller critical tables, which we would desparately
+    #                    need for disaster recovery
     backup_tables: (opts) =>
         opts = defaults opts,
-            tables : undefined  # if not given, backs up all tables; can also be a list of tables
+            tables : required   # list of tables, 'all' or 'critical'
             path   : 'backup'
             limit  : 3          # number of tables to backup in parallel
             bup    : true       # creates/updates a bup archive in backup/.bup,
                                 # so we have snapshots of all past backups!
             cb     : required
-        if opts.tables?
-            tables = opts.tables
-        else
-            tables = (t for t,s of SCHEMA when not s.virtual)
+        tables = @_get_backup_tables(opts.tables)
         dbg = @_dbg("backup_tables()")
         dbg("backing up tables: #{misc.to_json(tables)}")
         async.series([
@@ -90,22 +93,39 @@ class exports.PostgreSQL extends PostgreSQL
             err_on_exit : true
             cb      : opts.cb
 
+    _get_backup_tables: (tables) =>
+        if misc.is_array(tables)
+            return tables
+        all = (t for t,s of SCHEMA when not s.virtual)
+        if tables == 'all'
+            return all
+        else if tables == 'critical'
+            # TODO: critical for backup or not should probably be in the schema itself, not here.
+            v = []
+            non_critical = ['stats','syncstrings','file_use','eval_outputs','blobs','eval_inputs','patches','cursors']
+            for x in all
+                if x.indexOf('log') == -1 and x not in non_critical
+                    v.push(x)
+            return v
+        else
+            return [tables]
+
     # Restore the given tables from the backup in the given directory.
     restore_tables: (opts) =>
         opts = defaults opts,
-            tables : undefined    # if not given, restores all tables from given path
-            path   : 'backup'
+            tables : undefined    # same as for backup_tables, or undefined to use whatever we have in the path
+            path   : '/backup/postgres'
             limit  : 5
             cb     : required
         backed_up_tables = (filename[...-4] for filename in fs.readdirSync(opts.path) when filename[-4..] == '.bak')
-        if opts.tables?
-            tables = opts.tables
-            for table in tables
-                if table not in backed_up_tables
-                    opts.cb("there is no backup of '#{table}'")
-                    return
-        else
+        if not opts.tables?
             tables = backed_up_tables
+        else
+            tables = @_get_backup_tables(opts.tables)
+        for table in tables
+            if table not in backed_up_tables
+                opts.cb("there is no backup of '#{table}'")
+                return
         dbg = @_dbg("restore_tables()")
         dbg("restoring tables: #{misc.to_json(tables)}")
         restore = (table, cb) =>
