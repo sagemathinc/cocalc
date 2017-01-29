@@ -87,6 +87,8 @@ def process(table):
     populate_relational_table.process(table, T.get('replace',False) or not update)
 
 def run(table):
+    if table != 'blobs':
+        raise RuntimeError("DANGER!")
     threading.Thread(target = lambda : process(table)).start()
 
 def usage():
