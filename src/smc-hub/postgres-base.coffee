@@ -25,10 +25,10 @@ required = defaults.required
 read_password_from_disk = ->
     filename = (process.env.SMC_ROOT ? '.') + '/data/secrets/postgres'
     try
-        winston.debug("Loading password from '#{filename}'")
+        #winston.debug("Loading password from '#{filename}'")
         return fs.readFileSync(filename).toString().trim()
     catch
-        winston.debug("NO PASSWORD FILE!")
+        #winston.debug("NO PASSWORD FILE!")
         # no password file
         return
 
