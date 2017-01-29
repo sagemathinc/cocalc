@@ -6,4 +6,4 @@ cd /home/salvus/smc/src
 export PGUSER=smc
 export PGHOST=/tmp
 export PGDATABASE=smc
-time echo "db=require('./smc-hub/postgres').db();db.connect(cb:->db.backup_tables(path:'/backup', cb:process.exit, limit:1))" | coffee
+time echo "db=require('./smc-hub/postgres').db();db.connect(cb:->db.backup_tables(path:'/backup/postgres', cb:process.exit, limit:1))" | coffee
