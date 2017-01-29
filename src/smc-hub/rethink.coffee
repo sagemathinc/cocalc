@@ -5219,7 +5219,7 @@ class RethinkDB
         # needs index! -- db.table('blobs').indexCreate('created').run(done())
         # we do NOT copy over the actual blobs -- they **have** to get uploaded to gcloud before we'll ever
         # see them from postgresql, as we didn't implement the binary format.
-        query = @table('blobs').between(opts.start, misc.minutes_ago(-60), index:'created').pluck('id','expire','created','project_id','last_active','count','size','gcloud','backup')
+        query = @table('blobs').between(opts.start, misc.minutes_ago(-60), index:'created').pluck('id','expire','created','project_id','last_active','count','size','gcloud','backup','compress')
         query.run (err, blobs) =>
             if err
                 opts.cb(err)
