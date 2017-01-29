@@ -648,11 +648,15 @@ class SyncTable extends EventEmitter
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
 
+        # We only trigger an update when one of the columns we care about actually changes.
+
         if @_columns
+            @_watch_columns = misc.copy(@_columns)  # don't include primary key since it can't change.
             if @_primary_key not in @_columns
                 @_columns = @_columns.concat([@_primary_key])  # required
             @_select_columns = @_columns
         else
+            @_watch_columns = [] # means all of them
             @_select_columns = misc.keys(SCHEMA[@_table].fields)
 
         @_select_query = "SELECT #{(quote_field(x) for x in @_select_columns)} FROM #{@_table}"
@@ -676,7 +680,7 @@ class SyncTable extends EventEmitter
         @_db.removeListener('connect', @_reconnect)
         delete @_value
         @_state = 'closed'
-        @_db._stop_listening(@_table, @_listen_columns, [], cb)
+        @_db._stop_listening(@_table, @_listen_columns, @_watch_columns, cb)
 
     connect: (opts) =>
         opts?.cb?() # NO-OP -- only needed for backward compatibility
@@ -708,7 +712,7 @@ class SyncTable extends EventEmitter
         async.series([
             (cb) =>
                 # ensure database client is listening for primary keys changes to our table
-                @_db._listen @_table, @_listen_columns, [], (err, tgname) =>
+                @_db._listen @_table, @_listen_columns, @_watch_columns, (err, tgname) =>
                     @_tgname = tgname
                     @_db.on(@_tgname, @_notification)
                     cb(err)
