@@ -13,3 +13,7 @@ Recently created accounts from gmail.com
 Active projects:
 
     select NOW() - last_edited as when, left(title,35) as title, project_id from projects where last_edited is not null order by last_edited desc limit 100;
+
+Uncaught exceptions that got reported to the DB (so from storage, hubs, etc.):
+
+    select NOW() - time, event, value from central_log where event = 'uncaught_exception' order by time desc limit 10;
