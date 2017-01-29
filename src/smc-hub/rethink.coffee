@@ -200,6 +200,8 @@ class RethinkDB
             opts.cb?(err, @)
         )
 
+    engine: -> 'rethink'
+
     concurrent: () =>
         return @_concurrent_queries
 
@@ -351,6 +353,12 @@ class RethinkDB
                     else
                         run_cbs[full_query_string] = [cb]
 
+                if opts.leave_cursor
+                    delete opts.leave_cursor
+                    leave_cursor = true
+                else
+                    leave_cursor = false
+
                 error = result = undefined
                 f = (cb) ->
                     start = new Date()
@@ -428,7 +436,7 @@ class RethinkDB
                                 error = err
                                 cb()  # done -- will report error back to original query
                             else
-                                if "#{x}" == "[object Cursor]"
+                                if "#{x}" == "[object Cursor]" and not leave_cursor
                                     # It's a cursor, so we convert it to an array, which is more convenient to work with, and is OK
                                     # by default, given the size of our data (typically very small -- all one pickle to client usually).
                                     x.toArray (err, x) ->   # converting to an array gets result as callback
@@ -761,7 +769,7 @@ class RethinkDB
                 @r.dbDrop(@_database).run(opts.cb)
 
     # Deletes all the contents of the tables in the database.  It doesn't
-    # delete indexes or or tables.
+    # delete anything about the schema itself: indexes or tables.
     delete_all: (opts) =>
         if not @_confirm_delete(opts)
             return
@@ -826,7 +834,7 @@ class RethinkDB
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
-            value : required
+            value : required    # object
             cb    : undefined
         value = if typeof(opts.value) == 'object' then misc.map_without_undefined(opts.value) else opts.value
         @table('central_log').insert({event:opts.event, value:value, time:new Date()}).run((err)=>opts.cb?(err))
@@ -1120,7 +1128,7 @@ class RethinkDB
                     email_address = x?.email_address
                     cb(err)
             (cb) =>
-                query.update({first_name: 'Deleted', last_name:'User', email_address_before_delete:email_address}).run(cb)
+                query.update({email_address_before_delete:email_address}).run(cb)
             (cb) =>
                 query.replace(@r.row.without('email_address')).run(cb)
             (cb) =>
@@ -1850,14 +1858,6 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).update(opts.data).run(opts.cb)
 
-    get_project_data: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            columns     : PROJECT_COLUMNS
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
-
     _validate_opts: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'
@@ -1886,6 +1886,20 @@ class RethinkDB
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).update(users:{"#{opts.account_id}":{group:opts.group}}).run(opts.cb)
+
+    set_project_status: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            status     : required
+            cb         : undefined
+        @table('projects').get(opts.project_id).update(status: opts.status).run(opts.cb)
+
+    set_compute_server_status: (opts) =>
+        opts = defaults opts,
+            host   : required
+            status : required
+            cb     : undefined
+        @table('compute_servers').get(opts.host).update(status:@r.literal(opts.status)).run(opts.cb)
 
     remove_collaborator_from_project: (opts) =>
         opts = defaults opts,
@@ -2091,8 +2105,7 @@ class RethinkDB
             else
                 opts.cb(undefined, group in opts.groups)
 
-    # all id's of projects having anything to do with the given account (ignores
-    # hidden projects unless opts.hidden is true).
+    # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -2842,7 +2855,7 @@ class RethinkDB
                         cb('no such blob')
                     else if not x.blob and not x.gcloud
                         cb('blob not available -- this should not be possible')
-                    else if not x.blob and x.force
+                    else if not x.blob and opts.force
                         cb("blob can't be reploaded since it was already deleted")
                     else
                         cb()
@@ -3152,12 +3165,18 @@ class RethinkDB
         opts = defaults opts,
             age_days          : 60    # archive patches of syncstrings that are inactive for at least this long
             map_limit         : 1     # how much parallelism to use
-            limit             : 1000 # do only this many
+            limit             : 1000 # do only this many per get query loop
             repeat_until_done : true
-            delay             : 0
+            delay             : 0    # artifical delay in ms between archiving.
+            total_limit       : 0    # only do this many **total**
+            count             : 0    # used internally for logging
+            start_time        : new Date()   # used internally for loggin
             cb                : undefined
         dbg = @dbg("syncstring_maintenance")
         dbg(opts)
+        if opts.total_limit and opts.total_limit <= opts.count
+            opts.cb?()
+            return
         syncstrings = undefined
         async.series([
             (cb) =>
@@ -3173,7 +3192,8 @@ class RethinkDB
                 i = 0
                 f = (string_id, cb) =>
                     i += 1
-                    console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
+                    opts.count += 1
+                    console.log("\n***** #{opts.count} (#{(new Date() - opts.start_time)/1000} seconds) -- #{i}/#{syncstrings.length}: archiving string #{string_id} ***** \n")
                     @archive_patches
                         string_id : string_id
                         cb        : (err) ->
@@ -5024,6 +5044,205 @@ class RethinkDB
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
     ###
+
+    ###
+    One off database migration code.  Will get deleted.
+    ###
+    update_migrate: (opts) =>
+        opts = defaults opts,
+            hours  : 24
+            tables : ['central_log', 'client_error_log', 'file_access_log', 'project_log', 'blobs', 'syncstrings', 'patches']
+            #tables : ['project_log']
+            cb     : required
+        @_error_thresh = 1000000
+        f = (table, cb) =>
+            @["update_#{table}"](start:misc.hours_ago(opts.hours), cb:cb)
+        async.mapSeries(opts.tables, f, opts.cb)
+
+    update_client_error_log: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/client_error_log/smc/update-client_error_log.json'
+            cb    : required
+        @get_client_error_log
+            start : opts.start
+            end   : misc.minutes_ago(-60)
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+    update_central_log: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/central_log/smc/update-central_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            end   : misc.minutes_ago(-60)
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+    update_project_log: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/project_log/smc/update-project_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            log   : 'project_log'
+            end   : misc.minutes_ago(-60)
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+    update_file_access_log: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/file_access_log/smc/update-file_access_log.json'
+            cb    : required
+        @get_log
+            start : opts.start
+            end   : misc.minutes_ago(-60)
+            log   : 'file_access_log'
+            cb    : (err, log) =>
+                if err
+                    opts.cb(err)
+                else
+                    try
+                        fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                    catch
+                        # ignore
+                    for x in log
+                        x.time = json_time(x.time)
+                    s = '[\n' + (JSON.stringify(x) for x in log).join(',\n') + '\n]\n'
+                    fs.writeFile(opts.path, s, opts.cb)
+
+    update_patches: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/patches/smc/update-patches.json'
+            cb    : required
+        # needs index! -- db.table('patches').indexCreate('time',db.r.row('id')(1)).run(done())
+        query = @table('patches').between(opts.start, misc.minutes_ago(-60), index:'time')
+        # for dev:
+        #query = @table('patches').limit(1000)   # COMMENT this out and replace by above query to do it right... but needs index
+        query.run {leave_cursor:true}, (err, cursor) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+
+                first = true
+                process = (err, x) =>
+                    if err
+                        throw Error(err)
+                    x.id[1] = json_time(x.id[1])
+                    if x.sent?
+                        x.sent = json_time(x.sent)
+                    if x.prev?
+                        x.prev = json_time(x.prev)
+                    if first
+                        s = '[\n'
+                        first = false
+                        flag = 'w'
+                    else
+                        s = ',\n'
+                        flag = 'a'
+                    s += JSON.stringify(x)
+                    fs.writeFileSync(opts.path, s, {flag:flag})
+                try
+                    cursor.each process, () =>
+                        fs.writeFileSync(opts.path, '\n]\n', {flag:'a'})
+                        opts.cb()
+                catch e
+                    opts.cb(e)
+
+    update_syncstrings: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/syncstrings/smc/update-syncstrings.json'
+            cb    : required
+        # needs index! -- db.table('syncstrings').indexCreate('last_active').run(done())
+        query = @table('syncstrings').between(opts.start, misc.minutes_ago(-60), index:'last_active')
+        query.run (err, syncstrings) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+                for x in syncstrings
+                    for k in ['last_active', 'last_file_change', 'last_snapshot']
+                        if x[k]?
+                            x[k] = json_time(x[k])
+                    if x.init?.time?
+                        x.init.time = json_time(x.init.time)
+
+                s = '[\n' + (JSON.stringify(x) for x in syncstrings).join(',\n') + '\n]\n'
+                fs.writeFile(opts.path, s, opts.cb)
+
+    update_blobs: (opts) =>
+        opts = defaults opts,
+            start : required
+            path  : '/migrate/data/blobs/smc/update-blobs.json'
+            cb    : required
+        # needs index! -- db.table('blobs').indexCreate('created').run(done())
+        # we do NOT copy over the actual blobs -- they **have** to get uploaded to gcloud before we'll ever
+        # see them from postgresql, as we didn't implement the binary format.
+        query = @table('blobs').between(opts.start, misc.minutes_ago(-60), index:'created').pluck('id','expire','created','project_id','last_active','count','size','gcloud','backup','compress')
+        query.run (err, blobs) =>
+            if err
+                opts.cb(err)
+            else
+                try
+                    fs.unlinkSync(opts.path.slice(0, opts.path.length-4) + 'csv')
+                catch
+                    # ignore
+                for x in blobs
+                    for k in ['expire', 'created', 'last_active']
+                        if x[k]?
+                            x[k] = json_time(x[k])
+                s = '[\n' + (JSON.stringify(x) for x in blobs).join(',\n') + '\n]\n'
+                fs.writeFile(opts.path, s, opts.cb)
+
+json_time = (x) ->
+    if not x? or x == 0
+        return undefined
+    if typeof(x) == 'string'
+        x = new Date(x)
+    return {"$reql_type$": "TIME", "epoch_time":(x - 0)/1000}
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->

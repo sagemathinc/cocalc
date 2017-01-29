@@ -46,7 +46,7 @@ class Project
         if not @database?
             cb('need database in order to determine owner')
             return
-        @database.get_project_data
+        @database.get_project
             project_id : @project_id
             columns : ['account_id']
             cb      : (err, result) =>
@@ -60,7 +60,7 @@ class Project
         if not @database?
             cb('need database in order to determine owner')
             return
-        @database.get_project_data
+        @database.get_project
             project_id : @project_id
             columns    : rethink.PROJECT_COLUMNS
             cb         : (err, result) =>

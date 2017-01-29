@@ -32,7 +32,7 @@ def get_ports():
     path = join(P, 'ports')
     if not os.path.exists(path):
         os.mkdir(path)
-    ports = {'hub':0, 'rethinkdb':0, 'rethinkdb_cluster':0}
+    ports = {'hub':0}
     for x in ports.keys():
         file = join(path, x)
         if os.path.exists(file):

@@ -95,7 +95,7 @@ apply_patch_sequence = (patches, s) ->
     return s
 
 patch_cmp = (a, b) ->
-    return misc.cmp_array([a.time - 0, a.user], [b.time - 0, b.user])
+    return misc.cmp_array([a.time - 0, a.user_id], [b.time - 0, b.user_id])
 
 time_cmp = (a,b) ->
     return a - b   # sorting Date objects doesn't work perfectly!
@@ -239,7 +239,7 @@ class SortedPatchList extends EventEmitter
                 cur = @_times[t]
                 if cur?
                     # Note: cur.prev and x.prev are Date objects, so must put + before them to convert to numbers and compare.
-                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot and +cur.prev == +x.prev
+                    if underscore.isEqual(cur.patch, x.patch) and cur.user_id == x.user_id and cur.snapshot == x.snapshot and +cur.prev == +x.prev
                         # re-inserting exactly the same thing; nothing at all to do
                         continue
                     else
@@ -406,8 +406,8 @@ class SortedPatchList extends EventEmitter
         return value
 
     # integer index of user who made the edit at given point in time (or undefined)
-    user: (time) =>
-        return @patch(time)?.user
+    user_id: (time) =>
+        return @patch(time)?.user_id
 
     time_sent: (time) =>
         return @patch(time)?.sent
@@ -434,7 +434,7 @@ class SortedPatchList extends EventEmitter
         for x in @_patches
             tm = x.time
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
-            console.log("-----------------------------------------------------\n", i, x.user, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
+            console.log("-----------------------------------------------------\n", i, x.user_id, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
             if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
@@ -546,10 +546,11 @@ class SyncDoc extends EventEmitter
             # Initialize throttled cursors functions
             set_cursor_locs = (locs) =>
                 x =
-                    id   : [@_string_id, @_user_id]
-                    locs : locs
-                    time : @_client.server_time()
-                @_cursors?.set(x,'none')
+                    string_id : @_string_id
+                    user_id   : @_user_id
+                    locs      : locs
+                    time      : @_client.server_time()
+                @_cursors?.set(x, 'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
     # Used for internal debug logging
@@ -665,7 +666,7 @@ class SyncDoc extends EventEmitter
     # account_id of the user who made the edit at
     # the given point in time.
     account_id: (time) =>
-        return @_users[@user(time)]
+        return @_users[@user_id(time)]
 
     # Approximate time when patch with given timestamp was
     # actually sent to the server; returns undefined if time
@@ -676,8 +677,8 @@ class SyncDoc extends EventEmitter
 
     # integer index of user who made the edit at given
     # point in time.
-    user: (time) =>
-        return @_patch_list.user(time)
+    user_id: (time) =>
+        return @_patch_list.user_id(time)
 
     # Indicate active interest in syncstring; only updates time
     # if last_active is at least min_age_m=5 minutes old (so this can be safely
@@ -729,8 +730,7 @@ class SyncDoc extends EventEmitter
     versions: () =>
         v = []
         @_patches_table.get().map (x, id) =>
-            key = x.get('id').toJS()
-            v.push(key[1])
+            v.push(x.get('time'))
         v.sort(time_cmp)
         return v
 
@@ -922,9 +922,10 @@ class SyncDoc extends EventEmitter
 
     _patch_table_query: (cutoff) =>
         query =
-            id       : [@_string_id, cutoff ? 0]
+            string_id: @_string_id
+            time     : if cutoff then {'>=':cutoff} else null
             patch    : null      # compressed format patch as a JSON *string*
-            user     : null      # integer id of user (maps to syncstring table)
+            user_id  : null      # integer id of user (maps to syncstring table)
             snapshot : null      # (optional) a snapshot at this point in time
             sent     : null      # (optional) when patch actually sent, which may be later than when made
             prev     : null      # (optional) timestamp of previous patch sent from this session
@@ -974,9 +975,9 @@ class SyncDoc extends EventEmitter
             query =
                 cursors :
                     string_id : @_string_id
-                    id     : null
-                    locs   : null
-                    time   : null
+                    user_id   : null
+                    locs      : null
+                    time      : null
             @_cursors = @_client.sync_table(query)
             @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
@@ -1071,9 +1072,10 @@ class SyncDoc extends EventEmitter
         if @_closed
             return
         obj =  # version for database
-            id    : [@_string_id, time]
-            patch : JSON.stringify(patch)
-            user  : @_user_id
+            string_id : @_string_id
+            time      : time
+            patch     : JSON.stringify(patch)
+            user_id   : @_user_id
         if @_deleted
             # file was deleted but now change is being made, so undelete it.
             @_undelete()
@@ -1094,7 +1096,7 @@ class SyncDoc extends EventEmitter
         obj = @_my_patches[t]
         if not obj?
             return
-        key = @_patches_table.to_key(obj.id)
+        key = @_patches_table.key(obj)
         if obj.patch != @_patches_table.get(key)?.get('patch')
             #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
             # We fix the collision by finding the nearest time after time that
@@ -1116,8 +1118,6 @@ class SyncDoc extends EventEmitter
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
     # be the time of an existing patch.
-    # If time not given, instead make a periodic snapshot
-    # according to the @_snapshot_interval rule.
     snapshot: (time, force=false) =>
         if not misc.is_date(time)
             throw Error("time must be a date")
@@ -1130,10 +1130,11 @@ class SyncDoc extends EventEmitter
             return
         # save the snapshot itself in the patches table.
         obj =
-            id       : [@_string_id, time]
-            patch    : JSON.stringify(x.patch)
-            snapshot : @_patch_list.value(time, force)
-            user     : x.user
+            string_id : @_string_id
+            time      : time
+            patch     : JSON.stringify(x.patch)
+            snapshot  : @_patch_list.value(time, force)
+            user_id   : x.user_id
         if force
             # CRITICAL: We are sending the patch/snapshot later, but it was valid.
             # It's important to make this clear or _handle_offline will
@@ -1164,11 +1165,10 @@ class SyncDoc extends EventEmitter
     _process_patch: (x, time0, time1, patch) =>
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
-        key  = x.get('id').toJS()
-        time = key[1]
-        user = x.get('user')
-        sent = x.get('sent')
-        prev = x.get('prev')
+        time    = x.get('time')
+        user_id = x.get('user_id')
+        sent    = x.get('sent')
+        prev    = x.get('prev')
         if time0? and time < time0
             return
         if time1? and time > time1
@@ -1177,9 +1177,9 @@ class SyncDoc extends EventEmitter
             patch = JSON.parse(x.get('patch'))
         snapshot = x.get('snapshot')
         obj =
-            time  : time
-            user  : user
-            patch : patch
+            time    : time
+            user_id : user_id
+            patch   : patch
         if sent?
             obj.sent = sent
         if prev?
@@ -1254,14 +1254,13 @@ class SyncDoc extends EventEmitter
             if obj.sent
                 # CRITICAL: ignore anything already processed! (otherwise, infinite loop)
                 continue
-            #console.log(now, obj.id[1], now - obj.id[1], 1000*OFFLINE_THRESH_S)
-            if now - obj.id[1] >= 1000*OFFLINE_THRESH_S
+            if now - obj.time >= 1000*OFFLINE_THRESH_S
                 # patch is "old" -- mark it as likely being sent as a result of being
                 # offline, so clients could potentially discard it.
                 obj.sent = now
                 @_patches_table.set(obj)
-                if not oldest? or obj.id[1] < oldest
-                    oldest = obj.id[1]
+                if not oldest? or obj.time < oldest
+                    oldest = obj.time
         if oldest
             #dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
             for snapshot_time in @_patch_list.snapshot_times()
@@ -1281,9 +1280,9 @@ class SyncDoc extends EventEmitter
         client_id = @_client.client_id()
         # Below " not x.snapshot? or not x.users?" is because the initial touch sets
         # only string_id and last_active, and nothing else.
-        if not x? or not x.last_snapshot? or not x.users?
+        if not x? or not x.users?
             # Brand new document
-            @_last_snapshot = 0
+            @_last_snapshot = undefined
             @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
             @_user_id = 0

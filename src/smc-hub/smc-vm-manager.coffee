@@ -1,4 +1,7 @@
 
+
+# Deprecated -- tons of work, but really Kubernetes is the way to go...
+
 ###########################
 # Command line interface for VM manager
 ###########################
@@ -46,7 +49,7 @@ main = () ->
         (cb) ->
             misc_node.ensure_containing_directory_exists(program.logfile, cb)
         (cb) ->
-            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+ 
+            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
             daemon({max:9999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
     ])
 

@@ -1,5 +1,9 @@
 ###
 
+** Deprecated: THIS WAS tons of work, but really Kubernetes is the way to go... **
+
+---
+
 g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:'db0', pool:1))
 
 This uses the official node.js driver, which is pretty good now, and seems an order

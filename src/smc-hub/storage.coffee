@@ -39,12 +39,9 @@ Low level functions:
 NOTES:
   - save_BUP always saves to GCS as well, so there is no save_GCS.
 ###
+require('coffee-cache')
 
 BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
-DB = ['db0', 'db1', 'db2', 'db3', 'db4', 'db5']  # default database nodes
-
-#if process.env.USER != 'root'
-#    console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
 
 {join}      = require('path')
 fs          = require('fs')
@@ -59,12 +56,21 @@ misc_node   = require('smc-util-node/misc_node')
 misc        = require('smc-util/misc')
 {defaults, required} = misc
 
+postgres = require('./postgres')
+
+process.env['PGHOST'] = 'postgres0'   # just hardcode this since all this storage stuff is going away anyways
+
+
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 exclude = () ->
     return ("--exclude=#{x}" for x in misc.split('.sage/cache .sage/temp .trash .Trash .sagemathcloud .smc .node-gyp .cache .forever .snapshots *.sage-backup'))
+
+get_db = (cb) ->
+    db = postgres.db()
+    db.connect(cb : (err) => cb?(err, db))
 
 # Low level function that save all changed files from a compute VM to a local path.
 # This must be run as root.
@@ -128,13 +134,16 @@ copy_project_from_SNAPSHOT_to_LIVE = (opts) ->
 
 get_storage = (project_id, database, cb) ->
     dbg = (m) -> winston.debug("get_storage(project_id='#{project_id}'): #{m}")
-    database.table('projects').get(project_id).pluck(['storage']).run (err, x) ->
-        if err
-            cb(err)
-        else if not x?
-            cb("no such project")
-        else
-            cb(undefined, x.storage?.host)
+    database.get_project
+        project_id : project_id
+        columns    : ['storage']
+        cb         : (err, x) ->
+            if err
+                cb(err)
+            else if not x?
+                cb("no such project")
+            else
+                cb(undefined, x.storage?.host)
 
 get_host_and_storage = (project_id, database, cb) ->
     dbg = (m) -> winston.debug("get_host_and_storage(project_id='#{project_id}'): #{m}")
@@ -143,35 +152,39 @@ get_host_and_storage = (project_id, database, cb) ->
     async.series([
         (cb) ->
             dbg("determine project location info")
-            database.table('projects').get(project_id).pluck(['storage', 'host']).run (err, x) ->
-                if err
-                    cb(err)
-                else if not x?
-                    cb("no such project")
-                else
-                    host    = x.host?.host
-                    storage = x.storage?.host
-                    if not host
-                        cb("project not currently open on a compute host")
+            database.get_project
+                project_id : project_id
+                columns    : ['storage', 'host']
+                cb         : (err, x) ->
+                    if err
+                        cb(err)
+                    else if not x?
+                        cb("no such project")
                     else
-                        cb()
+                        host    = x.host?.host
+                        storage = x.storage?.host
+                        if not host
+                            cb("project not currently open on a compute host")
+                        else
+                            cb()
         (cb) ->
             if storage?
                 cb()
                 return
             dbg("allocate storage host")
-            database.table('storage_servers').pluck('host').run (err, x) ->
-                if err
-                    cb(err)
-                else if not x? or x.length == 0
-                    cb("no storage servers in storage_server table")
-                else
-                    # TODO: could choose based on free disk space
-                    storage = misc.random_choice((a.host for a in x))
-                    database.set_project_storage
-                        project_id : project_id
-                        host       : storage
-                        cb         : cb
+            database._query
+                query : "SELECT host FROM storage_servers"
+                cb    : postgres.all_results 'host', (err, hosts) ->
+                    if err
+                        cb(err)
+                    else if not hosts? or hosts.length == 0
+                        cb("no storage servers in storage_server table")
+                    else
+                        storage = misc.random_choice(hosts)
+                        database.set_project_storage
+                            project_id : project_id
+                            host       : storage
+                            cb         : cb
     ], (err) ->
         cb(err, {host:host, storage:storage})
     )
@@ -218,7 +231,7 @@ If there are errors, then will get cb({project_id:'error...', ...})
 
 To save(=rsync over) everything modified in the last week:
 
-s = require('smc-hub/storage'); require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1,cb:(err,db)->s.save_SNAPSHOT_age(database:db, age_m:60*24*7, cb:console.log))
+s.save_SNAPSHOT_age(database:db, age_m:60*24*7, cb:console.log)
 
 ###
 exports.save_SNAPSHOT_age = (opts) ->
@@ -599,7 +612,7 @@ Snapshoting projects using bup
 ###
 Must run as root:
 
-db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
+s = require('smc-hub/storage');
 
 # make sure everything not touched in a year has a backup as recorded in the database...
 # (except use limit to only do that many)
@@ -766,7 +779,13 @@ save_BUP = exports.save_BUP = (opts) ->
                 cb         :cb
         (cb) ->
             dbg("recording successful backup in database")
-            opts.database.table('projects').get(opts.project_id).update(last_backup: new Date()).run(cb)
+            opts.database._query
+                query : "UPDATE projects"
+                set   :
+                    last_backup: new Date()
+                where :
+                    'project_id :: UUID = $' : opts.project_id
+                cb    : cb
     ], (err) -> opts.cb(err))
 
 copy_BUP_to_GCS = (opts) ->
@@ -1083,12 +1102,9 @@ exports.update_BUP = () ->
     db = undefined
     async.series([
         (cb) ->
-            require('./rethink').rethinkdb
-                hosts : DB
-                pool  : 1
-                cb    : (err, x) ->
-                    db = x
-                    cb(err)
+            get_db (err, x) ->
+                db = x
+                cb(err)
         (cb) ->
             exports.save_BUP_age
                 database                 : db
@@ -1111,22 +1127,23 @@ exports.assign_storage_to_all_projects = (database, cb) ->
     async.series([
         (cb) ->
             dbg("get projects with no assigned storage")
-            database.table('projects').filter((row)->row.hasFields({storage:true}).not()).pluck('project_id').run (err, v) ->
-                dbg("get #{v?.length} projects")
-                projects = v; cb(err)
-        (cb) ->
-            database.table('storage_servers').pluck('host').run (err, v) ->
-                if err
+            database._query
+                query : "SELECT project_id FROM projects WHERE storage IS NULL"
+                cb    : postgres.all_results 'project_id', (err, v) ->
+                    dbg("get #{v?.length} projects")
+                    projects = v
                     cb(err)
-                else
-                    dbg("got hosts: #{misc.to_json(v)}")
-                    hosts = (x.host for x in v)
-                    cb()
+        (cb) ->
+            database._query
+                query : "SELECT host FROM storage_servers"
+                cb    : postgres.all_results 'host', (err, v) ->
+                    dbg("get #{v?.length} storage_servers")
+                    hosts = v
+                    cb(err)
         (cb) ->
             n = 0
-            f = (project, cb) ->
+            f = (project_id, cb) ->
                 n += 1
-                {project_id} = project
                 host = misc.random_choice(hosts)
                 dbg("#{n}/#{projects.length}: assigning #{project_id} to #{host}")
                 database.get_project_storage  # do a quick check that storage isn't defined -- maybe slightly avoid race condition (we are being lazy)
@@ -1139,6 +1156,7 @@ exports.assign_storage_to_all_projects = (database, cb) ->
                                 project_id : project_id
                                 host       : host
                                 cb         : cb
+
             async.mapLimit(projects, 10, f, cb)
     ], cb)
 
@@ -1188,12 +1206,9 @@ exports.update_SNAPSHOT = () ->
             dbg("create new pid file")
             fs.writeFile(PID_FILE, "#{process.pid}", cb)
         (cb) ->
-            require('smc-hub/rethink').rethinkdb
-                hosts : DB
-                pool  : 1
-                cb    : (err, db) ->
-                    database = db
-                    cb(err)
+            get_db (err, db) ->
+                database = db
+                cb(err)
         (cb) ->
             exports.assign_storage_to_all_projects(database, cb)
         (cb) ->
@@ -1221,11 +1236,9 @@ exports.mount_snapshots_on_all_compute_vms_command_line = ->
     database = undefined
     async.series([
         (cb) ->
-            require('smc-hub/rethink').rethinkdb
-                hosts : DB
-                pool  : 1
-                cb    : (err, db) ->
-                    database = db; cb(err)
+            get_db (err, db) ->
+                database = db
+                cb(err)
         (cb) ->
             exports.mount_snapshots_on_all_compute_vms
                 database : database
@@ -1239,7 +1252,7 @@ exports.mount_snapshots_on_all_compute_vms_command_line = ->
     )
 
 ###
-db = require('smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1); s = require('smc-hub/storage'); 0;
+s = require('smc-hub/storage')
 s.mount_snapshots_on_all_compute_vms(database:db, cb:console.log)
 ###
 exports.mount_snapshots_on_all_compute_vms = (opts) ->
@@ -1335,9 +1348,18 @@ process_update = (tasks, database, project) ->
         dbg("ERROR: action not set -- suspicious -- please investigate")
         return
 
+    if not project.project_id
+        dbg("project.project_id must be a uuid")
+        return
+
     update_db = (cb) ->
-        query = database.table('projects').get(project.project_id)
-        query.update(storage_request:database.r.literal(storage_request)).run(cb)
+        database._query
+            query : "UPDATE projects"
+            where :
+                'project_id :: UUID = $' : project.project_id
+            set   :
+                storage_request : storage_request
+            cb    : cb
 
     opts =
         database   : database
@@ -1432,20 +1454,21 @@ start_server = (cb) ->
                         cb()
         (cb) ->
             dbg("connect to database")
-            require('smc-hub/rethink').rethinkdb
-                hosts : DB
-                pool  : 10
-                cb    : (err, db) ->
-                    database = db
-                    cb(err)
+            get_db (err, db) ->
+                database = db
+                cb(err)
         (cb) ->
             dbg("create synchronized table")
 
-            # Get every project assigned to this host that has done a storage request starting within the last two hours.
+            # Get every project assigned to this host that has done a storage
+            # request starting within the last two hours.
             age   = misc.hours_ago(2)
-            query = database.table('projects').between([host, age], [host, database.r.maxval], index:'storage_request').pluck(FIELDS...)
             database.synctable
-                query : query
+                table   : 'projects'
+                columns : FIELDS
+                where   :
+                    "storage#>>'{host}' = $" : host
+                    "storage_request#>>'{requested}' >= $" : age.toISOString()
                 cb    : (err, synctable) ->
                     if err
                         cb(err)
@@ -1565,23 +1588,21 @@ class Activity
         async.series([
             (cb) =>
                 dbg("connect to database")
-                require('smc-hub/rethink').rethinkdb
-                    hosts : DB
-                    pool  : 10
-                    cb    : (err, database) =>
-                        @_database = database
-                        cb(err)
+                get_db (err, db) =>
+                    @_database = db
+                    cb(err)
             (cb) =>
                 dbg("create synchronized table")
-                # Get every project that has done a storage request recently
+                # TODO: Get every project that has done a storage request recently
                 age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
-                query = database.table('projects').between(age,  database.r.maxval, index:'storage_request_requested')
-                query = query.pluck(FIELDS...)
                 database.synctable
-                    query : query
-                    cb    : (err, synctable) =>
+                    table   : 'projects'
+                    columns : FIELDS
+                    where   :
+                        "storage_request#>>'{requested}' >= $" : age.toISOString()
+                    cb      : (err, synctable) =>
                         if err
                             dbg("fail: #{err}")
                         else
@@ -1671,33 +1692,26 @@ exports.ignored_storage_requests = (opts) ->
     async.series([
         (cb) ->
             dbg("connect to database")
-            require('smc-hub/rethink').rethinkdb
-                hosts : misc.random_choice(DB)
-                pool  : 1
-                cb    : (err, _db) ->
-                    db = _db
-                    cb(err)
+            get_db (err, _db) ->
+                db = _db
+                cb(err)
         (cb) ->
             dbg("doing query")
-            # Projects...
-            q = db.table('projects')
-            # ... that had a storage request recently (in the last age_m minutes)...
-            q = q.between(misc.minutes_ago(opts.age_m), db.r.maxval, index:'storage_request_requested')
-            # the fields we care about are:
-            FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
-            q = q.pluck(FIELDS...)
+            # Projects that had a storage request recently (in the last age_m minutes)...
             # and we only want the ignored requests...
-            # First, get the ones with a request at all
-            q = q.hasFields(storage_request:{requested:true})
             # And the ones that haven't started and haven't finished
-            q = q.filter(db.r.row.hasFields(storage_request:{started:true}).not())
-            q = q.filter(db.r.row.hasFields(storage_request:{finished:true}).not())
+            query = "SELECT project_id,storage_request,storage,host,state FROM projects WHERE "
+            params = [misc.minutes_ago(opts.age_m).toISOString()]
+            query += " storage_request#>>'{requested}' >= $1 AND storage_request#>'{started}' IS NULL AND storage_request#>'{finished}' IS NULL "
             if not opts.all
-                # Only get the ones on *this* host.
-               q = q.filter(storage:{host:os.hostname()})
-            q.run (err, x) ->
-                v = x
-                cb(err)
+                query += " AND storage#>>'{host}=$2 "
+                params.push(os.hostname())
+            db._query
+                query  : query
+                params : params
+                cb     : postgres.all_results (err, x) ->
+                    v = x
+                    cb(err)
     ], (err) ->
         opts.cb(err, v)
     )
@@ -1724,12 +1738,9 @@ exports.save_projects_with_ignored_save_requests = (opts) ->
     async.series([
         (cb) ->
             dbg("connect to database")
-            require('smc-hub/rethink').rethinkdb
-                hosts : DB
-                pool  : 10
-                cb    : (err, _db) ->
-                    db = _db
-                    cb(err)
+            get_db (err, _db) ->
+                db = _db
+                cb(err)
         (cb) ->
             dbg("get projects with ignored save requests")
             exports.ignored_storage_requests
@@ -1772,16 +1783,16 @@ exports.save_projects_with_ignored_save_requests = (opts) ->
 # Command line interface
 ###########################
 
-program     = require('commander')
-
-LOGS = join(process.env.HOME, 'logs')
-program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]', 'store pid in this file', String, "#{LOGS}/storage.pid")
-    .option('--logfile [string]', 'write log to this file', String, "#{LOGS}/storage.log")
-    .option('-e')   # gets passed by coffee -e
-    .parse(process.argv)
+program = require('commander')
 
 main = () ->
+    LOGS = join(process.env.HOME, 'logs')
+    program.usage('[start/stop/restart/status] [options]')
+        .option('--pidfile [string]', 'store pid in this file', String, "#{LOGS}/storage.pid")
+        .option('--logfile [string]', 'write log to this file', String, "#{LOGS}/storage.log")
+        .option('-e')   # gets passed by coffee -e
+        .parse(process.argv)
+
     winston.debug("running as a deamon")
     daemon = require('start-stop-daemon')
     # run as a server/daemon (otherwise, is being imported as a library)
@@ -1790,6 +1801,9 @@ main = () ->
         winston.debug("Uncaught exception: " + err)
         winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
+        get_db (e, db) ->
+            if not e
+                db?.uncaught_exception(err)
 
     async.series([
         (cb) ->
@@ -1802,41 +1816,7 @@ main = () ->
 
 if program._name.split('.')[0] == 'storage'
     main()
-
-
-###
-One off code to change from 'project[n]' to 'storage[n]' in storage table of db.
-###
-###
-# way better than the below is:
-#   (db.table('projects').filter(storage:{host:"projects#{n}"}).update(storage:{host:"storage#{n}"}).run(console.log) for n in [0,1,2,3,4,5])
-exports.one_off_storage_db_update = () =>
-    dbg = (m) -> winston.debug("storage_db_update: #{m}")
-    projects = undefined
-    require('smc-hub/rethink').rethinkdb
-        hosts : DB
-        pool  : 1
-        cb    : (err, db) ->
-            async.series([
-                (cb) ->
-                    dbg("getting all projects")
-                    db.table('projects').pluck('project_id', 'storage').run (err, x) ->
-                        if err
-                            cb(err)
-                        else
-                            projects = (a for a in x when a.host?.slice(0,8) == 'projects')
-                            cb()
-                (cb) ->
-                    dbg("got #{projects.length} projects")
-                    cb()
-                    #f = (project, cb) ->
-                    #    host = project.storage.host
-                    #    host = 'storage' + host.slice(8)
-                    #    db.table('projects').get(project.project_id).update(storage:{host:host}).run(cb)
-                    #async.mapLimit(projects, 10, f, (err) -> cb(err))
-            ], (err) ->
-                dbg("TOTALLY DONE: #{err}")
-            )
-###
+else
+    winston.debug("imported storage as a library -- #{program._name}")
 
 

@@ -311,10 +311,10 @@ exports.to_safe_str = (x) ->
     x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
+#   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 date_parser = (k, v) ->
-    # TODO shouldn't be the length 26?
-    if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+    if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
         return new Date(v)
     else
         return v
@@ -325,6 +325,23 @@ exports.from_json = (x) ->
     catch err
         console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
+
+# Returns modified version of obj with any string
+# that look like ISO dates to actual Date objects.  This mutates
+# obj in place as part of the process.
+exports.fix_json_dates = fix_json_dates = (obj) ->
+    if exports.is_object(obj)
+        for k, v of obj
+            if typeof(v) == 'object'
+                fix_json_dates(v)
+            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
+                obj[k] = new Date(v)
+    else if exports.is_array(obj)
+        for i, x of obj
+            obj[i] = fix_json_dates(x)
+    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj)
+        return new Date(obj)
+    return obj
 
 # converts a Date object to an ISO string in UTC.
 # NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
@@ -472,10 +489,13 @@ exports.deep_copy = (obj) ->
         flags += 'y' if obj.sticky?
         return new RegExp(obj.source, flags)
 
-    newInstance = new obj.constructor()
+    try
+        newInstance = new obj.constructor()
+    catch
+        newInstance = {}
 
-    for key of obj
-        newInstance[key] = exports.deep_copy(obj[key])
+    for key, val of obj
+        newInstance[key] = exports.deep_copy(val)
 
     return newInstance
 
@@ -1331,9 +1351,19 @@ exports.capitalize = (s) ->
         return s.charAt(0).toUpperCase() + s.slice(1)
 
 exports.is_array = is_array = (obj) ->
-    Object.prototype.toString.call(obj) == "[object Array]"
+    return Object.prototype.toString.call(obj) == "[object Array]"
 
-exports.is_date = (obj) -> obj instanceof Date
+exports.is_integer = Number.isInteger
+if not exports.is_integer?
+    exports.is_integer = (n) -> typeof(n)=='number' and (n % 1) == 0
+
+# An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
+# NOT include Date.
+exports.is_object = is_object = (obj) ->
+    return Object.prototype.toString.call(obj) == "[object Object]"
+
+exports.is_date = is_date = (obj) ->
+    return obj instanceof Date
 
 # get a subarray of all values between the two given values inclusive, provided in either order
 exports.get_array_range = (arr, value1, value2) ->
@@ -1522,8 +1552,15 @@ exports.map_without_undefined = map_without_undefined = (map) ->
         if not v?
             continue
         else
-            new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
+            new_map[k] = if is_object(v) then map_without_undefined(v) else v
     return new_map
+
+exports.map_mutate_out_undefined = (map) ->
+    for k, v of map
+        if not v?
+            delete map[k]
+
+
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
@@ -1609,14 +1646,24 @@ exports.history_path = (path) ->
     return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
 
 # This is a convenience function to provide as a callback when working interactively.
-exports.done = () ->
+_done = (n, args...) ->
     start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+    f = (args...) ->
+        if n != 1
+            try
+                args = [JSON.stringify(args, null, n)]
+            catch
+                # do nothing
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args...)
+    if args.length > 0
+        f(args...)
+    else
+        return f
+
+exports.done = (args...) -> _done(0, args...)
+exports.done1 = (args...) -> _done(1, args...)
+exports.done2 = (args...) -> _done(2, args...)
+
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
@@ -1646,7 +1693,6 @@ exports.console_init_filename = (fn) ->
     if x.head == ''
         return x.tail
     return [x.head, x.tail].join("/")
-
 
 exports.has_null_leaf = has_null_leaf = (obj) ->
     for k, v of obj
@@ -1898,3 +1944,29 @@ exports.bind_objects = (scope, arr_objects) ->
                 return bound_func
             else
                 return val
+
+# Remove all whitespace from string s.
+# see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
+exports.remove_whitespace = (s) ->
+    return s.replace(/\s/g,'')
+
+
+# ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
+exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']
+
+exports.op_to_function = (op) ->
+    switch op
+        when '=', '=='
+            return (a,b) -> a == b
+        when '!=', '<>'
+            return (a,b) -> a != b
+        when '<='
+            return (a,b) -> a <= b
+        when '>='
+            return (a,b) -> a >= b
+        when '<'
+            return (a,b) -> a < b
+        when '>'
+            return (a,b) -> a > b
+        else
+            throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")

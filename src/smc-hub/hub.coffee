@@ -1,11 +1,13 @@
 ###
-This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
+This is the SMC Global HUB.  It runs as a daemon, sitting in the
 middle of the action, connected to potentially thousands of clients,
-many Sage sessions, and a RethinkDB database cluster.  There are
-many HUBs running on VM's all over the installation.
+many Sage sessions, and PostgreSQL database.  There are
+many HUBs running.
 
 GPLv3
 ###
+require('coffee-cache')
+
 
 DEBUG = DEBUG2 = false
 
@@ -67,7 +69,6 @@ message = require('smc-util/message')     # salvus message protocol
 client_lib = require('smc-util/client')
 
 sage    = require('./sage')               # sage server
-rethink = require('./rethink')
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('./email')
 
@@ -1539,8 +1540,10 @@ class Client extends EventEmitter
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if result?.action == 'close'
+                    err = 'close'
                 if err
-                    dbg("user_query error: #{misc.to_json(err)}")
+                    dbg("user_query(query='#{to_json(query)}') error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
@@ -3081,21 +3084,43 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
 Connect to database
 ###
 database = undefined
-connect_to_database = (opts) ->
+
+connect_to_database_rethink = (opts) ->
     opts = defaults opts,
         error : 120
         pool  : program.db_pool
         cb    : required
-    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    dbg = (m) -> winston.debug("connect_to_database (rethinkdb): #{m}")
     if database? # already did this
+        dbg("already done")
         opts.cb(); return
-    database = rethink.rethinkdb
+    dbg("connecting...")
+    database = require('./rethink').rethinkdb
         hosts           : program.database_nodes.split(',')
         database        : program.keyspace
         error           : opts.error
         pool            : opts.pool
         concurrent_warn : program.db_concurrent_warn
         cb              : opts.cb
+
+connect_to_database_postgresql = (opts) ->
+    opts = defaults opts,
+        error : undefined   # ignored
+        pool  : program.db_pool
+        cb    : required
+    dbg = (m) -> winston.debug("connect_to_database (postgreSQL): #{m}")
+    if database? # already did this
+        dbg("already done")
+        opts.cb(); return
+    dbg("connecting...")
+    database = require('./postgres').db
+        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database : program.keyspace
+        concurrent_warn : program.db_concurrent_warn
+    database.connect(cb:opts.cb)
+
+connect_to_database = connect_to_database_postgresql
+#connect_to_database = connect_to_database_rethink
 
 # client for compute servers
 compute_server = undefined
@@ -3179,12 +3204,11 @@ init_stripe = (cb) ->
 delete_expired = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database_postgresql(cb:cb)
         (cb) ->
             database.delete_expired
-                count_only        : false
-                repeat_until_done : true
-                cb                : cb
+                count_only : false
+                cb         : cb
     ], cb)
 
 blob_maintenance = (cb) ->
@@ -3505,7 +3529,7 @@ command_line = () ->
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
         .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
-        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, process.env.PGHOST ? 'localhost')
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
         .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
@@ -3519,7 +3543,7 @@ command_line = () ->
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
-        .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+        .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .parse(process.argv)
 
@@ -3534,6 +3558,7 @@ command_line = () ->
             winston.debug("Uncaught exception: " + err)
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
+            database?.uncaught_exception(err)
 
         if program.passwd
             console.log("Resetting password")
