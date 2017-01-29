@@ -1237,7 +1237,7 @@ exports.fake_dev_socket = (cb) ->
 ###########################
 
 if not program._name
-    program._name = 'x'  # so this module is possible to import with latest node version
+    program._name = 'compute'  # so this module is possible to import with latest node version
 
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
