@@ -1704,7 +1704,7 @@ exports.ignored_storage_requests = (opts) ->
             params = [misc.minutes_ago(opts.age_m).toISOString()]
             query += " storage_request#>>'{requested}' >= $1 AND storage_request#>'{started}' IS NULL AND storage_request#>'{finished}' IS NULL "
             if not opts.all
-                query += " AND storage#>>'{host}=$2 "
+                query += " AND storage#>>'{host}'=$2 "
                 params.push(os.hostname())
             db._query
                 query  : query
