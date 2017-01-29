@@ -294,10 +294,10 @@ exports.close_SNAPSHOT = close_SNAPSHOT = (opts) ->
             dbg('check that project is NOT currently opened LIVE')
             opts.database.get_project_host
                 project_id : opts.project_id
-                cb         : (err, x) ->
+                cb         : (err, host) ->
                     if err
                         cb(err)
-                    else if x?.host
+                    else if host
                         cb("project must not be open LIVE")
                     else
                         cb()
@@ -430,7 +430,7 @@ exports.close_LIVE = close_LIVE = (opts) ->
             opts.database.get_project_host
                 project_id : opts.project_id
                 cb         : (err, x) ->
-                    host = x?.host
+                    host = x
                     cb(err)
         (cb) ->
             if not host
@@ -493,11 +493,11 @@ exports.open_LIVE = open_LIVE = (opts) ->
             dbg('make sure project is not already opened somewhere')
             opts.database.get_project_host
                 project_id : opts.project_id
-                cb         : (err, x) ->
+                cb         : (err, host) ->
                     if err
                         cb(err)
                     else
-                        if x?.host
+                        if host
                             cb("project already opened")
                         else
                             cb()
@@ -540,11 +540,11 @@ exports.move_project = move_project = (opts) ->
             dbg('determine current location of project')
             opts.database.get_project_host
                 project_id : opts.project_id
-                cb         : (err, x) ->
+                cb         : (err, host) ->
+                    source = host
                     if err
                         cb(err)
                     else
-                        source = x?.host
                         if not source
                             cb("project not opened, so can't move")
                         else if source == opts.target
