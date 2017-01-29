@@ -220,7 +220,7 @@ def active_courses(days=7):
     print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
     for hosting, projs in sorted(courses.items()):
         print("<h2>{} Hosting</h2>".format(hosting.title()))
-        for p in sorted(projs, key=lambda course: course["created"]):
+        for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
             # pprint(p)
             host = p["host"].get("host", "N/A")
             h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
@@ -541,6 +541,6 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] == "courses":
-            active_courses(days = 30)
+            active_courses(days = 130)
         elif sys.argv[1] == 'rewrite_stats':
             rewrite_stats()

@@ -3033,7 +3033,7 @@ class RethinkDB
     blob_maintenance: (opts) =>
         opts = defaults opts,
             path              : '/backup/blobs'
-            map_limit         : 1
+            map_limit         : 5
             blobs_per_tarball : 10000
             throttle          : 0
             cb                : undefined
@@ -3041,6 +3041,8 @@ class RethinkDB
         dbg()
         async.series([
             (cb) =>
+                # SKIP
+                cb(); return
                 dbg("maintain the patches and syncstrings")
                 @syncstring_maintenance
                     repeat_until_done : true
@@ -3061,8 +3063,8 @@ class RethinkDB
                 dbg("copy_all_blobs_to_gcloud")
                 errors = {}
                 @copy_all_blobs_to_gcloud
-                    limit               : 1000
-                    repeat_until_done_s : 5
+                    limit               : 2000
+                    repeat_until_done_s : 1
                     errors              : errors
                     remove              : true
                     map_limit           : opts.map_limit

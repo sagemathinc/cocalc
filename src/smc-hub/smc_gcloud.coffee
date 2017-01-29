@@ -33,7 +33,11 @@ Rules we care about are:
      stop the VM and recreate and start it as prempt.
 
 ###
+fs = require('fs')
+
+
 winston     = require('winston')
+
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
