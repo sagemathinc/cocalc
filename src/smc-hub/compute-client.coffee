@@ -625,7 +625,7 @@ class ComputeServerClient
                         for k, v of status
                             result[host][k] = v
                         # also, set in the database (don't wait on this or require success)
-                        database.set_compute_server_status
+                        @database.set_compute_server_status
                             host   : host
                             status : resp.status
                     cb()
