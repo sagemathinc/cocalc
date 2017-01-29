@@ -3105,7 +3105,7 @@ connect_to_database_rethink = (opts) ->
 
 connect_to_database_postgresql = (opts) ->
     opts = defaults opts,
-        error : 120
+        error : undefined   # ignored
         pool  : program.db_pool
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database (postgreSQL): #{m}")
@@ -3204,12 +3204,11 @@ init_stripe = (cb) ->
 delete_expired = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database_postgresql(cb:cb)
         (cb) ->
             database.delete_expired
-                count_only        : false
-                repeat_until_done : true
-                cb                : cb
+                count_only : false
+                cb         : cb
     ], cb)
 
 blob_maintenance = (cb) ->
@@ -3530,7 +3529,7 @@ command_line = () ->
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
         .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
-        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, process.env.PGHOST ? 'localhost')
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
         .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')

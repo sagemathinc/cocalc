@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Ensure that the environment is setup; in particular, SMC_DB_HOSTS is defined
+# Ensure that the environment is setup; in particular, PGHOST
 . $HOME/.smc-conf
 
 # This is what might go in crontab:
@@ -8,4 +8,4 @@
 
 cd $HOME/smc/src
 . smc-env
-hub --delete_expired --database_nodes=$SMC_DB_HOSTS
+hub --delete_expired
