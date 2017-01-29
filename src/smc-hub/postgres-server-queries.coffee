@@ -1545,6 +1545,17 @@ class exports.PostgreSQL extends PostgreSQL
             cb         : required
         @_get_project_column('storage', opts.project_id, opts.cb)
 
+    update_project_storage_save: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "UPDATE projects"
+            jsonb_merge :
+                storage : {saved:new Date()}
+            where : 'project_id :: UUID = $' : opts.project_id
+            cb    : opts.cb
+
     set_project_storage_request: (opts) =>
         opts = defaults opts,
             project_id : required

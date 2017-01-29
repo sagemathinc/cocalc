@@ -1236,6 +1236,9 @@ exports.fake_dev_socket = (cb) ->
 # Command line interface
 ###########################
 
+if not program._name
+    program._name = 'x'  # so this module is possible to import with latest node version
+
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
     .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")

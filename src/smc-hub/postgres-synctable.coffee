@@ -10,6 +10,7 @@ EventEmitter = require('events')
 
 immutable    = require('immutable')
 async        = require('async')
+underscore   = require('underscore')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -93,7 +94,7 @@ class exports.PostgreSQL extends PostgreSQL
         )
 
     _notification: (mesg) =>
-        @_dbg('notification')(misc.to_json(mesg))
+        #@_dbg('notification')(misc.to_json(mesg))  # this is way too verbose...
         @emit(mesg.channel, JSON.parse(mesg.payload))
 
     _clear_listening_state: =>
@@ -121,9 +122,10 @@ class exports.PostgreSQL extends PostgreSQL
             where    : undefined
             limit    : undefined
             order_by : undefined
+            where_function : undefined # if given; a function of the *primary* key that returns true if and only if it matches the changefeed
             idle_timeout_s : undefined   # TODO: currently ignored
             cb       : required
-        new SyncTable(@, opts.table, opts.columns, opts.where, opts.limit, opts.order_by, opts.cb)
+        new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
         return
 
     changefeed: (opts) =>
@@ -633,7 +635,7 @@ class Changes extends EventEmitter
             return true
 
 class SyncTable extends EventEmitter
-    constructor: (@_db, @_table, @_columns, @_where, @_limit, @_order_by, cb) ->
+    constructor: (@_db, @_table, @_columns, @_where, @_where_function, @_limit, @_order_by, cb) ->
         t = SCHEMA[@_table]
         if not t?
             @_state = 'error'
@@ -648,14 +650,20 @@ class SyncTable extends EventEmitter
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
 
+        # We only trigger an update when one of the columns we care about actually changes.
+
         if @_columns
+            @_watch_columns = misc.copy(@_columns)  # don't include primary key since it can't change.
             if @_primary_key not in @_columns
                 @_columns = @_columns.concat([@_primary_key])  # required
             @_select_columns = @_columns
         else
+            @_watch_columns = [] # means all of them
             @_select_columns = misc.keys(SCHEMA[@_table].fields)
 
         @_select_query = "SELECT #{(quote_field(x) for x in @_select_columns)} FROM #{@_table}"
+
+        @_update = underscore.throttle(@_update, 500)
 
         @_init (err) => cb(err, @)
 
@@ -676,7 +684,7 @@ class SyncTable extends EventEmitter
         @_db.removeListener('connect', @_reconnect)
         delete @_value
         @_state = 'closed'
-        @_db._stop_listening(@_table, @_listen_columns, [], cb)
+        @_db._stop_listening(@_table, @_listen_columns, @_watch_columns, cb)
 
     connect: (opts) =>
         opts?.cb?() # NO-OP -- only needed for backward compatibility
@@ -690,7 +698,11 @@ class SyncTable extends EventEmitter
                 @_value = @_value.delete(k)
                 process.nextTick(=>@emit('change', k))
         else
-            @_changed[new_val[@_primary_key]] = true
+            k = new_val[@_primary_key]
+            if @_where_function? and not @_where_function(k)
+                # doesn't match -- nothing to do -- ignore
+                return
+            @_changed[k] = true
             @_update()
 
     _init: (cb) =>
@@ -708,7 +720,7 @@ class SyncTable extends EventEmitter
         async.series([
             (cb) =>
                 # ensure database client is listening for primary keys changes to our table
-                @_db._listen @_table, @_listen_columns, [], (err, tgname) =>
+                @_db._listen @_table, @_listen_columns, @_watch_columns, (err, tgname) =>
                     @_tgname = tgname
                     @_db.on(@_tgname, @_notification)
                     cb(err)

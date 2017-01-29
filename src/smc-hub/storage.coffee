@@ -58,6 +58,9 @@ misc        = require('smc-util/misc')
 
 postgres = require('./postgres')
 
+process.env['PGHOST'] = 'postgres0'   # just hardcode this since all this storage stuff is going away anyways
+
+
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -1464,8 +1467,8 @@ start_server = (cb) ->
                 table   : 'projects'
                 columns : FIELDS
                 where   :
-                    "host = $" : host
-                    "storage_request#>'{requested}' >= $" : age
+                    "storage#>>'{host}' = $" : host
+                    "storage_request#>>'{requested}' >= $" : age.toISOString()
                 cb    : (err, synctable) ->
                     if err
                         cb(err)
@@ -1598,7 +1601,7 @@ class Activity
                     table   : 'projects'
                     columns : FIELDS
                     where   :
-                        "storage_request#>'{requested}' >= $" : age
+                        "storage_request#>>'{requested}' >= $" : age.toISOString()
                     cb      : (err, synctable) =>
                         if err
                             dbg("fail: #{err}")
@@ -1697,7 +1700,7 @@ exports.ignored_storage_requests = (opts) ->
             # Projects that had a storage request recently (in the last age_m minutes)...
             # and we only want the ignored requests...
             # And the ones that haven't started and haven't finished
-            query = "SELECT project_id storage_request storage host state FROM projects WHERE "
+            query = "SELECT project_id,storage_request,storage,host,state FROM projects WHERE "
             params = [misc.minutes_ago(opts.age_m)]
             query += " storage_request#>'{requested}' >= $1 AND storage_request#>'{started}' IS NULL AND storage_request#>'{finished}' IS NULL "
             if not opts.all
@@ -1813,6 +1816,7 @@ main = () ->
 
 if program._name.split('.')[0] == 'storage'
     main()
-
+else
+    winston.debug("imported storage as a library -- #{program._name}")
 
 

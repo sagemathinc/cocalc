@@ -25,8 +25,10 @@ required = defaults.required
 read_password_from_disk = ->
     filename = (process.env.SMC_ROOT ? '.') + '/data/secrets/postgres'
     try
+        winston.debug("Loading password from '#{filename}'")
         return fs.readFileSync(filename).toString().trim()
     catch
+        winston.debug("NO PASSWORD FILE!")
         # no password file
         return
 
@@ -44,6 +46,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                  # keep this very short; it's just meant to reduce impact of a bunch of
                                  # identical permission checks in a single user query.
             cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
+            concurrent_warn : 500
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
@@ -54,6 +57,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         else
             @_host = opts.host
             @_port = 5432
+        @_concurrent_warn = opts.concurrent_warn
         @_user = opts.user
         @_database = opts.database
         @_concurrent_queries = 0
@@ -332,7 +336,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 values = [values]  # just one
 
             if values.length > 0
-                opts.query += " (#{fields.join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
+                opts.query += " (#{(quote_field(field) for field in fields).join(',')}) VALUES " + (" (#{value.join(',')}) " for value in values).join(',')
 
         if opts.set?
             v = []
