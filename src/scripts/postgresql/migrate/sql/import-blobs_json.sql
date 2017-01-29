@@ -20,6 +20,6 @@ INSERT INTO blobs
     (a#>>'{size}')::INTEGER,
     (a#>>'{gcloud}'),
     (a#>>'{backup}')::BOOL,
-    (a#>>'{compress}'):VARCHAR
+    (a#>>'{compress}')::VARCHAR
   FROM blobs_json WHERE CHAR_LENGTH(a#>>'{id}') = 36 AND (a#>>'{gcloud}') IS NOT NULL
 ) ON CONFLICT(id) DO UPDATE SET blob=EXCLUDED.blob, expire=EXCLUDED.expire, created=EXCLUDED.created, project_id=EXCLUDED.project_id, last_active=EXCLUDED.last_active, count=EXCLUDED.count, size=EXCLUDED.size, gcloud=EXCLUDED.gcloud, backup=EXCLUDED.backup, compress=EXCLUDED.compress;
