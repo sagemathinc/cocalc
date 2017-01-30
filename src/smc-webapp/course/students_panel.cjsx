@@ -321,6 +321,53 @@ exports.StudentsPanel = rclass ({name}) ->
 
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
+    render_student_table_header: ->
+        <Row>
+            <Col md=3>
+                <a href=''
+                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('first_name')}>
+                    First Name
+                    <Space/>
+                    <Icon style={marginRight:'10px'}
+                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
+                </a>
+                <a href=''
+                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('last_name')}>
+                    Last Name
+                    <Space/>
+                    <Icon style={marginRight:'10px'}
+                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
+                </a>
+            </Col>
+            <Col md=2>
+                <a href=''
+                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('email')}>
+                    Student Email
+                    <Space/>
+                    <Icon style={marginRight:'10px'}
+                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
+                </a>
+            </Col>
+            <Col md=4 style={paddingTop:'10px'}>
+                <a href=''
+                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('last_active')}>
+                    Last Active
+                    <Space/>
+                    <Icon style={marginRight:'10px'}
+                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
+                </a>
+            </Col>
+            <Col md=3 style={paddingTop:'10px'}>
+                <a href=''
+                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('hosting')}>
+                    Hosting Type
+                    <Space/>
+                    <Icon style={marginRight:'10px'}
+                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
+                </a>
+            </Col>
+        </Row>
+
     render_students: (students) ->
         for x,i in students
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
@@ -348,6 +395,7 @@ exports.StudentsPanel = rclass ({name}) ->
     render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
+            {@render_student_table_header()}
             {@render_students(students)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
