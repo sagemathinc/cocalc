@@ -1174,7 +1174,7 @@ class SyncDoc extends EventEmitter
         if time1? and time > time1
             return
         if not patch?
-            patch = JSON.parse(x.get('patch'))
+            patch = JSON.parse(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
             time    : time
