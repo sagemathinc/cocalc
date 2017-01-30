@@ -469,7 +469,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             if k.slice(k.length-3) == 'ids'
                 for w in v
                     if not misc.is_valid_uuid_string(w)
-                        opts.cb?("invalid uuid #{w} in #{k} -- #{to_json(v)}")
+                        opts.cb?("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
                         return false
             if k == 'group' and v not in misc.PROJECT_GROUPS
                 opts.cb?("unknown project group '#{v}'"); return false
