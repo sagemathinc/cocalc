@@ -924,7 +924,7 @@ class SyncDoc extends EventEmitter
         # avoid potential roundoff errors and >= vs > for timestamps, which are iffy.
         query =
             string_id: @_string_id
-            time     : if cutoff then {'>=':new Date(cutoff - 30000)} else null
+            time     : if cutoff then {'>=':cutoff} else null
             patch    : null      # compressed format patch as a JSON *string*
             user_id  : null      # integer id of user (maps to syncstring table)
             snapshot : null      # (optional) a snapshot at this point in time
@@ -1192,9 +1192,7 @@ class SyncDoc extends EventEmitter
     # return all patches with time such that time0 <= time <= time1;
     # if time0 undefined then sets equal to time of last_snapshot; if time1 undefined treated as +oo
     _get_patches: (time0, time1) =>
-        if not time0?
-            if @_last_snapshot?
-                time0 = new Date(@_last_snapshot - 30000)  # avoid potential rounding errors
+        time0 ?= @_last_snapshot
         m = @_patches_table.get()  # immutable.js map with keys the string that is the JSON version of the primary key [string_id, timestamp, user_number].
         v = []
         m.map (x, id) =>
