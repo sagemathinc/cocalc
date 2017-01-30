@@ -287,9 +287,9 @@ class SortedPatchList extends EventEmitter
     ###
     value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
-        # If the time is specified, verify that it is valid.
+        # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
         if time? and not misc.is_date(time)
-            throw Error("time must be a date")
+            time = new Date(time)
         if without_times?
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
@@ -1550,8 +1550,18 @@ class SyncDoc extends EventEmitter
     # The project sets the state to saving, does the save to disk, then sets
     # the state to done.
     _save_to_disk: (cb) =>
-        if not @has_unsaved_changes()
-            # no unsaved changes, so don't save -- CRITICAL: this optimization is assumed by autosave, etc.
+        if @_client.is_project()
+            # check if on disk version is same as in memory, in which case no save is needed.
+            hash = misc.hash_string(@get())
+            if hash == @hash_of_saved_version()
+                # No actual save to disk needed; still we better record this fact in table in case it
+                # isn't already recorded
+                @_set_save(state:'done', error:false, hash:hash)
+                cb?()
+                return
+        else if not @has_unsaved_changes()
+            # Browser client that has no unsaved changes, so don't need to save --
+            # CRITICAL: this optimization is assumed by autosave, etc.
             cb?()
             return
         path = @get_path()

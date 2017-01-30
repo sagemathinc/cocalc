@@ -20,11 +20,11 @@ Uncaught exceptions that got reported to the DB (so from storage, hubs, etc.):
 
 Problems people are having right now:
 
-    smc=# select NOW() - time, error from client_error_log order by time desc limit 100;
+    select NOW() - time, error from client_error_log order by time desc limit 100;
 
 The syncstring (hence project_id, etc.) for a file with a given path somewhere... (you'll see this in the problems).  This can be kind of slow since there is no index.
 
-    smc=# select * from syncstrings where path='2017-01-29-135641.sagews';
+    select * from syncstrings where path='2017-01-29-135641.sagews';
 
 or for really common paths:
 
@@ -37,4 +37,8 @@ Find active sage worksheets:
 Active syncstrings:
 
     select string_id, project_id, left(path,50) as path, NOW()-last_active from syncstrings where last_active is not null order by last_active desc limit 20;
+
+Active syncstrings in a particular project:
+
+    select string_id, left(path,50) as path, NOW()-last_active as age from syncstrings where project_id='0bdb2cf7-fd5b-473f-9bfc-801f09efe8a3' and  last_active is not null order by last_active desc limit 20;
 
