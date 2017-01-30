@@ -417,6 +417,10 @@ init_redux = (course_filename, redux, course_project_id) ->
                                     set   : {account_id: x.account_id}
                                     where : {table: 'students', student_id: v[x.email_address]}
 
+        set_active_student_sort: (column_name) =>
+            is_descending = not get_store().getIn(['active_student_sort', 'is_descending'])
+            @setState(active_student_sort : {column_name, is_descending})
+
         # Student projects
 
         # Create a single student project.

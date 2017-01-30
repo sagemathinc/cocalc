@@ -38,6 +38,7 @@ exports.StudentsPanel = rclass ({name}) ->
     reduxProps :
         "#{name}":
             expanded_students : rtypes.immutable.Set
+            active_student_sort : rtypes.object
 
     propTypes :
         name        : rtypes.string.isRequired
@@ -47,6 +48,11 @@ exports.StudentsPanel = rclass ({name}) ->
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
+
+    getDefaultProps: ->
+        column_name = "email"
+        is_descending = false
+        return active_student_sort : {column_name, is_descending}
 
     getInitialState: ->
         err              : undefined
@@ -245,26 +251,54 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_error()}
         </div>
 
+    sort_on_string_field: (field) ->
+        (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
+
+    sort_on_numerical_field: (field) ->
+        (a,b) -> misc.cmp(a[field], b[field])
+
+    pick_sorter: (sort=@props.active_student_sort) ->
+        switch sort.column_name
+            when "email" then @sort_on_string_field("email_address")
+            when "first_name" then @sort_on_string_field("first_name")
+            when "last_name" then @sort_on_string_field("last_name")
+            when "last_active" then @sort_on_numerical_field("last_active")
+
     compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
+        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's SMC account ID
+        # email_address  : "4@student.com"                        # Email the instructor signed the student up with.
+        # first_name     : "Rachel"                               # Student's first name they use for SMC
+        # last_name      : "Florence"                             # Student's last name they use for SMC
+        # project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
+        # student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
+        # last_active    : 2357025
+        # create_project : True
+        # deleted        : False
+        # note           : "Is younger sister of Abby Florence (TA)"
+        # sort           : "florence rachel"
+
         v = immutable_to_list(@props.students, 'student_id')
-        # fill in names, for use in sorting and searching (TODO: caching)
+        # Fill in values
+        # TODO: Caching
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                if user?
-                    x.first_name = user.get('first_name')
-                    x.last_name  = user.get('last_name')
-                else
-                    x.first_name = 'Please create the student project'
-                    x.last_name = ''
-                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
-            else if x.email_address?
-                x.sort = x.email_address.toLowerCase()
+                x.first_name = user?.get('first_name') ? ''
+                x.last_name  = user?.get('last_name') ? ''
+                if x.project_id?
+                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id).getTime()
 
-        v.sort (a,b) ->
-            return misc.cmp(a.sort, b.sort)
+            x.first_name  ?= ""
+            x.last_name   ?= ""
+            x.last_active ?= 0
+            x.email_address ?= ""
+
+        v.sort @pick_sorter()
+
+        if @props.active_student_sort.is_descending
+            v.reverse()
 
         # Deleted students
         w = (x for x in v when x.deleted)
