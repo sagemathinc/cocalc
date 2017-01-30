@@ -921,6 +921,8 @@ class SyncDoc extends EventEmitter
         )
 
     _patch_table_query: (cutoff) =>
+        if cutoff
+            cutoff = new Date(cutoff - 30000)  # avoid potential roundoff errors and >= vs > for timestamps, which are iffy.
         query =
             string_id: @_string_id
             time     : if cutoff then {'>=':cutoff} else null
