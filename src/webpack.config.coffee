@@ -212,7 +212,7 @@ while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
 # this is the main index.html file, which should be served without any caching
-jade2html = new HtmlWebpackPlugin
+pug2html = new HtmlWebpackPlugin
                         date             : BUILD_DATE
                         title            : TITLE
                         BASE_URL         : base_url_html
@@ -221,7 +221,7 @@ jade2html = new HtmlWebpackPlugin
                         filename         : 'index.html'
                         chunksSortMode   : smcChunkSorter
                         hash             : PRODMODE
-                        template         : path.join(INPUT, 'index.jade')
+                        template         : path.join(INPUT, 'index.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
 
@@ -351,7 +351,7 @@ plugins = [
     #provideGlobals,
     setNODE_ENV,
     banner,
-    jade2html,
+    pug2html,
     #commonsChunkPlugin,
     #extractCSS,
     #copyWebpackPlugin
@@ -459,7 +459,7 @@ module.exports =
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
             # { test: /\.css$/,    loader: 'style!css' },
             { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
-            { test: /\.jade$/, loader: 'jade' },
+            { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
     resolve:
