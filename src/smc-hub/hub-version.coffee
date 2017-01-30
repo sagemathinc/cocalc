@@ -88,7 +88,6 @@ class Version extends EventEmitter
         ver                = require_reload('smc-util/smc-version')
         get_smc_webapp_version (err, webapp_version) ->
             ver.webapp_version = webapp_version
-            console.log 'ver=', ver
             cb(err, sanity_check(ver))
 
     set_smc_version: (smc_version) =>
