@@ -24,6 +24,12 @@
 
 """
 Administration and Launch control of salvus components
+
+Use it like so
+
+import admin; reload(admin); a = admin.Services('dev/smc/conf/cloud.sagemath.com')
+a.monitor.go(10,3)
+
 """
 
 ####################
@@ -1289,7 +1295,7 @@ class Monitor(object):
 
     def database(self):
         ans = []
-        c = 'pidof rethinkdb'
+        c = 'pidof postgres'
         for k, v in self._hosts('database', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'database'}
             if v.get('exit_status',1) != 0 :

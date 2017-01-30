@@ -13,6 +13,7 @@ schema.table_name =
         ...
     indexes :  # description of the indexes, mapping from index name to args that get passed to rethinkdb comand.
         index_name : [list of args that define this index]
+    pg_indexes : [array of column names]  # also some more complicated ways to define indexes; see the examples.
     user_query :  # queries that are directly exposed to the client via a friendly "fill in what result looks like" query language
         get :     # describes get query for reading data from this table
             all :  # this gets run first on the table before
@@ -87,6 +88,8 @@ schema.account_creation_actions =
     desc : 'Actions to carry out when accounts are created, triggered by the email address of the user.'
     primary_key : 'id'
     fields :
+        id :
+            type : 'uuid'
         action        :
             type : 'map'
             desc : 'Describes the action to carry out when an account is created with the given email_address.'
@@ -99,6 +102,7 @@ schema.account_creation_actions =
     indexes :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
         expire        : []  # only used by delete_expired
+    pg_indexes : ['email_address']
 
 schema.accounts =
     desc : 'All user accounts.'
@@ -110,9 +114,28 @@ schema.accounts =
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
-        email_address   :
+        created_by :
             type : 'string'
+            pg_type : 'inet'
+            desc : 'IP address that created the account.'
+        creation_actions_done :
+            type : 'boolean'
+            desc : 'Set to true after all creation actions (e.g., add to projects) associated to this account are succesfully completed.'
+        password_hash :
+            type : 'string'
+            pg_type : 'VARCHAR(173)'
+            desc : 'hash of the password'
+        deleted :
+            type : 'boolean'
+            desc : "True if the account has been deleted."
+        email_address :
+            type : 'string'
+            pg_type : "VARCHAR(254)"  # see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
+            unique : true  # only one record in database can have this email address (if given)
+        email_address_before_delete :
+            type : 'string'
+            desc : 'The email address of the user before they deleted their account.'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -124,21 +147,26 @@ schema.accounts =
             desc : 'Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?'
         first_name :
             type : 'string'
+            pg_type : "VARCHAR(254)"  # some limit (actually around 3000) is required for indexing
             desc : 'The first name of this user.'
         last_name :
             type : 'string'
+            pg_type : "VARCHAR(254)"
             desc : 'The last name of this user.'
+        banned :
+            type : 'boolean'
+            desc : 'Whether or not this user is banned.'
         terminal :
             type : 'map'
             desc : 'Settings for the terminal, e.g., font_size, etc. (see get query)'
         autosave :
-            type : 'number'
+            type : 'integer'
             desc : 'File autosave interval in seconds'
         evaluate_key :
             type : 'string'
             desc : 'Key used to evaluate code in Sage worksheet.'
         font_size :
-            type : 'number'
+            type : 'integer'
             desc : 'Default font-size for the editor, jupyter, etc. (px)'
         last_active :
             type : 'timestamp'
@@ -154,14 +182,22 @@ schema.accounts =
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
         groups :
             type : 'array'
+            pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
         created       : [] # to compute stats efficiently
         email_address : []
+    pg_indexes : [
+        '(lower(first_name) text_pattern_ops)',
+        '(lower(last_name)  text_pattern_ops)',
+        'created_by',
+        'created',
+        ]
     user_query :
         get :
+            pg_where : ['account_id = $::UUID':'account_id']
             all :
                 cmd  : 'getAll'
                 args : ['account_id']
@@ -227,20 +263,24 @@ schema.accounts =
                 evaluate_key    : true
                 font_size       : true
                 profile         : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                # Hook to truncate some text fields to at most 254 characters, to avoid
+                # further trouble down the line.
+                for field in ['first_name', 'last_name', 'email_address']
+                    if obj[field]?
+                        obj[field] = obj[field].slice(0,254)
+                cb()
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
     primary_key : 'id'
     fields :
         id     :
-            type : 'string'
+            type : 'uuid'
             desc : 'The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.'
         blob   :
             type : 'Buffer'
             desc : 'The actual blob content'
-        ttl    :
-            type : 'number'
-            desc : 'Number of seconds that the blob will live or 0 to make it never expire.'
         expire :
             type : 'timestamp'
             desc : 'When to expire this blob (when delete_expired is called on the database).'
@@ -312,27 +352,38 @@ schema.central_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields :
-        id    : true
-        event : true
-        value : true
-        time  : true
+        id    :
+            type : 'uuid'
+        event :
+            type : 'string'
+        value :
+            type : 'map'
+        time  :
+            type : 'timestamp'
     indexes:
         time  : []
         event : []
         user_log : ["[that.r.row('value')('account_id'), that.r.row('event'), that.r.row('time')]"]
+    pg_indexes : ['time', 'event']
 
 schema.client_error_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
-        id         : true
-        event      : true
-        error      : true
-        account_id : true
-        time       : true
+        id         :
+            type : 'uuid'
+        event      :
+            type : 'string'
+        error      :
+            type : 'string'
+        account_id :
+            type : 'uuid'
+        time       :
+            type : 'timestamp'
     indexes:
         time : []
         event : []
+    pg_indexes : ['time', 'event']
 
 schema.collaborators =
     primary_key : 'account_id'
@@ -340,6 +391,8 @@ schema.collaborators =
     virtual     : 'accounts'
     user_query:
         get :
+            pg_where : ["account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)": 'account_id']
+            pg_changefeed : 'collaborators'
             all :
                 method : 'getAll'
                 args   : ['collaborators']
@@ -353,45 +406,77 @@ schema.collaborators =
 schema.compute_servers =
     primary_key : 'host'
     fields :
-        host         : true
-        dc           : true
-        port         : true
-        secret       : true
-        experimental : true
-        member_host  : true
-        status       : true   # map {stuff:?,...,timestamp:?}
+        host         :
+            type : 'string'
+            pg_type : 'VARCHAR(63)'
+        dc           :
+            type : 'string'
+        port         :
+            type : 'integer'
+        secret       :
+            type : 'string'
+        experimental :
+            type : 'boolean'
+        member_host  :
+            type : 'boolean'
+        status       :
+            type : 'map'
+            desc : 'something like {stuff:?,...,timestamp:?}'
 
 schema.file_access_log =
     primary_key : 'id'
     durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
-        id         : true
-        project_id : true
-        account_id : true
-        filename   : true
-        time       : true
+        id         :
+            type : 'uuid'
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        filename   :
+            type : 'string'
+        time       :
+            type : 'timestamp'
     indexes:
         project_id : []
         time       : []
+    pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
+# TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
+# the id field, use project_id, path as a compound primary key, and maybe put users in
+# another table with a relation.  In RethinkDB this file_use table is notoriously slow,
+# and -- with indexes, etc., -- it should be super fast.
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
-        id          : true
-        project_id  : true
-        path        : true
-        users       : true
-        last_edited : true
+        id          :
+            type : 'string'
+            pg_type : 'CHAR(40)'
+        project_id  :
+            type : 'uuid'
+        path        :
+            type : 'string'
+        users       :
+            type : 'map'
+            desc : '{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}'
+        last_edited :
+            type : 'timestamp'
+
     indexes:
         project_id                    : []
         last_edited                   : []
         'project_id-path'             : ["[that.r.row('project_id'), that.r.row('path')]"]
         'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
         'project_id-last_edited'      : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
+
+    pg_indexes: ['project_id', 'last_edited']
+
     user_query:
         get :
+            pg_where : ['projects', 'last_edited IS NOT NULL']
+            pg_changefeed: 'projects'
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
@@ -429,38 +514,66 @@ schema.hub_servers =
     primary_key : 'host'
     durability : 'soft' # loss of some log data not serious, since ephemeral and expires quickly anyways
     fields:
-        expire : true
+        host :
+            type : 'string'
+            pg_type : 'VARCHAR(63)'
+        port :
+            type : 'integer'
+        clients :
+            type : 'integer'
+        expire :
+            type : 'timestamp'
     indexes:
         expire : []
 
 schema.instances =
     primary_key: 'name'
     fields:
-        name                  : true
-        gce                   : true
-        gce_sha1              : true
-        requested_preemptible : true  # true or false
-        requested_status      : true  # 'RUNNING', 'TERMINATED'
-        action                : true  # {action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}
+        name                  :
+            type : 'string'
+        gce                   :
+            type : 'map'
+        gce_sha1              :
+            type : 'string'
+        requested_preemptible :
+            type : 'boolean'
+        requested_status      :
+            type : 'string'
+            desc : "One of 'RUNNING', 'TERMINATED'"
+        action                :
+            type : 'map'
+            desc : "{action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}"
 
 schema.instance_actions_log =
     primary_key: 'id'
     fields:
-        id        : true
-        name      : true  # hostname of vm
-        action    : true  # same as finished action object for instances above
+        id        :
+            type : 'uuid'
+        name      :
+            type : 'string'
+            desc : 'hostname of vm'
+            pg_type : 'VARCHAR(63)'
+        action    :
+            type : 'map'
+            desc : 'same as finished action object for instances above'
 
 schema.passport_settings =
     primary_key:'strategy'
     fields:
-        strategy : true
-        conf     : true
+        strategy :
+            type : 'string'
+        conf     :
+            type : 'map'
 
 schema.password_reset =
     primary_key: 'id'
     fields:
-        email_address : true
-        expire        : true
+        id :
+            type : 'uuid'
+        email_address :
+            type : 'string'
+        expire        :
+            type : 'timestamp'
     indexes:
         expire : []  # only used by delete_expired
 
@@ -468,34 +581,57 @@ schema.password_reset_attempts =
     primary_key: 'id'
     durability : 'soft' # loss not serious, since used only for analytics and preventing attacks
     fields:
-        email_address : true
-        ip_address    : true
-        time          : true
+        id :
+            type : 'uuid'
+        email_address :
+            type : 'string'
+        ip_address    :
+            type    : 'string'
+            pg_type : 'inet'
+        time          :
+            type : 'timestamp'
     indexes:
         email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
         ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
         time          : []
 
+    pg_indexes: ['time']
+
 schema.project_log =
     primary_key: 'id'
     durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
-
     fields :
-        id          : true  # which
-        project_id  : true  # where
-        time        : true  # when
-        account_id  : true  # who
-        event       : true  # what
+        id          :
+            type : 'uuid'
+            desc : 'which'
+        project_id  :
+            type : 'uuid'
+            desc : 'where'
+        time        :
+            type : 'timestamp'
+            desc : 'when'
+        account_id  :
+            type : 'uuid'
+            desc : 'who'
+        event       :
+            type : 'map'
+            desc : 'what'
 
     indexes:
         project_id        : []
         'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
+        time              : []   # entirely for migrating to postgres!
+
+    pg_indexes : ['project_id', 'time']
 
     user_query:
         get :
+            pg_where     : 'projects'
+            pg_changefeed: 'projects'
             all:
-                cmd   : 'getAll'
-                args  : ['project_id', index:'project_id']
+                cmd     : 'getAll'
+                args    : ['project_id', index:'project_id']
+                options : [{order_by : '-time'}, {limit : 400}]
             fields :
                 id          : null
                 project_id  : null
@@ -504,6 +640,7 @@ schema.project_log =
                 event       : null
         set :
             fields :
+                id         : (obj) -> obj.id ? misc.uuid()
                 project_id : 'project_write'
                 account_id : 'account_id'
                 time       : true
@@ -531,7 +668,7 @@ schema.projects =
             type : 'map'
             desc : "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}."
         deleted     :
-            type : 'bool'
+            type : 'boolean'
             desc : 'Whether or not this project is deleted.'
         host        :
             type : 'map'
@@ -560,9 +697,6 @@ schema.projects =
         storage :
             type : 'map'
             desc : "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}."
-        storage_history :
-            type : 'array'
-            desc : 'Array of maps {host:?, assigned:?} of *previous* servers; add an entry to this array each time storage location changes.'
         last_backup :
             type : 'timestamp'
             desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
@@ -573,25 +707,25 @@ schema.projects =
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
         run :
-            type : 'bool'
+            type : 'boolean'
             desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
         storage_server :
-            type : 'number'
+            type : 'integer'
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
-            type : 'bool'
+            type : 'boolean'
             desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
-            type : 'number'
+            type : 'integer'
             desc : 'Size in megabytes of the project disk.'
         resources :
             type : 'map'
             desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
         preemptible :
-            type : 'bool'
+            type : 'boolean'
             desc : 'If true, allow to run on preemptible nodes.'
         idle_timeout :
-            type : 'number'
+            type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
 
     indexes :
@@ -606,8 +740,16 @@ schema.projects =
         storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
         # see code below for some additional indexes
 
+    pg_indexes : [
+        'last_edited',
+        'USING GIN (users)'               # so get_collaborator_ids is fast
+        'USING GIN (host jsonb_path_ops)' # so get_projects_on_compute_server is fast
+    ]
+
     user_query:
         get :
+            pg_where     : 'projects'
+            pg_changefeed: 'projects'
             all :
                 cmd  : 'getAll'
                 args : ['account_id', index:'users']
@@ -645,6 +787,7 @@ schema.projects =
 
     project_query:
         get :
+            pg_where : ["project_id = $::UUID" : 'project_id']
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -684,6 +827,7 @@ schema.projects_owner =
 #    smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:project_id, invite_requests:invite_requests}}})  // set it
 #    smc.redux.getStore('projects').get_project(project_id).invite_requests                 // see requests for this project
 #
+# CURRENTLY NOT USED.
 schema.project_invite_requests =
     virtual    : 'projects'
     primary_key: 'project_id'
@@ -716,7 +860,9 @@ schema.projects_admin =
     fields      : schema.projects.fields
     user_query:
         get :
-            admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
+            admin  : true   # only admins can do get queries on this table
+                            # (without this, users who have read access could read)
+            pg_where : ['project_id = $::UUID':'project_id']
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -729,27 +875,38 @@ schema.public_projects =
     virtual   : 'projects'
     user_query :
         get :
+            pg_where : ['project_id = $::UUID':'project_id-public']
             all :
                 cmd : 'getAll'
                 args : ['project_id-public']
             fields :
-                project_id : true
-                title      : true
-
+                project_id  : true
+                title       : true
+                description : true
 
 schema.public_paths =
-    primary_key: 'id'
-    anonymous : true   # allow user *read* access, even if not signed in
+    primary_key : 'id'
+    anonymous   : true   # allow user *read* access, even if not signed in
     fields:
-        id          : true
-        project_id  : true
-        path        : true
-        description : true
-        disabled    : true   # if true then disabled
+        id          :
+            type : 'string'
+            pg_type : 'CHAR(40)'
+            desc : 'sha1 hash derived from project_id and path'
+        project_id  :
+            type : 'uuid'
+        path        :
+            type : 'string'
+        description :
+            type : 'string'
+        disabled    :
+            type : 'boolean'
+            desc : 'if true then disabled'
     indexes:
         project_id : []
+    pg_indexes : ['project_id']
     user_query:
         get :
+            pg_where : ["project_id = $::UUID": 'project_id']
             all :
                 cmd : 'getAll'
                 args : ['project_id', index:'project_id']
@@ -775,20 +932,28 @@ schema.remember_me =
     primary_key : 'hash'
     durability  : 'soft' # dropping this would just require a user to login again
     fields :
-        hash       : true
-        value      : true
-        account_id : true
-        expire     : true
+        hash       :
+            type : 'string'
+            pg_type : 'CHAR(127)'
+        value      :
+            type : 'map'
+        account_id :
+            type : 'uuid'
+        expire     :
+            type : 'timestamp'
     indexes :
         expire     : []
         account_id : []
+    pg_indexes : ['account_id']
 
 schema.server_settings =
     primary_key : 'name'
     anonymous   : false
     fields :
-        name  : true
-        value : true
+        name  :
+            type : 'string'
+        value :
+            type : 'string'
     user_query:
         # NOTE: can *set* but cannot get!
         set:
@@ -831,8 +996,9 @@ schema.site_settings =
     virtual   : 'server_settings'
     anonymous : false
     user_query:
-        # NOTE: can set and get certain fields.
+        # NOTE: can set and get only fields in site_settings_fields, but not any others.
         get:
+            pg_where: ['name = ANY($)': site_settings_fields]
             all :
                 cmd  : 'getAll'
                 args : site_settings_fields
@@ -844,34 +1010,47 @@ schema.site_settings =
             admin : true
             fields:
                 name  : (obj, db) ->
-                    if obj.name in site_settings_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
+                    if obj.name in site_settings_fields
+                        return obj.name
+                    throw Error("setting name='#{obj.name}' not allowed")
                 value : null
 
 schema.stats =
-    primary_key: 'id'
+    primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous : true   # allow user access, even if not signed in
+    anonymous   : true     # allow user read access, even if not signed in
     fields:
-        id                  : true
-        time                : true
-        accounts            : true
-        accounts_created    : true
-        projects            : true
-        projects_created    : true
-        projects_edited     : true
-        active_projects     : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_hour_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_day_projects   : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_week_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
-        last_month_projects : true # deprecated → projects_edited[RECENT_TIMES-key]
-        hub_servers         : true
+        id                  :
+            type : 'uuid'
+        time                :
+            type : 'timestamp'
+            pg_check : 'NOT NULL'
+        accounts            :
+            type : 'integer'
+            pg_check : 'NOT NULL CHECK (accounts >= 0)'
+        accounts_created    :
+            type : 'map'
+        projects            :
+            type : 'integer'
+            pg_check : 'NOT NULL CHECK (projects >= 0)'
+        projects_created    :
+            type : 'map'
+        projects_edited     :
+            type : 'map'
+        hub_servers         :
+            type : 'array'
+            pg_type : 'JSONB[]'
     indexes:
         time : []
+    pg_indexes : ['time']
     user_query:
         get:
+            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
+            pg_changefeed : 'one-hour'
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
+                options : [{'order_by':'-time'}]
             fields :
                 id                  : null
                 time                : null
@@ -880,23 +1059,22 @@ schema.stats =
                 projects            : 0
                 projects_created    : null
                 projects_edited     : null
-                active_projects     : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_hour_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_day_projects   : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_week_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
-                last_month_projects : 0 # deprecated → projects_edited[RECENT_TIMES-key]
                 hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'
     fields :
-        host : true
+        host :
+            type    : 'string'
+            desc    : 'hostname of the storage server'
+            pg_type : 'VARCHAR(63)'
 
 schema.system_notifications =
     primary_key : 'id'
+    anonymous   : true     # allow users read access, even if not signed in
     fields :
         id :
-            type : 'id'
+            type : 'uuid'
             desc : 'primary key'
         time :
             type : 'timestamp'
@@ -906,14 +1084,17 @@ schema.system_notifications =
             desc : 'the text of the message'
         priority:
             type : 'string'
+            pg_type : 'VARCHAR(6)'
             desc : 'one of "low", "medium", or "high"'
         done:
-            type : 'bool'
+            type : 'boolean'
             desc : 'if true, then this notification is no longer relevant'
     indexes:
         time : []
     user_query:
         get:
+            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
+            pg_changefeed : 'one-hour'
             all :
                 cmd  : 'between'
                 args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
@@ -921,7 +1102,7 @@ schema.system_notifications =
                 id       : null
                 time     : null
                 text     : ''
-                priority : 0
+                priority : 'low'
                 done     : false
         set:
             admin : true
@@ -951,6 +1132,26 @@ class ClientDB
         cb()
     _user_set_query_project_change_before: (obj, old_val, new_val, cb) =>
         cb()
+
+    primary_keys: (table) =>
+        @_primary_keys_cache ?= {}
+        if @_primary_keys_cache[table]?
+            return @_primary_keys_cache[table]
+        t = schema[table]
+        if t.virtual?
+            t = schema[t.virtual]
+        v = t?.primary_key
+        if not v?
+            throw Error("primary key for table '#{table}' must be explicitly specified in schema")
+        if typeof(v) == 'string'
+            return @_primary_keys_cache[table] = [v]
+        else if misc.is_array(v)
+            if v.length == 0
+                throw Error("at least one primary key must specified")
+            return @_primary_keys_cache[table] = v
+        else
+            throw Error("primary key must be a string or array of strings")
+
 
 exports.client_db = new ClientDB()
 

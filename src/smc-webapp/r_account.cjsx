@@ -46,10 +46,11 @@ TextSetting = rclass
     displayName : 'Account-TextSetting'
 
     propTypes :
-        label    : rtypes.string.isRequired
-        value    : rtypes.string
-        onChange : rtypes.func.isRequired
-        onBlur   : rtypes.func
+        label     : rtypes.string.isRequired
+        value     : rtypes.string
+        onChange  : rtypes.func.isRequired
+        onBlur    : rtypes.func
+        maxLength : rtypes.number
 
     getValue: ->
         ReactDOM.findDOMNode(@refs.input).value
@@ -63,6 +64,7 @@ TextSetting = rclass
                     value    = {@props.value}
                     onChange = {@props.onChange}
                     onBlur   = {@props.onBlur}
+                    maxLength= {@props.maxLength}
                 />
             </FormGroup>
         </LabeledRow>
@@ -135,6 +137,7 @@ EmailAddressSetting = rclass
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
+                    maxLength   = 254
                 />
             </FormGroup>
             Current password
@@ -453,11 +456,12 @@ AccountSettings = rclass
     render: ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
-                label    = 'First name'
-                value    = {@props.first_name}
-                ref      = 'first_name'
-                onChange = {(e)=>@handle_change(e, 'first_name')}
-                onBlur   = {(e)=>@save_change(e, 'first_name')}
+                label     = 'First name'
+                value     = {@props.first_name}
+                ref       = 'first_name'
+                onChange  = {(e)=>@handle_change(e, 'first_name')}
+                onBlur    = {(e)=>@save_change(e, 'first_name')}
+                maxLength = 254
                 />
             <TextSetting
                 label    = 'Last name'
@@ -465,15 +469,18 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
+                maxLength = 254
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
-                redux      = {@props.redux}
-                ref        = 'email_address'
+                redux         = {@props.redux}
+                ref           = 'email_address'
+                maxLength     = 254
                 />
             <PasswordSetting
                 email_address = {@props.email_address}
                 ref   = 'password'
+                maxLength = 64
                 />
             <Row style={marginTop: '1ex'}>
                 <Col xs=12>

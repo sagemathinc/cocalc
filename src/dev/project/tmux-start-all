@@ -6,4 +6,4 @@ cd $SALVUS_ROOT/dev/project
 
 # Start the three services running in a new tmux session called "smc": hub, datatabase, and webpack
 
-tmux new-session -s smc -d './start_rethinkdb.py' \; split-window -d './start_hub.py' \; split-window -d './start_webpack.py' \; split-window -d './info.py' \; attach
+tmux new-session -s smc -d './start_postgres.py' \; split-window -d './start_hub.py' \; split-window -d './start_webpack.py' \; split-window -d './info.py' \; attach

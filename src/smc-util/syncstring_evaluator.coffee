@@ -16,14 +16,16 @@ class exports.Evaluator
     constructor: (@string, cb) ->
         query =
             eval_inputs :
-                id    : [@string._string_id, misc.server_seconds_ago(30)]
-                input : null
+                string_id : @string._string_id
+                time      : {'>=': misc.server_seconds_ago(30)}
+                input     : null
         @_inputs = @string._client.sync_table(query, undefined, 500)
 
         query =
             eval_outputs :
-                id    : [@string._string_id, misc.server_seconds_ago(30)]
-                output : null
+                string_id : @string._string_id
+                time      : {'>=': misc.server_seconds_ago(30)}
+                output    : null
         @_outputs = @string._client.sync_table(query, undefined, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
@@ -59,8 +61,10 @@ class exports.Evaluator
         @_last_time = time
 
         @_inputs.set
-            id    : [@string._string_id, time, 0]
-            input : misc.copy_without(opts, 'cb')
+            string_id : @string._string_id
+            time      : time
+            user_id   : 0
+            input     : misc.copy_without(opts, 'cb')
         if opts.cb?
             # Listen for output until we receive a message with mesg.done true.
             messages = {}
@@ -151,7 +155,7 @@ class exports.Evaluator
             dbg("closed")
             return
         t = misc.from_json(key)
-        id = [t[0], t[1], 0]
+        id = [string_id, time, number] = [t[0], t[1], 0]
         if not @_outputs.get(JSON.stringify(id))?
             dbg("no outputs with key #{misc.to_json(id)}")
             x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
@@ -167,12 +171,12 @@ class exports.Evaluator
                             return
                         #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
                         hook?(output)
-                        @_outputs.set({id:id, output:output})
-                        id[2] += 1
+                        @_outputs.set({string_id:string_id, time:time, number:number, output:output})
+                        number += 1
                 else
-                    @_outputs.set({id:id, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
+                    @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
             else
-                @_outputs.set({id:id, output:misc.to_json({error:"must specify program and input", done:true})})
+                @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"must specify program and input", done:true})})
 
 
     # Runs only in the project

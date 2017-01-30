@@ -202,6 +202,29 @@ num_recent_disconnects = (minutes=10) ->
 
 reconnection_warning = null
 
+# heartbeats are used to detect standby's.
+# The reason to record more than one is to take rapid re-fireing of the time after resume into account.
+heartbeats = []
+heartbeat_N = 3
+heartbeat_interval_min = 1
+heartbeat_interval_ms  = heartbeat_interval_min * 60 * 1000
+record_heartbeat = ->
+    heartbeats.push(+new Date())
+    heartbeats = heartbeats[-heartbeat_N..]
+setInterval(record_heartbeat, heartbeat_interval_ms)
+# heuristic to detect recent wakeup from standby: second last heartbeat older than (N+1)x the interval
+recent_wakeup_from_standby = ->
+    (heartbeats.length == heartbeat_N) and (+misc.minutes_ago((heartbeat_N+1) * heartbeat_interval_min) > heartbeats[0])
+
+# exporting this test. maybe somewhere else useful, too...
+exports.recent_wakeup_from_standby = recent_wakeup_from_standby
+
+if DEBUG
+    window.smc ?= {}
+    window.smc.init_app =
+        recent_wakeup_from_standby : recent_wakeup_from_standby
+        num_recent_disconnects     : num_recent_disconnects
+
 salvus_client.on "ping", (ping_time) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
@@ -231,7 +254,8 @@ salvus_client.on "connecting", () ->
         recent_disconnects = []
         reconnection_warning = +new Date()
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
-        alert_message(msg)
+        if not recent_wakeup_from_standby()
+            alert_message(msg)
         salvus_client._fix_connection(true)
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)

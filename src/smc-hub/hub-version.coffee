@@ -61,7 +61,7 @@ sanity_check = (ver) ->
     ver.min_project_version ?= 0
     ver.webapp_version      ?= 0
     # the browser can only update to the latest available code
-    if ver.webapp_version < ver.min_browser_version
+    if ver.webapp_version > 0 and ver.webapp_version < ver.min_browser_version
         ver.min_browser_version = ver.webapp_version
     # The min version shouldn't be bigger than the actual version
     # (which is the newest the client can update to).

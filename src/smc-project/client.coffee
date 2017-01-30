@@ -357,7 +357,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             query   : required      # a query (see schema.coffee)
             changes : undefined     # whether or not to create a changefeed
-            options : undefined     # options to the query, e.g., [{limit:5}, {heartbeat:2}] )
+            options : undefined     # options to the query, e.g., [{limit:5}] )
             timeout : 30            # how long to wait for initial result
             cb      : required
         if opts.options? and not misc.is_array(opts.options)

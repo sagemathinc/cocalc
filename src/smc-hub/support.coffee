@@ -74,7 +74,7 @@ class exports.Support
 
         ], (err, zendesk_client) =>
             if err
-                dbg("error initializing zendesk -- #{to_json(err)}")
+                dbg("error initializing zendesk -- #{misc.to_json(err)}")
             else
                 dbg("successfully initialized zendesk")
                 @_zd = zendesk_client

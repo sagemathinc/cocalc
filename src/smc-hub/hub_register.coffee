@@ -1,5 +1,8 @@
 ###
 Hub Registration (recording number of clients)
+
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 winston = require('winston')
@@ -37,7 +40,6 @@ register_hub = (cb) ->
                 winston.debug("Error registering with database - #{err}")
             else
                 database_is_working = true
-                winston.debug("Successfully registered with database.")
             cb?(err)
 
 exports.database_is_working = ->

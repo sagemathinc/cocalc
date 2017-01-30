@@ -434,7 +434,7 @@ exports.execute_code = execute_code = (opts) ->
             if not opts.bash
                 c()
                 return
-            if opts.timeout? and opts.ulimit_timeout
+            if opts.timeout and opts.ulimit_timeout
                 # This ensures that everything involved with this
                 # command really does die no matter what; it's
                 # better than killing from outside, since it gets
@@ -543,7 +543,7 @@ exports.execute_code = execute_code = (opts) ->
                             callback_done = true
                             c()
 
-            if opts.timeout?
+            if opts.timeout
                 f = () ->
                     if r.exitCode == null
                         if opts.verbose

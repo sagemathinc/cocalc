@@ -8,7 +8,7 @@ Scripts for doing development of SMC inside of an SMC project.
 
 Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
 
-- `./start_rethinkdb.py`
+- `./start_postgres.py`
 
 - `./start_hub.py`
 
@@ -43,33 +43,54 @@ Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./star
 
 ## Connecting directly to the compute client from command line
 
-Determine the port of rethinkdb:
+Set the environment variable, e.g.,
 
-    \$ cd ~/smc/src
-    \$ cat dev/project$ more ports/rethinkdb
-    51974
+    \$ . $HOME/smc/src/dev/project/postgres-env
 
-Then use it (from `~/smc/src`):
+From the directory `~/smc/src` you can do:
 
     \$ coffee
-    coffee> require('smc-hub/compute-client').compute_server(db_hosts:['localhost:51974'], dev:true, cb:(e,s)->console.log(e);global.s=s)
-    coffee> s.[tab
+    coffee> require './c'; db()
+
+Then use the db object's methods.  After doing the above (or starting the hub once), then the `smc` database will be created, and you can do
+
+    \$ psql smc
+
+Add this line to your ~/.bashrc to set the environment automatically on login:
+
+    . $HOME/smc/src/dev/project/postgres-env
 
 ## Creating an admin user
 
-Add this to your ~/.bashrc, where you get the port as above:
+You can get the account id's by doing:
 
-    cd ~/smc/src; source smc-env
-    export SMC_DB_HOSTS=localhost:`cat ~/smc/src/dev/project/ports/rethinkdb`
+    ~/smc/src/dev/project$ psql smc
+    psql (10devel)
+    Type "help" for help.
 
-You can get your account id by typing `./info.py` in `dev/project` and logging in to your own SMC server, then typing `smc.client.account_id` in the JavaScript console.  You might see something like "86b29017-644e-481d-aac2-c14ea52b930c" as output.  Then, to make your user and admin, do this from the root of your install:
+    smc=# select account_id, email_address, groups from accounts;
+                  account_id              |  email_address   | groups
+    --------------------------------------+------------------+--------
+     c286277f-e856-4a30-a2c7-a2791a9bec79 | wstein@gmail.com |
+    (1 row)
+
+
+Then, to make your user into an admin, do this from the root of your install:
 
     ~/smc/src$ coffee
     coffee> require 'c'; db()
-    coffee> db.table('accounts').get('86b29017-644e-481d-aac2-c14ea52b930c').update(groups:['admin']).run(done())
+    coffee> db.make_user_admin(account_id:'c286277f-e856-4a30-a2c7-a2791a9bec79', cb:done())
 
-or to make ALL current users admins, just do
+Now refresh your browser, and in account settings some new admin configuration options will appear in the lower right.  Also, you can open any project (though some things may look messed up).
 
-    coffee> db.table('accounts').update(groups:['admin']).run(done())
+You can also confirm that you're user is now an admin:
 
-Now refresh your browser, and in account settings some new admin configuration options will appear in the lower right.  Also, you can open any project (though some things will look messed up).
+    ~/smc/src/dev/project$ psql smc
+    psql (10devel)
+    Type "help" for help.
+
+    smc=# select account_id, email_address, groups from accounts;
+                  account_id              |  email_address   | groups
+    --------------------------------------+------------------+---------
+     c286277f-e856-4a30-a2c7-a2791a9bec79 | wstein@gmail.com | {admin}
+

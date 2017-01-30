@@ -61,3 +61,5 @@ exports.save_blob = (opts) ->
             else
                 dbg("successfully stored blob")
             opts.cb(err, ttl)
+
+            

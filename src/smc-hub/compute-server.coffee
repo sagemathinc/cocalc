@@ -19,12 +19,13 @@
 #
 ###############################################################################
 
-#################################################################
-#
-# compute-server -- a node.js server that provides a TCP server
-# that is used by the hubs to organize projects.
-#
-#################################################################
+require('coffee-cache')
+
+###
+
+compute-server -- runs on the compute nodes; is also imported as a module
+
+###
 
 CONF = '/projects/conf'
 SQLITE_FILE = undefined
@@ -1235,6 +1236,11 @@ exports.fake_dev_socket = (cb) ->
 ###########################
 # Command line interface
 ###########################
+
+try
+    program.parse(process.argv)  # so that program._name gets set if being run as a script
+catch e
+    program._name = 'xxx'  # so this module is possible to import with latest node version, yet program.parse works below.
 
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")

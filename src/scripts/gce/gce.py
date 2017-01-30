@@ -248,7 +248,7 @@ class GCE(object):
             raise Exception("Errors %s"%errors)
 
     def compute_nodes(self, zone='us-central1-c'):
-        # names of the compute nodes in the given zone, with the zone postfix and compue prefix removed.
+        # names of the compute nodes in the given zone, with the zone postfix and compute prefix removed.
         n = len("compute")
         def f(name):
             return name[n:name.rfind('-')]

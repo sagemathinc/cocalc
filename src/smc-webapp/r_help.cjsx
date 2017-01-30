@@ -57,32 +57,27 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
-            active_projects     : rtypes.number # deprecated
-            last_hour_projects  : rtypes.number # deprecated
-            last_day_projects   : rtypes.number # deprecated
-            last_week_projects  : rtypes.number # deprecated
-            last_month_projects : rtypes.number # deprecated
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps: ->
        loading : true
 
-    number_of_clients: ->
+    number_of_active_users: ->
         if @props.hub_servers.length == 0
             0
         else
-            (x['clients'] for x in @props.hub_servers).reduce((s,t) -> s+t)
+            (x.clients for x in @props.hub_servers).reduce((s,t) -> s+t)
 
-    render_signed_in_stats: ->
+    render_active_users_stats: ->
         if @props.loading
             <li style={li_style}> Live server stats <Loading /> </li>
         else
-            n = @number_of_clients()
+            n = @number_of_active_users()
             <ProgressBar style={marginBottom:0} now={Math.max(n / 6 , 45 / 8) } label={"#{n} active users"} />
 
     render_active_projects_stats: ->
-        n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
+        n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats: ->
@@ -119,7 +114,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
                 {@render_when_updated()}
             </h3>
             <ul>
-                {@render_signed_in_stats()}
+                {@render_active_users_stats()}
                 {# @render_active_projects_stats()}
                 {@render_recent_usage_stats()}
                 {@render_historical_metrics()}
