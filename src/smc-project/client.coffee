@@ -19,7 +19,7 @@ as a result.
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
 # not active for this long (should be at least 5 minutes).
-SYNCSTRING_MAX_AGE_M = 7
+SYNCSTRING_MAX_AGE_M = 15
 #SYNCSTRING_MAX_AGE_M = .4 # TESTING
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
