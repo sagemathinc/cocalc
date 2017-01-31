@@ -202,7 +202,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
+        error   : rtypes.oneOfType([rtypes.string,rtypes.func,rtypes.object]).isRequired
         title   : rtypes.string
         style   : rtypes.object
         bsStyle : rtypes.string
@@ -222,6 +222,8 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             style = error_text_style
         if typeof(@props.error) == 'string'
             error = @props.error
+        else if typeof(@props.error) == 'function'
+            error = @props.error()
         else
             error = misc.to_json(@props.error)
         bsStyle = @props.bsStyle ? 'danger'
