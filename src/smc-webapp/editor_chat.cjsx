@@ -260,9 +260,15 @@ exports.init_redux = (path, redux, project_id) ->
                 if not syncdb.valid_data
                     # This should never happen, but obviously it can -- just open the file and randomly edit with vim!
                     # If there were any corrupted chats, append them as a new chat at the bottom, then delete from syncdb.
+                    ###
+                    # DISABLING THIS -- it leads to feedback loops of death.
                     corrupted = (x.corrupt for x in syncdb.select() when x.corrupt?)
                     actions.send_chat("Corrupted chat: " + corrupted.join('\n\n'))
                     syncdb.delete_with_field(field:'corrupt')
+                    ###
+                    console.warn("'#{path}' contains some illegable chats -- you may need to use TimeTravel")
+                    # See https://github.com/sagemathinc/smc/issues/944 for our plan regarding making corruption impossible.
+                    # Basically, we will switch to a restricted patch format. 
 
                 actions.init_from_syncdb()
                 syncdb.on('change', actions._syncdb_change)
