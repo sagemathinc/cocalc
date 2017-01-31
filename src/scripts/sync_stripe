@@ -8,4 +8,4 @@
 
 cd $HOME/smc/src
 . smc-env
-hub --stripe_sync --database_nodes=$SMC_DB_HOSTS
+hub --stripe_sync --database_nodes=$PGHOST
