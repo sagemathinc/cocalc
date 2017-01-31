@@ -1357,6 +1357,9 @@ exports.is_integer = Number.isInteger
 if not exports.is_integer?
     exports.is_integer = (n) -> typeof(n)=='number' and (n % 1) == 0
 
+exports.is_string = (obj) ->
+    return typeof(obj) == 'string'
+
 # An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
 # NOT include Date.
 exports.is_object = is_object = (obj) ->
@@ -1779,8 +1782,10 @@ exports.path_to_tab = (name) ->
     "editor-#{name}"
 
 # assumes a valid editor tab name...
+# If invalid or undefined, returns undefined
 exports.tab_to_path = (name) ->
-    name.substring(7)
+    if name? and name.substring(0, 7) == "editor-"
+        name.substring(7)
 
 # suggest a new filename when duplicating it
 # 1. strip extension, split at '_' or '-' if it exists

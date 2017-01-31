@@ -335,6 +335,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                     return
                 else
                     for cm in @source_editor.codemirrors()
+                        if not cm
+                            return
                         cm.spellcheck_highlight(words)
 
     has_unsaved_changes: () =>

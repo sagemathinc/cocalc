@@ -515,8 +515,8 @@ class exports.PostgreSQL extends PostgreSQL
                 # easy case -- there are no jsonb merge fields; just do an upsert.
                 @_user_query_set_upsert(r, cb)
                 return
-            # HARD CASE -- there are json_fields... so we doing an insert
-            # if the object isn't already in the databse, and an update
+            # HARD CASE -- there are json_fields... so we are doing an insert
+            # if the object isn't already in the database, and an update
             # if it is.  This is ugly because I don't know how to do both
             # a JSON merge as an upsert.
             cnt = undefined  # will equal number of records having the primary key (so 0 or 1)

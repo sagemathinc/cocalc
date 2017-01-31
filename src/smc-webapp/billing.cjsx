@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -37,6 +37,8 @@ load_stripe = (cb) ->
         cb()
     else
         $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+
+last_subscription_attempt = null
 
 actions = store = undefined
 # Create the billing actions
@@ -135,7 +137,14 @@ class BillingActions extends Actions
         @_action('cancel_subscription', 'Cancel a subscription', {subscription_id : id, cb : cb})
 
     create_subscription: (plan='standard') =>
-        @_action('create_subscription', 'Create a subscription', plan : plan)
+        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
+        lsa = last_subscription_attempt
+        if lsa? and lsa > misc.server_minutes_ago(1)
+            @setState(action:'', error: 'Too many subscription attempts in the last minute. Please check if you are already subscribed!')
+        else
+            @setState(error: '')
+            @_action('create_subscription', 'Create a subscription', plan : plan)
+            last_subscription_attempt = misc.server_time()
 
     # Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action, and is used
     # only when deleting an account.  We allow it a callback.

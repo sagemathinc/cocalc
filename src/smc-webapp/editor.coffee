@@ -96,7 +96,7 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
-    jade   : 'text/x-jade'
+    jade   : 'text/x-pug'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -113,7 +113,7 @@ codemirror_associations =
     pari   : 'text/pari'
     php    : 'php'
     pl     : 'text/x-perl'
-    pug    : 'text/x-jade'
+    pug    : 'text/x-pug'
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
@@ -1526,7 +1526,7 @@ class CodeMirrorEditor extends FileEditor
             # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
                 if redux.getProjectStore(@project_id).is_file_open(@filename)  # only show error if file actually opened
-                    alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; you may have to restart your project in project settings.")
             else
                 @emit('saved')
             @save_button.icon_spin(false)

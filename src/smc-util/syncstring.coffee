@@ -28,7 +28,8 @@ TOUCH_INTERVAL_M = 10
 # e.g., for homework getting collected and not missing the last few changes.  It turns out
 # this is what people expect!
 # Set to 0 to disable. (But don't do that.)
-LOCAL_HUB_AUTOSAVE_S = 30
+LOCAL_HUB_AUTOSAVE_S = 120
+#LOCAL_HUB_AUTOSAVE_S = 5
 
 # If the client becomes disconnected from the backend for more than this long
 # the---on reconnect---do extra work to ensure that all snapshots are up to
@@ -281,15 +282,15 @@ class SortedPatchList extends EventEmitter
     getting inserted into the changelog.
 
     If without is defined, it must be an array of Date objects; in that case
-    the current value of the strig is computed, but with all the patches
+    the current value of the string is computed, but with all the patches
     at the given times in "without" ignored.  This is used elsewhere as a building
     block to implement undo.
     ###
     value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
-        # If the time is specified, verify that it is valid.
+        # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
         if time? and not misc.is_date(time)
-            throw Error("time must be a date")
+            time = new Date(time)
         if without_times?
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
@@ -658,8 +659,12 @@ class SyncDoc extends EventEmitter
     init_project_autosave: () =>
         if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
             return
+        #dbg = @dbg("autosave")
+        #dbg("initializing")
         f = () =>
+            #dbg('checking')
             if @hash_of_saved_version()? and @has_unsaved_changes()
+                #dbg("doing")
                 @_save_to_disk()
         @_project_autosave = setInterval(f, LOCAL_HUB_AUTOSAVE_S*1000)
 
@@ -709,9 +714,9 @@ class SyncDoc extends EventEmitter
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
     _set_initialized: (error, cb) =>
-        init = {time:misc.server_time()}
+        init = {time: misc.server_time()}
         if error
-            init.error = error
+            init.error = "error - #{JSON.stringify(error)}"  # must be a string!
         else
             init.error = ''
         @_client.query
@@ -946,7 +951,7 @@ class SyncDoc extends EventEmitter
         ###
         TODO/CRITICAL: We are temporarily disabling same-user collision detection, since this seems to be leading to
         serious issues involving a feedback loop, which may be way worse than the 1 in a million issue
-        that this addresses.  This only address the *same* accout being used simultaneously on the same file
+        that this addresses.  This only address the *same* account being used simultaneously on the same file
         by multiple people which isn't something users should ever do (but they do in big demos).
 
         @_patch_list.on 'overwrite', (t) =>
@@ -957,6 +962,21 @@ class SyncDoc extends EventEmitter
 
         @_patches_table.on 'saved', (data) =>
             @_handle_offline(data)
+
+    ###
+    _check_for_timestamp_collision: (t) =>
+        obj = @_my_patches[t]
+        if not obj?
+            return
+        key = @_patches_table.key(obj)
+        if obj.patch != @_patches_table.get(key)?.get('patch')
+            #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
+            # We fix the collision by finding the nearest time after time that
+            # is available, and reinserting our patch at that new time.
+            @_my_patches[t] = 'killed'
+            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
+            @_save_patch(new_time, JSON.parse(obj.patch))
+    ###
 
     _init_evaluator: (cb) =>
         if misc.filename_extension(@_path) == 'sagews'
@@ -1092,18 +1112,6 @@ class SyncDoc extends EventEmitter
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
 
-    _check_for_timestamp_collision: (t) =>
-        obj = @_my_patches[t]
-        if not obj?
-            return
-        key = @_patches_table.key(obj)
-        if obj.patch != @_patches_table.get(key)?.get('patch')
-            #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
-            # We fix the collision by finding the nearest time after time that
-            # is available, and reinserting our patch at that new time.
-            @_my_patches[t] = 'killed'
-            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
-            @_save_patch(new_time, JSON.parse(obj.patch))
 
     # Save current live string to backend.  It's safe to call this frequently,
     # since it will debounce itself.
@@ -1174,7 +1182,7 @@ class SyncDoc extends EventEmitter
         if time1? and time > time1
             return
         if not patch?
-            patch = JSON.parse(x.get('patch'))
+            patch = JSON.parse(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
             time    : time
@@ -1550,51 +1558,73 @@ class SyncDoc extends EventEmitter
     # The project sets the state to saving, does the save to disk, then sets
     # the state to done.
     _save_to_disk: (cb) =>
-        if not @has_unsaved_changes()
-            # no unsaved changes, so don't save -- CRITICAL: this optimization is assumed by autosave, etc.
+        if @_client.is_user()
+            @__save_to_disk_user()
             cb?()
             return
+
+        if @_saving_to_disk_cbs?
+            @_saving_to_disk_cbs.push(cb)
+            return
+        else
+            @_saving_to_disk_cbs = [cb]
+
+        @__do_save_to_disk_project (err) =>
+            v = @_saving_to_disk_cbs
+            delete @_saving_to_disk_cbs
+            for cb in v
+                cb?(err)
+
+    __save_to_disk_user: =>
+        if @_closed # nothing to do
+            return
+        if not @has_unsaved_changes()
+            # Browser client that has no unsaved changes, so don't need to save --
+            # CRITICAL: this optimization is assumed by autosave, etc.
+            return
+        # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
+        # (if it is running) to open the syncstring (if closed), and hence be aware that the client
+        # is requesting a save.  This is important if the client and database have changes not
+        # saved to disk, and the project stopped listening for activity on this syncstring due
+        # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
+        # errors.
+        @touch()
+        @_set_save(state:'requested', error:false)
+
+    __do_save_to_disk_project: (cb) =>
+        # check if on disk version is same as in memory, in which case no save is needed.
+        hash = misc.hash_string(@get())
+        if hash == @hash_of_saved_version()
+            # No actual save to disk needed; still we better record this fact in table in case it
+            # isn't already recorded
+            @_set_save(state:'done', error:false, hash:hash)
+            cb()
+            return
+
         path = @get_path()
-        #dbg = @dbg("_save_to_disk('#{path}')")
+        #dbg = @dbg("__do_save_to_disk_project('#{path}')")
         if not path?
-            cb?("not yet initialized")
+            cb("not yet initialized")
             return
         if not path
             @_set_save(state:'done', error:'cannot save without path')
-            cb?("cannot save without path")
+            cb("cannot save without path")
             return
-        if @_client.is_project()
-            #dbg("project - write to disk file")
-            data = @version()
-            @_save_to_disk_just_happened = true
-            @_client.write_file
-                path : path
-                data : data
-                cb   : (err) =>
-                    #dbg("returned from write_file: #{err}")
-                    if err
-                        @_set_save(state:'done', error:err)
-                    else
-                        @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-                    cb?(err)
-        else if @_client.is_user()
-            # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
-            # (if it is running) to open the syncstring (if closed), and hence be aware that the client
-            # is requesting a save.  This is important if the client and database have changes not
-            # saved to disk, and the project stopped listening for activity on this syncstring due
-            # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
-            # errors.
-            @touch()
 
-            #dbg("user - request to write to disk file")
-            if not @get_project_id()
-                err = 'cannot save without project'
-                @_set_save(state:'done', error:err)
-            else
-                #dbg("send request to save")
-                err = undefined
-                @_set_save(state:'requested', error:false)
-            cb?(err)
+        #dbg("project - write to disk file")
+        data = @version()
+        @_save_to_disk_just_happened = true
+        @_client.write_file
+            path : path
+            data : data
+            cb   : (err) =>
+                #dbg("returned from write_file: #{err}")
+                if err
+                    @_set_save(state:'done', error:err)
+                else
+                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+                cb(err)
+
 
     ###
     # When the underlying synctable that defines the state of the document changes

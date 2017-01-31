@@ -12,7 +12,7 @@ misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
 
 exports.exec_shell_code = (socket, mesg) ->
-    winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
+    #winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
     if mesg.command == "smc-jupyter"
         socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
         return

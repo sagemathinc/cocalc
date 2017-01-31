@@ -540,7 +540,7 @@ exports.FoldersToolbar = rclass
         @setState(add_search_results:immutable.List([]))
 
     render: ->
-        <Row>
+        <Row style={marginBottom:'-15px'}>
             <Col md=3>
                 <SearchInput
                     placeholder   = {"Find #{@props.plural_item_name}..."}

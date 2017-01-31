@@ -676,9 +676,10 @@ class exports.PostgreSQL extends PostgreSQL
                             patches = v
                         dbg("insert patches into patches table")
                         @_query
-                            query  : 'INSERT INTO patches'
-                            values : patches
-                            cb     : cb
+                            query    : 'INSERT INTO patches'
+                            values   : patches
+                            conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this unarchive at once -- this can and does happen sometimes.
+                            cb       : cb
                     (cb) =>
                         async.parallel([
                             (cb) =>
