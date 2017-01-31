@@ -1357,6 +1357,9 @@ exports.is_integer = Number.isInteger
 if not exports.is_integer?
     exports.is_integer = (n) -> typeof(n)=='number' and (n % 1) == 0
 
+exports.is_string = (obj) ->
+    return typeof(obj) == 'string'
+
 # An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
 # NOT include Date.
 exports.is_object = is_object = (obj) ->

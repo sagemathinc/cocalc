@@ -5,7 +5,7 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-QUERY_ALERT_THRESH_MS=1500
+QUERY_ALERT_THRESH_MS=5000
 
 EventEmitter = require('events')
 
@@ -202,6 +202,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
             conflict  : undefined    # If given, then values must also be given; appends this to query:
                                      #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
+                                     # Or, if conflict starts with "ON CONFLICT", then just include as is, e.g.,
+                                     # "ON CONFLICT DO NOTHING"
             jsonb_set : undefined    # Used for setting a field that contains a JSONB javascript map.
                                      # Give as input an object
                                      #
@@ -363,23 +365,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 SET.push(v...)
 
         if opts.conflict?
-            if not opts.values?
-                opts.cb?("if conflict is specified then values must also be specified")
-                return
-            if not misc.is_array(opts.conflict)
-                if typeof(opts.conflict) != 'string'
-                    opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+            if misc.is_string(opts.conflict) and misc.startswith(opts.conflict.toLowerCase().trim(), 'on conflict')
+                # Straight string inclusion
+                opts.query += ' ' + opts.conflict + ' '
+            else
+                if not opts.values?
+                    opts.cb?("if conflict is specified then values must also be specified")
                     return
+                if not misc.is_array(opts.conflict)
+                    if typeof(opts.conflict) != 'string'
+                        opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+                        return
+                    else
+                        conflict = [opts.conflict]
                 else
-                    conflict = [opts.conflict]
-            else
-                conflict = opts.conflict
-            v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
-            SET.push(v...)
-            if SET.length == 0
-                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
-            else
-                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
+                    conflict = opts.conflict
+                v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
+                SET.push(v...)
+                if SET.length == 0
+                    opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
+                else
+                    opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
 
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')
