@@ -417,7 +417,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                                     set   : {account_id: x.account_id}
                                     where : {table: 'students', student_id: v[x.email_address]}
 
-        # columns: first_name ,last_name, email, last_active
+        # columns: first_name ,last_name, email, last_active, hosting
         # Toggles ascending/decending order
         set_active_student_sort: (column_name) =>
             store = get_store()

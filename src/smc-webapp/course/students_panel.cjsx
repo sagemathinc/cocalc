@@ -252,7 +252,7 @@ exports.StudentsPanel = rclass ({name}) ->
         (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
 
     sort_on_numerical_field: (field) ->
-        (a,b) -> misc.cmp(a[field], b[field])
+        (a,b) -> misc.cmp(a[field] * -1, b[field] * -1)
 
     pick_sorter: (sort=@props.active_student_sort) ->
         switch sort.column_name
@@ -260,6 +260,7 @@ exports.StudentsPanel = rclass ({name}) ->
             when "first_name" then @sort_on_string_field("first_name")
             when "last_name" then @sort_on_string_field("last_name")
             when "last_active" then @sort_on_numerical_field("last_active")
+            when "hosting" then @sort_on_numerical_field("hosting")
 
     compute_student_list: ->
         # TODO: good place to cache something...
@@ -286,10 +287,14 @@ exports.StudentsPanel = rclass ({name}) ->
                 x.last_name  = user?.get('last_name') ? ''
                 if x.project_id?
                     x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id).getTime()
+                    upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
+                    if upgrades?
+                        x.hosting = upgrades.member_host
 
             x.first_name  ?= ""
             x.last_name   ?= ""
             x.last_active ?= 0
+            x.hosting ?= false
             x.email_address ?= ""
 
         v.sort @pick_sorter()
