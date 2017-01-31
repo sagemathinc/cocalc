@@ -5,6 +5,8 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
+QUERY_ALERT_THRESH_MS=1500
+
 EventEmitter = require('events')
 
 fs      = require('fs')
@@ -233,8 +235,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @__do_query(opts)
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
-        dbg()
+        dbg = @_dbg("_query('#{opts.query}')")
         if not @_client?
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
@@ -442,16 +443,20 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         @_concurrent_queries += 1
         try
+            start = new Date()
             @_client.query opts.query, opts.params, (err, result) =>
+                query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
                 if err
-                    dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
+                    dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
                 else
-                    dbg("done (concurrent=#{@_concurrent_queries}) -- success")
+                    dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
                 if opts.cache and @_query_cache?
                     @_query_cache.set(full_query_string, [err, result])
                 opts.cb?(err, result)
+                if query_time_ms >= QUERY_ALERT_THRESH_MS
+                    dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
         catch e
             # this should never ever happen
             dbg("EXCEPTION in @_client.query: #{e}")
