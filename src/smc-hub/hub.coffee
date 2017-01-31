@@ -3234,10 +3234,11 @@ stripe_sync = (dump_only, cb) ->
         (cb) ->
             dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
             # TODO: we could make this way faster by putting an index on the stripe_customer_id field.
-            q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
-            q = q.pluck('account_id', 'stripe_customer_id', 'stripe_customer')
-            q.run (err, x) ->
-                users = x; cb(err)
+            database._query
+                query : 'SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL'
+                cb    : (err, x) ->
+                    users = x?.rows
+                    cb(err)
         (cb) ->
             dbg("dump stripe_customer data to file for statistical analysis")
             target = "#{process.env.HOME}/stripe/"
