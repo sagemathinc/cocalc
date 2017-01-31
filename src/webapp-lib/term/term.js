@@ -795,7 +795,7 @@ Terminal.prototype.bindMouse = function() {
 
     // fix for odd bug
     if (self.vt200Mouse) {
-      sendButton({ __proto__: ev, type: 'mouseup' });
+      sendButton(new ev.constructor('mouseup', ev));
       return cancel(ev);
     }
 
@@ -2991,8 +2991,12 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    this.lines[row].splice(j++, 0, ch);
-    this.lines[row].pop();
+    // sometimes, row is too large
+    if (this.lines.length <= row) {
+        row = this.lines.length - 1;
+    }
+      this.lines[row].splice(j++, 0, ch);
+      this.lines[row].pop();
   }
 };
 
