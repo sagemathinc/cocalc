@@ -1050,6 +1050,11 @@ project_warning_opts = (opts) ->
         email_address  : email_address
     return x
 
+exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
+    <div style={marginTop:'10px'}>
+       If you have already paid, you can go to the settings in your project and click the "Adjust  your quotas..." button, then click the checkboxes next to network and member hosting.  If it says you do not have enough quota, visit the Upgrades tab in account settings, see where the upgrades are, remove them from another project, then try again.
+    </div>
+
 exports.CourseProjectWarning = (opts) ->
     {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
     if not course_warning
@@ -1073,7 +1078,7 @@ exports.CourseProjectWarning = (opts) ->
         label = 'Warning'
     else
         if is_student
-            deadline  = <span>Your instructor requires you to {action} now to continuing using this project.</span>
+            deadline  = <span>Your instructor requires you to {action} now to continuing using this project.{<CourseProjectExtraHelp/> if total>0}</span>
         else
             deadline = <span>Your student must buy a course subscription to continue using this project.</span>
         style = 'danger'

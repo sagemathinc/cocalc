@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
- SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
+ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
@@ -2033,9 +2033,11 @@ exports.ProjectFiles = rclass ({name}) ->
         </div>
 
     render_course_payment_required: () ->
+        cards = @props.customer?.sources?.total_count ? 0
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
                 <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
+                {<CourseProjectExtraHelp/> if cards}
             </h4>
             {@render_upgrade_in_place()}
         </Alert>
