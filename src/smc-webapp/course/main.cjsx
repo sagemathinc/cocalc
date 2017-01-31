@@ -2044,23 +2044,20 @@ CourseEditor = rclass ({name}) ->
             {@render_save_timetravel()}
             <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_students()}
                 </Tab>
                 <Tab eventKey={'assignments'} title={<AssignmentsPanel.Header n={@num_assignments()}/>}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
                 </Tab>
                 <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_handouts()}
                 </Tab>
                 <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
-                    <div style={marginTop:'8px'}></div>
+                    <div style={marginTop:'1em'}></div>
                     {@render_settings()}
                 </Tab>
                 <Tab eventKey={'shared_project'} title={<SharedProjectPanel.Header project_exists={!!@props.settings?.get('shared_project_id')}/>}>
-                    <div style={marginTop:'8px'}></div>
+                    <div style={marginTop:'1em'}></div>
                     {@render_shared_project()}
                 </Tab>
             </Tabs>

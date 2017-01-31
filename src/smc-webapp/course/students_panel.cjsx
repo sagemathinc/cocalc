@@ -207,13 +207,11 @@ exports.StudentsPanel = rclass ({name}) ->
                 msg += existing.join(', ')
                 ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
         if ed?
-            <Row style={marginTop:'1em'}><Col md=5 lgOffset=7>{ed}</Col></Row>
-        else
-            <Row></Row>
+            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md=5 lgOffset=7>{ed}</Col></Row>
 
     render_header: (num_omitted) ->
         <div>
-            <Row>
+            <Row style={marginBottom:'-15px'}>
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find students..."
