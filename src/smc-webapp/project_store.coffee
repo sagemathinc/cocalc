@@ -390,6 +390,17 @@ class ProjectActions extends Actions
                             @set_active_tab(misc.path_to_tab(opts.path))
         return
 
+    get_scroll_saver_for: (path) =>
+        if path?
+            return (scroll_position) =>
+                store = @get_store()
+                # Ensure prerequisite things exist
+                if not store?.open_files?.getIn([path, 'component'])?
+                    return
+                # WARNING: Saving scroll position does NOT trigger a rerender. This is intentional.
+                info = store.open_files.getIn([path, 'component'])
+                info.scroll_position = scroll_position
+
     # If the given path is open, and editor supports going to line, moves to the given line.
     # Otherwise, does nothing.
     goto_line: (path, line) =>

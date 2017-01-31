@@ -24,8 +24,8 @@ common    = require('./common')
 # TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
 #
 exports.read_file_from_project = (socket, mesg) ->
-    dbg = (m) -> winston.debug("read_file_from_project(path='#{mesg.path}'): #{m}")
-    dbg()
+    #dbg = (m) -> winston.debug("read_file_from_project(path='#{mesg.path}'): #{m}")
+    #dbg()
     data    = undefined
     path    = misc_node.abspath(mesg.path)
     is_dir  = undefined
@@ -78,10 +78,10 @@ exports.read_file_from_project = (socket, mesg) ->
 
         (cb) ->
             id = misc_node.uuidsha1(data)
-            dbg("sha1 hash = '#{id}'")
+            #dbg("sha1 hash = '#{id}'")
             cb()
         (cb) ->
-            dbg("send the file as a blob back to the hub.")
+            #dbg("send the file as a blob back to the hub.")
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
@@ -91,13 +91,13 @@ exports.read_file_from_project = (socket, mesg) ->
         if is_dir
             fs.exists path, (exists) ->
                 if exists
-                    dbg("It was a directory, so remove the temporary archive '#{path}'.")
+                    #dbg("It was a directory, so remove the temporary archive '#{path}'.")
                     fs.unlink(path)
     )
 
 exports.write_file_to_project = (socket, mesg) ->
-    dbg = (m) -> winston.debug("write_file_to_project(path='#{mesg.path}'): #{m}")
-    dbg()
+    #dbg = (m) -> winston.debug("write_file_to_project(path='#{mesg.path}'): #{m}")
+    #dbg()
 
     data_uuid = mesg.data_uuid
     path = misc_node.abspath(mesg.path)
@@ -110,14 +110,14 @@ exports.write_file_to_project = (socket, mesg) ->
                 (cb) ->
                     misc_node.ensure_containing_directory_exists(path, cb)
                 (cb) ->
-                    dbg('writing the file')
+                    #dbg('writing the file')
                     fs.writeFile(path, value.blob, cb)
             ], (err) ->
                 if err
-                    dbg("error writing file -- #{err}")
+                    #dbg("error writing file -- #{err}")
                     socket.write_mesg 'json', message.error(id:mesg.id, error:err)
                 else
-                    dbg("wrote file '#{path}' fine")
+                    #dbg("wrote file '#{path}' fine")
                     socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
             )
     socket.on('mesg', write_file)

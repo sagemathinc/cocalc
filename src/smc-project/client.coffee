@@ -18,9 +18,11 @@ as a result.
 ###
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
-# not active for this long (should be at least 5 minutes).
-SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = .4 # TESTING
+# not active for this long (should be at least 5 minutes).  Longer is better since
+# it reduces how long a user might have to wait for save, etc.,
+# but it slightly increases database work (managing a changefeed).
+SYNCSTRING_MAX_AGE_M = 20
+#SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
@@ -55,6 +57,9 @@ sage_session = require('./sage_session')
 
 DEBUG = false
 #DEBUG = true
+
+if process.env.SMC_DEBUG
+    DEBUG=true
 
 class exports.Client extends EventEmitter
     constructor: (@project_id) ->
@@ -135,7 +140,6 @@ class exports.Client extends EventEmitter
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
         @_recent_syncstrings.on 'change', =>
-            dbg("@_recent_syncstrings change")
             @_update_recent_syncstrings()
 
         @_recent_syncstrings.once 'change', =>
@@ -143,11 +147,10 @@ class exports.Client extends EventEmitter
             # do NOT automatically get removed from the table (that's just not implemented yet).
             # This interval check is also important in order to detect files that were deleted then
             # recreated.
-            @_recent_syncstrings_interval = setInterval(@_update_recent_syncstrings, 5*1000)
+            @_recent_syncstrings_interval = setInterval(@_update_recent_syncstrings, 300)
 
     _update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
-        dbg('doing an update')
         cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
         @_wait_syncstrings ?= {}
         keys = {}

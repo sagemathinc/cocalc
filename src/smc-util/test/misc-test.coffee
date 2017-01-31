@@ -1273,6 +1273,18 @@ describe 'change_filename_extension', ->
     it "deals with missing extensions", ->
         cfe('filename', 'tex').should.be.exactly 'filename.tex'
 
+describe 'path_to_tab', ->
+    it "appends editor- to the front of the string", ->
+        misc.path_to_tab('str').should.be.exactly 'editor-str'
+
+describe 'tab_to_path', ->
+    it "returns undefined if given undefined", ->
+        should(misc.tab_to_path()).be.undefined()
+    it "returns undefined if given a non-editor name", ->
+        should(misc.tab_to_path("non-editor")).be.undefined()
+    it "returns the string truncating editor-", ->
+        misc.tab_to_path("editor-path/name.thing").should.be.exactly "path/name.thing"
+
 describe 'suggest_duplicate_filename', ->
     dup = misc.suggest_duplicate_filename
     it "works with numbers", ->

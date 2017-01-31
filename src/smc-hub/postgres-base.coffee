@@ -5,6 +5,8 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
+QUERY_ALERT_THRESH_MS=5000
+
 EventEmitter = require('events')
 
 fs      = require('fs')
@@ -42,10 +44,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             connect      : true
             password     : undefined
             pool         : undefined   # IGNORED for now.
-            cache_expiry : 30000  # expire cached queries after this many milliseconds
+            cache_expiry : 3000  # expire cached queries after this many milliseconds
                                  # keep this very short; it's just meant to reduce impact of a bunch of
                                  # identical permission checks in a single user query.
-            cache_size   : 500   # cache this many queries; use @_query(cache:true, ...) to cache result
+            cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
@@ -133,31 +135,41 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_client?
             @_client.end()
             delete @_client
+        client = undefined
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
                 dbg("first make sure db exists")
                 @_ensure_database_exists(cb)
             (cb) =>
-                @_client = new pg.Client
+                dbg("create client and start connecting...")
+                client = new pg.Client
                     user     : 'smc'
                     host     : if @_host then @_host    # undefined if @_host=''
                     port     : @_port
                     password : @_password
                     database : @_database
                 if @_notification?
-                    @_client.on('notification', @_notification)
-                @_client.on 'error', (err) =>
+                    client.on('notification', @_notification)
+                client.on 'error', (err) =>
                     dbg("error -- #{err}")
-                    @_client?.end()
+                    client?.end()
                     delete @_client
                     @connect()  # start trying to reconnect
-                @_client.connect(cb)
+                client.connect(cb)
+            (cb) =>
+                # CRITICAL!  At scale, this query
+                #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
+                # will take forever due to the query planner using a nestloop scan.  We thus
+                # disable doing so!
+                dbg("now connected; disabling nestloop query planning.")
+                client.query("SET enable_nestloop TO off", cb)
         ], (err) =>
             if err
                 dbg("Failed to connect to database -- #{err}")
                 cb?(err)
             else
+                @_client = client
                 dbg("connected!")
                 cb?(undefined, @)
         )
@@ -190,6 +202,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
             conflict  : undefined    # If given, then values must also be given; appends this to query:
                                      #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
+                                     # Or, if conflict starts with "ON CONFLICT", then just include as is, e.g.,
+                                     # "ON CONFLICT DO NOTHING"
             jsonb_set : undefined    # Used for setting a field that contains a JSONB javascript map.
                                      # Give as input an object
                                      #
@@ -223,8 +237,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @__do_query(opts)
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{opts.query}') (concurrent=#{@_concurrent_queries})")
-        dbg()
+        dbg = @_dbg("_query('#{opts.query}')")
         if not @_client?
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
@@ -352,23 +365,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 SET.push(v...)
 
         if opts.conflict?
-            if not opts.values?
-                opts.cb?("if conflict is specified then values must also be specified")
-                return
-            if not misc.is_array(opts.conflict)
-                if typeof(opts.conflict) != 'string'
-                    opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+            if misc.is_string(opts.conflict) and misc.startswith(opts.conflict.toLowerCase().trim(), 'on conflict')
+                # Straight string inclusion
+                opts.query += ' ' + opts.conflict + ' '
+            else
+                if not opts.values?
+                    opts.cb?("if conflict is specified then values must also be specified")
                     return
+                if not misc.is_array(opts.conflict)
+                    if typeof(opts.conflict) != 'string'
+                        opts.cb?("conflict (='#{misc.to_json(opts.conflict)}') must be a string (the field name), for now")
+                        return
+                    else
+                        conflict = [opts.conflict]
                 else
-                    conflict = [opts.conflict]
-            else
-                conflict = opts.conflict
-            v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
-            SET.push(v...)
-            if SET.length == 0
-                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
-            else
-                opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
+                    conflict = opts.conflict
+                v = ("#{quote_field(field)}=EXCLUDED.#{field}" for field in fields when field not in conflict)
+                SET.push(v...)
+                if SET.length == 0
+                    opts.query += " ON CONFLICT (#{conflict.join(',')}) DO NOTHING "
+                else
+                    opts.query += " ON CONFLICT (#{conflict.join(',')}) DO UPDATE "
 
         if SET.length > 0
             opts.query += " SET " + SET.join(' , ')
@@ -432,16 +449,20 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         @_concurrent_queries += 1
         try
+            start = new Date()
             @_client.query opts.query, opts.params, (err, result) =>
+                query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
                 if err
-                    dbg("done (concurrent=#{@_concurrent_queries}) -- error: #{err}")
+                    dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
                 else
-                    dbg("done (concurrent=#{@_concurrent_queries}) -- success")
+                    dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
                 if opts.cache and @_query_cache?
                     @_query_cache.set(full_query_string, [err, result])
                 opts.cb?(err, result)
+                if query_time_ms >= QUERY_ALERT_THRESH_MS
+                    dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
         catch e
             # this should never ever happen
             dbg("EXCEPTION in @_client.query: #{e}")

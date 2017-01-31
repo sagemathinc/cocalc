@@ -417,6 +417,17 @@ init_redux = (course_filename, redux, course_project_id) ->
                                     set   : {account_id: x.account_id}
                                     where : {table: 'students', student_id: v[x.email_address]}
 
+        # columns: first_name ,last_name, email, last_active, hosting
+        # Toggles ascending/decending order
+        set_active_student_sort: (column_name) =>
+            store = get_store()
+            current_column = store.getIn(['active_student_sort', 'column_name'])
+            if current_column == column_name
+                is_descending = not get_store().getIn(['active_student_sort', 'is_descending'])
+            else
+                is_descending = false
+            @setState(active_student_sort : {column_name, is_descending})
+
         # Student projects
 
         # Create a single student project.
@@ -2033,23 +2044,20 @@ CourseEditor = rclass ({name}) ->
             {@render_save_timetravel()}
             <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_students()}
                 </Tab>
                 <Tab eventKey={'assignments'} title={<AssignmentsPanel.Header n={@num_assignments()}/>}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
                 </Tab>
                 <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
-                    <div style={marginTop:'8px'}></div>
                     {@render_handouts()}
                 </Tab>
                 <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
-                    <div style={marginTop:'8px'}></div>
+                    <div style={marginTop:'1em'}></div>
                     {@render_settings()}
                 </Tab>
                 <Tab eventKey={'shared_project'} title={<SharedProjectPanel.Header project_exists={!!@props.settings?.get('shared_project_id')}/>}>
-                    <div style={marginTop:'8px'}></div>
+                    <div style={marginTop:'1em'}></div>
                     {@render_shared_project()}
                 </Tab>
             </Tabs>
