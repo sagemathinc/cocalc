@@ -714,9 +714,9 @@ class SyncDoc extends EventEmitter
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
     _set_initialized: (error, cb) =>
-        init = {time:misc.server_time()}
+        init = {time: misc.server_time()}
         if error
-            init.error = error
+            init.error = "error - #{JSON.stringify(error)}"  # must be a string!
         else
             init.error = ''
         @_client.query
