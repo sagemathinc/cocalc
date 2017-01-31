@@ -112,7 +112,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_connecting = [opts.cb]
         misc.retry_until_success
             f           : @_connect
-            max_delay   : 7000
+            max_delay   : 10000
             max_time    : opts.max_time
             start_delay : 500 + 500*Math.random()
             log         : dbg
