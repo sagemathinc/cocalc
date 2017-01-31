@@ -12,16 +12,13 @@ misc = require('smc-util/misc')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
-entry_style =
-    paddingTop    : '5px'
-    paddingBottom : '5px'
-
-selected_entry_style = misc.merge
+selected_entry_style =
     border        : '1px solid #aaa'
     boxShadow     : '5px 5px 5px #999'
     borderRadius  : '3px'
-    marginBottom  : '10px',
-    entry_style
+    marginBottom  : '10px'
+    paddingBottom : '5px'
+    paddingTop    : '5px'
 
 note_style =
     borderTop  : '3px solid #aaa'
@@ -38,6 +35,7 @@ exports.StudentsPanel = rclass ({name}) ->
     reduxProps :
         "#{name}":
             expanded_students : rtypes.immutable.Set
+            active_student_sort : rtypes.object
 
     propTypes :
         name        : rtypes.string.isRequired
@@ -47,6 +45,11 @@ exports.StudentsPanel = rclass ({name}) ->
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
+
+    getDefaultProps: ->
+        column_name = "last_name"
+        is_descending = false
+        return active_student_sort : {column_name, is_descending}
 
     getInitialState: ->
         err              : undefined
@@ -204,13 +207,11 @@ exports.StudentsPanel = rclass ({name}) ->
                 msg += existing.join(', ')
                 ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
         if ed?
-            <Row style={marginTop:'1em'}><Col md=5 lgOffset=7>{ed}</Col></Row>
-        else
-            <Row></Row>
+            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md=5 lgOffset=7>{ed}</Col></Row>
 
     render_header: (num_omitted) ->
         <div>
-            <Row>
+            <Row style={marginBottom:'-15px'}>
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find students..."
@@ -245,26 +246,59 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_error()}
         </div>
 
+    sort_on_string_field: (field) ->
+        (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
+
+    sort_on_numerical_field: (field) ->
+        (a,b) -> misc.cmp(a[field] * -1, b[field] * -1)
+
+    pick_sorter: (sort=@props.active_student_sort) ->
+        switch sort.column_name
+            when "email" then @sort_on_string_field("email_address")
+            when "first_name" then @sort_on_string_field("first_name")
+            when "last_name" then @sort_on_string_field("last_name")
+            when "last_active" then @sort_on_numerical_field("last_active")
+            when "hosting" then @sort_on_numerical_field("hosting")
+
     compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
+        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's SMC account ID
+        # email_address  : "4@student.com"                        # Email the instructor signed the student up with.
+        # first_name     : "Rachel"                               # Student's first name they use for SMC
+        # last_name      : "Florence"                             # Student's last name they use for SMC
+        # project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
+        # student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
+        # last_active    : 2357025
+        # create_project : True
+        # deleted        : False
+        # note           : "Is younger sister of Abby Florence (TA)"
+        # sort           : "florence rachel"
+
         v = immutable_to_list(@props.students, 'student_id')
-        # fill in names, for use in sorting and searching (TODO: caching)
+        # Fill in values
+        # TODO: Caching
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                if user?
-                    x.first_name = user.get('first_name')
-                    x.last_name  = user.get('last_name')
-                else
-                    x.first_name = 'Please create the student project'
-                    x.last_name = ''
-                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
-            else if x.email_address?
-                x.sort = x.email_address.toLowerCase()
+                x.first_name = user?.get('first_name') ? ''
+                x.last_name  = user?.get('last_name') ? ''
+                if x.project_id?
+                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id).getTime()
+                    upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
+                    if upgrades?
+                        x.hosting = upgrades.member_host
 
-        v.sort (a,b) ->
-            return misc.cmp(a.sort, b.sort)
+            x.first_name  ?= ""
+            x.last_name   ?= ""
+            x.last_active ?= 0
+            x.hosting ?= false
+            x.email_address ?= ""
+
+        v.sort @pick_sorter()
+
+        if @props.active_student_sort.is_descending
+            v.reverse()
 
         # Deleted students
         w = (x for x in v when x.deleted)
@@ -286,6 +320,38 @@ exports.StudentsPanel = rclass ({name}) ->
             v = (x for x in v when match(search(x)))
 
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
+
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_student_sort.column_name == column_name}
+        </a>
+
+    render_student_table_header: ->
+        # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+        <Row style={marginTop:'-10px', marginBottom:'3px'}>
+            <Col md=3>
+                <div style={display:'inline-block', width:'50%'}>
+                    {@render_sort_link("first_name", "First Name")}
+                </div>
+                <div style={display:"inline-block"}>
+                    {@render_sort_link("last_name", "Last Name")}
+                </div>
+            </Col>
+            <Col md=2>
+                {@render_sort_link("email", "Student Email")}
+            </Col>
+            <Col md=4>
+                {@render_sort_link("last_active", "Last Active")}
+            </Col>
+            <Col md=3>
+                {@render_sort_link("hosting", "Hosting Type")}
+            </Col>
+        </Row>
 
     render_students: (students) ->
         for x,i in students
@@ -314,6 +380,7 @@ exports.StudentsPanel = rclass ({name}) ->
     render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
+            {@render_student_table_header()}
             {@render_students(students)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
@@ -559,7 +626,7 @@ Student = rclass
         </Panel>
 
     render: ->
-        <Row style={if @state.more then selected_entry_style else entry_style}>
+        <Row style={if @state.more then selected_entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}
