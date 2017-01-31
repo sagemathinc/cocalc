@@ -284,7 +284,7 @@ exports.StudentsPanel = rclass ({name}) ->
                 x.first_name = user?.get('first_name') ? ''
                 x.last_name  = user?.get('last_name') ? ''
                 if x.project_id?
-                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id).getTime()
+                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime()
                     upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
                     if upgrades?
                         x.hosting = upgrades.member_host
@@ -295,7 +295,7 @@ exports.StudentsPanel = rclass ({name}) ->
             x.hosting ?= false
             x.email_address ?= ""
 
-        v.sort @pick_sorter()
+        v.sort(@pick_sorter())
 
         if @props.active_student_sort.is_descending
             v.reverse()
