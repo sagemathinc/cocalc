@@ -12,16 +12,13 @@ misc = require('smc-util/misc')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
-entry_style =
-    paddingTop    : '5px'
-    paddingBottom : '5px'
-
-selected_entry_style = misc.merge
+selected_entry_style =
     border        : '1px solid #aaa'
     boxShadow     : '5px 5px 5px #999'
     borderRadius  : '3px'
-    marginBottom  : '10px',
-    entry_style
+    marginBottom  : '10px'
+    paddingBottom : '5px'
+    paddingTop    : '5px'
 
 note_style =
     borderTop  : '3px solid #aaa'
@@ -50,7 +47,7 @@ exports.StudentsPanel = rclass ({name}) ->
         assignments : rtypes.object.isRequired
 
     getDefaultProps: ->
-        column_name = "email"
+        column_name = "last_name"
         is_descending = false
         return active_student_sort : {column_name, is_descending}
 
@@ -321,50 +318,35 @@ exports.StudentsPanel = rclass ({name}) ->
 
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_student_sort.column_name == column_name}
+        </a>
+
     render_student_table_header: ->
-        <Row>
+        # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+        <Row style={marginTop:'-10px', marginBottom:'3px'}>
             <Col md=3>
-                <a href=''
-                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('first_name')}>
-                    First Name
-                    <Space/>
-                    <Icon style={marginRight:'10px'}
-                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
-                </a>
-                <a href=''
-                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('last_name')}>
-                    Last Name
-                    <Space/>
-                    <Icon style={marginRight:'10px'}
-                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
-                </a>
+                <div style={display:'inline-block', width:'50%'}>
+                    {@render_sort_link("first_name", "First Name")}
+                </div>
+                <div style={display:"inline-block"}>
+                    {@render_sort_link("last_name", "Last Name")}
+                </div>
             </Col>
             <Col md=2>
-                <a href=''
-                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('email')}>
-                    Student Email
-                    <Space/>
-                    <Icon style={marginRight:'10px'}
-                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
-                </a>
+                {@render_sort_link("email", "Student Email")}
             </Col>
-            <Col md=4 style={paddingTop:'10px'}>
-                <a href=''
-                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('last_active')}>
-                    Last Active
-                    <Space/>
-                    <Icon style={marginRight:'10px'}
-                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
-                </a>
+            <Col md=4>
+                {@render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md=3 style={paddingTop:'10px'}>
-                <a href=''
-                    onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_student_sort('hosting')}>
-                    Hosting Type
-                    <Space/>
-                    <Icon style={marginRight:'10px'}
-                        name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}/>
-                </a>
+            <Col md=3>
+                {@render_sort_link("hosting", "Hosting Type")}
             </Col>
         </Row>
 
@@ -641,7 +623,7 @@ Student = rclass
         </Panel>
 
     render: ->
-        <Row style={if @state.more then selected_entry_style else entry_style}>
+        <Row style={if @state.more then selected_entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}

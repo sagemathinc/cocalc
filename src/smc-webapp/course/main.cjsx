@@ -420,7 +420,12 @@ init_redux = (course_filename, redux, course_project_id) ->
         # columns: first_name ,last_name, email, last_active
         # Toggles ascending/decending order
         set_active_student_sort: (column_name) =>
-            is_descending = not get_store().getIn(['active_student_sort', 'is_descending'])
+            store = get_store()
+            current_column = store.getIn(['active_student_sort', 'column_name'])
+            if current_column == column_name
+                is_descending = not get_store().getIn(['active_student_sort', 'is_descending'])
+            else
+                is_descending = false
             @setState(active_student_sort : {column_name, is_descending})
 
         # Student projects
