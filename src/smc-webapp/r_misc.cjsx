@@ -505,6 +505,10 @@ exports.TimeAgo = rclass
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
+        if isNaN(d)  # http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
+            # This can and does happen!  Passing this to the third party TimeAgo component
+            # goes ballistic and crashes react (lame, but whatever).
+            return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
             <Tip title={s} id={s} placement={@props.placement}>
