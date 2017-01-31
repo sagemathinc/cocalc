@@ -11,7 +11,9 @@ EventEmitter = require('events')
 
 fs      = require('fs')
 async   = require('async')
-pg      = require('pg')
+
+pg      = require('pg').native    # You might have to do: "apt-get install libpq5"
+#pg      = require('pg')   # uncommment this to use the pure javascript driver.
 
 winston = require('winston')
 winston.remove(winston.transports.Console)

@@ -169,7 +169,7 @@ describe 'use of eval_inputs table --', ->
             account_id : accounts[0]
             query : {eval_inputs:{string_id:string_id, time:t1, user_id:-1, input:input}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: new row for relation "eval_inputs" violates check constraint "eval_inputs_user_id_check"')
+                expect(err).toContain('new row for relation "eval_inputs" violates check constraint')
                 done()
 
     it 'tests uses of eval_inputs changefeed', (done) ->
@@ -360,7 +360,7 @@ describe 'use of eval_outputs table --', ->
             account_id : accounts[0]
             query : {eval_outputs:{string_id:string_id, time:t1, number:-1, output:output}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: new row for relation "eval_outputs" violates check constraint "eval_outputs_number_check"')
+                expect(err).toContain('new row for relation "eval_outputs" violates check constraint')
                 done()
 
     it 'tests uses of eval_outputs changefeed', (done) ->

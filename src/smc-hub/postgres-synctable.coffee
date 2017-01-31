@@ -49,9 +49,17 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
                     return
                 dbg("creating trigger #{tgname}")
-                @_query
-                    query : trigger_code(table, select, watch)
-                    cb    : cb
+                code = trigger_code(table, select, watch)
+                async.series([
+                    (cb) =>
+                        @_query
+                            query : code.function
+                            cb    : cb
+                    (cb) =>
+                        @_query
+                            query : code.trigger
+                            cb    : cb
+                ], cb)
         ], cb)
 
     _listen: (table, select, watch, cb) =>
@@ -892,7 +900,8 @@ trigger_code = (table, select, watch) ->
         update_of = "OF #{(quote_field(field) for field in misc.keys(x)).join(',')}"
     else
         update_of = ""
-    code = """
+    code = {}
+    code.function = """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
         notification json;
@@ -923,10 +932,8 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
         PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();
-"""
+$$ LANGUAGE plpgsql;"""
+    code.trigger = "CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();"
     return code
 
 
