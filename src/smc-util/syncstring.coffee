@@ -28,7 +28,8 @@ TOUCH_INTERVAL_M = 10
 # e.g., for homework getting collected and not missing the last few changes.  It turns out
 # this is what people expect!
 # Set to 0 to disable. (But don't do that.)
-LOCAL_HUB_AUTOSAVE_S = 30
+LOCAL_HUB_AUTOSAVE_S = 120
+#LOCAL_HUB_AUTOSAVE_S = 5
 
 # If the client becomes disconnected from the backend for more than this long
 # the---on reconnect---do extra work to ensure that all snapshots are up to
@@ -658,8 +659,12 @@ class SyncDoc extends EventEmitter
     init_project_autosave: () =>
         if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
             return
+        #dbg = @dbg("autosave")
+        #dbg("initializing")
         f = () =>
+            #dbg('checking')
             if @hash_of_saved_version()? and @has_unsaved_changes()
+                #dbg("doing")
                 @_save_to_disk()
         @_project_autosave = setInterval(f, LOCAL_HUB_AUTOSAVE_S*1000)
 
@@ -1551,61 +1556,73 @@ class SyncDoc extends EventEmitter
     # The project sets the state to saving, does the save to disk, then sets
     # the state to done.
     _save_to_disk: (cb) =>
-        if @_client.is_project()
-            # check if on disk version is same as in memory, in which case no save is needed.
-            hash = misc.hash_string(@get())
-            if hash == @hash_of_saved_version()
-                # No actual save to disk needed; still we better record this fact in table in case it
-                # isn't already recorded
-                @_set_save(state:'done', error:false, hash:hash)
-                cb?()
-                return
-        else if not @has_unsaved_changes()
-            # Browser client that has no unsaved changes, so don't need to save --
-            # CRITICAL: this optimization is assumed by autosave, etc.
+        if @_client.is_user()
+            @__save_to_disk_user()
             cb?()
             return
+
+        if @_saving_to_disk_cbs?
+            @_saving_to_disk_cbs.push(cb)
+            return
+        else
+            @_saving_to_disk_cbs = [cb]
+
+        @__do_save_to_disk_project (err) =>
+            v = @_saving_to_disk_cbs
+            delete @_saving_to_disk_cbs
+            for cb in v
+                cb?(err)
+
+    __save_to_disk_user: =>
+        if @_closed # nothing to do
+            return
+        if not @has_unsaved_changes()
+            # Browser client that has no unsaved changes, so don't need to save --
+            # CRITICAL: this optimization is assumed by autosave, etc.
+            return
+        # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
+        # (if it is running) to open the syncstring (if closed), and hence be aware that the client
+        # is requesting a save.  This is important if the client and database have changes not
+        # saved to disk, and the project stopped listening for activity on this syncstring due
+        # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
+        # errors.
+        @touch()
+        @_set_save(state:'requested', error:false)
+
+    __do_save_to_disk_project: (cb) =>
+        # check if on disk version is same as in memory, in which case no save is needed.
+        hash = misc.hash_string(@get())
+        if hash == @hash_of_saved_version()
+            # No actual save to disk needed; still we better record this fact in table in case it
+            # isn't already recorded
+            @_set_save(state:'done', error:false, hash:hash)
+            cb()
+            return
+
         path = @get_path()
-        #dbg = @dbg("_save_to_disk('#{path}')")
+        #dbg = @dbg("__do_save_to_disk_project('#{path}')")
         if not path?
-            cb?("not yet initialized")
+            cb("not yet initialized")
             return
         if not path
             @_set_save(state:'done', error:'cannot save without path')
-            cb?("cannot save without path")
+            cb("cannot save without path")
             return
-        if @_client.is_project()
-            #dbg("project - write to disk file")
-            data = @version()
-            @_save_to_disk_just_happened = true
-            @_client.write_file
-                path : path
-                data : data
-                cb   : (err) =>
-                    #dbg("returned from write_file: #{err}")
-                    if err
-                        @_set_save(state:'done', error:err)
-                    else
-                        @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-                    cb?(err)
-        else if @_client.is_user()
-            # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
-            # (if it is running) to open the syncstring (if closed), and hence be aware that the client
-            # is requesting a save.  This is important if the client and database have changes not
-            # saved to disk, and the project stopped listening for activity on this syncstring due
-            # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
-            # errors.
-            @touch()
 
-            #dbg("user - request to write to disk file")
-            if not @get_project_id()
-                err = 'cannot save without project'
-                @_set_save(state:'done', error:err)
-            else
-                #dbg("send request to save")
-                err = undefined
-                @_set_save(state:'requested', error:false)
-            cb?(err)
+        #dbg("project - write to disk file")
+        data = @version()
+        @_save_to_disk_just_happened = true
+        @_client.write_file
+            path : path
+            data : data
+            cb   : (err) =>
+                #dbg("returned from write_file: #{err}")
+                if err
+                    @_set_save(state:'done', error:err)
+                else
+                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+                cb(err)
+
 
     ###
     # When the underlying synctable that defines the state of the document changes
