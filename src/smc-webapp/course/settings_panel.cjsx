@@ -18,7 +18,7 @@ schema = require('smc-util/schema')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-StudentProjectsStartStopPanel = rclass ({name}) ->
+exports.StudentProjectsStartStopPanel = StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
 
     reduxProps :

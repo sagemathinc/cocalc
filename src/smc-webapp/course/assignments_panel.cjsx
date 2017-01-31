@@ -10,6 +10,7 @@ misc = require('smc-util/misc')
 # SMC and course components
 course_funcs = require('./course_funcs')
 styles = require('./styles')
+{StudentProjectsStartStopPanel} = require('./settings_panel')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, SearchInput, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready,
     BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
@@ -89,6 +90,17 @@ exports.AssignmentsPanel = rclass ({name}) ->
             else
                 @props.actions.add_assignment(path)
 
+    render_start_stop_projects: ->
+        r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
+        n = @props.redux.getStore(@props.name).num_students()
+        <div>
+            <StudentProjectsStartStopPanel
+                name                 = {@props.name}
+                num_running_projects = {r}
+                num_students         = {n}
+            />
+        </div>
+
     render: ->
         {shown_assignments, deleted_assignments, num_omitted, num_deleted} = @compute_assignment_list()
         add_assignment = @yield_adder(deleted_assignments)
@@ -106,6 +118,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             />
 
         <Panel header={header}>
+            {@render_start_stop_projects()}
             {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
