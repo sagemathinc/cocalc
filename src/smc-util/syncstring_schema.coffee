@@ -32,7 +32,7 @@ schema.syncstrings =
             desc : 'if true, the file was deleted; client **must** create file on disk before editing again.'
         init :
             type : 'map'
-            desc : '{time:timestamp, error:?} - info about what happened when backend tried to initialize this string'
+            desc : '{time:timestamp, error:?} - info about what happened when project tried to initialize this string'
         save :
             type : 'map'
             desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
