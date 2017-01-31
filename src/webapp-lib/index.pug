@@ -5,38 +5,37 @@ html
     meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
     meta(http-equiv="X-UA-Compatible" content="IE=edge")
     meta(name="google"      content="notranslate")
-    meta(name="description" content="#{ htmlWebpackPlugin.options.title }")
-    meta(name="author"      content="#{ htmlWebpackPlugin.options.title } Authors")
-    meta(name="date"        content="#{ htmlWebpackPlugin.options.date }")
-    meta(name="version"     content="#{ htmlWebpackPlugin.options.version }")
+    meta(name="description" content=htmlWebpackPlugin.options.title)
+    meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
+    meta(name="date"        content=htmlWebpackPlugin.options.date)
+    meta(name="version"     content=htmlWebpackPlugin.options.version)
     title= htmlWebpackPlugin.options.title
 
     //- ****** faviconit.com favicons ******
     //- Basic favicons -->
-    link(rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href="#{require('!file!favicon.ico')}")
-    link(rel="shortcut icon" type="image/x-icon" href="#{require('!file!favicon.ico')}")
-    <!--[if IE]><link rel="shortcut icon" href="#{require('!file!favicon.ico')}"><![endif]-->
+    link(rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href=require('!file!favicon.ico'))
+    link(rel="shortcut icon" type="image/x-icon" href=require('!file!favicon.ico'))
     //- For Opera Speed Dial:
-    link(rel="icon" type="image/png" sizes="195x195" href="#{require('!file!favicon-195.png') }")
+    link(rel="icon" type="image/png" sizes="195x195" href=require('!file!favicon-195.png'))
     //- For iPad with high-resolution Retina display running iOS ≥ 7:
-    link(rel="apple-touch-icon" sizes="152x152" href="#{require('!file!favicon-152.png') }")
+    link(rel="apple-touch-icon" sizes="152x152" href=require('!file!favicon-152.png'))
     //- For iPad with high-resolution Retina display running iOS ≤ 6:
-    link(rel="apple-touch-icon" sizes="144x144" href="#{require('!file!favicon-144.png') }")
+    link(rel="apple-touch-icon" sizes="144x144" href=require('!file!favicon-144.png'))
     //- For iPhone with high-resolution Retina display running iOS ≥ 7:
-    link(rel="apple-touch-icon" sizes="120x120" href="#{require('!file!favicon-120.png') }")
+    link(rel="apple-touch-icon" sizes="120x120" href=require('!file!favicon-120.png'))
     //- For iPhone with high-resolution Retina display running iOS ≤ 6:
-    link(rel="apple-touch-icon" sizes="114x114" href="#{require('!file!favicon-114.png') }")
+    link(rel="apple-touch-icon" sizes="114x114" href=require('!file!favicon-114.png'))
     //- For Google TV devices:
-    link(rel="icon" type="image/png" sizes="96x96" href="#{require('!file!favicon-96.png') }")
+    link(rel="icon" type="image/png" sizes="96x96" href=require('!file!favicon-96.png'))
     //- For iPad Mini:
-    link(rel="apple-touch-icon" sizes="76x76" href="#{require('!file!favicon-76.png') }")
+    link(rel="apple-touch-icon" sizes="76x76" href=require('!file!favicon-76.png'))
     //- For first- and second-generation iPad:
-    link(rel="apple-touch-icon" sizes="72x72" href="#{require('!file!favicon-72.png') }")
+    link(rel="apple-touch-icon" sizes="72x72" href=require('!file!favicon-72.png'))
     //- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices:
-    link(rel="apple-touch-icon" href="#{require('!file!favicon-57.png') }")
+    link(rel="apple-touch-icon" href=require('!file!favicon-57.png'))
     //- Windows 8 Tiles
     meta(name="msapplication-TileColor" content="#C9C9F9")
-    meta(name="msapplication-TileImage" content="#{require('!file!favicon-144.png') }")
+    meta(name="msapplication-TileImage" content=require('!file!favicon-144.png'))
     //- ****** faviconit.com favicons ******
 
   body
@@ -44,7 +43,7 @@ html
       #{require('!css?minimize!smc-startup-style.css')}
     div#smc-startup-banner
       div
-        img(src="#{ require('!url?mimetype=image/svg+xml!salvus-icon.svg') }")
+        img(src=require('!url?mimetype=image/svg+xml!salvus-icon.svg'))
       div
         div.banner-blink
             | Loading
