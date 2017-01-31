@@ -282,7 +282,7 @@ class SortedPatchList extends EventEmitter
     getting inserted into the changelog.
 
     If without is defined, it must be an array of Date objects; in that case
-    the current value of the strig is computed, but with all the patches
+    the current value of the string is computed, but with all the patches
     at the given times in "without" ignored.  This is used elsewhere as a building
     block to implement undo.
     ###
@@ -926,7 +926,6 @@ class SyncDoc extends EventEmitter
         )
 
     _patch_table_query: (cutoff) =>
-        # avoid potential roundoff errors and >= vs > for timestamps, which are iffy.
         query =
             string_id: @_string_id
             time     : if cutoff then {'>=':cutoff} else null
@@ -952,7 +951,7 @@ class SyncDoc extends EventEmitter
         ###
         TODO/CRITICAL: We are temporarily disabling same-user collision detection, since this seems to be leading to
         serious issues involving a feedback loop, which may be way worse than the 1 in a million issue
-        that this addresses.  This only address the *same* accout being used simultaneously on the same file
+        that this addresses.  This only address the *same* account being used simultaneously on the same file
         by multiple people which isn't something users should ever do (but they do in big demos).
 
         @_patch_list.on 'overwrite', (t) =>
@@ -963,6 +962,21 @@ class SyncDoc extends EventEmitter
 
         @_patches_table.on 'saved', (data) =>
             @_handle_offline(data)
+
+    ###
+    _check_for_timestamp_collision: (t) =>
+        obj = @_my_patches[t]
+        if not obj?
+            return
+        key = @_patches_table.key(obj)
+        if obj.patch != @_patches_table.get(key)?.get('patch')
+            #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
+            # We fix the collision by finding the nearest time after time that
+            # is available, and reinserting our patch at that new time.
+            @_my_patches[t] = 'killed'
+            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
+            @_save_patch(new_time, JSON.parse(obj.patch))
+    ###
 
     _init_evaluator: (cb) =>
         if misc.filename_extension(@_path) == 'sagews'
@@ -1098,18 +1112,6 @@ class SyncDoc extends EventEmitter
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
 
-    _check_for_timestamp_collision: (t) =>
-        obj = @_my_patches[t]
-        if not obj?
-            return
-        key = @_patches_table.key(obj)
-        if obj.patch != @_patches_table.get(key)?.get('patch')
-            #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
-            # We fix the collision by finding the nearest time after time that
-            # is available, and reinserting our patch at that new time.
-            @_my_patches[t] = 'killed'
-            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
-            @_save_patch(new_time, JSON.parse(obj.patch))
 
     # Save current live string to backend.  It's safe to call this frequently,
     # since it will debounce itself.
