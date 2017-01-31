@@ -133,31 +133,41 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_client?
             @_client.end()
             delete @_client
+        client = undefined
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
                 dbg("first make sure db exists")
                 @_ensure_database_exists(cb)
             (cb) =>
-                @_client = new pg.Client
+                dbg("create client and start connecting...")
+                client = new pg.Client
                     user     : 'smc'
                     host     : if @_host then @_host    # undefined if @_host=''
                     port     : @_port
                     password : @_password
                     database : @_database
                 if @_notification?
-                    @_client.on('notification', @_notification)
-                @_client.on 'error', (err) =>
+                    client.on('notification', @_notification)
+                client.on 'error', (err) =>
                     dbg("error -- #{err}")
-                    @_client?.end()
+                    client?.end()
                     delete @_client
                     @connect()  # start trying to reconnect
-                @_client.connect(cb)
+                client.connect(cb)
+            (cb) =>
+                # CRITICAL!  At scale, this query
+                #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
+                # will take forever due to the query planner using a nestloop scan.  We thus
+                # disable doing so!
+                dbg("now connected; disabling nestloop query planning.")
+                client.query("SET enable_nestloop TO off", cb)
         ], (err) =>
             if err
                 dbg("Failed to connect to database -- #{err}")
                 cb?(err)
             else
+                @_client = client
                 dbg("connected!")
                 cb?(undefined, @)
         )
