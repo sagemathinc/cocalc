@@ -1512,11 +1512,14 @@ class SyncDoc extends EventEmitter
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
     has_unsaved_changes: () =>
-        return misc.hash_string(@get()) != @hash_of_saved_version()
+        return @hash_of_live_version() != @hash_of_saved_version()
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
         return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
+
+    hash_of_live_version: =>
+        return misc.hash_string(@get())
 
     # Initiates a save of file to disk, then if cb is set, waits for the state to
     # change to done before calling cb.
