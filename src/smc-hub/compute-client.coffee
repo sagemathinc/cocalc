@@ -352,12 +352,18 @@ class ComputeServerClient
                             return 0
                     dbg("scored host info = #{misc.to_json(([info.host,info.score] for info in v))}")
                     # finally choose one of the hosts with the highest score at random.
+                    ###
                     best_score = v[0].score
                     i = 0
                     while i < v.length and v[i].score == best_score
                         i += 1
-                    w = v.slice(0,i)
-                    opts.cb(undefined, misc.random_choice(w).host)
+                    v = v.slice(0,i)
+                    ###
+
+                    # I'm disabling this, since in practice random is probably
+                    # better than the very naive approach above, given that we sometimes
+                    # have 100+ projects created at once, and they all end up in the same place!
+                    opts.cb(undefined, misc.random_choice(v).host)
 
     remove_from_cache: (opts) =>
         opts = defaults opts,
