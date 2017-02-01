@@ -178,7 +178,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:-1, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: new row for relation "patches" violates check constraint "patches_user_id_check"')
+                expect(err).toContain('new row for relation "patches" violates check constraint')
                 done()
 
     it 'tries to write invalid string_id and fails', (done) ->
@@ -194,7 +194,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:'sage', user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
                 done()
 
     it 'tries to write invalid sent type and fails', (done) ->
@@ -202,7 +202,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, sent:'sage', patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
                 done()
 
     it 'tries to write invalid prev type and fails', (done) ->
@@ -210,7 +210,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, prev:'sage', patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
                 done()
 
     it 'tries to change past author and fails', (done) ->
@@ -242,7 +242,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{string_id:string_id, time:t0, patch:patch0}}
             cb         : (err) ->
-                expect(err).toEqual('postgresql error: null value in column "user_id" violates not-null constraint')
+                expect(err).toContain('null value in column "user_id" violates not-null constraint')
                 done()
 
 describe 'changefeed tests on patches table', ->

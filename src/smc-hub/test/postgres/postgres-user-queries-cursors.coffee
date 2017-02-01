@@ -211,7 +211,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[0]
             query : {cursors:{string_id:string_id, time:t[4], user_id:0, locs:'foo bar'}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: malformed array literal: "foo bar"')
+                expect(err).toContain('malformed array literal')
                 done()
 
     it 'tries to write invalid string_id and fails', (done) ->
@@ -227,7 +227,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[0]
             query : {cursors:{string_id:string_id, time:t[4], user_id:2}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: null value in column "locs" violates not-null constraint')
+                expect(err).toContain('violates not-null constraint')
                 done()
 
     it 'tries to write invalid time and fails', (done) ->
@@ -235,7 +235,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[0]
             query : {cursors:{string_id:string_id, time:'sage', user_id:2, locs:[{x:20,y:25}]}}
             cb    : (err) ->
-                expect(err).toEqual('postgresql error: invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp')
                 done()
 
 describe 'changefeed tests on cursors table', ->

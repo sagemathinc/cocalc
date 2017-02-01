@@ -34,6 +34,10 @@ Find active sage worksheets:
 
     select * from syncstrings where path like '%.sagews' and last_active is not null order by last_active desc limit 10;
 
+Same as above, but return URIs to the files.
+
+    select format('/projects/%s/files/%s', project_id, path) from syncstrings where path like '%.sagews' and last_active is not null order by last_active desc limit 30;
+
 Active syncstrings:
 
     select string_id, project_id, left(path,50) as path, NOW()-last_active from syncstrings where last_active is not null order by last_active desc limit 20;
@@ -42,3 +46,10 @@ Active syncstrings in a particular project:
 
     select string_id, left(path,50) as path, NOW()-last_active as age from syncstrings where project_id='0bdb2cf7-fd5b-473f-9bfc-801f09efe8a3' and  last_active is not null order by last_active desc limit 20;
 
+Syncstrings with given path and owner:
+
+    select * from syncstrings where path='assignments/2017-01-31/problem-5/problem-5.tex' and array['6ad75132-11ce-4917-9e14-ac9b53a8bd76'::uuid]@>users  is not null order by last_active desc limit 5;
+
+What's going on in the DB right now:
+
+    select now()-query_start,client_addr,left(query,130) from pg_stat_activity order by now()-query_start desc;
