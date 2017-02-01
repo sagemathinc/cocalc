@@ -236,6 +236,9 @@ class SortedPatchList extends EventEmitter
         oldest = undefined
         for x in patches
             if x?
+                if not misc.is_date(x.time)
+                    # ensure that time is not a string representation of a time
+                    x.time = new Date(x.time)
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
@@ -1177,6 +1180,8 @@ class SyncDoc extends EventEmitter
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
         time    = x.get('time')
+        if not misc.is_date(time)
+            time = new Date(time)
         user_id = x.get('user_id')
         sent    = x.get('sent')
         prev    = x.get('prev')
@@ -1673,6 +1678,24 @@ class SyncDoc extends EventEmitter
     # safe for the user to close their browser.
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
+
+    ###
+    _test_random_edit: () =>
+        s = @get()
+        i = misc.randint(0, s.length-1)
+        if Math.random() <= .2
+            # delete text
+            s = s.slice(0,i) + s.slice(i-misc.randint(1,25))
+        else
+            # insert about 25 characters at random
+            s = s.slice(0,i) + Math.random().toString(36).slice(2) + s.slice(i)
+        @set(s)
+
+    test_random_edits: (opts) =>
+        opts = defaults opts,
+            number : 5
+            cb     : undefined
+    ###
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.
