@@ -182,7 +182,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _dbg: (f) =>
         if @_debug
-            return (m) => winston.debug("PostgreSQL.#{f}: #{m}")
+            return (m) => winston.debug("PostgreSQL.#{f}: #{misc.trunc_middle(JSON.stringify(m), 1000)}")
         else
             return ->
 
