@@ -519,7 +519,6 @@ class SyncDoc extends EventEmitter
         if window?
             window.syncstrings ?= {}
             window.syncstrings[@_path] = @
-        ## window?.smc[@_path] = @  # for debugging
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
