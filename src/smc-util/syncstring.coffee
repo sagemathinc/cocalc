@@ -429,21 +429,22 @@ class SortedPatchList extends EventEmitter
         opts = defaults opts,
             milliseconds : false
             trunc        : 80
+            log          : console.log
         s = undefined
         i = 0
         prev_cutoff = @newest_snapshot_time()
         for x in @_patches
             tm = x.time
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
-            console.log("-----------------------------------------------------\n", i, x.user_id, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
+            opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
             if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                 t = apply_patch(x.patch, s)
             else
-                console.log("prev=#{x.prev} missing, so not applying")
+                opts.log("prev=#{x.prev} missing, so not applying")
             s = t[0]
-            console.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()))
+            opts.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()))
             i += 1
         return
 
@@ -515,7 +516,7 @@ class SyncDoc extends EventEmitter
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
-        ## window.smc[@_path] = @  # for debugging
+        ## window?.smc[@_path] = @  # for debugging
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -561,7 +562,7 @@ class SyncDoc extends EventEmitter
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
     version: (time) =>
-        return @_patch_list.value(time)
+        return @_patch_list?.value(time)
 
     # Compute version of document if the patches at the given times were simply not included.
     # This is a building block that is used for implementing undo functionality for client editors.
