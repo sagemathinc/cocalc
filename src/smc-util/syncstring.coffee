@@ -516,6 +516,9 @@ class SyncDoc extends EventEmitter
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
+        if window?
+            window.syncstrings ?= {}
+            window.syncstrings[@_path] = @
         ## window?.smc[@_path] = @  # for debugging
 
         #dbg = @dbg("constructor(path='#{@_path}')")

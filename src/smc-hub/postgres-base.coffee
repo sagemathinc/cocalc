@@ -12,7 +12,7 @@ EventEmitter = require('events')
 fs      = require('fs')
 async   = require('async')
 
-pg      = require('pg').native    # You might have to do: "apt-get install libpq5"
+pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 # You can uncommment this to use the pure javascript driver.
 #  However: (1) it can be 5x slower or more!
 #           (2) I think it corrupts something somehow in a subtle way, since our whole
