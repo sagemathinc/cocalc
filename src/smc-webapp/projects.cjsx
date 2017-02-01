@@ -77,7 +77,7 @@ class ProjectsActions extends Actions
 
     set_project_title: (project_id, title) =>
         if not @have_project(project_id)
-            alert_message(type:'error', message:"Can't set title -- you are not a collaborator on this project.")
+            console.warn("Can't set title -- you are not a collaborator on this project.")
             return
         if store.get_title(project_id) == title
             # title is already set as requested; nothing to do
@@ -91,7 +91,7 @@ class ProjectsActions extends Actions
 
     set_project_description: (project_id, description) =>
         if not @have_project(project_id)
-            alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            console.warn("Can't set description -- you are not a collaborator on this project.")
             return
         if store.get_description(project_id) == description
             # description is already set as requested; nothing to do
