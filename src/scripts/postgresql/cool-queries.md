@@ -34,6 +34,10 @@ Find active sage worksheets:
 
     select * from syncstrings where path like '%.sagews' and last_active is not null order by last_active desc limit 10;
 
+Same as above, but return URIs to the files.
+
+    select format('/projects/%s/files/%s', project_id, path) from syncstrings where path like '%.sagews' and last_active is not null order by last_active desc limit 30;
+
 Active syncstrings:
 
     select string_id, project_id, left(path,50) as path, NOW()-last_active from syncstrings where last_active is not null order by last_active desc limit 20;
