@@ -20,11 +20,15 @@ if len(sys.argv) > 1:
 else:
     n = 5
 
+users = {}
 for x in os.popen("ps aux | sort -nrk 3,3").readlines():
     v = x.split()
     user = v[0]
     if user not in ['root', 'salvus']:
-       renice_user(user)
+       users[user] = True
     n -= 1
     if n <= 0:
         break
+
+for user in users.keys():
+    renice_user(user)
