@@ -1866,7 +1866,7 @@ init_redux = (course_filename, redux, course_project_id) ->
         filename   : course_filename
         cb         : (err, _db) ->
             if err
-                get_actions().set_error("unable to open #{@filename}")
+                get_actions()?.set_error("unable to open #{@filename}")
             else
                 syncdbs[the_redux_name] = syncdb = _db
                 i = course_filename.lastIndexOf('.')
@@ -1882,8 +1882,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                         t.handouts[x.handout_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
-                get_actions().setState(t)
-                syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                get_actions()?.setState(t)
+                syncdb.on('change', (changes) -> get_actions()?._syncdb_change(changes))
                 syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
@@ -1893,6 +1893,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                     timeout : 30
                     cb      : ->
                         actions = get_actions()
+                        if not actions?
+                            return
                         actions.lookup_nonregistered_students()
                         actions.configure_all_projects()
 

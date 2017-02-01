@@ -220,7 +220,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     />
                 </Col>
                 <Col md=4>
-                    {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
+                    {<h6>(Omitting {num_omitted} students)</h6> if num_omitted}
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
@@ -588,15 +588,15 @@ Student = rclass
     render_basic_info: ->
         <Row key='basic' style={backgroundColor:@props.background}>
             <Col md=3>
-                <h5>
+                <h6>
                     {@render_student()}
                     {@render_deleted()}
-                </h5>
+                </h6>
             </Col>
             <Col md=2>
-                <h5 style={color:"#666"}>
+                <h6 style={color:"#666"}>
                     {@render_student_email()}
-                </h5>
+                </h6>
             </Col>
             <Col md=4 style={paddingTop:'10px'}>
                 {@render_last_active()}
