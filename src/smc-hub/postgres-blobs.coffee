@@ -36,6 +36,10 @@ class exports.PostgreSQL extends PostgreSQL
             compress   : undefined # optional compression to use: 'gzip', 'zlib', 'snappy'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        if not Buffer.isBuffer(opts.blob)
+            # CRITICAL: We assume everywhere below that opts.blob is a
+            # buffer, e.g., in the .toString('hex') method!
+            opts.blob = new Buffer(opts.blob)
         if not opts.uuid?
             opts.uuid = misc_node.uuidsha1(opts.blob)
         else if opts.check
