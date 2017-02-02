@@ -171,7 +171,7 @@ class exports.Client extends EventEmitter
 
             if val.get("last_active") > cutoff
                 keys[string_id] = true   # anything not set here gets closed below.
-                dbg("considering '#{path}' with id '#{string_id}'")
+                #dbg("considering '#{path}' with id '#{string_id}'")
                 if @_open_syncstrings[string_id]? or @_wait_syncstrings[string_id]
                     # either already open or waiting a bit before opening
                     return
@@ -376,15 +376,18 @@ class exports.Client extends EventEmitter
         if opts.changes
             # Record socket for this changefeed in @_changefeed_sockets
             @_changefeed_sockets[mesg.id] = socket
+            # CRITICAL: On error or end, send an end error to the synctable, so that it will
+            # attempt to reconnect (and also stop writing to the socket).
+            # This is important, since for project clients
+            # the disconnected event is only emitted when *all* connections from
+            # hubs to the local_hub end.  If two connections s1 and s2 are open,
+            # and s1 is used for a sync table, and s1 closes (e.g., hub1 is restarted),
+            # then s2 is still open and no 'disconnected' event is emitted.  Nonetheless,
+            # it's important for the project to consider the synctable broken and
+            # try to reconnect it, which in this case it would do using s2.
+            socket.on 'error', =>
+                opts.cb('socket-end')
             socket.on 'end', =>
-                # CRITICAL: Send an end error to the synctable, so that it will
-                # attempt to reconnect.  This is important, since for project clients
-                # the disconnected event is only emitted when *all* connections from
-                # hubs to the local_hub end.  If two connections s1 and s2 are open,
-                # and s1 is used for a sync table, and s1 closes (e.g., hub1 is restarted),
-                # then s2 is still open and no 'disconnected' event is emitted.  Nonetheless,
-                # it's important for the project to consider the synctable broken and
-                # try to reconnect it, which in this case it would do using s2.
                 opts.cb('socket-end')
         @call
             message     : mesg
