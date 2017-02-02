@@ -1762,3 +1762,52 @@ exports.open_new_tab = (url, popup=false) ->
             timeout : 10
         return null
     return tab
+
+exports.init_webapp_error_reporting = ->
+    # reporting errors
+    # thx to http://stackoverflow.com/a/31750604/54236 and https://blog.bugsnag.com/js-stacktraces/
+
+    sendError = (msg, stack) ->
+        {salvus_client} = require('./salvus_client')
+        {IS_MOBILE, get_browser, is_responsive_mode} = require('./feature')
+        ua = navigator?.userAgent
+        path = window.location.pathname
+        salvus_client.webapp_error(msg, stack, get_browser(), IS_MOBILE, is_responsive_mode(), ua, path)
+
+    # this eventListener trick does *NOT* work. it's suggested in the links above, but messes up those hover-help boxes in sagews
+    wrapErrors = (func) ->
+        # Ensure we only wrap the function once.
+        if not func._wrapped
+            func._wrapped = ->
+                try
+                    func.apply(this, arguments);
+                catch e
+                    if e?
+                        console.log(e.message, "from", e.stack)
+                        window.S = e.stack
+                        sendError(e.message, e.stack)
+                    #throw e
+            return func._wrapped
+
+    ###
+    addEventListener = window.EventTarget.prototype.addEventListener
+    window.EventTarget.prototype.addEventListener = (event, callback, bubble) ->
+        addEventListener.call(this, event, wrapErrors(callback), bubble)
+
+    removeEventListener = window.EventTarget.prototype.removeEventListener
+    window.EventTarget.prototype.removeEventListener = (event, callback, bubble) ->
+        removeEventListener.call(this, event, callback._wrapped || callback, bubble)
+    ###
+
+    ### # no error object in chrome (???)
+    window.addEventListener "error", (e) ->
+        console.log e.error
+        sendError(e.error.message, e.error.stack)
+        return false
+    ###
+
+    ###
+    window.onerror = (message, file, line, col, error) ->
+        console.log(message, file, line, col, error)
+        sendError(message, error.stack)
+    ###

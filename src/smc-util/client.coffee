@@ -1354,6 +1354,17 @@ class exports.Connection extends EventEmitter
     log_error: (error) =>
         @call(message : message.log_client_error(error:error))
 
+    webapp_error: (msg, stack, browser, mobile, responsive, user_agent, path) =>
+        @call(message : message.webapp_error
+                                  msg        : msg
+                                  stack      : stack
+                                  browser    : browser
+                                  mobile     : mobile
+                                  responsive : responsive
+                                  user_agent : user_agent
+                                  path       : path
+         )
+
 
     ######################################################################
     # stripe payments api

@@ -385,6 +385,25 @@ schema.client_error_log =
         event : []
     pg_indexes : ['time', 'event']
 
+schema.webapp_errors =
+    primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        id           : type : 'uuid'
+        msg          : type : 'string'
+        stack        : type : 'string'
+        account_id   : type : 'uuid'
+        mobile       : type : 'boolean'
+        browser      : type : 'string'
+        responsive   : type : 'boolean'
+        user_agent   : type : 'string'
+        path         : type : 'text'
+        time         : type : 'timestamp'
+    indexes:
+        time         : []
+        account_id   : []
+    pg_indexes : ['time', 'account_id']
+
 schema.collaborators =
     primary_key : 'account_id'
     anonymous   : false

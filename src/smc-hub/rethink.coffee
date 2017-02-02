@@ -904,6 +904,17 @@ class RethinkDB
             x.account_id = opts.account_id
         @table('client_error_log').insert(x).run((err)=>opts.cb?(err))
 
+    webapp_error: (opts) =>
+        opts = defaults opts,
+            account_id  : undefined
+            msg         : undefined
+            stack       : undefined
+            cb          : undefined
+        error = {msg: opts.msg, stack: opts.stack, time: new Date()}
+        if opts.account_id?
+            error.account_id = opts.account_id
+        @table('webapp_errors').insert(error).run((err)=>opts.cb?(err))
+
     get_client_error_log: (opts={}) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time

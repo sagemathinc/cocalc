@@ -851,7 +851,15 @@ message
     event : 'log_client_error'
     error : required
 
-
+message
+    event      : 'webapp_error'
+    msg        : required # string
+    stack      : required # string (multiple lines)
+    browser    : undefined # string, how feature.coffee detected the browser
+    mobile     : undefined # boolean, feature.coffee::IS_MOBILE
+    responsive : undefined # boolean, feature.coffee::is_responsive_mode
+    user_agent : undefined # string
+    path       : undefined # stirng
 
 
 #############################################

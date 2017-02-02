@@ -797,6 +797,18 @@ class Client extends EventEmitter
             error      : mesg.error
             account_id : @account_id
 
+    mesg_webapp_error: (mesg) =>
+        winston.debug("webapp_error: #{mesg.msg}")
+        database.webapp_error
+            account_id  : @account_id
+            msg         : mesg.msg
+            stack       : mesg.stack
+            browser     : mesg.browser
+            mobile      : mesg.mobile
+            responsive  : mesg.responsive
+            user_agent  : mesg.user_agent
+            path        : mesg.path
+
     ######################################################
     # Messages: Project Management
     ######################################################

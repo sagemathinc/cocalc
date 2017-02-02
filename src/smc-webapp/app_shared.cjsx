@@ -94,7 +94,10 @@ exports.NotificationBell = rclass
     propTypes :
         count : rtypes.number
 
-    on_click: ->
+    on_click: (e) ->
+        if DEBUG and e.shiftKey
+            # used to trigger an exception to test catching it
+            not_defined()
         @actions('page').toggle_show_file_use()
 
     notification_count: ->

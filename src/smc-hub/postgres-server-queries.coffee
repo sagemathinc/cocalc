@@ -105,6 +105,32 @@ class exports.PostgreSQL extends PostgreSQL
                 'time       :: TIMESTAMP' : 'NOW()'
             cb     : opts.cb
 
+    webapp_error: (opts) =>
+        opts = defaults opts,
+            account_id  : undefined
+            msg         : undefined
+            stack       : undefined
+            browser     : undefined
+            mobile      : undefined
+            responsive  : undefined
+            user_agent  : undefined
+            path        : undefined
+            cb          : undefined
+        @_query
+            query       : 'INSERT INTO webapp_errors'
+            values      :
+                'id          :: UUID'      : misc.uuid()
+                'account_id  :: UUID'      : opts.account_id
+                'msg         :: TEXT'      : opts.msg
+                'stack       :: TEXT'      : opts.stack
+                'browser     :: TEXT'      : opts.browser
+                'mobile      :: BOOLEAN'   : opts.mobile
+                'responsive  :: BOOLEAN'   : opts.responsive
+                'user_agent  :: TEXT'      : opts.user_agent
+                'path        :: TEXT'      : opts.path
+                'time        :: TIMESTAMP' : 'NOW()'
+            cb          : opts.cb
+
     get_client_error_log: (opts) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
