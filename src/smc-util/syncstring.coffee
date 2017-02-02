@@ -238,7 +238,13 @@ class SortedPatchList extends EventEmitter
             if x?
                 if not misc.is_date(x.time)
                     # ensure that time is not a string representation of a time
-                    x.time = new Date(x.time)
+                    try
+                        x.time = new Date(x.time)
+                        if isNaN(x.time)  # ignore bad times
+                            continue
+                    catch err
+                        # ignore invalid times
+                        continue
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
@@ -1181,7 +1187,13 @@ class SyncDoc extends EventEmitter
             return
         time    = x.get('time')
         if not misc.is_date(time)
-            time = new Date(time)
+            try
+                time = new Date(time)
+                if isNaN(time)  # ignore patches with bad times
+                    return
+            catch err
+                # ignore patches with invalid times
+                return
         user_id = x.get('user_id')
         sent    = x.get('sent')
         prev    = x.get('prev')
