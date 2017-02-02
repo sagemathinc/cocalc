@@ -144,6 +144,8 @@ class ConnectionJSON(object):
 
     def send_json(self, m):
         m = json.dumps(m)
+        if '\\u0000' in m:
+            raise RuntimeError("NULL bytes not allowed")
         log(u"sending message '", truncate_text(m, 256), u"'")
         self._send('j' + m)
         return len(m)
@@ -394,7 +396,11 @@ class BufferedOutputStream(object):
         return 0
 
     def write(self, output):
-        self._buf += output
+        # CRITICAL: we need output to valid PostgreSQL TEXT, so no null bytes
+        # This is not going to silently corrupt anything -- it's just output that
+        # is destined to be *rendered* in the browser.  This is only a partial
+        # solution to a more general problem, but it is safe.
+        self._buf += output.replace('\x00','')
         #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
