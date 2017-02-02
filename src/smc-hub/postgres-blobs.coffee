@@ -43,6 +43,8 @@ class exports.PostgreSQL extends PostgreSQL
             if uuid != opts.uuid
                 opts.cb("the sha1 uuid (='#{uuid}') of the blob must equal the given uuid (='#{opts.uuid}')")
                 return
+        dbg = @_dbg("save_blob(uuid='#{opts.uuid}')")
+        dbg()
         rows = ttl = undefined
         async.series([
             (cb) =>
@@ -53,7 +55,7 @@ class exports.PostgreSQL extends PostgreSQL
                         rows = x.rows; cb(err)
             (cb) =>
                 if rows.length == 0 and opts.compress
-                    # compression requested and blob not already saved, so we compress blob
+                    dbg("compression requested and blob not already saved, so we compress blob")
                     switch opts.compress
                         when 'gzip'
                             zlib.gzip opts.blob, {level:opts.level}, (err, blob) =>
@@ -70,13 +72,14 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
             (cb) =>
                 if rows.length == 0
-                    # nothing in DB, so we insert the blob.
+                    dbg("nothing in DB, so we insert the blob.")
                     ttl = opts.ttl
+                    dbg("blob='#{opts.blob}'; type=#{typeof(opts.blob)}")
                     @_query
                         query  : "INSERT INTO blobs"
                         values :
                             id         : opts.uuid
-                            blob       : opts.blob
+                            blob       : '\\x'+opts.blob.toString('hex')
                             project_id : opts.project_id
                             count      : 0
                             size       : opts.blob.length
@@ -85,7 +88,7 @@ class exports.PostgreSQL extends PostgreSQL
                             expire     : if ttl then expire_time(ttl)
                         cb     : cb
                 else
-                    # blob already in the DB, so see if we need to change the expire time
+                    dbg("blob already in the DB, so see if we need to change the expire time")
                     @_extend_blob_ttl
                         expire : rows[0].expire
                         ttl    : opts.ttl
