@@ -172,6 +172,20 @@ describe 'use of eval_inputs table --', ->
                 expect(err).toContain('new row for relation "eval_inputs" violates check constraint')
                 done()
 
+    it 'inserts an ugly-formatted date, which works', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {eval_inputs:{string_id:string_id, time:'Wed Feb 01 2017 19:04:10 GMT-0600 (Central Standard Time)1', user_id:0, input:input}}
+            cb    : (done)
+
+    it 'inserts an horribly-formatted non-date, which does NOT work', (done) ->
+        db.user_query
+            account_id : accounts[0]
+            query : {eval_inputs:{string_id:string_id, time:'laksdjfasdf', user_id:0, input:input}}
+            cb    : (err) ->
+                expect(err).toContain('invalid input syntax for type timestamp')
+                done()
+
     it 'tests uses of eval_inputs changefeed', (done) ->
         changefeed_id = misc.uuid()
         t2 = new Date()
