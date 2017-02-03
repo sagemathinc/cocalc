@@ -428,6 +428,15 @@ init_redux = (course_filename, redux, course_project_id) ->
                 is_descending = false
             @setState(active_student_sort : {column_name, is_descending})
 
+        set_internal_student_name: (student, first_name, last_name) =>
+            store = get_store()
+            return if not store?
+            student = store.get_student(student)
+            #@_update
+            #    set   : {first_name, last_name}
+            #    where : {student_id : student.get('student_id'), table : 'students'}
+            #@configure_all_projects()   # since they may get removed from shared project, etc.
+
         # Student projects
 
         # Create a single student project.
@@ -1549,20 +1558,30 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_students: =>
             @get('students')
 
+        # Uses an instructor given name if it exists
         get_student_name: (student, include_email=false) =>
             student = @get_student(student)
             if not student?
                 return 'student'
             email = student.get('email_address')
-            name = user_store.get_name(student.get('account_id'))
-            n = name ? email ? 'student'
-            if not include_email
-                return n
-            if include_email and name? and email?
-                full = n + " <#{email}>"
+            account_id = student.get('account_id')
+            first_name = student.get('first_name') ? user_store.get_first_name(account_id)
+            last_name = student.get('last_name') ? user_store.get_last_name(account_id)
+            if first_name? and last_name?
+                full_name = first_name + ' ' + last_name
+            else if first_name?
+                full_name = first_name
+            else if last_name?
+                full_name = last_name
             else
-                full = n
-            return {simple:n.replace(/\W/g, ' '), full:full}
+                full_name = email ? 'student'
+            if not include_email
+                return full_name
+            if include_email and full_name? and email?
+                full = full_name + " <#{email}>"
+            else
+                full = full_name
+            return {simple:full_name.replace(/\W/g, ' '), full:full}
 
         get_student_email: (student) =>
             student = @get_student(student)

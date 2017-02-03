@@ -30,14 +30,15 @@ show_hide_deleted_style =
     float      : 'right'
 
 exports.StudentsPanel = rclass ({name}) ->
-    displayName : "CourseEditorStudents"
+    displayName: "CourseEditorStudents"
 
-    reduxProps :
+    reduxProps:
         "#{name}":
-            expanded_students : rtypes.immutable.Set
+            expanded_students   : rtypes.immutable.Set
             active_student_sort : rtypes.object
+            get_student_name    : rtypes.func
 
-    propTypes :
+    propTypes:
         name        : rtypes.string.isRequired
         redux       : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
@@ -273,7 +274,6 @@ exports.StudentsPanel = rclass ({name}) ->
         # create_project : True
         # deleted        : False
         # note           : "Is younger sister of Abby Florence (TA)"
-        # sort           : "florence rachel"
 
         v = immutable_to_list(@props.students, 'student_id')
         # Fill in values
@@ -281,8 +281,8 @@ exports.StudentsPanel = rclass ({name}) ->
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                x.first_name = user?.get('first_name') ? ''
-                x.last_name  = user?.get('last_name') ? ''
+                x.first_name ?= user?.get('first_name') ? ''
+                x.last_name  ?= user?.get('last_name') ? ''
                 if x.project_id?
                     x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime?()
                     upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
@@ -361,6 +361,7 @@ exports.StudentsPanel = rclass ({name}) ->
                      project_map={@props.project_map}
                      assignments={@props.assignments}
                      is_expanded={@props.expanded_students.has(x.student_id)}
+                     student_name={@props.get_student_name(x.student_id)}
                      />
 
     render_show_deleted: (num_deleted) ->
@@ -399,9 +400,9 @@ exports.StudentsPanel.Header = rclass
         </Tip>
 
 Student = rclass
-    displayName : "CourseEditorStudent"
+    displayName: "CourseEditorStudent"
 
-    propTypes :
+    propTypes:
         redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         student     : rtypes.object.isRequired
@@ -410,6 +411,7 @@ Student = rclass
         assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
         is_expanded  : rtypes.bool
+        student_name : rtypes.string
 
     shouldComponentUpdate: (nextProps, nextState) ->
         return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
@@ -427,7 +429,7 @@ Student = rclass
     render_student_name: ->
         account_id = @props.student.get('account_id')
         if account_id?
-            return <User account_id={account_id} user_map={@props.user_map} />
+            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name} />
         return <span>{@props.student.get("email_address")} (invited)</span>
 
     render_student_email: ->
