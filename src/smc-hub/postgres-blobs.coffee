@@ -36,6 +36,10 @@ class exports.PostgreSQL extends PostgreSQL
             compress   : undefined # optional compression to use: 'gzip', 'zlib', 'snappy'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        if not Buffer.isBuffer(opts.blob)
+            # CRITICAL: We assume everywhere below that opts.blob is a
+            # buffer, e.g., in the .toString('hex') method!
+            opts.blob = new Buffer(opts.blob)
         if not opts.uuid?
             opts.uuid = misc_node.uuidsha1(opts.blob)
         else if opts.check
@@ -43,6 +47,9 @@ class exports.PostgreSQL extends PostgreSQL
             if uuid != opts.uuid
                 opts.cb("the sha1 uuid (='#{uuid}') of the blob must equal the given uuid (='#{opts.uuid}')")
                 return
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb("uuid is invalid")
+            return
         dbg = @_dbg("save_blob(uuid='#{opts.uuid}')")
         dbg()
         rows = ttl = undefined
@@ -104,7 +111,9 @@ class exports.PostgreSQL extends PostgreSQL
             ttl    : required     # requested ttl -- extend expire to at least this
             uuid   : required
             cb     : required     # (err, effective ttl (with 0=oo))
-
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb("uuid is invalid")
+            return
         if not opts.expire
             # ttl already infinite -- nothing to do
             opts.cb(undefined, 0)
@@ -138,6 +147,9 @@ class exports.PostgreSQL extends PostgreSQL
                                 # (for faster access e.g., 20ms versus 5ms -- i.e., not much faster; gcloud is FAST too.)
             touch      : true
             cb         : required   # cb(err) or cb(undefined, blob_value) or cb(undefined, undefined) in case no such blob
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb("uuid is invalid")
+            return
         x    = undefined
         blob = undefined
         async.series([
@@ -207,6 +219,9 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             uuid : required
             cb   : undefined
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb?("uuid is invalid")
+            return
         @_query
             query : "UPDATE blobs SET count = count + 1, last_active = NOW()"
             where : "id = $::UUID" : opts.uuid
@@ -225,6 +240,9 @@ class exports.PostgreSQL extends PostgreSQL
             force  : false      # if true, upload even if already uploaded
             remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb?("uuid is invalid")
+            return
         x = undefined
         async.series([
             (cb) =>
@@ -478,7 +496,7 @@ class exports.PostgreSQL extends PostgreSQL
         @_query
             query : "UPDATE blobs"
             set   : {expire: null}
-            where : "id::UUID = ANY($)" : opts.uuids
+            where : "id::UUID = ANY($)" : (x for x in opts.uuids when misc.is_valid_uuid_string(x))
             cb    : opts.cb
 
     # If blob has been copied to gcloud, remove the BLOB part of the data
@@ -489,6 +507,9 @@ class exports.PostgreSQL extends PostgreSQL
             uuid   : required   # uuid=sha1-based from blob
             bucket : BLOB_GCLOUD_BUCKET # name of bucket
             cb     : undefined   # cb(err)
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb?("uuid is invalid")
+            return
         async.series([
             (cb) =>
                 # ensure blob is in gcloud
@@ -703,6 +724,9 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             uuid : required
             cb   : undefined
+        if not misc.is_valid_uuid_string(opts.uuid)
+            opts.cb?("uuid is invalid")
+            return
         gcloud = undefined
         dbg = @_dbg("delete_blob(uuid='#{opts.uuid}')")
         async.series([

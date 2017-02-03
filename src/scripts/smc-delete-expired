@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -e
+set -v
 
 # Ensure that the environment is setup; in particular, PGHOST
 . $HOME/.smc-conf

@@ -194,7 +194,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:'sage', user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp')
                 done()
 
     it 'tries to write invalid sent type and fails', (done) ->
@@ -202,7 +202,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, sent:'sage', patch:patch0}}
             cb    : (err) ->
-                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp')
                 done()
 
     it 'tries to write invalid prev type and fails', (done) ->
@@ -210,7 +210,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:string_id, time:misc.minutes_ago(4), user_id:0, prev:'sage', patch:patch0}}
             cb    : (err) ->
-                expect(err).toContain('invalid input syntax for type timestamp: "sage"')
+                expect(err).toContain('invalid input syntax for type timestamp')
                 done()
 
     it 'tries to change past author and fails', (done) ->

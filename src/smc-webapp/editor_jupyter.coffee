@@ -789,13 +789,11 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
-        ###
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1262' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1537' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
             @element.data("jupyter_notebook", @)
             opts.cb?()
             return
-        ###
         @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only

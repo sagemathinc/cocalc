@@ -134,6 +134,10 @@ class SyncTable extends EventEmitter
         @_init()
         @_created = new Date()
 
+    dbg: (f) =>
+        #return @_client.dbg("SyncTable('#{@_table}')")
+        return =>
+
     # Return string key used in the immutable map in which this table is stored.
     key: (obj) =>
         return @_key(obj)
@@ -164,9 +168,7 @@ class SyncTable extends EventEmitter
         # Not connected yet
         @_state = 'disconnected'
 
-        #dbg = @_client.dbg("_init('#{@_table}')")
-        #dbg()
-        dbg = ->
+        dbg = @dbg("_init")
 
         @_connect = () =>
             dbg("connect #{misc.to_json(@_query)}, state=#{@_state}")
@@ -320,8 +322,7 @@ class SyncTable extends EventEmitter
         if @_state == 'closed'
             # nothing to do
             return
-        #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
-        dbg = =>
+        dbg = @dbg("_reconnect")
         dbg()
         if not @_client._connected
             # nothing to do -- not connected to server; connecting to server triggers another reconnect later
@@ -561,8 +562,7 @@ class SyncTable extends EventEmitter
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
-        #dbg = (m) => console.log("_update_all(table='#{@_table}'): #{m}")
-        dbg = =>
+        dbg = @dbg("_update_all")
 
         if @_state == 'closed'
             # nothing to do -- just ignore updates from db

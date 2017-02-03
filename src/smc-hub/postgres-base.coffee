@@ -962,6 +962,7 @@ Other misc functions
 
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
+# The returned type from this function is upper case!
 exports.pg_type = pg_type = (info) ->
     if not info? or typeof(info) == 'boolean'
         throw Error("pg_type: insufficient information to determine type (info=#{typeof(info)})")

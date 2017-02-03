@@ -435,12 +435,27 @@ class exports.PostgreSQL extends PostgreSQL
     _user_set_query_where: (r) =>
         where = {}
         for primary_key in @_primary_keys(r.db_table)
-            type = pg_type(SCHEMA[r.db_table].fields[primary_key])
-            where["#{primary_key}=$::#{type}"] = r.query[primary_key]
+            type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
+            value = r.query[primary_key]
+            if type == 'TIMESTAMP' and not misc.is_date(value)
+                # Javascript is better at parsing its own dates than PostgreSQL
+                value = new Date(value)
+            where["#{primary_key}=$::#{type}"] = value
         return where
 
     _user_set_query_values: (r) =>
-        return r.query
+        values = {}
+        s = SCHEMA[r.db_table]
+        for key, value of r.query
+            type = pg_type(s?.fields?[key])
+            if type?
+                if type == 'TIMESTAMP' and not misc.is_date(value)
+                    # (as above) Javascript is better at parsing its own dates than PostgreSQL
+                    value = new Date(value)
+                values["#{key}::#{type}"] = value
+            else
+                values[key] = value
+        return values
 
     _user_set_query_hooks_prepare: (r, cb) =>
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
