@@ -432,10 +432,10 @@ init_redux = (course_filename, redux, course_project_id) ->
             store = get_store()
             return if not store?
             student = store.get_student(student)
-            #@_update
-            #    set   : {first_name, last_name}
-            #    where : {student_id : student.get('student_id'), table : 'students'}
-            #@configure_all_projects()   # since they may get removed from shared project, etc.
+            @_update
+                set   : {first_name, last_name}
+                where : {student_id : student.get('student_id'), table : 'students'}
+            @configure_all_projects()   # since they may get removed from shared project, etc.
 
         # Student projects
 

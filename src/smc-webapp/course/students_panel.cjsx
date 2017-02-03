@@ -350,13 +350,18 @@ exports.StudentsPanel = rclass ({name}) ->
 
     render_students: (students) ->
         for x,i in students
+            name =
+                full  : @props.get_student_name(x.student_id)
+                first : x.first_name
+                last  : x.last_name
+
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} redux={@props.redux} name={@props.name}
                      project_map={@props.project_map}
                      assignments={@props.assignments}
                      is_expanded={@props.expanded_students.has(x.student_id)}
-                     student_name={@props.get_student_name(x.student_id)}
+                     student_name={name}
                      />
 
     render_show_deleted: (num_deleted) ->
@@ -406,25 +411,58 @@ Student = rclass
         assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
         is_expanded  : rtypes.bool
-        student_name : rtypes.string
+        student_name : rtypes.object
 
     shouldComponentUpdate: (nextProps, nextState) ->
         return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
     getInitialState: ->
-        confirm_delete: false
+        confirm_delete    : false
+        editing_student   : false
+        edited_first_name : @props.student_name.first
+        edited_last_name  : @props.student_name.last
+
+    on_key_down: (e) ->
+        if e.keyCode == 13
+            @save_student_name()
+
+    toggle_show_more: (e) ->
+        e.preventDefault()
+        if not @state.editing_student
+            item_id = @props.student.get('student_id')
+            @actions(@props.name).toggle_item_expansion('student', item_id)
 
     render_student: ->
-        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('student', @props.student.get('student_id'))}>
-            <Icon style={marginRight:'10px'}
-                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}/>
+        <a href='' onClick={@toggle_show_more}>
+            {<Icon style={marginRight:'10px'}
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}
+            /> if not @state.editing_student}
             {@render_student_name()}
         </a>
 
     render_student_name: ->
+        if @state.editing_student
+            return <FormGroup style={marginBottom:'0px'}>
+                <FormControl
+                    type       = 'text'
+                    style      = {display:'inline-block', width:'50%'}
+                    value      = {@state.edited_first_name}
+                    onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                    onChange   = {(e) => @setState(edited_first_name : e.target.value)}
+                    onKeyDown  = {@on_key_down}
+                />
+                <FormControl
+                    type       = 'text'
+                    style      = {display:'inline-block', width:'50%'}
+                    value      = {@state.edited_last_name}
+                    onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                    onChange   = {(e) => @setState(edited_last_name : e.target.value)}
+                    onKeyDown  = {@on_key_down}
+                />
+            </FormGroup>
         account_id = @props.student.get('account_id')
         if account_id?
-            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name} />
+            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name.full} />
         return <span>{@props.student.get("email_address")} (invited)</span>
 
     render_student_email: ->
@@ -464,7 +502,7 @@ Student = rclass
                      <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free</span>
                 </Tip>
 
-    render_project: ->
+    render_project_access: ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
         if create?
@@ -492,6 +530,28 @@ Student = rclass
                     <Icon name="plus-circle" /> Create student project
                 </Button>
             </Tip>
+
+    render_edit_name: ->
+        if @state.editing_student
+            <div>
+                <Button onClick={@save_student_name} bsStyle='success'>
+                    <Icon name='save'/> Save
+                </Button>
+                <Button onClick={=>@setState(@getInitialState())} >
+                    Cancel
+                </Button>
+            </div>
+        else
+            <Button onClick={@show_edit_name_dialogue}>
+                <Icon name='address-card-o'/> Edit student...
+            </Button>
+
+    save_student_name: ->
+        @actions(@props.name).set_internal_student_name(@props.student, @state.edited_first_name, @state.edited_last_name)
+        @setState(editing_student:false)
+
+    show_edit_name_dialogue: ->
+        @setState(editing_student:true)
 
     delete_student: ->
         @props.redux.getActions(@props.name).delete_student(@props.student)
@@ -609,18 +669,23 @@ Student = rclass
 
     render_panel_header: ->
         <Row>
-            <Col md=4>
-                {@render_project()}
+            <Col md=2>
+                {@render_project_access()}
             </Col>
-            <Col md=4 mdOffset=4>
+            <Col md=6>
+                {@render_edit_name()}
+            </Col>
+            <Col md=4>
                 {@render_delete_button()}
             </Col>
         </Row>
 
     render_more_panel: ->
-        <Panel header={@render_panel_header()}>
-            {@render_more_info()}
-        </Panel>
+        <Row>
+            <Panel header={@render_panel_header()}>
+                {@render_more_info()}
+            </Panel>
+        </Row>
 
     render: ->
         <Row style={if @state.more then selected_entry_style}>
