@@ -156,6 +156,27 @@ describe 'testing working with blobs: ', ->
                         cb(err)
         ], done)
 
+    it 'tries to save a blob with an invalid uuid and gets an error', (done) ->
+        db.save_blob
+            uuid       : 'not a uuid'
+            blob       : new Buffer("This is a test blob")
+            project_id : project_id
+            cb         : (err) ->
+                expect(err).toEqual('uuid is invalid')
+                done()
+
+    it 'save a string blob (with a null byte!), and confirms it works (properly converted to Buffer)', (done) ->
+        async.series([
+            (cb) ->
+                db.save_blob(blob: 'my blob', project_id: project_id, cb: cb)
+            (cb) ->
+                db.get_blob
+                    uuid : uuidsha1('my blob')
+                    cb   : (err, blob2) ->
+                        expect(blob2?.toString()).toEqual('my blob')
+                        cb(err)
+        ], done)
+
     it 'creating 50 blobs and verifying that 50 are in the table', (done) ->
         async.series([
             (cb) ->
