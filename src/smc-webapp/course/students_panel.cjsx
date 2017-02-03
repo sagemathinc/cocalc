@@ -515,13 +515,19 @@ Student = rclass
 
         student_project_id = @props.student.get('project_id')
         if student_project_id?
-            <Tip placement='right'
-                 title='Student project'
-                 tip='Open the course project for this student.'>
-                <Button onClick={@open_project}>
-                    <Icon name="edit" /> Open student project
-                </Button>
-            </Tip>
+            <ButtonToolbar>
+                <ButtonGroup>
+                    <Button onClick={@open_project}>
+                        <Tip placement='right'
+                             title='Student project'
+                             tip='Open the course project for this student.'
+                        >
+                            <Icon name="edit" /> Open student project
+                        </Tip>
+                    </Button>
+                </ButtonGroup>
+                {@render_edit_name()}
+            </ButtonToolbar>
         else
             <Tip placement='right'
                  title='Create the student project'
@@ -533,14 +539,15 @@ Student = rclass
 
     render_edit_name: ->
         if @state.editing_student
-            <div>
-                <Button onClick={@save_student_name} bsStyle='success'>
+            disable_save = @props.student_name.first == @state.edited_first_name and @props.student_name.last == @state.edited_last_name
+            <ButtonGroup>
+                <Button onClick={@save_student_name} bsStyle='success' disabled={disable_save}>
                     <Icon name='save'/> Save
                 </Button>
                 <Button onClick={=>@setState(@getInitialState())} >
                     Cancel
                 </Button>
-            </div>
+            </ButtonGroup>
         else
             <Button onClick={@show_edit_name_dialogue}>
                 <Icon name='address-card-o'/> Edit student...
@@ -669,11 +676,8 @@ Student = rclass
 
     render_panel_header: ->
         <Row>
-            <Col md=2>
+            <Col md=8>
                 {@render_project_access()}
-            </Col>
-            <Col md=6>
-                {@render_edit_name()}
             </Col>
             <Col md=4>
                 {@render_delete_button()}
