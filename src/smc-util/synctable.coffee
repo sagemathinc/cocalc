@@ -128,15 +128,170 @@ to_key = (x) ->
     else
         return x
 
+# Plug: Class to ensure that the SyncTable stays "plugged" into the hub, if at all possible.
+# NOTE: I implemented this outside of SyncTable so that it would be much easier
+#       to reason about, and be sure the code is right.
+class Plug
+    constructor : (opts) ->
+        @_opts = defaults opts,
+            name       : 'plug'     # Used only for debug logging
+            no_sign_in : required   # True if sign is isn't required before connecting, e.g., anonymous synctable and project.
+            client     : required   # The client object, which provides:
+                                    #   'connected' and 'signed_in' events, and
+                                    #   is_connected() and is_signed_in() functions.
+            connect    : required   # A function to call to create a connection; it should run as
+                                    # quickly as it can and call it's callback with an error if
+                                    # and only if it fails.  It will definitely only be called
+                                    # once at a time, so no need to put in any sort of block.
+        @connect()
+
+    dbg: (f) =>
+        #return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+        return =>
+
+    # Keep trying until we connect - always succeeds if it terminates
+    connect: (cb) =>
+        dbg = @dbg('connect')
+        if @_is_connecting
+            dbg("already connecting")
+            return
+        @_is_connecting = true
+        dbg('')
+        misc.retry_until_success
+            f           : @__try_to_connect_once
+            log         : dbg
+            start_delay : 4000
+            max_delay   : 20000
+            cb          : =>
+                delete @_is_connecting
+                dbg("success!")
+                cb?()
+
+    # Try to connect exactly once.  cb gets error if and only if fails to connect
+    __try_to_connect_once: (cb) =>
+        {no_sign_in, client, connect} = @_opts
+        if no_sign_in
+            # just need to be connected
+            if client.is_connected()
+                connect(cb)
+            else
+                client.once 'connected', (=> connect(cb))
+        else
+            # need to be signed in
+            if client.is_signed_in()
+                connect(cb)
+            else
+                client.once 'signed_in', (=> connect(cb))
+
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval, @_cache_key) ->
         @_init_query()
-        @_init()
+        # The value of this query locally.
+        @_value_local = undefined
+
+        # Our best guess as to the value of this query on the server,
+        # according to queries and updates the server pushes to us.
+        @_value_server = undefined
+
+        # The changefeed id, when set by doing a change-feed aware query.
+        @_id = undefined
+
+        # Not connected yet
+        @_state = 'disconnected'   # disconnected <--> connected --> closed
         @_created = new Date()
 
+        @_plug = new Plug
+            name       : @_table
+            client     : @_client
+            connect    : @_connect
+            no_sign_in : @_schema.anonymous or @_client.is_project()  # note: projects don't have to authenticate
+
+        @_client.on('disconnected', (=>@_disconnected('client disconnect')))
+
     dbg: (f) =>
-        #return @_client.dbg("SyncTable('#{@_table}')")
+        #return @_client.dbg("SyncTable('#{@_table}').#{f}")
         return =>
+
+    _connect: (cb) =>
+        dbg = @dbg("connect")
+        dbg()
+        if @_state == 'closed'
+            cb?('closed')
+            return
+        if @_state == 'connected'
+            cb?()
+            return
+        if @_id?
+            @_client.query_cancel(id:@_id)
+            @_id = undefined
+        # 1. save, in case we have any local unsaved changes, then sync with upstream.
+        @_save () =>
+            # 2. Now actually do the changefeed query.
+            @_reconnect(cb)
+
+    _reconnect: (cb) =>
+        dbg = @dbg("_run")
+        if @_state == 'closed'
+            dbg("closed so don't do anything ever again")
+            cb?()
+            return
+        first_resp = true
+        this_query_id = undefined
+        dbg("do the query")
+        @_client.query
+            query   : @_query
+            changes : true
+            timeout : 30
+            options : @_options
+            cb      : (err, resp) =>
+
+                if @_state == 'closed'
+                    # already closed so ignore anything else.
+                    return
+
+                if first_resp
+                    dbg("query got ", err, resp)
+                    first_resp = false
+                    if @_state == 'closed'
+                        cb?("closed")
+                    else if resp?.event == 'query_cancel'
+                        cb?("query-cancel")
+                    else if err
+                        cb?(err)
+                    else if not resp?.query?[@_table]?
+                        cb?("got no data")
+                    else
+                        # Successfully completed query
+                        this_query_id = @_id = resp.id
+                        @_state = 'connected'
+                        @_update_all(resp.query[@_table])
+                        @emit("connected", resp.query[@_table])  # ready to use!
+                        cb?()
+                        # Do any pending saves
+                        for cb in @_connected_save_cbs ? []
+                            @save(cb)
+                        delete @_connected_save_cbs
+                else
+                    if @_state != 'connected'
+                        dbg("nothing to do -- ignore these, and make sure they stop")
+                        @_client.query_cancel(id:this_query_id)
+                        return
+                    if err or resp?.event == 'query_cancel'
+                        @_disconnected("err=#{err}, resp?.event=#{resp?.event}")
+                    else
+                        # Handle the update
+                        @_update_change(resp)
+
+    _disconnected: (why) =>
+        dbg = @dbg("_disconnected")
+        dbg("why=#{why}")
+        if @_state == 'disconnected'
+            dbg("already disconnected")
+            return
+        if @_id
+            @_client.query_cancel(id:@_id)
+        @_state = 'disconnected'
+        @_plug.connect()  # start trying to connect again
 
     # Return string key used in the immutable map in which this table is stored.
     key: (obj) =>
@@ -150,68 +305,6 @@ class SyncTable extends EventEmitter
         if @_value_local? and not @_value_server?
             return true
         return not @_value_server.equals(@_value_local)
-
-    _init: () =>
-        # Any listeners on the client that we should remove when closing this table.
-        @_client_listeners = {}
-
-        # The value of this query locally.
-        @_value_local = undefined
-
-        # Our best guess as to the value of this query on the server,
-        # according to queries and updates the server pushes to us.
-        @_value_server = undefined
-
-        # The changefeed id, when set by doing a change-feed aware query.
-        @_id = undefined
-
-        # Not connected yet
-        @_state = 'disconnected'
-
-        dbg = @dbg("_init")
-
-        @_connect = () =>
-            dbg("connect #{misc.to_json(@_query)}, state=#{@_state}")
-            if @_state == 'closed'
-                return
-            if @_state != 'disconnected'
-                # only try to connect if currently 'disconnected'
-                return
-            if @_id?
-                @_client.query_cancel(id:@_id)
-                @_id = undefined
-            # First save, in case we have any local unsaved changes, then sync with upstream.
-            @_save () =>
-                @_reconnect()
-
-        if @_schema.anonymous or @_client.is_project()
-            # just need to be connected; also projects don't have to authenticate
-            if @_client.is_connected()
-                @_connect() # first time
-            else
-                @_client.once('connected', @_connect)
-                @_client_listeners.connected = @_connect
-        else
-            # need to be signed in
-            if @_client.is_signed_in()
-                @_connect() # first time
-            else
-                @_client.once('signed_in', @_connect)
-                @_client_listeners.signed_in = @_connect
-
-        disconnected = () =>
-            if @_state != 'disconnected'
-                dbg("disconnected -- #{misc.to_json(@_query)}")
-                @_state = 'disconnected'
-                @emit('disconnected')   # tell any listeners that we're disconnected now.
-                @_client.once('connected', @_connect)
-                @_client_listeners.connected = @_connect
-
-        @_client.on('disconnected', disconnected)
-        @_client_listeners.disconnected = disconnected
-        # console.log "synctable.SyncTable EventListeners.listenerCount('disconnected')", @_client.listenerCount('disconnected')
-
-        return
 
     get: (arg) =>
         if not @_value_local?
@@ -317,121 +410,6 @@ class SyncTable extends EventEmitter
 
         # Is anonymous access to this table allowed?
         @_anonymous = !!@_schema.anonymous
-
-    _reconnect: =>
-        if @_state == 'closed'
-            # nothing to do
-            return
-        dbg = @dbg("_reconnect")
-        dbg()
-        if not @_client._connected
-            # nothing to do -- not connected to server; connecting to server triggers another reconnect later
-            dbg("not connected to server")
-            return
-        if @_state == 'connected'
-            dbg("already connected")
-            return
-        if not @_anonymous and not @_client.is_signed_in()
-            dbg("waiting for sign in before connecting")
-            @_state = 'reconnecting'
-            f = =>
-                dbg("sign in triggered connecting")
-                @_state = 'disconnected'
-                @_reconnect()
-            @_client.once('signed_in', f)
-            @_client_listeners.signed_in = f
-            return
-        @_state = 'reconnecting'
-        dbg("running query...")
-        @_run (err) =>
-            dbg("running query returned -- #{err}")
-            if @_state != 'connected'
-                if not @_reconnect_timeout?
-                    @_reconnect_timeout = 3
-                else
-                    @_reconnect_timeout = Math.max(5, Math.min(120+Math.random(), 1.4*@_reconnect_timeout))
-                dbg("didn't work -- try again in #{@_reconnect_timeout} seconds")
-                @_waiting_to_reconnect = true
-                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), @_reconnect_timeout*1000 )
-            else
-                delete @_reconnect_timeout
-                for cb in @_connected_save_cbs ? []
-                    @save(cb)
-
-    _run: (cb) =>
-        if @_state == 'closed'
-            # closed so don't do anything ever again
-            cb?("closed")
-            return
-        first_resp = true
-        query_id = misc.uuid()
-        @_query_id = query_id
-        #console.log("#{this_id} -- query #{@_table}: _run")
-        @_client.query
-            query   : @_query
-            changes : true
-            timeout : 30
-            options : @_options
-            cb      : (err, resp) =>
-                if @_query_id != query_id
-                    # ignore any potential output from past attempts to query.
-                    return
-                if @_state == 'closed'
-                    # already closed so ignore anything else.
-                    return
-                if err == 'socket-end' and @_client.is_project()
-                    # This is a synctable in a project and the socket that it was
-                    # using for getting changefeed updates from a hub ended.
-                    # There may be other sockets that this project can use
-                    # to maintain this changefeed: if so, we connect immediately,
-                    # and if not, we wait until the next connection.
-                    #console.warn("query #{@_table}: _run: socket-end ")
-                    @emit('disconnected')
-                    @_state = 'disconnected'
-                    if @_client.is_connected()
-                        @_connect()
-                    else
-                        @_client.once('connected', @_connect)
-                        @_client_listeners.connected = @_connect
-                    return
-
-                @_last_err = err
-                if first_resp and resp?.event != 'query_cancel'
-                    first_resp = false
-                    if @_state == 'closed'
-                        cb?("closed")
-                    else if err
-                        #console.warn("query '#{misc.to_json(@_query)}': _run: first error ", err)
-                        cb?(err)
-                    else if not resp?.query?[@_table]?
-                        #console.warn("query on '#{misc.to_json(@_query)}' returned undefined")
-                        cb?("got no data")
-                    else
-                        # Successfully completed a query
-                        @_id = resp.id
-                        @_state = 'connected'
-                        #console.log("query #{@_table}: query resp = ", resp)
-                        @_update_all(resp.query[@_table])
-                        @emit("connected", resp.query[@_table])  # ready to use!
-                        cb?()
-                else
-                    if @_state == 'closed'
-                        # nothing to do
-                        return
-                    # console.log("changefeed '#{@_table}' produced: #{err}, #{misc.to_json(resp)}")
-                    # changefeed
-                    if err
-                        # were connected, but got an error, e.g., disconnect from server, so switch
-                        # to reconnect state.
-                        if err != 'killfeed' and err?.msg != 'Connection is closed.'   # killfeed is expected and happens regularly (right now)
-                            console.warn("query #{@_table}: _run: not first error -- #{misc.to_json(err)}")
-                        delete @_state  # undefined until @_reconnect sets it (in same tick)
-                        @_reconnect()
-                    else
-                        if resp?.event != 'query_cancel' and @_state == 'connected'
-                            @_update_change(resp)
-                        #else
-                        #    console.log("#{this_id} -- query_cancel")
 
     # Return map from keys that have changed along with how they changed, or undefined
     # if the value of local or the server hasn't been initialized
@@ -846,6 +824,7 @@ class SyncTable extends EventEmitter
         if global_cache_decref(@)
             # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
+        @_client.removeListener('disconnected', @_disconnected)
         # do a last attempt at a save (so we don't lose data), then really close.
         @_save()  # this will synchronously construct the last save and send it
         # The moment the sync part of @_save is done, we remove listeners and clear
@@ -858,9 +837,6 @@ class SyncTable extends EventEmitter
             delete @_id
         delete @_value_local
         delete @_value_server
-        for e, f of @_client_listeners
-            @_client.removeListener(e, f)
-        @_client_listeners = {}
         @_state = 'closed'
 
     # wait until some function of this synctable is truthy
@@ -924,25 +900,5 @@ global_cache_decref = (S) ->
         else
             return true   # still in use
 
-#window.synctables = synctables
-
-
-###
-# Do a three-way merge.  The situation is that some immutable.js object
-# called "last" was converted locally to "local", and we **assume** that local
-# is not equal to last.  In the meantime, the remove server wants us to
-# change this to "upstream".
-{diff_match_patch} = require('./dmp')
-dmp = new diff_match_patch()
-dmp.Diff_Timeout = 0.1
-threeway_merge = (last, local, upstream) ->
-    switch typeof(last)
-        when 'string'
-            # It's a string, so a reasonable default is to compute a patch and apply it to upstream.
-            merge = dmp.patch_apply(dmp.patch_make(last, local), upstream)[0]
-            console.log("'#{last}', '#{local}', '#{upstream}' --> '#{merge}'")
-            return merge
-        else
-            # A generic simple way to resolve the conflict is in favor of our local version.
-            return local
-###
+#if window?
+#    window.synctables = synctables

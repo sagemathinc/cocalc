@@ -132,7 +132,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
-            max_time    : 30000
+            max_tries   : 4
             max_delay   : 10000
             cb          : cb
 
@@ -370,7 +370,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
-            max_time    : 30000
+            max_tries   : 4
             max_delay   : 10000
             cb          : cb
 
