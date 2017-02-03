@@ -226,6 +226,7 @@ class Connection extends client.Connection
 
         conn.on 'offline', (evt) =>
             log("offline")
+            @_connected = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
@@ -237,16 +238,15 @@ class Connection extends client.Connection
         conn.on 'error', (err) =>
             log("error: ", err)
             @emit("error", err)
-            @emit("disconnected", "offline")
 
         conn.on 'close', () =>
             log("closed")
             @_connected = false
-            conn.removeAllListeners('data')
-            @emit("disconnected", "disconnected")
+            @emit("disconnected", "close")
 
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
+            @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
             @emit("connecting")
             conn.removeAllListeners('data')
             log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")

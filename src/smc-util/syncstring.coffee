@@ -8,7 +8,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 ---
 
-RethinkDB-backed time-log database-based synchronized editing
+Database-backed time-log database-based synchronized editing
 
 [TODO: High level description of algorithm here, or link to article.]
 ###
@@ -526,9 +526,11 @@ class SyncDoc extends EventEmitter
         @_my_patches    = {}  # patches that this client made during this editing session.
 
         # For debugging -- this is a (slight) security risk in production.
-        ##if window?
-        ##    window.syncstrings ?= {}
-        ##    window.syncstrings[@_path] = @
+        ###
+        if window?
+            window.syncstrings ?= {}
+            window.syncstrings[@_path] = @
+        ###
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -1135,6 +1137,7 @@ class SyncDoc extends EventEmitter
             interval : @_save_interval
             state    : @_save_debounce
             cb       : cb
+        return
 
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
