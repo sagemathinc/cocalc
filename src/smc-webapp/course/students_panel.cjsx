@@ -423,8 +423,11 @@ Student = rclass
         edited_last_name  : @props.student_name.last
 
     on_key_down: (e) ->
-        if e.keyCode == 13
-            @save_student_name()
+        switch e.keyCode
+            when 13
+                @save_student_name()
+            when 27
+                @cancel_student_edit()
 
     toggle_show_more: (e) ->
         e.preventDefault()
@@ -445,6 +448,7 @@ Student = rclass
             return <FormGroup style={marginBottom:'0px'}>
                 <FormControl
                     type       = 'text'
+                    autoFocus  = {true}
                     style      = {display:'inline-block', width:'50%'}
                     value      = {@state.edited_first_name}
                     onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
@@ -544,7 +548,7 @@ Student = rclass
                 <Button onClick={@save_student_name} bsStyle='success' disabled={disable_save}>
                     <Icon name='save'/> Save
                 </Button>
-                <Button onClick={=>@setState(@getInitialState())} >
+                <Button onClick={@cancel_student_edit} >
                     Cancel
                 </Button>
             </ButtonGroup>
@@ -552,6 +556,9 @@ Student = rclass
             <Button onClick={@show_edit_name_dialogue}>
                 <Icon name='address-card-o'/> Edit student...
             </Button>
+
+    cancel_student_edit: ->
+        @setState(@getInitialState())
 
     save_student_name: ->
         @actions(@props.name).set_internal_student_name(@props.student, @state.edited_first_name, @state.edited_last_name)
