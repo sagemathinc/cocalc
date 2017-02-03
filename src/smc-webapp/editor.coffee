@@ -634,8 +634,8 @@ class FileEditor extends EventEmitter
             if val
                 if not @_show_uncommitted_warning_timeout?
                     # We have not already started a timer, so start one -- if we do not hear otherwise, show
-                    # the warning in 10s.
-                    @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 10000)
+                    # the warning in 30s.
+                    @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 30000)
             else
                 if @_show_uncommitted_warning_timeout?
                     clearTimeout(@_show_uncommitted_warning_timeout)
