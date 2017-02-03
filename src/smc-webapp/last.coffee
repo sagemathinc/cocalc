@@ -127,5 +127,4 @@ $ ->
             message : "There are major performance issues with Firefox and SageMathCloud due to bugs in Firefox.  We strongly recommend using Chrome, Safari, or Edge."
             timeout : 120
 
-{init_webapp_error_reporting} = require('./misc_page')
-init_webapp_error_reporting()
+    misc.wrap_log()

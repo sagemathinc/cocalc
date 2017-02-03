@@ -852,14 +852,19 @@ message
     error : required
 
 message
-    event      : 'webapp_error'
-    msg        : required # string
-    stack      : required # string (multiple lines)
-    browser    : undefined # string, how feature.coffee detected the browser
-    mobile     : undefined # boolean, feature.coffee::IS_MOBILE
-    responsive : undefined # boolean, feature.coffee::is_responsive_mode
-    user_agent : undefined # string
-    path       : undefined # stirng
+    event        : 'webapp_error'
+    name         : required  # string
+    message      : required  # string
+    stacktrace   : undefined # string
+    file         : undefined # string
+    lineNumber   : undefined # int
+    columnNumber : undefined # int
+    severity     : undefined # string
+    browser      : undefined # string, how feature.coffee detected the browser
+    mobile       : undefined # boolean, feature.coffee::IS_MOBILE
+    responsive   : undefined # boolean, feature.coffee::is_responsive_mode
+    user_agent   : undefined # string
+    path         : undefined # stirng
 
 
 #############################################

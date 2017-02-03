@@ -107,28 +107,38 @@ class exports.PostgreSQL extends PostgreSQL
 
     webapp_error: (opts) =>
         opts = defaults opts,
-            account_id  : undefined
-            msg         : undefined
-            stack       : undefined
-            browser     : undefined
-            mobile      : undefined
-            responsive  : undefined
-            user_agent  : undefined
-            path        : undefined
-            cb          : undefined
+            account_id   : undefined
+            name         : undefined
+            message      : undefined
+            stacktrace   : undefined
+            file         : undefined
+            lineNumber   : undefined
+            columnNumber : undefined
+            severity     : undefined
+            browser      : undefined
+            mobile       : undefined
+            responsive   : undefined
+            user_agent   : undefined
+            path         : undefined
+            cb           : undefined
         @_query
             query       : 'INSERT INTO webapp_errors'
             values      :
-                'id          :: UUID'      : misc.uuid()
-                'account_id  :: UUID'      : opts.account_id
-                'msg         :: TEXT'      : opts.msg
-                'stack       :: TEXT'      : opts.stack
-                'browser     :: TEXT'      : opts.browser
-                'mobile      :: BOOLEAN'   : opts.mobile
-                'responsive  :: BOOLEAN'   : opts.responsive
-                'user_agent  :: TEXT'      : opts.user_agent
-                'path        :: TEXT'      : opts.path
-                'time        :: TIMESTAMP' : 'NOW()'
+                'id            :: UUID'      : misc.uuid()
+                'account_id    :: UUID'      : opts.account_id
+                'name          :: TEXT'      : opts.name
+                'message       :: TEXT'      : opts.message
+                'stacktrace    :: TEXT'      : opts.stacktrace
+                'file          :: TEXT'      : opts.file
+                'lineNumber    :: INTEGER'   : opts.lineNumber
+                'columnNumber  :: INTEGER'   : opts.columnNumber
+                'severity      :: TEXT'      : opts.severity
+                'browser       :: TEXT'      : opts.browser
+                'mobile        :: BOOLEAN'   : opts.mobile
+                'responsive    :: BOOLEAN'   : opts.responsive
+                'user_agent    :: TEXT'      : opts.user_agent
+                'path          :: TEXT'      : opts.path
+                'time          :: TIMESTAMP' : 'NOW()'
             cb          : opts.cb
 
     get_client_error_log: (opts) =>

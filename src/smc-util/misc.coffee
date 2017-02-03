@@ -1670,6 +1670,7 @@ exports.done2 = (args...) -> _done(2, args...)
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
+
 exports.log = () ->
     smc_logger_timestamp = new Date().getTime() / 1000.0
     t  = seconds2hms(smc_logger_timestamp - smc_start_time)
@@ -1684,9 +1685,10 @@ exports.log = () ->
         console.log_original(prompt, msg, args...)
     smc_logger_timestamp_last = smc_logger_timestamp
 
-if not exports.RUNNING_IN_NODE and window?
-    window.console.log_original = window.console.log
-    window.console.log = exports.log
+exports.wrap_log = () ->
+    if not exports.RUNNING_IN_NODE and window?
+        window.console.log_original = window.console.log
+        window.console.log = exports.log
 
 # derive the console initialization filename from the console's filename
 # used in webapp and console_server_child
