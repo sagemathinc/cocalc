@@ -47,11 +47,6 @@ exports.StudentsPanel = rclass ({name}) ->
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
 
-    getDefaultProps: ->
-        column_name = "last_name"
-        is_descending = false
-        return active_student_sort : {column_name, is_descending}
-
     getInitialState: ->
         err              : undefined
         search           : ''
