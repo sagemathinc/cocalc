@@ -1,3 +1,16 @@
+
+Problems people are having right now:
+
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
+
+File access for a user with given email address:
+
+    select project_id, file_access_log.account_id, filename, time from file_access_log, accounts where file_access_log.account_id=accounts.account_id and accounts.email_address='x@x.x' order by time desc limit 50;
+
+File access for a user with given account_id
+
+    select * from file_access_log where account_id='...' order by time desc limit 50;
+
 How many patches in the last hour?
 
     select count(*) from patches where time >= now()-interval '60 min';
@@ -16,11 +29,7 @@ Active projects:
 
 Uncaught exceptions that got reported to the DB (so from storage, hubs, etc.):
 
-    select time, NOW() - time as timeago, event, left(value#>>'{error}',80) from central_log where event = 'uncaught_exception' order by time desc limit 50
-
-Problems people are having right now:
-
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
+    select time, NOW() - time as timeago, event, left(value#>>'{error}',80) from central_log where event = 'uncaught_exception' order by time desc limit 50;
 
 The syncstring (hence project_id, etc.) for a file with a given path somewhere... (you'll see this in the problems).  This can be kind of slow since there is no index.
 
@@ -53,3 +62,11 @@ Syncstrings with given path and owner:
 What's going on in the DB right now:
 
     select now()-query_start,client_addr,left(query,130) from pg_stat_activity order by now()-query_start desc;
+
+What people are computing now in sage worksheets:
+
+    select now()-time as timeago, left(input::TEXT,80) from eval_inputs order by time desc limit 100;
+    select now()-time as timeago, left(output::TEXT,80) from eval_outputs order by time desc limit 100;
+
+And their errors?
+

@@ -236,6 +236,15 @@ class SortedPatchList extends EventEmitter
         oldest = undefined
         for x in patches
             if x?
+                if not misc.is_date(x.time)
+                    # ensure that time is not a string representation of a time
+                    try
+                        x.time = new Date(x.time)
+                        if isNaN(x.time)  # ignore bad times
+                            continue
+                    catch err
+                        # ignore invalid times
+                        continue
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
@@ -516,10 +525,10 @@ class SyncDoc extends EventEmitter
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
-        if window?
-            window.syncstrings ?= {}
-            window.syncstrings[@_path] = @
-        ## window?.smc[@_path] = @  # for debugging
+        # For debugging -- this is a (slight) security risk in production.
+        ##if window?
+        ##    window.syncstrings ?= {}
+        ##    window.syncstrings[@_path] = @
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -1178,6 +1187,14 @@ class SyncDoc extends EventEmitter
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
         time    = x.get('time')
+        if not misc.is_date(time)
+            try
+                time = new Date(time)
+                if isNaN(time)  # ignore patches with bad times
+                    return
+            catch err
+                # ignore patches with invalid times
+                return
         user_id = x.get('user_id')
         sent    = x.get('sent')
         prev    = x.get('prev')
@@ -1512,11 +1529,14 @@ class SyncDoc extends EventEmitter
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
     has_unsaved_changes: () =>
-        return misc.hash_string(@get()) != @hash_of_saved_version()
+        return @hash_of_live_version() != @hash_of_saved_version()
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
         return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
+
+    hash_of_live_version: =>
+        return misc.hash_string(@get())
 
     # Initiates a save of file to disk, then if cb is set, waits for the state to
     # change to done before calling cb.
@@ -1671,6 +1691,24 @@ class SyncDoc extends EventEmitter
     # safe for the user to close their browser.
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
+
+    ###
+    _test_random_edit: () =>
+        s = @get()
+        i = misc.randint(0, s.length-1)
+        if Math.random() <= .2
+            # delete text
+            s = s.slice(0,i) + s.slice(i-misc.randint(1,25))
+        else
+            # insert about 25 characters at random
+            s = s.slice(0,i) + Math.random().toString(36).slice(2) + s.slice(i)
+        @set(s)
+
+    test_random_edits: (opts) =>
+        opts = defaults opts,
+            number : 5
+            cb     : undefined
+    ###
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.

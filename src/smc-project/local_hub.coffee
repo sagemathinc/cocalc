@@ -226,6 +226,8 @@ start_tcp_server = (secret_token, port, cb) ->
     winston.info("starting tcp server: project <--> hub...")
     server = net.createServer (socket) ->
         winston.debug("received new connection")
+        socket.on 'error', (err) ->
+            winston.debug("socket error - #{err}")
 
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err

@@ -13,11 +13,15 @@ fs      = require('fs')
 async   = require('async')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
+if not pg?
+    throw Error("YOU MUST INSTALL the pg-native npm module")
 # You can uncommment this to use the pure javascript driver.
 #  However: (1) it can be 5x slower or more!
 #           (2) I think it corrupts something somehow in a subtle way, since our whole
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
+
+
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
@@ -182,7 +186,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _dbg: (f) =>
         if @_debug
-            return (m) => winston.debug("PostgreSQL.#{f}: #{m}")
+            return (m) => winston.debug("PostgreSQL.#{f}: #{misc.trunc_middle(JSON.stringify(m), 1000)}")
         else
             return ->
 
@@ -958,6 +962,7 @@ Other misc functions
 
 # Convert from info in the schema table to a pg type
 # See https://www.postgresql.org/docs/devel/static/datatype.html
+# The returned type from this function is upper case!
 exports.pg_type = pg_type = (info) ->
     if not info? or typeof(info) == 'boolean'
         throw Error("pg_type: insufficient information to determine type (info=#{typeof(info)})")

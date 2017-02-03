@@ -1,6 +1,6 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
-{Icon, Tip} = require('./r_misc')
+{Icon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 
 {HelpPage} = require('./r_help')
@@ -304,11 +304,11 @@ exports.VersionWarning = rclass
         if @props.new_version.min_version > salvus_client.version()
             <div>
                 <br />
-                THIS IS A CRITICAL UPDATE. YOU MUST&nbsp;
-                <a onClick={=>window.location.reload()} style={color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
+                THIS IS A CRITICAL UPDATE. YOU MUST <Space/>
+                <a onClick={=>window.location.reload()} style={cursor:'pointer', color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
                     RELOAD THIS PAGE
                 </a>
-                &nbsp;IMMEDIATELY OR YOU WILL BE DISCONNECTED.  Sorry for the inconvenience.
+                <Space/> IMMEDIATELY OR YOU WILL BE DISCONNECTED.  Sorry for the inconvenience.
             </div>
 
     render_close: ->
@@ -334,8 +334,8 @@ exports.VersionWarning = rclass
             width           : '70%'
             marginTop       : '1em'
         <div style={styles}>
-            <Icon name='refresh' /> New Version Available: upgrade by clicking on&nbsp;
-            <a onClick={=>window.location.reload()} style={color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
+            <Icon name='refresh' /> New Version Available: upgrade by clicking on <Space/>
+            <a onClick={=>window.location.reload()} style={cursor:'pointer', color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
                 reload this page
             </a>.
             {@render_close()}

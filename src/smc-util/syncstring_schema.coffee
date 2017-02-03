@@ -324,6 +324,7 @@ schema.eval_inputs =
     primary_key: ['string_id', 'time', 'user_id']
     durability : 'soft' # loss of eval requests not serious
     unique_writes: true
+    pg_indexes : ['time']
     fields:
         string_id :
             pg_type : 'CHAR(40)'
@@ -366,6 +367,7 @@ schema.eval_inputs.project_query = schema.eval_inputs.user_query
 schema.eval_outputs =
     primary_key: ['string_id', 'time', 'number']
     durability : 'soft' # loss of eval output not serious (in long term only used for analytics)
+    pg_indexes : ['time']
     fields:
         string_id :
             pg_type : 'CHAR(40)'

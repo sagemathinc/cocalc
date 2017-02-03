@@ -109,6 +109,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @init_hide_show_gutter()  # must be after @readonly set
             @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
+            if not @readonly
+                # Kick the worksheet process into gear if it isn't running already
+                #console.log 'start worksheet...'
+                @introspect_line
+                    line     : "return?"
+                    timeout  : 30
+                    preparse : false
+                    cb       : (err) =>
+                        #console.log 'worksheet started', err
+
             @status cb: (err, status) =>
                 if not status?.running
                     @execute_auto_cells()
@@ -663,7 +673,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         f = (cb) =>
             timeout = Math.min(10, 1.4*timeout)
             @introspect_line
-                line     : "open?"
+                line     : "return?"
                 timeout  : timeout
                 preparse : false
                 cb       : (resp) =>

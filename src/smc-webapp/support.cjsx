@@ -479,6 +479,9 @@ SupportForm = rclass
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
+            <div style={margin:'10px', color:'#666'}>
+                1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
+            </div>
             <FormGroup>
                 <FormControl
                     componentClass = "textarea"
