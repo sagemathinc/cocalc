@@ -2,6 +2,13 @@
 
 import os, tempfile, time, shutil, subprocess, sys
 
+# Where the PostgreSQL data is stored
+PGDATA = '/projects/postgres/data'
+# The socket
+PGHOST  = os.path.join(PGDATA, 'socket')
+os.environ['PGHOST'] = PGHOST
+os.environ['PGUSER'] = 'smc'
+
 # ensure that everything we spawn has this umask, which is more secure.
 os.umask(0o077)
 
@@ -65,23 +72,45 @@ def init_projects_path():
         os.makedirs('/projects')
     # Ensure that users can see their own home directories:
     os.system("chmod a+rx /projects")
-    for path in ['conf', 'rethinkdb']:
+    for path in ['conf']:
         full_path = join('/projects', path)
         if not os.path.exists(full_path):
             log("creating ", full_path)
             os.makedirs(full_path)
+            run("chmod og-rwx '%s'"%full_path)
 
 def start_services():
-    for name in ['haproxy', 'nginx', 'rethinkdb', 'ssh']:
+    for name in ['haproxy', 'nginx', 'ssh']:
         run(['service', name, 'start'])
+
 
 def root_ssh_keys():
     run("rm -rf /root/.ssh/")
-    run("ssh-keygen -b 2048 -N '' -f /root/.ssh/id_rsa")
-    run("cp -v /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys")
+    run("ssh-keygen -t ecdsa -N '' -f /root/.ssh/id_ecdsa")
+    run("cp -v /root/.ssh/id_ecdsa.pub /root/.ssh/authorized_keys")
 
 def start_hub():
     run(". smc-env; service_hub.py --host=localhost --single  start & ", path='/smc/src')
+
+def postgres_perms():
+    run("mkdir -p /projects/postgres && chown -R sage. /projects/postgres && chmod og-rwx -R /projects/postgres")
+
+def start_postgres():
+    postgres_perms()
+    if not os.path.exists(PGDATA):  # see comments in smc/src/dev/project/start_postgres.py
+        run("sudo -u sage pg_ctl init -D '%s'"%PGDATA)
+        open(os.path.join(PGDATA,'pg_hba.conf'), 'w').write("local all all trust")
+        conf = os.path.join(PGDATA, 'postgresql.conf')
+        s = open(conf).read() + "\nunix_socket_directories = '%s'\nlisten_addresses=''\n"%PGHOST
+        open(conf,'w').write(s)
+        os.makedirs(PGHOST)
+        postgres_perms()
+        run("sudo -u sage postgres -D '%s' >%s/postgres.log 2>&1 &"%(PGDATA, PGDATA))
+        time.sleep(5)
+        run("sudo -u sage createuser -h '%s' -sE smc"%PGHOST)
+        run("sudo -u sage kill %s"%(open(os.path.join(PGDATA, 'postmaster.pid')).read().split()[0]))
+        time.sleep(3)
+    run("sudo -u sage postgres -D '%s' > /var/log/postgres.log 2>&1 &"%PGDATA)
 
 def start_compute():
     run("mkdir -p /projects/conf && chmod og-rwx -R /projects/conf")
@@ -103,55 +132,13 @@ def init_sage():
         run(". smc-env; sage -pip install --upgrade smc_sagews/", path='/smc/src')
         # Install sage scripts
         run("""echo "install_scripts('/usr/local/bin/')" | sage""")
-
-def copy_rethinkdb_password():
-    # The password location isn't passed in via the command line, but is currently
-    # hard-coded in rethinkdb.coffee to be at
-    # (process.env.SALVUS_ROOT ? '.') + '/data/secrets/rethinkdb'
-    # Can delete this and use an option if location of pasword file can be set.
-    log("copying over rethinkdb password so the hub can use it.")
-    run("mkdir -p /smc/src/data/secrets && chmod og-rwx -R /smc/src/data && cp /projects/rethinkdb/password /smc/src/data/secrets/rethinkdb")
-
-def init_rethinkdb_password():
-    """
-    If there is no /projects/rethinkdb/password, create it (randomly) with
-    restrictive permissions, and connect to the database and set it.
-    """
-    password_file = '/projects/rethinkdb/password'
-    if os.path.exists(password_file):
-        log("RethinkDB password file '%s' already exists"%password_file)
-        return
-    log("creating RethinkDB password file '%s'"%password_file)
-    import base64
-    n = 63 # password length
-    password = base64.b64encode(os.urandom(n)).decode()[:n]
-    log("wrote Rethinkdb password to disk")
-    open(password_file,'w').write(password)
-    log("ensure database has restrictive permissions")
-    run("chmod og-rwx -R /projects/rethinkdb")
-    log("Set the new password in RethinkDB")
-    for i in range(100):
-        try:
-            import rethinkdb as r
-            conn = r.connect()
-            r.db('rethinkdb').table('users').get('admin').update({'password': password}).run(conn)
-            log("Successfully set database password")
-            return
-        except Exception as err:
-            log("Failed -- waiting...: %s"%err)
-            time.sleep(1)
-            continue
-    log("Failed to set database password; moving old pasword file so will try to create password next time")
-    shutil.move(password_file, password_file+"old")
-
 def main():
     self_signed_cert('/nopassphrase.pem')
     init_projects_path()
     init_sage()
     start_services()
     root_ssh_keys()
-    init_rethinkdb_password()
-    copy_rethinkdb_password()
+    start_postgres()
     start_hub()
     start_compute()
     while True:

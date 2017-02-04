@@ -12,13 +12,13 @@ This is a self-contained single-image multi-user SageMathCloud server.
 
 **Technical Note: This Docker image only supports 64-bit Intel.**
 
-Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).   Make sure you have at least 7GB disk space free, then type 
+Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).   Make sure you have at least 7GB disk space free, then type
 
     docker run --name=smc -d -v ~/smc:/projects -p 80:80 -p 443:443 sagemathinc/sagemathcloud
 
 (If you get an error about the Docker daemon, instead run `sudo docker ...`.)
 
-The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer. (If you want to store your worksheets and edit history elsewhere, change ~/smc to something else.)  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost). 
+The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer. (If you want to store your worksheets and edit history elsewhere, change ~/smc to something else.)  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost).
 
 The docker container is called `smc` and you can refer to the container and use commands like:
 
@@ -28,13 +28,13 @@ The docker container is called `smc` and you can refer to the container and use 
 You can watch the logs:
 
     $ docker logs smc -f
-    
+
 ### Clock skew on OS X
 
 It is **critical** that the Docker container have the correct time, since SMC assumes that the server has the correct time.
 On a laptop running Docker under OS X, the clock will get messed up any time you suspend/resume your laptop.  A very easy to install workaround is at https://github.com/arunvelsriram/docker-time-sync-agent/.
 
-    
+
 ### SSH port forwarding
 
 If you're running this docker image on a remote server and want to use ssh port forwarding to connect, type
@@ -48,12 +48,12 @@ For **much enhanced security**, instead make the container only listen on localh
     docker stop smc
     docker rm smc
     docker run --name=smc -d -v ~/smc:/projects -p  127.0.0.1:80:80 sagemathinc/sagemathcloud
-    
+
 Then the **only way** to access your SMC server is to type the following on your local computer
 
     ssh -L 8080:localhost:80 username@remote_server
-    
-and open your web browser to http://localhost:8080   
+
+and open your web browser to http://localhost:8080
 
 ### Make all users admins
 

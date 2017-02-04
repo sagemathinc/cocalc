@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:16.10
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
@@ -10,14 +10,9 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Ubuntu software that are used by SMC (latex, pandoc, sage, jupyter)
 RUN \
   apt-get update && \
-  apt-get install -y software-properties-common  && \
-  apt-add-repository -y ppa:aims/sagemath
+  apt-get install -y software-properties-common texlive tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev
 
-RUN \
-  apt-get update && \
-  apt-get install -y texlive tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc sagemath-upstream-binary haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 postgresql postgresql-contrib latexmk
-
-# Jupyter from pip (since apt-get is ancient)
+# Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
   pip install ipython jupyter
 
@@ -26,17 +21,29 @@ RUN \
   wget -qO- https://deb.nodesource.com/setup_6.x | bash - && \
   apt-get install -y nodejs
 
-# Install RethinkDB.
-RUN \
-  source /etc/lsb-release && \
-  echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" > /etc/apt/sources.list.d/rethinkdb.list && \
-  wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && \
-  apt-get update && apt-get install -y rethinkdb python3 python3-requests python3-pip && \
-  pip3 install rethinkdb
+# Build and install Sage -- see https://github.com/sagemath/docker-images
+COPY scripts/ /tmp/scripts
+RUN chmod -R +x /tmp/scripts
 
-# Grab an initial version of the source code for SMC (do NOT use --depth=1,
-# since we want to be able to checkout any commit later, and use git in
-# container for dev).
+RUN    adduser --quiet --shell /bin/bash --gecos "Sage user,101,," --disabled-password sage \
+    && chown -R sage:sage /home/sage/
+
+# make source checkout target, then run the install script
+# see https://github.com/docker/docker/issues/9547 for the sync
+RUN    mkdir -p /usr/local/ \
+    && /tmp/scripts/install_sage.sh /usr/local/ master \
+    && sync
+
+RUN /tmp/scripts/post_install_sage.sh && rm -rf /tmp/* && sync
+
+# Build and install PostgreSQL
+RUN \
+  cd /tmp && wget https://ftp.postgresql.org/pub/source/v9.6.1/postgresql-9.6.1.tar.bz2 && tar xf postgresql-9.6.1.tar.bz2 && cd postgresql-9.6.1 && ./configure --with-openssl --prefix=/usr/ && make -j16 install && cd /tmp && rm -rf /tmp/postgresql-9.6.1 /tmp/postgresql-9.6.1.tar.bz2
+
+
+# Grab an initial version of the source code for SMC.
+# NOTE: we do NOT use --depth=1, since we want to be able to checkout
+# any commit later, and use git in container for dev.
 RUN git clone https://github.com/sagemathinc/smc.git
 
 # Do initial build of hub (this means installing all dependencies using npm)
@@ -50,7 +57,6 @@ COPY login.defs /etc/login.defs
 COPY login /etc/defaults/login
 COPY nginx.conf /etc/nginx/sites-available/default
 COPY haproxy.conf /etc/haproxy/haproxy.cfg
-COPY rethinkdb.conf /etc/rethinkdb/instances.d/default.conf
 COPY run.py /root/run.py
 
 RUN echo "umask 077" >> /etc/bash.bashrc
@@ -61,7 +67,6 @@ RUN echo "umask 077" >> /etc/bash.bashrc
 #RUN \
 #  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
 #  apt-get autoremove -y
-
 
 CMD /root/run.py
 
