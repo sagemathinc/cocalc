@@ -8,7 +8,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 ---
 
-RethinkDB-backed time-log database-based synchronized editing
+Database-backed time-log database-based synchronized editing
 
 [TODO: High level description of algorithm here, or link to article.]
 ###
