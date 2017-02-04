@@ -586,6 +586,8 @@ class exports.PostgreSQL extends PostgreSQL
                 opts.cb?()
         )
 
+    # Offlines and archives the patch, unless the string is active very recently, in
+    # which case this is a no-op.
     archive_patches: (opts) =>
         opts = defaults opts,
             string_id : required
@@ -593,13 +595,14 @@ class exports.PostgreSQL extends PostgreSQL
             level     : -1   # the default
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = undefined
+        syncstring = patches = blob_uuid = project_id = last_active =undefined
+        cutoff = misc.minutes_ago(30)
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
                 dbg("get project_id")
                 @_query
-                    query : "SELECT project_id, archived FROM syncstrings"
+                    query : "SELECT project_id, archived, last_active FROM syncstrings"
                     where : where
                     cb    : one_result (err, x) =>
                         if err
@@ -610,8 +613,11 @@ class exports.PostgreSQL extends PostgreSQL
                             cb("already archived")
                         else
                             project_id = x.project_id
+                            last_active = x.last_active
                             cb()
             (cb) =>
+                if last_active? and last_active >= cutoff
+                    cb(); return
                 dbg("get patches")
                 @_query
                     query : "SELECT extract(epoch from time) as epoch, * FROM patches"
@@ -623,8 +629,15 @@ class exports.PostgreSQL extends PostgreSQL
                             delete p.epoch
                         cb(err)
             (cb) =>
+                if last_active? and last_active >= cutoff
+                    cb(); return
                 dbg("create blob from patches")
-                blob = new Buffer(JSON.stringify(patches))
+                try
+                    blob = new Buffer(JSON.stringify(patches))
+                catch err
+                    # TODO: This *will* happen if the total length of all patches is too big.
+                    cb(err)
+                    return
                 dbg('save blob')
                 blob_uuid = misc_node.uuidsha1(blob)
                 @save_blob
@@ -635,6 +648,8 @@ class exports.PostgreSQL extends PostgreSQL
                     level      : opts.level
                     cb         : cb
             (cb) =>
+                if last_active? and last_active >= cutoff
+                    cb(); return
                 dbg("update syncstring to indicate patches have been archived in a blob")
                 @_query
                     query : "UPDATE syncstrings"
@@ -642,6 +657,8 @@ class exports.PostgreSQL extends PostgreSQL
                     where : where
                     cb    : cb
             (cb) =>
+                if last_active? and last_active >= cutoff
+                    cb(); return
                 dbg("actually delete patches")
                 @_query
                     query : "DELETE FROM patches"
@@ -701,11 +718,16 @@ class exports.PostgreSQL extends PostgreSQL
                                 v.push(patch)
                             patches = v
                         dbg("insert patches into patches table")
-                        @_query
-                            query    : 'INSERT INTO patches'
-                            values   : patches
-                            conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this unarchive at once -- this can and does happen sometimes.
-                            cb       : cb
+                        # We break into blocks since there is limit (about 65K) on
+                        # number of params that can be inserted in a single query.
+                        insert_block_size = 1000
+                        f = (i, cb) =>
+                            @_query
+                                query    : 'INSERT INTO patches'
+                                values   : patches.slice(insert_block_size*i, insert_block_size*(i+1))
+                                conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this unarchive at once -- this can and does happen sometimes.
+                                cb       : cb
+                        async.mapSeries([0...patches.length/insert_block_size], f, cb)
                     (cb) =>
                         async.parallel([
                             (cb) =>
