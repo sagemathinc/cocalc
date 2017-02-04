@@ -90,7 +90,7 @@ def root_ssh_keys():
     run("cp -v /root/.ssh/id_ecdsa.pub /root/.ssh/authorized_keys")
 
 def start_hub():
-    run(". smc-env; service_hub.py --host=localhost --single  start & ", path='/smc/src')
+    run(". smc-env && hub start --host=localhost --port 5000 --proxy_port 5001 --update --single --logfile /var/log/hub.log --pidfile /root/hub.pid &", path='/smc/src')
 
 def postgres_perms():
     run("mkdir -p /projects/postgres && chown -R sage. /projects/postgres && chmod og-rwx -R /projects/postgres")
@@ -110,7 +110,7 @@ def start_postgres():
         run("sudo -u sage createuser -h '%s' -sE smc"%PGHOST)
         run("sudo -u sage kill %s"%(open(os.path.join(PGDATA, 'postmaster.pid')).read().split()[0]))
         time.sleep(3)
-    run("sudo -u sage postgres -D '%s' > /var/log/postgres.log 2>&1 &"%PGDATA)
+    os.system("sudo -u sage postgres -D '%s' > /var/log/postgres.log 2>&1 &"%PGDATA)
 
 def start_compute():
     run("mkdir -p /projects/conf && chmod og-rwx -R /projects/conf")
@@ -122,20 +122,9 @@ def start_compute():
 def tail_logs():
     run("tail -f /var/log/compute.log /var/log/compute.err /smc/logs/*")
 
-def init_sage():
-    # if /sage/ is mounted as a sage install, then link to /usr/bin and install smc_sagews into it.
-    if os.path.exists('/sage/sage'):
-        run("ln -s /sage/sage .", path='/usr/bin')
-    if os.system("which sage") == 0:
-        # Sage is installed one way or another
-        # Install packages into our copy of Sage
-        run(". smc-env; sage -pip install --upgrade smc_sagews/", path='/smc/src')
-        # Install sage scripts
-        run("""echo "install_scripts('/usr/local/bin/')" | sage""")
 def main():
     self_signed_cert('/nopassphrase.pem')
     init_projects_path()
-    init_sage()
     start_services()
     root_ssh_keys()
     start_postgres()

@@ -40,24 +40,36 @@ RUN /tmp/scripts/post_install_sage.sh && rm -rf /tmp/* && sync
 RUN \
   cd /tmp && wget https://ftp.postgresql.org/pub/source/v9.6.1/postgresql-9.6.1.tar.bz2 && tar xf postgresql-9.6.1.tar.bz2 && cd postgresql-9.6.1 && ./configure --with-openssl --prefix=/usr/ && make -j16 install && cd /tmp && rm -rf /tmp/postgresql-9.6.1 /tmp/postgresql-9.6.1.tar.bz2
 
+# Which commit to checkout and build.
+ARG commit=HEAD
 
-# Grab an initial version of the source code for SMC.
-# NOTE: we do NOT use --depth=1, since we want to be able to checkout
-# any commit later, and use git in container for dev.
-RUN git clone https://github.com/sagemathinc/smc.git
+# Pull latest source code for SMC and checkout requested commit (or HEAD)
+RUN \
+  git clone https://github.com/sagemathinc/smc.git && \
+  cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
 
-# Do initial build of hub (this means installing all dependencies using npm)
+# Build and install all deps
 RUN \
   cd /smc/src && \
   . ./smc-env && \
   ./install.py all --compute --web && \
   rm -rf /root/.npm /root/.node-gyp/
 
+# Install code into Sage
+RUN cd /smc/src && . smc-env && sage -pip install --upgrade smc_sagews/
+
+# Install sage scripts system-wide
+RUN echo "install_scripts('/usr/local/bin/')" | sage
+
+# Install SageTex
+RUN cp -rv /usr/local/sage/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
+
 COPY login.defs /etc/login.defs
 COPY login /etc/defaults/login
 COPY nginx.conf /etc/nginx/sites-available/default
 COPY haproxy.conf /etc/haproxy/haproxy.cfg
 COPY run.py /root/run.py
+COPY bashrc /root/.bashrc
 
 RUN echo "umask 077" >> /etc/bash.bashrc
 
