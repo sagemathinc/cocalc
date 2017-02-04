@@ -1670,6 +1670,11 @@ exports.done2 = (args...) -> _done(2, args...)
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
+exports.get_start_time_ts = ->
+    return new Date(smc_start_time * 1000)
+
+exports.get_uptime = ->
+    return seconds2hms((new Date().getTime() / 1000.0) - smc_start_time)
 
 exports.log = () ->
     smc_logger_timestamp = new Date().getTime() / 1000.0

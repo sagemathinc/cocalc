@@ -403,11 +403,22 @@ schema.webapp_errors =
         responsive   : type : 'boolean'
         user_agent   : type : 'string'
         path         : type : 'text'
+        smc_version  : type : 'string'
+        build_date   : type : 'string'
+        smc_git_rev  : type : 'string'
+        uptime       : type : 'string'
+        start_time   : type : 'timestamp'
         time         : type : 'timestamp'
     indexes:
         time         : []
+        name         : []
+        message      : []
         account_id   : []
-    pg_indexes : ['time', 'account_id']
+        smc_git_rev  : []
+        smc_version  : []
+        start_time   : []
+        browser      : []
+    pg_indexes : ['time', 'name', 'message', 'account_id', 'smc_git_rev', 'smc_version', 'start_time', 'browser']
 
 schema.collaborators =
     primary_key : 'account_id'

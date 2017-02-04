@@ -23,9 +23,7 @@
 
 Catch and report webapp client errors to the SMC server.
 
-some ideas inspired by bugsnag's MIT licensed lib
-
-TODO: event handler wrapping of "window.onerror"
+This is inspired by bugsnag's MIT licensed lib.
 
 ###
 
@@ -37,27 +35,35 @@ FUNCTION_REGEX = /function\s*([\w\-$]+)?\s*\(/i
 
 ignoreOnError = 0
 
+shouldCatch = true
+
 sendError = (opts) ->
     #console.log opts
-    {required, defaults, uuidsha1} = require('smc-util/misc')
-    opts = defaults opts,
-        name            : required
-        message         : required
+    misc = require('smc-util/misc')
+    opts = misc.defaults opts,
+        name            : misc.required
+        message         : misc.required
         stacktrace      : ''
         file            : ''
         lineNumber      : -1
         columnNumber    : -1
         severity        : 'default'
-    fingerprint = uuidsha1(opts.name + '::' + opts.message)
+    fingerprint = misc.uuidsha1(opts.name + '::' + opts.message)
     if fingerprint in already_reported and not DEBUG
         return
     already_reported.push(fingerprint)
-    {IS_MOBILE, get_browser, is_responsive_mode} = require('smc-webapp/feature')
-    opts.user_agent = navigator?.userAgent
-    opts.path       = window.location.pathname
-    opts.browser    = get_browser()
-    opts.mobile     = IS_MOBILE
-    opts.responsive = is_responsive_mode()
+    # attaching some additional info
+    feature = require('smc-webapp/feature')
+    opts.user_agent  = navigator?.userAgent
+    opts.path        = window.location.pathname
+    opts.browser     = feature.get_browser()
+    opts.mobile      = feature.IS_MOBILE
+    opts.responsive  = feature.is_responsive_mode()
+    opts.smc_version = SMC_VERSION
+    opts.build_date  = BUILD_DATE
+    opts.smc_git_rev = SMC_GIT_REV
+    opts.uptime      = misc.get_uptime()
+    opts.start_time  = misc.get_start_time_ts()
     if DEBUG then console.info('error reporter sending:', opts)
     {salvus_client} = require('smc-webapp/salvus_client')
     salvus_client.webapp_error(opts)
@@ -91,8 +97,10 @@ stacktraceFromException = (exception) ->
     return exception.stack || exception.backtrace || exception.stacktrace
 
 notifyException = (exception, name, metaData, severity) ->
-    if !exception or typeof exceptoin == "string"
+    if !exception or typeof exception == "string"
         return
+    # setting those *Number defaults to `undefined` breaks somehow on its way
+    # to the DB (it only wants NULL or an int)
     sendError(
         name: name || exception.name
         message: exception.message || exception.description
@@ -103,6 +111,20 @@ notifyException = (exception, name, metaData, severity) ->
         severity: severity || "default"
     )
 
+# Disable catching on IE < 10 as it destroys stack-traces from generateStackTrace()
+if (not window.atob)
+    shouldCatch = false
+
+# Disable catching on browsers that support HTML5 ErrorEvents properly.
+# This lets debug on unhandled exceptions work.
+else if (window.ErrorEvent)
+    try
+        if new window.ErrorEvent("test").colno == 0
+            shouldCatch = false
+    catch e
+        # No action needed
+
+# flag to ignore "onerror" when already wrapped in the event handler
 ignoreNextOnError = () ->
     ignoreOnError += 1
     window.setTimeout(() ->
@@ -137,10 +159,11 @@ polyFill = (obj, name, makeReplacement) ->
     replacement = makeReplacement(original)
     obj[name] = replacement
 
-
+# wrap all prototype objects that have event handlers
+# first one is for chrome, the first three for FF, the rest for IE, Safari, etc.
 "EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload".replace(/\w+/g, (global) ->
-    prototype = window[global] && window[global].prototype
-    if prototype && prototype.hasOwnProperty && prototype.hasOwnProperty("addEventListener")
+    prototype = window[global]?.prototype
+    if prototype?.hasOwnProperty?("addEventListener")
         polyFill(prototype, "addEventListener", (_super) ->
             return (e, f, capture, secure) ->
                 try
@@ -156,4 +179,30 @@ polyFill = (obj, name, makeReplacement) ->
             _super.call(this, e, f, capture, secure)
             return _super.call(this, e, wrap(f), capture, secure)
         )
+)
+
+polyFill(window, "onerror", (_super) ->
+    return (message, url, lineNo, charNo, exception) ->
+        # IE 6+ support.
+        if !charNo and window.event
+            charNo = window.event.errorCharacter
+
+
+        if (ignoreOnError == 0)
+            name = exception?.name or "window.onerror"
+            stacktrace = (exception and stacktraceFromException(exception)) or enerateStacktrace()
+            sendError(
+                name: name
+                message: message
+                file: url
+                lineNumber: lineNo
+                columnNumber: charNo
+                stacktrace: stacktrace
+                severity: "error"
+            )
+
+
+        # Fire the existing `window.onerror` handler, if one exists
+        if (_super)
+            _super(message, url, lineNo, charNo, exception)
 )

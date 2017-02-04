@@ -813,6 +813,11 @@ class Client extends EventEmitter
             responsive   : mesg.responsive  # boolean
             user_agent   : mesg.user_agent
             path         : mesg.path
+            smc_version  : mesg.smc_version  # string
+            build_date   : mesg.build_date   # string
+            smc_git_rev  : mesg.smc_git_rev  # string
+            uptime       : mesg.uptime       # string
+            start_time   : mesg.start_time   # timestamp
 
     ######################################################
     # Messages: Project Management

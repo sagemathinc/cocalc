@@ -865,6 +865,11 @@ message
     responsive   : undefined # boolean, feature.coffee::is_responsive_mode
     user_agent   : undefined # string
     path         : undefined # stirng
+    smc_version  : undefined # string
+    build_date   : undefined # string
+    smc_git_rev  : undefined # string
+    uptime       : undefined # string
+    start_time   : undefined # timestamp
 
 
 #############################################

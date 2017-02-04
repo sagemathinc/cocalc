@@ -120,6 +120,11 @@ class exports.PostgreSQL extends PostgreSQL
             responsive   : undefined
             user_agent   : undefined
             path         : undefined
+            smc_version  : undefined
+            build_date   : undefined
+            smc_git_rev  : undefined
+            uptime       : undefined
+            start_time   : undefined
             cb           : undefined
         @_query
             query       : 'INSERT INTO webapp_errors'
@@ -138,6 +143,11 @@ class exports.PostgreSQL extends PostgreSQL
                 'responsive    :: BOOLEAN'   : opts.responsive
                 'user_agent    :: TEXT'      : opts.user_agent
                 'path          :: TEXT'      : opts.path
+                'smc_version   :: TEXT'      : opts.smc_version
+                'build_date    :: TEXT'      : opts.build_date
+                'smc_git_rev   :: TEXT'      : opts.smc_git_rev
+                'uptime        :: TEXT'      : opts.uptime
+                'start_time    :: TIMESTAMP' : opts.start_time
                 'time          :: TIMESTAMP' : 'NOW()'
             cb          : opts.cb
 
