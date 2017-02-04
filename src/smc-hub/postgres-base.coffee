@@ -62,6 +62,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
+        dbg = @_dbg("constructor")  # must be after setting @_debug above
+        dbg(opts)
         i = opts.host.indexOf(':')
         if i != -1
             @_host = opts.host.slice(0, i)
