@@ -3543,6 +3543,7 @@ add_user_to_project = (project_id, email_address, cb) ->
 command_line = () ->
     program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
     daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
+    default_db = process.env.PGHOST ? 'localhost'
 
     program.usage('[start/stop/restart/status/nodaemon] [options]')
         .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
@@ -3552,7 +3553,7 @@ command_line = () ->
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
         .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
-        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, process.env.PGHOST ? 'localhost')
+        .option('--database_nodes <string,string,...>', "database address (default: '#{default_db}')", String, default_db)
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
         .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')

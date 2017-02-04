@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 export USER=wstein
 
-cd $HOME/smc/src
-. smc-env
-
 cd $HOME
 export PG_DATA=$HOME/postgres_data
  
