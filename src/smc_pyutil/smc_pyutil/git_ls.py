@@ -36,6 +36,8 @@ def getsize(name):
 
 def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
     if not os.path.exists(path):
+        # CRITICAL: Exactly this error message is searched for in smc-webapp/project_store.coffee
+        # DO NOT change this here!!!!!  (Unless you change that...)
         sys.stderr.write("error: no such path '%s'"%path)
         sys.exit(1)
     os.chdir(path)

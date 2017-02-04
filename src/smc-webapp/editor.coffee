@@ -1526,7 +1526,7 @@ class CodeMirrorEditor extends FileEditor
             # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
                 if redux.getProjectStore(@project_id).is_file_open(@filename)  # only show error if file actually opened
-                    alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; you may have to restart your project in project settings.")
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{err} -- Please close, then reopen this file.")
             else
                 @emit('saved')
             @save_button.icon_spin(false)

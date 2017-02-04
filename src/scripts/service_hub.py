@@ -25,15 +25,9 @@ def hub_args(server_id):
         else:
             proxy_port = 5001
 
-    s = "--host={hostname} --database_nodes {db} --port {port} --proxy_port {proxy_port} --base_url={base_url}".format(
-        hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port,
+    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --base_url={base_url}".format(
+        hostname=args.hostname, server_id=server_id, port=port, proxy_port=proxy_port,
         base_url=args.base_url)
-
-    if args.db_pool:
-        s += ' --db_pool {db_pool} '.format(db_pool=args.db_pool)
-
-    if args.db_concurrent_warn:
-        s += ' --db_concurrent_warn {db_concurrent_warn} '.format(db_concurrent_warn=args.db_concurrent_warn)
 
     if args.dev:
         s += ' --dev '
@@ -102,7 +96,6 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser.add_argument("--id", help="comma separated list ids of servers to start/stop", dest="id", default="", type=str)
-    parser.add_argument("--db", help="comma separated list of database server nodes [default: localhost]", dest="db", default="localhost", type=str)
     parser.add_argument('--base_url', help="base url", dest='base_url', default='')
 
     parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
@@ -113,9 +106,6 @@ if __name__ == "__main__":
     parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)
 
     parser.add_argument('--port', dest='port', default='')
-
-    parser.add_argument('--db_pool', dest='db_pool', default='')
-    parser.add_argument('--db_concurrent_warn', dest='db_concurrent_warn', default='')
 
     parser.add_argument('--proxy_port', dest='proxy_port', default='')
 
