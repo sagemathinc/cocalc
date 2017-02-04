@@ -113,3 +113,7 @@ How I pushed this
     docker tag smc:latest sagemathinc/sagemathcloud
     docker login --username=sagemathinc
     docker push  sagemathinc/sagemathcloud
+
+Also to build at a specific commit.
+
+    docker build --build-arg commit=121b564a6b08942849372b9ffdcdddd7194b3e89 -t smc .

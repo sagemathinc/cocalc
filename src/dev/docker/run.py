@@ -4,7 +4,6 @@ import os, tempfile, time, shutil, subprocess, sys
 
 # Where the PostgreSQL data is stored
 PGDATA = '/projects/postgres/data'
-# The socket
 PGHOST  = os.path.join(PGDATA, 'socket')
 os.environ['PGHOST'] = PGHOST
 os.environ['PGUSER'] = 'smc'
@@ -117,7 +116,7 @@ def start_compute():
     run(". smc-env; compute --host=localhost --single start 1>/var/log/compute.log 2>/var/log/compute.err &", path='/smc/src')
     # Sleep to wait for compute server to start and write port/secret *AND* initialize the schema.
     # TODO: should really do this right -- since if the compute-client tries to initialize schema at same, time things get hosed.
-    run("""sleep 20; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee""", path='/smc/src')
+    run("""sleep 15; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee & """, path='/smc/src')
 
 def tail_logs():
     run("tail -f /var/log/compute.log /var/log/compute.err /smc/logs/*")
