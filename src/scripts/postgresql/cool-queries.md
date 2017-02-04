@@ -81,3 +81,7 @@ And their errors?
 Server's total uptime in seconds:
 
     SELECT EXTRACT(EPOCH FROM (NOW() - pg_postmaster_start_time)) as start_time_seconds from pg_postmaster_start_time();
+
+System stats for each table:
+
+    SELECT schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count FROM pg_stat_user_tables;
