@@ -81,7 +81,6 @@ class exports.PostgreSQL extends PostgreSQL
                 if rows.length == 0
                     dbg("nothing in DB, so we insert the blob.")
                     ttl = opts.ttl
-                    dbg("blob='#{opts.blob}'; type=#{typeof(opts.blob)}")
                     @_query
                         query  : "INSERT INTO blobs"
                         values :
@@ -615,10 +614,13 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 dbg("get patches")
                 @_query
-                    query : "SELECT * FROM patches"
+                    query : "SELECT extract(epoch from time) as epoch, * FROM patches"
                     where : where
                     cb    : all_results (err, x) =>
                         patches = x
+                        for p in patches
+                            p.time = new Date(p.epoch*1000)
+                            delete p.epoch
                         cb(err)
             (cb) =>
                 dbg("create blob from patches")
