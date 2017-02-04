@@ -67,7 +67,7 @@ schema.syncstrings =
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : null
                 last_snapshot     : null
-                snapshot_interval : 100000 # temporary disable
+                snapshot_interval : 150
                 project_id        : null
                 path              : null
                 deleted           : null
@@ -184,7 +184,6 @@ schema.patches =
         user_id  :
             type : 'integer'
             desc : "a nonnegative integer; this is the index into the syncstrings.users array of account_id's"
-            pg_check : 'NOT NULL CHECK (user_id >= 0)'
         patch    :
             type : 'string'
             pg_type : 'TEXT'  # that's what it is in the database now...
