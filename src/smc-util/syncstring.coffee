@@ -13,8 +13,8 @@ Database-backed time-log database-based synchronized editing
 [TODO: High level description of algorithm here, or link to article.]
 ###
 
-# How big of files can be opened
-MAX_FILE_SIZE_MB = 4
+# How big of files we allow users to open using syncstrings.
+MAX_FILE_SIZE_MB = 2
 
 # Client -- when it has this syncstring open and connected -- will touch the
 # syncstring every so often so that it stays opened in the local hub,
