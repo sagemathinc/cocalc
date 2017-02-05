@@ -14,14 +14,10 @@ if 'TMUX' in os.environ: # see https://github.com/sagemathinc/smc/issues/563
 util.chdir()
 
 ports = util.get_ports()
-#base_url = util.base_url()
-#hostname = socket.gethostname()
 hostname='0.0.0.0'
-base_url=''
 
-cmd = "service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
+cmd = "service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 start".format(
     hostname      = hostname,
-    base_url      = base_url,
     hub_port      = ports['hub'])
 
 util.cmd(cmd)
