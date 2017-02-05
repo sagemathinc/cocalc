@@ -8,11 +8,12 @@ Define upgrades to projects.
 
 upgrades = exports.upgrades = {}
 
-# these are the base quotas
+# these are the base quotas -- keep req_* commented out until they are also in params below.
+# They are for future use for k8s
 exports.DEFAULT_QUOTAS =
     disk_quota  : 3000
-    req_cores   : 0.01
-    req_memory  : 160
+    #req_cores   : 0.01
+    #req_memory  : 160
     cores       : 1
     memory      : 1000
     cpu_shares  : 256
@@ -22,8 +23,8 @@ exports.DEFAULT_QUOTAS =
 
 upgrades.max_per_project =
     disk_quota : 50000
-    req_cores  : 1
-    req_memory : 4000
+    #req_cores  : 1
+    #req_memory : 4000
     memory     : 8000
     cores      : 4
     network    : 1

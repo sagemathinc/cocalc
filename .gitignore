@@ -91,3 +91,4 @@ src/smc-build/prometheus/alertmanager.yml
 **/octave-workspace
 **/.cache/
 .gitignore
+postgres-env
