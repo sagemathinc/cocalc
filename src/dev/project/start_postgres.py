@@ -24,7 +24,7 @@ local all all trust
 #local all all md5
 """)
 
-    # Make it so the socket is n this subdirectory, so that it is
+    # Make it so the socket is in this subdirectory, so that it is
     # protected by UNIX permissions.  This approach avoids any need
     # for accounts/passwords for development and the Docker image.
     conf = os.path.join(PG_DATA, 'postgresql.conf')
