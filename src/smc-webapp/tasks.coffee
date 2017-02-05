@@ -863,7 +863,7 @@ class TaskList
                 @display_desc(task)
                 return false
 
-        e.find('a').attr("target","_blank")
+        e.process_smc_links(project_id:@project_id, file_path:misc.path_split(@filename).head)
         e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
         task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_desc)
 
