@@ -33,9 +33,10 @@ exports.AssignmentsPanel = rclass ({name}) ->
         user_map        : rtypes.object.isRequired
 
     getInitialState: ->
-        err           : undefined  # error message to display at top.
-        search        : ''         # search query to restrict which assignments are shown.
-        show_deleted  : false      # whether or not to show deleted assignments on the bottom
+        err                      : undefined  # error message to display at top.
+        search                   : ''         # search query to restrict which assignments are shown.
+        show_deleted             : false      # whether or not to show deleted assignments on the bottom
+        show_start_stop_projects : false
 
 
     compute_assignment_list: ->
@@ -90,6 +91,14 @@ exports.AssignmentsPanel = rclass ({name}) ->
             else
                 @props.actions.add_assignment(path)
 
+    render_start_stop_projects_toggle: ->
+        <Button
+            onClick={=>@setState(show_start_stop_projects: !@state.show_start_stop_projects)}
+            style={marginBottom: '15px'}
+        >
+            {if @state.show_start_stop_projects then 'Close start all projects' else 'Start all projects to speed up grading ...'}
+        </Button>
+
     render_start_stop_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
@@ -118,7 +127,8 @@ exports.AssignmentsPanel = rclass ({name}) ->
             />
 
         <Panel header={header}>
-            {@render_start_stop_projects()}
+            {@render_start_stop_projects_toggle()}
+            {@render_start_stop_projects() if @state.show_start_stop_projects}
             {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
