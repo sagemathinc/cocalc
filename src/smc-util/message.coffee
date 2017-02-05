@@ -855,6 +855,7 @@ message
     event        : 'webapp_error'
     name         : required  # string
     message      : required  # string
+    comment      : undefined # string
     stacktrace   : undefined # string
     file         : undefined # string
     lineNumber   : undefined # int

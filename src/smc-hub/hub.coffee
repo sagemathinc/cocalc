@@ -803,6 +803,7 @@ class Client extends EventEmitter
             account_id   : @account_id
             name         : mesg.name # string
             message      : mesg.message # string
+            comment      : mesg.comment # string
             stacktrace   : mesg.stacktrace # string
             file         : mesg.file  # string
             lineNumber   : mesg.lineNumber # int

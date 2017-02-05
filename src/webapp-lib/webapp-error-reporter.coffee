@@ -43,12 +43,13 @@ sendError = (opts) ->
     opts = misc.defaults opts,
         name            : misc.required
         message         : misc.required
+        comment         : ''
         stacktrace      : ''
         file            : ''
         lineNumber      : -1
         columnNumber    : -1
         severity        : 'default'
-    fingerprint = misc.uuidsha1(opts.name + '::' + opts.message)
+    fingerprint = misc.uuidsha1([opts.name, opts.message, opts.comment].join('::'))
     if fingerprint in already_reported and not DEBUG
         return
     already_reported.push(fingerprint)
@@ -96,7 +97,7 @@ generateStacktrace = () ->
 stacktraceFromException = (exception) ->
     return exception.stack || exception.backtrace || exception.stacktrace
 
-notifyException = (exception, name, metaData, severity) ->
+reportException = (exception, name, metaData, severity, comment) ->
     if !exception or typeof exception == "string"
         return
     # setting those *Number defaults to `undefined` breaks somehow on its way
@@ -104,6 +105,7 @@ notifyException = (exception, name, metaData, severity) ->
     sendError(
         name: name || exception.name
         message: exception.message || exception.description
+        comment: comment ? ''
         stacktrace: stacktraceFromException(exception) || generateStacktrace()
         file: exception.fileName || exception.sourceURL
         lineNumber: exception.lineNumber || exception.line || -1
@@ -142,7 +144,7 @@ wrap = (_super) ->
                 try
                     return _super.apply(this, arguments)
                 catch e
-                    notifyException(e, null, null, "error")
+                    reportException(e, null, null, "error")
                     #console.log(e, null, null, "error")
                     ignoreNextOnError()
                     throw e
@@ -206,3 +208,7 @@ polyFill(window, "onerror", (_super) ->
         if (_super)
             _super(message, url, lineNo, charNo, exception)
 )
+
+# public API
+
+exports.reportException = reportException

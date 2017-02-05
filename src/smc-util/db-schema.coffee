@@ -393,6 +393,7 @@ schema.webapp_errors =
         account_id   : type : 'uuid'
         name         : type : 'string'
         message      : type : 'string'
+        comment      : type : 'string'
         stacktrace   : type : 'string'
         file         : type : 'string'
         lineNumber   : type : 'integer'
