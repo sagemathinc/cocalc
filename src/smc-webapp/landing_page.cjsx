@@ -562,9 +562,9 @@ ExampleBox = rclass
             </div>
         </div>
 
-RememberMe = () ->
+Connecting = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
-        <Icon name="spinner" spin /> Signing you in...
+        <Icon name="spinner" spin /> Connecting...
     </div>
 
 
@@ -699,4 +699,4 @@ exports.LandingPage = rclass
                 <Footer/>
             </div>
         else
-            <RememberMe />
+            <Connecting />

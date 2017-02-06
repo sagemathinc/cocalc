@@ -11,4 +11,4 @@ cd /home/wstein/smc/src
 . smc-env
 
 echo $PGHOST
-service_hub.py --host=localhost --single  start
+service_hub.py --host=localhost --single --update start

@@ -82,6 +82,7 @@ CodeMirror.defineMode "tasks", (config) ->
 
 class TaskList
     constructor: (@project_id, @filename, @element, @opts) ->
+        # NOTE: @filename need not be defined, e.g., when this object is being used by the history editor just for rendering
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
@@ -863,7 +864,8 @@ class TaskList
                 @display_desc(task)
                 return false
 
-        e.find('a').attr("target","_blank")
+        if @filename? # need not be defined, e.g., for history editor...
+            e.process_smc_links(project_id:@project_id, file_path:misc.path_split(@filename).head)
         e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
         task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_desc)
 

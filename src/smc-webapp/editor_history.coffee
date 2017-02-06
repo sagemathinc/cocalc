@@ -92,7 +92,7 @@ class exports.HistoryEditor extends FileEditor
 
     remove: () =>
         @syncstring?.close()
-        @view_doc?.remove()
+        @view_doc?.remove?()  # might not have a remove method!
 
     disconnect_from_session: =>
         @close()

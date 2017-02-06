@@ -167,21 +167,35 @@ class Plug
                 dbg("success!")
                 cb?()
 
-    # Try to connect exactly once.  cb gets error if and only if fails to connect
+    # Try to connect exactly once.  cb gets error if and only if fails to connect.
     __try_to_connect_once: (cb) =>
-        {no_sign_in, client, connect} = @_opts
-        if no_sign_in
-            # just need to be connected
-            if client.is_connected()
-                connect(cb)
-            else
-                client.once 'connected', (=> connect(cb))
+        # timer for giving up on waiting to try to connect
+        give_up_timer = undefined
+
+        # actually try to connect
+        do_connect = =>
+            if give_up_timer
+                clearInterval(give_up_timer)
+            @_opts.connect(cb)
+
+        # Which event/condition has too be true before we even try to connect.
+        if @_opts.no_sign_in
+            event = 'connected'
         else
-            # need to be signed in
-            if client.is_signed_in()
-                connect(cb)
-            else
-                client.once 'signed_in', (=> connect(cb))
+            event = 'signed_in'
+
+        if @_opts.client["is_#{event}"]()
+            # The condition is satisfied, so try once to connect.
+            do_connect()
+        else
+            # Wait until condition is satisfied...
+            @_opts.client.once(event, do_connect)
+            # ... but don't wait forever, in case for some reason we miss
+            # the event (this can maybe rarely happen).
+            give_up = =>
+                @_opts.client.removeListener(event, do_connect)
+                cb("timeout")
+            timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval, @_cache_key) ->
@@ -224,10 +238,18 @@ class SyncTable extends EventEmitter
         if @_id?
             @_client.query_cancel(id:@_id)
             @_id = undefined
-        # 1. save, in case we have any local unsaved changes, then sync with upstream.
-        @_save () =>
-            # 2. Now actually do the changefeed query.
-            @_reconnect(cb)
+
+        async.series([
+            (cb) =>
+                # 1. save, in case we have any local unsaved changes, then sync with upstream.
+                if @_value_local? and @_value_server?
+                    @_save(cb)
+                else
+                    cb()
+            (cb) =>
+                # 2. Now actually do the changefeed query.
+                @_reconnect(cb)
+        ], cb)
 
     _reconnect: (cb) =>
         dbg = @dbg("_run")
@@ -424,11 +446,17 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
+        if @__is_saving
+            cb("already saving")
+        else
+            @__is_saving = true
+            @__save (err) =>
+                @__is_saving = false
+                cb?(err)
+
+    __save: (cb) =>
         if @_state == 'closed'
             cb?("closed")
-            return
-        if @_state != 'connected'
-            cb?("not connected")    # do not change this error message; it is assumed elsewhere.
             return
         # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
@@ -492,6 +520,7 @@ class SyncTable extends EventEmitter
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
+            timeout : 30
             cb      : (err) =>
                 if err
                     console.warn("_save('#{@_table}') error:", err)
