@@ -805,15 +805,14 @@ class Client extends EventEmitter
             message      : mesg.message # string
             comment      : mesg.comment # string
             stacktrace   : mesg.stacktrace # string
-            file         : mesg.file  # string
+            path         : mesg.path  # string
             lineNumber   : mesg.lineNumber # int
             columnNumber : mesg.columnNumber # int
             severity     : mesg.severity  # string
-            browser      : mesg.browser
-            mobile       : mesg.mobile  # boolean
-            responsive   : mesg.responsive  # boolean
-            user_agent   : mesg.user_agent
-            path         : mesg.path
+            browser      : mesg.browser      # string (as detected by jQuery)
+            mobile       : mesg.mobile       # boolean
+            responsive   : mesg.responsive   # boolean
+            user_agent   : mesg.user_agent   # string
             smc_version  : mesg.smc_version  # string
             build_date   : mesg.build_date   # string
             smc_git_rev  : mesg.smc_git_rev  # string

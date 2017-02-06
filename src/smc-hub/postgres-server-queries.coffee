@@ -110,8 +110,9 @@ class exports.PostgreSQL extends PostgreSQL
             account_id   : undefined
             name         : undefined
             message      : undefined
+            comment      : undefined
             stacktrace   : undefined
-            file         : undefined
+            path         : undefined
             lineNumber   : undefined
             columnNumber : undefined
             severity     : undefined
@@ -119,7 +120,6 @@ class exports.PostgreSQL extends PostgreSQL
             mobile       : undefined
             responsive   : undefined
             user_agent   : undefined
-            path         : undefined
             smc_version  : undefined
             build_date   : undefined
             smc_git_rev  : undefined
@@ -133,8 +133,9 @@ class exports.PostgreSQL extends PostgreSQL
                 'account_id    :: UUID'      : opts.account_id
                 'name          :: TEXT'      : opts.name
                 'message       :: TEXT'      : opts.message
+                'comment       :: TEXT'      : opts.comment
                 'stacktrace    :: TEXT'      : opts.stacktrace
-                'file          :: TEXT'      : opts.file
+                'path          :: TEXT'      : opts.path
                 'lineNumber    :: INTEGER'   : opts.lineNumber
                 'columnNumber  :: INTEGER'   : opts.columnNumber
                 'severity      :: TEXT'      : opts.severity
@@ -142,7 +143,6 @@ class exports.PostgreSQL extends PostgreSQL
                 'mobile        :: BOOLEAN'   : opts.mobile
                 'responsive    :: BOOLEAN'   : opts.responsive
                 'user_agent    :: TEXT'      : opts.user_agent
-                'path          :: TEXT'      : opts.path
                 'smc_version   :: TEXT'      : opts.smc_version
                 'build_date    :: TEXT'      : opts.build_date
                 'smc_git_rev   :: TEXT'      : opts.smc_git_rev

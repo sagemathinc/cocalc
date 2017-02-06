@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014 -- 2016, SageMath, Inc.
+#    Copyright (C) 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,11 +20,12 @@
 ###############################################################################
 
 ###
-
 Catch and report webapp client errors to the SMC server.
-
-This is inspired by bugsnag's MIT licensed lib.
-
+This is based on bugsnag's MIT licensed lib.
+The basic idea is to wrap very early at a very low level of the event system,
+such that all libraries loaded later are sitting on top of this.
+Additionally, special care is taken to browser brands and their capabilities.
+Finally, additional data about the webapp client is gathered and sent with the error report.
 ###
 
 # list of string-identifyers of errors, that were already reported.
@@ -37,6 +38,27 @@ ignoreOnError = 0
 
 shouldCatch = true
 
+# this is the MAIN function of this module
+# it's exported publicly and also used in various spots where exceptions are already
+# caught and reported to the browser's console.
+reportException = (exception, name, metaData, severity, comment) ->
+    if !exception or typeof exception == "string"
+        return
+    # setting those *Number defaults to `undefined` breaks somehow on its way
+    # to the DB (it only wants NULL or an int). -1 is signaling that there is no info.
+    sendError(
+        name: name || exception.name
+        message: exception.message || exception.description
+        comment: comment ? ''
+        stacktrace: stacktraceFromException(exception) || generateStacktrace()
+        path: exception.fileName || exception.sourceURL
+        lineNumber: exception.lineNumber || exception.line || -1
+        columnNumber: exception.columnNumber || -1
+        severity: severity || "default"
+    )
+
+# this is the final step sending the error report.
+# it gathers additional information about the webapp client.
 sendError = (opts) ->
     #console.log opts
     misc = require('smc-util/misc')
@@ -45,7 +67,7 @@ sendError = (opts) ->
         message         : misc.required
         comment         : ''
         stacktrace      : ''
-        file            : ''
+        path            : ''
         lineNumber      : -1
         columnNumber    : -1
         severity        : 'default'
@@ -56,7 +78,6 @@ sendError = (opts) ->
     # attaching some additional info
     feature = require('smc-webapp/feature')
     opts.user_agent  = navigator?.userAgent
-    opts.path        = window.location.pathname
     opts.browser     = feature.get_browser()
     opts.mobile      = feature.IS_MOBILE
     opts.responsive  = feature.is_responsive_mode()
@@ -69,6 +90,7 @@ sendError = (opts) ->
     {salvus_client} = require('smc-webapp/salvus_client')
     salvus_client.webapp_error(opts)
 
+# neat trick to get a stacktrace when there is none
 generateStacktrace = () ->
     generated = stacktrace = null
     MAX_FAKE_STACK_SIZE = 10
@@ -97,22 +119,6 @@ generateStacktrace = () ->
 stacktraceFromException = (exception) ->
     return exception.stack || exception.backtrace || exception.stacktrace
 
-reportException = (exception, name, metaData, severity, comment) ->
-    if !exception or typeof exception == "string"
-        return
-    # setting those *Number defaults to `undefined` breaks somehow on its way
-    # to the DB (it only wants NULL or an int)
-    sendError(
-        name: name || exception.name
-        message: exception.message || exception.description
-        comment: comment ? ''
-        stacktrace: stacktraceFromException(exception) || generateStacktrace()
-        file: exception.fileName || exception.sourceURL
-        lineNumber: exception.lineNumber || exception.line || -1
-        columnNumber: exception.columnNumber || -1
-        severity: severity || "default"
-    )
-
 # Disable catching on IE < 10 as it destroys stack-traces from generateStackTrace()
 if (not window.atob)
     shouldCatch = false
@@ -140,14 +146,16 @@ wrap = (_super) ->
 
         if !_super._wrapper
             _super._wrapper = () ->
-
-                try
+                if shouldCatch
+                    try
+                        return _super.apply(this, arguments)
+                    catch e
+                        reportException(e, null, null, "error")
+                        #console.log(e, null, null, "error")
+                        ignoreNextOnError()
+                        throw e
+                else
                     return _super.apply(this, arguments)
-                catch e
-                    reportException(e, null, null, "error")
-                    #console.log(e, null, null, "error")
-                    ignoreNextOnError()
-                    throw e
 
             _super._wrapper._wrapper = _super._wrapper
 
@@ -192,15 +200,16 @@ polyFill(window, "onerror", (_super) ->
 
         if (ignoreOnError == 0)
             name = exception?.name or "window.onerror"
-            stacktrace = (exception and stacktraceFromException(exception)) or enerateStacktrace()
+            stacktrace = (exception and stacktraceFromException(exception)) or \
+                generateStacktrace()
             sendError(
-                name: name
-                message: message
-                file: url
-                lineNumber: lineNo
+                name        : name
+                message     : message
+                path        : url
+                lineNumber  : lineNo
                 columnNumber: charNo
-                stacktrace: stacktrace
-                severity: "error"
+                stacktrace  : stacktrace
+                severity    : "error"
             )
 
 
@@ -208,6 +217,18 @@ polyFill(window, "onerror", (_super) ->
         if (_super)
             _super(message, url, lineNo, charNo, exception)
 )
+
+hijackTimeFunc = (_super) ->
+    return (f, t) ->
+        if typeof f == "function"
+            f = wrap(f)
+            args = Array.prototype.slice.call(arguments, 2)
+            return _super((-> f.apply(this, args)), t)
+        else
+            return _super(f, t)
+
+polyFill(window, "setTimeout", hijackTimeFunc)
+polyFill(window, "setInterval", hijackTimeFunc)
 
 # public API
 

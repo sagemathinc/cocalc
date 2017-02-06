@@ -857,7 +857,7 @@ message
     message      : required  # string
     comment      : undefined # string
     stacktrace   : undefined # string
-    file         : undefined # string
+    path         : undefined # string
     lineNumber   : undefined # int
     columnNumber : undefined # int
     severity     : undefined # string
@@ -865,7 +865,6 @@ message
     mobile       : undefined # boolean, feature.coffee::IS_MOBILE
     responsive   : undefined # boolean, feature.coffee::is_responsive_mode
     user_agent   : undefined # string
-    path         : undefined # stirng
     smc_version  : undefined # string
     build_date   : undefined # string
     smc_git_rev  : undefined # string
