@@ -5,7 +5,7 @@ misc = require('smc-util/misc')
 
 # React libraries and components
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel, Well} = require('react-bootstrap')
 
 # SMC components
 {User} = require('../users')
@@ -362,6 +362,7 @@ exports.StudentsPanel = rclass ({name}) ->
                      assignments={@props.assignments}
                      is_expanded={@props.expanded_students.has(x.student_id)}
                      student_name={name}
+                     display_account_name={true}
                      />
 
     render_show_deleted: (num_deleted) ->
@@ -403,18 +404,25 @@ Student = rclass
     displayName: "CourseEditorStudent"
 
     propTypes:
-        redux       : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
-        student     : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
-        project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        background  : rtypes.string
-        is_expanded  : rtypes.bool
-        student_name : rtypes.object
+        redux                : rtypes.object.isRequired
+        name                 : rtypes.string.isRequired
+        student              : rtypes.object.isRequired
+        user_map             : rtypes.object.isRequired
+        project_map          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        assignments          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        background           : rtypes.string
+        is_expanded          : rtypes.bool
+        student_name         : rtypes.object
+        display_account_name : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.student_name != nextProps.student_name
+
+    componentWillReceiveProps: (next) ->
+        if @props.student_name.first != next.student_name.first
+            @setState(edited_first_name : next.student_name.first)
+        if @props.student_name.last != next.student_name.last
+            @setState(edited_last_name : next.student_name.last)
 
     getInitialState: ->
         confirm_delete    : false
@@ -437,36 +445,16 @@ Student = rclass
 
     render_student: ->
         <a href='' onClick={@toggle_show_more}>
-            {<Icon style={marginRight:'10px'}
+            <Icon style={marginRight:'10px'}
                   name={if @props.is_expanded then 'caret-down' else 'caret-right'}
-            /> if not @state.editing_student}
+            />
             {@render_student_name()}
         </a>
 
     render_student_name: ->
-        if @state.editing_student
-            return <FormGroup style={marginBottom:'0px'}>
-                <FormControl
-                    type       = 'text'
-                    autoFocus  = {true}
-                    style      = {display:'inline-block', width:'50%'}
-                    value      = {@state.edited_first_name}
-                    onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
-                    onChange   = {(e) => @setState(edited_first_name : e.target.value)}
-                    onKeyDown  = {@on_key_down}
-                />
-                <FormControl
-                    type       = 'text'
-                    style      = {display:'inline-block', width:'50%'}
-                    value      = {@state.edited_last_name}
-                    onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
-                    onChange   = {(e) => @setState(edited_last_name : e.target.value)}
-                    onKeyDown  = {@on_key_down}
-                />
-            </FormGroup>
         account_id = @props.student.get('account_id')
         if account_id?
-            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name.full} />
+            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name.full} show_original={@props.display_account_name}/>
         return <span>{@props.student.get("email_address")} (invited)</span>
 
     render_student_email: ->
@@ -530,7 +518,7 @@ Student = rclass
                         </Tip>
                     </Button>
                 </ButtonGroup>
-                {@render_edit_name()}
+                {@render_edit_name() if @props.student.get('account_id')}
             </ButtonToolbar>
         else
             <Tip placement='right'
@@ -682,14 +670,52 @@ Student = rclass
             <b> (deleted)</b>
 
     render_panel_header: ->
-        <Row>
-            <Col md=8>
-                {@render_project_access()}
-            </Col>
-            <Col md=4>
-                {@render_delete_button()}
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col md=8>
+                    {@render_project_access()}
+                </Col>
+                <Col md=4>
+                    {@render_delete_button()}
+                </Col>
+            </Row>
+            {<Row>
+                <Col md=4>
+                    {@render_edit_student_interface()}
+                </Col>
+            </Row> if @state.editing_student }
+        </div>
+
+    render_edit_student_interface: ->
+        <Well style={marginTop:'10px'}>
+            <Row>
+                <Col md=6>
+                    First Name
+                    <FormGroup>
+                        <FormControl
+                            type       = 'text'
+                            autoFocus  = {true}
+                            value      = {@state.edited_first_name}
+                            onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                            onChange   = {(e) => @setState(edited_first_name : e.target.value)}
+                            onKeyDown  = {@on_key_down}
+                        />
+                    </FormGroup>
+                </Col>
+                <Col md=6>
+                    Last Name
+                    <FormGroup>
+                        <FormControl
+                            type       = 'text'
+                            value      = {@state.edited_last_name}
+                            onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                            onChange   = {(e) => @setState(edited_last_name : e.target.value)}
+                            onKeyDown  = {@on_key_down}
+                        />
+                    </FormGroup>
+                </Col>
+            </Row>
+        </Well>
 
     render_more_panel: ->
         <Row>
