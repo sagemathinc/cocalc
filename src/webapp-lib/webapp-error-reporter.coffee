@@ -197,7 +197,6 @@ polyFill(window, "onerror", (_super) ->
         if !charNo and window.event
             charNo = window.event.errorCharacter
 
-
         if (ignoreOnError == 0)
             name = exception?.name or "window.onerror"
             stacktrace = (exception and stacktraceFromException(exception)) or \
@@ -212,11 +211,12 @@ polyFill(window, "onerror", (_super) ->
                 severity    : "error"
             )
 
-
         # Fire the existing `window.onerror` handler, if one exists
         if (_super)
             _super(message, url, lineNo, charNo, exception)
 )
+
+# timing functions
 
 hijackTimeFunc = (_super) ->
     return (f, t) ->
@@ -229,6 +229,44 @@ hijackTimeFunc = (_super) ->
 
 polyFill(window, "setTimeout", hijackTimeFunc)
 polyFill(window, "setInterval", hijackTimeFunc)
+
+if window.requestAnimationFrame
+    polyFill(window, "requestAnimationFrame", (_super) ->
+        (callback) ->
+            return _super(wrap(callback))
+    )
+
+if window.setImmediate
+    polyFill(window, "setImmediate", (_super) ->
+        return () ->
+            args = Array.prototype.slice.call(arguments)
+            args[0] = wrap(args[0])
+            return _super.apply(this, args)
+    )
+
+# console terminal
+
+sendLogLine = (severity, args) ->
+    sendError(
+        name        : 'Console Output'
+        message     : Array.prototype.slice.call(args).join(", ")
+        path        : window.location.href
+        lineNumber  : -1
+        columnNumber: -1
+        stacktrace  : null
+        severity    : severity
+    )
+
+wrapFunction = (object, property, newFunction) ->
+    oldFunction = object[property]
+    object[property] = () ->
+        newFunction.apply(this, arguments)
+        if typeof oldFunction == "function"
+            oldFunction.apply(this, arguments)
+
+if window.console?
+    wrapFunction(console, "warn",  (-> sendLogLine("warn", arguments)))
+    wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
 
 # public API
 

@@ -96,6 +96,10 @@ exports.NotificationBell = rclass
 
     on_click: (e) ->
         if DEBUG and e.shiftKey
+            console.warn("upcoming error")
+            setTimeout((->console.error("this is the error")), 10)
+            setTimeout((->throw new Error("setTimeout error")), 20)
+            window.requestAnimationFrame((-> throw new Error("requestAnimationFrame error")))
             # used to trigger an exception to test catching it
             not_defined()
         @actions('page').toggle_show_file_use()
