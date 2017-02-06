@@ -268,12 +268,12 @@ salvus_client.on "connecting", () ->
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your internet connection is unstable/down or SMC is temporarily not available. Therefore SMC is not working."
+                    message: "Your connection is unstable or SMC is temporarily not available."
             else if attempt >= 10
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your internet connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
+                    message: "Your connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
     else
         reconnection_warning = null
 
