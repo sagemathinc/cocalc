@@ -5,8 +5,8 @@ This is a self-contained single-image multi-user SageMathCloud server.
 **STATUS:**
   - This is _**not blatantly insecure**_: the database has a long random password, user accounts are separate, ssl communication is supported by default, etc.
   - That said, **a determined user with an account can very likely access or change files of other users in the same container!** Use this for personal use, behind a firewall, or with an account creation token, so that only other people you trust create accounts.  Don't make one of these publicly available with important data in it and no account creation token!
-  - There are no quotas are implemented except idle timeout.
-  - See the [open docker-related SageMathCloud issues](https://github.com/sagemathinc/smc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues, including no sagetex support, missing Jupyter kernels, etc.
+  - There are no quotas except idle timeout.
+  - See the [open docker-related SageMathCloud issues](https://github.com/sagemathinc/smc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues.
 
 ## Instructions
 
@@ -55,32 +55,30 @@ Then the **only way** to access your SMC server is to type the following on your
 
 and open your web browser to http://localhost:8080
 
-### Make all users admins
+### Make a user an admins
 
 Get a bash shell insider the container, then connect to the database and make all users admins as follows:
 
-    $ docker exec -it 9eff7133bbd6 bash
-    root@9eff7133bbd6:/# cd /smc/src
-    root@9eff7133bbd6:/smc/src# . smc-env
-    root@9eff7133bbd6:/smc/src# coffee
+    $ docker exec -it smc bash
+    root@931045eda11f:/# coffee
     coffee> require 'c'; db()
-    coffee> db.table('accounts').update(groups:['admin']).run(done())
+    coffee> db.make_user_admin(email_address:'wstein@gmail.com', cb:done())
 
-Refresh your browser, and then you should see an "Admin edit..." button in any project's settings.
+Obviously, make the user you created (with its email address) an admin, not me!
+Refresh your browser, and then you should see an extra admin panel in the lower right of accounts settings; you can also open any project by directly visiting its URL.
 
 #### Account Creation Token
 
-After making your main account an admin as above, search for "Account Creation Token" in your account settings. Put some random unguessable string there and other people will not be able to create accounts in your SMC container, without knowing that token.
+After making your main account an admin as above, search for "Account Creation Token" in your account settings. Put some random  string there and other people will not be able to create accounts in your SMC container, without knowing that token.
 
 ## Your data
 
 If you started the container as above, there will be a directory ~/smc on your host computer that contains **all** data and files related to your projects and users -- go ahead and verify that it is there before ugrading.   It might look like this:
 
     Williams-MacBook-Pro:~ wstein$ ls smc
-    be889c14-dc96-4538-989b-4117ffe84148	rethinkdb    conf
+    be889c14-dc96-4538-989b-4117ffe84148	postgres    conf
 
-The directory `rethinkdb` contains the database files, so all projects, users, file editing history, etc.  The directory conf contains some secrets and log files.  There will also be one directory (like `be889c14-dc96-4538-989b-4117ffe84148`) for each
-project that is created.
+The directory `postgres` contains the database files, so all projects, users, file editing history, etc.  The directory conf contains some secrets and log files.  There will also be one directory (like `be889c14-dc96-4538-989b-4117ffe84148`) for each project that is created.
 
 ## Upgrade
 
@@ -102,7 +100,7 @@ This section is for SageMathCloud developers.
 
 Build the image
 
-    make build
+    make build-full   # or make build
 
 Run the image (to test)
 

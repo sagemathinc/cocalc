@@ -156,15 +156,15 @@ $.fn.process_smc_links = (opts={}) ->
 
         # make relative links to images use the raw server
         if opts.project_id and opts.file_path?
-            a = e.find("img")
-            for x in a
-                y = $(x)
-                src = y.attr('src')
-                if src.indexOf('://') != -1
-                    continue
-                {join} = require('path')
-                new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
-                y.attr('src', new_src)
+            for [tag, attr] in [['img', 'src'], ['object', 'data']]
+                for x in e.find(tag)
+                    y = $(x)
+                    src = y.attr(attr)
+                    if src.indexOf('://') != -1
+                        continue
+                    {join} = require('path')
+                    new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
+                    y.attr(attr, new_src)
 
         return e
 
