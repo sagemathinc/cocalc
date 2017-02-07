@@ -413,6 +413,7 @@ class Project(object):
             try:
                 os.nice(-os.nice(0))  # Reset nice-ness to 0
                 os.setgroups([])      # Drops other groups, like root or sudoers
+                os.setsid()           # Make it a session leader
                 os.setgid(self.uid)
                 os.setuid(self.uid)
 
