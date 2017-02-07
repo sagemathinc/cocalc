@@ -679,10 +679,10 @@ StudentListForAssignment = rclass
               key     = {student_id}
               title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
               name    = {@props.name}
-              redux   = {@props.redux}
               student = {student_id}
               assignment = {@props.assignment}
-              grade   = {store.get_grade(@props.assignment, student_id)} />
+              grade   = {store.get_grade(@props.assignment, student_id)}
+              info    = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
         v = course_funcs.immutable_to_list(@props.students, 'student_id')

@@ -545,12 +545,16 @@ Student = rclass
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
+            info = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
-                  key={assignment.get('assignment_id')}
-                  title={@render_title(assignment)}
-                  name={@props.name} redux={@props.redux}
-                  student={@props.student} assignment={assignment}
-                  grade={grade} />
+                key={assignment.get('assignment_id')}
+                title={@render_title(assignment)}
+                name={@props.name}
+                student={@props.student}
+                assignment={assignment}
+                grade={grade}
+                info={info}
+                />
 
     render_assignments_info: ->
         peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
