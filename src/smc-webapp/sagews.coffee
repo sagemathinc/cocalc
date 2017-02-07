@@ -899,9 +899,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     return
                 # New gutter element
                 elt = line_number_elt.clone().text(relative_line)[0]
-        elt.smc_cur = want  # elt will have this mode/line
-        # Now set it.
-        cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
+            else
+                console.warn("sagews unknown mode '#{mode}'")
+        if elt?
+            elt.smc_cur = want  # elt will have this mode/line
+            # Now set it.
+            cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
 
     _process_line: (cm, line, context) =>
         ###
