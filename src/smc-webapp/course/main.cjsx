@@ -626,7 +626,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 @configure_project_users(student_project_id, student_id, do_not_invite_student_by_email)
                 @configure_project_visibility(student_project_id)
                 @configure_project_title(student_project_id, student_id)
-                #@configure_project_description(student_project_id, student_id)
+                @configure_project_description(student_project_id, student_id)
 
         delete_project: (student_id) =>
             store = get_store()
