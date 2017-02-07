@@ -439,9 +439,10 @@ Student = rclass
 
     toggle_show_more: (e) ->
         e.preventDefault()
-        if not @state.editing_student
-            item_id = @props.student.get('student_id')
-            @actions(@props.name).toggle_item_expansion('student', item_id)
+        if @state.editing_student
+            @cancel_student_edit()
+        item_id = @props.student.get('student_id')
+        @actions(@props.name).toggle_item_expansion('student', item_id)
 
     render_student: ->
         <a href='' onClick={@toggle_show_more}>

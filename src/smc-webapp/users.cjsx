@@ -164,8 +164,8 @@ exports.User = User = rclass
             full_name = ''
 
         if @props.show_original and full_name != @props.name
-            <Tip placement='right'
-                 title='Given Name'
+            <Tip placement='top'
+                 title='User Name'
                  tip='The name this user has given their account.'
             >
                 <span style={color:"#666"}> ({full_name})</span>
