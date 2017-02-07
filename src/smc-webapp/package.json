@@ -74,7 +74,8 @@
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
     "jsdom": "^7.0.2",
-    "mocha": "^2.3.3"
+    "mocha": "^2.3.3",
+    "react-addons-perf": "^15.4.2"
   },
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter spec",

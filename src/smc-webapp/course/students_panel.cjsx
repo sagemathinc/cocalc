@@ -4,6 +4,7 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries and components
+window.Perf = require('react-addons-perf')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
 
@@ -143,7 +144,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     email_address : emails[y]
             else
                 students.push({email_address:y})
-        @props.redux.getActions(@props.name).add_students(students)
+        @actions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
     get_add_selector_options: ->
@@ -398,6 +399,13 @@ exports.StudentsPanel.Header = rclass
             </span>
         </Tip>
 
+###
+ Updates based on:
+  - Expanded/Collapsed
+  - If collapsed: First name, last name, email, last active, hosting type
+  - If expanded: +Above,
+
+###
 Student = rclass
     displayName : "CourseEditorStudent"
 
@@ -435,10 +443,10 @@ Student = rclass
         return <a href="mailto:#{email}">{email}</a>
 
     open_project: ->
-        @props.redux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
+        @actions('projects').open_project(project_id:@props.student.get('project_id'))
 
     create_project: ->
-        @props.redux.getActions(@props.name).create_student_project(@props.student_id)
+        @actions(@props.name).create_student_project(@props.student_id)
 
     render_last_active: ->
         student_project_id = @props.student.get('project_id')
@@ -497,11 +505,11 @@ Student = rclass
             </Tip>
 
     delete_student: ->
-        @props.redux.getActions(@props.name).delete_student(@props.student)
+        @actions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
     undelete_student: ->
-        @props.redux.getActions(@props.name).undelete_student(@props.student)
+        @actions(@props.name).undelete_student(@props.student)
 
     render_confirm_delete: ->
         if @state.confirm_delete
@@ -573,7 +581,7 @@ Student = rclass
                     rows        = 6
                     placeholder = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@props.redux.getActions(@props.name).set_student_note(@props.student, value)}
+                    on_save     = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
