@@ -379,6 +379,10 @@ class exports.Client extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         socket = @get_hub_socket()
+        if not socket?
+            # It will try later when one is available...
+            opts.cb("no hub socket available")
+            return
         if opts.changes
             # Record socket for this changefeed in @_changefeed_sockets
             @_changefeed_sockets[mesg.id] = socket
