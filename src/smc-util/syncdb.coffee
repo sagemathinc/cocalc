@@ -125,6 +125,16 @@ class exports.SynchronizedDB extends EventEmitter
                 changes.push({remove:v.data})
                 delete @_data[h]
         if changes.length > 0
+            # sort moving the remove's before the inserts, so code that
+            # handles these changes gets the correct result by applying them
+            # in order (since mutate = remove and insert)
+            changes.sort (a,b) ->
+                if a.remove? and b.remove?
+                    return 0
+                else if a.remove? and b.insert?
+                    return -1
+                else if a.insert? and b.remove?
+                    return 1
             @emit("change", changes)
         if duplicate_lines
             # There was corruption involving multiple copies of the same line

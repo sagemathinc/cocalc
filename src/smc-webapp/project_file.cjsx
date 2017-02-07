@@ -134,6 +134,7 @@ require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
 require('./editor_pdf')
+require('./editor_time')
 
 # Public editors
 require('./public/editor_md')
