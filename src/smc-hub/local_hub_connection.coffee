@@ -665,6 +665,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     opts.cb(err)
                     return
 
+                # In case it was already setup to listen before... (and client is reconnecting)
+                console_socket.removeAllListeners()
+
                 console_socket._ignore = false
                 console_socket.on 'end', () =>
                     winston.debug("console_socket (session_uuid=#{opts.session_uuid}): received 'end' so setting ignore=true")
@@ -711,7 +714,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     #winston.debug("push_data_to_client('#{data}')")
                     opts.client.push_data_to_client(channel, data)
                     console_socket.history += data
-                    if console_socket.history.length > 100000
+                    if console_socket.history.length > 150000
                         console_socket.history = console_socket.history.slice(console_socket.history.length - 100000)
                 console_socket.on('data', f)
 
