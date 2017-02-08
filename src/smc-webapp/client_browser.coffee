@@ -178,7 +178,9 @@ class Connection extends client.Connection
         @_idle_reset()
 
     _connect: (url, ondata) ->
-        console.log("client_browser -- _connect")
+        log = (mesg) ->
+            console.log("websocket -", mesg)
+        log("connect")
 
         @url = url
         if @ondata?
@@ -205,13 +207,11 @@ class Connection extends client.Connection
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
             @_connected = true
-
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
-            console.log("websocket -- connected #{protocol}")
+            log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
-            #console.log("installing ondata handler")
             conn.removeAllListeners('data')
             f = (data) =>
                 @_conn_id = data.toString()
@@ -219,46 +219,46 @@ class Connection extends client.Connection
                 conn.on('data', ondata)
             conn.on("data", f)
 
+
         conn.on 'outgoing::open', (evt) =>
-            console.log("websocket -- connecting")
+            log("connecting")
             @emit("connecting")
 
         conn.on 'offline', (evt) =>
-            console.log("websocket -- offline (no internet connection)")
+            log("offline")
+            @_connected = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
-            console.log("websocket -- online (regaining internet connection)")
+            log("online")
 
         conn.on 'message', (evt) =>
-            #console.log("websocket -- message: ", evt)
             ondata(evt.data)
 
         conn.on 'error', (err) =>
-            console.log("websocket -- error: ", err)
+            log("error: ", err)
             @emit("error", err)
 
         conn.on 'close', () =>
-            console.log("websocket -- closed")
+            log("closed")
             @_connected = false
-            conn.removeAllListeners('data')
-            @emit("disconnected", "disconnected")
+            @emit("disconnected", "close")
 
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
+            @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
             @emit("connecting")
             conn.removeAllListeners('data')
-            console.log("websocket -- reconnecting in #{opts.scheduled} ms")
-            console.log("websocket -- this is attempt #{opts.attempt} out of #{opts.retries}")
+            log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
 
         conn.on 'incoming::pong', (time) =>
-            #console.log("pong latency=#{conn.latency}")
+            #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>
-        #    console.log(new Date() - 0, "sending a ping")
+        #    log(new Date() - 0, "sending a ping")
 
         @_write = (data) =>
             conn.write(data)

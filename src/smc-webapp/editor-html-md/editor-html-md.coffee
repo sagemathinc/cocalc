@@ -530,13 +530,11 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 # finally set html in the live DOM
                 @preview_content.html(source)
 
-                @localize_image_links(@preview_content)
+                @preview_content.process_smc_links(
+                    project_id  : @project_id
+                    file_path   : @file_path()
+                )
 
-                ## this would disable clickable links...
-                #@preview.find("a").click () =>
-                #    return false
-                # Make it so preview links can be clicked, don't close SMC page.
-                @preview_content.find("a").attr("target","_blank")
                 @preview_content.find("table").addClass('table')  # bootstrap table
 
                 @preview_content.mathjax()
@@ -548,18 +546,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             if @_update_preview_redo
                 @_update_preview_redo = false
                 @update_preview()
-
-    localize_image_links: (e) =>
-        {join} = require('path')
-        # make relative links to images and objects use the raw server
-        for [tag, attr] in [['img', 'src'], ['object', 'data']]
-            for x in e.find(tag)
-                y = $(x)
-                src = y.attr(attr)
-                if not src? or src[0] == '/' or src.indexOf('://') != -1
-                    continue
-                new_src = join('/', window.smc_base_url, @project_id, 'raw', @file_path(), src)
-                y.attr(attr, new_src)
 
     init_preview_select: () =>
         @preview_content.click (evt) =>

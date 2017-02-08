@@ -562,9 +562,9 @@ ExampleBox = rclass
             </div>
         </div>
 
-RememberMe = () ->
+Connecting = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
-        <Icon name="spinner" spin /> Signing you in...
+        <Icon name="spinner" spin /> Connecting...
     </div>
 
 
@@ -669,14 +669,12 @@ exports.LandingPage = rclass
                     </Col>
                     <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
                         <Well style={'float':'right', marginBottom:'15px'} className="lighten">
-                            <h3 style={marginTop: 0}>For the next generation of innovative leaders</h3>
-                            <p style={marginBottom:'15px'}>who teach courses using modern open
-                            source software, SageMathCloud is by far the most powerful and easiest way to get your
-                            class up and running. We completely eliminate frustrating installations, awkward and
-                            closed Matlab and Mathematica clouds, and the limited functionality of Overleaf and ShareLatex.
-                            Quick, expert technical support is offered via our ridiculously collaborative environment,
-                            which includes LaTeX, R, Jupyter, Python, SageMath, Octave, and Julia. For avoiding the bumps and
-                            bruises of open source software, we have your back.</p>
+                            <h3 style={marginTop: 0}>For professors teaching courses using open source software</h3>
+                            <p style={marginBottom:'15px'}>
+                            SMC is the easiest way to get your class up and running.  We eliminate installation
+                            problems, and the limitations of the Mathematica and ShareLaTeX cloud offerings.
+                            Our collaborative environment includes LaTeX, R, Jupyter, Python, SageMath,
+                            Octave, Julia, and much more.</p>
                             <SMC_Commercial />
                             <br />
                             <SMC_Quote />
@@ -699,4 +697,4 @@ exports.LandingPage = rclass
                 <Footer/>
             </div>
         else
-            <RememberMe />
+            <Connecting />

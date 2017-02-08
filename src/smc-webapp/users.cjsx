@@ -32,14 +32,14 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
-        if not account_id?
+        if not account_id
             return
         salvus_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
             cb          : (err, x) =>
                 if err
-                    console.warn("ERROR getting username for account with id '#{account_id}'")
+                    console.warn("WARNING: unable to get username for account with id '#{account_id}'")
                 else
                     obj = x[account_id]
                     if obj?

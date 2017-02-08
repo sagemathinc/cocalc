@@ -58,8 +58,14 @@ sage_session = require('./sage_session')
 DEBUG = false
 #DEBUG = true
 
-if process.env.SMC_DEBUG
-    DEBUG=true
+# Easy way to enable debugging in any project anywhere.
+DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
+if fs.existsSync(DEBUG_FILE)
+    winston.debug("'#{DEBUG_FILE}' exists, so enabling very verbose logging")
+    DEBUG = true
+else
+    winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
+
 
 class exports.Client extends EventEmitter
     constructor: (@project_id) ->
@@ -373,6 +379,10 @@ class exports.Client extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         socket = @get_hub_socket()
+        if not socket?
+            # It will try later when one is available...
+            opts.cb("no hub socket available")
+            return
         if opts.changes
             # Record socket for this changefeed in @_changefeed_sockets
             @_changefeed_sockets[mesg.id] = socket

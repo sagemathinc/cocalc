@@ -91,7 +91,6 @@ init_redux = (course_filename, redux, course_project_id) ->
     syncdb = undefined
     user_store = redux.getStore('users')
     class CourseActions extends Actions
-        # INTERNAL API
         _loaded: =>
             if not syncdb?
                 @set_error("attempt to set syncdb before loading")

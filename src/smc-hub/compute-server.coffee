@@ -1238,21 +1238,20 @@ exports.fake_dev_socket = (cb) ->
 ###########################
 
 try
-    program.parse(process.argv)  # so that program._name gets set if being run as a script
+    program.usage('[start/stop/restart/status] [options]')
+        .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
+        .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
+        .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
+        .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
+        .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
+        .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
+        .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
+        .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
+        .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .parse(process.argv)
 catch e
-    program._name = 'xxx'  # so this module is possible to import with latest node version, yet program.parse works below.
-
-program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
-    .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-    .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-    .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-    .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-    .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-    .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-    .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-    .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
-    .parse(process.argv)
+    # Stupid bug in the command module when loaded as a module.
+    program._name = 'xxx'
 
 program.port = parseInt(program.port)
 
