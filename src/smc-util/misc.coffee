@@ -1695,6 +1695,10 @@ exports.wrap_log = () ->
         window.console.log_original = window.console.log
         window.console.log = exports.log
 
+# to test exception handling
+exports.this_fails = ->
+    return exports.op_to_function('noop')
+
 # derive the console initialization filename from the console's filename
 # used in webapp and console_server_child
 exports.console_init_filename = (fn) ->

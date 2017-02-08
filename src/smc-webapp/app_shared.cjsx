@@ -95,14 +95,15 @@ exports.NotificationBell = rclass
         count : rtypes.number
 
     on_click: (e) ->
-        if DEBUG and e.shiftKey
+        if e.shiftKey and DEBUG # comment 'and DEBUG' to test throwing and reporting errors
             console.warn("upcoming error")
-            setTimeout((->console.error("this is the error")), 10)
-            setTimeout((->throw new Error("setTimeout error")), 20)
-            window.requestAnimationFrame((-> throw new Error("requestAnimationFrame error")))
+            setTimeout((->console.error("this is the error")), 100)
+            setTimeout((->throw new Error("setTimeout error")), 500)
+            window.requestAnimationFrame((-> misc.this_fails()))
             # used to trigger an exception to test catching it
-            not_defined()
-        @actions('page').toggle_show_file_use()
+            misc.this_fails()
+        else
+            @actions('page').toggle_show_file_use()
 
     notification_count: ->
         count_styles =

@@ -102,15 +102,18 @@ generateStacktrace = () ->
         generated = "<generated>\n"
         stacktrace = stacktraceFromException(exception)
 
-    if (!stacktrace)
+    if not stacktrace
         generated = "<generated-ie>\n"
         functionStack = []
         try
             curr = arguments.callee.caller.caller;
             while (curr && functionStack.length < MAX_FAKE_STACK_SIZE)
-                fn = if FUNCTION_REGEX.test(curr.toString()) then (RegExp.$1 ? ANONYMOUS_FUNCTION_PLACEHOLDER) else ANONYMOUS_FUNCTION_PLACEHOLDER
-            functionStack.push(fn)
-            curr = curr.caller
+                if FUNCTION_REGEX.test(curr.toString())
+                    fn = (RegExp.$1 ? ANONYMOUS_FUNCTION_PLACEHOLDER)
+                else
+                    fn = ANONYMOUS_FUNCTION_PLACEHOLDER
+                functionStack.push(fn)
+                curr = curr.caller
         catch e
             #console.error(e)
         stacktrace = functionStack.join("\n");
@@ -125,6 +128,8 @@ if (not window.atob)
 
 # Disable catching on browsers that support HTML5 ErrorEvents properly.
 # This lets debug on unhandled exceptions work.
+# TODO: maybe disable this block below.
+# (line and coumn numbers have no real meaning for us, too)
 else if (window.ErrorEvent)
     try
         if new window.ErrorEvent("test").colno == 0
@@ -135,9 +140,7 @@ else if (window.ErrorEvent)
 # flag to ignore "onerror" when already wrapped in the event handler
 ignoreNextOnError = () ->
     ignoreOnError += 1
-    window.setTimeout(() ->
-        ignoreOnError -= 1
-    )
+    window.setTimeout((-> ignoreOnError -= 1))
 
 wrap = (_super) ->
     try
@@ -253,7 +256,7 @@ sendLogLine = (severity, args) ->
         path        : window.location.href
         lineNumber  : -1
         columnNumber: -1
-        stacktrace  : null
+        stacktrace  : generateStacktrace()
         severity    : severity
     )
 
