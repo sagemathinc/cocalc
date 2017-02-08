@@ -21,7 +21,7 @@
 
 ###
 Catch and report webapp client errors to the SMC server.
-This is based on bugsnag's MIT licensed lib.
+This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
 The basic idea is to wrap very early at a very low level of the event system,
 such that all libraries loaded later are sitting on top of this.
 Additionally, special care is taken to browser brands and their capabilities.
@@ -41,7 +41,7 @@ shouldCatch = true
 # this is the MAIN function of this module
 # it's exported publicly and also used in various spots where exceptions are already
 # caught and reported to the browser's console.
-reportException = (exception, name, metaData, severity, comment) ->
+reportException = (exception, name, severity, comment) ->
     if !exception or typeof exception == "string"
         return
     # setting those *Number defaults to `undefined` breaks somehow on its way
@@ -51,7 +51,8 @@ reportException = (exception, name, metaData, severity, comment) ->
         message: exception.message || exception.description
         comment: comment ? ''
         stacktrace: stacktraceFromException(exception) || generateStacktrace()
-        path: exception.fileName || exception.sourceURL
+        file: exception.fileName || exception.sourceURL
+        path: window.location.href
         lineNumber: exception.lineNumber || exception.line || -1
         columnNumber: exception.columnNumber || -1
         severity: severity || "default"
@@ -67,6 +68,7 @@ sendError = (opts) ->
         message         : misc.required
         comment         : ''
         stacktrace      : ''
+        file            : ''
         path            : ''
         lineNumber      : -1
         columnNumber    : -1
@@ -106,17 +108,17 @@ generateStacktrace = () ->
         generated = "<generated-ie>\n"
         functionStack = []
         try
-            curr = arguments.callee.caller.caller;
-            while (curr && functionStack.length < MAX_FAKE_STACK_SIZE)
+            curr = arguments.callee.caller.caller
+            while curr && functionStack.length < MAX_FAKE_STACK_SIZE
                 if FUNCTION_REGEX.test(curr.toString())
-                    fn = (RegExp.$1 ? ANONYMOUS_FUNCTION_PLACEHOLDER)
+                    fn = RegExp.$1 ? ANONYMOUS_FUNCTION_PLACEHOLDER
                 else
                     fn = ANONYMOUS_FUNCTION_PLACEHOLDER
                 functionStack.push(fn)
                 curr = curr.caller
         catch e
             #console.error(e)
-        stacktrace = functionStack.join("\n");
+        stacktrace = functionStack.join("\n")
     return generated + stacktrace
 
 stacktraceFromException = (exception) ->
@@ -128,20 +130,21 @@ if (not window.atob)
 
 # Disable catching on browsers that support HTML5 ErrorEvents properly.
 # This lets debug on unhandled exceptions work.
-# TODO: maybe disable this block below.
-# (line and coumn numbers have no real meaning for us, too)
-else if (window.ErrorEvent)
-    try
-        if new window.ErrorEvent("test").colno == 0
-            shouldCatch = false
-    catch e
-        # No action needed
+# TODO: enabling the block below distorts (at least) Chrome error messages.
+# Maybe Chrome's window.onerror doesn't work as assumed?
+# else if window.ErrorEvent
+#     try
+#         if new window.ErrorEvent("test").colno == 0
+#             shouldCatch = false
+#     catch e
+#         # No action needed
 
 # flag to ignore "onerror" when already wrapped in the event handler
 ignoreNextOnError = () ->
     ignoreOnError += 1
     window.setTimeout((-> ignoreOnError -= 1))
 
+# this is the "brain" of all this
 wrap = (_super) ->
     try
         if typeof _super != "function"
@@ -153,8 +156,7 @@ wrap = (_super) ->
                     try
                         return _super.apply(this, arguments)
                     catch e
-                        reportException(e, null, null, "error")
-                        #console.log(e, null, null, "error")
+                        reportException(e, null, "error")
                         ignoreNextOnError()
                         throw e
                 else
@@ -167,6 +169,7 @@ wrap = (_super) ->
     catch e
         return _super
 
+# replaces an attribute of an object by a function that has it as an argument
 polyFill = (obj, name, makeReplacement) ->
     original = obj[name]
     replacement = makeReplacement(original)
@@ -188,9 +191,9 @@ polyFill = (obj, name, makeReplacement) ->
         )
 
         polyFill(prototype, "removeEventListener", (_super) ->
-          return (e, f, capture, secure) ->
-            _super.call(this, e, f, capture, secure)
-            return _super.call(this, e, wrap(f), capture, secure)
+            return (e, f, capture, secure) ->
+                _super.call(this, e, f, capture, secure)
+                return _super.call(this, e, wrap(f), capture, secure)
         )
 )
 
@@ -200,14 +203,17 @@ polyFill(window, "onerror", (_super) ->
         if !charNo and window.event
             charNo = window.event.errorCharacter
 
-        if (ignoreOnError == 0)
+        #if DEBUG
+        #    console.log("intercepted window.onerror", message, url, lineNo, charNo, exception)
+
+        if ignoreOnError == 0
             name = exception?.name or "window.onerror"
-            stacktrace = (exception and stacktraceFromException(exception)) or \
-                generateStacktrace()
+            stacktrace = (exception and stacktraceFromException(exception)) or generateStacktrace()
             sendError(
                 name        : name
                 message     : message
-                path        : url
+                file        : url
+                path        : window.location.href
                 lineNumber  : lineNo
                 columnNumber: charNo
                 stacktrace  : stacktrace
@@ -215,7 +221,7 @@ polyFill(window, "onerror", (_super) ->
             )
 
         # Fire the existing `window.onerror` handler, if one exists
-        if (_super)
+        if _super
             _super(message, url, lineNo, charNo, exception)
 )
 
@@ -253,6 +259,7 @@ sendLogLine = (severity, args) ->
     sendError(
         name        : 'Console Output'
         message     : Array.prototype.slice.call(args).join(", ")
+        file        : ''
         path        : window.location.href
         lineNumber  : -1
         columnNumber: -1
@@ -274,3 +281,14 @@ if window.console?
 # public API
 
 exports.reportException = reportException
+
+if DEBUG
+    window.smc ?= {}
+    window.smc.webapp_error_reporter =
+        shouldCatch             : -> shouldCatch
+        ignoreOnError           : -> ignoreOnError
+        already_reported        : -> already_reported
+        stacktraceFromException : stacktraceFromException
+        generateStacktrace      : generateStacktrace
+        sendLogLine             : sendLogLine
+        reportException         : reportException

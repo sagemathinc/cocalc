@@ -112,6 +112,7 @@ class exports.PostgreSQL extends PostgreSQL
             message      : undefined
             comment      : undefined
             stacktrace   : undefined
+            file         : undefined
             path         : undefined
             lineNumber   : undefined
             columnNumber : undefined
@@ -135,6 +136,7 @@ class exports.PostgreSQL extends PostgreSQL
                 'message       :: TEXT'      : opts.message
                 'comment       :: TEXT'      : opts.comment
                 'stacktrace    :: TEXT'      : opts.stacktrace
+                'file          :: TEXT'      : opts.file
                 'path          :: TEXT'      : opts.path
                 'lineNumber    :: INTEGER'   : opts.lineNumber
                 'columnNumber  :: INTEGER'   : opts.columnNumber

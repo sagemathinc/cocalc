@@ -396,6 +396,7 @@ schema.webapp_errors =
         comment      : type : 'string'
         stacktrace   : type : 'string'
         file         : type : 'string'
+        path         : type : 'string'
         lineNumber   : type : 'integer'
         columnNumber : type : 'integer'
         severity     : type : 'string'
@@ -410,15 +411,6 @@ schema.webapp_errors =
         uptime       : type : 'string'
         start_time   : type : 'timestamp'
         time         : type : 'timestamp'
-    indexes:
-        time         : []
-        name         : []
-        message      : []
-        account_id   : []
-        smc_git_rev  : []
-        smc_version  : []
-        start_time   : []
-        browser      : []
     pg_indexes : ['time', 'name', 'message', 'account_id', 'smc_git_rev', 'smc_version', 'start_time', 'browser']
 
 schema.collaborators =

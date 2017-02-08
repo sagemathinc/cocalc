@@ -799,25 +799,9 @@ class Client extends EventEmitter
 
     mesg_webapp_error: (mesg) =>
         winston.debug("webapp_error: #{mesg.msg}")
-        database.webapp_error
-            account_id   : @account_id
-            name         : mesg.name # string
-            message      : mesg.message # string
-            comment      : mesg.comment # string
-            stacktrace   : mesg.stacktrace # string
-            path         : mesg.path  # string
-            lineNumber   : mesg.lineNumber # int
-            columnNumber : mesg.columnNumber # int
-            severity     : mesg.severity  # string
-            browser      : mesg.browser      # string (as detected by jQuery)
-            mobile       : mesg.mobile       # boolean
-            responsive   : mesg.responsive   # boolean
-            user_agent   : mesg.user_agent   # string
-            smc_version  : mesg.smc_version  # string
-            build_date   : mesg.build_date   # string
-            smc_git_rev  : mesg.smc_git_rev  # string
-            uptime       : mesg.uptime       # string
-            start_time   : mesg.start_time   # timestamp
+        mesg = misc.copy_without(mesg, 'event')
+        mesg.account_id = @account_id
+        database.webapp_error(mesg)
 
     ######################################################
     # Messages: Project Management

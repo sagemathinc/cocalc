@@ -857,6 +857,7 @@ message
     message      : required  # string
     comment      : undefined # string
     stacktrace   : undefined # string
+    file         : undefined # string
     path         : undefined # string
     lineNumber   : undefined # int
     columnNumber : undefined # int
