@@ -131,13 +131,13 @@ Stopwatch = rclass
                 @render_start_button()
             when 'paused'
                 <ButtonGroup>
-                    {@render_stop_button()}
                     {@render_start_button()}
+                    {@render_stop_button()}
                 </ButtonGroup>
             when 'running'
                 <ButtonGroup>
-                    {@render_stop_button()}
                     {@render_pause_button()}
+                    {@render_stop_button()}
                 </ButtonGroup>
 
     render: ->
@@ -163,7 +163,7 @@ TimeAmount = rclass
         minutes = Math.floor(t/60)
         t -= 60*minutes
         seconds = t
-        <div style={fontSize:'64pt', fontFamily:'courier'}>
+        <div style={fontSize:'50pt', fontFamily:'courier'}>
             {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}
         </div>
 
