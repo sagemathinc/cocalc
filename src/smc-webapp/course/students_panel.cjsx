@@ -4,7 +4,6 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries and components
-window.Perf = require('react-addons-perf')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
 
