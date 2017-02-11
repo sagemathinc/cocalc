@@ -98,17 +98,17 @@ Stopwatch = rclass
         @setInterval((=> @forceUpdate()), 1000)
 
     render_start_button: ->
-        <Button bsSize='large'  bsStyle='primary' onClick={=>@props.click_button('start')}>
+        <Button bsStyle='primary' onClick={=>@props.click_button('start')} style={width:'8em'}>
             <Icon name='play'/> Start
         </Button>
 
     render_stop_button: ->
-        <Button bsSize='large' bsStyle='warning' onClick={=>@props.click_button('stop')}>
+        <Button bsStyle='warning' onClick={=>@props.click_button('stop')}>
             <Icon name='stop'/> Stop
         </Button>
 
     render_pause_button: ->
-        <Button bsSize='large' bsStyle='info' onClick={=>@props.click_button('pause')}>
+        <Button bsStyle='info' onClick={=>@props.click_button('pause')} style={width:'8em'}>
             <Icon name='pause'/> Pause
         </Button>
 
