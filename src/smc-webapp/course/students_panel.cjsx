@@ -403,7 +403,7 @@ exports.StudentsPanel.Header = rclass
  Updates based on:
   - Expanded/Collapsed
   - If collapsed: First name, last name, email, last active, hosting type
-  - If expanded: +Above,
+  - If expanded: Above +, Student's status on all assignments,
 
 ###
 Student = rclass
