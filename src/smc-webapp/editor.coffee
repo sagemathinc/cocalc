@@ -356,10 +356,8 @@ initialize_new_file_type_list = () ->
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
-    if (file_associations[ext]? and file_associations[ext].icon?)
-        return file_associations[ext].icon
-    else
-        return 'fa-file-o'
+    assoc = exports.file_options('x.' + ext)
+    return assoc.icon
 
 # Multiplex'd worksheet mode
 
@@ -503,6 +501,8 @@ exports.file_options = (filename, content) ->   # content may be undefined
         x = file_associations[ext]
     if not x?
         x = file_associations['']
+    if not x.icon?
+        x.icon = 'fa-file-o'
     return x
 
 SEP = "\uFE10"
