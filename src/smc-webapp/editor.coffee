@@ -231,7 +231,7 @@ file_associations['css'] =
 for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
     file_associations[m] =
         editor : 'codemirror'
-        icon   : 'cogs'
+        icon   : 'fa-cogs'
         opts   : {mode:'makefile', indent_unit:4, tab_size:4, spaces_instead_of_tabs: false}
         name   : "Makefile"
 
