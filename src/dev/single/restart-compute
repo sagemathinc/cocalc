@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+cd /home/wstein/smc/src/
+. smc-env
+
+killemall run/compute.js   # VERY UGLY
+sleep .5
+mkdir -p ~/logs
+/home/wstein/smc/src/smc-hub/scripts/compute  --single start >~/logs/compute.log  2>&1  &
