@@ -1488,7 +1488,7 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print("CPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
+        print("\nCPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):

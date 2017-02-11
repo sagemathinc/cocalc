@@ -1225,6 +1225,9 @@ exports.timestamp_cmp = (a,b,field='timestamp') ->
 timestamp_cmp0 = (a,b,field='timestamp') ->
     return exports.cmp_Date(a[field], b[field])
 
+exports.field_cmp = (field) ->
+    return (a, b) -> exports.cmp(a[field], b[field])
+
 #####################
 # temporary location for activity_log code, shared by front and backend.
 #####################

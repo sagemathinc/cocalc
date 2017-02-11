@@ -278,7 +278,7 @@ start_server = (tcp_port, raw_port, cb) ->
             raw_server.start_raw_server
                 project_id : INFO.project_id
                 base_url   : INFO.base_url
-                host       : process.env.SMC_PROXY_HOST ? INFO.location.host
+                host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port

@@ -235,7 +235,6 @@ class ChatActions extends Actions
 
 
 # Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
-syncdbs = {}
 exports.init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     if redux.getActions(name)?
@@ -268,7 +267,7 @@ exports.init_redux = (path, redux, project_id) ->
                     ###
                     console.warn("'#{path}' contains some illegable chats -- you may need to use TimeTravel")
                     # See https://github.com/sagemathinc/smc/issues/944 for our plan regarding making corruption impossible.
-                    # Basically, we will switch to a restricted patch format. 
+                    # Basically, we will switch to a restricted patch format.
 
                 actions.init_from_syncdb()
                 syncdb.on('change', actions._syncdb_change)
