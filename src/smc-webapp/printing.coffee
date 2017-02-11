@@ -130,6 +130,8 @@ class SagewsPrinter extends Printer
             err = "Exception trying to print to #{target_ext} -- #{e}"
             console.error(err, e)
             console.trace()
+            {reportException} = require('webapp-lib/webapp-error-reporter')
+            reportException(e, null, 'warning', 'SagewPrinter.print: '+ err)
             cb(err)
 
     generate_html: (data) ->

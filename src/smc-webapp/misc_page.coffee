@@ -1767,3 +1767,4 @@ exports.open_new_tab = (url, popup=false) ->
             timeout : 10
         return null
     return tab
+
