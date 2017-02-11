@@ -175,7 +175,7 @@ underlying synchronized state.
 class TimeActions extends Actions
 
     _init: () =>
-        window.t = @  # for debugging
+        ## window.t = @  # for debugging
         # be explicit about exactly what state is in the store
         @setState
             timers : undefined
