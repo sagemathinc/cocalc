@@ -4,10 +4,10 @@ middle of the action, connected to potentially thousands of clients,
 many Sage sessions, and PostgreSQL database.  There are
 many HUBs running.
 
-GPLv3
+AGPLv3
 ###
-require('coffee-cache')
 
+require('coffee-cache')
 
 DEBUG = DEBUG2 = false
 
@@ -3091,25 +3091,7 @@ Connect to database
 ###
 database = undefined
 
-connect_to_database_rethink = (opts) ->
-    opts = defaults opts,
-        error : 120
-        pool  : program.db_pool
-        cb    : required
-    dbg = (m) -> winston.debug("connect_to_database (rethinkdb): #{m}")
-    if database? # already did this
-        dbg("already done")
-        opts.cb(); return
-    dbg("connecting...")
-    database = require('./rethink').rethinkdb
-        hosts           : program.database_nodes.split(',')
-        database        : program.keyspace
-        error           : opts.error
-        pool            : opts.pool
-        concurrent_warn : program.db_concurrent_warn
-        cb              : opts.cb
-
-connect_to_database_postgresql = (opts) ->
+connect_to_database = (opts) ->
     opts = defaults opts,
         error : undefined   # ignored
         pool  : program.db_pool
@@ -3124,9 +3106,6 @@ connect_to_database_postgresql = (opts) ->
         database : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
-
-connect_to_database = connect_to_database_postgresql
-#connect_to_database = connect_to_database_rethink
 
 # client for compute servers
 compute_server = undefined
@@ -3160,13 +3139,11 @@ update_primus = (cb) ->
 
 #############################################
 # Billing settings
-# How to set in database:
-#    db=require('rethink').rethinkdb();0
-#    db.set_server_setting(cb:console.log, name:'stripe_publishable_key', value:???)
-#    db.set_server_setting(cb:console.log, name:'stripe_secret_key',      value:???)
+# Set using the admin interface in account settings of an admin user.
 #############################################
 stripe  = undefined
-# TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
+# TODO: this could listen to a changefeed on the database
+# for changes to the server_settings table.
 init_stripe = (cb) ->
     dbg = (m) -> winston.debug("init_stripe: #{m}")
     dbg()
@@ -3210,7 +3187,7 @@ init_stripe = (cb) ->
 delete_expired = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database_postgresql(cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             database.delete_expired
                 count_only : false
