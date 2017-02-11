@@ -101,21 +101,28 @@ exports.from_json_async = (opts) ->
 
 exports.enable_mesg = enable_mesg = (socket, desc) ->
     socket.setMaxListeners(500)  # we use a lot of listeners for listening for messages
-    socket._buf = null
-    socket._buf_target_length = -1
+
+    # Our state information -- it's in this closure, which makes more
+    # sense than storing it as attributes of the socket (which would
+    # potentially leak or collide).
+    buf               = null
+    buf_target_length = -1
+    last_channel      = 256
+
     socket._listen_for_mesg = (data) ->
-        socket._buf = if socket._buf == null then data else Buffer.concat([socket._buf, data])
+        buf = if buf == null then data else Buffer.concat([buf, data])
         loop
-            if socket._buf_target_length == -1
+            if buf_target_length == -1
                 # starting to read a new message
-                if socket._buf.length >= 4
-                    socket._buf_target_length = socket._buf.readUInt32BE(0) + 4
+                if buf.length >= 4
+                    buf_target_length = buf.readUInt32BE(0) + 4
                 else
                     return # have to wait for more data to find out message length
-            if socket._buf_target_length <= socket._buf.length
+            if buf_target_length <= buf.length
                 # read a new message from our buffer
-                type = socket._buf.slice(4, 5).toString()
-                mesg = socket._buf.slice(5, socket._buf_target_length)
+                type = buf.slice(4, 5).toString()
+                mesg = buf.slice(5, buf_target_length)
+                ## winston.debug("XXX: type='#{type}' mesg='#{mesg.toString()}'")
                 switch type
                     when 'j'   # JSON
                         s = mesg.toString()
@@ -125,24 +132,34 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                         catch e
                             winston.debug("Error parsing JSON message='#{misc.trunc(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
-                            # in a better way in production.  This could happen if there is
-                            # corruption of the connection.
+                            # in a better way in production.  I guess this could happen if there is
+                            # corruption of the connection (?), though I don't know how that would
+                            # even be possible with TCP!
                             #throw(e)
                             return
                         socket.emit('mesg', 'json', obj)
                     when 'b'   # BLOB (tagged by a uuid)
                         socket.emit('mesg', 'blob', {uuid:mesg.slice(0,36).toString(), blob:mesg.slice(36)})
-                    else
-                        throw("unknown message type '#{type}'")
-                socket._buf = socket._buf.slice(socket._buf_target_length)
-                socket._buf_target_length = -1
-                if socket._buf.length == 0
+                    else # a channel
+                        socket.emit('mesg', 'channel', {channel:type, data:mesg})
+
+                buf = buf.slice(buf_target_length)
+                buf_target_length = -1
+                if buf.length == 0
                     return
             else # nothing to do but wait for more data
                 return
 
     socket.on('data', socket._listen_for_mesg)
 
+    # Allocate an available channel
+    socket.get_channel = ->
+        last_channel += 1
+        return String.fromCharCode(last_channel)
+
+    # if type = 'json', data = an object that can be JSON'd
+    # if type = 'blob', data = {uuid:?, blob:?}
+    # if type = 'channel', data = {channel:?, data:?}
     socket.write_mesg = (type, data, cb) ->  # cb(err)
         if not data?
             # uncomment this to get a traceback to see what might be causing this...
@@ -150,19 +167,19 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
             cb?("write_mesg(type='#{type}': data must be defined")
             return
         send = (s) ->
-            buf = new Buffer(4)
+            s_buf = new Buffer(4)
             # This line was 4 hours of work.  It is absolutely
             # *critical* to change the (possibly a string) s into a
             # buffer before computing its length and sending it!!
             # Otherwise unicode characters will cause trouble.
             if typeof(s) == "string"
                 s = Buffer(s)
-            buf.writeInt32BE(s.length, 0)
+            s_buf.writeInt32BE(s.length, 0)
             if not socket.writable
                 cb?("socket not writable")
                 return
             else
-                socket.write(buf)
+                socket.write(s_buf)
 
             if not socket.writable
                 cb?("socket not writable")
@@ -178,7 +195,10 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                 assert(data.blob?, "data object *must* have a blob attribute")
                 send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
             else
-                cb?("unknown message type '#{type}'")
+                # channel
+                assert(data.channel?, "data object *must* have a channel attribute")
+                assert(data.data?, "data object *must* have a data attribute")
+                send(Buffer.concat([new Buffer(data.channel), new Buffer(data.data)]))
 
     # Wait until we receive exactly *one* message of the given type
     # with the given id, then call the callback with that message.
@@ -207,6 +227,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
 # Stop watching data stream for messages and delete the write_mesg function.
 exports.disable_mesg = (socket) ->
     if socket._listen_for_mesg?
+        socket.removeAllListeners('mesg')
         socket.removeListener('data', socket._listen_for_mesg)
         delete socket._listen_for_mesg
 
