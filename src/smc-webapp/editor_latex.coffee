@@ -188,8 +188,8 @@ class exports.LatexEditor extends editor.FileEditor
                 if err
                     cb?(err)
                 else
-                    @latex_editor.codemirror.spellcheck_highlight(words)
-                    @latex_editor.codemirror1.spellcheck_highlight(words)
+                    @latex_editor.codemirror?.spellcheck_highlight(words)
+                    @latex_editor.codemirror1?.spellcheck_highlight(words)
 
     init_draggable_split: () =>
         @_split_pos = @local_storage(LSkey.split_pos)
