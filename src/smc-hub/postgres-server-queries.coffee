@@ -105,6 +105,54 @@ class exports.PostgreSQL extends PostgreSQL
                 'time       :: TIMESTAMP' : 'NOW()'
             cb     : opts.cb
 
+    webapp_error: (opts) =>
+        opts = defaults opts,
+            account_id   : undefined
+            name         : undefined
+            message      : undefined
+            comment      : undefined
+            stacktrace   : undefined
+            file         : undefined
+            path         : undefined
+            lineNumber   : undefined
+            columnNumber : undefined
+            severity     : undefined
+            browser      : undefined
+            mobile       : undefined
+            responsive   : undefined
+            user_agent   : undefined
+            smc_version  : undefined
+            build_date   : undefined
+            smc_git_rev  : undefined
+            uptime       : undefined
+            start_time   : undefined
+            cb           : undefined
+        @_query
+            query       : 'INSERT INTO webapp_errors'
+            values      :
+                'id            :: UUID'      : misc.uuid()
+                'account_id    :: UUID'      : opts.account_id
+                'name          :: TEXT'      : opts.name
+                'message       :: TEXT'      : opts.message
+                'comment       :: TEXT'      : opts.comment
+                'stacktrace    :: TEXT'      : opts.stacktrace
+                'file          :: TEXT'      : opts.file
+                'path          :: TEXT'      : opts.path
+                'lineNumber    :: INTEGER'   : opts.lineNumber
+                'columnNumber  :: INTEGER'   : opts.columnNumber
+                'severity      :: TEXT'      : opts.severity
+                'browser       :: TEXT'      : opts.browser
+                'mobile        :: BOOLEAN'   : opts.mobile
+                'responsive    :: BOOLEAN'   : opts.responsive
+                'user_agent    :: TEXT'      : opts.user_agent
+                'smc_version   :: TEXT'      : opts.smc_version
+                'build_date    :: TEXT'      : opts.build_date
+                'smc_git_rev   :: TEXT'      : opts.smc_git_rev
+                'uptime        :: TEXT'      : opts.uptime
+                'start_time    :: TIMESTAMP' : opts.start_time
+                'time          :: TIMESTAMP' : 'NOW()'
+            cb          : opts.cb
+
     get_client_error_log: (opts) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time

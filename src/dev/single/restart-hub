@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+export USER=wstein
+export PATH=/usr/local/bin:$PATH
+export PGHOST='/home/wstein/postgres_data/socket'
+
+
+# If you put this in crontab be sure to explicitly set USER=...
+
+cd /home/wstein/smc/src
+. smc-env
+
+echo $PGHOST
+service_hub.py stop
+sleep .5
+service_hub.py --host=localhost --single --update start

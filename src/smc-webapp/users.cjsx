@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 
 {React, Actions, Store, Table, redux, rtypes, rclass}  = require('./smc-react')
 
-{TimeAgo} = require('./r_misc')
+{TimeAgo, Tip} = require('./r_misc')
 
 {salvus_client} = require('./salvus_client')   # needed for getting non-collaborator user names
 
@@ -143,11 +143,33 @@ exports.User = User = rclass
             return true   # something about the user changed in the user_map, so updated.
         if @props.last_active != nextProps.last_active
             return true   # last active time changed, so update
+        if @props.show_original != nextProps.show_original
+            return true
+        if @props.name != nextProps.name
+            return true
         return false  # same so don't update
 
     render_last_active: ->
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
+
+    render_original: (info) ->
+        if info.first_name and info.last_name
+            full_name = info.first_name + ' ' + info.last_name
+        else if info.first_name
+            full_name = info.first_name
+        else if info.last_name
+            full_name = info.last_name
+        else
+            full_name = ''
+
+        if @props.show_original and full_name != @props.name
+            <Tip placement='top'
+                 title='User Name'
+                 tip='The name this user has given their account.'
+            >
+                <span style={color:"#666"}> ({full_name})</span>
+            </Tip>
 
     name: (info) ->
         return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
@@ -163,5 +185,5 @@ exports.User = User = rclass
             return <span>Loading...</span>
         else
             info = info.toJS()
-            return <span>{@name(info)}{@render_last_active()}</span>
+            return <span>{@name(info)}{@render_original(info)}{@render_last_active()}</span>
 

@@ -22,12 +22,6 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        # old rethinkdb version...
-        #db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['localhost']
-        #db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:10, cb:cb)
-        #db._error_thresh = 100000
-
-        # new postgreSQL version
         db = require('./smc-hub/postgres').db()
         db.connect(cb:cb)
         return db

@@ -2,18 +2,21 @@
 
 Source code is in the `src/` subdirectory.
 
-## "Supported" development environments
+## Development environments
 
-Nothing is fully supported yet, but this is the goal.  The directories below have
-scripts to enable development in various contexts:
+Nothing is fully supported yet, but this is the goal.
+The directories below have scripts to enable development
+in various contexts:
 
-- src/dev/laptop -- for development on your personal laptop (or desktop) that is not public; zero concern about security. No sudo setup.  Works on Linux and OS X.
+- src/dev/project -- for developing SMC from any project right on SageMathCloud!  This is how we do most SMC dev work and is the best supported.
 
-- src/dev/project -- for developing SMC inside of any SMC project; more worry about security; No sudo setup.
+- src/dev/single -- for developing SMC on a single computer, e.g., a VM.   Must have sudo, and install things system-wide.  Each project is a different Linux account.
 
-- src/dev/public -- for development on a single *publicly* accessible dedicated server; more concern about security.  Must have sudo, and install things system-wide.  Each project is a different linux account.
+- src/dev/docker -- for running SMC in Docker.  Not really intended for development use...
 
-- src/dev/smc -- related to the actual live SMC deployment, which runs on many nodes, and uses haproxy and nginx.
+- src/dev/laptop -- for development on your personal laptop (or desktop) that is not public; zero concern about security. No sudo setup.  Works on Linux and OS X.  Currently deprecated/not updated.
+
+- src/dev/smc -- related to the actual live SMC deployment, which runs on many nodes, and uses haproxy and nginx. (Will be deprecated)
 
 ## Issue Triage
 For the most part, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
@@ -45,15 +48,20 @@ If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 [eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
 
 
-## Modules:
+## The Components of SMC
 
-- smc-util:      javascript utility code used in the browser and servers
-- smc-util-node: node.js utility code used in servers
-- smc-hub:       backend web and compute server code
-- smc-project:   server code that runs in user projects
-- smc_pyutil:    python scripts and code used on servers
-- smc_sagews:    python Sage server
-- smc-webapp:    frontend client code that runs in browser
+### Node.js modules
+
+- **smc-util:**      utility code used in the browser and servers
+- **smc-util-node:** utility code used in servers
+- **smc-hub:**       backend web and compute server code
+- **smc-project:**   server code that runs in user projects
+- **smc-webapp:**    frontend client code that runs in browser
+
+### Python modules
+
+- **smc_pyutil:**    scripts and code used on servers
+- **smc_sagews:**    Sage server
 
 ## Testing
 
@@ -64,9 +72,11 @@ Run whole test suite:
 `min` is the minimal reporter and
 other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](http://mochajs.org/)
 
-NOTE: There is no working testing or coverage of smc-webapp yet.
+NOTE: There is not enough testing or coverage of smc-webapp yet.
 
-NOTE: You must be running the RethinkDB database server on localhost (with the default 28015 port) to run the test suite.  The test suite doesn't start a database server running.
+NOTE: You must already be running the PostgreSQL database, setup so that
+`psql` connects to it without having to type a password, before you an
+run the smc-hub test suite.  See the `dev/*/` directory for relevant scripts.
 
 ### Upgrades
 

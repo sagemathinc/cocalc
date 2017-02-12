@@ -94,7 +94,7 @@ exports.NotificationBell = rclass
     propTypes :
         count : rtypes.number
 
-    on_click: ->
+    on_click: (e) ->
         @actions('page').toggle_show_file_use()
 
     notification_count: ->

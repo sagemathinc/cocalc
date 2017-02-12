@@ -1,6 +1,6 @@
 
 ###
-The schema below determines the RethinkDB-based database structure.   The notation is as follows:
+The schema below determines the PostgreSQL database schema.   The notation is as follows:
 
 schema.table_name =
     desc: 'A description of this table.'   # will be used only for tooling
@@ -11,14 +11,10 @@ schema.table_name =
             type : 'uuid'
             desc : 'This is the primary key of the table.'
         ...
-    indexes :  # description of the indexes, mapping from index name to args that get passed to rethinkdb comand.
-        index_name : [list of args that define this index]
     pg_indexes : [array of column names]  # also some more complicated ways to define indexes; see the examples.
     user_query :  # queries that are directly exposed to the client via a friendly "fill in what result looks like" query language
         get :     # describes get query for reading data from this table
-            all :  # this gets run first on the table before
-                cmd  : 'getAll'
-                args : ['account_id']    # special args that get filled in:
+            pg_where :  # this gets run first on the table before
                       'account_id' - replaced by user's account_id
                       'project_id' - filled in by project_id, which must be specified in the query itself;
                                     (if table not anonymous then project_id must be a project that user has read access to)
@@ -36,10 +32,8 @@ schema.table_name =
                      strip : false   # defaults for a field that is an object -- these get filled in if missing in db
                      wrap  : true
         set :     # describes more dangerous *set* queries that the user can make via the query language
-            all :   # initially restrict what user can set
-                cmd  : 'getAll'  # typically use this
-                args : ['account_id']  # special args that filled in:
-                     'account_id' - user account_id
+            pg_where :   # initially restrict what user can set
+                'account_id' - user account_id
                       - list of project_id's that the user has write access to
             fields :    # user must always give the primary key in set queries
                 account_id : 'account_id'  # means that this field will automatically be filled in with account_id
@@ -99,9 +93,6 @@ schema.account_creation_actions =
         expire        :
             type : 'timestamp'
             desc : 'When this action should be expired.'
-    indexes :
-        email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
-        expire        : []  # only used by delete_expired
     pg_indexes : ['email_address']
 
 schema.accounts =
@@ -184,11 +175,6 @@ schema.accounts =
             type : 'array'
             pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
-    indexes :
-        passports     : ["that.r.row('passports').keys()", {multi:true}]
-        created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
-        created       : [] # to compute stats efficiently
-        email_address : []
     pg_indexes : [
         '(lower(first_name) text_pattern_ops)',
         '(lower(last_name)  text_pattern_ops)',
@@ -198,9 +184,6 @@ schema.accounts =
     user_query :
         get :
             pg_where : ['account_id = $::UUID':'account_id']
-            all :
-                cmd  : 'getAll'
-                args : ['account_id']
             fields :
                 account_id      : null
                 email_address   : null
@@ -249,9 +232,6 @@ schema.accounts =
                     image       : undefined
                     color       : undefined
         set :
-            all :
-                cmd  : 'getAll'
-                args : ['account_id']
             fields :
                 account_id      : 'account_id'
                 editor_settings : true
@@ -308,10 +288,6 @@ schema.blobs =
         compress :
             type : 'string'
             desc : "optional compression used: 'gzip', 'zlib', 'snappy'"
-    indexes:
-        expire : []   # when expired
-        needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')
-        needs_backup : [(x) -> x.hasFields('expire').not().and(x.hasFields('backup').not())]  # never-expiring blobs that haven't been backed up offsite -- find via .getAll(true, index:'needs_backup')
     user_query :
         get :
             instead_of_query : (database, obj, account_id, cb) ->
@@ -360,10 +336,6 @@ schema.central_log =
             type : 'map'
         time  :
             type : 'timestamp'
-    indexes:
-        time  : []
-        event : []
-        user_log : ["[that.r.row('value')('account_id'), that.r.row('event'), that.r.row('time')]"]
     pg_indexes : ['time', 'event']
 
 schema.client_error_log =
@@ -380,10 +352,35 @@ schema.client_error_log =
             type : 'uuid'
         time       :
             type : 'timestamp'
-    indexes:
-        time : []
-        event : []
     pg_indexes : ['time', 'event']
+
+schema.webapp_errors =
+    primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        id           : type : 'uuid'
+        account_id   : type : 'uuid'
+        name         : type : 'string'
+        message      : type : 'string'
+        comment      : type : 'string'
+        stacktrace   : type : 'string'
+        file         : type : 'string'
+        path         : type : 'string'
+        lineNumber   : type : 'integer'
+        columnNumber : type : 'integer'
+        severity     : type : 'string'
+        browser      : type : 'string'
+        mobile       : type : 'boolean'
+        responsive   : type : 'boolean'
+        user_agent   : type : 'string'
+        path         : type : 'text'
+        smc_version  : type : 'string'
+        build_date   : type : 'string'
+        smc_git_rev  : type : 'string'
+        uptime       : type : 'string'
+        start_time   : type : 'timestamp'
+        time         : type : 'timestamp'
+    pg_indexes : ['time', 'name', 'message', 'account_id', 'smc_git_rev', 'smc_version', 'start_time', 'browser']
 
 schema.collaborators =
     primary_key : 'account_id'
@@ -393,9 +390,6 @@ schema.collaborators =
         get :
             pg_where : ["account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)": 'account_id']
             pg_changefeed : 'collaborators'
-            all :
-                method : 'getAll'
-                args   : ['collaborators']
             fields :
                 account_id  : null
                 first_name  : ''
@@ -437,15 +431,12 @@ schema.file_access_log =
             type : 'string'
         time       :
             type : 'timestamp'
-    indexes:
-        project_id : []
-        time       : []
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
 # TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
-# another table with a relation.  In RethinkDB this file_use table is notoriously slow,
-# and -- with indexes, etc., -- it should be super fast.
+# another table with a relation.  There is also expert discussion about this table in the
+# Hacker News discussion of my PostgreSQL vs ... blog post.
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
@@ -464,23 +455,13 @@ schema.file_use =
         last_edited :
             type : 'timestamp'
 
-    indexes:
-        project_id                    : []
-        last_edited                   : []
-        'project_id-path'             : ["[that.r.row('project_id'), that.r.row('path')]"]
-        'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
-        'project_id-last_edited'      : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
-
-    pg_indexes: ['project_id', 'last_edited']
+    pg_indexes : ['project_id', 'last_edited']
 
     user_query:
         get :
             pg_where : ['projects', 'last_edited IS NOT NULL']
             pg_changefeed: 'projects'
-            all :
-                cmd     : 'getAll'
-                args    : ['all_projects_read', index:'project_id']
-                options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
+            options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
             fields :
                 id          : null
                 project_id  : null
@@ -523,8 +504,6 @@ schema.hub_servers =
             type : 'integer'
         expire :
             type : 'timestamp'
-    indexes:
-        expire : []
 
 schema.instances =
     primary_key: 'name'
@@ -574,8 +553,6 @@ schema.password_reset =
             type : 'string'
         expire        :
             type : 'timestamp'
-    indexes:
-        expire : []  # only used by delete_expired
 
 schema.password_reset_attempts =
     primary_key: 'id'
@@ -590,11 +567,6 @@ schema.password_reset_attempts =
             pg_type : 'inet'
         time          :
             type : 'timestamp'
-    indexes:
-        email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
-        ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
-        time          : []
-
     pg_indexes: ['time']
 
 schema.project_log =
@@ -617,21 +589,14 @@ schema.project_log =
             type : 'map'
             desc : 'what'
 
-    indexes:
-        project_id        : []
-        'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
-        time              : []   # entirely for migrating to postgres!
-
     pg_indexes : ['project_id', 'time']
+
 
     user_query:
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            all:
-                cmd     : 'getAll'
-                args    : ['project_id', index:'project_id']
-                options : [{order_by : '-time'}, {limit : 400}]
+            options   : [{order_by : '-time'}, {limit : 400}]
             fields :
                 id          : null
                 project_id  : null
@@ -728,18 +693,6 @@ schema.projects =
             type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
 
-    indexes :
-        users                     : ["that.r.row('users').keys()", {multi:true}]
-        host                      : ["that.r.row('host')('host')"]
-        last_edited               : [] # so can get projects last edited recently
-        run                       : [] # so can easily tell which projects should be running
-        storage_server            : [] # so can easily get projects on a particular storage server
-        seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
-        created                   : [] # to compute stats efficiently
-        storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
-        storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
-        # see code below for some additional indexes
-
     pg_indexes : [
         'last_edited',
         'USING GIN (users)'               # so get_collaborator_ids is fast
@@ -750,9 +703,6 @@ schema.projects =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            all :
-                cmd  : 'getAll'
-                args : ['account_id', index:'users']
             fields :
                 project_id     : null
                 title          : ''
@@ -788,9 +738,6 @@ schema.projects =
     project_query:
         get :
             pg_where : ["project_id = $::UUID" : 'project_id']
-            all :
-                cmd  : 'getAll'
-                args : ['project_id']
             fields :
                 project_id     : null
                 title          : null
@@ -800,9 +747,6 @@ schema.projects =
                 project_id     : 'project_id'
                 title          : true
                 description    : true
-
-for group in misc.PROJECT_GROUPS
-    schema.projects.indexes[group] = [{multi:true}]
 
 # Table that enables set queries to the course field of a project.  Only
 # project owners are allowed to use this table.  The point is that this makes
@@ -863,9 +807,6 @@ schema.projects_admin =
             admin  : true   # only admins can do get queries on this table
                             # (without this, users who have read access could read)
             pg_where : ['project_id = $::UUID':'project_id']
-            all :
-                cmd  : 'getAll'
-                args : ['project_id']
             fields : schema.projects.user_query.get.fields
 
 # Get publicly available information about a project.
@@ -876,9 +817,6 @@ schema.public_projects =
     user_query :
         get :
             pg_where : ['project_id = $::UUID':'project_id-public']
-            all :
-                cmd : 'getAll'
-                args : ['project_id-public']
             fields :
                 project_id  : true
                 title       : true
@@ -901,15 +839,10 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
-    indexes:
-        project_id : []
     pg_indexes : ['project_id']
     user_query:
         get :
             pg_where : ["project_id = $::UUID": 'project_id']
-            all :
-                cmd : 'getAll'
-                args : ['project_id', index:'project_id']
             fields :
                 id          : null
                 project_id  : null
@@ -941,9 +874,6 @@ schema.remember_me =
             type : 'uuid'
         expire     :
             type : 'timestamp'
-    indexes :
-        expire     : []
-        account_id : []
     pg_indexes : ['account_id']
 
 schema.server_settings =
@@ -999,9 +929,6 @@ schema.site_settings =
         # NOTE: can set and get only fields in site_settings_fields, but not any others.
         get:
             pg_where: ['name = ANY($)': site_settings_fields]
-            all :
-                cmd  : 'getAll'
-                args : site_settings_fields
             admin  : true
             fields :
                 name  : null
@@ -1040,17 +967,12 @@ schema.stats =
         hub_servers         :
             type : 'array'
             pg_type : 'JSONB[]'
-    indexes:
-        time : []
     pg_indexes : ['time']
     user_query:
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             pg_changefeed : 'one-hour'
-            all :
-                cmd  : 'between'
-                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
-                options : [{'order_by':'-time'}]
+            options : [{'order_by':'-time'}]
             fields :
                 id                  : null
                 time                : null
@@ -1089,15 +1011,10 @@ schema.system_notifications =
         done:
             type : 'boolean'
             desc : 'if true, then this notification is no longer relevant'
-    indexes:
-        time : []
     user_query:
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             pg_changefeed : 'one-hour'
-            all :
-                cmd  : 'between'
-                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
             fields :
                 id       : null
                 time     : null
