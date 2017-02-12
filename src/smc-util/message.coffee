@@ -1049,3 +1049,16 @@ message
     event          : 'query_get_changefeed_ids'
     id             : undefined
     changefeed_ids : undefined
+
+
+###
+Terminal sessions
+###
+# hub --> local_hub
+message
+    event        : 'terminal_get_session'
+    id           : undefined
+    project_id   : required          # the project that this session will start in
+    session_uuid : path
+    params       : undefined         # extra parameters
+    limits       : undefined

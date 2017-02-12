@@ -155,9 +155,11 @@ handle_mesg = (socket, mesg, handler) ->
         return
 
     switch mesg.event
+        when 'terminal_session'
+            terminal.get_session(socket, mesg)
         when 'connect_to_session', 'start_session'
             # These sessions completely take over this connection, so we stop listening
-            # for further control messages on this connection.
+            # for further control messages on this socket.
             socket.removeListener('mesg', handler)
             connect_to_session(socket, mesg)
         when 'jupyter_port'
