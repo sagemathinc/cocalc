@@ -736,11 +736,12 @@ class exports.LatexEditor extends editor.FileEditor
     _reset_inline_errors: () =>
         $('[data-toggle="popover"]').popover('hide')
         for cm in @cms()
-            cm.clearGutter('Codemirror-latex-errors')
-            for line, line_handler of cm._smc_inline_errors
-                # use line_handler to always find the correct line
-                cm.removeLineClass(line_handler, 'background')
-            cm._smc_inline_errors = {}
+            if cm?
+                cm.clearGutter('Codemirror-latex-errors')
+                for line, line_handler of cm._smc_inline_errors
+                    # use line_handler to always find the correct line
+                    cm.removeLineClass(line_handler, 'background')
+                cm._smc_inline_errors = {}
 
     _render_inline_error: (line, message, content, error_type) =>
         line -= 1 # to get 0-based numbering for the remaining code
