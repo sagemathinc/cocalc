@@ -139,7 +139,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     email_address : emails[y]
             else
                 students.push({email_address:y})
-        @props.redux.getActions(@props.name).add_students(students)
+        @actions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
     get_add_selector_options: ->
@@ -400,6 +400,13 @@ exports.StudentsPanel.Header = rclass
             </span>
         </Tip>
 
+###
+ Updates based on:
+  - Expanded/Collapsed
+  - If collapsed: First name, last name, email, last active, hosting type
+  - If expanded: Above +, Student's status on all assignments,
+
+###
 Student = rclass
     displayName: "CourseEditorStudent"
 
@@ -463,10 +470,10 @@ Student = rclass
         return <a href="mailto:#{email}">{email}</a>
 
     open_project: ->
-        @props.redux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
+        @actions('projects').open_project(project_id:@props.student.get('project_id'))
 
     create_project: ->
-        @props.redux.getActions(@props.name).create_student_project(@props.student_id)
+        @actions(@props.name).create_student_project(@props.student_id)
 
     render_last_active: ->
         student_project_id = @props.student.get('project_id')
@@ -557,11 +564,11 @@ Student = rclass
         @setState(editing_student:true)
 
     delete_student: ->
-        @props.redux.getActions(@props.name).delete_student(@props.student)
+        @actions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
     undelete_student: ->
-        @props.redux.getActions(@props.name).undelete_student(@props.student)
+        @actions(@props.name).undelete_student(@props.student)
 
     render_confirm_delete: ->
         if @state.confirm_delete
@@ -605,12 +612,16 @@ Student = rclass
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
+            info = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
-                  key={assignment.get('assignment_id')}
-                  title={@render_title(assignment)}
-                  name={@props.name} redux={@props.redux}
-                  student={@props.student} assignment={assignment}
-                  grade={grade} />
+                key={assignment.get('assignment_id')}
+                title={@render_title(assignment)}
+                name={@props.name}
+                student={@props.student}
+                assignment={assignment}
+                grade={grade}
+                info={info}
+                />
 
     render_assignments_info: ->
         peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
@@ -629,7 +640,7 @@ Student = rclass
                     rows        = 6
                     placeholder = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@props.redux.getActions(@props.name).set_student_note(@props.student, value)}
+                    on_save     = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
