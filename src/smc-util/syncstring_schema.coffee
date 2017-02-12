@@ -53,16 +53,10 @@ schema.syncstrings =
             type : 'uuid'
             desc : "if set, then syncstring patches array have been archived in the blob with given uuid."
 
-    indexes:
-        project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
-
     pg_indexes : ['last_active']
 
     user_query:
         get :
-            all:
-                cmd   : 'getAll'
-                args  : (obj, db) -> [obj.string_id]
             fields :
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : null
@@ -152,9 +146,6 @@ schema.recent_syncstrings_in_project =
                 select :
                     project_id  : 'UUID'
                     last_active : 'TIMESTAMP'
-            all :
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.project_id, misc.minutes_ago(obj.max_age_m)], [obj.project_id, db.r.maxval], index:'project_last_active']
             fields :
                 project_id  : null
                 max_age_m   : 'null'
@@ -257,10 +248,6 @@ schema.patches_delete  =
                 if obj.id[1]?
                     where.push("time >= $::TIMESTAMP" : obj.id[1])
                 return where
-            all :
-                cmd     : 'between'
-                args    : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
-                options : [{delete:true}]   # always delete
             admin  : true
             delete : true
             fields :

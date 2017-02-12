@@ -173,6 +173,9 @@ describe 'access control tests on patches table -- ', ->
             cb    : (err) ->
                 done(err)
 
+    ###
+    # NOTE: I removed this constraint, since code handles the undefined case fine,
+    # and it was causing problems.  We should revisit this later.
     it 'tries to write negative user number and fails', (done) ->
         db.user_query
             project_id : projects[0]
@@ -180,6 +183,16 @@ describe 'access control tests on patches table -- ', ->
             cb    : (err) ->
                 expect(err).toContain('new row for relation "patches" violates check constraint')
                 done()
+
+    it 'tries to write without including user field at all (and fails)', (done) ->
+        db.user_query
+            account_id : accounts[1]
+            query      : {patches:{string_id:string_id, time:t0, patch:patch0}}
+            cb         : (err) ->
+                expect(err).toContain('null value in column "user_id" violates not-null constraint')
+                done()
+
+    ###
 
     it 'tries to write invalid string_id and fails', (done) ->
         db.user_query
@@ -226,7 +239,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{string_id:string_id, user_id:1, patch:patch0}}
             cb         : (err) ->
-                expect(err).toEqual("query must specify (primary) key 'time'")
+                expect("#{err}").toEqual("query must specify (primary) key 'time'")
                 done()
 
     it 'tries to write without including string field at all (and fails)', (done) ->
@@ -237,13 +250,6 @@ describe 'access control tests on patches table -- ', ->
                 expect(err).toEqual("string_id (='undefined') must be a string of length 40")
                 done()
 
-    it 'tries to write without including user field at all (and fails)', (done) ->
-        db.user_query
-            account_id : accounts[1]
-            query      : {patches:{string_id:string_id, time:t0, patch:patch0}}
-            cb         : (err) ->
-                expect(err).toContain('null value in column "user_id" violates not-null constraint')
-                done()
 
 describe 'changefeed tests on patches table', ->
     before(setup)
