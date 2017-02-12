@@ -85,3 +85,12 @@ Server's total uptime in seconds:
 System stats for each table:
 
     SELECT schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count FROM pg_stat_user_tables;
+
+Webapp errors in the last hour:
+
+    SELECT COUNT(*), severity FROM webapp_errors WHERE time > NOW() - '1 hour'::INTERVAL GROUP BY severity;
+
+Go through recent webapp errors with some filters. Change the "offset" value...
+
+    SELECT * FROM webapp_errors WHERE severity='error' AND message NOT ILIKE '%xhr%' AND message NOT ILIKE '%websocket%' ORDER BY time LIMIT 1 OFFSET 5;
+
