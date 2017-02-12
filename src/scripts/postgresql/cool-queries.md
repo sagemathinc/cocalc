@@ -94,3 +94,7 @@ Go through recent webapp errors with some filters. Change the "offset" value...
 
     SELECT * FROM webapp_errors WHERE severity='error' AND message NOT ILIKE '%xhr%' AND message NOT ILIKE '%websocket%' ORDER BY time LIMIT 1 OFFSET 5;
 
+Undefined properties of objects in the webapp:
+
+    SELECT COUNT(message) as num, message FROM webapp_errors WHERE severity='error' AND message LIKE 'Cannot read property%' GROUP BY message ORDER BY num DESC;
+
