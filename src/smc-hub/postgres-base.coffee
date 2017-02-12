@@ -706,8 +706,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_update_table_schema('#{table}')")
         dbg()
         schema = SCHEMA[table]
-        if not schema?
-            cb("no table '#{table}' in schema")
+        if not schema?  # some auxiliary table in the database not in our schema -- leave it alone!
+            cb()
             return
         if schema.virtual
             cb("table '#{table}' is virtual")

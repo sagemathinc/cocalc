@@ -154,38 +154,18 @@ class ComputeServerClient
             @database.connect(cb:cb)
 
     _init_storage_servers_feed: (cb) =>
-        switch @database.engine()
-            when 'rethink'
-                @database.synctable
-                    query : @database.table('storage_servers')
-                    cb    : (err, synctable) =>
-                        @storage_servers = synctable
-                        cb(err)
-            when 'postgresql'
-                @database.synctable
-                    table : 'storage_servers'
-                    cb    : (err, synctable) =>
-                        @storage_servers = synctable
-                        cb(err)
-            else
-                cb("unknown database engine")
+        @database.synctable
+            table : 'storage_servers'
+            cb    : (err, synctable) =>
+                @storage_servers = synctable
+                cb(err)
 
     _init_compute_servers_feed: (cb) =>
-        switch @database.engine()
-            when 'rethink'
-                @database.synctable
-                    query : @database.table('compute_servers')
-                    cb    : (err, synctable) =>
-                        @compute_servers = synctable
-                        cb(err)
-            when 'postgresql'
-                @database.synctable
-                    table : 'compute_servers'
-                    cb    : (err, synctable) =>
-                        @compute_servers = synctable
-                        cb(err)
-            else
-                cb("unknown database engine")
+        @database.synctable
+            table : 'compute_servers'
+            cb    : (err, synctable) =>
+                @compute_servers = synctable
+                cb(err)
 
     dbg: (method) =>
         return (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
@@ -937,12 +917,19 @@ class ProjectClient extends EventEmitter
         @host = @assigned = @_state = @_state_time =  @_state_error = undefined
         @_stale = true
         db = @compute_server.database
-        # It's *critical* that idle_timeout_s be used below, since I haven't come up with any
-        # good way to "garbage collect" ProjectClient objects, due to the async complexity of
-        # everything.
-        opts =
-            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
-            cb    : (err, x) =>
+        # It's *critical* that idle_timeout_s be used below, since I haven't
+        # come up with any good way to "garbage collect" ProjectClient objects,
+        # due to the async complexity of everything.
+        # ** TODO: IMPORTANT - idle_timeout_s is NOT IMPLEMENTED in postgres-synctable yet! **
+        db.synctable
+            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation;
+                                      # but short enough that connections get freed up.
+            table          : 'projects'
+            columns        : ['project_id', 'host', 'state', 'storage', 'storage_request']
+            where          : {"project_id = $::UUID" : @project_id}
+            where_function : (project_id) =>
+                return project_id == @project_id  # fast easy test for matching
+            cb             : (err, x) =>
                 if err
                     dbg("error initializing synctable -- #{err}")
                     cb(err)
@@ -971,21 +958,6 @@ class ProjectClient extends EventEmitter
                     update()
                     @_synctable.on('change', update)
                     cb()
-        switch db.engine()
-            when 'postgresql'
-                opts.table = 'projects'
-                opts.columns = ['project_id', 'host', 'state', 'storage', 'storage_request']
-                opts.where = {"project_id = $::UUID" : @project_id}
-                opts.where_function = (project_id) =>
-                    return project_id == @project_id  # fast easy test for matching
-
-            when 'rethink'
-                opts.query = db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
-            else
-                opts.cb("unknown database engine")
-                return
-
-        db.synctable(opts)
 
     # ensure project has a storage server assigned to it (if there are any)
     _init_storage_server: (cb) =>

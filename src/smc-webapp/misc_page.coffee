@@ -564,7 +564,8 @@ exports.define_codemirror_extensions = () ->
     startswith = misc.startswith
 
     CodeMirror.registerHelper "fold", "stex", (cm, start) ->
-        line = cm.getLine(start.line).trimLeft()
+        trimStart = require('lodash.trimstart')
+        line = trimStart(cm.getLine(start.line))
         find_close = () ->
             BEGIN = "\\begin"
             if startswith(line, BEGIN)
@@ -593,57 +594,61 @@ exports.define_codemirror_extensions = () ->
 
             else if startswith(line, "\\[")
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\]")
+                    if startswith(trimStart(cm.getLine(i)), "\\]")
                         return [i, 0]
 
             else if startswith(line, "\\(")
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\)")
+                    if startswith(trimStart(cm.getLine(i)), "\\)")
                         return [i, 0]
 
             else if startswith(line, "\\documentclass")
                 # pre-amble
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\begin{document}")
+                    if startswith(trimStart(cm.getLine(i)), "\\begin{document}")
                         return [i - 1, 0]
 
             else if startswith(line, "\\chapter")
                 # book chapter
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "%\\end{}")
+                    if startswith(trimStart(cm.getLine(i)), "%\\end{}")
                         return [i, 0]
+
             return [undefined, undefined]  # no folding here...
 
         [i, j] = find_close()
@@ -1762,3 +1767,4 @@ exports.open_new_tab = (url, popup=false) ->
             timeout : 10
         return null
     return tab
+

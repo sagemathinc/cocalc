@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-. /home/salvus/.bashrc
-cd /home/salvus/smc/src
-. smc-env
-service_hub.py --hostname=localhost --id 0 --gap=0 --update --single restart

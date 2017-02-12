@@ -12,6 +12,10 @@ base = require('./postgres-base')
 for f in ['pg_type', 'expire_time', 'one_result', 'all_results', 'count_result']
     exports[f] = base[f]
 
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
+
+
 # Add further functionality to PostgreSQL class -- must be at the bottom of this file.
 # Each of the following calls extends the PostgreSQL class with further important functionality.
 # Order matters.

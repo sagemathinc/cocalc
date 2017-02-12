@@ -61,6 +61,10 @@ Syncstrings with given path and owner:
 
     select * from syncstrings where path='assignments/2017-01-31/problem-5/problem-5.tex' and array['6ad75132-11ce-4917-9e14-ac9b53a8bd76'::uuid]@>users  is not null order by last_active desc limit 5;
 
+Archived vs. non-archived Syncstrings:
+
+    SELECT count(*), (archived is null) AS is_archived FROM syncstrings GROUP BY is_archived;
+
 What's going on in the DB right now:
 
     select now()-query_start,client_addr,left(query,130) from pg_stat_activity order by now()-query_start desc;
@@ -72,3 +76,12 @@ What people are computing now in sage worksheets:
 
 And their errors?
 
+
+
+Server's total uptime in seconds:
+
+    SELECT EXTRACT(EPOCH FROM (NOW() - pg_postmaster_start_time)) as start_time_seconds from pg_postmaster_start_time();
+
+System stats for each table:
+
+    SELECT schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count FROM pg_stat_user_tables;

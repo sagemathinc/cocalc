@@ -10,6 +10,9 @@
 
 require("script!primus/primus-engine.min.js")
 
+# this must come before anything that touches event handling, etc.
+require('webapp-lib/webapp-error-reporter.coffee')
+
 # require("script!jquery/jquery.min.js")
 $ = jQuery = window.$ = window.jQuery = require('jquery')
 #require('jquery-ui')

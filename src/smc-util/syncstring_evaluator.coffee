@@ -85,9 +85,13 @@ class exports.Evaluator
                         mesg = @_outputs.get(key)?.get('output')?.toJS()
                         if mesg?
                             delete mesg.id # waste of space
-                            # Message may arrive in somewhat random order -- RethinkDB doesn't guarantee
-                            # anything about the order of writes versus when changes get pushed out!  E.g. this
-                            # in a Sage worksheet:
+                            # This code is written under the assumption that messages may
+                            # arrive in somewhat random order.  We did this since RethinkDB
+                            # doesn't guarantee anything about the order of writes versus
+                            # when changes get pushed out.  That said, PostgreSQL **does** make
+                            # clear guarantees about when things happen, so this may
+                            # no longer be a problem.... (TODO).
+                            # E.g. this in a Sage worksheet:
                             #    for i in range(20): print i; sys.stdout.flush()
                             if t[2] == mesg_number     # t[2] is the sequence number of the message
                                 # Inform caller of result

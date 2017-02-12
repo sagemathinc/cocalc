@@ -299,7 +299,7 @@
 
 .sagews-output
   display        : block
-  white-space    : normal
+  white-space    : pre-wrap
   word-wrap      : break-word
   padding-left   : 2em
 
@@ -369,11 +369,7 @@
 .sagews-output-md
   font-family : helvetica
 
-.sagews-output-stdout
-  white-space : pre
-
 .sagews-output-stderr
-  white-space : pre
   color       : red
 
 .sagews-output-code
@@ -660,5 +656,11 @@ h6 { font-size: 110% }
 .smc-message-from-viewer a:link, .smc-message-from-viewer a:visited
    color : #FFEB3B
 
-.smc-chat-message img
-  max-width: 100%
+.smc-chat-message
+  img
+    max-width: 100%
+  blockquote
+    padding: 0px 0px 0px 10px
+    font-size: inherit
+    p
+      font-size: inherit

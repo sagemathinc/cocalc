@@ -648,6 +648,34 @@ SageWorksheetPanel = rclass
             {@render_message()}
         </ProjectSettingsPanel>
 
+JupyterServerPanel = rclass
+    displayName : 'ProjectSettings-JupyterServer'
+
+    propTypes :
+        project_id : rtypes.string.isRequired
+
+    render_jupyter_link: ->
+        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
+            Plain Jupyter Server
+        </a>
+
+    render: ->
+        <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
+            <span style={color: '#666'}>
+                The Jupyter notebook server is a Python process that runs in your
+                project that provides backed support for Jupyter notebooks with
+                synchronized editing and TimeTravel.   You can also just
+                use your Jupyter notebook directly via the link below.
+                This does not support multiple users or TimeTravel.
+            </span>
+            <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
+                {@render_jupyter_link()}
+            </div>
+            <span style={color: '#666'}>
+                (If the above link doesn't work, refresh it.)
+            </span>
+        </ProjectSettingsPanel>
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -1121,6 +1149,7 @@ ProjectSettingsBody = rclass ({name}) ->
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
                     <ProjectControlPanel   key='control'       project={@props.project} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} />
+                    <JupyterServerPanel    key='jupyter'        project_id={@props.project_id} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }
                         {#public_paths={@props.public_paths} desc={share_desc} name={@props.name} /> }

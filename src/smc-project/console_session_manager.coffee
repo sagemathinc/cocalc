@@ -278,8 +278,6 @@ class ConsoleSessions
                 clearTimeout(no_response_timeout)
                 if not cb?  # already failed
                     return
-                if not history?
-                    history = new Buffer(0)
                 # in future, history could be read from a file
                 # Disable JSON mesg protocol, since it isn't used further
                 misc_node.disable_mesg(console_socket)
@@ -313,7 +311,7 @@ class ConsoleSessions
                     session.history += data
                     session.amount_of_data += data.length
                     n = session.history.length
-                    if n > 200000
+                    if n > 150000
                         session.history = session.history.slice(session.history.length - 100000)
 
                 @_sessions[mesg.session_uuid] = session

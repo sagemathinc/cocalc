@@ -10,7 +10,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 SYNCHRONIZED TABLE -- defined by an object query
 
-    - Do a query against a RethinkDB table using our object query description.
+    - Do a query against a PostgreSQL table using our object query description.
     - Synchronization with the backend database is done automatically.
 
    Methods:
@@ -99,13 +99,10 @@ schema    = require('./schema')
 {defaults, required} = misc
 
 # We represent synchronized tables by an immutable.js mapping from the primary
-# key to the object.  Since RethinkDB primary keys can be more than just strings,
-# e.g., they can be arrays, so we convert complicated keys to their
-# JSON representation.  According to RethinkdB: "The data type of a primary
-# key is usually a string (like a UUID) or a number, but it can also be a
-# time, binary object, boolean or an array."
-# (see https://rethinkdb.com/api/javascript/table_create/)
-# A binary object doesn't make sense here in pure javascript, but these do:
+# key to the object.  Since PostgresQL primary keys can be compound (more than
+# just strings), e.g., they can be arrays, so we convert complicated keys to their
+# JSON representation.  A binary object doesn't make sense here in pure javascript,
+# but these do:
 #       string, number, time, boolean, or array
 # Everything automatically converts fine to a string except array, which is the
 # main thing this function deals with below.
@@ -869,7 +866,7 @@ class SyncTable extends EventEmitter
         @_state = 'closed'
 
     # wait until some function of this synctable is truthy
-    # (this is exactly the same code as in the rethink.coffee SyncTable!)
+    # (this might be exactly the same code as in the postgres-synctable.coffee SyncTable....)
     wait: (opts) =>
         opts = defaults opts,
             until   : required     # waits until "until(@)" evaluates to something truthy

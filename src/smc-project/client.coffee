@@ -530,8 +530,6 @@ class exports.Client extends EventEmitter
                             else
                                 dbg("file is fine")
                                 cb()
-
-                    # todo
                 else
                     cb()
             (cb) =>

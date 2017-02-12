@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-# these times in minutes are used for active/recently edited projects and accounts in rethink.coffee's get_stats
+# these times in minutes are used for active/recently edited projects and accounts in postgres-server-queries.coffee's get_stats
 exports.RECENT_TIMES =
     active     : 5
     last_hour  : 60

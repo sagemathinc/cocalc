@@ -1,1 +1,0 @@
-../project/update_schema.coffee
