@@ -25,11 +25,11 @@
 
 $ = window.$
 
-async = require('async')
+async           = require('async')
+underscore      = require('underscore')
 
-misc = require('smc-util/misc')
-misc_page = require('./misc_page')
-
+misc            = require('smc-util/misc')
+misc_page       = require('./misc_page')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
@@ -179,7 +179,8 @@ class exports.LatexEditor extends editor.FileEditor
         ###
 
     cms: =>
-        [@latex_editor.codemirror, @latex_editor.codemirror1]
+        c = [@latex_editor.codemirror, @latex_editor.codemirror1]
+        return underscore.filter(c, ((x) -> x?))
 
     spell_check: (cb) =>
         @preview.pdflatex.spell_check
@@ -736,12 +737,11 @@ class exports.LatexEditor extends editor.FileEditor
     _reset_inline_errors: () =>
         $('[data-toggle="popover"]').popover('hide')
         for cm in @cms()
-            if cm?
-                cm.clearGutter('Codemirror-latex-errors')
-                for line, line_handler of cm._smc_inline_errors
-                    # use line_handler to always find the correct line
-                    cm.removeLineClass(line_handler, 'background')
-                cm._smc_inline_errors = {}
+            cm.clearGutter('Codemirror-latex-errors')
+            for line, line_handler of cm._smc_inline_errors
+                # use line_handler to always find the correct line
+                cm.removeLineClass(line_handler, 'background')
+            cm._smc_inline_errors = {}
 
     _render_inline_error: (line, message, content, error_type) =>
         line -= 1 # to get 0-based numbering for the remaining code
