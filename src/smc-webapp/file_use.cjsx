@@ -500,7 +500,7 @@ FileUseViewer = rclass
         </Button>
 
     open_selected: ->
-        open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.redux)
+        open_file_use_entry(@_visible_list?[@state.cursor]?.toJS(), @props.redux)
 
     render_list: ->
         v = @props.file_use_list.toArray()
