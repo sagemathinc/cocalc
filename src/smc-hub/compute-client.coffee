@@ -193,7 +193,7 @@ class ComputeServerClient
             @_add_server_single(opts)
             return
 
-        if not opts.host
+        if not opts.dc
             i = opts.host.indexOf('-')
             if i != -1
                 opts.dc = opts.host.slice(0,i)
