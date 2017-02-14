@@ -1543,6 +1543,7 @@ class CodeMirrorEditor extends FileEditor
 
     _set: (content) =>
         if not @codemirror?
+            # document is already closed and freed up.
             return
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
