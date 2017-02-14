@@ -14,6 +14,7 @@ BLOB_GCLOUD_BUCKET = 'smc-blobs'
 async   = require('async')
 snappy  = require('snappy')
 zlib    = require('zlib')
+fs      = require('fs')
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -543,7 +544,7 @@ class exports.PostgreSQL extends PostgreSQL
     ###
     syncstring_maintenance: (opts) =>
         opts = defaults opts,
-            age_days          : 60    # archive patches of syncstrings that are inactive for at least this long
+            age_days          : 30    # archive patches of syncstrings that are inactive for at least this long
             map_limit         : 1     # how much parallelism to use
             limit             : 1000 # do only this many
             repeat_until_done : true
