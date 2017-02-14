@@ -4,7 +4,7 @@ Projects
 
 winston = require('winston')
 
-rethink = require('./rethink')
+postgres = require('./postgres')
 local_hub_connection = require('./local_hub_connection')
 message = require('smc-util/message')
 
@@ -62,7 +62,7 @@ class Project
             return
         @database.get_project
             project_id : @project_id
-            columns    : rethink.PROJECT_COLUMNS
+            columns    : postgres.PROJECT_COLUMNS
             cb         : (err, result) =>
                 if err
                     cb?(err)

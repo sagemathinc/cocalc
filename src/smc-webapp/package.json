@@ -38,6 +38,7 @@
     "jquery-ui-touch-punch": "^0.2.3",
     "jquery.payment": "git://github.com/stripe/jquery.payment.git",
     "json-stable-stringify": "^1.0.1",
+    "lodash.trimstart": "^4.5.1",
     "marked": "^0.3.3",
     "mathjax": "^2.6.1",
     "md5": "^2.0.0",
@@ -46,10 +47,10 @@
     "octicons": "^3.5.0",
     "onecolor": "^3.0.4",
     "pnotify": "^3.0.0",
-    "react": "^15.3.2",
+    "react": "^15.4.2",
     "react-bootstrap": "^0.30.5",
     "react-chosen": "^0.3.8",
-    "react-dom": "^15.3.2",
+    "react-dom": "^15.4.2",
     "react-draggable": "^2.2.2",
     "react-dropzone-component": "github:felixrieseberg/React-Dropzone-Component",
     "react-notify-resize": "^2.0.2",
@@ -74,7 +75,8 @@
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
     "jsdom": "^7.0.2",
-    "mocha": "^2.3.3"
+    "mocha": "^2.3.3",
+    "react-addons-perf": "^15.4.2"
   },
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter spec",

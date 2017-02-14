@@ -1,6 +1,9 @@
-
 ###
-# Passport Authentication (oauth, etc.)
+Passport Authentication (oauth, etc.)
+
+LICENSE: AGPLv3
+
+(c) 2015-2017 SageMath, Inc.
 ###
 
 async   = require('async')
@@ -288,12 +291,12 @@ exports.init_passport = (opts) ->
 
     # Set the site conf like this:
     #
-    #  db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:console.log))
+    #  require 'c'; db()
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:done())
     #
     #  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
     #
-    #  db = require('smc-hub/rethink').rethinkdb(hosts:['localhost:XXXXX'],pool:1)
-    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/project_uuid.../port/YYYYY/auth'}, cb:console.log)
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/project_uuid.../port/YYYYY/auth'}, cb:done())
 
 
     auth_url = undefined # gets set below
@@ -345,11 +348,8 @@ exports.init_passport = (opts) ->
             #
             # You must then put them in the database, via
             #
-            # db=require('smc-hub/rethink').rethinkdb(hosts:['db0'], cb:(err)->db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
-            # or in a project:
-            #     db = require('smc-hub/rethink').rethinkdb(hosts:['localhost:PORT'],pool:1)
-            #     db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-            #
+            # require 'c'; db()
+            # db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
             opts =
                 clientID     : conf.clientID
                 clientSecret : conf.clientSecret
@@ -397,7 +397,7 @@ exports.init_passport = (opts) ->
             # Get these here:
             #      https://github.com/settings/applications/new
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
             opts =
                 clientID     : conf.clientID
@@ -440,7 +440,7 @@ exports.init_passport = (opts) ->
             # for oauth2, as I discovered by a lucky guess... (sigh).
             #
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
             opts =
                 clientID     : conf.clientID
@@ -485,7 +485,7 @@ exports.init_passport = (opts) ->
             # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
             #
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
             opts =
                 clientID     : conf.clientID
@@ -529,7 +529,7 @@ exports.init_passport = (opts) ->
             #      (3) Click add consumer and enter the URL of your SMC instance.
             #
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
             opts =
                 consumerKey    : conf.clientID
@@ -575,7 +575,7 @@ exports.init_passport = (opts) ->
             #    (4) Fill the form as usual and eventual get the id and secret.
             #
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
             opts =
                 clientID     : conf.clientID
                 clientSecret : conf.clientSecret
@@ -613,7 +613,7 @@ exports.init_passport = (opts) ->
             #    (2) Click on Keys and Access Tokens
             #
             # You must then put them in the database, via
-            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            #   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
             opts =
                 consumerKey    : conf.clientID

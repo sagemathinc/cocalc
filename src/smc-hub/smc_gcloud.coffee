@@ -4,8 +4,6 @@
 
 ---
 
-g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:'db0', pool:1))
-
 This uses the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
 

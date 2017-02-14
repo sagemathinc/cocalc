@@ -1,5 +1,8 @@
 # Developing SMC on a personal laptop
 
+TODO: This will not work since it needs to be updated for PostgreSQL.
+See the dev/single for hints.
+
 Scripts for doing development of SMC on a personal single-user laptop
 that you fully control.  You _**must not**_ have anything else listening
 on ports 5000, 5001, 8080, 28015 and 29015.

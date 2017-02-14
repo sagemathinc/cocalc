@@ -290,7 +290,7 @@ ProjectContentViewer = rclass
         if not Editor?
             <Loading />
         else
-            <div ref='editor_inner_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
+            <div ref='editor_inner_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}

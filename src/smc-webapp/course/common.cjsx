@@ -166,27 +166,27 @@ exports.StudentAssignmentInfo = rclass
 
     propTypes :
         name       : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
         title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
+        info       : rtypes.object.isRequired
 
     getInitialState: ->
         editing_grade : false
 
     open: (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
+        @actions(@props.name).open_assignment(type, assignment_id, student_id)
 
     copy: (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
+        @actions(@props.name).copy_assignment(type, assignment_id, student_id)
 
     stop: (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
+        @actions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
     save_grade: (e) ->
         e?.preventDefault()
-        @props.redux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
     edit_grade: ->
@@ -219,7 +219,7 @@ exports.StudentAssignmentInfo = rclass
                     Grade: {@props.grade}
                 </div>
 
-    render_grade: (info, width) ->
+    render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
@@ -296,10 +296,10 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
-        open = => @open(type, info.assignment_id, info.student_id)
-        copy = => @copy(type, info.assignment_id, info.student_id)
-        stop = => @stop(type, info.assignment_id, info.student_id)
+    render_last: (name, obj, type, enable_copy, copy_tip, open_tip) ->
+        open = => @open(type, @props.info.assignment_id, @props.info.student_id)
+        copy = => @copy(type, @props.info.assignment_id, @props.info.student_id)
+        stop = => @stop(type, @props.info.assignment_id, @props.info.student_id)
         obj ?= {}
         v = []
         if enable_copy
@@ -315,24 +315,23 @@ exports.StudentAssignmentInfo = rclass
             v.push(@render_error(name, obj.error))
         return v
 
-    render_peer_assign: (info) ->
+    render_peer_assign: ->
         <Col md={2} key='peer-assign'>
-            {@render_last('Peer Assign', info.last_peer_assignment, 'peer-assigned', info, info.last_collect?,
+            {@render_last('Peer Assign', @props.info.last_peer_assignment, 'peer-assigned', @props.info.last_collect?,
                "Copy collected assignments from your project to this student's project so they can grade them.",
                "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
         </Col>
 
-    render_peer_collect: (info) ->
+    render_peer_collect: ->
         <Col md={2} key='peer-collect'>
-            {@render_last('Peer Collect', info.last_peer_collect, 'peer-collected', info, info.last_peer_assignment?,
+            {@render_last('Peer Collect', @props.info.last_peer_collect, 'peer-collected', @props.info.last_peer_assignment?,
                "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
         </Col>
 
     render: ->
-        info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
-        show_grade_col = (peer_grade and info.last_peer_collect) or (not peer_grade and info.last_collect)
+        show_grade_col = (peer_grade and @props.info.last_peer_collect) or (not peer_grade and @props.info.last_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
@@ -341,20 +340,20 @@ exports.StudentAssignmentInfo = rclass
             <Col md=10 key="rest">
                 <Row>
                     <Col md={width} key='last_assignment'>
-                        {@render_last('Assign', info.last_assignment, 'assigned', info, true,
+                        {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
                            "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
                     <Col md={width} key='collect'>
-                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
+                        {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment?,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
                            "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
-                    {@render_peer_assign(info)  if peer_grade and info.peer_assignment}
-                    {@render_peer_collect(info) if peer_grade and info.peer_collect}
-                    {if show_grade_col then @render_grade(info, width) else <Col md={width} key='grade'></Col>}
+                    {@render_peer_assign()  if peer_grade and @props.info.peer_assignment}
+                    {@render_peer_collect() if peer_grade and @props.info.peer_collect}
+                    {if show_grade_col then @render_grade(width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
-                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
+                        {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
                            "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
                     </Col>

@@ -6,7 +6,7 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-# Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
+# Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
 BLOB_GCLOUD_BUCKET = 'smc-blobs'

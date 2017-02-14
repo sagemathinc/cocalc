@@ -5,7 +5,7 @@ misc = require('smc-util/misc')
 
 # React libraries and components
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel, Well} = require('react-bootstrap')
 
 # SMC components
 {User} = require('../users')
@@ -30,14 +30,15 @@ show_hide_deleted_style =
     float      : 'right'
 
 exports.StudentsPanel = rclass ({name}) ->
-    displayName : "CourseEditorStudents"
+    displayName: "CourseEditorStudents"
 
-    reduxProps :
+    reduxProps:
         "#{name}":
-            expanded_students : rtypes.immutable.Set
+            expanded_students   : rtypes.immutable.Set
             active_student_sort : rtypes.object
+            get_student_name    : rtypes.func
 
-    propTypes :
+    propTypes:
         name        : rtypes.string.isRequired
         redux       : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
@@ -45,11 +46,6 @@ exports.StudentsPanel = rclass ({name}) ->
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
-
-    getDefaultProps: ->
-        column_name = "last_name"
-        is_descending = false
-        return active_student_sort : {column_name, is_descending}
 
     getInitialState: ->
         err              : undefined
@@ -143,7 +139,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     email_address : emails[y]
             else
                 students.push({email_address:y})
-        @props.redux.getActions(@props.name).add_students(students)
+        @actions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
     get_add_selector_options: ->
@@ -273,7 +269,6 @@ exports.StudentsPanel = rclass ({name}) ->
         # create_project : True
         # deleted        : False
         # note           : "Is younger sister of Abby Florence (TA)"
-        # sort           : "florence rachel"
 
         v = immutable_to_list(@props.students, 'student_id')
         # Fill in values
@@ -281,8 +276,8 @@ exports.StudentsPanel = rclass ({name}) ->
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                x.first_name = user?.get('first_name') ? ''
-                x.last_name  = user?.get('last_name') ? ''
+                x.first_name ?= user?.get('first_name') ? ''
+                x.last_name  ?= user?.get('last_name') ? ''
                 if x.project_id?
                     x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime?()
                     upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
@@ -355,12 +350,19 @@ exports.StudentsPanel = rclass ({name}) ->
 
     render_students: (students) ->
         for x,i in students
+            name =
+                full  : @props.get_student_name(x.student_id)
+                first : x.first_name
+                last  : x.last_name
+
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} redux={@props.redux} name={@props.name}
                      project_map={@props.project_map}
                      assignments={@props.assignments}
                      is_expanded={@props.expanded_students.has(x.student_id)}
+                     student_name={name}
+                     display_account_name={true}
                      />
 
     render_show_deleted: (num_deleted) ->
@@ -398,36 +400,69 @@ exports.StudentsPanel.Header = rclass
             </span>
         </Tip>
 
-Student = rclass
-    displayName : "CourseEditorStudent"
+###
+ Updates based on:
+  - Expanded/Collapsed
+  - If collapsed: First name, last name, email, last active, hosting type
+  - If expanded: Above +, Student's status on all assignments,
 
-    propTypes :
-        redux       : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
-        student     : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
-        project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        background  : rtypes.string
-        is_expanded  : rtypes.bool
+###
+Student = rclass
+    displayName: "CourseEditorStudent"
+
+    propTypes:
+        redux                : rtypes.object.isRequired
+        name                 : rtypes.string.isRequired
+        student              : rtypes.object.isRequired
+        user_map             : rtypes.object.isRequired
+        project_map          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        assignments          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        background           : rtypes.string
+        is_expanded          : rtypes.bool
+        student_name         : rtypes.object
+        display_account_name : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.student_name.full != nextProps.student_name.full
+
+    componentWillReceiveProps: (next) ->
+        if @props.student_name.first != next.student_name.first
+            @setState(edited_first_name : next.student_name.first)
+        if @props.student_name.last != next.student_name.last
+            @setState(edited_last_name : next.student_name.last)
 
     getInitialState: ->
-        confirm_delete: false
+        confirm_delete    : false
+        editing_student   : false
+        edited_first_name : @props.student_name.first
+        edited_last_name  : @props.student_name.last
+
+    on_key_down: (e) ->
+        switch e.keyCode
+            when 13
+                @save_student_name()
+            when 27
+                @cancel_student_edit()
+
+    toggle_show_more: (e) ->
+        e.preventDefault()
+        if @state.editing_student
+            @cancel_student_edit()
+        item_id = @props.student.get('student_id')
+        @actions(@props.name).toggle_item_expansion('student', item_id)
 
     render_student: ->
-        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('student', @props.student.get('student_id'))}>
+        <a href='' onClick={@toggle_show_more}>
             <Icon style={marginRight:'10px'}
-                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}/>
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}
+            />
             {@render_student_name()}
         </a>
 
     render_student_name: ->
         account_id = @props.student.get('account_id')
         if account_id?
-            return <User account_id={account_id} user_map={@props.user_map} />
+            return <User account_id={account_id} user_map={@props.user_map} name={@props.student_name.full} show_original={@props.display_account_name}/>
         return <span>{@props.student.get("email_address")} (invited)</span>
 
     render_student_email: ->
@@ -435,10 +470,10 @@ Student = rclass
         return <a href="mailto:#{email}">{email}</a>
 
     open_project: ->
-        @props.redux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
+        @actions('projects').open_project(project_id:@props.student.get('project_id'))
 
     create_project: ->
-        @props.redux.getActions(@props.name).create_student_project(@props.student_id)
+        @actions(@props.name).create_student_project(@props.student_id)
 
     render_last_active: ->
         student_project_id = @props.student.get('project_id')
@@ -467,7 +502,7 @@ Student = rclass
                      <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free</span>
                 </Tip>
 
-    render_project: ->
+    render_project_access: ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
         if create?
@@ -480,13 +515,19 @@ Student = rclass
 
         student_project_id = @props.student.get('project_id')
         if student_project_id?
-            <Tip placement='right'
-                 title='Student project'
-                 tip='Open the course project for this student.'>
-                <Button onClick={@open_project}>
-                    <Icon name="edit" /> Open student project
-                </Button>
-            </Tip>
+            <ButtonToolbar>
+                <ButtonGroup>
+                    <Button onClick={@open_project}>
+                        <Tip placement='right'
+                             title='Student project'
+                             tip='Open the course project for this student.'
+                        >
+                            <Icon name="edit" /> Open student project
+                        </Tip>
+                    </Button>
+                </ButtonGroup>
+                {@render_edit_name() if @props.student.get('account_id')}
+            </ButtonToolbar>
         else
             <Tip placement='right'
                  title='Create the student project'
@@ -496,12 +537,38 @@ Student = rclass
                 </Button>
             </Tip>
 
+    render_edit_name: ->
+        if @state.editing_student
+            disable_save = @props.student_name.first == @state.edited_first_name and @props.student_name.last == @state.edited_last_name
+            <ButtonGroup>
+                <Button onClick={@save_student_name} bsStyle='success' disabled={disable_save}>
+                    <Icon name='save'/> Save
+                </Button>
+                <Button onClick={@cancel_student_edit} >
+                    Cancel
+                </Button>
+            </ButtonGroup>
+        else
+            <Button onClick={@show_edit_name_dialogue}>
+                <Icon name='address-card-o'/> Edit student...
+            </Button>
+
+    cancel_student_edit: ->
+        @setState(@getInitialState())
+
+    save_student_name: ->
+        @actions(@props.name).set_internal_student_name(@props.student, @state.edited_first_name, @state.edited_last_name)
+        @setState(editing_student:false)
+
+    show_edit_name_dialogue: ->
+        @setState(editing_student:true)
+
     delete_student: ->
-        @props.redux.getActions(@props.name).delete_student(@props.student)
+        @actions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
     undelete_student: ->
-        @props.redux.getActions(@props.name).undelete_student(@props.student)
+        @actions(@props.name).undelete_student(@props.student)
 
     render_confirm_delete: ->
         if @state.confirm_delete
@@ -545,12 +612,16 @@ Student = rclass
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
+            info = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
-                  key={assignment.get('assignment_id')}
-                  title={@render_title(assignment)}
-                  name={@props.name} redux={@props.redux}
-                  student={@props.student} assignment={assignment}
-                  grade={grade} />
+                key={assignment.get('assignment_id')}
+                title={@render_title(assignment)}
+                name={@props.name}
+                student={@props.student}
+                assignment={assignment}
+                grade={grade}
+                info={info}
+                />
 
     render_assignments_info: ->
         peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
@@ -569,7 +640,7 @@ Student = rclass
                     rows        = 6
                     placeholder = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@props.redux.getActions(@props.name).set_student_note(@props.student, value)}
+                    on_save     = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
@@ -611,19 +682,59 @@ Student = rclass
             <b> (deleted)</b>
 
     render_panel_header: ->
-        <Row>
-            <Col md=4>
-                {@render_project()}
-            </Col>
-            <Col md=4 mdOffset=4>
-                {@render_delete_button()}
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col md=8>
+                    {@render_project_access()}
+                </Col>
+                <Col md=4>
+                    {@render_delete_button()}
+                </Col>
+            </Row>
+            {<Row>
+                <Col md=4>
+                    {@render_edit_student_interface()}
+                </Col>
+            </Row> if @state.editing_student }
+        </div>
+
+    render_edit_student_interface: ->
+        <Well style={marginTop:'10px'}>
+            <Row>
+                <Col md=6>
+                    First Name
+                    <FormGroup>
+                        <FormControl
+                            type       = 'text'
+                            autoFocus  = {true}
+                            value      = {@state.edited_first_name}
+                            onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                            onChange   = {(e) => @setState(edited_first_name : e.target.value)}
+                            onKeyDown  = {@on_key_down}
+                        />
+                    </FormGroup>
+                </Col>
+                <Col md=6>
+                    Last Name
+                    <FormGroup>
+                        <FormControl
+                            type       = 'text'
+                            value      = {@state.edited_last_name}
+                            onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
+                            onChange   = {(e) => @setState(edited_last_name : e.target.value)}
+                            onKeyDown  = {@on_key_down}
+                        />
+                    </FormGroup>
+                </Col>
+            </Row>
+        </Well>
 
     render_more_panel: ->
-        <Panel header={@render_panel_header()}>
-            {@render_more_info()}
-        </Panel>
+        <Row>
+            <Panel header={@render_panel_header()}>
+                {@render_more_info()}
+            </Panel>
+        </Row>
 
     render: ->
         <Row style={if @state.more then selected_entry_style}>

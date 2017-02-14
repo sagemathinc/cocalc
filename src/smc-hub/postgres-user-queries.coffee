@@ -853,7 +853,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         # Make sure there is the query that gets only things in this table that this user
         # is allowed to see, or at least a check_hook.
-        if not r.client_query.get.all?.args? and not r.client_query.get.check_hook?
+        if not r.client_query.get.pg_where? and not r.client_query.get.check_hook?
             return {err: "user get query not allowed for #{opts.table} (no getAll filter)"}
 
         # Apply default options to the get query (don't impact changefeed)
@@ -868,9 +868,9 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     user_options[y] = true
 
-        if r.client_query.get.all?.options?
+        if r.client_query.get.options?
             # complicated since options is a list of {opt:val} !
-            for x in r.client_query.get.all.options
+            for x in r.client_query.get.options
                 for y, z of x
                     if y == 'delete'
                         r.delete_option = z
@@ -1305,7 +1305,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
             (cb) =>
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
-                x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.all?.options)
+                x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
                 if x.err
                     cb(x.err)
                     return
