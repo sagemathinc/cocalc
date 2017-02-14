@@ -1124,9 +1124,13 @@ class GoogleCloud
             name : required
         return new Bucket(@, opts.name)
 
+gcloud_bucket_cache = {}
+
 class Bucket
     constructor: (@gcloud, @name) ->
-        @_bucket = @gcloud._gcloud.storage().bucket(@name)
+        @_bucket = gcloud_bucket_cache[@name]
+        # if not defined, define it:
+        @_bucket ?= gcloud_bucket_cache[@name] = @gcloud._gcloud.storage().bucket(@name)
 
     dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
 
