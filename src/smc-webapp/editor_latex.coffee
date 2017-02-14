@@ -89,7 +89,7 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor.on 'saved', () =>
             @update_preview () =>
                 if @_current_page == 'pdf-preview'
-                    @preview_embed.update()
+                    @preview_embed?.update()
             @spell_check()
 
         @latex_editor.syncdoc.on 'connect', () =>
@@ -315,7 +315,7 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor.remove()
         @element.remove()
         @preview.remove()
-        @preview_embed.remove()
+        @preview_embed?.remove()
 
     _init_buttons: () =>
         @element.find("a").tooltip(TOOLTIP_CONFIG)
@@ -498,7 +498,7 @@ class exports.LatexEditor extends editor.FileEditor
             if not err
                 @update_preview (force=force) =>
                     if @_current_page == 'pdf-preview'
-                        @preview_embed.update()
+                        @preview_embed?.update()
                 @spell_check()
 
     update_preview: (cb, force=false, only_compile=false) =>
