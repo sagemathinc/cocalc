@@ -25,11 +25,11 @@
 
 $ = window.$
 
-async = require('async')
+async           = require('async')
+underscore      = require('underscore')
 
-misc = require('smc-util/misc')
-misc_page = require('./misc_page')
-
+misc            = require('smc-util/misc')
+misc_page       = require('./misc_page')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
@@ -179,7 +179,8 @@ class exports.LatexEditor extends editor.FileEditor
         ###
 
     cms: =>
-        [@latex_editor.codemirror, @latex_editor.codemirror1]
+        c = [@latex_editor.codemirror, @latex_editor.codemirror1]
+        return underscore.filter(c, ((x) -> x?))
 
     spell_check: (cb) =>
         @preview.pdflatex.spell_check
