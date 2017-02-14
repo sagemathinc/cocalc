@@ -745,7 +745,7 @@ class exports.LatexEditor extends editor.FileEditor
 
     _render_inline_error: (line, message, content, error_type) =>
         line -= 1 # to get 0-based numbering for the remaining code
-        if error_type != 'error'
+        if error_type != 'error' or not @latex_editor.codemirror?
             # only show errors, warnings and typesettings are too verbose
             return
         # at most one error widget per line ...
