@@ -2663,10 +2663,10 @@ class PDF_Preview extends FileEditor
             y              : 0          # y-coordinate on page
             highlight_line : true
         pg = @pdflatex.page(opts.n)
-        if not pg?
+        elt = @element.find(".salvus-editor-pdf-preview-output")
+        if not pg? or not elt?
             # the page has vanished in the meantime...
             return
-        elt = @element.find(".salvus-editor-pdf-preview-output")
         t = elt.offset().top
         elt.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2
