@@ -1827,6 +1827,8 @@ class CodeMirrorEditor extends FileEditor
 
         update_context_sensitive_bar = () =>
             cm = @focused_codemirror()
+            if not cm?
+                return
             pos = cm.getCursor()
             name = cm.getModeAt(pos).name
             #console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
