@@ -1153,7 +1153,7 @@ class Bucket
             opts.cb?()
             delete opts.cb
         stream.on 'error', (err) =>
-            dbg("err = '#{err}'")
+            dbg("err = '#{JSON.stringify(err)}'")
             if err
                 @_write_using_gsutil(opts)
         return

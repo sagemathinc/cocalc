@@ -399,7 +399,7 @@ class exports.PostgreSQL extends PostgreSQL
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
             throttle  : 0                  # wait this many seconds between uploads
-            repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
+            repeat_until_done_s : 0        # if nonzero, waits this many seconds, then calls this function again until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false
             cb        : required
@@ -409,7 +409,7 @@ class exports.PostgreSQL extends PostgreSQL
         # been copied to Google cloud storage.
         dbg("getting blob id's...")
         @_query
-            query : 'SELECT id, size FROM blos'
+            query : 'SELECT id, size FROM blobs'
             where : "expire IS NULL AND gcloud IS NULL"
             limit : opts.limit
             cb    : all_results (err, v) =>
