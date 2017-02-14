@@ -1542,6 +1542,8 @@ class CodeMirrorEditor extends FileEditor
         return @codemirror.getValue()
 
     _set: (content) =>
+        if not @codemirror?
+            return
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
         @codemirror.scrollIntoView(from)
