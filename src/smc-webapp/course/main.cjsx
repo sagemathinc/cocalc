@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -57,7 +57,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, NumberInput} = require('../r_misc')
+    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, NumberInput} = require('../r_misc')
 
 # Course components
 #{CourseActions} = require('./course_editor_components/actions')
@@ -426,6 +426,15 @@ init_redux = (course_filename, redux, course_project_id) ->
             else
                 is_descending = false
             @setState(active_student_sort : {column_name, is_descending})
+
+        set_internal_student_name: (student, first_name, last_name) =>
+            store = get_store()
+            return if not store?
+            student = store.get_student(student)
+            @_update
+                set   : {first_name, last_name}
+                where : {student_id : student.get('student_id'), table : 'students'}
+            @configure_all_projects()   # since they may get removed from shared project, etc.
 
         # Student projects
 
@@ -1548,20 +1557,30 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_students: =>
             @get('students')
 
+        # Uses an instructor given name if it exists
         get_student_name: (student, include_email=false) =>
             student = @get_student(student)
             if not student?
                 return 'student'
             email = student.get('email_address')
-            name = user_store.get_name(student.get('account_id'))
-            n = name ? email ? 'student'
-            if not include_email
-                return n
-            if include_email and name? and email?
-                full = n + " <#{email}>"
+            account_id = student.get('account_id')
+            first_name = student.get('first_name') ? user_store.get_first_name(account_id)
+            last_name = student.get('last_name') ? user_store.get_last_name(account_id)
+            if first_name? and last_name?
+                full_name = first_name + ' ' + last_name
+            else if first_name?
+                full_name = first_name
+            else if last_name?
+                full_name = last_name
             else
-                full = n
-            return {simple:n.replace(/\W/g, ' '), full:full}
+                full_name = email ? 'student'
+            if not include_email
+                return full_name
+            if include_email and full_name? and email?
+                full = full_name + " <#{email}>"
+            else
+                full = full_name
+            return {simple:full_name.replace(/\W/g, ' '), full:full}
 
         get_student_email: (student) =>
             student = @get_student(student)
@@ -1857,6 +1876,7 @@ init_redux = (course_filename, redux, course_project_id) ->
         expanded_students    : immutable.Set() # Set of student id's (string) which should be expanded on render
         expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded on render
         expanded_handouts    : immutable.Set() # Set of handout id's (string) which should be expanded on render
+        active_student_sort  : {column_name : "last_name", is_descending : false}
 
     redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
@@ -1960,7 +1980,9 @@ CourseEditor = rclass ({name}) ->
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
     render_title: ->
-        <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
+        <h4 className='smc-big-only' style={float:'right', marginTop: '5px', marginBottom: '0px'}>
+            {misc.trunc(@props.settings?.get('title'),40)}
+        </h4>
 
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file

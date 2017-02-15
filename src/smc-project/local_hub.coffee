@@ -112,7 +112,10 @@ init_info_json = (cb) ->
         host = 'localhost'
     else
         # what we want for the Google Compute engine deployment
-        host = require('os').networkInterfaces().eth0?[0].address
+        # earlier, there was eth0, but newer Ubuntu's on GCP have ens4
+        nics = require('os').networkInterfaces()
+        mynic = nics.eth0 ? nics.ens4
+        host = mynic?[0].address
     base_url = process.env.SMC_BASE_URL ? ''
     port     = 22
     INFO =

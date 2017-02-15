@@ -85,3 +85,26 @@ Server's total uptime in seconds:
 System stats for each table:
 
     SELECT schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count FROM pg_stat_user_tables;
+
+## Webapp errors
+
+Total in the last hour
+
+    SELECT COUNT(*), severity FROM webapp_errors WHERE time > NOW() - '1 hour'::INTERVAL GROUP BY severity;
+
+Overview of the last day's severe error message, ordered by how often they occurred.
+
+    SELECT COUNT(message) as num, message FROM webapp_errors WHERE severity='error' AND time > NOW() - '24 hour'::INTERVAL GROUP BY message ORDER BY num DESC;
+
+Go through recent webapp errors with some filters. Change the "offset" value...
+
+    SELECT * FROM webapp_errors WHERE severity='error' AND message NOT ILIKE '%xhr%' AND message NOT ILIKE '%websocket%' ORDER BY time LIMIT 1 OFFSET 5;
+
+Undefined properties of objects in the webapp in the past 24 hours:
+
+    SELECT COUNT(message) as num, message FROM webapp_errors WHERE severity='error' AND message LIKE 'Cannot read property%' AND time > NOW() - '24 hour'::INTERVAL GROUP BY message ORDER BY num DESC;
+
+Search for a specific part in an error message in a specific release (first characters of the `smc_git_rev`)
+
+    SELECT * FROM webapp_errors WHERE message LIKE '%call'' of%'  AND smc_git_rev LIKE 'cc75%' ORDER BY time LIMIT 3;
+

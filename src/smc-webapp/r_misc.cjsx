@@ -823,6 +823,9 @@ exports.Tip = Tip = rclass
         delayHide : 100
         rootClose : false
 
+    getInitialState: ->
+        display_trigger : false
+
     render_title: ->
         <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
 
@@ -848,15 +851,27 @@ exports.Tip = Tip = rclass
             </Tooltip>
 
     render: ->
-        <OverlayTrigger
-            placement = {@props.placement}
-            overlay   = {@render_popover()}
-            delayShow = {@props.delayShow}
-            delayHide = {@props.delayHide}
-            rootClose = {@props.rootClose}
+        if not @state.display_trigger
+            <span style={@props.style}
+                onMouseEnter={=>@setState(display_trigger:true)}
             >
-            <span style={@props.style}>{@props.children}</span>
-        </OverlayTrigger>
+                {@props.children}
+            </span>
+        else
+            <OverlayTrigger
+                placement = {@props.placement}
+                overlay   = {@render_popover()}
+                delayShow = {@props.delayShow}
+                delayHide = {@props.delayHide}
+                rootClose = {@props.rootClose}
+            >
+                <span
+                    style={@props.style}
+                    onMouseLeave={=>@setState(display_trigger:false)}
+                >
+                    {@props.children}
+                </span>
+            </OverlayTrigger>
 
 exports.SaveButton = rclass
     displayName : 'Misc-SaveButton'

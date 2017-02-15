@@ -248,7 +248,7 @@ class SalvusThreeJS
         # set up camera controls
         @controls = new THREE.OrbitControls(@camera, @renderer.domElement)
         @controls.damping = 2
-        @controls.noKeys = true
+        @controls.enableKeys = false # see https://github.com/mrdoob/three.js/blob/master/examples/js/controls/OrbitControls.js#L962
         @controls.zoomSpeed = 0.4
         if @_center?
             @controls.target = @_center

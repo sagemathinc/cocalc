@@ -1124,9 +1124,13 @@ class GoogleCloud
             name : required
         return new Bucket(@, opts.name)
 
+gcloud_bucket_cache = {}
+
 class Bucket
     constructor: (@gcloud, @name) ->
-        @_bucket = @gcloud._gcloud.storage().bucket(@name)
+        @_bucket = gcloud_bucket_cache[@name]
+        # if not defined, define it:
+        @_bucket ?= gcloud_bucket_cache[@name] = @gcloud._gcloud.storage().bucket(@name)
 
     dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
 
@@ -1153,7 +1157,7 @@ class Bucket
             opts.cb?()
             delete opts.cb
         stream.on 'error', (err) =>
-            dbg("err = '#{err}'")
+            dbg("err = '#{JSON.stringify(err)}'")
             if err
                 @_write_using_gsutil(opts)
         return

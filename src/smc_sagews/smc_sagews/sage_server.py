@@ -43,10 +43,6 @@ MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_CODE_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE 
 
 MAX_OUTPUT = 150000
 
-# We import the notebook interact, which we will monkey patch below,
-# first, since importing later causes trouble in sage>=5.6.
-import sagenb.notebook.interact
-
 # Standard imports.
 import json, resource, shutil, signal, socket, struct, \
        tempfile, time, traceback, pwd
@@ -55,20 +51,24 @@ import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
-try:
-    from sage.repl.attach import load_attach_path, modified_file_iterator
-    def reload_attached_files_if_mod_smc():
-        # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
-        for filename, mtime in modified_file_iterator():
-            basename = os.path.basename(filename)
-            timestr = time.strftime('%T', mtime)
-            print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
-            from sage_salvus import load
-            load(filename)
-except:
-    print("sage_server: attach not available")
-    def reload_attached_files_if_mod_smc():
-        pass
+reload_attached_files_if_mod_smc_available = True
+def reload_attached_files_if_mod_smc():
+    global reload_attached_files_if_mod_smc_available
+    if not reload_attached_files_if_mod_smc_available:
+        return
+    try:
+        from sage.repl.attach import load_attach_path, modified_file_iterator
+    except:
+        print("sage_server: attach not available")
+        reload_attached_files_if_mod_smc_available = False
+        return
+    # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+    for filename, mtime in modified_file_iterator():
+        basename = os.path.basename(filename)
+        timestr = time.strftime('%T', mtime)
+        print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+        from sage_salvus import load
+        load(filename)
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -91,8 +91,8 @@ def log(*args):
         mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
-    except:
-        log("an error writing a log message (ignoring)")
+    except Exception, err:
+        print("an error writing a log message (ignoring) -- %s"%err, args)
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
@@ -977,7 +977,7 @@ class Salvus(object):
                             # but before user assigns any variable in worksheet
                             # sage.misc.session.init() is not called until first call of show_identifiers
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
-                            block2 = "sage.misc.session._dummy=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()

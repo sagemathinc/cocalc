@@ -1047,6 +1047,8 @@ class SyncDoc extends EventEmitter
     # the last call is discarded.
     # NOTE: no-op if only one user or cursors not enabled for this doc
     set_cursor_locs: (locs) =>
+        if @_closed
+            return
         if @_users.length <= 2
             # Don't bother in special case when only one user (plus the project -- for 2 above!)
             # since we never display the user's

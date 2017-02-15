@@ -231,7 +231,7 @@ file_associations['css'] =
 for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
     file_associations[m] =
         editor : 'codemirror'
-        icon   : 'cogs'
+        icon   : 'fa-cogs'
         opts   : {mode:'makefile', indent_unit:4, tab_size:4, spaces_instead_of_tabs: false}
         name   : "Makefile"
 
@@ -356,10 +356,8 @@ initialize_new_file_type_list = () ->
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
-    if (file_associations[ext]? and file_associations[ext].icon?)
-        return file_associations[ext].icon
-    else
-        return 'fa-file-o'
+    assoc = exports.file_options('x.' + ext)
+    return assoc.icon
 
 # Multiplex'd worksheet mode
 
@@ -503,6 +501,8 @@ exports.file_options = (filename, content) ->   # content may be undefined
         x = file_associations[ext]
     if not x?
         x = file_associations['']
+    if not x.icon?
+        x.icon = 'fa-file-o'
     return x
 
 SEP = "\uFE10"
@@ -1542,6 +1542,9 @@ class CodeMirrorEditor extends FileEditor
         return @codemirror.getValue()
 
     _set: (content) =>
+        if not @codemirror?
+            # document is already closed and freed up.
+            return
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
         @codemirror.scrollIntoView(from)
@@ -1824,6 +1827,8 @@ class CodeMirrorEditor extends FileEditor
 
         update_context_sensitive_bar = () =>
             cm = @focused_codemirror()
+            if not cm?
+                return
             pos = cm.getCursor()
             name = cm.getModeAt(pos).name
             #console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
@@ -2663,10 +2668,10 @@ class PDF_Preview extends FileEditor
             y              : 0          # y-coordinate on page
             highlight_line : true
         pg = @pdflatex.page(opts.n)
-        if not pg?
+        elt = @element.find(".salvus-editor-pdf-preview-output")
+        if not pg? or not elt?
             # the page has vanished in the meantime...
             return
-        elt = @element.find(".salvus-editor-pdf-preview-output")
         t = elt.offset().top
         elt.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2

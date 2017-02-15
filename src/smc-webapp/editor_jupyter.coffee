@@ -258,6 +258,10 @@ class JupyterWrapper extends EventEmitter
     monkey_patch_frame: () =>
         if @_already_monkey_patched
             return
+        if not @frame? or not @frame.window? or not @frame.CodeMirror?
+            # If the user closes the entire window at the exact right moment, they can
+            # get in a state where @frame is defined, but window is not.
+            return
         @_already_monkey_patched = true
         misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
         misc_page.cm_define_testbot(@frame.CodeMirror)
@@ -286,6 +290,11 @@ class JupyterWrapper extends EventEmitter
         @frame.CodeMirror.prototype.redo = redo
 
     monkey_patch_ui: () =>
+        if not @frame? or not @iframe?[0]?.contentWindow?
+            # If the user closes the entire window at the exact right moment, they can
+            # cause some of what we monkey patch below to not be defined.
+            return
+
         # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
         @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
@@ -855,6 +864,9 @@ class JupyterNotebook extends EventEmitter
             if err
                 @state = 'failed'
             else
+                if @state == 'closed'
+                    # This could happen in case the user closes the tab before initialization is complete.
+                    return
                 @init_dom_change()
                 @init_syncstring_change()
                 @init_dom_events()
@@ -929,6 +941,7 @@ class JupyterNotebook extends EventEmitter
                     @notebook.css('opacity',1)
                     if err
                         @dom?.close()
+                        delete @dom
                         cb(err)
                     else
                         if @dom.read_only
@@ -970,6 +983,8 @@ class JupyterNotebook extends EventEmitter
             @font_size_change(1)
 
     init_dom_events: () =>
+        if @state == 'closed'
+            return
         @dom.on('info', @info)
         if not @read_only
             @dom.on 'cursor', (locs) =>
@@ -1024,10 +1039,12 @@ class JupyterNotebook extends EventEmitter
     # listen for changes to the syncstring
     init_syncstring_change: () =>
         #dbg = @dbg("syncstring_change"); dbg()
-        if @read_only
+        if @read_only or @state == 'closed'
             return
         last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
+            if @state == 'closed'
+                return
             #console.log 'handle_syncstring_change'
             if @dom.state != 'ready'
                 # there is nothing we can do regarding setting it if the document is broken/closed.

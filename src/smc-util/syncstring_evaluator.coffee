@@ -5,22 +5,37 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 ###
 
+async     = require('async')
 stringify = require('json-stable-stringify')
 
-sagews = require('./sagews')
-misc   = require('./misc')
+sagews    = require('./sagews')
+misc      = require('./misc')
 
 {defaults, required} = misc
 
 class exports.Evaluator
     constructor: (@string, cb) ->
+        @_init_sync_tables (err) =>
+            if err
+                cb?(err)
+            else
+                if @string._client.is_project()
+                    @_init_project_evaluator()
+                cb?()
+
+    _init_sync_tables: (cb) =>
+        async.parallel([@_init_eval_inputs, @_init_eval_outputs], (err) => cb(err))
+
+    _init_eval_inputs: (cb) =>
         query =
             eval_inputs :
                 string_id : @string._string_id
                 time      : {'>=': misc.server_seconds_ago(30)}
                 input     : null
         @_inputs = @string._client.sync_table(query, undefined, 500)
+        @_inputs.once('connected', =>cb())
 
+    _init_eval_outputs: (cb) =>
         query =
             eval_outputs :
                 string_id : @string._string_id
@@ -28,11 +43,7 @@ class exports.Evaluator
                 output    : null
         @_outputs = @string._client.sync_table(query, undefined, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
-
-        if @string._client.is_project()
-            @_init_project_evaluator()
-
-        cb?()  # not really async for now.
+        @_outputs.once('connected', =>cb())
 
     close: () =>
         @_closed = true
@@ -57,7 +68,7 @@ class exports.Evaluator
         # TODO: This is NOT 100% yet, due to multiple clients possibly starting
         # different evaluations simultaneously.
         if @_last_time? and time <= @_last_time
-            time = @_last_time + 1
+            time = new Date(@_last_time - 0 + 1)  # one millesecond later
         @_last_time = time
 
         @_inputs.set
@@ -65,6 +76,7 @@ class exports.Evaluator
             time      : time
             user_id   : 0
             input     : misc.copy_without(opts, 'cb')
+        @_inputs.save()  # root cause of https://github.com/sagemathinc/smc/issues/1589
         if opts.cb?
             # Listen for output until we receive a message with mesg.done true.
             messages = {}
@@ -176,12 +188,14 @@ class exports.Evaluator
                         #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
                         hook?(output)
                         @_outputs.set({string_id:string_id, time:time, number:number, output:output})
+                        @_outputs.save()
                         number += 1
                 else
                     @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
+                    @_outputs.save()
             else
                 @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"must specify program and input", done:true})})
-
+                @_outputs.save()
 
     # Runs only in the project
     _init_project_evaluator: () =>

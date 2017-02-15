@@ -25,11 +25,11 @@
 
 $ = window.$
 
-async = require('async')
+async           = require('async')
+underscore      = require('underscore')
 
-misc = require('smc-util/misc')
-misc_page = require('./misc_page')
-
+misc            = require('smc-util/misc')
+misc_page       = require('./misc_page')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
@@ -89,7 +89,7 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor.on 'saved', () =>
             @update_preview () =>
                 if @_current_page == 'pdf-preview'
-                    @preview_embed.update()
+                    @preview_embed?.update()
             @spell_check()
 
         @latex_editor.syncdoc.on 'connect', () =>
@@ -179,7 +179,8 @@ class exports.LatexEditor extends editor.FileEditor
         ###
 
     cms: =>
-        [@latex_editor.codemirror, @latex_editor.codemirror1]
+        c = [@latex_editor.codemirror, @latex_editor.codemirror1]
+        return underscore.filter(c, ((x) -> x?))
 
     spell_check: (cb) =>
         @preview.pdflatex.spell_check
@@ -188,8 +189,8 @@ class exports.LatexEditor extends editor.FileEditor
                 if err
                     cb?(err)
                 else
-                    @latex_editor.codemirror.spellcheck_highlight(words)
-                    @latex_editor.codemirror1.spellcheck_highlight(words)
+                    @latex_editor.codemirror?.spellcheck_highlight(words)
+                    @latex_editor.codemirror1?.spellcheck_highlight(words)
 
     init_draggable_split: () =>
         @_split_pos = @local_storage(LSkey.split_pos)
@@ -314,7 +315,7 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor.remove()
         @element.remove()
         @preview.remove()
-        @preview_embed.remove()
+        @preview_embed?.remove()
 
     _init_buttons: () =>
         @element.find("a").tooltip(TOOLTIP_CONFIG)
@@ -497,7 +498,7 @@ class exports.LatexEditor extends editor.FileEditor
             if not err
                 @update_preview (force=force) =>
                     if @_current_page == 'pdf-preview'
-                        @preview_embed.update()
+                        @preview_embed?.update()
                 @spell_check()
 
     update_preview: (cb, force=false, only_compile=false) =>
@@ -744,7 +745,7 @@ class exports.LatexEditor extends editor.FileEditor
 
     _render_inline_error: (line, message, content, error_type) =>
         line -= 1 # to get 0-based numbering for the remaining code
-        if error_type != 'error'
+        if error_type != 'error' or not @latex_editor.codemirror?
             # only show errors, warnings and typesettings are too verbose
             return
         # at most one error widget per line ...

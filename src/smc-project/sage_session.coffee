@@ -50,11 +50,11 @@ restart_sage_server = (cb) ->
         ulimit_timeout : false   # very important -- so doesn't kill after 30 seconds of cpu!
         err_on_exit    : true
         bash           : true
-        cb             : (err) ->
+        cb             : (err, output) ->
             if err
                 dbg("failed to restart sage server daemon -- #{err}")
             else
-                dbg('successfully restarted sage server daemon')
+                dbg("successfully restarted sage server daemon -- '#{JSON.stringify(output)}'")
             _restarting_sage_server = false
             _restarted_sage_server = new Date()
             cb(err)

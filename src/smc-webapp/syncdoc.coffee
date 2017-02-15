@@ -221,6 +221,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         #dbg("waiting for first change")
 
         @_syncstring.once 'init', (err) =>
+            if @_closed
+                return
             if err
                 if err.code == 'EACCES'
                     err = "You do not have permission to read '#{@filename}'."
@@ -228,6 +230,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 return
             # Now wait until read_only is *defined*, so backend file has been opened.
             @_syncstring.wait_until_read_only_known (err) =>
+                if @_closed
+                    return
                 @editor.show_content()
                 @editor._set(@_syncstring.get())
                 @_fully_loaded = true
@@ -242,19 +246,27 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_init_cursor_activity()
 
                 @_syncstring.on 'change', =>
+                    if @_closed
+                        return
                     #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
                     @codemirror.setValueNoJump(@_syncstring.get())
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
+                    if @_closed
+                        return
                     update_unsaved_uncommitted_changes()
                     @_update_read_only()
 
                 @_syncstring.on 'before-change', =>
+                    if @_closed
+                        return
                     #console.log("syncstring before change")
                     @_syncstring.set(@codemirror.getValue())
 
                 @_syncstring.on 'deleted', =>
+                    if @_closed
+                        return
                     redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
@@ -264,6 +276,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
                 @codemirror.on 'change', (instance, changeObj) =>
+                    if @_closed
+                        return
                     #console.log("change event when live='#{@live().string()}'")
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
@@ -353,6 +367,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 cb()
 
     save: (cb) =>
+        if @_closed
+            cb?()
+            return
         # This first call immediately sets saved button to disabled to make it feel like instant save.
         @editor.has_unsaved_changes(false)
         # We then simply ensure the save state is valid 5s later (in case save fails, say).

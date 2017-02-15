@@ -353,7 +353,7 @@ class ProjectActions extends Actions
 
                         # Only generate the editor component if we don't have it already
                         # Also regenerate if view type (public/not-public) changes
-                        if not open_files.has(opts.path) or open_files.getIn([opts.path, 'component']).is_public != is_public
+                        if not open_files.has(opts.path) or open_files.getIn([opts.path, 'component'])?.is_public != is_public
                             was_public = open_files.getIn([opts.path, 'component'])?.is_public
                             if was_public? and was_public != is_public
                                 @setState(open_files : store.open_files.delete(opts.path))

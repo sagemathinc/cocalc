@@ -76,6 +76,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
+        # Code execution queue.
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+
         # We set a custom rangeFinder that is output cell marker aware.
         # See https://github.com/sagemathinc/smc/issues/966
         foldOptions =
@@ -105,25 +108,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : @opts.cursor_interval
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
+
             @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+
             @init_hide_show_gutter()  # must be after @readonly set
+
             @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
             if not @readonly
-                # Kick the worksheet process into gear if it isn't running already
-                #console.log 'start worksheet...'
-                @introspect_line
-                    line     : "return?"
-                    timeout  : 30
-                    preparse : false
-                    cb       : (err) =>
-                        #console.log 'worksheet started', err
-
-            @status cb: (err, status) =>
-                if not status?.running
-                    @execute_auto_cells()
-
-            @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+                @status cb: (err, status) =>
+                    if not status?.running
+                        @execute_auto_cells()
+                    else
+                        # Kick the worksheet process into gear if it isn't running already
+                        @introspect_line
+                            line     : "return?"
+                            timeout  : 30
+                            preparse : false
+                            cb       : (err) =>
 
             @on 'sync', () =>
                 #console.log("sync")
@@ -742,10 +744,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             line : line
             top  : topline
             cb   : (mesg) =>
-                if mesg.event == "error"
-                    # showing user an alert_message at this point isn't usable; but do want to know
-                    # about this.
-                    salvus_client.log_error("Unable to instrospect -- #{err}, #{mesg?.error}")
+                if mesg.event == "error" or not mesg?.target?  # some other sort of error, e.g., mesg = 'some error' ?
+                    # First, there is no situation I can think of where this happens... though
+                    # of course it does.
+                    # Showing user an alert_message at this point isn't useful; but we do want to know
+                    # about this.  The user is just going to see no completion or popup, which is
+                    # possibly reasonable behavior from their perspective.
+                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/smc/issues/1685
+                    err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
+                    console.log(err)  # this is intentional... -- it's may be useful to know
+                    salvus_client.log_error(err)
+                    return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
                     elt = undefined
@@ -1206,6 +1215,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if @readonly
             opts.cb?({done:true, error:'readonly'})
         else
+            if not @_syncstring?._evaluator?
+                opts.cb?({done:true, error:'closed'})
+                return
             @_syncstring._evaluator.call
                 program : 'sage'
                 input   : opts.input
@@ -1217,7 +1229,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb : required
         @sage_call
             input :
-                event:'status'
+                event : 'status'
             cb    : (resp) =>
                 if resp.event == 'error'
                     opts.cb(resp.error)
@@ -1465,7 +1477,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: (1) running this cell again,   (2) restarting your project,\n(3) refreshing your browser, or (4) deleting the contents of ~/.local"
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: running this cell again, restarting your project,\nclosing and opening this file, refreshing your browser,\nor deleting the contents of ~/.local"
             output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
@@ -2317,7 +2329,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 class ExecutionQueue
     constructor: (@_exec, @worksheet) ->
         if not @_exec
-            throw "BUG: execution function must be provided"
+            throw Error("BUG: execution function must be provided")
         @_queue   = []
         @_state   = 'ready'
 
