@@ -742,10 +742,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             line : line
             top  : topline
             cb   : (mesg) =>
-                if mesg.event == "error"
-                    # showing user an alert_message at this point isn't usable; but do want to know
-                    # about this.
-                    salvus_client.log_error("Unable to instrospect -- #{err}, #{mesg?.error}")
+                if mesg.event == "error" or not mesg?.target?  # some other sort of error, e.g., mesg = 'some error' ?
+                    # First, there is no situation I can think of where this happens... though
+                    # of course it does.
+                    # Showing user an alert_message at this point isn't useful; but we do want to know
+                    # about this.  The user is just going to see no completion or popup, which is
+                    # possibly reasonable behavior from their perspective.
+                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/smc/issues/1685
+                    err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
+                    console.log(err)  # this is intentional... -- it's may be useful to know
+                    salvus_client.log_error(err)
+                    return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
                     elt = undefined
