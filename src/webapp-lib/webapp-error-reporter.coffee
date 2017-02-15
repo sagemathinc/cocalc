@@ -38,6 +38,10 @@ ignoreOnError = 0
 
 shouldCatch = true
 
+# set this to true, to enable the webapp error reporter for development
+enable_for_testing = false
+ENABLED = (not DEBUG) or enable_for_testing
+
 # this is the MAIN function of this module
 # it's exported publicly and also used in various spots where exceptions are already
 # caught and reported to the browser's console.
@@ -177,53 +181,55 @@ polyFill = (obj, name, makeReplacement) ->
 
 # wrap all prototype objects that have event handlers
 # first one is for chrome, the first three for FF, the rest for IE, Safari, etc.
-"EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload".replace(/\w+/g, (global) ->
-    prototype = window[global]?.prototype
-    if prototype?.hasOwnProperty?("addEventListener")
-        polyFill(prototype, "addEventListener", (_super) ->
-            return (e, f, capture, secure) ->
-                try
-                    if f and f.handleEvent
-                        f.handleEvent = wrap(f.handleEvent)
-                catch err
-                    #console.log(err)
-                return _super.call(this, e, wrap(f), capture, secure)
-        )
-
-        polyFill(prototype, "removeEventListener", (_super) ->
-            return (e, f, capture, secure) ->
-                _super.call(this, e, f, capture, secure)
-                return _super.call(this, e, wrap(f), capture, secure)
-        )
-)
-
-polyFill(window, "onerror", (_super) ->
-    return (message, url, lineNo, charNo, exception) ->
-        # IE 6+ support.
-        if !charNo and window.event
-            charNo = window.event.errorCharacter
-
-        #if DEBUG
-        #    console.log("intercepted window.onerror", message, url, lineNo, charNo, exception)
-
-        if ignoreOnError == 0
-            name = exception?.name or "window.onerror"
-            stacktrace = (exception and stacktraceFromException(exception)) or generateStacktrace()
-            sendError(
-                name        : name
-                message     : message
-                file        : url
-                path        : window.location.href
-                lineNumber  : lineNo
-                columnNumber: charNo
-                stacktrace  : stacktrace
-                severity    : "error"
+if ENABLED
+    "EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload".replace(/\w+/g, (global) ->
+        prototype = window[global]?.prototype
+        if prototype?.hasOwnProperty?("addEventListener")
+            polyFill(prototype, "addEventListener", (_super) ->
+                return (e, f, capture, secure) ->
+                    try
+                        if f and f.handleEvent
+                            f.handleEvent = wrap(f.handleEvent)
+                    catch err
+                        #console.log(err)
+                    return _super.call(this, e, wrap(f), capture, secure)
             )
 
-        # Fire the existing `window.onerror` handler, if one exists
-        if _super
-            _super(message, url, lineNo, charNo, exception)
-)
+            polyFill(prototype, "removeEventListener", (_super) ->
+                return (e, f, capture, secure) ->
+                    _super.call(this, e, f, capture, secure)
+                    return _super.call(this, e, wrap(f), capture, secure)
+            )
+    )
+
+if ENABLED
+    polyFill(window, "onerror", (_super) ->
+        return (message, url, lineNo, charNo, exception) ->
+            # IE 6+ support.
+            if !charNo and window.event
+                charNo = window.event.errorCharacter
+
+            #if DEBUG
+            #    console.log("intercepted window.onerror", message, url, lineNo, charNo, exception)
+
+            if ignoreOnError == 0
+                name = exception?.name or "window.onerror"
+                stacktrace = (exception and stacktraceFromException(exception)) or generateStacktrace()
+                sendError(
+                    name        : name
+                    message     : message
+                    file        : url
+                    path        : window.location.href
+                    lineNumber  : lineNo
+                    columnNumber: charNo
+                    stacktrace  : stacktrace
+                    severity    : "error"
+                )
+
+            # Fire the existing `window.onerror` handler, if one exists
+            if _super
+                _super(message, url, lineNo, charNo, exception)
+    )
 
 # timing functions
 
@@ -236,16 +242,17 @@ hijackTimeFunc = (_super) ->
         else
             return _super(f, t)
 
-polyFill(window, "setTimeout", hijackTimeFunc)
-polyFill(window, "setInterval", hijackTimeFunc)
+if ENABLED
+    polyFill(window, "setTimeout", hijackTimeFunc)
+    polyFill(window, "setInterval", hijackTimeFunc)
 
-if window.requestAnimationFrame
+if ENABLED and window.requestAnimationFrame
     polyFill(window, "requestAnimationFrame", (_super) ->
         (callback) ->
             return _super(wrap(callback))
     )
 
-if window.setImmediate
+if ENABLED and window.setImmediate
     polyFill(window, "setImmediate", (_super) ->
         return () ->
             args = Array.prototype.slice.call(arguments)
@@ -274,7 +281,7 @@ wrapFunction = (object, property, newFunction) ->
         if typeof oldFunction == "function"
             oldFunction.apply(this, arguments)
 
-if window.console?
+if ENABLED and window.console?
     wrapFunction(console, "warn",  (-> sendLogLine("warn", arguments)))
     wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
 
@@ -292,3 +299,4 @@ if DEBUG
         generateStacktrace      : generateStacktrace
         sendLogLine             : sendLogLine
         reportException         : reportException
+        is_enabled              : -> ENABLED
