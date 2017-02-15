@@ -76,6 +76,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
+        # Code execution queue.
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+
         # We set a custom rangeFinder that is output cell marker aware.
         # See https://github.com/sagemathinc/smc/issues/966
         foldOptions =
@@ -105,25 +108,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : @opts.cursor_interval
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
+
             @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+
             @init_hide_show_gutter()  # must be after @readonly set
+
             @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
             if not @readonly
-                # Kick the worksheet process into gear if it isn't running already
-                #console.log 'start worksheet...'
-                @introspect_line
-                    line     : "return?"
-                    timeout  : 30
-                    preparse : false
-                    cb       : (err) =>
-                        #console.log 'worksheet started', err
-
-            @status cb: (err, status) =>
-                if not status?.running
-                    @execute_auto_cells()
-
-            @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+                @status cb: (err, status) =>
+                    if not status?.running
+                        @execute_auto_cells()
+                    else
+                        # Kick the worksheet process into gear if it isn't running already
+                        @introspect_line
+                            line     : "return?"
+                            timeout  : 30
+                            preparse : false
+                            cb       : (err) =>
 
             @on 'sync', () =>
                 #console.log("sync")
@@ -1227,7 +1229,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb : required
         @sage_call
             input :
-                event:'status'
+                event : 'status'
             cb    : (resp) =>
                 if resp.event == 'error'
                     opts.cb(resp.error)
@@ -2327,7 +2329,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 class ExecutionQueue
     constructor: (@_exec, @worksheet) ->
         if not @_exec
-            throw "BUG: execution function must be provided"
+            throw Error("BUG: execution function must be provided")
         @_queue   = []
         @_state   = 'ready'
 

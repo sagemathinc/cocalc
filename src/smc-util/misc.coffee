@@ -901,7 +901,7 @@ exports.async_debounce = (opts) ->
     if cb?
         callbacks.push(cb)
     # Reset next callbacks
-    state.next_callbacks = []
+    delete state.next_callbacks
     #console.log("doing run with #{callbacks.length} callbacks")
 
     f (err) =>
@@ -911,8 +911,8 @@ exports.async_debounce = (opts) ->
             cb?(err)
         callbacks = []  # ensure these callbacks don't get called again
         #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
-        if state.next_callbacks.length > 0 and not state.timer?
-            # new cb requests came in since when we started, so call when we next can.
+        if state.next_callbacks? and not state.timer?
+            # new calls came in since when we started, so call when we next can.
             #console.log("new callbacks came in #{state.next_callbacks.length}")
             call_again()
 
