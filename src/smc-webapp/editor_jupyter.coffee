@@ -258,6 +258,10 @@ class JupyterWrapper extends EventEmitter
     monkey_patch_frame: () =>
         if @_already_monkey_patched
             return
+        if not @frame? or not @frame.window? or not @frame.CodeMirror?
+            # If the user closes the entire window at the exact right moment, they can
+            # get in a state where @frame is defined, but window is not.
+            return
         @_already_monkey_patched = true
         misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
         misc_page.cm_define_testbot(@frame.CodeMirror)
@@ -286,6 +290,11 @@ class JupyterWrapper extends EventEmitter
         @frame.CodeMirror.prototype.redo = redo
 
     monkey_patch_ui: () =>
+        if not @frame? or not @iframe?[0]?.contentWindow?
+            # If the user closes the entire window at the exact right moment, they can
+            # cause some of what we monkey patch below to not be defined.
+            return
+
         # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
         @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
