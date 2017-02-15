@@ -855,6 +855,9 @@ class JupyterNotebook extends EventEmitter
             if err
                 @state = 'failed'
             else
+                if @state == 'closed'
+                    # This could happen in case the user closes the tab before initialization is complete.
+                    return
                 @init_dom_change()
                 @init_syncstring_change()
                 @init_dom_events()
@@ -929,6 +932,7 @@ class JupyterNotebook extends EventEmitter
                     @notebook.css('opacity',1)
                     if err
                         @dom?.close()
+                        delete @dom
                         cb(err)
                     else
                         if @dom.read_only
@@ -970,6 +974,8 @@ class JupyterNotebook extends EventEmitter
             @font_size_change(1)
 
     init_dom_events: () =>
+        if @state == 'closed'
+            return
         @dom.on('info', @info)
         if not @read_only
             @dom.on 'cursor', (locs) =>
@@ -1024,10 +1030,12 @@ class JupyterNotebook extends EventEmitter
     # listen for changes to the syncstring
     init_syncstring_change: () =>
         #dbg = @dbg("syncstring_change"); dbg()
-        if @read_only
+        if @read_only or @state == 'closed'
             return
         last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
+            if @state == 'closed'
+                return
             #console.log 'handle_syncstring_change'
             if @dom.state != 'ready'
                 # there is nothing we can do regarding setting it if the document is broken/closed.
