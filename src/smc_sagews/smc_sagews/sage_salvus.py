@@ -564,7 +564,7 @@ class control:
             X[k] = jsonable(v)
         return X
 
-import types
+import types, inspect
 
 def list_of_first_n(v, n):
     """Given an iterator v, return first n elements it produces as a list."""
@@ -588,7 +588,7 @@ def automatic_control(default):
     for _ in range(2):
         if isinstance(default, tuple) and len(default) == 2 and isinstance(default[0], str):
             label, default = default
-        if isinstance(default, tuple) and len(default) == 2 and isinstance(default[1], (tuple, list, types.GeneratorType)):
+        if isinstance(default, tuple) and len(default) == 2 and hasattr(default[1],'__iter__'):
             default_value, default = default
 
     if isinstance(default, control):
@@ -603,8 +603,6 @@ def automatic_control(default):
         return checkbox(default, label=label)
     elif isinstance(default, list):
         return selector(default, default=default_value, label=label, buttons=len(default) <= 5)
-    elif isinstance(default, types.GeneratorType):
-        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
     elif isinstance(default, Color):
         return color_selector(default=default, label=label)
     elif isinstance(default, tuple):
@@ -616,6 +614,8 @@ def automatic_control(default):
             return slider(list(default), default=default_value, label=label)
     elif is_Matrix(default):
         return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent(), label=label)
+    elif hasattr(default, '__iter__'):
+        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
     else:
         return input_box(default, label=label)
 
