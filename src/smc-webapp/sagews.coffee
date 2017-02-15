@@ -1206,6 +1206,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if @readonly
             opts.cb?({done:true, error:'readonly'})
         else
+            if not @_syncstring?._evaluator?
+                opts.cb?({done:true, error:'closed'})
+                return
             @_syncstring._evaluator.call
                 program : 'sage'
                 input   : opts.input
@@ -1465,7 +1468,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: (1) running this cell again,   (2) restarting your project,\n(3) refreshing your browser, or (4) deleting the contents of ~/.local"
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: running this cell again, restarting your project,\nclosing and opening this file, refreshing your browser,\nor deleting the contents of ~/.local"
             output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
