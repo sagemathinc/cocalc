@@ -15,13 +15,19 @@
 
 import copy, os, sys, types, re
 
-try:
-    from pandas import DataFrame
-    def is_dataframe(obj):
-        return isinstance(obj, DataFrame)
-except:
-    def is_dataframe(obj):
+import sage.all
+
+
+def is_dataframe(obj):
+    if 'pandas' not in str(type(obj)):
+        # avoid having to import pandas unless it's really likely to be necessary.
+        return
+    # CRITICAL: do not import pandas at the top level since it can take up to 3s -- it's **HORRIBLE**.
+    try:
+        from pandas import DataFrame
+    except:
         return False
+    return isinstance(obj, DataFrame)
 
 # This reduces a lot of confusion for Sage worksheets -- people expect
 # to be able to import from the current working directory.
@@ -3354,46 +3360,43 @@ def load_html_resource(filename):
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
-try:
-    from sage.repl.attach import load_attach_path, modified_file_iterator
-    def attach(*args):
-        r"""
-        Load file(s) into the Sage worksheet process and add to list of attached files.
-        All attached files that have changed since they were last loaded are reloaded
-        the next time a worksheet cell is executed.
+def attach(*args):
+    r"""
+    Load file(s) into the Sage worksheet process and add to list of attached files.
+    All attached files that have changed since they were last loaded are reloaded
+    the next time a worksheet cell is executed.
 
-        INPUT:
+    INPUT:
 
-        - ``files`` - list of strings, filenames to attach
+    - ``files`` - list of strings, filenames to attach
 
-        .. SEEALSO::
+    .. SEEALSO::
 
-            :meth:`sage.repl.attach.attach` docstring has details on how attached files
-            are handled
-        """
-        # can't (yet) pass "attach = True" to load(), so do this
+        :meth:`sage.repl.attach.attach` docstring has details on how attached files
+        are handled
+    """
+    # can't (yet) pass "attach = True" to load(), so do this
 
-        if len(args) == 1:
-            if isinstance(args[0], (unicode,str)):
-                args = tuple(args[0].replace(',',' ').split())
-            if isinstance(args[0], (list, tuple)):
-                args = args[0]
+    if len(args) == 1:
+        if isinstance(args[0], (unicode,str)):
+            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (list, tuple)):
+            args = args[0]
+    try:
+        from sage.repl.attach import load_attach_path
+    except ImportError:
+        raise NotImplementedError("sage_salvus: attach not available")
 
-        for fname in args:
-            for path in load_attach_path():
-                fpath = os.path.join(path, fname)
-                fpath = os.path.expanduser(fpath)
-                if os.path.isfile(fpath):
-                    load(fname)
-                    sage.repl.attach.add_attached_file(fpath)
-                    break
-            else:
-                raise IOError('did not find file %r to attach' % fname)
-except ImportError:
-    print("sage_salvus: attach not available")
-    def attach(*args):
-        sys.stderr.write("Error: The 'attach' functionality is not available.\n")
-        sys.stderr.flush()
+    for fname in args:
+        for path in load_attach_path():
+            fpath = os.path.join(path, fname)
+            fpath = os.path.expanduser(fpath)
+            if os.path.isfile(fpath):
+                load(fname)
+                sage.repl.attach.add_attached_file(fpath)
+                break
+        else:
+            raise IOError('did not find file %r to attach' % fname)
 
 
 # Monkey-patched the load command
@@ -3821,6 +3824,7 @@ sage.interfaces.all.julia = julia
 # Help command
 import sage.misc.sagedoc
 import sage.version
+import sage.misc.sagedoc
 def help(*args, **kwds):
     if len(args) > 0 or len(kwds) > 0:
         sage.misc.sagedoc.help(*args, **kwds)

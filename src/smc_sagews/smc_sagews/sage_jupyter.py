@@ -85,12 +85,6 @@ class JUPYTER(object):
 
 jupyter = JUPYTER()
 
-import jupyter_client
-from Queue import Empty
-from ansi2html import Ansi2HTMLConverter
-import tempfile, sys, re
-import base64
-
 
 def _jkmagic(kernel_name, **kwargs):
     r"""
@@ -104,6 +98,13 @@ def _jkmagic(kernel_name, **kwargs):
     -  ``kernel_name`` -- name of kernel as it appears in output of `jupyter kernelspec list`
 
     """
+    # CRITICAL: We import these here rather than at module scope, since they can take nearly a second
+    # i CPU time to import.
+    import jupyter_client                     # TIMING: takes a bit of time
+    from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
+    from Queue import Empty                   # TIMING: cheap
+    import base64, tempfile, sys, re          # TIMING: cheap
+
     import warnings
     import sage.misc.latex
     with warnings.catch_warnings():
