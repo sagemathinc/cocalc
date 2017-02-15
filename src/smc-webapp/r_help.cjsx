@@ -74,7 +74,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             <li style={li_style}> Live server stats <Loading /> </li>
         else
             n = @number_of_active_users()
-            <ProgressBar style={marginBottom:0} now={Math.max(n / 10 , 45 / 8) } label={"#{n} connected users"} />
+            <ProgressBar style={marginBottom:0} now={Math.max(n / 12 , 45 / 8) } label={"#{n} connected users"} />
 
     render_active_projects_stats: ->
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
