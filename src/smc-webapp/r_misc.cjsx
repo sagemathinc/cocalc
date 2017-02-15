@@ -716,23 +716,36 @@ exports.Markdown = rclass
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
     _update_escaped_chars: ->
+        if not @_isMounted
+            return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     _update_mathjax: (cb) ->
+        if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
+            return
         #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
         if @_x?.has_mathjax
-            # theoretically, cb is called more than once, but this is just one element
-            $(ReactDOM.findDOMNode(@)).mathjax(cb: cb)
+            $(ReactDOM.findDOMNode(@)).mathjax
+                cb : () =>
+                    # Awkward code, since cb may be called more than once.
+                    cb?()
+                    cb = undefined
         else
             cb()
 
     _update_links: ->
+        if not @_isMounted
+            return
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
     update_content: ->
+        if not @_isMounted
+            return
         # orchestrates the _update_* methods
         @_update_mathjax =>
+            if not @_isMounted
+                return
             @_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
 
@@ -740,7 +753,13 @@ exports.Markdown = rclass
         @update_content()
 
     componentDidMount: ->
+        @_isMounted = true
         @update_content()
+
+    componentWillUnmount: ->
+        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
+        # and https://github.com/sagemathinc/smc/issues/1689
+        @_isMounted = false
 
     to_html: ->
         if @props.value
