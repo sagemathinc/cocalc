@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -1980,7 +1980,9 @@ CourseEditor = rclass ({name}) ->
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
     render_title: ->
-        <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
+        <h4 className='smc-big-only' style={float:'right', marginTop: '5px', marginBottom: '0px'}>
+            {misc.trunc(@props.settings?.get('title'),40)}
+        </h4>
 
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file
