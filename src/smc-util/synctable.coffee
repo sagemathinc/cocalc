@@ -444,7 +444,7 @@ class SyncTable extends EventEmitter
 
     _save: (cb) =>
         if @__is_saving
-            cb("already saving")
+            cb?("already saving")
         else
             @__is_saving = true
             @__save (err) =>
