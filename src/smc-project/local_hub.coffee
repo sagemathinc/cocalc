@@ -44,9 +44,12 @@ print_to_pdf = require('./print_to_pdf')
 # Generation of the secret token used to auth tcp connections
 secret_token = require('./secret_token')
 
-# Console sessions
+# Console sessions (deprecated!!!)
 console_session_manager = require('./console_session_manager')
 console_sessions = new console_session_manager.ConsoleSessions()
+
+# Terminal session
+terminal = require('./terminal')
 
 # Ports for the various servers
 port_manager = require('./port_manager')
@@ -158,7 +161,7 @@ handle_mesg = (socket, mesg, handler) ->
         return
 
     switch mesg.event
-        when 'terminal_session'
+        when 'terminal_session_create'
             terminal.get_session(socket, mesg)
         when 'connect_to_session', 'start_session'
             # These sessions completely take over this connection, so we stop listening

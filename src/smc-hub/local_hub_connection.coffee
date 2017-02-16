@@ -521,37 +521,66 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     call: (opts) =>
         opts = defaults opts,
             mesg           : required
-            timeout        : undefined  # NOTE: a nonzero timeout MUST be specified, or we will not even listen for a response from the local hub!  (Ensures leaking listeners won't happen.)
-            multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
+            timeout        : 30         # timeout in SECONDS
+            multi_response : false      # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb             : undefined
         @dbg("call")
         if not opts.mesg.id?
             if opts.timeout or opts.multi_response   # opts.timeout being undefined or 0 both mean "don't do it"
                 opts.mesg.id = uuid.v4()
 
-        @local_hub_socket (err, socket) =>
-            if err
-                @dbg("call: failed to get socket -- #{err}")
-                opts.cb?(err)
-                return
-            @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
-            socket.write_mesg 'json', opts.mesg, (err) =>
-                if err
-                    @free_resources()   # at least next time it will get a new socket
-                    opts.cb?(err)
-                    return
-                if opts.multi_response
+        socket = response = undefined
+
+        async.series([
+            (cb) =>
+                @dbg("call: get socket")
+                @local_hub_socket (err, _socket) =>
+                    socket = _socket
+                    cb(err)
+            (cb) =>
+                @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
+                socket.write_mesg 'json', opts.mesg, (err) =>
+                    if err
+                        @free_resources()   # give up -- next time will get a new socket
+                    cb(err)
+            (cb) =>
+                if not opts.cb?
+                    # no need to setup a callback if opts.cb isn't given -- just fire and forgot; done.
+                    cb()
+
+                else if opts.multi_response
+                    # Setup multi_response callbacks, which gets called on any response messages...
+                    # opts.cb may get called repeatedly and has to be explicitly cancelled
                     @call_callbacks[opts.mesg.id] = opts.cb
-                else if opts.timeout
+                    # Delete opts.cb, so doesn't get called below
+                    delete opts.cb
+                    cb() # And, done.
+
+                else
+                    # Finally setup a single callback and wait, up to timeout seconds.
                     # Listen to exactly one response, them remove the listener:
                     @call_callbacks[opts.mesg.id] = (resp) =>
+                        # Got a response from the project.
                         delete @call_callbacks[opts.mesg.id]
+                        clearTimeout(cancel)
                         if resp.event == 'error'
-                            opts.cb(resp.error)
+                            cb(resp.error)
                         else
-                            opts.cb(undefined, resp)
-                # As mentioned above -- there's no else -- if not timeout then
-                # we do not listen for a response.
+                            response = resp
+                            cb(undefined, resp)
+
+                    remove_listener = () =>
+                        # listening for response is just having this in the @call_callbacks data structure.
+                        delete @call_callbacks[opts.mesg.id]
+                        cb("timeout")
+
+                    cancel = setTimeout(remove_listener, opts.timeout*1000)
+        ], (err) =>
+            if err
+                @dbg("local_hub call failed -- #{err}")
+            opts.cb?(err, response)
+        )
+
 
     ####################################################
     # Session management

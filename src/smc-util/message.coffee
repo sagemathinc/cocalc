@@ -353,7 +353,7 @@ message
 message
     event : 'error'
     id    : undefined
-    error : undefined
+    error : 'error'
 
 message
     event : 'success'
@@ -1033,12 +1033,12 @@ message # client ← hub
 #############
 
 message
-    event   : 'query'
-    id      : undefined
-    query   : required
-    changes : undefined
+    event          : 'query'
+    id             : undefined
+    query          : required
+    changes        : undefined
     multi_response : false
-    options : undefined
+    options        : undefined
 
 message
     event : 'query_cancel'
@@ -1056,9 +1056,17 @@ Terminal sessions
 ###
 # hub --> local_hub
 message
-    event        : 'terminal_get_session'
-    id           : undefined
-    project_id   : required          # the project that this session will start in
-    session_uuid : path
-    params       : undefined         # extra parameters
-    limits       : undefined
+    event      : 'terminal_session_create'
+    id         : undefined
+    project_id : required          # the project that this session will start in
+    session_id : required
+    channel    : required          # binary channel we will use
+    file       : 'bash'
+    args       : []
+    options    : undefined
+
+message
+    event      : 'terminal_session_end'
+    id         : undefined
+    session_id : required
+    channel    : required
