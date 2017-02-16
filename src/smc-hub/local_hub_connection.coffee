@@ -360,6 +360,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @mesg_query_cancel(mesg, write_mesg)
                     when 'query_get_changefeed_ids'
                         @mesg_query_get_changefeed_ids(mesg, write_mesg)
+                    when 'terminal_session_end'
+                        terminal.session_ended(@project_id, mesg.session_id)
                     when 'file_written_to_project'
                         # ignore -- don't care; this is going away
                         return
@@ -414,9 +416,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         connecting_timer = undefined
 
         cancel_connecting = () =>
+            for cb in @_local_hub_socket_queue
+                cb('timeout')
             @_local_hub_socket_connecting = false
             @_local_hub_socket_queue = []
-            clearTimeout(connecting_timer)
 
         # If below fails for 20s for some reason, cancel everything to allow for future attempt.
         connecting_timer = setTimeout(cancel_connecting, 20000)
@@ -426,8 +429,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             @_local_hub_socket_connecting = false
             @dbg("local_hub_socket: new_socket returned #{err}")
             if err
-                for c in @_local_hub_socket_queue
-                    c(err)
+                for cb in @_local_hub_socket_queue
+                    cb(err)
             else
 
                 ## FOR LOW-LEVEL DEBUGGING ONLY
@@ -441,7 +444,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         when 'json'
                             @handle_mesg(mesg, socket)
 
-                socket.on('end', @free_resources)
+                socket.on('end',   @free_resources)
                 socket.on('close', @free_resources)
                 socket.on('error', @free_resources)
 
@@ -449,8 +452,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 # and not something else (e.g., a console).
                 socket.write_mesg('json', {event:'hello'})
 
-                for c in @_local_hub_socket_queue
-                    c(undefined, socket)
+                for cb in @_local_hub_socket_queue
+                    cb(undefined, socket)
 
                 @_socket = socket
 
@@ -464,7 +467,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @restart_if_version_too_old()
                 setTimeout(check_version_received, 60*1000)
 
-            cancel_connecting()
+            clearTimeout(connecting_timer)
 
     # Get a new connection to the local_hub,
     # authenticated via the secret_token, and enhanced
@@ -546,10 +549,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     cb(err)
             (cb) =>
                 @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
-                socket.write_mesg 'json', opts.mesg, (err) =>
-                    if err
-                        @free_resources()   # give up -- next time will get a new socket
-                    cb(err)
+                socket.write_mesg('json', opts.mesg, cb)
             (cb) =>
                 if not opts.cb?
                     # no need to setup a callback if opts.cb isn't given -- just fire and forgot; done.
@@ -694,8 +694,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             session_id : opts.session_uuid
             cb         : (err, session) =>
                 if err
-                    dbg("error creating session #{err}")
-                    opts.client.error_to_client(error:err)
+                    opts.cb(err)
                     return
 
                 session.on 'end', () =>
@@ -720,6 +719,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 f = (data) ->
                     ## dbg("Got from project data='#{data}'")  # low-level debugging
                     opts.client.push_data_to_client(data_channel, data)
+
                 session.on('data', f)
                 # TODO: need to stop listening to this when user closes session or local_hub session closes or user disconnects!
 
@@ -729,7 +729,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     data_channel : data_channel
                     history      : session.history
 
-                opts.cb(false, mesg)
+                opts.cb(undefined, mesg)
 
 
 

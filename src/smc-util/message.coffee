@@ -1066,7 +1066,13 @@ message
     options    : undefined
 
 message
+    event      : 'terminal_session_cancel'
+    id         : undefined
+    project_id : required
+    session_id : required
+    channel    : required
+
+message
     event      : 'terminal_session_end'
     id         : undefined
     session_id : required
-    channel    : required

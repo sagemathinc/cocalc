@@ -23,6 +23,8 @@ session_cache = {}
 # get_session callbacks
 get_session_cbs = {}
 
+get_key = (project_id, session_id) -> "#{project_id}-#{session_id}"
+
 exports.get_session = (opts) ->
     opts = defaults opts,
         local_hub  : required
@@ -36,7 +38,7 @@ exports.get_session = (opts) ->
 
     # - Check if we already have this session over the given
     #   local_hub socket.  If so, just return it.
-    key = "#{opts.local_hub.project_id}-#{opts.session_id}"
+    key = get_key(opts.local_hub.project_id, opts.session_id)
     if session_cache[key]?
         opts.cb(undefined, session_cache[key])
         return
@@ -69,7 +71,7 @@ exports.get_session = (opts) ->
                         file       : opts.file
                         args       : opts.args
                         options    : opts.options
-                timeout : 15
+                timeout : 20
                 cb      : cb
     ], (err) ->
         cbs = get_session_cbs[key]
@@ -77,12 +79,26 @@ exports.get_session = (opts) ->
         if err
             for cb in cbs
                 cb(err)
+            # Important -- things didn't work -- at least strongly encourage local
+            # hub to cancel this session, so that it doesn't keep sending data back to us.
+            opts.local_hub.call
+                mesg    :
+                    message.terminal_session_cancel
+                        project_id : opts.local_hub.project_id
+                        session_id : opts.session_id
+                        channel    : channel
         else
             session = session_cache[key] = new TerminalSession(socket, channel, dbg)
             session.once('end', -> delete session_cache[key])
             for cb in cbs
                 cb(undefined, session)
     )
+
+
+# The hub calls this when a terminal session is terminated by the project.
+# Of course the socket need NOT be disconnected.
+exports.session_ended = (project_id, session_id) ->
+    session_cache[get_key(project_id, session_id)]?.close()
 
 ###
 
@@ -101,6 +117,8 @@ Events:
 
 ###
 
+DEBUG = true
+
 class TerminalSession extends EventEmitter
     constructor : (@socket, @channel, @dbg) ->
         @_closed = false
@@ -112,14 +130,16 @@ class TerminalSession extends EventEmitter
             return
         if type == 'channel' and payload.channel == @channel
             data = payload.data
-            #@dbg("got data='#{data}' from project")
+            if DEBUG
+                @dbg("got data='#{data}' from project")
             @emit('data', data)
 
     write : (data, cb) =>
         if @_closed
             cb?("closed")
         else
-            #@dbg("writing data '#{data}' got from user to project socket")
+            if DEBUG
+                @dbg("writing data '#{data}' got from user to project socket via channel #{new Buffer(@channel)}")
             @socket.write_mesg('channel', {channel:@channel, data:data}, cb)
 
     close: =>
@@ -131,4 +151,5 @@ class TerminalSession extends EventEmitter
         delete @socket
         delete @channel
         @emit('end')  # emitted exactly once
+        @removeAllListeners()
 

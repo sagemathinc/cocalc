@@ -44,10 +44,6 @@ print_to_pdf = require('./print_to_pdf')
 # Generation of the secret token used to auth tcp connections
 secret_token = require('./secret_token')
 
-# Console sessions (deprecated!!!)
-console_session_manager = require('./console_session_manager')
-console_sessions = new console_session_manager.ConsoleSessions()
-
 # Terminal session
 terminal = require('./terminal')
 
@@ -129,28 +125,6 @@ init_info_json = (cb) ->
 
 init_info_json()
 
-# Connecting to existing session or making a new one.
-connect_to_session = (socket, mesg) ->
-    winston.debug("connect_to_session -- type='#{mesg.type}'")
-    switch mesg.type
-        when 'console'
-            console_sessions.connect(socket, mesg)
-        else
-            err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
-            socket.write_mesg('json', err)
-
-# Kill an existing session.
-terminate_session = (socket, mesg) ->
-    cb = (err) ->
-        if err
-            mesg = message.error(id:mesg.id, error:err)
-        socket.write_mesg('json', mesg)
-
-    sid = mesg.session_uuid
-    if console_sessions.session_exists(sid)
-        console_sessions.terminate_session(sid, cb)
-    else
-        cb()
 
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
@@ -165,11 +139,8 @@ handle_mesg = (socket, mesg, handler) ->
     switch mesg.event
         when 'terminal_session_create'
             terminal.get_session(socket, mesg)
-        when 'connect_to_session', 'start_session'
-            # These sessions completely take over this connection, so we stop listening
-            # for further control messages on this socket.
-            socket.removeListener('mesg', handler)
-            connect_to_session(socket, mesg)
+        when 'terminal_session_cancel'
+            terminal.cancel_session(socket, mesg)
         when 'jupyter_port'
             # start jupyter server if necessary and send back a message with the port it is serving on
             jupyter_manager.jupyter_port(socket, mesg)
@@ -186,8 +157,6 @@ handle_mesg = (socket, mesg, handler) ->
             if mesg.id?
                 # send back confirmation that a signal was sent
                 socket.write_mesg('json', message.signal_sent(id:mesg.id))
-        when 'terminate_session'
-            terminate_session(socket, mesg)
         when 'save_blob'
             blobs.handle_save_blob_message(mesg)
         when 'error'
@@ -247,9 +216,8 @@ start_tcp_server = (secret_token, port, cb) ->
                 misc_node.enable_mesg(socket)
 
                 handler = (type, mesg) ->
-                    if mesg.event not in ['connect_to_session', 'start_session']
-                        # This is a control connection, so we can use it to call the hub later.
-                        hub_client.active_socket(socket)
+                    # This is a control connection, so we can use it to call the hub later.
+                    hub_client.active_socket(socket)
                     if type == "json"   # other types are handled elsewhere in event handling code.
                         #winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
@@ -280,7 +248,6 @@ start_server = (tcp_port, raw_port, cb) ->
                     cb(err)
                 else
                     the_secret_token = token
-                    console_sessions.set_secret_token(token)
                     cb()
         (cb) ->
             start_tcp_server(the_secret_token, tcp_port, cb)

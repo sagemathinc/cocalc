@@ -13,6 +13,8 @@ misc           = require('smc-util/misc')
 # Map from session_id's to session objects
 session_cache = {}
 
+get_key = (session_id, socket_id, channel) -> "#{session_id}-#{socket_id}-#{channel}"
+
 # Handle a request from a hub for a terminal session
 exports.get_session = (socket, mesg) ->
     # - If we have already created this session.
@@ -26,7 +28,7 @@ exports.get_session = (socket, mesg) ->
     dbg(JSON.stringify(mesg))
 
     # - Check if we already have this session, over this socket, with the requested channel.
-    key = "#{mesg.session_id}-#{socket.id}-#{mesg.channel}"
+    key = get_key(mesg.session_id, socket.id, mesg.channel)
     if session_cache[key]?
         dbg("using cache")
         socket.write_mesg('json', message.success(id:mesg.id))
@@ -46,14 +48,19 @@ exports.get_session = (socket, mesg) ->
     dbg("set terminal session to remove from cache when it ends")
     session.once 'end', ->
         delete session_cache[key]
+        dbg("telling hub that terminal session ended")
         m = message.terminal_session_end
             id         : misc.uuid()
             session_id : mesg.session_id
-            channel    : mesg.channel
         socket.write_mesg('json', m)
 
     dbg("inform client that terminal session exists.")
     socket.write_mesg('json', message.success(id:mesg.id))
+
+
+exports.cancel_session = (socket, mesg) ->
+    session_cache[get_key(mesg.session_id, socket.id, mesg.channel)]?.close()
+
 
 ###
 
@@ -73,34 +80,41 @@ Events:
 # Map from session_id to pty term objects
 pty_cache = {}
 
+DEBUG = true
+
 class TerminalSession extends EventEmitter
     constructor : (@socket, @channel, @session_id, file, args, options, @dbg) ->
-
         # Create pty if not already defined
+        @dbg("pty_cache sessions = #{JSON.stringify(misc.keys(pty_cache))}")
         @term = pty_cache[@session_id] ?= pty_js.spawn(file, args, options)
 
         @_closed = false
+
         @term.on('data', @_handle_data)
-        @term.on 'exit', =>
-            @close()
-            @dbg("the terminal has died, so make sure and remove it from the cache.")
-            delete pty_cache[@session_id]
+        @term.on('exit', @_handle_term_exit)
 
         @socket.on('mesg', @_handle_mesg)
         @socket.on('end', @close)
+
+    _handle_term_exit: =>
+        @dbg("the terminal has died, so make sure and remove it from the cache.")
+        delete pty_cache[@session_id]
+        @close()
 
     _handle_mesg: (type, payload) =>
         if @_closed
             return
         if type == 'channel' and payload.channel == @channel
             data = payload.data
-            ##@dbg("got data from hub; now sending to terminal: data='#{data}'")
+            if DEBUG
+                @dbg("got data from hub; now sending to terminal: data='#{data}'")
             @term.write(data)
 
     _handle_data: (data) =>
         if @_closed
             return
-        ##@dbg("got data from terminal; sending on to hub via channel='#{@channel}'.  data='#{data}'")
+        if DEBUG
+            @dbg("got data from terminal; sending on to hub via channel='#{new Buffer(@channel)}'.  data='#{data}'")
         @socket.write_mesg('channel', {channel:@channel, data:data})
 
     close: =>
@@ -109,7 +123,7 @@ class TerminalSession extends EventEmitter
         ##@dbg('close')
         @_closed = true
         @term.removeListener('data', @_handle_data)
-        @term.removeListener('exit', @close)
+        @term.removeListener('exit', @_handle_term_exit)
         @socket.removeListener('mesg', @_handle_mesg)
         @socket.removeListener('end', @close)
         delete @term
@@ -117,3 +131,4 @@ class TerminalSession extends EventEmitter
         delete @session_id
         delete @socket
         @emit('end')
+        @removeAllListeners()

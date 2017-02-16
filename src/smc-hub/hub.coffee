@@ -678,11 +678,17 @@ class Client extends EventEmitter
         # TODO -- implement read-only console sessions too (easy and amazing).
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
+                @_connect_to_console_session ?= {}
+                if @_connect_to_console_session[mesg.session_uuid]?
+                    @error_to_client(id:mesg.id, error:'already connecting')
+                    return
+                @_connect_to_console_session[mesg.session_uuid] = true
                 project.console_session
                     client       : @
                     params       : mesg.params
                     session_uuid : mesg.session_uuid
                     cb           : (err, connect_mesg) =>
+                        delete @_connect_to_console_session[mesg.session_uuid]
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
