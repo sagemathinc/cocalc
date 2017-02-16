@@ -2,18 +2,20 @@
 LocalHub
 ###
 
-async   = require('async')
-uuid    = require('node-uuid')
-winston = require('winston')
+async      = require('async')
+uuid       = require('node-uuid')
+winston    = require('winston')
 underscore = require('underscore')
 
-message = require('smc-util/message')
-misc_node = require('smc-util-node/misc_node')
-misc    = require('smc-util/misc')
-{defaults, required} = misc
+message    = require('smc-util/message')
+misc_node  = require('smc-util-node/misc_node')
+misc       = require('smc-util/misc')
 
-blobs = require('./blobs')
-clients = require('./clients')
+blobs      = require('./blobs')
+clients    = require('./clients')
+terminal   = require('./terminal')
+
+{defaults, required} = misc
 
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
@@ -107,7 +109,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
+            winston.debug("local_hub('#{@project_id}'): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
@@ -427,6 +429,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 for c in @_local_hub_socket_queue
                     c(err)
             else
+
+                ## FOR LOW-LEVEL DEBUGGING ONLY
+                ##socket.on 'data', (data) =>
+                ##    @dbg("data='#{data.toString()}', #{data}")
+
                 socket.on 'mesg', (type, mesg) =>
                     switch type
                         when 'blob'
@@ -562,7 +569,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     @call_callbacks[opts.mesg.id] = (resp) =>
                         # Got a response from the project.
                         delete @call_callbacks[opts.mesg.id]
-                        clearTimeout(cancel)
+                        clearTimeout(remove_listener_timeout)
                         if resp.event == 'error'
                             cb(resp.error)
                         else
@@ -574,7 +581,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         delete @call_callbacks[opts.mesg.id]
                         cb("timeout")
 
-                    cancel = setTimeout(remove_listener, opts.timeout*1000)
+                    remove_listener_timeout = setTimeout(remove_listener, opts.timeout*1000)
         ], (err) =>
             if err
                 @dbg("local_hub call failed -- #{err}")
@@ -668,8 +675,66 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 opts.cb(false, socket)
         )
 
-    # Connect the client with a console session, possibly creating a session in the process.
     console_session: (opts) =>
+        opts = defaults opts,
+            client       : required
+            project_id   : required
+            params       : required
+            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
+            cb           : required    # cb(err, [session_connected message])
+        dbg = (m) => @dbg("console_session(id='#{opts.session_uuid}'): #{m}")
+        dbg("connect client to console session")
+
+        if not opts.session_uuid?
+            # Create a new session
+            opts.session_uuid = uuid.v4()
+
+        terminal.get_session
+            local_hub  : @
+            session_id : opts.session_uuid
+            cb         : (err, session) =>
+                if err
+                    dbg("error creating session #{err}")
+                    opts.client.error_to_client(error:err)
+                    return
+
+                session.on 'end', () =>
+                    dbg("session end")
+                    opts.client.push_to_client(message.terminate_session(session_uuid:opts.session_uuid))
+
+                # Connect the browser client to this session.
+
+                # session <-- browser client
+                # Create a binary channel that the client can use to write to the socket.
+                # (This uses our system for multiplexing JSON and multiple binary streams
+                #  over one single connection.)
+                data_channel = opts.client.register_data_handler (data) =>
+                    ## dbg("Just got data='#{data}' from the client.  Send it on to the local hub.")  # low-level debugging
+                    session.write(data)
+                    if opts.params.filename?
+                        opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
+
+                # console --> client:
+                # When data comes in from the socket, we push it on to the connected
+                # browser client over the channel we just created.
+                f = (data) ->
+                    ## dbg("Got from project data='#{data}'")  # low-level debugging
+                    opts.client.push_data_to_client(data_channel, data)
+                session.on('data', f)
+                # TODO: need to stop listening to this when user closes session or local_hub session closes or user disconnects!
+
+                # Tell the browser client that we've set everything up and are ready to go.
+                mesg = message.session_connected
+                    session_uuid : opts.session_uuid
+                    data_channel : data_channel
+                    history      : session.history
+
+                opts.cb(false, mesg)
+
+
+
+    # Connect the client with a console session, possibly creating a session in the process.
+    xxx_console_session: (opts) =>
         opts = defaults opts,
             client       : required
             project_id   : required

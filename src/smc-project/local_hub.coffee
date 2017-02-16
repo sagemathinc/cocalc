@@ -157,6 +157,8 @@ handle_mesg = (socket, mesg, handler) ->
     #dbg = (m) -> winston.debug("handle_mesg: #{m}")
     #dbg("mesg=#{json(mesg)}")
 
+    winston.debug("handle_mesg: ", mesg)
+
     if hub_client.handle_mesg(mesg, socket)
         return
 

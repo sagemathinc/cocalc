@@ -587,8 +587,7 @@ class Client extends EventEmitter
         # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
         # however, this is a counter for *each* individual user connection, so they won't get too big.
         # We could redo things to use primus/websocket channel support.
-        if not @_last_channel?
-            @_last_channel = 1
+        @_last_channel ?= 1
         while true
             @_last_channel += 1
             channel = String.fromCharCode(@_last_channel)

@@ -790,6 +790,8 @@ class Console extends EventEmitter
     # element for the editor, then resize the renderer and the
     # remote PTY.
     resize: () =>
+        return ## TODO: disable for now -- use a separate channel in rewrite
+
         if not @session?
             # don't bother if we don't even have a remote connection
             # FUTURE: could queue this up to send

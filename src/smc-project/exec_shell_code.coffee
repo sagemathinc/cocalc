@@ -6,13 +6,15 @@ Execute a command line or block of BASH code
 ###
 
 winston = require('winston')
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
 
 exports.exec_shell_code = (socket, mesg) ->
-    #winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
+    # winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
     if mesg.command == "smc-jupyter"
         socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
         return
@@ -25,8 +27,8 @@ exports.exec_shell_code = (socket, mesg) ->
         max_output  : mesg.max_output
         bash        : mesg.bash
         cb          : (err, out) ->
+            ## winston.debug("project_exec: got ", err, out)
             if err
-
                 error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 if error.indexOf("Connection refused") != -1
                     error += "-- Email help@sagemath.com if you need full internet access, which is disabled by default."

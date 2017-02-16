@@ -31,24 +31,24 @@ exports.get_session = (opts) ->
         args       : []
         options    : undefined
         cb         : required
-    dbg = (m) -> opts.local_hub.dbg("get_session(id='#{opts.session_id}'): #{m}")
+    dbg = (m) -> opts.local_hub.dbg("console_session(id='#{opts.session_id}'): #{m}")
     dbg(JSON.stringify(opts.term_opts))
 
     # - Check if we already have this session over the given
     #   local_hub socket.  If so, just return it.
-    key = "#{local_hub.project_id}-#{session_id}"
+    key = "#{opts.local_hub.project_id}-#{opts.session_id}"
     if session_cache[key]?
-        cb(undefined, session_cache[key])
+        opts.cb(undefined, session_cache[key])
         return
 
     if get_session_cbs[key]?
-        # ensure it is safe to call get_session many times at once.
+        dbg("add request to queue")
         get_session_cbs[key].push(opts.cb)
         return
     else
         get_session_cbs[key] = [opts.cb]
 
-    # - Create session and add to cache
+    dbg("create session and add to cache")
     socket = channel = undefined
 
     async.series([
@@ -72,15 +72,16 @@ exports.get_session = (opts) ->
                 timeout : 15
                 cb      : cb
     ], (err) ->
+        cbs = get_session_cbs[key]
+        delete get_session_cbs[key]
         if err
-            cb(err)
+            for cb in cbs
+                cb(err)
         else
-            session = session_cache[key] = new TerminalSession(socket, channel)
-            session.once 'end', -> delete session_cache[key]
-
-            for cb in get_session_cbs[key]
+            session = session_cache[key] = new TerminalSession(socket, channel, dbg)
+            session.once('end', -> delete session_cache[key])
+            for cb in cbs
                 cb(undefined, session)
-            delete get_session_cbs[key]
     )
 
 ###
@@ -101,7 +102,7 @@ Events:
 ###
 
 class TerminalSession extends EventEmitter
-    constructor : (@socket, @channel) ->
+    constructor : (@socket, @channel, @dbg) ->
         @_closed = false
         @socket.on('mesg', @_handle_mesg)
         @socket.on('end', @close)
@@ -110,13 +111,16 @@ class TerminalSession extends EventEmitter
         if @_closed
             return
         if type == 'channel' and payload.channel == @channel
-            @emit('data', payload.data)
+            data = payload.data
+            #@dbg("got data='#{data}' from project")
+            @emit('data', data)
 
     write : (data, cb) =>
         if @_closed
             cb?("closed")
         else
-            @socket.write_mesg(@channel, data, cb)
+            #@dbg("writing data '#{data}' got from user to project socket")
+            @socket.write_mesg('channel', {channel:@channel, data:data}, cb)
 
     close: =>
         if @_closed

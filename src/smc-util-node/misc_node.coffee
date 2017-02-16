@@ -19,6 +19,9 @@
 #
 ###############################################################################
 
+winston = require('winston')
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 ####################################################################
 #
@@ -30,7 +33,6 @@
 assert  = require('assert')
 fs      = require('fs')
 net     = require('net')
-winston = require('winston')
 async   = require('async')
 path    = require('path')
 
@@ -120,9 +122,10 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                     return # have to wait for more data to find out message length
             if buf_target_length <= buf.length
                 # read a new message from our buffer
-                type = buf.slice(4, 5).toString()
-                mesg = buf.slice(5, buf_target_length)
-                ## winston.debug("XXX: type='#{type}' mesg='#{mesg.toString()}'")
+                #winston.debug("buf='#{buf.slice(0,buf_target_length).toString()}'", buf.slice(0,buf_target_length))
+                type = buf.slice(4, 8).toString()[0]
+                mesg = buf.slice(8, buf_target_length)
+                #winston.debug("XXX: type='#{type}' mesg='#{mesg.toString()}'")
                 switch type
                     when 'j'   # JSON
                         s = mesg.toString()
@@ -161,44 +164,42 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
     # if type = 'blob', data = {uuid:?, blob:?}
     # if type = 'channel', data = {channel:?, data:?}
     socket.write_mesg = (type, data, cb) ->  # cb(err)
+        # winston.debug("socket.write_mesg", type, data)
         if not data?
             # uncomment this to get a traceback to see what might be causing this...
             #throw Error("write_mesg(type='#{type}': data must be defined")
             cb?("write_mesg(type='#{type}': data must be defined")
             return
         send = (s) ->
-            s_buf = new Buffer(4)
             # This line was 4 hours of work.  It is absolutely
             # *critical* to change the (possibly a string) s into a
             # buffer before computing its length and sending it!!
             # Otherwise unicode characters will cause trouble.
             if typeof(s) == "string"
-                s = Buffer(s)
+                s = Buffer.from(s)
+            s_buf = new Buffer(4)
             s_buf.writeInt32BE(s.length, 0)
             if not socket.writable
                 cb?("socket not writable")
                 return
-            else
-                socket.write(s_buf)
-
-            if not socket.writable
-                cb?("socket not writable")
-                return
-            else
-                socket.write(s, cb)
+            # IMPORTANT -- do *NOT* do `socket.write s_buf, ->...`, since then s_buf won't be
+            # immediately followed by s, which will BREAK EVERYTHING badly.
+            socket.write(s_buf)
+            socket.write(s, cb)
 
         switch type
             when 'json'
-                send('j' + JSON.stringify(data))
+                send('jjjj' + JSON.stringify(data))
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")
-                send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
-            else
-                # channel
+                send(Buffer.concat([Buffer.alloc(4, 'b'), new Buffer(data.uuid), new Buffer(data.blob)]))
+            when 'channel'
                 assert(data.channel?, "data object *must* have a channel attribute")
                 assert(data.data?, "data object *must* have a data attribute")
-                send(Buffer.concat([new Buffer(data.channel), new Buffer(data.data)]))
+                send(Buffer.concat([Buffer.alloc(4, data.channel), new Buffer(data.data)]))
+            else
+                throw Error("unknown socket mesg type='#{type}'")
 
     # Wait until we receive exactly *one* message of the given type
     # with the given id, then call the callback with that message.
