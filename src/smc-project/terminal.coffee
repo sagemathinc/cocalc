@@ -5,8 +5,11 @@ Terminal support inside a project
 LICENSE: AGPLv3
 ###
 {EventEmitter} = require('events')
+fs             = require('fs')
+
 pty_js         = require('pty.js')
 async          = require('async')
+
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
 
@@ -14,6 +17,15 @@ misc           = require('smc-util/misc')
 session_cache = {}
 
 get_key = (session_id, socket_id, channel) -> "#{session_id}-#{socket_id}-#{channel}"
+
+abspath = (path) ->
+    if not path?
+        return
+    if path.length == 0
+        return process.env.HOME
+    if path[0] == '/'
+        return path  # already an absolute path
+    return process.env.HOME + '/' + path
 
 # Handle a request from a hub for a terminal session
 exports.get_session = (socket, mesg) ->
@@ -36,13 +48,19 @@ exports.get_session = (socket, mesg) ->
 
     dbg("create terminal session and store in our cache")
     options = mesg.options
-    if not options?
-        options =
-            name : 'xterm'
-            cols : 130
-            rows : 40
-            cwd  : process.env.HOME
-            env  : process.env
+
+    if options?.filename?
+        init_filename = misc.console_init_filename(abspath(options.filename))
+        if fs.existsSync(init_filename) and mesg.file == 'bash'
+            mesg.args.push('--init-file')
+            mesg.args.push(init_filename)
+
+    options =
+        name : mesg.file
+        cols : mesg.options?.cols ? 100
+        rows : mesg.options?.rows ? 40
+        cwd  : abspath(mesg.options?.path) ? process.env.HOME
+        env  : process.env
     session = session_cache[key] = new TerminalSession(socket, mesg.channel, mesg.session_id, mesg.file, mesg.args, options, dbg)
 
     dbg("set terminal session to remove from cache when it ends")

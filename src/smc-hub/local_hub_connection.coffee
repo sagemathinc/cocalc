@@ -22,8 +22,11 @@ terminal   = require('./terminal')
 # then the BLOB is saved indefinitely.
 BLOB_TTL_S = 60*60*24     # 1 day
 
-if process.env.DEVEL and not process.env.SMC_TEST
-    DEBUG = true
+if not process.env.SMC_TEST
+    if process.env.DEVEL
+        DEBUG = true
+    if process.env.SMC_DEBUG2
+        DEBUG2 = true
 
 connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     opts = defaults opts,
@@ -200,7 +203,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Project query support code
     #
     mesg_query: (mesg, write_mesg) =>
-        dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{misc.trunc(m,200)}")
+        if DEBUG2
+            dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{m}")
+        else
+            dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{misc.trunc(m,200)}")
         dbg(misc.to_json(mesg))
         query = mesg.query
         if not query?
@@ -328,7 +334,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     # handle incoming JSON messages from the local_hub
     handle_mesg: (mesg, socket) =>
-        @dbg("local_hub --> hub: received mesg: #{misc.trunc(misc.to_json(mesg), 250)}")
+        if DEBUG2
+            @dbg("local_hub --> hub: received mesg: #{misc.to_json(mesg)}")
+        else
+            @dbg("local_hub --> hub: received mesg: #{misc.trunc(misc.to_json(mesg), 250)}")
         if mesg.client_id?
             # Should we worry about ensuring that message from this local hub are allowed to
             # send messages to this client?  NO.  For them to send a message, they would have to
@@ -548,7 +557,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     socket = _socket
                     cb(err)
             (cb) =>
-                @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
+                if DEBUG2
+                    @dbg("call: get socket -- now writing message to the socket -- #{misc.to_json(opts.mesg)}")
+                else
+                    @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
                 socket.write_mesg('json', opts.mesg, cb)
             (cb) =>
                 if not opts.cb?
@@ -683,7 +695,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
         dbg = (m) => @dbg("console_session(id='#{opts.session_uuid}'): #{m}")
-        dbg("connect client to console session")
+        dbg("params=#{misc.to_json(opts.params)}")
 
         if not opts.session_uuid?
             # Create a new session
@@ -692,6 +704,13 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         terminal.get_session
             local_hub  : @
             session_id : opts.session_uuid
+            file       : opts.params.command ? 'bash'
+            args       : opts.params.args ? []
+            options    :
+                rows     : opts.params.rows ? 40
+                cols     : opts.params.cols ? 80
+                path     : opts.params.path
+                filename : opts.params.filename
             cb         : (err, session) =>
                 if err
                     opts.cb(err)
@@ -730,8 +749,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     history      : session.history
 
                 opts.cb(undefined, mesg)
-
-
 
     # Connect the client with a console session, possibly creating a session in the process.
     xxx_console_session: (opts) =>

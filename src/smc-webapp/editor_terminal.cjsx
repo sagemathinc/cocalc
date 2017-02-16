@@ -107,6 +107,12 @@ class DevTerminalActions extends Actions
             timeout    : 60  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : project_id
+            params :
+                command  : 'bash'
+                rows     : 100
+                cols     : 200
+                path     : path
+                filename : filename
             cb : (err, session) =>
                 if err
                     @report_error(err)
@@ -116,12 +122,6 @@ class DevTerminalActions extends Actions
                         session_uuid : session.session_uuid
                         session      : session
                     cb?(session)
-            params :
-                command  : 'bash'
-                rows     : 100
-                cols     : 200
-                path     : path
-                filename : filename
 
         if session_uuid?
             mesg.session_uuid = session_uuid

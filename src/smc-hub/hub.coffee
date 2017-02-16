@@ -312,7 +312,10 @@ class Client extends EventEmitter
             return
 
         if mesg.event != 'pong'
-            winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            if DEBUG2
+                winston.debug("hub --> client (client=#{@id}): #{JSON.stringify(mesg)}")
+            else if DEBUG
+                winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
@@ -511,7 +514,7 @@ class Client extends EventEmitter
 
         ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
         if DEBUG2
-            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),400)}')")
+            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),500)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
@@ -618,7 +621,10 @@ class Client extends EventEmitter
             return
         #winston.debug("got message: #{data}")
         if mesg.event != 'ping'
-            winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
+            if DEBUG2
+                winston.debug("hub <-- client (client=#{@id}): #{JSON.stringify(mesg)}")
+            else
+                winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
 
         # check for message that is coming back in response to a request from the hub
         if @call_callbacks? and mesg.id?
