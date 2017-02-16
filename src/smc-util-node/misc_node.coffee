@@ -109,7 +109,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
     # potentially leak or collide).
     buf               = null
     buf_target_length = -1
-    last_channel      = 256
+    last_channel      = 32
 
     socket._listen_for_mesg = (data) ->
         buf = if buf == null then data else Buffer.concat([buf, data])

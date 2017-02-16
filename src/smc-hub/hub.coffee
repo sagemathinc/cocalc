@@ -349,7 +349,7 @@ class Client extends EventEmitter
         json = to_json(mesg)
         tm = new Date() - t
         if tm > 10
-            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
+            winston.debug("push_to_client: client=#{@id}, mesg.id=#{mesg.id}: time_to_json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
         @push_data_to_client(JSON_CHANNEL, json)
         if not listen
             cb?()
@@ -590,7 +590,7 @@ class Client extends EventEmitter
         # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
         # however, this is a counter for *each* individual user connection, so they won't get too big.
         # We could redo things to use primus/websocket channel support.
-        @_last_channel ?= 1
+        @_last_channel ?= 32
         while true
             @_last_channel += 1
             channel = String.fromCharCode(@_last_channel)
