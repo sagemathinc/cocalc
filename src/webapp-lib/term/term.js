@@ -748,19 +748,18 @@ Terminal.prototype.bindMouse = function() {
     y = ev.pageY;
     el = self.element;
 
-    // should probably check offsetParent
-    // but this is more portable
-    while (el !== document.documentElement) {
-      x -= el.offsetLeft;
-      y -= el.offsetTop;
-      el = el.parentNode;
-    }
+    // should probably check offsetParent but this is more portable
+    var offset = $(el).offset();
+    x -= offset.left;
+    y -= offset.top;
 
     // convert to cols/rows
     w = self.element.clientWidth;
     h = self.element.clientHeight;
     x = ((x / w) * self.cols) | 0;
     y = ((y / h) * self.rows) | 0;
+    x += 1;
+    y += 1;
 
     // be sure to avoid sending
     // bad positions to the program
@@ -2991,12 +2990,12 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // sometimes, row is too large
-    if (this.lines.length <= row) {
-        row = this.lines.length - 1;
-    }
-      this.lines[row].splice(j++, 0, ch);
-      this.lines[row].pop();
+    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
+    // if (this.lines.length <= row) {
+    //     continue;
+    // }
+    this.lines[row].splice(j++, 0, ch);
+    this.lines[row].pop();
   }
 };
 
