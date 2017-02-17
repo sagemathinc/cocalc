@@ -77,7 +77,7 @@ class ProjectsActions extends Actions
 
     set_project_title: (project_id, title) =>
         if not @have_project(project_id)
-            console.warn("Can't set title -- you are not a collaborator on this project.")
+            console.warn("Can't set title -- you are not a collaborator on project '#{project_id}'.")
             return
         if store.get_title(project_id) == title
             # title is already set as requested; nothing to do
@@ -91,7 +91,7 @@ class ProjectsActions extends Actions
 
     set_project_description: (project_id, description) =>
         if not @have_project(project_id)
-            console.warn("Can't set description -- you are not a collaborator on this project.")
+            console.warn("Can't set description -- you are not a collaborator on project '#{project_id}'.")
             return
         if store.get_description(project_id) == description
             # description is already set as requested; nothing to do
@@ -106,7 +106,9 @@ class ProjectsActions extends Actions
     # only owner can set course description.
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not @have_project(project_id)
-            alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
+            alert_message(type:'error', message:msg)
+            console.warn(msg)
             return
         course_info = store.get_course_info(project_id)?.toJS()
         if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0 and course_info.account_id == account_id and course_info.email_address == email_address
