@@ -204,6 +204,7 @@ schema.accounts =
         ]
     user_query :
         get :
+            throttle_changes : 500
             pg_where : ['account_id = $::UUID':'account_id']
             fields :
                 account_id      : null
@@ -483,6 +484,7 @@ schema.file_use =
             pg_where : ['projects', 'last_edited IS NOT NULL']
             pg_changefeed: 'projects'
             options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
+            throttle_changes : 3000
             fields :
                 id          : null
                 project_id  : null
@@ -618,6 +620,7 @@ schema.project_log =
             pg_where     : 'projects'
             pg_changefeed: 'projects'
             options   : [{order_by : '-time'}, {limit : 400}]
+            throttle_changes : 2000
             fields :
                 id          : null
                 project_id  : null
@@ -724,6 +727,7 @@ schema.projects =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
+            throttle_changes : 2000
             fields :
                 project_id     : null
                 title          : ''
@@ -864,6 +868,7 @@ schema.public_paths =
     user_query:
         get :
             pg_where : ["project_id = $::UUID": 'project_id']
+            throttle_changes : 2000
             fields :
                 id          : null
                 project_id  : null
@@ -994,6 +999,7 @@ schema.stats =
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             pg_changefeed : 'one-hour'
             options : [{'order_by':'-time'}]
+            throttle_changes : 5000
             fields :
                 id                  : null
                 time                : null
@@ -1036,6 +1042,7 @@ schema.system_notifications =
         get:
             pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
             pg_changefeed : 'one-hour'
+            throttle_changes : 3000
             fields :
                 id       : null
                 time     : null
