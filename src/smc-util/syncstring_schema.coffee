@@ -209,6 +209,7 @@ schema.patches =
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query :
         get :
+            throttle_changes : 1000
             fields :
                 string_id : null
                 time      : null
@@ -300,6 +301,7 @@ schema.cursors =
         string_id : ["that.r.row('id')(0)"]
     user_query:
         get :
+            throttle_changes : 1000
             fields :
                 string_id : null
                 user_id   : null
