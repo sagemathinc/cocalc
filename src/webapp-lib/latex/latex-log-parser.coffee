@@ -239,9 +239,11 @@ LatexParser = (text, options) ->
         # Our heuristic for detecting file names are rather crude
         # A file may not contain a space, or ) in it
         # To be a file path it must have at least one /
+        # hsy: slight enhancement: search until ")" or EOL, and then trim the string
         if !@currentLine.match(/^\/?([^ \)]+\/)+/)
             return false
-        endOfFilePath = @currentLine.search(RegExp(' |\\)'))
+        trimEnd = require('lodash/trimEnd')
+        endOfFilePath = trimEnd(@currentLine.search(RegExp('$|\\)')))
         path = undefined
         if endOfFilePath == -1
             path = @currentLine
@@ -249,6 +251,8 @@ LatexParser = (text, options) ->
         else
             path = @currentLine.slice(0, endOfFilePath)
             @currentLine = @currentLine.slice(endOfFilePath)
+        #if DEBUG
+        #    console.log("latex-log-parser@consumeFilePath", @currentLine, "endOfFilePath:", endOfFilePath, "-> path: '#{path}'")
         path
 
     @postProcess = (data) ->
