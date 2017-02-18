@@ -27,6 +27,7 @@ misc = require('smc-util/misc')
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 
 {filename_extension, defaults, required} = require('smc-util/misc')
+{file_associations} = require('./editor')
 
 # Map of extensions to the appropriate structures below
 file_editors =
@@ -125,6 +126,8 @@ exports.save = (path, redux, project_id, is_public) ->
     save = (file_editors[is_public][ext]?.save) ? (file_editors[is_public]['']?.save)
     save?(path, redux, project_id)
 
+exports.special_filenames_with_no_extension = () ->
+    (name.slice(6) for name in Object.keys(file_associations) when name.slice(0,6) == 'noext-')
 
 # Require each module, which loads a file editor.  These call register_file_editor.
 # This should be a comprehensive list of all React editors

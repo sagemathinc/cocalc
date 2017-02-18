@@ -1539,7 +1539,7 @@ class CodeMirrorEditor extends FileEditor
             foreground : true
 
     _get: () =>
-        return @codemirror.getValue()
+        return @codemirror?.getValue()
 
     _set: (content) =>
         if not @codemirror?

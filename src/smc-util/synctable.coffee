@@ -89,12 +89,12 @@ exports.set_debug = (x) ->
     DEBUG = !!x
 
 {EventEmitter} = require('events')
+immutable      = require('immutable')
+async          = require('async')
+underscore     = require('underscore')
 
-immutable = require('immutable')
-async     = require('async')
-
-misc      = require('./misc')
-schema    = require('./schema')
+misc           = require('./misc')
+schema         = require('./schema')
 
 {defaults, required} = misc
 
@@ -195,7 +195,7 @@ class Plug
             timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_cache_key) ->
+    constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
         @_init_query()
         # The value of this query locally.
         @_value_local = undefined
@@ -218,6 +218,28 @@ class SyncTable extends EventEmitter
             no_sign_in : @_schema.anonymous or @_client.is_project()  # note: projects don't have to authenticate
 
         @_client.on('disconnected', (=>@_disconnected('client disconnect')))
+
+        # No throttling of change events unless explicitly requested *or* part of the schema.
+        @_throttle_changes ?= schema.SCHEMA[@_table]?.user_query?.get?.throttle_changes
+
+        if not @_throttle_changes
+            @emit_change = (changed_keys) => @emit('change', changed_keys)
+        else
+            # throttle emitting of change events
+            all_changed_keys = {}
+            do_emit_changes = =>
+                if misc.len(all_changed_keys) > 0
+                    #console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
+                    @emit('change', misc.keys(all_changed_keys))
+                    all_changed_keys = {}
+            do_emit_changes = underscore.throttle(do_emit_changes, @_throttle_changes)
+            @emit_change = (changed_keys) =>
+                #console.log("#{@_table} -- queue changes", changed_keys)
+                for key in changed_keys
+                    all_changed_keys[key] = true
+                do_emit_changes()
+
+
 
     dbg: (f) =>
         #return @_client.dbg("SyncTable('#{@_table}').#{f}")
@@ -559,7 +581,12 @@ class SyncTable extends EventEmitter
             return
 
         misc.async_debounce
-            f        : @_save
+            f        : (cb) =>
+                misc.retry_until_success
+                    f         : @_save
+                    max_delay : 5000
+                    max_time  : 30000
+                    cb        : cb
             interval : @_debounce_interval
             state    : @_save_debounce
             cb       : cb
@@ -647,10 +674,10 @@ class SyncTable extends EventEmitter
         #console.log("update_all: changed_keys=", changed_keys)
         if changed_keys.length != 0
             @_value_server = immutable.fromJS(x)
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
         else if first_connect
             # First connection and table is empty.
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
         if conflict
             @save()
 
@@ -686,7 +713,7 @@ class SyncTable extends EventEmitter
         #console.log("update_change: changed_keys=", changed_keys)
         if changed_keys.length > 0
             #console.log("_update_change: change")
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
             if conflict
                 @save()
 
@@ -840,7 +867,7 @@ class SyncTable extends EventEmitter
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
-            @emit('change', [id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+            @emit_change([id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
         return new_val
 
     close: =>
@@ -901,9 +928,9 @@ synctables = {}
 # Do not leave in production; could be slight security risk.
 ## window?.synctables = synctables
 
-exports.sync_table = (query, options, client, debounce_interval=2000) ->
+exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined) ->
 
-    cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
+    cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval, throttle_changes:throttle_changes)
     S = synctables[cache_key]
     if S?
         if S._state == 'connected'
@@ -914,7 +941,7 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
         S._reference_count += 1
         return S
     else
-        S = synctables[cache_key] = new SyncTable(query, options, client, debounce_interval, cache_key)
+        S = synctables[cache_key] = new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)
         S._reference_count = 1
         return S
 

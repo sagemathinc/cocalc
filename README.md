@@ -4,19 +4,14 @@
 
 ## Website
 
-   * [SageMathCloud](https://cloud.sagemath.com)
+   * [SageMathCloud](https://cloud.sagemath.com) -- the online service
    * [Github](https://github.com/sagemathinc/smc)
+   * [Mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
    * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
 
-## Development/install
+## Evaluation install
 
-   * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `cd smc/src`
-   * `npm run install-all` -- build
-   * `npm test` -- run test suite (expected failures if your clock is not UTC)
-   * `install.py all --compute --web` -- build and install some parts system-wide for development use
-   * See `INSTALL.md` for more details.
-   * Docker: https://github.com/sagemathinc/smc/tree/master/src/dev/docker
+To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/smc/blob/master/src/dev/docker/README.md)**.
 
 ## Contributors
 
@@ -90,6 +85,15 @@ please contact help@sagemath.com.
 </pre>
 
 
+## Development installation
 
+The following instruction **don't** install SMC. They're for development purposes only!
 
+   * `git clone https://github.com/sagemathinc/smc` -- copy repo
+   * `cd smc/src`
+   * `npm run install-all` -- build
+   * `npm test` -- run test suite (expected failures if your clock is not UTC)
+   * `install.py all --compute --web` -- build and install some parts system-wide for development use
+   * See `INSTALL.md` for more details.
 
+For further options please [go here](https://github.com/sagemathinc/smc/tree/master/src/dev).

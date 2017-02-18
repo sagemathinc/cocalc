@@ -1,7 +1,26 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 Schema for synchronized editing of strings.
-
-(c) William Stein, 2016
 ###
 
 misc = require('./misc')
@@ -190,6 +209,7 @@ schema.patches =
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query :
         get :
+            throttle_changes : 1000
             fields :
                 string_id : null
                 time      : null
@@ -281,6 +301,7 @@ schema.cursors =
         string_id : ["that.r.row('id')(0)"]
     user_query:
         get :
+            throttle_changes : 1000
             fields :
                 string_id : null
                 user_id   : null

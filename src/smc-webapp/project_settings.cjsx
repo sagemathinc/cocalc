@@ -384,108 +384,6 @@ UsagePanel = rclass
             </span>
         </ProjectSettingsPanel>
 
-SharePanel = rclass ({name}) ->
-    displayName : 'ProjectSettings-SharePanel'
-
-    propTypes :
-        project      : rtypes.object.isRequired
-        public_paths : rtypes.object.isRequired
-        desc         : rtypes.string.isRequired
-        name         : rtypes.string
-
-    reduxProps :
-        "#{name}" :
-            get_public_path_id : rtypes.func
-
-    getInitialState: ->
-        state : 'view'    # view --> edit --> view
-        desc  : @props.desc
-
-    componentWillReceiveProps: (nextProps) ->
-        if @state.desc isnt nextProps.desc
-            @setState
-                desc  : nextProps.desc
-                state : 'view'
-
-    cancel: ->
-        @setState(state : 'view')
-
-    save: ->
-        actions = @actions(name)
-        actions.set_public_path('', ReactDOM.findDOMNode(@refs.share_project).value)
-        @setState(state : 'view')
-
-    render_share_cancel_buttons: ->
-        <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button bsStyle='primary' onClick={@save}>
-                <Icon name='share-square-o' /> Share
-            </Button>
-            <Button onClick={@cancel}>Cancel</Button>
-        </ButtonToolbar>
-
-    render_update_desc_button: ->
-        <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
-                <Icon name='share-square-o' /> Change description
-            </Button>
-        </ButtonToolbar>
-
-    render_share: (shared) ->
-        if @state.state == 'edit' or shared
-            <form onSubmit={(e)=>e.preventDefault(); @save()}>
-                <FormGroup>
-                    <FormControl
-                        ref         = 'share_project'
-                        type        = 'text'
-                        value       = {@state.desc}
-                        onChange    = {=>@setState(desc : ReactDOM.findDOMNode(@refs.share_project).value)}
-                        placeholder = 'Give a description...' />
-                </FormGroup>
-                {@render_share_cancel_buttons() if @state.state == 'edit'}
-                {@render_update_desc_button() if shared}
-            </form>
-
-    toggle_share: (shared) ->
-        actions = @actions(name)
-        if shared
-            actions.disable_public_path('')
-        else
-            @setState(state : 'edit')
-
-    render_share_unshare_button: (shared) ->
-        <Button
-            bsStyle = {if shared then 'warning' else 'primary'}
-            onClick = {=>@toggle_share(shared)}
-            style   = {float: 'right', marginBottom:'10px'} >
-            <Icon name={if shared then 'shield' else 'share-square-o'} /> {if shared then 'Unshare' else 'Share'} Project...
-        </Button>
-
-    render: ->
-        if not @props.public_paths?
-            return <Loading />
-        project_id = @props.project.get('project_id')
-        id = @props.get_public_path_id('')
-        shared = @props.public_paths.get(id)? and not @props.public_paths.getIn([id, 'disabled'])
-        if shared
-            share_message = "This project is publicly shared, so anyone can see it."
-        else
-            share_message = "Share this project publicly. You can also share individual files or folders from the file listing."
-        <ProjectSettingsPanel title='Project sharing' icon='share'>
-            <Row>
-                <Col sm=8>
-                    {share_message}
-                </Col>
-                <Col sm=4>
-                    {@render_share_unshare_button(shared) if @state.state == 'view'}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    {@render_share(shared)}
-                </Col>
-            </Row>
-        </ProjectSettingsPanel>
-
 HideDeletePanel = rclass
     displayName : 'ProjectSettings-HideDeletePanel'
 
@@ -1080,15 +978,12 @@ ProjectSettingsBody = rclass ({name}) ->
         project_id    : rtypes.string.isRequired
         project       : rtypes.immutable.Map.isRequired
         user_map      : rtypes.immutable.Map.isRequired
-        public_paths  : rtypes.immutable.List.isRequired
         customer      : rtypes.object
         email_address : rtypes.string
         project_map   : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
         name          : rtypes.string
 
     reduxProps :
-        "#{name}" :
-            get_public_path_id : rtypes.func
         account :
             get_total_upgrades : rtypes.func
             groups : rtypes.array
@@ -1106,7 +1001,6 @@ ProjectSettingsBody = rclass ({name}) ->
 
     render: ->
         # get the description of the share, in case the project is being shared
-        share_desc = @props.public_paths.get(@props.get_public_path_id(''))?.get('description') ? ''
         id = @props.project_id
 
         upgrades_you_can_use                 = @props.get_total_upgrades()
@@ -1150,9 +1044,6 @@ ProjectSettingsBody = rclass ({name}) ->
                     <ProjectControlPanel   key='control'       project={@props.project} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} />
                     <JupyterServerPanel    key='jupyter'        project_id={@props.project_id} />
-                    {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
-                    {#<SharePanel            key='share'         project={@props.project} }
-                        {#public_paths={@props.public_paths} desc={share_desc} name={@props.name} /> }
                 </Col>
             </Row>
         </div>
@@ -1172,8 +1063,6 @@ exports.ProjectSettings = rclass ({name}) ->
             user_type       : rtypes.string    # needed for projects get_my_group call in render
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
-        "#{name}" :
-            stripped_public_paths : rtypes.immutable
 
     propTypes :
         project_id : rtypes.string.isRequired
@@ -1206,7 +1095,7 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render: ->
-        if not @props.project_map? or not @props.user_map? or not @props.stripped_public_paths?
+        if not @props.project_map? or not @props.user_map?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -1226,7 +1115,6 @@ exports.ProjectSettings = rclass ({name}) ->
                     project_id    = {@props.project_id}
                     project       = {project}
                     user_map      = {@props.user_map}
-                    public_paths  = {@props.stripped_public_paths}
                     customer      = {@props.customer}
                     email_address = {@props.email_address}
                     project_map   = {@props.project_map}

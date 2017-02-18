@@ -564,7 +564,7 @@ exports.define_codemirror_extensions = () ->
     startswith = misc.startswith
 
     CodeMirror.registerHelper "fold", "stex", (cm, start) ->
-        trimStart = require('lodash.trimstart')
+        trimStart = require('lodash/trimStart')
         line = trimStart(cm.getLine(start.line))
         find_close = () ->
             BEGIN = "\\begin"

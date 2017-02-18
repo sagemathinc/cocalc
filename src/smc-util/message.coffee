@@ -19,12 +19,9 @@
 #
 ###############################################################################
 
-
 ###
 #
 # Library for working with JSON messages for Salvus.
-#
-# (c) 2012, William Stein
 #
 # We use functions to work with messages to ensure some level of
 # consistency, defaults, and avoid errors from typos, etc.
