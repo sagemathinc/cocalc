@@ -2945,88 +2945,52 @@ class Terminal extends FileEditor
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title      : "Terminal"
-            filename   : @filename
             project_id : @project_id
             path       : @filename
             editor     : @
-        @console = elt.data("console")
-        @element = @console.element
-        salvus_client.read_text_file_from_project
-            project_id : @project_id
-            path       : @filename
-            cb         : (err, result) =>
-                if err
-                    alert_message(type:"error", message: "Error connecting to console server -- #{err}")
-                else
-                    # New session or connect to session
-                    if result.content? and result.content.length < 36
-                        # empty/corrupted -- messed up by bug in early version of SMC...
-                        delete result.content
-                    @opts = defaults opts,
-                        session_uuid : result.content
-                    @connect_to_server()
+        @terminal = elt.data("console")
+        @element = @terminal.element
+        @connect_to_server()
 
     connect_to_server: (cb) =>
-        mesg =
-            timeout    : 30  # just for making the connection; not the timeout of the session itself!
-            type       : 'console'
+        salvus_client.connect_to_terminal_session
             project_id : @project_id
-            cb : (err, session) =>
+            path       : @filename
+            cb         : (err, session) =>
                 if err
                     alert_message(type:'error', message:err)
                     cb?(err)
                 else
                     if @element.is(":visible")
                         @show()
-                    @console.set_session(session)
-                    @opts.session_uuid = session.session_uuid
-                    salvus_client.write_text_file_to_project
-                        project_id : @project_id
-                        path       : @filename
-                        content    : session.session_uuid
-                        cb         : cb
+                    @terminal.set_session(session)
 
-        path = misc.path_split(@filename).head
-        mesg.params  =
-            command  : 'bash'
-            rows     : @opts.rows
-            cols     : @opts.cols
-            path     : path
-            filename : @filename
-        if @opts.session_uuid?
-            mesg.session_uuid = @opts.session_uuid
-            salvus_client.connect_to_session(mesg)
-        else
-            salvus_client.new_session(mesg)
+    _get: => '' # TODO
 
+    _set: (content) =>  # TODO
 
-    _get: =>  # FUTURE ??
-        return @opts.session_uuid ? ''
-
-    _set: (content) =>  # FUTURE ??
-
-    save: =>
+    save: (cb) =>
         # DO nothing -- a no-op for now
-        # FUTURE: Add notion of history
         cb?()
 
     focus: =>
-        @console?.focus()
+        @terminal?.focus()
 
     blur: =>
-        @console?.blur()
+        @terminal?.blur()
 
     terminate_session: () =>
+        # TODO?
 
     remove: =>
         @element.salvus_console(false)
         super()
 
     hide: =>
-        @console?.blur()
+        @terminal?.blur()
 
     _show: () =>
-        @console?.resize()
+        @terminal?.resize()
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->

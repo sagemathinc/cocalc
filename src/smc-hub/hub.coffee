@@ -550,7 +550,7 @@ class Client extends EventEmitter
             if channel != 'X'  # X is a special case used on purpose -- not an error.
                 winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
             # Tell the client that they had better reconnect.
-            @push_to_client( message.session_reconnect(data_channel : channel) )
+            @push_to_client( message.data_channel_cancel(data_channel : channel) )
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
@@ -653,64 +653,47 @@ class Client extends EventEmitter
         @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
     ######################################################
-    # Messages: Sessions
+    # Messages: Terminal Sessions
     ######################################################
-    mesg_start_session: (mesg) =>
+
+    mesg_connect_to_terminal_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to connect to a terminal session."))
             return
-
-        switch mesg.type
-            when 'console'
-                @connect_to_console_session(mesg)
-            else
-                @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
-
-    mesg_connect_to_session: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
+        if not mesg.path?
+            @push_to_client(message.error(id:mesg.id, error:"path must be defined"))
             return
-        switch mesg.type
-            when 'console'
-                if not mesg.params?.path? or not mesg.params?.filename?
-                    @push_to_client(message.error(id:mesg.id, error:"console session path and filename must be defined"))
-                    return
-                @connect_to_console_session(mesg)
-            else
-                # TODO
-                @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
-
-    connect_to_console_session: (mesg) =>
-        # TODO -- implement read-only console sessions too (easy and amazing).
         @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                @_connect_to_console_session ?= {}
-                if @_connect_to_console_session[mesg.session_uuid]?
-                    @error_to_client(id:mesg.id, error:'already connecting')
-                    return
-                @_connect_to_console_session[mesg.session_uuid] = true
-                project.console_session
-                    client       : @
-                    params       : mesg.params
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, connect_mesg) =>
-                        delete @_connect_to_console_session[mesg.session_uuid]
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            connect_mesg.id = mesg.id
-                            @push_to_client(connect_mesg)
+            if err
+                return  #  get_project sends error to client
+            key = "#{mesg.project_id}-#{mesg.path}"
+            @_connect_to_terminal_session ?= {}
+            if @_connect_to_terminal_session[key]?
+                @error_to_client(id:mesg.id, error:'already connecting to #{mesg.path}')
+                return
+            @_connect_to_terminal_session[key] = true
+            project.terminal_session
+                client : @
+                path   : mesg.path
+                cb     : (err, connect_mesg) =>
+                    delete @_connect_to_terminal_session[key]
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        connect_mesg.id = mesg.id
+                        @push_to_client(connect_mesg)
 
-    mesg_terminate_session: (mesg) =>
+    mesg_terminal_session_cancel: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.terminate_session
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, resp) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(mesg)  # same message back.
+            if err
+                return # get_project sends error to client
+            project.terminate_session
+                path : mesg.path
+                cb   : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(mesg)  # same message back.
 
     ######################################################
     # Messages: Account creation, deletion, sign in, sign out

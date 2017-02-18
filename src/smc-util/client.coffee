@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-DEBUG = false
+DEBUG = true
 
 {EventEmitter} = require('events')
 
@@ -51,8 +51,9 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 # if there is no response to an operation after this amount of time.
 DEFAULT_TIMEOUT = 30  # in seconds
 
+terminal_session_key = (project_id, path) -> "#{project_id}-#{path}"
 
-class Session extends EventEmitter
+class TerminalSession extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
     #    - 'close'  -- session's connection is closed/terminated
@@ -61,93 +62,40 @@ class Session extends EventEmitter
         opts = defaults opts,
             conn         : required     # a Connection instance
             project_id   : required
-            session_uuid : required
-            params       : undefined
-            data_channel : undefined    # optional extra channel that is used for raw data
-            init_history : undefined    # used for console
-
+            path         : required
+            data_channel : required
+            init_history : undefined
         @start_time   = misc.walltime()
         @conn         = opts.conn
-        @params       = opts.params
-        if @type() == 'console'
-            if not @params?.path? or not @params?.filename?
-                throw Error("params must be specified with path and filename")
         @project_id   = opts.project_id
-        @session_uuid = opts.session_uuid
+        @path         = opts.path
         @data_channel = opts.data_channel
         @init_history = opts.init_history
+        @key          = terminal_session_key(@project_id, @path)
         @emit("open")
+        @dbg('constructor')("project_id='#{opts.project_id}', data_channel='#{opts.data_channel}'")
 
-        ## This is no longer necessary; or rather, it's better to only
-        ## reset terminals, etc., when they are used, since it wastes
-        ## less resources.
-        # I'm going to leave this in for now -- it's only used for console sessions,
-        # and they aren't properly reconnecting in all cases.
-        if @reconnect?
-            @conn.on("connected", @reconnect)
+    dbg: (f) =>
+        return @conn.dbg("TerminalSession(path='#{@path}')")
 
     close: () =>
+        # TODO: do everything else..., e.g., remove from cache, cancel data channel
+        @emit("close")
         @removeAllListeners()
-        if @reconnect?
-            @conn.removeListener("connected", @reconnect)
 
     reconnect: (cb) =>
-        # Called when the connection gets dropped, then reconnects
-        if not @conn._signed_in
-            setTimeout((()=>@reconnect(cb)), 500)
-            return
+        @dbg("reconnect")('todo')
+        cb?("TODO")  # refactor and use the plug class for synctable... (?)
 
-        if @_reconnect_lock
-            #console.warn('reconnect: lock')
-            cb?("reconnect: hit lock")
-            return
-
-        @emit "reconnecting"
-        @_reconnect_lock = true
-        #console.log("reconnect: #{@type()} session with id #{@session_uuid}...")
-        f = (cb) =>
-            @conn.call
-                message : message.connect_to_session
-                    session_uuid : @session_uuid
-                    type         : @type()
-                    project_id   : @project_id
-                    params       : @params
-                timeout : 30
-                cb      : (err, reply) =>
-                    if err
-                        cb(err); return
-                    switch reply.event
-                        when 'error'
-                            cb(reply.error)
-                        when 'session_connected'
-                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS", reply)
-                            if @data_channel != reply.data_channel
-                                @conn.change_data_channel
-                                    prev_channel : @data_channel
-                                    new_channel  : reply.data_channel
-                                    session      : @
-                            @data_channel = reply.data_channel
-                            @init_history = reply.history
-                            cb()
-                        else
-                            cb("bug in hub")
-        misc.retry_until_success
-            max_time : 15000
-            factor   : 1.3
-            f        : f
-            cb       : (err) =>
-                #console.log("reconnect('#{@session_uuid}'): finished #{err}")
-                delete @_reconnect_lock
-                if not err
-                    @emit("reconnect")
-                cb?(err)
-
+    # This just cancels the connection (channel) between client and hub.  Nothing else.
     terminate_session: (cb) =>
+        dbg = @dbg("terminate_session")
+        dbg()
         @conn.call
             message :
-                message.terminate_session
+                message.terminal_session_cancel
                     project_id   : @project_id
-                    session_uuid : @session_uuid
+                    path         : @path
             timeout : 30
             cb      : cb
 
@@ -155,26 +103,20 @@ class Session extends EventEmitter
         return misc.walltime() - @start_time
 
     handle_data: (data) =>
+        @dbg("handle_data")(data)
         @emit("data", data)
 
     write_data: (data) ->
+        @dbg("write_data")(data)
         @conn.write_data(@data_channel, data)
 
     restart: (cb) =>
-        @conn.call(message:message.restart_session(session_uuid:@session_uuid), timeout:10, cb:cb)
+        @dbg("restart")('TODO')
+        console.warn('TODO')
 
-
-###
-#
-# A Console session, which connects the client to a pty on a remote machine.
-#
-#   Client <-- (primus) ---> Hub  <--- (tcp) ---> console_server
-#
-###
-
-class ConsoleSession extends Session
-    type: () => "console"
-
+    handle_data_channel_cancel: =>
+        @dbg("handle_data_channel_cancel")('TODO')
+        console.warn("handle_data_channel_cancel: TODO")
 
 
 
@@ -402,17 +344,12 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid].emit("output", mesg)
                 else   # stateless exec
                     @emit("output", mesg)
-            when "terminate_session"
-                session = @_sessions[mesg.session_uuid]
-                session?.emit("close")
-            when "session_reconnect"
-                if mesg.data_channel?
-                    @_sessions[mesg.data_channel]?.reconnect()
-                else if mesg.session_uuid?
-                    @_sessions[mesg.session_uuid]?.reconnect()
+            when "terminal_session_cancel"
+                @_sessions[terminal_session_key(mesg.project_id, mesg.path)]?.close()
+            when "data_channel_cancel"
+                @_sessions[mesg.data_channel]?.handle_data_channel_cancel()
             when "cookies"
                 @_cookies?(mesg)
-
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
@@ -473,102 +410,36 @@ class exports.Connection extends EventEmitter
         #else
         #    console.log("Error -- missing channel '#{channel}' for data '#{data}'.  @_data_handlers = #{misc.to_json(@_data_handlers)}")
 
-    connect_to_session: (opts) ->
+    connect_to_terminal_session: (opts) ->
         opts = defaults opts,
-            type         : required
-            session_uuid : required
-            project_id   : required
-            timeout      : DEFAULT_TIMEOUT
-            params       : required  # must include {path:?, filename:?}
-            cb           : required
+            project_id : required
+            path       : required
+            timeout    : DEFAULT_TIMEOUT
+            cb         : required
         @call
-            message : message.connect_to_session
-                session_uuid : opts.session_uuid
-                type         : opts.type
-                project_id   : opts.project_id
-                params       : opts.params
-
+            message : message.connect_to_terminal_session
+                project_id : opts.project_id
+                path       : opts.path
             timeout : opts.timeout
-
             cb      : (error, reply) =>
                 if error
                     opts.cb(error); return
                 switch reply.event
                     when 'error'
                         opts.cb(reply.error)
-                    when 'session_connected'
-                        @_create_session_object
-                            type         : opts.type
-                            project_id   : opts.project_id
-                            session_uuid : opts.session_uuid
+                    when 'terminal_session_connected'
+                        session = new TerminalSession
+                            conn         : @
+                            project_id   : reply.project_id
+                            path         : reply.path
                             data_channel : reply.data_channel
                             init_history : reply.history
-                            params       : opts.params
-                            cb           : opts.cb
+                        @_sessions[session.key] = session
+                        @_sessions[reply.data_channel] = session
+                        @register_data_handler(reply.data_channel, session.handle_data)
+                        opts.cb(false, session)
                     else
-                        opts.cb("Unknown event (='#{reply.event}') in response to connect_to_session message.")
-
-    new_session: (opts) ->
-        opts = defaults opts,
-            timeout    : DEFAULT_TIMEOUT # how long until give up on getting a new session
-            type       : "console"   # only "console" supported
-            params     : required    # must include {path:?, filename:?}
-            project_id : required
-            cb         : required    # cb(error, session)  if error is defined it is a string
-
-        @call
-            message : message.start_session
-                type       : opts.type
-                params     : opts.params
-                project_id : opts.project_id
-
-            timeout : opts.timeout
-
-            cb      : (error, reply) =>
-                if error
-                    opts.cb(error)
-                else
-                    if reply.event == 'error'
-                        opts.cb(reply.error)
-                    else if reply.event == "session_started" or reply.event == "session_connected"
-                        @_create_session_object
-                            type         : opts.type
-                            project_id   : opts.project_id
-                            session_uuid : reply.session_uuid
-                            data_channel : reply.data_channel
-                            params       : opts.params
-                            cb           : opts.cb
-                    else
-                        opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
-
-    _create_session_object: (opts) =>
-        opts = defaults opts,
-            type         : required   # 'console'
-            project_id   : required
-            session_uuid : required
-            data_channel : undefined
-            params       : undefined
-            init_history : undefined
-            cb           : required
-
-        session_opts =
-            conn         : @
-            project_id   : opts.project_id
-            session_uuid : opts.session_uuid
-            data_channel : opts.data_channel
-            init_history : opts.init_history
-            params       : opts.params
-
-        switch opts.type
-            when 'console'
-                session = new ConsoleSession(session_opts)
-            else
-                opts.cb("Unknown session type: '#{opts.type}'")
-        @_sessions[opts.session_uuid] = session
-        if opts.data_channel != JSON_CHANNEL
-            @_sessions[opts.data_channel] = session
-        @register_data_handler(opts.data_channel, session.handle_data)
-        opts.cb(false, session)
+                        opts.cb("Unknown event (='#{reply.event}') in response to connect_to_terminal_session message.")
 
     call: (opts={}) =>
         # This function:

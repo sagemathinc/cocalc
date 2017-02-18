@@ -687,38 +687,25 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 opts.cb(false, socket)
         )
 
-    console_session: (opts) =>
+    terminal_session: (opts) =>
         opts = defaults opts,
             client       : required
-            project_id   : required
-            params       : required
-            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
+            path         : required
             cb           : required    # cb(err, [session_connected message])
-        dbg = (m) => @dbg("console_session(id='#{opts.session_uuid}'): #{m}")
-        dbg("params=#{misc.to_json(opts.params)}")
-
-        if not opts.session_uuid?
-            # Create a new session
-            opts.session_uuid = uuid.v4()
+        dbg = (m) => @dbg("terminal_session(id='#{opts.path}'): #{m}")
+        dbg()
 
         terminal.get_session
-            local_hub  : @
-            session_id : opts.session_uuid
-            file       : opts.params.command ? 'bash'
-            args       : opts.params.args ? []
-            options    :
-                rows     : opts.params.rows ? 40
-                cols     : opts.params.cols ? 80
-                path     : opts.params.path
-                filename : opts.params.filename
-            cb         : (err, session) =>
+            local_hub : @
+            path      : opts.path
+            cb        : (err, session) =>
                 if err
                     opts.cb(err)
                     return
 
                 session.on 'end', () =>
-                    dbg("session end")
-                    opts.client.push_to_client(message.terminate_session(session_uuid:opts.session_uuid))
+                    dbg("terminal session end")
+                    opts.client.push_to_client(message.terminal_session_cancel(project_id:@project_id, path:opts.path))
 
                 # Connect the browser client to this session.
 
@@ -729,8 +716,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 data_channel = opts.client.register_data_handler (data) =>
                     ## dbg("Just got data='#{data}' from the client.  Send it on to the local hub.")  # low-level debugging
                     session.write(data)
-                    if opts.params.filename?
-                        opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
+                    opts.client.touch(project_id:opts.project_id, path:opts.path)
 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
@@ -743,103 +729,24 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 # TODO: need to stop listening to this when user closes session or local_hub session closes or user disconnects!
 
                 # Tell the browser client that we've set everything up and are ready to go.
-                mesg = message.session_connected
-                    session_uuid : opts.session_uuid
+                mesg = message.terminal_session_connected
+                    project_id   : @project_id
+                    path         : opts.path
                     data_channel : data_channel
                     history      : session.history
 
                 opts.cb(undefined, mesg)
 
-    # Connect the client with a console session, possibly creating a session in the process.
-    xxx_console_session: (opts) =>
-        opts = defaults opts,
-            client       : required
-            project_id   : required
-            params       : required
-            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
-            cb           : required    # cb(err, [session_connected message])
-        @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
-
-        # Connect to the console server
-        if not opts.session_uuid?
-            # Create a new session
-            opts.session_uuid = uuid.v4()
-
-        @_open_session_socket
-            client_id    : opts.client.id
-            session_uuid : opts.session_uuid
-            project_id   : opts.project_id
-            type         : 'console'
-            params       : opts.params
-            cb           : (err, console_socket) =>
-                if err
-                    opts.cb(err)
-                    return
-
-                # In case it was already setup to listen before... (and client is reconnecting)
-                console_socket.removeAllListeners()
-
-                console_socket._ignore = false
-                console_socket.on 'end', () =>
-                    winston.debug("console_socket (session_uuid=#{opts.session_uuid}): received 'end' so setting ignore=true")
-                    opts.client.push_to_client(message.terminate_session(session_uuid:opts.session_uuid))
-                    console_socket._ignore = true
-                    delete @_sockets[console_socket._key]
-
-                # Plug the two consoles together
-                #
-                # client --> console:
-                # Create a binary channel that the client can use to write to the socket.
-                # (This uses our system for multiplexing JSON and multiple binary streams
-                #  over one single connection.)
-                recently_sent_reconnect = false
-                #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
-                channel = opts.client.register_data_handler (data) =>
-                    #winston.debug("handling data -- ignore='#{console_socket._ignore}'; path='#{opts.path}'")
-                    if not console_socket._ignore
-                        console_socket.write(data)
-                        if opts.params.filename?
-                            opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
-                    else
-                        # send a reconnect message, but at most once every 5 seconds.
-                        if not recently_sent_reconnect
-                            recently_sent_reconnect = true
-                            setTimeout( (()=>recently_sent_reconnect=false), 5000 )
-                            winston.debug("console -- trying to write to closed console_socket with session_uuid=#{opts.session_uuid}")
-                            opts.client.push_to_client(message.session_reconnect(session_uuid:opts.session_uuid))
-
-                mesg = message.session_connected
-                    session_uuid : opts.session_uuid
-                    data_channel : channel
-                    history      : console_socket.history
-
-                opts.cb(false, mesg)
-
-                # console --> client:
-                # When data comes in from the socket, we push it on to the connected
-                # client over the channel we just created.
-                f = (data) ->
-                    # Never push more than 20000 characters at once to client, since display is slow, etc.
-                    if data.length > 20000
-                        data = "[...]" + data.slice(data.length - 20000)
-                    #winston.debug("push_data_to_client('#{data}')")
-                    opts.client.push_data_to_client(channel, data)
-                    console_socket.history += data
-                    if console_socket.history.length > 150000
-                        console_socket.history = console_socket.history.slice(console_socket.history.length - 100000)
-                console_socket.on('data', f)
-
     terminate_session: (opts) =>
         opts = defaults opts,
-            session_uuid : required
-            project_id   : required
-            cb           : undefined
+            path : required
+            cb   : undefined
         @dbg("terminate_session")
         @call
             mesg :
-                message.terminate_session
-                    session_uuid : opts.session_uuid
-                    project_id   : opts.project_id
+                message.terminal_session_cancel
+                    project_id : @project_id
+                    path       : opts.path
             timeout : 30
             cb      : opts.cb
 

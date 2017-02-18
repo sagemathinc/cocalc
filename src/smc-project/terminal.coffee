@@ -13,10 +13,10 @@ async          = require('async')
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
 
-# Map from session_id's to session objects
+# Map from keys to session objects
 session_cache = {}
 
-get_key = (session_id, socket_id, channel) -> "#{session_id}-#{socket_id}-#{channel}"
+get_key = (path, socket_id, channel) -> "#{path}-#{socket_id}-#{channel}"
 
 abspath = (path) ->
     if not path?
@@ -36,40 +36,33 @@ exports.get_session = (socket, mesg) ->
     #   (for one or more users) on the same session.
     # - If session does not exist, create new session, wrapper object and return channel
     #   to the hub.
-    dbg = require('./local_hub').client.dbg("session.get_session(id='#{mesg.session_id}')")
+    dbg = require('./local_hub').client.dbg("session.get_session(path='#{mesg.path}')")
     dbg(JSON.stringify(mesg))
 
     # - Check if we already have this session, over this socket, with the requested channel.
-    key = get_key(mesg.session_id, socket.id, mesg.channel)
+    key = get_key(mesg.path, socket.id, mesg.channel)
     if session_cache[key]?
         dbg("using cache")
         socket.write_mesg('json', message.success(id:mesg.id))
         return
 
     dbg("create terminal session and store in our cache")
-    options = mesg.options
-
-    if options?.filename?
-        init_filename = misc.console_init_filename(abspath(options.filename))
-        if fs.existsSync(init_filename) and mesg.file == 'bash'
-            mesg.args.push('--init-file')
-            mesg.args.push(init_filename)
-
     options =
-        name : mesg.file
-        cols : mesg.options?.cols ? 100
-        rows : mesg.options?.rows ? 40
-        cwd  : abspath(mesg.options?.path) ? process.env.HOME
+        name : 'xterm'
+        cols : 100
+        rows : 40
+        cwd  : abspath(mesg.path)
         env  : process.env
-    session = session_cache[key] = new TerminalSession(socket, mesg.channel, mesg.session_id, mesg.file, mesg.args, options, dbg)
+
+    session = session_cache[key] = new TerminalSession(socket, mesg.channel, mesg.path, 'bash', [], options, dbg)
 
     dbg("set terminal session to remove from cache when it ends")
     session.once 'end', ->
         delete session_cache[key]
         dbg("telling hub that terminal session ended")
-        m = message.terminal_session_end
-            id         : misc.uuid()
-            session_id : mesg.session_id
+        m = message.terminal_session_cancel
+            id   : misc.uuid()
+            path : mesg.path
         socket.write_mesg('json', m)
 
     dbg("inform client that terminal session exists.")
@@ -77,7 +70,7 @@ exports.get_session = (socket, mesg) ->
 
 
 exports.cancel_session = (socket, mesg) ->
-    session_cache[get_key(mesg.session_id, socket.id, mesg.channel)]?.close()
+    session_cache[get_key(mesg.path, socket.id, mesg.channel)]?.close()
 
 
 ###
@@ -95,16 +88,16 @@ Events:
 
 ###
 
-# Map from session_id to pty term objects
+# Map from path to pty term objects
 pty_cache = {}
 
 DEBUG = true
 
 class TerminalSession extends EventEmitter
-    constructor : (@socket, @channel, @session_id, file, args, options, @dbg) ->
+    constructor : (@socket, @channel, @path, file, args, options, @dbg) ->
         # Create pty if not already defined
         @dbg("pty_cache sessions = #{JSON.stringify(misc.keys(pty_cache))}")
-        @term = pty_cache[@session_id] ?= pty_js.spawn(file, args, options)
+        @term = pty_cache[@path] ?= pty_js.spawn(file, args, options)
 
         @_closed = false
 
@@ -116,7 +109,7 @@ class TerminalSession extends EventEmitter
 
     _handle_term_exit: =>
         @dbg("the terminal has died, so make sure and remove it from the cache.")
-        delete pty_cache[@session_id]
+        delete pty_cache[@path]
         @close()
 
     _handle_mesg: (type, payload) =>
@@ -146,7 +139,7 @@ class TerminalSession extends EventEmitter
         @socket.removeListener('end', @close)
         delete @term
         delete @channel
-        delete @session_id
+        delete @path
         delete @socket
         @emit('end')
         @removeAllListeners()

@@ -17,28 +17,25 @@ misc           = require('smc-util/misc')
 # but is proxied over the socket connection to the local_hub
 # using a binary channel.
 
-# Map from project_id-session_id to session stream objects.
+# Map from project_id-path to session stream objects.
 session_cache = {}
 
 # get_session callbacks
 get_session_cbs = {}
 
-get_key = (project_id, session_id) -> "#{project_id}-#{session_id}"
+get_key = (project_id, path) -> "#{project_id}-#{path}"
 
 exports.get_session = (opts) ->
     opts = defaults opts,
-        local_hub  : required
-        session_id : required
-        file       : 'bash'
-        args       : []
-        options    : undefined
-        cb         : required
-    dbg = (m) -> opts.local_hub.dbg("console_session(id='#{opts.session_id}'): #{m}")
+        local_hub : required
+        path      : required
+        cb        : required
+    dbg = (m) -> opts.local_hub.dbg("get_session(path='#{opts.path}'): #{m}")
     dbg(JSON.stringify(opts.term_opts))
 
     # - Check if we already have this session over the given
     #   local_hub socket.  If so, just return it.
-    key = get_key(opts.local_hub.project_id, opts.session_id)
+    key = get_key(opts.local_hub.project_id, opts.path)
     if session_cache[key]?
         opts.cb(undefined, session_cache[key])
         return
@@ -66,11 +63,8 @@ exports.get_session = (opts) ->
                 mesg    :
                     message.terminal_session_create
                         project_id : opts.local_hub.project_id
-                        session_id : opts.session_id
+                        path       : opts.path
                         channel    : channel
-                        file       : opts.file
-                        args       : opts.args
-                        options    : opts.options
                 timeout : 20
                 cb      : cb
     ], (err) ->
@@ -84,9 +78,8 @@ exports.get_session = (opts) ->
             opts.local_hub.call
                 mesg    :
                     message.terminal_session_cancel
-                        project_id : opts.local_hub.project_id
-                        session_id : opts.session_id
-                        channel    : channel
+                        path    : opts.path
+                        channel : channel
         else
             session = session_cache[key] = new TerminalSession(socket, channel, dbg)
             session.once('end', -> delete session_cache[key])
@@ -97,8 +90,8 @@ exports.get_session = (opts) ->
 
 # The hub calls this when a terminal session is terminated by the project.
 # Of course the socket need NOT be disconnected.
-exports.session_ended = (project_id, session_id) ->
-    session_cache[get_key(project_id, session_id)]?.close()
+exports.session_ended = (project_id, path) ->
+    session_cache[get_key(project_id, path)]?.close()
 
 ###
 

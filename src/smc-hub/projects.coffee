@@ -38,7 +38,7 @@ class Project
         if obj? and @local_hub?
             if obj.path?
                 if obj.path[0] != '/'
-                    obj.path = @local_hub.path+ '/' + obj.path
+                    obj.path = @local_hub.path + '/' + obj.path
             else
                 obj.path = @local_hub.path
 
@@ -114,16 +114,14 @@ class Project
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
-    console_session: (opts) =>
-        @dbg("console_session")
-        @_fixpath(opts.params)
-        opts.project_id = @project_id
-        @local_hub.console_session(opts)
+    terminal_session: (opts) =>
+        @dbg("terminal_session")
+        @_fixpath(opts)
+        @local_hub.terminal_session(opts)
 
     terminate_session: (opts) =>
         opts = defaults opts,
-            session_uuid : required
-            cb           : undefined
+            path : required
+            cb   : undefined
         @dbg("terminate_session")
-        opts.project_id = @project_id
         @local_hub.terminate_session(opts)

@@ -65,125 +65,6 @@ message
 
 
 ############################################
-# Sage session management; executing code
-#############################################
-
-# hub --> sage_server&console_server, etc. and browser --> hub
-message
-    event        : 'start_session'
-    type         : required           # "sage", "console";  later this could be "R", "octave", etc.
-    # TODO: project_id should be required
-    project_id   : undefined          # the project that this session will start in
-    session_uuid : undefined          # set by the hub -- client setting this will be ignored.
-    params       : undefined          # extra parameters that control the type of session
-    id           : undefined
-    limits       : undefined
-
-# hub --> browser
-message
-    event         : 'session_started'
-    id            : undefined
-    session_uuid  : undefined
-    limits        : undefined
-    data_channel  : undefined # The data_channel is a single UTF-16
-                              # character; this is used for
-                              # efficiently sending and receiving
-                              # non-JSON data (except channel
-                              # '\u0000', which is JSON).
-
-# hub --> client
-message
-    event         : 'session_reconnect'
-    session_uuid  : undefined   # at least one of session_uuid or data_channel must be defined
-    data_channel  : undefined
-
-
-#
-
-# client --> hub
-message
-    event        : 'connect_to_session'
-    id           : undefined
-    type         : required
-    project_id   : required
-    session_uuid : required
-    params       : undefined          # extra parameters that control the type of session -- if we have to create a new one
-
-message
-    event         : 'session_connected'
-    id            : undefined
-    session_uuid  : required
-    data_channel  : undefined  # used for certain types of sessions
-    history       : undefined  # used for console/terminal sessions
-
-
-# sage_server&console_server --> hub
-message
-    event  : 'session_description'
-    pid    : required
-    limits : undefined
-
-# client <----> hub <--> sage_server
-message
-    event        : 'terminate_session'
-    project_id   : undefined
-    session_uuid : undefined
-    reason       : undefined
-    done         : undefined
-
-message
-    event        : 'execute_code'
-    id           : undefined
-    code         : required
-    data         : undefined
-    session_uuid : undefined
-    cell_id      : undefined  # optional extra useful information about which cells is being executed
-    preparse     : true
-    allow_cache  : true
-
-# Output resulting from evaluating code that is displayed by the browser.
-# sage_server --> local hub --> hubs --> clients
-message
-    event        : 'output'
-    id           : undefined   # the id for this particular computation
-    stdout       : undefined   # plain text stream
-    stderr       : undefined   # error text stream -- colored to indicate an error
-    html         : undefined   # arbitrary html stream
-    md           : undefined   # github flavored markdown
-    tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
-    d3           : undefined   # d3 data document, e.g,. {d3:{viewer:'graph', data:{...}}}
-    hide         : undefined   # 'input' or 'output'; hide display of given component of cell
-    show         : undefined   # 'input' or 'output'; show display of given component of cell
-    auto         : undefined   # true or false; sets whether or not cell auto-executess on process restart
-    javascript   : undefined   # javascript code evaluation stream (see also 'execute_javascript' to run code directly in browser that is not part of the output stream).
-    interact     : undefined   # create an interact layout defined by a JSON object
-    obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
-    file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.com/blobs/filename?uuid=[the uuid]
-    raw_input    : undefined   # used for getting blocking input from client -- {raw_input:{prompt:'input stuff?', value:'', submitted:false}}
-    done         : false       # the sequences of messages for a given code evaluation is done.
-    session_uuid : undefined   # the uuid of the session that produced this output
-    once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
-    clear        : undefined   # if true, clears all output of the current cell before rendering message.
-    events       : undefined   # {'event_name':'name of Python callable to call', ...} -- only for images right now
-
-# This message tells the client to execute the given Javascript code
-# in the browser.  (For safety, the client may choose to ignore this
-# message.)  If coffeescript==true, then the code is assumed to be
-# coffeescript and is first compiled to Javascript.  This message is
-# "out of band", i.e., not meant to be part of any particular output
-# cell.  That is why there is no id key.
-
-# sage_server --> hub --> client
-message
-    event        : 'execute_javascript'
-    session_uuid : undefined              # set by the hub, since sage_server doesn't (need to) know the session_uuid.
-    code         : required
-    obj          : undefined
-    coffeescript : false
-    cell_id      : undefined    # if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
-
-
-############################################
 # Information about several projects or accounts
 #############################################
 
@@ -1055,21 +936,35 @@ Terminal sessions
 message
     event      : 'terminal_session_create'
     id         : undefined
-    project_id : required          # the project that this session will start in
-    session_id : required
-    channel    : required          # binary channel we will use
-    file       : 'bash'
-    args       : []
-    options    : undefined
+    project_id : required   # the project that this session will start in
+    path       : required   # the path of the .term file, so this could be "foo/bar/a.term"
+    channel    : required   # binary channel we will use for communication between hub and local_hub for this terminal session.
 
+# client <--> hub <--> local_hub
 message
     event      : 'terminal_session_cancel'
     id         : undefined
-    project_id : required
-    session_id : required
-    channel    : required
+    project_id : undefined
+    path       : required
+
+# client --> hub
+message
+    event        : 'connect_to_terminal_session'
+    id           : undefined
+    project_id   : required
+    path         : required
+
+# hub --> client
+message
+    event        : 'terminal_session_connected'
+    id           : undefined
+    project_id   : required
+    path         : required
+    data_channel : required
+    history      : undefined
 
 message
-    event      : 'terminal_session_end'
-    id         : undefined
-    session_id : required
+    event        : 'data_channel_cancel'
+    id           : undefined
+    data_channel : required
+
