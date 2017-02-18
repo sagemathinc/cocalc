@@ -30,6 +30,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
 {file_associations} = require('./editor')
+{special_filenames_with_no_extension} = require('./project_file')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -241,7 +242,7 @@ ProjectNewForm = rclass ({name}) ->
     submit: (ext) ->
         if not @state.filename  # empty filename
             return
-        if ext
+        if ext or special_filenames_with_no_extension().indexOf(@state.filename) > -1
             @create_file(ext)
         else if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
