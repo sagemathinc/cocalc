@@ -544,10 +544,13 @@ class SyncDoc extends EventEmitter
             window.syncstrings[@_path] = @
         ###
 
-        #dbg = @dbg("constructor(path='#{@_path}')")
-        #dbg('connecting...')
+        dbg = @dbg("constructor(path='#{@_path}')")
+        dbg('connecting...')
         @connect (err) =>
-            #dbg('connected')
+            if err
+                dbg("error connecting -- '#{err}'")
+            else
+                dbg("connected")
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
@@ -830,22 +833,28 @@ class SyncDoc extends EventEmitter
                 read_only         : null
                 last_file_change  : null
 
+        dbg = @dbg("connect")
+        dbg("waiting for syncstrings synctable to connect...")
         @_syncstring_table = @_client.sync_table(query)
 
         @_syncstring_table.once 'connected', =>
+            dbg("syncstrings synctable connected")
             @_handle_syncstring_update()
             @_syncstring_table.on('change', @_handle_syncstring_update)
             async.series([
                 (cb) =>
+                    dbg("connecting to patches, cursors, evaluator")
                     async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
                 (cb) =>
                     @_closed = false
                     if @_client.is_user() and not @_periodically_touch?
+                        dbg("touching")
                         @touch(1)
                         # touch every few minutes while syncstring is open, so that backend local_hub
                         # (if open) keeps its side open
                         @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
                     if @_client.is_project()
+                        dbg("project: checking disk file")
                         @_load_from_disk_if_newer(cb)
                     else
                         cb()
@@ -856,7 +865,8 @@ class SyncDoc extends EventEmitter
                     return
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
-                    cb    : (err, init) => @emit('init', err ? init.toJS().error)
+                    cb    : (err, init) =>
+                        @emit('init', err ? init.toJS().error)
                 if err
                     cb(err)
                 else

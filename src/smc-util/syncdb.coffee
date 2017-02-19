@@ -91,6 +91,7 @@ class exports.SynchronizedDB extends EventEmitter
             @_set_data_from_doc()
             @_doc.sync()
 
+    close: => @destroy()  # TODO: change api everywhere in SMC to use "close".
     destroy: () =>
         @_doc?.removeListener('sync', @_on_sync)
         @_doc?.disconnect_from_session()
@@ -423,5 +424,3 @@ class exports.SynchronizedDB extends EventEmitter
 
     count: () =>
         return misc.len(@_data)
-
-

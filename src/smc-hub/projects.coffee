@@ -34,14 +34,6 @@ class Project
     dbg: (m) =>
         winston.debug("project(#{@project_id}): #{m}")
 
-    _fixpath: (obj) =>
-        if obj? and @local_hub?
-            if obj.path?
-                if obj.path[0] != '/'
-                    obj.path = @local_hub.path + '/' + obj.path
-            else
-                obj.path = @local_hub.path
-
     owner: (cb) =>
         if not @database?
             cb('need database in order to determine owner')
@@ -77,7 +69,6 @@ class Project
             timeout : 15
             cb      : undefined
         #@dbg("call")
-        @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
 
@@ -104,19 +95,16 @@ class Project
 
     read_file: (opts) =>
         @dbg("read_file")
-        @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.read_file(opts)
 
     write_file: (opts) =>
         @dbg("write_file")
-        @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
     terminal_session: (opts) =>
         @dbg("terminal_session")
-        @_fixpath(opts)
         @local_hub.terminal_session(opts)
 
     terminate_session: (opts) =>

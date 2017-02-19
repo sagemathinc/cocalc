@@ -90,7 +90,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
         @call_callbacks = {}
-        @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
     project: (cb) =>
@@ -692,7 +691,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             client       : required
             path         : required
             cb           : required    # cb(err, [session_connected message])
-        dbg = (m) => @dbg("terminal_session(id='#{opts.path}'): #{m}")
+        dbg = (m) => @dbg("terminal_session(path='#{opts.path}'): #{m}")
         dbg()
 
         terminal.get_session

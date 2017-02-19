@@ -138,7 +138,7 @@ handle_mesg = (socket, mesg, handler) ->
 
     switch mesg.event
         when 'terminal_session_create'
-            terminal.get_session(socket, mesg)
+            terminal.get_session(hub_client, socket, mesg)
         when 'terminal_session_cancel'
             terminal.cancel_session(socket, mesg)
         when 'jupyter_port'

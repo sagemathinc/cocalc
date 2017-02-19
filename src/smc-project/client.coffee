@@ -51,6 +51,8 @@ syncstring = require('smc-util/syncstring')
 
 sage_session = require('./sage_session')
 
+syncdb = require('./syncdb')
+
 {json} = require('./common')
 
 {defaults, required} = misc
@@ -443,6 +445,7 @@ class exports.Client extends EventEmitter
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000) =>
+        @dbg("sync_table")("query=#{misc.to_json(query)}")
         return synctable.sync_table(query, options, @, debounce_interval)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,
@@ -455,11 +458,20 @@ class exports.Client extends EventEmitter
     sync_string: (opts) =>
         opts = defaults opts,
             path    : required
-            default : ''
+            default : ''  # TODO: not implemented!
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
+
+    # Get the synchronized databse with the given path.
+    syncdb: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : required
+        @dbg("syncdb(path='#{opts.path}')")()
+        opts.client = @
+        syncdb.get_syncdb(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
     # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).

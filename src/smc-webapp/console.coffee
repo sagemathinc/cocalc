@@ -39,6 +39,7 @@ misc             = require('smc-util/misc')
 
 misc_page        = require('./misc_page')
 
+{synchronized_db} = require('./syncdb')
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
@@ -105,10 +106,13 @@ class Console extends EventEmitter
             on_reconnected : undefined
             set_title      : undefined
 
+        ## window.t = @
         @_init_default_settings()
 
         @project_id = @opts.project_id
         @path = @opts.path
+
+        @_init_syncdb()
 
         @mark_file_use = debounce(@mark_file_use, 3000)
 
@@ -188,6 +192,20 @@ class Console extends EventEmitter
 
         if opts.session?
             @set_session(opts.session)
+
+    _init_syncdb: (cb) =>
+        synchronized_db
+            project_id : @project_id
+            filename   : @path
+            cb         : (err, db) =>
+                if err
+                    console.warn("ERROR connecting to state file '#{@path}' -- #{err}")
+                else
+                    if @_closed
+                        db.close()
+                    else
+                        @_syncdb = db
+                cb?(err)
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
@@ -552,9 +570,18 @@ class Console extends EventEmitter
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: () =>
+        if @_closed
+            return
+        @_closed = true
+        @_connected = false
+
+
         @session?.close()
         delete @session
-        @_connected = false
+
+        @_syncdb?.close()
+        delete @_syncdb
+
         if @_mousedown?
              $(document).off('mousedown', @_mousedown)
         if @_mouseup?
