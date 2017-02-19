@@ -228,10 +228,12 @@ class SyncTable extends EventEmitter
             # throttle emitting of change events
             all_changed_keys = {}
             do_emit_changes = =>
-                if misc.len(all_changed_keys) > 0
-                    #console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
-                    @emit('change', misc.keys(all_changed_keys))
-                    all_changed_keys = {}
+                #console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
+                # CRITICAL: some code depends on emitting change even for the *empty* list of keys!
+                # E.g., projects page won't load for new users.  This is the *change* from not
+                # loaded to being loaded, which does make sense.
+                @emit('change', misc.keys(all_changed_keys))
+                all_changed_keys = {}
             do_emit_changes = underscore.throttle(do_emit_changes, @_throttle_changes)
             @emit_change = (changed_keys) =>
                 #console.log("#{@_table} -- queue changes", changed_keys)

@@ -11,6 +11,9 @@ LICENSE   : AGPLv3
 
 async = require('async')
 
+# disable incredibly verbose DB debugging, which makes interactive use hard
+require('smc-hub/postgres-base').DEBUG = false
+
 global.misc = require('smc-util/misc')
 global.done = misc.done
 global.done1 = misc.done1
@@ -90,7 +93,7 @@ global.delete_account = (email) ->
 
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
 
-DEFAULT_CLOSE_DAYS = 60
+DEFAULT_CLOSE_DAYS = 45
 
 global.close_unused_projects = (host, cb) ->
     cb ?= done()
@@ -103,9 +106,9 @@ global.close_unused_projects = (host, cb) ->
                 dry_run      : false
                 min_age_days : DEFAULT_CLOSE_DAYS
                 max_age_days : 1000
-                threads      : 2
+                threads      : 3
                 host         : host
-                cb           : cb
+                cb           : (err) -> cb?(err)
 
 console.log("close_unused_projects('hostname') -- closes all projects on that host not used in the last #{DEFAULT_CLOSE_DAYS} days")
 
@@ -129,6 +132,7 @@ global.active_students = (cb) ->
                 else
                     console.log(stats)
                     cb()
+    return
 
 
 console.log("active_students() -- stats about student course projects during the last 30 days")

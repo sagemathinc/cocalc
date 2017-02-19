@@ -785,6 +785,8 @@ class SyncTable extends EventEmitter
                     @emit('change', k)
 
     _process_results: (rows) =>
+        if @_state == 'closed'
+            return
         for x in rows
             k = x[@_primary_key]
             v = immutable.fromJS(misc.map_without_undefined(x))
