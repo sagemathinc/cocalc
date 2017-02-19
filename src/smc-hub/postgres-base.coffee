@@ -5,6 +5,8 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
+exports.DEBUG = true
+
 QUERY_ALERT_THRESH_MS=5000
 
 EventEmitter = require('events')
@@ -50,7 +52,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             host         : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
             database     : process.env['SMC_DB'] ? 'smc'
             user         : process.env['PGUSER'] ? 'smc'
-            debug        : true
+            debug        : exports.DEBUG
             connect      : true
             password     : undefined
             pool         : undefined   # IGNORED for now.
@@ -178,7 +180,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 client.query("SET enable_nestloop TO off", cb)
         ], (err) =>
             if err
-                dbg("Failed to connect to database -- #{err}")
+                mesg = "Failed to connect to database -- #{err}"
+                dbg(mesg)
+                console.warn(mesg)  # make it clear for interactive users with debugging off -- common mistake with env not setup right.
                 cb?(err)
             else
                 @_client = client

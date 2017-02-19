@@ -771,7 +771,7 @@ class ComputeServerClient
             dry_run      : false       # if true, just explain what would get deleted, but don't actually do anything.
             limit        : undefined   # if given, do this many of the closes, then just stop (use to test before going full on)
             cb           : required
-        dbg = @dbg("close_unused_projects")
+        dbg = @dbg("close_open_unused_projects")
         target = undefined
         async.series([
             (cb) =>
@@ -821,7 +821,12 @@ class ComputeServerClient
                                         # see if project is really not closed
                                         project.state
                                             cb : (err, s) =>
-                                                state = s?.state; cb(err)
+                                                if err
+                                                    err = "error computing state -- #{err}"
+                                                    cb(err)
+                                                else
+                                                    state = s?.state
+                                                    cb()
                                     (cb) =>
                                         if state == 'closed'
                                             cb(); return
@@ -1135,9 +1140,10 @@ class ProjectClient extends EventEmitter
         if opts.force or not @_state_time? or new Date() - (@_last_state_update ? 0) >= 1000*STATE_UPDATE_INTERVAL_S
             dbg("calling remote compute server for state")
             @_action
-                action : "state"
-                args   : if opts.update then ['--update']
-                cb     : (err, resp) =>
+                action  : "state"
+                args    : if opts.update then ['--update']
+                timeout : 60
+                cb      : (err, resp) =>
                     @_last_state_update = new Date()
                     if err
                         dbg("problem getting state -- #{err}")
