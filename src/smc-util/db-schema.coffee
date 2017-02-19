@@ -402,7 +402,7 @@ schema.webapp_errors =
         uptime       : type : 'string'
         start_time   : type : 'timestamp'
         time         : type : 'timestamp'
-    pg_indexes : ['time', 'name', 'message', 'account_id', 'smc_git_rev', 'smc_version', 'start_time', 'browser']
+    pg_indexes : ['time', 'name', 'account_id', 'smc_git_rev', 'smc_version', 'start_time', 'browser']
 
 schema.collaborators =
     primary_key : 'account_id'
