@@ -419,25 +419,35 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             @_local_hub_socket_queue.push(cb)
             @dbg("local_hub_socket: added socket request to existing queue, which now has length #{@_local_hub_socket_queue.length}")
             return
+
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
-        connecting_timer = undefined
 
+        canceled_via_timer = false
         cancel_connecting = () =>
-            for cb in @_local_hub_socket_queue
-                cb('timeout')
             @_local_hub_socket_connecting = false
+            v = @_local_hub_socket_queue
             @_local_hub_socket_queue = []
+            canceled_via_timer = true
+            for cb in v
+                cb('timeout')
 
         # If below fails for 20s for some reason, cancel everything to allow for future attempt.
         connecting_timer = setTimeout(cancel_connecting, 20000)
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
+            if canceled_via_timer
+                if not err and socket?
+                    socket.close()
+                return
+            clearTimeout(connecting_timer)
             @_local_hub_socket_connecting = false
+            v = @_local_hub_socket_queue
+            @_local_hub_socket_queue = []
             @dbg("local_hub_socket: new_socket returned #{err}")
             if err
-                for cb in @_local_hub_socket_queue
+                for cb in v
                     cb(err)
             else
 
@@ -460,7 +470,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 # and not something else (e.g., a console).
                 socket.write_mesg('json', {event:'hello'})
 
-                for cb in @_local_hub_socket_queue
+                for cb in v
                     cb(undefined, socket)
 
                 @_socket = socket
@@ -475,7 +485,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @restart_if_version_too_old()
                 setTimeout(check_version_received, 60*1000)
 
-            clearTimeout(connecting_timer)
 
     # Get a new connection to the local_hub,
     # authenticated via the secret_token, and enhanced

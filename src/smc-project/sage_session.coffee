@@ -125,7 +125,7 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
         (cb) =>
             winston.debug("request sage session from server.")
             misc_node.enable_mesg(sage_socket)
-            sage_socket.write_mesg('json', message.start_session(type:'sage'))
+            sage_socket.write_mesg('json', message.sage_session_start())
             winston.debug("Waiting to read one JSON message back, which will describe the session....")
             # TODO: couldn't this just hang forever :-(
             sage_socket.once 'mesg', (type, desc) =>

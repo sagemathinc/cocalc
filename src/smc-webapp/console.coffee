@@ -39,6 +39,8 @@ misc             = require('smc-util/misc')
 
 misc_page        = require('./misc_page')
 
+{salvus_client}  = require('./salvus_client')
+
 {synchronized_db} = require('./syncdb')
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
@@ -106,7 +108,7 @@ class Console extends EventEmitter
             on_reconnected : undefined
             set_title      : undefined
 
-        ## window.t = @
+        window.t = @
         @_init_default_settings()
 
         @project_id = @opts.project_id
@@ -272,7 +274,6 @@ class Console extends EventEmitter
             # In case nothing comes back soon, we reconnect -- maybe the session is dead?
             # We wait 20x the ping time (or 10s), so if connection is slow, this won't
             # constantly reconnect, but it is very fast in case the connection is fast.
-            {salvus_client} = require('./salvus_client')
             latency = salvus_client.latency()
             if latency?
                 delay = Math.min(10000, latency*20)
@@ -634,7 +635,6 @@ class Console extends EventEmitter
         @element.find("a[href=\"#initfile\"]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
             content = initfile_content(@opts.filename)
-            {salvus_client} = require('./salvus_client')
             salvus_client.exec
                 project_id  : @project_id
                 command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
@@ -656,7 +656,6 @@ class Console extends EventEmitter
     open_init_file: ()  =>
         initfn = misc.console_init_filename(@opts.filename)
         content = initfile_content(@opts.filename)
-        {salvus_client} = require('./salvus_client')
         salvus_client.exec
             project_id  : @project_id
             command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
@@ -817,19 +816,9 @@ class Console extends EventEmitter
     # element for the editor, then resize the renderer and the
     # remote PTY.
     resize: () =>
-        return ## TODO: disable for now -- use a separate channel in rewrite
-
-        if not @session?
-            # don't bother if we don't even have a remote connection
-            # FUTURE: could queue this up to send
-            return
+        return  # TODO delete/deprecate
 
         if not @_connected
-            return
-
-        if not @value
-            # Critical that we wait to receive something before doing any sort of resize; otherwise,
-            # the terminal will get "corrupted" with control codes.
             return
 
         @resize_terminal()
@@ -859,6 +848,8 @@ class Console extends EventEmitter
         @_ignore_mesg = false
 
     resize_terminal: () =>
+        return # TODO: delete
+
         # Determine size of container DOM.
         # Determine the average width of a character by inserting 10 characters,
         # seeing how wide that is, and dividing by 10.  The result is typically not
@@ -898,6 +889,57 @@ class Console extends EventEmitter
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
+
+    # Compute the current size of our render buffer, and set
+    # that in the syncdb, so that the backend knows our size.
+    compute_size: =>
+        if not @_syncdb?
+            # Not ready yet
+            return
+
+        # Determine size of container DOM.
+        # Determine the average width of a character by inserting 10 characters,
+        # seeing how wide that is, and dividing by 10.  The result is typically not
+        # an integer, which is why we have to use multiple characters.
+        @_c = $("<span>Term-inal&nbsp;</span>").prependTo(@terminal.element)
+        character_width = @_c.width()/10
+        @_c.remove()
+        elt = $(@terminal.element)
+
+        # The above style trick for character width is not reliable for getting the height of each row.
+        # For that we use the terminal itself, since it already has rows, and hopefully at least
+        # one row has something in it (a div).
+        #
+        # The row height is in fact *NOT* constant -- it can vary by 1 (say) depending
+        # on what is in the row.  So we compute the maximum line height, which is safe, so
+        # long as we throw out the outliers.
+        heights = ($(x).height() for x in elt.children())
+        # Eliminate weird outliers that sometimes appear (e.g., for last row); yes, this is
+        # pretty crazy...
+        heights = (x for x in heights when x <= heights[0] + 2)
+        row_height = Math.max( heights ... )
+
+        if character_width == 0 or row_height == 0
+            # The editor must not yet be visible -- do nothing
+            return
+
+        # Determine the number of columns from the width of a character, computed above.
+        font_size = @opts.font.size
+        cols = Math.max(1, Math.floor(elt.width() / character_width))
+
+        # Determine number of rows from the height of the row, as computed above.
+        rows = Math.max(1, Math.floor(elt.height() / row_height))
+
+        # Set our size
+        @_syncdb.update
+            set:
+                rows   : rows
+                cols   : cols
+                active : misc.server_time()
+            where:
+                table : 'clients'
+                id    : salvus_client._conn_id
+        @_syncdb.save()
 
     set_scrollbar_to_term: () =>
         if @terminal.ybase == 0  # less than 1 page of text in buffer

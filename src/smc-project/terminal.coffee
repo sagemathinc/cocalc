@@ -5,6 +5,7 @@ Terminal support inside a project
 LICENSE: AGPLv3
 ###
 DEBUG = true
+CLIENT_TIMEOUT_M = 3
 
 {EventEmitter} = require('events')
 
@@ -65,24 +66,60 @@ class Terminal
                 else
                     @dbg("_init_file: success")
                 @_syncdb = syncdb
-                @_syncdb.update
-                    set :
-                        rows : 40
-                        cols : 120
-                    where :
-                        table : 'settings'
-                @_syncdb.save()
+                @_update_syncdb()
                 @_syncdb.on 'change', =>
                     @dbg("syncdb change to #{JSON.stringify(@_syncdb.select())}")
+                    @_update_syncdb()
 
                 cb?(err)
 
+    _update_syncdb: =>
+        if not @_syncdb?
+            return
+        clients = @_syncdb.select(where:{table:'clients'})
+        changed = false
+
+        # delete clients that haven't updated recently
+        cutoff = misc.minutes_ago(CLIENT_TIMEOUT_M)
+        v = []
+        for client in clients
+            if (client.active ? 0) < cutoff
+                changed = true
+                @_syncdb.delete
+                    where :
+                        table : 'clients'
+                        id    : client.id
+            else
+                v.push(client)
+        clients = v
+
+        settings = @_syncdb.select_one(where:{table:'settings'})
+        if clients.length > 0
+            # determine a size that works for all active clients
+            {rows, cols} = clients[0]
+            for client in clients.slice(1)
+                if client.rows < rows
+                    rows = client.rows
+                if client.cols < cols
+                    cols = client.cols
+            if settings.rows != rows or settings.cols != cols
+                changed = true
+                @_pty?.resize(cols, rows)
+                @_syncdb.update
+                    set :
+                        rows : rows
+                        cols : cols
+                    where :
+                        table : 'settings'
+        if changed
+            @_syncdb.save()
+
     _init_pty: (file='bash', args=[], options={}) =>
-        if @pty?
-            @pty.removeAllListeners()
-            @pty.destroy()
-        @pty = pty_js.spawn(file, args, options)
-        @pty.on('exit', @_handle_pty_exit)
+        if @_pty?
+            @_pty.removeAllListeners()
+            @_pty.destroy()
+        @_pty = pty_js.spawn(file, args, options)
+        @_pty.on('exit', @_handle_pty_exit)
         # TODO: also need to reset all @_connections with new pty...
 
     new_connection: (opts) =>
@@ -93,7 +130,7 @@ class Terminal
         connection = @_connections[key]
         if connection?
             return connection
-        connection = @_connections[key] = new TerminalConnection(opts.socket, opts.channel, @pty, @dbg)
+        connection = @_connections[key] = new TerminalConnection(opts.socket, opts.channel, @_pty, @dbg)
         @dbg("set terminal connection to remove from cache when it ends")
         connection.once 'end', =>
             delete @_connections[key]
@@ -121,13 +158,13 @@ Events:
 ###
 
 class TerminalConnection extends EventEmitter
-    constructor : (@socket, @channel, @pty, @dbg) ->
+    constructor : (@_socket, @_channel, @_pty, @dbg) ->
         # Create pty if not already defined
         @_closed = false
-        @pty.on('data', @_handle_data)
-        @pty.on('exit', @_handle_pty_exit)
-        @socket.on('mesg', @_handle_mesg)
-        @socket.on('end', @close)
+        @_pty.on('data', @_handle_data)
+        @_pty.on('exit', @_handle_pty_exit)
+        @_socket.on('mesg', @_handle_mesg)
+        @_socket.on('end', @close)
 
     _handle_pty_exit: =>
         # TODO: maybe not...?
@@ -136,31 +173,31 @@ class TerminalConnection extends EventEmitter
     _handle_mesg: (type, payload) =>
         if @_closed
             return
-        if type == 'channel' and payload.channel == @channel
+        if type == 'channel' and payload.channel == @_channel
             data = payload.data
             if DEBUG
                 @dbg("got data from hub; now sending to terminal: data='#{data}'")
-            @pty.write(data)
+            @_pty.write(data)
 
     _handle_data: (data) =>
         if @_closed
             return
         if DEBUG
-            @dbg("got data from terminal; sending on to hub via channel='#{new Buffer(@channel)}'.  data='#{data}'")
-        @socket.write_mesg('channel', {channel:@channel, data:data})
+            @dbg("got data from terminal; sending on to hub via channel='#{new Buffer(@_channel)}'.  data='#{data}'")
+        @_socket.write_mesg('channel', {channel:@_channel, data:data})
 
     close: =>
         if @_closed
             return
         ##@dbg('close')
         @_closed = true
-        @pty.removeListener('data', @_handle_data)
-        @pty.removeListener('exit', @_handle_pty_exit)
-        @socket.removeListener('mesg', @_handle_mesg)
-        @socket.removeListener('end', @close)
-        delete @pty
-        delete @channel
+        @_pty.removeListener('data', @_handle_data)
+        @_pty.removeListener('exit', @_handle_pty_exit)
+        @_socket.removeListener('mesg', @_handle_mesg)
+        @_socket.removeListener('end', @close)
+        delete @_pty
+        delete @_channel
         delete @path
-        delete @socket
+        delete @_socket
         @emit('end')
         @removeAllListeners()

@@ -968,3 +968,6 @@ message
     id           : undefined
     data_channel : required
 
+message
+    event        : 'sage_session_start'
+    id           : undefined

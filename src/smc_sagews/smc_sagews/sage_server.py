@@ -147,12 +147,12 @@ class ConnectionJSON(object):
         if '\\u0000' in m:
             raise RuntimeError("NULL bytes not allowed")
         log(u"sending message '", truncate_text(m, 256), u"'")
-        self._send('j' + m)
+        self._send('jjjj' + m)
         return len(m)
 
     def send_blob(self, blob):
         s = uuidsha1(blob)
-        self._send('b' + s + blob)
+        self._send('bbbb' + s + blob)
         return s
 
     def send_file(self, filename):
@@ -190,13 +190,13 @@ class ConnectionJSON(object):
 
         if s[0] == 'j':
             try:
-                return 'json', json.loads(s[1:])
+                return 'json', json.loads(s[4:])
             except Exception as msg:
-                log("Unable to parse JSON '%s'"%s[1:])
+                log("Unable to parse JSON '%s'"%s[4:])
                 raise
 
         elif s[0] == 'b':
-            return 'blob', s[1:]
+            return 'blob', s[4:]
         raise ValueError("unknown message type '%s'"%s[0])
 
 def truncate_text(s, max_size):
@@ -240,8 +240,8 @@ class Message(object):
                 m[key] = val
         return m
 
-    def start_session(self):
-        return self._new('start_session')
+    def sage_session_start(self):
+        return self._new('sage_session_start')
 
     def session_description(self, pid):
         return self._new('session_description', {'pid':pid})
@@ -344,7 +344,7 @@ def client1(port, hostname):
     conn.connect((hostname, int(port)))
     conn = ConnectionJSON(conn)
 
-    conn.send_json(message.start_session())
+    conn.send_json(message.sage_session_start())
     typ, mesg = conn.recv()
     pid = mesg['pid']
     print("PID = %s" % pid)
@@ -1710,7 +1710,7 @@ def serve_connection(conn):
             log("Sending a signal")
             os.kill(mesg['pid'], mesg['signal'])
         return
-    if mesg['event'] != 'start_session':
+    if mesg['event'] != 'sage_session_start':
         log("Received an unknown message event = %s; terminating session."%mesg['event'])
         return
 
