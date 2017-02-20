@@ -930,9 +930,6 @@ project's Notebook server.
 In principle the scheme supports other web services embedded in SMC as well.
 
 
-From the server side
---------------------
-
 
 .. _README: https://github.com/sagemathinc/smc/blob/master/README.md#architecture
 .. _Babel: http://babeljs.io/
