@@ -4,7 +4,7 @@ technologies are used, how, and why.  This is in part because a lot of it has
 been developed by the seat of their pants (understandably; this is not meant as
 a criticism) and a lot of the details have been in flux, and not worth
 documenting.  After all, the details should only really be of interest of the
-SMC developers themsevles.  The details even of setting up a personal SMC
+SMC developers themselves.  The details even of setting up a personal SMC
 server have mostly been squirreled away into install scripts and Dockerfiles
 such that it doesn't require one to have a deep understanding of how it all
 works.
@@ -65,9 +65,11 @@ and build tools.
 Node.js
 -------
 
-Although SMC's source tree contains a smörgåsbord of (mostly small) Python
-scripts for various management tasks, most / all of SMC's backend is built
-not with Python, but with `Node.js`_.
+Although SMC's source tree contains a smorgasbord of (mostly small) Python
+scripts for various management tasks, most of SMC's backend is built not
+with Python, but with `Node.js`_ (the most notable exception is the server
+backend for Sage worksheets which is still in Python, as it has to interface
+closely with Sage).
 
 Most software developers are, at this point, at least passingly familiar
 Node.js (often referred to as just "Node"). But in short, it is a
@@ -136,7 +138,7 @@ bidirectional communication between the client (or clients) and the server.
 Because of the importance of this, and the many different ways to implement
 it all with different advantages and disadvantages, there has been an
 explosion of different real-time communication frameworks.  As with other
-aspects of web development, the techniques to implment this functionality
+aspects of web development, the techniques to implement this functionality
 ("ajax", long-polling ("comet"), WebSockets, etc.) have changed over the
 years and have varying degrees of support on different clients.  There are
 also higher-level connection features one needs such as multiplexing,
@@ -213,14 +215,14 @@ If you've ever used a GUI toolkit like wx or Swing it shouldn't be too hard
 to pick up on what it's doing.
 
 Using React is quite a bit different from the old-fashioned way of making
-reactive web UIs with JavaScript.  What I'm calling the "old-fashioned" way is
-a couple things.  For one, the server might render serve up a bunch of HTML
-containing all the elements in your page, many of which might by "hidden" using
-CSS, and the JavaScript would hide and unhide elements on the page.  Or the
-JavaScript might generate some elements and insert them directly into the DOM
-and remove them as needed, either using the DOM API directly or, somewhat
-later, tools like `jQuery`_ (note: jQuery still has a role to play even in
-conjunction with React though).
+reactive web UIs with JavaScript.  What I'm calling the "old-fashioned" way
+is a couple things.  For one, the server might serve up a bunch of HTML
+containing all the elements in your page, many of which might by "hidden"
+using CSS, and the JavaScript would hide and unhide elements on the page.
+Or the JavaScript might generate some elements and insert them directly into
+the DOM and remove them as needed, either using the DOM API directly or,
+somewhat later, tools like `jQuery`_ (note: jQuery still has a role to play
+even in conjunction with React though).
 
 In other words, gone are the days of servers rendering and returning HTML to
 the browser.  All the rendering is pushed entirely to the client, with the
@@ -375,8 +377,8 @@ global namespace, as was necessary to share between JavaScript files in the
 bad old days).  Unfortunately, most (in fact no) browsers support this
 feature.  One also needs ways to find static resources relative to
 JavaScript modules, transform the development dialect into JavaScript that
-can run in the browser, minify and uglify the code, and put it all together
-in a big bundle that loads everything in the correct order.
+can run in the browser, minify and/or obfuscate the code, and put it all
+together in a big bundle that loads everything in the correct order.
 
 `webpack`_ is one of a number of popular build tools that serve this purpose.
 The entry-point to a webpack project is a file called ``webpack.config.js`` (or
@@ -396,9 +398,9 @@ tags that load its generated JS files.  It also does some other tricks, such as
 appending a hash to the JS filenames so that they can replace cached versions
 whenever the source changes.
 
-In practice it's less convenient to run ``webpack`` over and over
-again--instead one can run ``webpack --watch`` which watches all files for
-changes and rebuilds continuously.
+In practice it's less convenient to run ``webpack`` over and over again;
+instead one can run ``webpack --watch`` which watches all files for changes
+and rebuilds continuously.
 
 Conclusion
 ----------
@@ -432,7 +434,7 @@ accurate::
       |http1.1  |        |        |
       |         |        |        |
      \|/       \|/      \|/      \|/
-     Hub<----> Hub<---->Hub<---> Hub  <-----------> RethinkDB <--> RethinkDB  <--> RethinkDB ...
+     Hub<----> Hub<---->Hub<---> Hub <------> PostgreSQL
                /|\      /|\      /|\
                 |        |        |
        ---------|        |        | (tcp)
@@ -440,9 +442,6 @@ accurate::
        |                 |        |
       \|/               \|/      \|/
      Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has BTRFS snapshots
-
-(with the exception that William is in the process of replacing RethinkDB
-with PostgreSQL).
 
 It may be helpful to explain some of the entities in this diagram a bit
 more.
@@ -488,16 +487,16 @@ servers (discussed next).  The names and URLs of all the available compute
 servers live in a system table in the database.
 
 It also uses `node-http-proxy`_ to create an HTTP proxy server associated
-with each Hub (on port number one higher than the Hub's HTTP port).  If we
-understand correctly, the proxy handles all requests that are to be
-forwarded to individual compute nodes (such as requesting files, or
-resources on web servers belonging to a specific project).  HAproxy doesn't
-know anything about the compute nodes themseves--it just sees URLs that look
-like they belong to a project (they begin with a project UUID) and forwards
-those requests to the Hub's proxy, which in turn checks that the requester
-is authenticated and has permissions to access that project's resources.
-The proxy then forwards the request to the appropriate port on that
-project's compute node::
+with each Hub (on port number one higher than the Hub's HTTP port).  The
+proxy handles all requests that are to be forwarded to individual compute
+nodes (such as requesting files, or resources on web servers belonging to a
+specific project, including the Jupyter notebook server's websocket).
+HAproxy doesn't know anything about the compute nodes themseves--it just
+sees URLs that look like they belong to a project (they begin with a project
+UUID) and forwards those requests to the Hub's proxy, which in turn checks
+that the requester is authenticated and has permissions to access that
+project's resources.  The proxy then forwards the request to the appropriate
+port on that project's compute node::
 
     Client <--> HAProxy <--> Hub Proxy <--> Compute
 
@@ -749,7 +748,7 @@ is one called ``smc-webapp/redux_server_stats.coffee``.  This actually sets
 up a "synchronized table"--a client side view of one of the database
 tables--and attaches this to the ``AppRedux``, which also carries around a
 collection of synchronized tables which are instances of a class called
-``Table`` dfined in ``smc-redux.coffee``.  The tables are actually *not*
+``Table`` defined in ``smc-redux.coffee``.  The tables are actually *not*
 part of the Redux store, and are probably just attached here for
 convenience's sake, though this may seem a little confusing at first.  We
 will come back to this later.
@@ -844,7 +843,7 @@ slowly enough you can catch this briefly, while the page displays the
 "Signing you in" message.  This is part of a component called
 ``<LandingPage>`` defined in ``smc-webapp/landing_page.cjsx``.  In fact this
 is the page that is displayed when you're not logged in (i.e. the
-``"remember_me"`` cookie is not set, with all the marketing content and
+``"remember_me"`` cookie is not set), with all the marketing content and
 account creation box.  But if your cookie is set, then it just shows the
 "Signing you in message".
 
@@ -886,8 +885,7 @@ works, but basically it keeps a client-side copy of the results of queries
 to the Hub's database, and sets up change listeners that synchronizes those
 cached query results every time the real database changes (via a
 "changefeed", which asynchronously pushes an update to the client every time
-the query result changes--this is a feature around which RethinkDB was
-designed, but this is now being rewritten on top of PostgreSQL).
+the query result changes).
 
 In effect, while the page has been loading, in the the client app has been
 sending a database query to the server for all the user's projects, and
@@ -896,10 +894,10 @@ updates a prop called ``project_map`` which contains the result of the query
 for all the user's projects.  When the ``<ProjectsPage>`` component renders,
 it checks to see if ``project_map`` is undefined.  If it *is* undefined this
 means the database query hasn't completed yet (if the user has no projects
-the result of the query would be an empty list, but ``undefined``).  In this
-case a "Loading..." spinner is rendered.  The React-Redux connection ensures
-that the page is re-rendered whenever ``project_map`` changes, so as soon as
-the database query is completed the page will be re-rendered.
+the result of the query would be an empty list, but not ``undefined``).  In
+this case a "Loading..." spinner is rendered.  The React-Redux connection
+ensures that the page is re-rendered whenever ``project_map`` changes, so as
+soon as the database query is completed the page will be re-rendered.
 
 The rest is fairly straightforward, given an understanding of React.  The
 ``<ProjectsPage>`` component consists of a number of sub-components,
@@ -911,7 +909,7 @@ nothing special to this.
 Conclusion
 ^^^^^^^^^^
 
-And that's it! We got from an empty browser window the user's projects
+And that's it! We got from an empty browser window to the user's projects
 listing.  Many aspects were still simplified, as this was a long enough
 journey as it is.  But understanding this process should give a basic
 understanding about how most other pages in the SMC client are displayed.
