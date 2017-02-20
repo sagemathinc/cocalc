@@ -29,17 +29,18 @@ diagram unless you know what most of these terms are.
 CoffeeScript
 ------------
 
-CoffeeScript is one of many languages that transcompile to JavaScript (a.k.a.
-compile-to-JavaScript), and one of the most popular.  Wikipedia gives an easy
-to digest `overview <https://en.wikipedia.org/wiki/CoffeeScript>`_.  It's
-basically just syntactic sugar for JavaScript with inspiration from other
-languages, like list comprehensions (my personal favorite).  It's somewhat more
-Python-like (no braces or semicolons) with some syntax borrowed from functional
-languages like Haskell; some of it is also resembles YAML.  Code written in
-CoffeeScript can be translated directly into equivalent, and not too hard to
-read JavaScript.  Its use is not essential to SMC's design, but William prefers
-it over plain JS (and is in good company) so it's used virtually everywhere
-(along with a variant known as coffee-react or CJSX to be explained later).
+CoffeeScript is one of many languages that transcompile to JavaScript
+(a.k.a.  compile-to-JavaScript), and one of the most popular.  Wikipedia
+gives an easy to digest `overview
+<https://en.wikipedia.org/wiki/CoffeeScript>`_.  It's basically just
+syntactic sugar for JavaScript with inspiration from other languages.  It's
+somewhat more Python-like (no braces or semicolons) with some syntax
+borrowed from functional languages like Haskell; some of it is also
+resembles YAML.  Code written in CoffeeScript can be translated directly
+into equivalent, and not too hard to read JavaScript.  Its use is not
+essential to SMC's design, but William prefers it over plain JS (and is in
+good company) so it's used virtually everywhere (along with a variant known
+as coffee-react or CJSX to be explained later).
 
 Because of a number of factors, such as the prevalence of Node.js (see
 below), and also the differences across web browsers in what variants of
@@ -278,8 +279,11 @@ element like::
       <MyWidget name="baz" />
     </div>
 
-and so on.  [Note: Simple React components that are stateless can also be
-implemented as functions, which server as their ``render()`` method).]
+and so on.  
+
+.. note:
+    Simple React components that are stateless can also be implemented as
+    functions, which serve as their ``render()`` method).
 
 React can be used without JSX, but it saves a lot of verbosity and is
 probably a bit clearer, especially to anyone with HTML template experience.
@@ -338,24 +342,24 @@ React-Redux
 ^^^^^^^^^^^
 
 SMC's ``smc-react.coffee`` modules also makes use of the `React Redux`_
-JavaScript module to tie Redux state objects to React containers (i.e. update
-displays when the state changes--abstracting the state itself from any given
-view of the state).  This is just a package for making it convenient to
-implement model / view separation in React components.  The web developers
-describe this as "container components" but really they're just reinventing MVC
-abstraction.  The idea is to design React components that are stateless and
-just display a "snapshot" of some data that might be in the state, and then
-wrap the stateless views in "container components" that handle updating the
-view upon state changes.
+JavaScript module to tie Redux state objects to React containers (i.e.
+update displays when the state changes--abstracting the state itself from
+any given view of the state).  This is just a package for making it
+convenient to implement model / view separation in React components.  The
+idea is to design React components that are stateless and just display a
+"snapshot" of some data that might be in the state, and then wrap the
+stateless views in "container components" that do have state, and contain
+one or more stateless presentational compoenents.  These then handle
+updating the view upon state changes.
 
-React Redux makes it easy to auto-generate these "container components" that
-connecting a React container to a Redux state and its reducers, to re-render
-the underlying view every time the state changes.  This includes defining
-a function called ``mapStateToProps`` which, given any application state,
-specifies which "props" (variable data) of the view are associated with the
-given state.  So when the application state changes, it can check which
-"props" in the view have changed, and determine whether or not the view
-needs to be re-rendered.
+React Redux makes it easy to auto-generate these "container components",
+connect them to a Redux state and its reducers, and re-render the underlying
+view every time the state changes.  This includes defining a function called
+``mapStateToProps`` which, given any application state, specifies which
+"props" (variable data) of the view are associated with the given state.  So
+when the application state changes, it can check which "props" in the view
+have changed, and determine whether or not the view needs to be re-rendered,
+including exactly which sub-components need to be re-drawn.
 
 If this is unclear, probably the best way to understand quickly is to read
 the `example in the Redux docs
@@ -399,8 +403,8 @@ appending a hash to the JS filenames so that they can replace cached versions
 whenever the source changes.
 
 In practice it's less convenient to run ``webpack`` over and over again;
-instead one can run ``webpack --watch`` which watches all files for changes
-and rebuilds continuously.
+instead one can run ``webpack --watch`` which watches all files in the
+project for changes and rebuilds continuously.
 
 Conclusion
 ----------
@@ -533,20 +537,17 @@ per-project (as that project's user) and helps coordinate connections
 between software running in the project and the "global hub" (i.e. the Hub,
 through which the client is communicating).
 
-As we understand it, whereas the compute server is used to issue commands to
-the compute node on behalf of a project, such as starting the project's
-local hub, the local hub then takes care of the rest.  This all makes sense,
-but gets rather complicated as starting the actual local hub is buried under
-a pile of Python scripts.  Some of this may still be legacy from earlier
-versions of SMC that were written primarily in Python, and is need of
-cleaning up.
+Whereas the compute server is used to issue commands to the compute node on
+behalf of a project, such as starting the project's local hub, the local hub
+then takes care further actions on behalf of a specific project.  This helps
+to further logically separate projects from each other.
 
 Deeper view
 -----------
 
 With all that said, let's consider a more complete picture of the current
 architecture (which still leaves a lot out, but incorporates some of the
-additional elements discussed above:
+additional elements discussed above):
 
 .. image:: https://gist.github.com/embray/cfeedba5d814d12e123710a8f43603fa/raw/e9c9bdd933290d7efac756e6456082363bd7cde0/architecture.png
 
@@ -776,8 +777,9 @@ calls "action creators"--functions that return a new Redux action--with
 dispatching of that action.  For example ``set_active_tab`` dispatches a
 page state change which sets the new ``active_top_tab`` value--it then also
 performs any side-effects associated with that state change, such as setting
-the window title, or loading projects.  (Note: This method isn't called
-anywhere yet, as it depends on other stores being set up first.)
+the window title, or loading projects.  (Note: This method hasn't called
+anywhere yet, as it depends on other application state stores being set up
+first.)
 
 Finally, this module installs some event handlers that impact the page state
 (now that the ``"page"`` store has been set up), on an object named
@@ -826,7 +828,7 @@ project tabs, the notification bell, ping status, etc.  Most of these
 components are defined in other modules.  At the very bottom it contains an
 ``<ActiveAppContent>`` component that is responsible for displaying the rest
 of the page depending on what the current view is (whether it's the
-projects page, the settings page, and individual file in a project, etc.).
+projects page, the settings page, and individual file in a project, etc.)
 
 Routing to the projects page
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
