@@ -39,6 +39,17 @@
 # I didn't know about React.js at the time).
 ###############################################################################
 
+###
+NOTE: There's a lot of this in the main code below:
+
+        if @state != 'ready'
+            return
+
+Obviously, a better solution would involve two different classes, where this
+guarding of methods so they are no-ops when the relevant attributes aren't
+yet initialized would no longer be necessary.
+###
+
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
 # a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
 # things should be allowed to work.
@@ -993,6 +1004,8 @@ class JupyterNotebook extends EventEmitter
             @dom.on('save', @save)
 
     render_cursor: (account_id) =>
+        if @state != 'ready'
+            return
         if account_id == salvus_client.account_id
             return
         x = @syncstring._syncstring.get_cursors()?.get(account_id)
@@ -1008,8 +1021,7 @@ class JupyterNotebook extends EventEmitter
                     # (no cursor appearing temporarily is harmless).
 
     _handle_dom_change: () =>
-        #dbg()
-        if not @dom?
+        if @state != 'ready'
             return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
@@ -1166,12 +1178,12 @@ class JupyterNotebook extends EventEmitter
     # this way too expensive (and any changes there will quickly get saved
     # to the syncstring, or don't matter).
     has_unsaved_changes: () =>
-        # The question mark is necessary since @syncstring might not be defined when this gets called
-        # (see https://github.com/sagemathinc/smc/issues/918).
-        return @syncstring?._syncstring?.has_unsaved_changes()
+        if @state != 'ready'
+            return
+        return @syncstring._syncstring.has_unsaved_changes()
 
     update_save_state: () =>
-        if not @save_button? or @state != 'ready'
+        if @state != 'ready'
             return
         if @has_unsaved_changes()
             @save_button.removeClass('disabled')
@@ -1179,11 +1191,12 @@ class JupyterNotebook extends EventEmitter
             @save_button.addClass('disabled')
 
     save: (cb) =>
-        if not @save_button?
+        if @state != 'ready'
+            cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)
         async.parallel [@dom.save, @syncstring.save], (err) =>
-            if not @save_button?
+            if @state != 'ready'
                 return
             @save_button.icon_spin(false)
             @update_save_state()
@@ -1193,6 +1206,9 @@ class JupyterNotebook extends EventEmitter
         opts = defaults opts,
             format : required
             cb     : undefined
+        if @state != 'ready'
+            opts.cb?('not ready')
+            return
         salvus_client.exec
             path        : @path
             project_id  : @project_id
@@ -1206,6 +1222,8 @@ class JupyterNotebook extends EventEmitter
                 opts.cb?(err)
 
     publish_ui: () =>
+        if @state != 'ready'
+            return
         url = document.URL
         url = url.slice(0,url.length-5) + 'html'
         dialog = templates.find(".smc-jupyter-publish-dialog").clone()
@@ -1230,6 +1248,9 @@ class JupyterNotebook extends EventEmitter
                     $(this).select()
 
     publish: (status, cb) =>
+        if @state != 'ready'
+            cb?('not ready')
+            return
         @publish_button.find("fa-refresh").show()
         async.series([
             (cb) =>
@@ -1267,6 +1288,8 @@ class JupyterNotebook extends EventEmitter
         @element.data("font_size", font_size)
 
     font_size_change: (delta) =>
+        if @state != 'ready'
+            return
         font_size = @element.data("font_size")
         # console.log("font_size_change #{delta} applied to #{font_size}")
         if font_size?
@@ -1276,6 +1299,8 @@ class JupyterNotebook extends EventEmitter
             @element.data("font_size", font_size)
 
     undo: () =>
+        if @state != 'ready'
+            return
         if not @syncstring.in_undo_mode()
             @_handle_dom_change()
         else if @dom.get(true) != @_last_dom  # expensive but I don't know how to handle this case otherwise since dirty checking so hard...
@@ -1284,9 +1309,13 @@ class JupyterNotebook extends EventEmitter
         @syncstring.undo()
 
     redo: () =>
+        if @state != 'ready'
+            return
         @syncstring.redo()
 
     exit_undo_mode: () =>
+        if @state != 'ready'
+            return
         @syncstring.exit_undo_mode()
 
     ###
