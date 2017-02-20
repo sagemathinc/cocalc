@@ -102,7 +102,7 @@ class Terminal
                     rows = client.rows
                 if client.cols < cols
                     cols = client.cols
-            if settings.rows != rows or settings.cols != cols
+            if settings?.rows != rows or settings?.cols != cols
                 changed = true
                 @_pty?.resize(cols, rows)
                 @_syncdb.update

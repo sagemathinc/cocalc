@@ -207,10 +207,11 @@ class Console extends EventEmitter
                         db.close()
                     else
                         @_syncdb = db
+                        @update_size()
                 cb?(err)
 
     append_to_value: (data) =>
-        # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
+        # this @value is used for copy/paste of the session history and @value_orig for update_size/refresh
         @value_orig += data
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
@@ -284,10 +285,13 @@ class Console extends EventEmitter
 
         @reset()
 
-        # We resize the terminal first before replaying history, etc. so that it looks better,
+        # We update_size the terminal first before replaying history, etc. so that it looks better,
         # and also the terminal has initialized so it can show the history.
-        @resize_terminal()
+        @set_terminal_size()
         @config_session()
+
+    set_terminal_size: =>
+        # TODO
 
     config_session: () =>
         # The remote server sends data back to us to display:
@@ -300,7 +304,7 @@ class Console extends EventEmitter
                 @render(data)
 
             if @_needs_resize
-                @resize()
+                @update_size()
 
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
@@ -311,7 +315,7 @@ class Console extends EventEmitter
         @session.on 'reconnect', () =>
             delete @_reconnecting
             partial_code = false
-            @_needs_resize = true  # causes a resize when we next get data.
+            @_needs_resize = true  # causes a update_size when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
             @element.find(".salvus-console-terminal").css('opacity':'1')
@@ -350,7 +354,7 @@ class Console extends EventEmitter
 
         @terminal.showCursor()
         @_ignore_mesg = false
-        @resize()
+        @update_size()
 
     render: (data) =>
         #console.log "render '#{data}'"
@@ -509,7 +513,7 @@ class Console extends EventEmitter
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
         @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
-        @resize()
+        @update_size()
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
@@ -569,8 +573,13 @@ class Console extends EventEmitter
                 # re-enable paste but only *after* the copy happens
                 setTimeout(@_focus_hidden_textarea, 10)
 
+    show: =>
+        if @_closed
+            return
+        @update_size()                
+
     # call this when deleting the terminal (removing it from DOM, etc.)
-    remove: () =>
+    remove: =>
         if @_closed
             return
         @_closed = true
@@ -796,7 +805,7 @@ class Console extends EventEmitter
             top       : "3.5em"
             bottom    : 1
 
-        @resize()
+        @update_size()
 
     # exit fullscreen mode
     exit_fullscreen: () =>
@@ -805,7 +814,7 @@ class Console extends EventEmitter
                 position : 'relative'
                 top      : 0
                 width    : "100%"
-        @resize()
+        @update_size()
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
@@ -813,88 +822,16 @@ class Console extends EventEmitter
 
 
     # Determine the current size (rows and columns) of the DOM
-    # element for the editor, then resize the renderer and the
-    # remote PTY.
-    resize: () =>
-        return  # TODO delete/deprecate
-
-        if not @_connected
+    # element for the editor, then report this to the stateful
+    # backend (the syncdb object).
+    update_size: () =>
+        # Compute the current size of our render buffer, and set
+        # that in the syncdb, so that the backend knows our size.
+        if @_closed
             return
-
-        @resize_terminal()
-
-        # Resize the remote PTY
-        resize_code = (cols, rows) ->
-            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-            # CSI Ps ; Ps ; Ps t
-            # CSI[4];[height];[width]t
-            return CSI + "4;#{rows};#{cols}t"
-
-        # console.log 'connected: sending resize code'
-        @session.write_data(resize_code(@opts.cols, @opts.rows))
-
-        @full_rerender()
-
-        # Refresh depends on correct @opts being set!
-        @refresh()
-
-        @_needs_resize = false
-
-    full_rerender: =>
-        value = @value_orig
-        @reset()
-        @_ignore_mesg = true
-        @render(value)
-        @_ignore_mesg = false
-
-    resize_terminal: () =>
-        return # TODO: delete
-
-        # Determine size of container DOM.
-        # Determine the average width of a character by inserting 10 characters,
-        # seeing how wide that is, and dividing by 10.  The result is typically not
-        # an integer, which is why we have to use multiple characters.
-        @_c = $("<span>Term-inal&nbsp;</span>").prependTo(@terminal.element)
-        character_width = @_c.width()/10
-        @_c.remove()
-        elt = $(@terminal.element)
-
-        # The above style trick for character width is not reliable for getting the height of each row.
-        # For that we use the terminal itself, since it already has rows, and hopefully at least
-        # one row has something in it (a div).
-        #
-        # The row height is in fact *NOT* constant -- it can vary by 1 (say) depending
-        # on what is in the row.  So we compute the maximum line height, which is safe, so
-        # long as we throw out the outliers.
-        heights = ($(x).height() for x in elt.children())
-        # Eliminate weird outliers that sometimes appear (e.g., for last row); yes, this is
-        # pretty crazy...
-        heights = (x for x in heights when x <= heights[0] + 2)
-        row_height = Math.max( heights ... )
-
-        if character_width == 0 or row_height == 0
-            # The editor must not yet be visible -- do nothing
-            return
-
-        # Determine the number of columns from the width of a character, computed above.
-        font_size = @opts.font.size
-        new_cols = Math.max(1, Math.floor(elt.width() / character_width))
-
-        # Determine number of rows from the height of the row, as computed above.
-        new_rows = Math.max(1, Math.floor(elt.height() / row_height))
-
-        # Resize the renderer
-        @terminal.resize(new_cols, new_rows)
-
-        # Record new size
-        @opts.cols = new_cols
-        @opts.rows = new_rows
-
-    # Compute the current size of our render buffer, and set
-    # that in the syncdb, so that the backend knows our size.
-    compute_size: =>
         if not @_syncdb?
-            # Not ready yet
+            # Not ready yet -- try again in a few seconds
+            setTimeout(@compute_size, 6000)
             return
 
         # Determine size of container DOM.
@@ -930,6 +867,15 @@ class Console extends EventEmitter
         # Determine number of rows from the height of the row, as computed above.
         rows = Math.max(1, Math.floor(elt.height() / row_height))
 
+        cur = @_syncdb.select_one
+            where:
+                id : salvus_client._conn_id
+                table : 'clients'
+
+        if cur? and cur.rows == rows and cur.cols == cols and cur.active >= misc.server_minutes_ago(1)
+            # No change in our size *and* we set the active field less than a minute ago.
+            return
+
         # Set our size
         @_syncdb.update
             set:
@@ -940,6 +886,13 @@ class Console extends EventEmitter
                 table : 'clients'
                 id    : salvus_client._conn_id
         @_syncdb.save()
+
+    full_rerender: =>
+        value = @value_orig
+        @reset()
+        @_ignore_mesg = true
+        @render(value)
+        @_ignore_mesg = false
 
     set_scrollbar_to_term: () =>
         if @terminal.ybase == 0  # less than 1 page of text in buffer

@@ -2990,7 +2990,7 @@ class Terminal extends FileEditor
         @terminal?.blur()
 
     _show: () =>
-        @terminal?.resize()
+        @terminal?.show()
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
