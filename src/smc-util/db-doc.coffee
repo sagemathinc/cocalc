@@ -22,7 +22,12 @@ misc = require('./misc')
 # Well-defined JSON.stringify...
 to_key = require('json-stable-stringify')
 
-exports.db_doc = (indexed_fields) -> new DBDoc(indexed_fields)
+exports.db_doc = (opts) ->
+    opts = defaults opts,
+        primary_keys : required
+    if not misc.is_array(opts.primary_keys)
+        throw Error("primary_keys must be an array")
+    new DBDoc(opts.primary_keys)
 
 indices = (v) ->
     (parseInt(n) for n of v)
@@ -32,14 +37,14 @@ first_index = (v) ->
         return parseInt(n)
 
 class DBDoc
-    constructor : (indexed_fields=[]) ->
-        @_indexed_fields = misc.copy(indexed_fields)
+    constructor : (primary_keys=[]) ->
+        @_primary_keys = misc.copy(primary_keys)
         @_init()
 
     _init: =>
         @_records = []
         @_indexes = {}
-        for field in @_indexed_fields
+        for field in @_primary_keys
             @_indexes[field] = {}
 
     _select: (where) =>
@@ -71,11 +76,12 @@ class DBDoc
                 result[n] = true
         return result
 
-
     update: (opts) =>
         opts = defaults opts,
             set   : required
             where : undefined
+        if @_recording?
+            @_recording.push(update:opts)
         matches = @_select(opts.where)
         n = first_index(matches)
         if n?
@@ -112,6 +118,8 @@ class DBDoc
     delete: (opts) =>
         opts = defaults opts,
             where : undefined  # if nothing given, will delete everything
+        if @_recording?
+            @_recording.push(delete:opts)
         if not opts.where?
             # delete everything -- easy special case
             cnt = misc.keys(@_records).length
@@ -150,12 +158,14 @@ class DBDoc
         return misc.deep_copy(@_records[first_index(@_select(opts.where))])
 
     # Conversion to and from an array of records, which are normal Javascript objects
-    to_obj: () =>
+    to_obj: =>
         return (misc.deep_copy(record) for record in misc.values(@_records))
 
-    from_obj: (obj) =>
+    from_obj: (opts) =>
+        opts = defaults opts,
+            obj : required
         # Set the data
-        @_records = misc.deep_copy(obj)
+        @_records = misc.deep_copy(opts.obj)
         # Reset indexes
         for field of @_indexes
             @_indexes[field] = {}
@@ -169,3 +179,23 @@ class DBDoc
                     matches[n] = true
             n += 1
         return
+
+    # Record all the update actions that happen after this call
+    start_recording: =>
+        @_recording = []
+        return
+
+    # Stops a previously started recording, returning the result
+    stop_recording: =>
+        x = @_recording
+        delete @_recording
+        return x
+
+    play_recording: (opts) =>
+        opts = defaults opts,
+            recording : required
+        for action in opts.recording
+            if action.update?
+                @update(action.update)
+            if action.delete?
+                @delete(action.delete)

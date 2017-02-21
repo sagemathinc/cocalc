@@ -5,6 +5,7 @@
 # AGPLv3
 #
 ###############################################################################
+require('coffee-cache')
 
 {db_doc} = require('../db-doc')
 misc = require('../misc')
@@ -15,7 +16,7 @@ describe "test a simple db doc with one record -- ", ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys:['id'])
         expect(db.count()).toBe(0)
 
     it "adds one record", ->
@@ -43,7 +44,7 @@ numdocs = 2500
 describe "test a db doc with #{numdocs} records and one indexed column -- ", ->
     db = undefined
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys:['id'])
         expect(db.count()).toBe(0)
 
     it "adds #{numdocs} documents to db", ->
@@ -76,7 +77,7 @@ describe "test a db with two indexed cols -- ", ->
     times = [misc.minutes_ago(3), misc.minutes_ago(2), misc.minutes_ago(1)]
 
     it "makes db with two indexed cols", ->
-        db = db_doc(['time', 'user'])
+        db = db_doc(primary_keys:['time', 'user'])
         expect(db.count()).toBe(0)
 
     it 'adds an record', ->
@@ -138,7 +139,7 @@ describe "test a db with index on complicated objects -- ", ->
     db = undefined
     times = [misc.minutes_ago(3), misc.minutes_ago(2), misc.minutes_ago(1)]
     it "makes db with two indexed cols", ->
-        db = db_doc(['field1', 'field 2'])
+        db = db_doc(primary_keys:['field1', 'field 2'])
         expect(db.count()).toBe(0)
 
     it "creates two records", ->
@@ -170,7 +171,7 @@ describe 'test error handling of non-indexed cols -- ', ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys:['id'])
         expect(db.count()).toBe(0)
 
     it 'try to use a non-indexed column', ->
@@ -188,9 +189,9 @@ describe "create multiple db's at once -- ", ->
     db1 = db2 = undefined
 
     it "makes the db's", ->
-        db1 = db_doc(['id'])
+        db1 = db_doc(primary_keys:['id'])
         expect(db1.count()).toBe(0)
-        db2 = db_doc(['name'])
+        db2 = db_doc(primary_keys:['name'])
         expect(db2.count()).toBe(0)
 
     it "add some records to each", ->
@@ -223,7 +224,7 @@ describe 'ensure first entry only is updated -- ', ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id', 'group'])
+        db = db_doc(primary_keys:['id', 'group'])
         expect(db.count()).toBe(0)
 
     it "adds records", ->
@@ -252,7 +253,7 @@ describe 'test conversion from and to obj -- ', ->
     time = new Date()
 
     it "makes the db", ->
-        db = db_doc(['id', 'group'])
+        db = db_doc(primary_keys:['id', 'group'])
         expect(db.count()).toBe(0)
 
     it "adds records", ->
@@ -271,10 +272,83 @@ describe 'test conversion from and to obj -- ', ->
         expect(obj).toEqual([{name:"Sage1", id:"123", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
 
     it 'convert from obj', ->
-        db2 = db_doc(['id', 'group'])
-        db2.from_obj(db.to_obj())
+        db2 = db_doc(primary_keys:['id', 'group'])
+        db2.from_obj(obj: db.to_obj())
         expect(db2.select()).toEqual(db.select())
         # then delete and set other way
         db.delete()
-        db.from_obj(db2.to_obj())
+        db.from_obj(obj: db2.to_obj())
         expect(db2.select()).toEqual(db.select())
+
+
+describe 'test recording of sequence of actions -- ', ->
+    db = recording = undefined
+
+    it "makes a db", ->
+        db = db_doc(primary_keys:['id', 'group'])
+        expect(db.count()).toBe(0)
+
+    it "enable recording and add 2 records", ->
+        db.start_recording()
+        db.update(set : {name:"Sage0", x:{y:['z']}}, where : {id:"389", group:'user'})
+        db.update(set : {name:"Sage1"}, where : {id:"123", group:'admin'})
+        recording = db.stop_recording()
+        expect(recording).toEqual([{ update: { set: { name: 'Sage0', x: { y: ['z'] } }, where: { group: 'user', id: '389' } } }, { update: { set: { name: 'Sage1' }, where: { group: 'admin', id: '123' } } }])
+
+    it "delete state, then play recording", ->
+        db.delete()
+        db.play_recording(recording : recording)
+        expect(db.select()).toEqual([{name:"Sage0", x:{y:['z']}, id:"389", group:'user'}, {name:"Sage1", id:"123", group:'admin'}])
+
+    it "make new recording that includes more interesting delete/mutate operations", ->
+        db.delete()
+        db.start_recording()
+        db.update(set:{name:'x'}, where:{id:0})
+        db.update(set:{name:'a'}, where:{id:1})
+        db.update(set:{name:'y'}, where:{id:0})
+        db.update(set:{name:'z'}, where:{id:0})
+        db.delete(where:{id:1})
+        state = db.select()
+        recording = db.stop_recording()
+        db.delete()
+        db.play_recording(recording: recording)
+        expect(db.select()).toEqual(state)
+
+rec_length = 500
+describe "record #{rec_length} random operations, then test playback works right -- ", ->
+    db = recording = undefined
+    primary_keys = ['k0', 'k1', 'k2']
+
+    it "makes a db", ->
+        db = db_doc(primary_keys: primary_keys)
+
+    it "records #{rec_length} operations", ->
+        db.start_recording()
+        random_where = ->
+            where = {}
+            for k in primary_keys
+                where[k] = misc.random_choice([0,1,2])
+            return where
+        random_set = ->
+            set =
+                name : misc.random_choice(['Joe', 'Sam', 'Sage', 'Math'])
+                age  : misc.random_choice([0..10])
+            return set
+
+        for n in [0...rec_length]
+            if Math.random() <= .2
+                db.delete(where:random_where())
+            else
+                db.update
+                    set   : random_set()
+                    where : random_where()
+
+        recording = db.stop_recording()
+        expect(recording.length).toEqual(rec_length)
+
+    it 'now testing that recording worked', ->
+        state = db.select()
+        db.delete()
+        db.play_recording(recording: recording)
+        expect(db.select()).toEqual(state)
+
