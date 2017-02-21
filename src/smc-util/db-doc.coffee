@@ -5,6 +5,7 @@
 # AGPLv3
 #
 ###############################################################################
+require('coffee-cache')
 
 ###
 Very fast simple local document-oriented database with only two operations:
@@ -21,7 +22,7 @@ misc = require('./misc')
 # Well-defined JSON.stringify...
 to_key = require('json-stable-stringify')
 
-exports.db_doc = (indexes) -> new DBDoc(indexes)
+exports.db_doc = (indexed_fields) -> new DBDoc(indexed_fields)
 
 indices = (v) ->
     (parseInt(n) for n of v)
@@ -31,11 +32,15 @@ first_index = (v) ->
         return parseInt(n)
 
 class DBDoc
-    constructor : (indexes=[]) ->
+    constructor : (indexed_fields=[]) ->
+        @_indexed_fields = misc.copy(indexed_fields)
+        @_init()
+
+    _init: =>
         @_records = []
         @_indexes = {}
-        for col in indexes
-            @_indexes[col] = {}
+        for field in @_indexed_fields
+            @_indexes[field] = {}
 
     _select: (where) =>
         # Return sparse array with defined indexes the elts of @_records that
@@ -107,7 +112,16 @@ class DBDoc
     delete: (opts) =>
         opts = defaults opts,
             where : undefined  # if nothing given, will delete everything
-        remove = misc.keys(@_select(opts.where))
+        if not opts.where?
+            # delete everything -- easy special case
+            cnt = misc.keys(@_records).length
+            @_init()
+            return cnt
+        remove = indices(@_select(opts.where))
+        if remove.length == misc.keys(@_records).length
+            # actually deleting everything; again easy
+            @_init()
+            return remove.length
         # remove from every index
         for field, index of @_indexes
             for n in remove
@@ -123,14 +137,35 @@ class DBDoc
         return cnt
 
     count: =>
-        return misc.keys(@_records).length
+        return indices(@_records).length
 
     select: (opts) =>
         opts = defaults opts,
             where : undefined
-        return (@_records[n] for n in indices(@_select(opts.where)))
+        return (misc.deep_copy(@_records[n]) for n in indices(@_select(opts.where)))
 
     select_one: (opts) =>
         opts = defaults opts,
             where : undefined
-        return @_records[first_index(@_select(opts.where))]
+        return misc.deep_copy(@_records[first_index(@_select(opts.where))])
+
+    # Conversion to and from an array of records, which are normal Javascript objects
+    to_obj: () =>
+        return misc.deep_copy(@_records)
+
+    from_obj: (obj) =>
+        # Set the data
+        @_records = misc.deep_copy(obj)
+        # Reset indexes
+        for field of @_indexes
+            @_indexes[field] = {}
+        # Build indexes
+        n = 0
+        for record in @_records
+            for field, index of @_indexes
+                val = record[field]
+                if val?
+                    matches = index[to_key(val)] ?= []
+                    matches[n] = true
+            n += 1
+        return
