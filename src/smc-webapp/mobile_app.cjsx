@@ -138,6 +138,7 @@ Page = rclass
                 {<NotificationBell
                     on_click = {@close_right_menu}
                     count    = {@props.get_notify_count()}
+                    active   = {@props.show_file_use}
                 /> if @props.is_logged_in()}
                 <ConnectionIndicator
                     on_click = {@close_right_menu}
