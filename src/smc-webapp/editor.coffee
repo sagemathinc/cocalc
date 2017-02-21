@@ -2669,7 +2669,7 @@ class PDF_Preview extends FileEditor
             highlight_line : true
         pg = @pdflatex.page(opts.n)
         elt = @element.find(".salvus-editor-pdf-preview-output")
-        if not pg? or not elt?
+        if not pg?.element? or not elt?
             # the page has vanished in the meantime...
             return
         t = elt.offset().top
