@@ -207,7 +207,10 @@ class Console extends EventEmitter
                         db.close()
                     else
                         @_syncdb = db
+                        @emit("init-syncdb")
                         @update_size()
+                        @set_renderer_size()
+                        @_syncdb.on('change', @set_renderer_size)
                 cb?(err)
 
     append_to_value: (data) =>
@@ -533,9 +536,9 @@ class Console extends EventEmitter
         # Create the terminal DOM objects
         @terminal.open()
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
-        @terminal.element.className = "salvus-console-terminal"
+        @terminal.element.className = "salvus-console-renderer"
         ter = $(@terminal.element)
-        @element.find(".salvus-console-terminal").replaceWith(ter)
+        @element.find(".salvus-console-renderer").replaceWith(ter)
 
         ter.css
             'font-family' : @opts.font.family + ", monospace"  # monospace fallback
@@ -576,7 +579,7 @@ class Console extends EventEmitter
     show: =>
         if @_closed
             return
-        @update_size()                
+        @update_size()
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: =>
@@ -589,8 +592,11 @@ class Console extends EventEmitter
         @session?.close()
         delete @session
 
-        @_syncdb?.close()
-        delete @_syncdb
+        if @_syncdb?
+            @_syncdb.delete(where:{id: salvus_client._conn_id})
+            @_syncdb.save () =>
+                @_syncdb.close()
+                delete @_syncdb
 
         if @_mousedown?
              $(document).off('mousedown', @_mousedown)
@@ -820,7 +826,6 @@ class Console extends EventEmitter
         @terminal.refresh(0, @opts.rows-1)
         @terminal.showCursor()
 
-
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then report this to the stateful
     # backend (the syncdb object).
@@ -830,8 +835,8 @@ class Console extends EventEmitter
         if @_closed
             return
         if not @_syncdb?
-            # Not ready yet -- try again in a few seconds
-            setTimeout(@compute_size, 6000)
+            # Not ready yet -- try again on connect
+            @once('init-syncdb', @update_size)
             return
 
         # Determine size of container DOM.
@@ -860,12 +865,16 @@ class Console extends EventEmitter
             # The editor must not yet be visible -- do nothing
             return
 
+        terminal_elt = @element.find(".salvus-console-terminal-container")
         # Determine the number of columns from the width of a character, computed above.
         font_size = @opts.font.size
-        cols = Math.max(1, Math.floor(elt.width() / character_width))
+        cols = Math.max(1, Math.floor(terminal_elt.width() / character_width) - 3)
 
         # Determine number of rows from the height of the row, as computed above.
-        rows = Math.max(1, Math.floor(elt.height() / row_height))
+        rows = Math.max(1, Math.floor(terminal_elt.height() / row_height) - 1)
+
+        @_character_width = character_width
+        @_row_height = row_height
 
         cur = @_syncdb.select_one
             where:
@@ -877,6 +886,7 @@ class Console extends EventEmitter
             return
 
         # Set our size
+        console.log "report our size as (rows=#{rows}, cols=#{cols})"
         @_syncdb.update
             set:
                 rows   : rows
@@ -886,6 +896,24 @@ class Console extends EventEmitter
                 table : 'clients'
                 id    : salvus_client._conn_id
         @_syncdb.save()
+
+    set_renderer_size: =>
+        if @_closed
+            return
+        if not @_syncdb?
+            # Not ready yet -- try again on connect
+            @once('init-syncdb', @set_renderer_size)
+            return
+        settings = @_syncdb.select_one(where:{table:'settings'})
+        if not settings?.cols? or not settings?.rows?
+            return
+        console.log "set our renderer size to (rows=#{settings.rows}, cols=#{settings.cols})"
+        @terminal.resize(settings.cols, settings.rows)
+        if @_character_width? and @_row_height?
+            elt = $(@terminal.element)
+            elt.width(@_character_width*settings.cols)
+            elt.height(@_row_height*settings.rows)
+            @element.find(".salvus-console-scrollbar").height(@_row_height*settings.rows + 10)  # +10 because of border of 5px
 
     full_rerender: =>
         value = @value_orig

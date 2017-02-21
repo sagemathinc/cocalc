@@ -69,6 +69,9 @@ class Terminal
                 @_update_syncdb()
                 @_syncdb.on 'change', =>
                     @dbg("syncdb change to #{JSON.stringify(@_syncdb.select())}")
+                    settings = @_syncdb.select_one(where:{table:'settings'})
+                    if @_pty? and settings?.rows? and settings?.cols?
+                        @_pty.resize(settings.cols, settings.rows)
                     @_update_syncdb()
 
                 cb?(err)
