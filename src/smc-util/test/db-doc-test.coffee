@@ -37,22 +37,23 @@ describe "test a simple db doc with one record -- ", ->
             where : {id:"123"}
         expect(db.count()).toBe(0)
 
-# Using 2K records is partly a test that I didn't make things stupidly inefficient
+# Using many records is partly a test that I didn't make things stupidly inefficient
 # via some change.
-describe "test a db doc with 2K records and one indexed column -- ", ->
+numdocs = 2500
+describe "test a db doc with #{numdocs} records and one indexed column -- ", ->
     db = undefined
     it "makes the db", ->
         db = db_doc(['id'])
         expect(db.count()).toBe(0)
 
-    it "adds 10000 documents to db", ->
-        for i in [0...2000]
+    it "adds #{numdocs} documents to db", ->
+        for i in [0...numdocs]
             db.update
                 set :
                     name : "Sage #{i}"
                 where:
                     id : i
-        expect(db.count()).toBe(2000)
+        expect(db.count()).toBe(numdocs)
 
     it "modifies a document", ->
         expect(db.select_one(where:id:500)).toEqual({name:'Sage 500', id:500})
@@ -64,10 +65,10 @@ describe "test a db doc with 2K records and one indexed column -- ", ->
     it "deletes a document", ->
         expect(db.delete(where:id:500)).toEqual(1)
         expect(db.select_one(where:id:500)).toEqual(undefined)
-        expect(db.count()).toBe(1999)
+        expect(db.count()).toBe(numdocs-1)
 
     it "deletes all documents", ->
-        expect(db.delete()).toEqual(1999)
+        expect(db.delete()).toEqual(numdocs-1)
         expect(db.count()).toBe(0)
 
 describe "test a db with two indexed cols -- ", ->
@@ -180,6 +181,9 @@ describe 'test error handling of non-indexed cols -- ', ->
         catch e
             expect("#{e}").toEqual("Error: field \'stuff\' must be indexed")
 
+    it "tests that you can't use set on an indexed col ", ->
+
+
 describe "create multiple db's at once -- ", ->
     db1 = db2 = undefined
 
@@ -243,3 +247,34 @@ describe 'ensure first entry only is updated -- ', ->
         db.update(set:{score:5, name:'Sage2+'}, where:{id:'389', group:'admin'})
         expect(db.select_one(where:{id:'389', group:'admin'})).toEqual({id:'389', group:'admin', name:'Sage2+', score:5})
 
+describe 'test conversion from and to obj -- ', ->
+    db = undefined
+    time = new Date()
+
+    it "makes the db", ->
+        db = db_doc(['id', 'group'])
+        expect(db.count()).toBe(0)
+
+    it "adds records", ->
+        db.update(set : {name:"Sage0", active:time}, where : {id:"389", group:'user'})
+        db.update(set : {name:"Sage1"}, where : {id:"123", group:'admin'})
+        db.update(set : {name:"Sage2"}, where : {id:"389", group:'admin'})
+        db.update(set : {name:"Sage3"}, where : {id:"5077", group:'admin'})
+
+    it 'convert to obj', ->
+        obj = db.to_obj()
+        expect(obj).toEqual([{name:"Sage0", active:time, id:"389", group:'user'}, {name:"Sage1", id:"123", group:'admin'}, {name:"Sage2", id:"389", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
+
+    it 'delete two records, then convert to obj', ->
+        expect(db.delete(where:{id:'389'})).toEqual(2)
+        obj = db.to_obj()
+        expect(obj).toEqual([{name:"Sage1", id:"123", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
+
+    it 'convert from obj', ->
+        db2 = db_doc(['id', 'group'])
+        db2.from_obj(db.to_obj())
+        expect(db2.select()).toEqual(db.select())
+        # then delete and set other way
+        db.delete()
+        db.from_obj(db2.to_obj())
+        expect(db2.select()).toEqual(db.select())

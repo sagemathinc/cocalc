@@ -151,7 +151,7 @@ class DBDoc
 
     # Conversion to and from an array of records, which are normal Javascript objects
     to_obj: () =>
-        return misc.deep_copy(@_records)
+        return (misc.deep_copy(record) for record in misc.values(@_records))
 
     from_obj: (obj) =>
         # Set the data
