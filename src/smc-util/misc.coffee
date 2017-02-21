@@ -361,7 +361,7 @@ exports.len = (obj) ->
     a = obj.length
     if a?
         return a
-    Object.keys(obj).length
+    underscore.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys

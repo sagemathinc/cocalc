@@ -11,10 +11,8 @@ Synchronized document-oriented database.
 
 ###
 
-underscore = require('underscore')
-
 misc = require('./misc')
-{defaults, required, hash_string, len} = misc
+{defaults, required} = misc
 
 to_key = (x) -> JSON.stringify(x)
 
@@ -58,7 +56,7 @@ class exports.DBDoc
     update: (opts) =>
         opts = defaults opts,
             set   : required
-            where : required
+            where : undefined
         matches = @_select(opts.where)
         for n of matches
             # edit the first existing record that matches
@@ -86,22 +84,28 @@ class exports.DBDoc
         n = @_records.length
         # update indexes
         for field, index of @_indexes
-            matches = index[to_key(record[field])] ?= []
-            matches[n-1] = true
+            val = record[field]
+            if val?
+                matches = index[to_key(val)] ?= []
+                matches[n-1] = true
         return
 
     delete: (opts) =>
         opts = defaults opts,
             where : undefined  # if nothing given, will delete everything
         cnt = 0
-        for n of @_select(opts.where)
+        remove = @_select(opts.where)
+        # remove from every index
+        for field, index of @_indexes
+            for n of remove
+                record = @_records[n]
+                val = record[field]
+                if val?
+                    delete index[to_key(val)][n]
+        # delete corresponding records
+        for n of remove
             cnt += 1
             delete @_records[n]
-            # remove n from every index
-            for field, index of @_indexes
-                for v, matches of index
-                    if matches[n]?
-                        delete matches[n]
         return cnt
 
     count: =>
@@ -114,7 +118,7 @@ class exports.DBDoc
 
     select_one: (opts) =>
         opts = defaults opts,
-            where : required
+            where : undefined
         for n of @_select(opts.where)
             return @_records[n]
         return
