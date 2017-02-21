@@ -1,22 +1,36 @@
 ###############################################################################
 #
-# Part of CoCalc
+# CoCalc: Collaborative web-based calculation
 # Copyright (C) 2017, Sagemath Inc.
 # AGPLv3
 #
 ###############################################################################
 
 ###
-Synchronized document-oriented database.
+Very fast simple local document-oriented database with only two operations:
 
+   - update
+   - delete
+
+This is the foundation for a distributed synchronized database...
 ###
 
 misc = require('./misc')
 {defaults, required} = misc
 
-to_key = (x) -> JSON.stringify(x)
+# Well-defined JSON.stringify...
+to_key = require('json-stable-stringify')
 
-class exports.DBDoc
+exports.db_doc = (indexes) -> new DBDoc(indexes)
+
+indices = (v) ->
+    (parseInt(n) for n of v)
+
+first_index = (v) ->
+    for n of v
+        return parseInt(n)
+
+class DBDoc
     constructor : (indexes=[]) ->
         @_records = []
         @_indexes = {}
@@ -38,17 +52,17 @@ class exports.DBDoc
                 return [] # no matches for this field - done
             if result?
                 # intersect with what we've found so far via indexes.
-                for n of v
-                    if not result[n]
+                for n in indices(result)
+                    if not v[n]?
                         delete result[n]
             else
                 result = []
-                for n of v
+                for n in indices(v)
                     result[n] = true
         if not result?
             # where condition must have been empty -- matches everything
             result = []
-            for n of @_records
+            for n in indices(@_records)
                 result[n] = true
         return result
 
@@ -58,7 +72,8 @@ class exports.DBDoc
             set   : required
             where : undefined
         matches = @_select(opts.where)
-        for n of matches
+        n = first_index(matches)
+        if n?
             # edit the first existing record that matches
             record = @_records[n]
             for field, value of opts.set
@@ -72,53 +87,50 @@ class exports.DBDoc
                     index[cur_key] = n
                     if prev_key != cur_key
                         delete index[prev_key][n]
-            return # we only change the FIRST match
-
-        # The sparse array matches had nothing in it, so append a new record.
-        record = {}
-        for field, value of opts.set
-            record[field] = value
-        for field, value of opts.where
-            record[field] = value
-        @_records.push(record)
-        n = @_records.length
-        # update indexes
-        for field, index of @_indexes
-            val = record[field]
-            if val?
-                matches = index[to_key(val)] ?= []
-                matches[n-1] = true
-        return
+        else
+            # The sparse array matches had nothing in it, so append a new record.
+            record = {}
+            for field, value of opts.set
+                record[field] = value
+            for field, value of opts.where
+                record[field] = value
+            @_records.push(record)
+            n = @_records.length
+            # update indexes
+            for field, index of @_indexes
+                val = record[field]
+                if val?
+                    matches = index[to_key(val)] ?= []
+                    matches[n-1] = true
+            return
 
     delete: (opts) =>
         opts = defaults opts,
             where : undefined  # if nothing given, will delete everything
-        cnt = 0
-        remove = @_select(opts.where)
+        remove = misc.keys(@_select(opts.where))
         # remove from every index
         for field, index of @_indexes
-            for n of remove
+            for n in remove
                 record = @_records[n]
                 val = record[field]
                 if val?
                     delete index[to_key(val)][n]
         # delete corresponding records
-        for n of remove
+        cnt = 0
+        for n in remove
             cnt += 1
             delete @_records[n]
         return cnt
 
     count: =>
-        misc.len(@_records)
+        return misc.keys(@_records).length
 
     select: (opts) =>
         opts = defaults opts,
             where : undefined
-        return (@_records[n] for n of @_select(opts.where))
+        return (@_records[n] for n in indices(@_select(opts.where)))
 
     select_one: (opts) =>
         opts = defaults opts,
             where : undefined
-        for n of @_select(opts.where)
-            return @_records[n]
-        return
+        return @_records[first_index(@_select(opts.where))]
