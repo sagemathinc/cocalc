@@ -288,7 +288,8 @@ class SortedPatchList extends EventEmitter
 
     newest_snapshot_time: () =>
         t0 = 0
-        for t in @_snapshot_times
+        for t of @_snapshot_times
+            t = parseInt(t)
             if t > t0
                 t0 = t
         return new Date(t0)
@@ -495,6 +496,10 @@ class SortedPatchList extends EventEmitter
     # we need to worry about for offline patches...
     snapshot_times: () =>
         return (x.time for x in @_patches when x.snapshot?)
+
+
+# For testing purposes
+exports.SortedPatchList = SortedPatchList
 
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
