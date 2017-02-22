@@ -2286,7 +2286,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for elt in @output_elements()
             for e in elt.find(".salvus-3d-container")
                 f = $(e)
-                scene = $(e).data('salvus-threejs')
+                scene = f.data('salvus-threejs')
+                if not scene?
+                    continue
                 scene.set_static_renderer()
                 data_url = scene.static_image
                 if data_url?
