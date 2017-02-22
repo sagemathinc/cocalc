@@ -102,11 +102,6 @@ exports.apply_patch = apply_patch = (patch, s) ->
             break
     return [x[0], clean]
 
-apply_patch_sequence = (patches, s) ->
-    for x in patches
-        s = apply_patch(x.patch, s)[0]
-    return s
-
 patch_cmp = (a, b) ->
     return misc.cmp_array([a.time - 0, a.user_id], [b.time - 0, b.user_id])
 
@@ -206,7 +201,7 @@ class PatchValueCache
 
 # Sorted list of patches applied to a string
 class SortedPatchList extends EventEmitter
-    constructor: () ->
+    constructor: (@_apply_patch=apply_patch, @_starting_value='') ->
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
@@ -353,7 +348,7 @@ class SortedPatchList extends EventEmitter
                     break
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
-                        value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
+                        value = @_apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
             if not without? and (not time? or start - cache.start >= 10)
@@ -363,7 +358,7 @@ class SortedPatchList extends EventEmitter
         else
             # Cache is empty or doesn't have anything sufficiently old to be useful.
             # Find the newest snapshot at a time that is <= time.
-            value = '' # default in case no snapshots
+            value = @_starting_value # default in case no snapshots
             start = 0
             if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
                 for i in [@_patches.length-1 .. 0]
@@ -391,7 +386,7 @@ class SortedPatchList extends EventEmitter
                 #console.log("applying patch #{i}")
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
-                        value = apply_patch(x.patch, value)[0]
+                        value = @_apply_patch(x.patch, value)[0]
                 cache_time = x.time
                 cache_start += 1
             if not without? and (not time? or cache_time and cache_start - start >= 10)
@@ -408,7 +403,7 @@ class SortedPatchList extends EventEmitter
 
     # Slow -- only for consistency checking purposes
     _value_no_cache: (time) =>
-        value = '' # default in case no snapshots
+        value = @_starting_value # default in case no snapshots
         start = 0
         if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
@@ -425,7 +420,7 @@ class SortedPatchList extends EventEmitter
             if time? and x.time > time
                 # Done -- no more patches need to be applied
                 break
-            value = apply_patch(x.patch, value)[0]
+            value = @_apply_patch(x.patch, value)[0]
         return value
 
     # integer index of user who made the edit at given point in time (or undefined)
@@ -460,9 +455,9 @@ class SortedPatchList extends EventEmitter
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
-                s = x.snapshot ? ''
+                s = x.snapshot ? @_starting_value
             if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
-                t = apply_patch(x.patch, s)
+                t = @_apply_patch(x.patch, s)
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
             s = t[0]
@@ -525,6 +520,9 @@ class SyncDoc extends EventEmitter
             project_id        : required   # project_id that contains the doc
             path              : required   # path of the file corresponding to the doc
             client            : required
+            apply_patch       : apply_patch  # default is the string one from diff match patch
+            make_patch        : make_patch  # default is the string one from diff match patch
+            starting_value    : ''         # value of empty document
             cursors           : false      # if true, also provide cursor tracking functionality
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
@@ -533,11 +531,14 @@ class SyncDoc extends EventEmitter
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
-        @_closed         = true
+        @_closed        = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
         @_path          = opts.path
         @_client        = opts.client
+        @_apply_patch   = opts.apply_patch
+        @_make_patch    = opts.make_patch
+        @_starting_value= opts.starting_value
         @_doc           = opts.doc
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
@@ -629,7 +630,7 @@ class SyncDoc extends EventEmitter
             live  = @get()
             if live != value
                 # user had unsaved changes so last undo is to revert to version without those
-                state.final    = make_patch(value, live)                  # live redo if needed
+                state.final    = @_make_patch(value, live)                  # live redo if needed
                 state.pointer -= 1  # most recent timestamp
                 return value
             else
@@ -661,7 +662,7 @@ class SyncDoc extends EventEmitter
         else if state.pointer == state.my_times.length - 1
             # one back from live state, so apply unsaved patch to live version
             state.pointer += 1
-            return apply_patch(state.final, @version())[0]
+            return @_apply_patch(state.final, @version())[0]
         else
             # at least two back from live state
             state.without.pop()
@@ -969,7 +970,7 @@ class SyncDoc extends EventEmitter
         return query
 
     _init_patch_list: (cb) =>
-        @_patch_list = new SortedPatchList()
+        @_patch_list = new SortedPatchList(@_apply_patch, @_starting_value)
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
@@ -1099,7 +1100,7 @@ class SyncDoc extends EventEmitter
             return value
 
         # compute transformation from _last to live -- exactly what we did
-        patch = make_patch(@_last, value)
+        patch = @_make_patch(@_last, value)
         @_last = value
         # now save the resulting patch
         time = @_client.server_time()
@@ -1761,6 +1762,8 @@ class exports.SyncString extends SyncDoc
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
+            apply_patch       : apply_patch
+            starting_value    : ''
             doc               : new StringDocument(opts.default)
 
     set: (value) ->
@@ -1798,4 +1801,41 @@ class exports.SyncObject extends SyncDoc
         @_doc._value = obj
     get: =>
         @_doc.obj()
+
+db_doc = require('./db-doc')
+
+class exports.DBDoc
+    constructor: (opts) ->
+        opts = defaults opts,
+            primary_keys      : required
+            id                : undefined
+            client            : required
+            project_id        : undefined
+            path              : undefined
+            save_interval     : undefined
+            file_use_interval : undefined
+
+        new_db = ->
+            db = db_doc.db_doc(opts.primary_keys)
+            db.start_recording()
+            return db
+
+        super
+            string_id         : opts.id
+            client            : opts.client
+            project_id        : opts.project_id
+            path              : opts.path
+            save_interval     : opts.save_interval
+            file_use_interval : opts.file_use_interval
+            cursors           : false
+            apply_patch       : db_doc.apply_patch
+            make_patch        : db_doc.make_patch
+            starting_value    : new_db()
+            doc               : new_db()
+
+    set: (value) ->
+        @_db = value
+
+    get: ->
+        return @_db
 
