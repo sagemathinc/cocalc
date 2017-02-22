@@ -957,3 +957,40 @@ global_cache_decref = (S) ->
 
 #if window?
 #    window.synctables = synctables
+
+
+
+###
+Various mock clients for unit testing
+
+Events:
+    - disconnected
+    - connected
+###
+
+class exports.TestBrowserClient1 extends EventEmitter
+
+    is_project: =>
+        return false
+
+    is_connected: =>
+        return true
+
+    is_signed_in: =>
+        return true
+
+    dbg: =>
+        return =>
+
+    query_cancel: =>
+
+    query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            timeout : 30
+            cb      : required
+        @emit 'query', opts
+
+
