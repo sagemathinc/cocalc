@@ -9,7 +9,7 @@ from __future__ import print_function
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#    Copyright (C) 2015 -- 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -29,21 +29,24 @@ from __future__ import print_function
 # Authors:
 # Harald Schilly <hsy@sagemath.com>
 
-import rethinkdb as r
+# this was initially written against rethinkdb, but now it's postgres via pycopg2
+# import rethinkdb as r
 from datetime import datetime, timedelta
-from pytz import utc
-import os
 from os.path import join
-import json
+import os, sys, json
+from datetime import date, datetime, timedelta
+from dateutil.parser import parse as dt_parse
+from pytz import timezone, utc
+import pandas as pd
 import numpy as np
 from pprint import pprint
 from collections import defaultdict
-
+from uuid import UUID
 
 def secs2hms(secs, as_string=True):
-    '''
+    """
     Convert seconds into hours, minutes, seconds or a human readable string.
-    '''
+    """
     h = int(secs // 60**2)
     m = int((secs // 60) % 60)
     s = secs % 60
@@ -74,40 +77,42 @@ def datetime_serialize(obj):
         return serial
     raise TypeError("Type not serializable")
 
-# Rethinkdb Setup ###
+### DB Setup ###
 SMC_ROOT = os.environ.get("SMC_ROOT", '.')
-if os.environ.get("DEVEL", False):
+
+import psycopg2 as pg
+import psycopg2.extras
+psycopg2.extras.register_uuid()
+USER = os.environ['PGUSER']
+DB = os.environ.get('SMC_DB', 'smc')
+PORT = 5432
+
+if 'PGPASSWORD' in os.environ:
+    PW = os.environ['PGPASSWORD']
+elif os.environ.get("DEVEL", False):
     # DEV mode
     import dev.project.util
-    port = dev.project.util.get_ports()["rethinkdb"]
-    r.connect(host="localhost", db="smc", port=port, timeout=20).repl()
+    PORT = dev.project.util.get_ports()["postgres"] # ???
+    # r.connect(host="localhost", db="smc", port=port, timeout=20).repl()
 else:
-    AUTH = open(join(SMC_ROOT, 'data/secrets/rethinkdb')).read().strip()
-    r.connect(host="db0", db="smc", auth_key=AUTH, timeout=20).repl()
+    PW = open(join(SMC_ROOT, 'data/secrets/postgres')).read().strip()
+    # r.connect(host="db0", db="smc", auth_key=AUTH, timeout=20).repl()
+
+conn = pg.connect("dbname={DB} user={USER} host=localhost port={PORT} password={PW}".format(**locals()))
 # or proxy on localhost:
 # r.connect(db = "smc", auth_key=AUTH, timeout=20).repl()
 
 # print("Registering tables:", end=" ")
-for t in r.table_list().run():
-    globals()[t] = r.table(t)
+#for t in r.table_list().run():
+#    globals()[t] = r.table(t)
     # print(t, end=", ")
 
 # system tables
-rdb = r.db("rethinkdb")
-for t in rdb.table_list().run():
-    globals()['r_%s' % t] = rdb.table(t)
+#rdb = r.db("rethinkdb")
+#for t in rdb.table_list().run():
+#    globals()['r_%s' % t] = rdb.table(t)
 
 # Library Functions ###
-_print = print
-
-
-def print(x=""):
-    if isinstance(x, dict):
-        import json
-        _print(json.dumps(x, indent=2, default=lambda t: t.isoformat()))
-    else:
-        _print(x)
-
 
 def time_past(hours=24, days=0):
     """
@@ -120,33 +125,55 @@ def time_past(hours=24, days=0):
 def days_ago(days=0):
     return time_past(24 * days)
 
-# Functions Querying RethinkDB Directly ###
+# Functions Querying Postgres Directly ###
 
 
 def project_host(project_id):
-    q = projects.get(project_id).get_field("host")["host"]
+    # q = projects.get(project_id).get_field("host")["host"]
     try:
-        return q.run()  # there is only one result
-    except:
-        return None
+        with conn.cursor() as c:
+            c.execute("SELECT host ->> 'host' FROM projects WHERE project_id = %(pid)s::uuid",
+                      {'pid': '81753337-f6ff-43b7-9b0d-86b92902ef14'})
+            return (c.fetchone()[0])
+    except Exception as e:
+        conn.rollback()
+        raise e
 
 
 def project_collaborators(project_id, only_owner=False):
-    q = projects.get(project_id)["users"].coerce_to("array")
-    if only_owner:
-        q = q.map(lambda u: r.branch(u[1]["group"] == "owner", u, False)).filter(lambda x: x)
-    q = q.map(lambda u: (
-        u[1]["group"],
-            accounts.get(u[0]).pluck("account_id", "first_name", "last_name", "email_address")))
-    for group, u in q.run():
-        fn, ln = u['first_name'], u['last_name']
-        try:
-            eml = u["email_address"]
+    # q = projects.get(project_id)["users"].coerce_to("array")
+    try:
+        q = None
+        with conn.cursor() as c:
+            x = c.mogrify("SELECT users FROM projects WHERE project_id = %(pid)s::uuid", {'pid': project_id})
+            c.execute(x)
+            q = c.fetchone()[0]
+            # print(q)
+        # q = q.map(lambda u: r.branch(u[1]["group"] == "owner", u, False)).filter(lambda x: x)
+        collab_ids = [k for (k, v) in q.items() if not only_owner or v.get('group') == 'owner']
+        # print("collab_ids %s" % collab_ids)
+
+        #q = q.map(lambda u: (
+        #    u[1]["group"],
+        #        accounts.get(u[0]).pluck("account_id", "first_name", "last_name", "email_address")))
+
+        with conn.cursor() as c:
+            c.execute("""\
+            SELECT account_id::text, first_name, last_name, email_address
+            FROM accounts
+            WHERE account_id IN %s""", (tuple(collab_ids),))
+            collabs = c.fetchall()
+
+        #print("collabs %s" % collabs)
+        for u in collabs:
+            fn, ln = u[1], u[2]
+            eml = u[3]
             # print("name:  %s %s" % (fn, ln))
             # print("email: %s" % eml)
             print("%s %s <%s>" % (fn, ln, eml))  # , group, u["account_id"]))
-        except:
-            print("FIXME no email for %s = %s %s" % (fn, ln, group))
+    except Exception as e:
+        conn.rollback()
+        raise e
 
 
 def project_owner(project_id):

@@ -7,21 +7,20 @@ python:
   - '2.7'
 
 addons:
-  apt:
-    - python-yaml
-    - python-pip
-  rethinkdb: '2.3.5'
+  rethinkdb: '2.3.4'
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
   matrix:
+    - MODE=util
     #- MODE=sagews
     #- MODE=server
-    - MODE=util
 
 # installation and setup
 before_script:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y python-pip python-yaml
   - source /etc/lsb-release
   - rethinkdb --version
   - pip -V
