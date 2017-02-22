@@ -16,7 +16,7 @@ expect = require('expect')
 Test the SortedPatchList class
 ###
 
-describe "very basic tests with SortedPatchList -- ", ->
+describe "basic test of SortedPatchList -- ", ->
     spl = undefined
     times = (misc.minutes_ago(n) for n in [3, 2, 1, 0])
 
@@ -78,4 +78,62 @@ describe "very basic tests with SortedPatchList -- ", ->
     it 'closes SortedPatchList and verifies that it is closed', ->
         spl.close()
         expect(spl._patches).toBe(undefined)
+
+
+
+describe "very basic test of syncstring -- ", ->
+    client = new syncstring.TestBrowserClient1()
+    project_id = misc.uuid()
+    path = 'test.txt'
+    queries = {}
+    ss = undefined
+    patches_db = []
+
+    it 'creates a sync string', (done) ->
+        ss = client.sync_string
+            project_id        : project_id
+            path              : path
+            cursors           : false
+        # Wait for the various queries
+        client.once 'query', (opts) =>
+            #console.log JSON.stringify(opts)
+            queries.syncstring = opts
+            opts.cb(undefined, {query: opts.query})
+            client.once 'query', (opts) =>
+                #console.log JSON.stringify(opts)
+                queries.patches = opts
+                opts.cb(undefined, {query:{patches:[]}})
+        ss.on "connected", -> done()
+
+    it 'get the blank new sync string', ->
+        expect(ss.get()).toEqual('')
+
+    it 'set the sync string', ->
+        ss.set("cocalc")
+        expect(ss.get()).toEqual('cocalc')
+
+    it 'saves the sync string', (done) ->
+        client.once 'query', (opts) =>
+            expect(opts.query.length).toEqual(1)
+            patch = opts.query[0].patches
+            patches_db.push(patch)
+            expect(patch.patch).toEqual('[[[[1,"cocalc"]],0,0,0,6]]')
+            opts.cb()
+        ss.save(done)
+
+    it 'changes the sync string again', ->
+        ss.set("CoCalc")
+        expect(ss.get()).toEqual('CoCalc')
+
+    it 'saves the sync string', (done) ->
+        client.once 'query', (opts) =>
+            expect(opts.query.length).toEqual(1)
+            patch = opts.query[0].patches
+            patches_db.push(patch)
+            expect(patch.patch).toEqual('[[[[-1,"coc"],[1,"CoC"],[0,"alc"]],0,0,6,6]]')
+            opts.cb()
+        ss.save(done)
+
+
+
 

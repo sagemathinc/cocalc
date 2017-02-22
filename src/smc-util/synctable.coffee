@@ -988,7 +988,7 @@ class exports.TestBrowserClient1 extends EventEmitter
             changes : undefined
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             timeout : 30
-            cb      : required
+            cb      : undefined
         @emit 'query', opts
 
 

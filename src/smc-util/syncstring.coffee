@@ -485,7 +485,7 @@ class SortedPatchList extends EventEmitter
         # We return the time at which we should have the *newest* snapshot.
         # This is the largest multiple i of interval that is <= n - interval
         i = Math.floor((n - interval) / interval) * interval
-        return @_patches[i].time
+        return @_patches[i]?.time
 
     # Times of all snapshots in memory on this client; these are the only ones
     # we need to worry about for offline patches...
@@ -1839,3 +1839,37 @@ class exports.DBDoc
     get: ->
         return @_db
 
+
+
+###
+Used for testing
+###
+synctable = require('./synctable')
+class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
+    constructor: (@_client_id, @_debounce_interval=0) ->
+
+    is_user: =>
+        return true
+
+    mark_file: =>
+
+    server_time: =>
+        return new Date()
+
+    sync_table: (query, options, debounce_interval=0) =>
+        debounce_interval = @_debounce_interval # hard coded for testing
+        return synctable.sync_table(query, options, @, debounce_interval)
+
+    sync_string: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : undefined
+            path              : undefined
+            default           : ''
+            file_use_interval : 'default'
+            cursors           : false
+        opts.client = @
+        return new exports.SyncString(opts)
+
+    client_id: =>
+        return @_client_id
