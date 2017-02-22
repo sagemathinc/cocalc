@@ -59,6 +59,8 @@ exports.synchronized_string = synchronized_string
 
 class SynchronizedDocument extends AbstractSynchronizedDoc
     codemirrors: () =>
+        if @_closed
+            return []
         v = [@codemirror]
         if @editor._layout > 0
             v.push(@codemirror1)

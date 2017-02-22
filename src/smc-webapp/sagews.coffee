@@ -823,6 +823,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cm            : undefined    # only markup changes, etc., using the given editor (uses all visible ones by default)
             pad_bottom    : 10           # ensure there are this many blank lines at bottom of document
             caller        : undefined
+        if @_closed
+            return
         #console.log("process_sage_updates", @readonly, opts.caller)
         # For each line in the editor (or starting at line start), check if the line
         # starts with a cell or output marker and is not already marked.
@@ -851,6 +853,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")
         #dbg("start=#{start}, stop=#{stop}")
+        if @_closed
+            return
         if not cm?
             cm = @focused_codemirror()
         if not start?
