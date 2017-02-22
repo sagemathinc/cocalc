@@ -238,6 +238,7 @@ def active_courses(days=7):
     #        .pluck('course')["course"]["project_id"].distinct().run()
     with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
         x = c.execute("""
+        SET work_mem='64MB';
         WITH teacher_course_ids AS (
             SELECT DISTINCT((course ->> 'project_id')::uuid)
             FROM projects
@@ -245,7 +246,13 @@ def active_courses(days=7):
             AND course IS NOT NULL
         )
         SELECT project_id::text, title, last_edited, created, description,
-               -- ARRAY(SELECT jsonb_object_keys(users)) as users,
+               (    SELECT array_agg(row_to_json(t))
+                    FROM (
+                        SELECT account_id, first_name, last_name, email_address
+                        FROM accounts
+                        WHERE p.users ? account_id::text
+                    ) AS t
+               ) AS acc_users,
                users,
                c.host as host,
                COALESCE(c.member_host, false) as on_member_host
@@ -272,33 +279,33 @@ def active_courses(days=7):
     print("<html><head><style>body {font-family: sans-serif; font-size: 85%;}</style></head>")
     print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
     print("<div>Filter: <code>project.last_edited >= '%s days' ago</code></div>" % days)
-    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
-        for hosting, projs in sorted(courses.items()):
-            print("<h2>{} Hosting</h2>".format(hosting.title()))
-            for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
-                # pprint(p)
-                host = p.get("host", "N/A")
-                h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
-                edited = p["last_edited"].isoformat()[:16]
-                started = p.get("created")
-                started = started.isoformat()[:16] if started else 'N/A'
-                print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {hostname}"\
-                    .format(started=started, edited=edited, h3=h3, hostname=host, **p))
-                print("<div><i>{description}</i></div>".format(**p))
-                print("<ul>")
-                u = list(p["users"].keys())
-                # TODO no idea how to integrate this query in the one above. It's an array for each users jsonb
-                c.execute("""SELECT account_id::text, first_name, last_name, email_address
-                          FROM accounts WHERE account_id IN %s""", (tuple(u),))
-                for t in c.fetchall():
-                    t = dict(t)
-                    t["email_address"] = t.get("email_address", "None")
-                    addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-                    bg = 'yellow' if p["users"][t["account_id"]]['group'] == 'owner' else ''
-                    print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr))
-                print("</ul></div>")
-            print("<hr/>")
-        print("</body></html>")
+    # with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
+    for hosting, projs in sorted(courses.items()):
+        print("<h2>{} Hosting</h2>".format(hosting.title()))
+        for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
+            # pprint(p)
+            host = p.get("host", "N/A")
+            h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
+            edited = p["last_edited"].isoformat()[:16]
+            started = p.get("created")
+            started = started.isoformat()[:16] if started else 'N/A'
+            print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {hostname}"\
+                .format(started=started, edited=edited, h3=h3, hostname=host, **p))
+            print("<div><i>{description}</i></div>".format(**p))
+            print("<ul>")
+            # u = list(p["users"].keys())
+            # TODO no idea how to integrate this query in the one above. It's an array for each users jsonb
+            #c.execute("""SELECT account_id::text, first_name, last_name, email_address
+            #          FROM accounts WHERE account_id IN %s""", (tuple(u),))
+            for t in p['acc_users']:
+                t = dict(t)
+                t["email_address"] = t.get("email_address", "None")
+                addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
+                bg = 'yellow' if p["users"][t["account_id"]]['group'] == 'owner' else ''
+                print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr))
+            print("</ul></div>")
+        print("<hr/>")
+    print("</body></html>")
 
 
 def live(table = 'projects', max_time = 15, filter_str = None):
