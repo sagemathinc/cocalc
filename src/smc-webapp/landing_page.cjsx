@@ -212,6 +212,12 @@ SignIn = rclass
         if @props.sign_in_error
             @actions('account').setState(sign_in_error : undefined)
 
+    forgot_font_size: ->
+        if @props.sign_in_error?
+            return '16pt'
+        else
+            return '12pt'
+
     render: ->
         if @props.xs
             <Col xs=12>
@@ -228,7 +234,7 @@ SignIn = rclass
                     </Row>
                     <Row>
                         <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer"} >Forgot Password?</a>
+                            <a onClick={@display_forgot_password} style={color:"#FFF", cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Row>
                     <Row>
@@ -271,7 +277,7 @@ SignIn = rclass
                 <Row>
                     <Col xs=7 xsOffset=5 style={paddingLeft:15}>
                         <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={cursor: "pointer"} >Forgot Password?</a>
+                            <a onClick={@display_forgot_password} style={color:"#FFF", cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Col>
                 </Row>
@@ -619,8 +625,9 @@ exports.LandingPage = rclass
                                   position : "relative",\
                                   top      : 12,\
                                   right    : 12,\
+                                  fontSize : '11pt',\
                                   float    : "right"}
-                           className="smc-sign-in-form">
+                          >
                           <SignIn
                               signing_in    = {@props.signing_in}
                               sign_in_error = {@props.sign_in_error}
