@@ -181,10 +181,19 @@ def project_owner(project_id):
 
 
 def projects_by_user(account_id):
-    return list(projects.filter(lambda p: p["users"].has_fields(account_id)).run())
+    # return list(projects.filter(lambda p: p["users"].has_fields(account_id)).run())
+    try:
+        with conn.cursor() as c:
+            c.execute("SELECT project_id FROM projects WHERE users ? %s::text", (account_id,))
+            return [str(_[0]) for _ in c.fetchall()]
+    except Exception as e:
+        conn.rollback()
+        raise e
 
 
 def search_email(email=None, domain=None, limit=20):
+    raise Exception('NYI')
+
     email = email or r".*"
     if domain:
         regex = r'^%s.*@%s$' % (email, domain)
@@ -204,6 +213,8 @@ def export_accounts(outfn):
     """
     * outfn: output filename, should end in .yaml.bz2
     """
+    raise Exception('NYI')
+
     if not outfn.endswith(".yaml.bz2"):
         raise ValueError("filename should end in .yaml.bz2")
 
@@ -222,207 +233,73 @@ def export_accounts(outfn):
 
 def active_courses(days=7):
     # teacher's course IDs of all active student course projects
-    teacher_course_ids = projects.has_fields('course')\
-        .filter(r.row["last_edited"] > days_ago(days))\
-            .pluck('course')["course"]["project_id"].distinct().run()
+    #teacher_course_ids = projects.has_fields('course')\
+    #    .filter(r.row["last_edited"] > days_ago(days))\
+    #        .pluck('course')["course"]["project_id"].distinct().run()
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
+        x = c.execute("""
+        WITH teacher_course_ids AS (
+            SELECT DISTINCT((course ->> 'project_id')::uuid)
+            FROM projects
+            WHERE last_edited >= NOW() - '%(days)s days'::interval
+            AND course IS NOT NULL
+        )
+        SELECT project_id::text, title, last_edited, created, description,
+               -- ARRAY(SELECT jsonb_object_keys(users)) as users,
+               users,
+               c.host as host,
+               COALESCE(c.member_host, false) as on_member_host
+        FROM projects p LEFT JOIN compute_servers c ON (p.host ->> 'host') = c.host
+        WHERE project_id in (SELECT * FROM teacher_course_ids)
+        """, {'days': days})
+        course_data = c.fetchall()
 
     courses = defaultdict(list)
-    for tc in projects.get_all(*teacher_course_ids)\
-        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", \
-               "settings", {"host":"host"}).run():
-        if "settings" in tc and tc["settings"].get('member_host', 0) >= 1:
-            proj_type = 'member'
-        else:
-            proj_type = 'free'
+    for c in course_data:
+        tc = dict(c) # makes a copy such that we can modify it
         # some courses do not have a created timestamp :-(
         tc["created"] = tc.get("created", datetime.fromtimestamp(0).replace(tzinfo=utc))
-        courses[proj_type].append(tc)
+        member = 'member' if tc['on_member_host'] else 'free'
+        courses[member].append(tc)
+
+    #pprint(courses)
 
     # e is a (account_id, account_data) pair
-    group_order = {"owner": 0, "collaborator": 1}
-    sort_collabs = lambda e: (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
+    # group_order = {"owner": 0, "collaborator": 1}
+    # sort_collabs = lambda e: (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
 
     print("<DOCTYPE html>")
     print("<html><head><style>body {font-family: sans-serif; font-size: 85%;}</style></head>")
     print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
-    for hosting, projs in sorted(courses.items()):
-        print("<h2>{} Hosting</h2>".format(hosting.title()))
-        for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
-            # pprint(p)
-            host = p["host"].get("host", "N/A")
-            h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
-            edited = p["last_edited"].isoformat()[:16]
-            started = p["created"].isoformat()[:16]
-            print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {hostname}"\
-                .format(started=started, edited=edited, h3=h3, hostname=host, **p))
-            print("<div><i>{description}</i></div>".format(**p))
-            print("<ul>")
-            u = p["users"]
-            for k, v in sorted(u.items(), key=sort_collabs):
-                t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
-                t["email_address"] = t.get("email_address", "None")
-                addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-                bg = 'yellow' if v['group'] == 'owner' else ''
-                print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr, **v))
-            print("</ul></div>")
-        print("<hr/>")
-    print("</body></html>")
+    print("<div>Filter: <code>project.last_edited >= '%s days' ago</code></div>" % days)
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
+        for hosting, projs in sorted(courses.items()):
+            print("<h2>{} Hosting</h2>".format(hosting.title()))
+            for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
+                # pprint(p)
+                host = p.get("host", "N/A")
+                h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
+                edited = p["last_edited"].isoformat()[:16]
+                started = p.get("created")
+                started = started.isoformat()[:16] if started else 'N/A'
+                print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {hostname}"\
+                    .format(started=started, edited=edited, h3=h3, hostname=host, **p))
+                print("<div><i>{description}</i></div>".format(**p))
+                print("<ul>")
+                u = list(p["users"].keys())
+                # TODO no idea how to integrate this query in the one above. It's an array for each users jsonb
+                c.execute("""SELECT account_id::text, first_name, last_name, email_address
+                          FROM accounts WHERE account_id IN %s""", (tuple(u),))
+                for t in c.fetchall():
+                    t = dict(t)
+                    t["email_address"] = t.get("email_address", "None")
+                    addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
+                    bg = 'yellow' if p["users"][t["account_id"]]['group'] == 'owner' else ''
+                    print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr))
+                print("</ul></div>")
+            print("<hr/>")
+        print("</body></html>")
 
-
-def rewrite_stats():
-    """
-    This little helper changes entries in the stats table. The goal is, that
-    'last_week_projects': 3533, 'last_day_projects': 1202, and  'last_month_projects': 10443
-    are transformed into 'projects_edited' : {'1d' : ..., '1h':, ... }
-    """
-    from time import sleep
-    dt = timedelta(days=1)
-
-    first = stats.order_by(index="time").run().next()
-    start = first["time"]
-    #start += 17*dt
-
-    while start < time_past(days=7):
-        start += dt
-        end = start + dt
-        print(start)
-
-        nb = stats.between(start, end, index="time").has_fields('last_day_projects').count().run()
-        if nb == 0:
-            sleep(.1)
-            continue
-        print("modifying %d documents between %s → %s" % (nb, start.isoformat(), end.isoformat()))
-
-        #pprint(stats.between(start, end, index="time").has_fields('last_day_projects').run().next())
-        #return
-
-        trans = stats.between(start, end, index="time")\
-            .has_fields('last_day_projects')\
-            .replace(
-                lambda d: d
-                    .merge({"projects_edited": {
-                            "5min": d['active_projects'],
-                            "1d": d["last_day_projects"],
-                            "1h": d["last_hour_projects"].default(None),
-                            "7d": d["last_week_projects"],
-                            "30d": d["last_month_projects"]}})
-                    .without('active_projects',
-                             "last_day_projects",
-                             "last_hour_projects",
-                             "last_week_projects",
-                             'last_month_projects')
-        )
-        res = trans.run(durability='soft')
-        # print(res)
-        if res["errors"] > 0:
-            print(res)
-            for i in stats.between(start, end, index="time").has_fields('last_day_projects').run():
-                print("stats.get('%s')" % i["id"])
-                pprint(i)
-            #return
-        elif res["replaced"] > 0:
-            # top speed is above 10k/sec, but we want to keep this throttled
-            # therefore, for every 1k replacements, sleep 15 secs (1 sec isn't enough)
-            sleep(15. * res["replaced"] / 1000.)
-        else:
-            sleep(.1)
-
-
-def space_usage():
-    stats = r.db('rethinkdb').table('stats')
-    q = stats.has_fields('storage_engine')\
-        .pluck('server', 'table', {'storage_engine': {'disk' :'space_usage'}})
-
-    totals = defaultdict(lambda : 0.)
-
-    print('{:24s}   {:9s}       {:8s}     {:8s}    {:4s}    {:8s}     {:8s}'\
-          .format('table', 'server', 'data', 'garbage', '%', 'meta', 'prealloc'))
-    for d in sorted(q.run(), key = lambda d : (d['table'], d['server'])):
-        server   = d['server']
-        table    = d['table']
-        space    = d['storage_engine']['disk']['space_usage']
-        data     = space['data_bytes'] / 2**23
-        garbage  = space['garbage_bytes'] / 2**23
-        ratio    = 100. * garbage / (data + garbage)
-        meta     = space['metadata_bytes'] / 2**23
-        prealloc = space['preallocated_bytes'] / 2**23
-        print('{0[table]:<24s} @ {0[server]:<9s}: '
-              '{data:>8.2f}MiB  {garbage:>8.2f}MiB  {ratio:>4.1f}%  {meta:>8.2f}MiB  {prealloc:>8.2f}MiB'.format(d, **locals()))
-
-        totals[server] += data
-    pprint(totals)
-
-def connections():
-    """
-    Shows the current network configuration of the cluster
-    """
-    from collections import defaultdict
-    proxies = defaultdict(lambda : len(proxies))
-    conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
-
-    for t in ['db', 'proxy']:
-        if t == 'db': print("DB Nodes")
-        if t == 'proxy': print("DB Proxies")
-
-        for x in sorted(conns, key=lambda x : x['name']):
-            dbs = sorted(filter(lambda k_v : k_v[0].startswith('db') ^ (t == 'proxy'), x['network']['connected_to'].items()))
-            dbs = [k for k, v in dbs if v]
-            if t == 'proxy':
-                dbs = [proxies[k] for k in dbs]
-            print('%8s: %s' % (x['name'], sorted(dbs)))
-        print()
-
-def read_write_stats(N = 10, B = 5, continuous=True):
-    """
-    Tabulates some read/write stats per table
-    * N: number of samples (if continuous, used for the sharpness of the decay)
-    * B: sleep time (*b*reak) in seconds
-    * continuous: set it to true to sample continusouly with exponential decay (uses N and B)
-    """
-    from collections import Counter, defaultdict
-    from time import sleep
-
-    def sample(verbose=True):
-        tps = {}
-        for t in r_stats.filter(r.row['id'][0] == "table").pluck("table", "query_engine").run():
-            name = t["table"]
-            wps = t["query_engine"]["written_docs_per_sec"]
-            rps = t["query_engine"]['read_docs_per_sec']
-            if verbose and (wps > 10 or rps > 10):
-                print("{0:<30s} rps: {1:10.2f}     wps: {2:10.2f}".format(name, rps, wps))
-            tps['wps::' + name] = wps
-            tps['rps::' + name] = rps
-        return tps
-
-    def print_summary(data, N = N):
-        print("{:30s}    reads/s     writes/s".format(""))
-        sum_r = sum_w = 0
-        tables = set(k.split('::')[1] for k in data.keys())
-        for name in sorted(tables, key = lambda n : - data['wps::' + n]):
-            rps = data['rps::' + name] / N
-            sum_r += rps
-            wps = data['wps::' + name] / N
-            sum_w += wps
-            print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
-        print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
-
-    if continuous:
-        print("continuous mode: exp decay of N={} in {}s intervals: Ctrl-C to stop.".format(N, B))
-        data = {}
-        while True:
-            tps = sample(verbose = False)
-            for k in tps:
-                data[k] = ((N - 1) * data.get(k, tps[k]) + tps[k]) / N
-            print_summary(data, N = 1)
-            sleep(B)
-    else:
-        cnt = Counter()
-        print("taking {} samples in {}s intervals".format(N, B))
-        for i in range(N):
-            print("sample {}".format(i))
-            cnt.update(sample())
-            sleep(B)
-        print_summary(cnt)
 
 def live(table = 'projects', max_time = 15, filter_str = None):
     """
@@ -432,6 +309,8 @@ def live(table = 'projects', max_time = 15, filter_str = None):
     * filter_str: an additional string for filtering the queries.
       e.g. a project uuid via live(filter_str='369491f1')
     """
+    raise Exception('NYI')
+
     q = r_jobs.filter({'type':'query'})
     q = q.filter(r.row['duration_sec'] < max_time)
     q = q.filter(r.row["info"]["query"].match(r'table\("%s"' % table))
@@ -440,134 +319,8 @@ def live(table = 'projects', max_time = 15, filter_str = None):
     for x in q.changes()['new_val']['info'].run():
         print(x['query'])
 
-# This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
-# the tricky part is, that not all tables can be loaded into memory at once.
-
-try:
-    from functools import lru_cache
-
-    class Backup(object):
-
-        """
-        This reads directly the dumped files from disk.
-        """
-
-        def __init__(self, root="/backup/data/smc/"):
-            self.root = root
-
-        def fn(self, db):
-            from os.path import join
-            return join(self.root, db + ".json")
-
-        @lru_cache(maxsize=32)
-        def get(self, db):
-            from json import load
-            data = load(open(self.fn(db), "r"))
-            return data
-
-        @lru_cache(maxsize=32)
-        def get_accounts(self):
-            data = {}
-            for account in self.get("accounts"):
-                account_id = account["account_id"]
-                data[account_id] = account
-            return data
-
-        @lru_cache(maxsize=32)
-        def get_account(self, account_id):
-            return self.get_accounts().get(account_id, None)
-
-        def projects_search(self, search_string):
-            from os.path import join
-            from json import loads
-            import os
-            fn = self.fn("projects")
-            cmd = "grep '%s' '%s'" % (search_string, fn)
-            # print(cmd)
-            results = os.popen(cmd).read()
-            return [loads(line[:-1]) for line in results.split("\n") if len(line) > 0]
-
-        def projects_of_owner(self, account_id):
-            projects = []
-            for project in self.projects_search(account_id):
-                for user_id, config in project["users"].items():
-                    if config.get("group", None) == "owner":
-                        projects.append(project)
-            return projects
-
-        def sort_projects(self, projects, key="time"):
-            if key == "time":
-                return sorted(projects, key=lambda p: p['last_edited']['epoch_time'])
-            else:
-                raise ValueError("key %s unkown" % key)
-
-        def pprint_account(self, account):
-            account["first_name"] = account.get("first_name", "")
-            account["last_name"] = account.get("last_name", "")
-            account["email_address"] = account.get("email_address", "???@???.??")
-            estr = u'"{first_name} {last_name} <{email_address}>"'.format(**account)
-            aid = account["account_id"]
-            return u'%-60s  %s' % (estr, aid)
-
-        def pprint_projects(self, projects, width=111):
-            """
-            pretty print one or more projects
-            """
-            from datetime import datetime
-            from textwrap import wrap
-
-            for p in projects:
-                ts = p['last_edited']['epoch_time']
-                last_edited = datetime.utcfromtimestamp(ts).isoformat()
-                accounts = [self.get_account(aid) for aid in p["users"].keys()]
-                title = p['title']
-                description = '\n'.join(wrap(p["description"], width))
-                deleted = p.get("deleted", False)
-                project_id = p["project_id"]
-
-                print()
-                print('{title} ({project_id})'.format(**locals()).center(width, "-"))
-                print(description)
-                print()
-                print("last edited: {last_edited}   deleted: {deleted}".format(**locals()))
-                print()
-                for account in accounts:
-                    if account is None:
-                        print("unknown")
-                        continue
-
-                    print(self.pprint_account(account), end=" -- ")
-                    print(p["users"][account["account_id"]]["group"])
-
-        def search_email(self, email=None, domain=None, regex=None, limit=20):
-            import re
-            accounts = self.get("accounts")
-
-            email = email or r".*"
-            if regex is None:
-                if domain:
-                    regex = r'^%s.*@%s$' % (email, domain)
-                else:
-                    regex = r'^%s$' % email
-            regex = re.compile(regex)
-
-            for idx, account in enumerate(accounts):
-                if "email_address" not in account:
-                    continue
-                if regex.search(account["email_address"]):
-                    print(self.pprint_account(account))
-                    if idx == limit - 1:
-                        print("\n--- limit of %d entries reached ---" % limit)
-
-    backup = Backup()
-
-except:
-    print("warning: running under python 2. lru_cache doesn't exist and 'Backup' is disabled...")
-
 if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] == "courses":
-            active_courses(days = 130)
-        elif sys.argv[1] == 'rewrite_stats':
-            rewrite_stats()
+            active_courses(days = 100)
