@@ -241,8 +241,6 @@ class SyncTable extends EventEmitter
                     all_changed_keys[key] = true
                 do_emit_changes()
 
-
-
     dbg: (f) =>
         #return @_client.dbg("SyncTable('#{@_table}').#{f}")
         return =>
