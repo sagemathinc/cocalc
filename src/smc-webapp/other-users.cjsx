@@ -158,8 +158,8 @@ exports.Avatar = Avatar = rclass
     render_letter: ->
         bg = @get_background_color()
         style =
-            backgroundColor : bg
-            color           : if onecolor(bg).magenta() >= 0.4 then 'white' else 'black'
+            backgroundColor : bg   # onecolor doesn't provide magenta in some browsers
+            color           : if (onecolor(bg).magenta?() ? 0) >= 0.4 then 'white' else 'black'
         <span style={misc.merge style, CIRCLE_INNER_STYLE}>
             {@letter()}
         </span>
