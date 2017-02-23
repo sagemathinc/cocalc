@@ -187,6 +187,21 @@ class DBDoc
             n += 1
         return
 
+    to_str: =>
+        return (misc.to_json(record) for record in @to_obj()).join('\n')
+
+    from_str: (str) =>
+        if str != ''
+            obj = []
+            for line in str.split('\n')
+                try
+                    obj.push(misc.from_json(line))
+                catch e
+                    console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
+            @from_obj(obj)
+        else
+            @from_obj([])
+
     # Record all the update actions that happen after this call
     start_recording: =>
         @_recording = []

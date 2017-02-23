@@ -265,6 +265,38 @@ describe 'test conversion from and to obj -- ', ->
         expect(db2.get()).toEqual(db.get())
 
 
+describe 'test conversion from and to strings -- ', ->
+    db = undefined
+    time = new Date()
+
+    it "makes the db", ->
+        db = db_doc(['id', 'group'])
+        expect(db.count()).toBe(0)
+
+    it "adds records", ->
+        db.set(name:"Sage0", active:time, id:"389", group:'user')
+        db.set(name:"Sage1", id:"123", group:'admin')
+        db.set(name:"Sage2", id:"389", group:'admin')
+        db.set(name:"Sage3", id:"5077", group:'admin')
+
+    it 'convert to string', ->
+        str = db.to_str()
+        expect(str).toEqual('{"name":"Sage0","active":' +  JSON.stringify(time)  + ',"id":"389","group":"user"}\n{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage2","id":"389","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
+
+    it 'delete two records, then convert to string', ->
+        expect(db.delete(id:'389')).toEqual(2)
+        str = db.to_str()
+        expect(str).toEqual('{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
+
+    it 'convert from str', ->
+        db2 = db_doc(['id', 'group'])
+        db2.from_str(db.to_str())
+        expect(db2.get()).toEqual(db.get())
+        # then delete and set other way
+        db.delete()
+        db.from_str(db2.to_str())
+        expect(db2.get()).toEqual(db.get())
+
 describe 'test recording of sequence of actions -- ', ->
     db = recording = undefined
 
