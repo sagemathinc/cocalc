@@ -394,6 +394,10 @@ class SagewsPrinter extends Printer
         if not html?
             return html
         $html = $('<div>').html(html)
+        $html.process_smc_links(
+            project_id : @editor.project_id
+            file_path  : misc.path_split(@editor.filename).head
+        )
         if not @_title
             for tag in ['h1', 'h2', 'h3']
                 $hx = $html.find(tag + ':first')
