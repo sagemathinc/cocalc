@@ -927,9 +927,12 @@ synctables = {}
 # Do not leave in production; could be slight security risk.
 ## window?.synctables = synctables
 
-exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined) ->
+exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined, use_cache=true) ->
 
     cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval, throttle_changes:throttle_changes)
+    if not use_cache
+        return new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)
+
     S = synctables[cache_key]
     if S?
         if S._state == 'connected'
@@ -990,5 +993,4 @@ class exports.TestBrowserClient1 extends EventEmitter
             timeout : 30
             cb      : undefined
         @emit 'query', opts
-
 

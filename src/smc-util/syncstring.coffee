@@ -1858,7 +1858,7 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
 
     sync_table: (query, options, debounce_interval=0) =>
         debounce_interval = @_debounce_interval # hard coded for testing
-        return synctable.sync_table(query, options, @, debounce_interval)
+        return synctable.sync_table(query, options, @, debounce_interval, 0, false)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1868,6 +1868,7 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
             default           : ''
             file_use_interval : 'default'
             cursors           : false
+            save_interval     : 0
         opts.client = @
         return new exports.SyncString(opts)
 

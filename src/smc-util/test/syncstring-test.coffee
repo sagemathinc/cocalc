@@ -79,15 +79,12 @@ describe "basic test of SortedPatchList -- ", ->
         spl.close()
         expect(spl._patches).toBe(undefined)
 
-
-
 describe "very basic test of syncstring -- ", ->
     client = new syncstring.TestBrowserClient1()
     project_id = misc.uuid()
     path = 'test.txt'
     queries = {}
     ss = undefined
-    patches_db = []
 
     it 'creates a sync string', (done) ->
         ss = client.sync_string
@@ -116,7 +113,6 @@ describe "very basic test of syncstring -- ", ->
         client.once 'query', (opts) =>
             expect(opts.query.length).toEqual(1)
             patch = opts.query[0].patches
-            patches_db.push(patch)
             expect(patch.patch).toEqual('[[[[1,"cocalc"]],0,0,0,6]]')
             opts.cb()
         ss.save(done)
@@ -129,11 +125,153 @@ describe "very basic test of syncstring -- ", ->
         client.once 'query', (opts) =>
             expect(opts.query.length).toEqual(1)
             patch = opts.query[0].patches
-            patches_db.push(patch)
             expect(patch.patch).toEqual('[[[[-1,"coc"],[1,"CoC"],[0,"alc"]],0,0,6,6]]')
             opts.cb()
         ss.save(done)
 
+    it 'closes the sync string', ->
+        ss.close()
+
+describe "test sync editing of two syncstring -- ", ->
+    client = new syncstring.TestBrowserClient1()
+    project_id = misc.uuid()
+    path = 'test.txt'
+    queries = [{}, {}]
+    ss = [undefined, undefined]
+
+    all_queries = []
+    client.on 'query', (opts) ->
+        #console.log(JSON.stringify(opts.query))
+        all_queries.push(opts)
+
+    it 'creates first syncstring', (done) ->
+        ss[0] = client.sync_string(project_id: project_id, path: path)
+        client.once 'query', (opts) =>
+            queries[0].syncstring = opts
+            opts.cb(undefined, {query: opts.query})
+            client.once 'query', (opts) =>
+                queries[0].patches = opts
+                opts.cb(undefined, {query:{patches:[]}})
+        ss[0].on "connected", -> done()
+
+    it 'creates second syncstring', (done) ->
+        ss[1] = client.sync_string(project_id: project_id, path: path)
+        client.once 'query', (opts) =>
+            queries[1].syncstring = opts
+            opts.cb(undefined, {query: opts.query})
+            client.once 'query', (opts) =>
+                queries[1].patches = opts
+                opts.cb(undefined, {query:{patches:[]}})
+        ss[1].on "connected", -> done()
+
+    it 'verify starting state', ->
+        for s in ss
+            expect(s.get()).toEqual('')
+
+    it 'set the sync string of one', ->
+        ss[0].set("cocalc")
+        expect(ss[0].get()).toEqual('cocalc')
+        expect(ss[1].get()).toEqual('')
+
+    it 'saves the sync string, hence sending the changes to the other one', (done) ->
+        ss[1].once 'change', ->
+            # this is what we want to happen
+            expect(ss[1].get()).toEqual('cocalc')
+            done()
+        client.once 'query', (opts) ->
+            expect(opts.query.length).toEqual(1)
+            patch = opts.query[0].patches
+            expect(patch.patch).toEqual('[[[[1,"cocalc"]],0,0,0,6]]')
+            opts.cb()
+            queries[1].patches.cb(undefined, {new_val:patch})
+        ss[0].save()  # this triggers above query
+
+    it 'makes change to both strings then save, and see that changes merge', (done) ->
+        ss[0].set("cocalcX")
+        ss[1].set("Ycocalc")
+
+        ss[1].once 'change', ->
+            expect(ss[1].get()).toEqual('YcocalcX')
+            done()
+        client.once 'query', (opts) ->
+            opts.cb()
+            queries[1].patches.cb(undefined, {new_val:opts.query[0].patches})
+        ss[0].save()
+
+    it 'and the other direction', (done) ->
+        ss[0].once 'change', ->
+            expect(ss[0].get()).toEqual('YcocalcX')
+            done()
+        # Note that when ss[1] above changed it also sent out its patch already, so
+        # we can't wait for it here like we did above.  It is in all_queries.
+        queries[0].patches.cb(undefined, {new_val:all_queries[all_queries.length-1].query[0].patches})
+
+    it 'closes the sync strings', ->
+        ss[0].close()
+        ss[1].close()
+
+
+
+describe "test conflicting changes to two syncstrings -- ", ->
+    client = new syncstring.TestBrowserClient1()
+    project_id = misc.uuid()
+    path = 'test.txt'
+    queries = [{}, {}]
+    ss = [undefined, undefined]
+
+    all_queries = []
+    client.on 'query', (opts) ->
+        #console.log(JSON.stringify(opts.query))
+        all_queries.push(opts)
+
+    it 'creates first syncstring', (done) ->
+        ss[0] = client.sync_string(project_id: project_id, path: path)
+        client.once 'query', (opts) =>
+            queries[0].syncstring = opts
+            opts.cb(undefined, {query: opts.query})
+            client.once 'query', (opts) =>
+                queries[0].patches = opts
+                opts.cb(undefined, {query:{patches:[]}})
+        ss[0].on "connected", -> done()
+
+    it 'creates second syncstring', (done) ->
+        ss[1] = client.sync_string(project_id: project_id, path: path)
+        client.once 'query', (opts) =>
+            queries[1].syncstring = opts
+            opts.cb(undefined, {query: opts.query})
+            client.once 'query', (opts) =>
+                queries[1].patches = opts
+                opts.cb(undefined, {query:{patches:[]}})
+        ss[1].on "connected", -> done()
+
+    it 'make first change', (done) ->
+        ss[0].set('{"a":389}')
+        setTimeout(done, 2)  # wait 2ms
+
+    it 'makes conflicting change to both strings then save', (done) ->
+        ss[1].set('{"a":433}')
+
+        # OBSERVE that though both lines are valid JSON, the resulting
+        # merge is **invalid** (hence corrupted).
+        ss[1].once 'change', ->
+            expect(ss[1].get()).toEqual('{"a":433}{"a":389}')
+            done()
+        client.once 'query', (opts) ->
+            opts.cb()
+            queries[1].patches.cb(undefined, {new_val:opts.query[0].patches})
+        ss[0].save()
+
+    it 'and the other direction', (done) ->
+        ss[0].once 'change', ->
+            expect(ss[0].get()).toEqual('{"a":433}{"a":389}')
+            done()
+        # Note that when ss[1] above changed it also sent out its patch already, so
+        # we can't wait for it here like we did above.  It is in all_queries.
+        queries[0].patches.cb(undefined, {new_val:all_queries[all_queries.length-1].query[0].patches})
+
+    it 'closes the sync strings', ->
+        ss[0].close()
+        ss[1].close()
 
 
 
