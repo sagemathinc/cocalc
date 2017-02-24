@@ -46,6 +46,8 @@ account = require('./account')
 
 {IS_MOBILE} = require('./feature')
 
+syncstring = require('smc-util/syncstring')
+
 class AbstractSynchronizedDoc extends EventEmitter
     file_path: () =>
         if not @_file_path?
@@ -59,6 +61,8 @@ exports.synchronized_string = synchronized_string
 
 class SynchronizedDocument extends AbstractSynchronizedDoc
     codemirrors: () =>
+        if @_closed
+            return []
         v = [@codemirror]
         if @editor._layout > 0
             v.push(@codemirror1)
@@ -183,6 +187,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
+        # window.w = @
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
             cm.undo = @undo
@@ -249,7 +254,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     if @_closed
                         return
                     #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
-                    @codemirror.setValueNoJump(@_syncstring.get())
+                    @_set_codemirror_to_syncstring()
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
@@ -262,7 +267,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     if @_closed
                         return
                     #console.log("syncstring before change")
-                    @_syncstring.set(@codemirror.getValue())
+                    @_set_syncstring_to_codemirror()
 
                 @_syncstring.on 'deleted', =>
                     if @_closed
@@ -293,6 +298,27 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
+    _set_syncstring_to_codemirror: =>
+        val = @codemirror.getValue()
+        @_last_val = val
+        @_syncstring.set(val)
+
+    _set_codemirror_to_syncstring: =>
+        val = @_syncstring.get()
+        cur_val = @codemirror.getValue()
+        if @_last_val? and cur_val != @_last_val
+            # We *MERGE* the changes in since, we made changes between when we last set
+            # the syncstrind and now.  This can perhaps sometimes happen in rare cases
+            # due to async save debouncing.  (Honestly, I don't know how this case could
+            # possibly happen.)
+            patch = syncstring.dmp.patch_make(@_last_val, cur_val)
+            val = syncstring.dmp.patch_apply(patch, val)[0]
+        else
+            patch = undefined
+        @codemirror.setValueNoJump(val)
+        if patch?
+            @_set_syncstring_to_codemirror()
+
     has_unsaved_changes: =>
         if not @codemirror?
             return false
@@ -320,7 +346,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     _sync: (cb) =>
         if @codemirror?  # need not be defined, right when user closes the editor instance
-            @_syncstring.set(@codemirror.getValue())
+            @_set_syncstring_to_codemirror()
         @_syncstring.save(cb)
 
     sync: (cb) =>
@@ -332,7 +358,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         cm = @focused_codemirror()  # see https://github.com/sagemathinc/smc/issues/1161
         if not @_syncstring.in_undo_mode()
-            @_syncstring.set(cm.getValue())
+            @_set_syncstring_to_codemirror()
         value = @_syncstring.undo()
         cm.setValueNoJump(value, true)
         @save_state_debounce()
@@ -357,7 +383,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if not @codemirror? or not @_fully_loaded
             cb() # nothing to do -- not initialized/loaded yet...
             return
-        @_syncstring.set(@codemirror.getValue())
+        @_set_syncstring_to_codemirror()
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
             @_update_unsaved_uncommitted_changes()
             if err

@@ -1551,6 +1551,33 @@ class CodeMirrorEditor extends FileEditor
         # even better -- fully restore cursors, if available in localStorage
         setTimeout((()=>@restore_cursor_position()),1)  # do in next round, so that both editors get set by codemirror first (including the linked one)
 
+    # save/restore view state -- hooks used by React editor wrapper.
+    save_view_state: =>
+        state =
+            scroll : (cm?.getScrollInfo() for cm in @codemirrors())
+        @_view_state = state
+        return state
+
+    restore_view_state: (second_try) =>
+        state = @_view_state
+        if not state?
+            return
+        cms = @codemirrors()
+        i = 0
+        for v in state.scroll
+            cm = cms[i]
+            if cm?
+                cm.scrollTo(v.left, v.top)
+                info = cm.getScrollInfo()
+                # THIS IS HORRIBLE and SUCKS, but I can't understand what is going on sufficiently
+                # well to remove this.  Sometimes scrollTo fails (due to the document being reported as much
+                # smaller than it is for a few ms) **and** it's then not possible to scroll,
+                # so we just try again. See https://github.com/sagemathinc/smc/issues/1327
+                if not second_try and info.top != v.top
+                    # didn't work -- not fully visible; try again one time when rendering is presumably done.
+                    setTimeout((=>@restore_view_state(true)), 250)
+            i += 1
+
     restore_cursor_position: () =>
         for i, cm of [@codemirror, @codemirror1]
             if cm?
@@ -2669,7 +2696,7 @@ class PDF_Preview extends FileEditor
             highlight_line : true
         pg = @pdflatex.page(opts.n)
         elt = @element.find(".salvus-editor-pdf-preview-output")
-        if not pg? or not elt?
+        if not pg?.element? or not elt?
             # the page has vanished in the meantime...
             return
         t = elt.offset().top

@@ -1472,6 +1472,7 @@ zxcvbn = undefined
 password_score = (password) ->
     return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/smc/issues/687
     # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
+    ###
     if zxcvbn?
         if zxcvbn != 'loading'
             # explicitly ban some words.
@@ -1483,3 +1484,4 @@ password_score = (password) ->
             # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             #    zxcvbn = window.zxcvbn
     return
+    ###

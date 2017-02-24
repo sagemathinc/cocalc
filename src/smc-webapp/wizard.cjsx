@@ -141,7 +141,11 @@ class WizardActions extends Actions
 
     select_lang: (lang) ->
         @reset()
-        @set(lang: lang)
+        data = @get('data')
+        if data.has(lang)
+            @set(lang: lang)
+        else
+            @set(lang: data.keySeq().last())
         catlist0 = @get_catlist0()
         @set(catlist0 : catlist0)
         if catlist0.length == 1

@@ -2064,14 +2064,14 @@ exports.ProjectFiles = rclass ({name}) ->
     render_access_error: ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
-            if @props.redux.getStore('account').is_logged_in()
+            if @props.redux.getStore('account')?.is_logged_in()
                 <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
                     <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
-            if @props.redux.getStore('account').is_logged_in()
+            if @props.redux.getStore('account')?.is_logged_in()
                 <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
             else
                 <div>

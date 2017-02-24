@@ -202,7 +202,8 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
+        error   : rtypes.oneOfType([rtypes.string,rtypes.object])
+        error_component : rtypes.any
         title   : rtypes.string
         style   : rtypes.object
         bsStyle : rtypes.string
@@ -220,10 +221,13 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             misc.merge(style, @props.style)
         else
             style = error_text_style
-        if typeof(@props.error) == 'string'
-            error = @props.error
+        if @props.error?
+            if typeof(@props.error) == 'string'
+                error = @props.error
+            else
+                error = misc.to_json(@props.error)
         else
-            error = misc.to_json(@props.error)
+            error = @props.error_component
         bsStyle = @props.bsStyle ? 'danger'
         <Alert bsStyle={bsStyle} style={style}>
             {@render_close_button() if @props.onClose?}

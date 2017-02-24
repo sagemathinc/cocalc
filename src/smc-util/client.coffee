@@ -295,7 +295,15 @@ class exports.Connection extends EventEmitter
             x = misc.get_local_storage('clock_skew')
             if x?
                 @_clock_skew = parseFloat(x)
-        return new Date(new Date() - (@_clock_skew ? 0))
+        # NOTE: We DO NOT even mess with the clock at all unless it is off by
+        # at least 15s.  Otherwise, we're going to get all kinds of subtle
+        # issues with random variation in the clock due to slight accuracy/ping issues.
+        # Being off by 15s would be basically OK -- much more, and we have to compensate
+        # and warn the user aggressively to avoid disaster.
+        if @_clock_skew? and Math.abs(@_clock_skew) > 15000
+            return new Date(new Date() - @_clock_skew)
+        else
+            return new Date()
 
     ping_test: (opts) =>
         opts = defaults opts,
