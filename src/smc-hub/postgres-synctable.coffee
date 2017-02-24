@@ -951,5 +951,25 @@ $$ LANGUAGE plpgsql;"""
     code.trigger = "CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();"
     return code
 
+###
 
+-- 10 minutes TTL for the trigger_notifications table, deleting only every full minute
+
+CREATE FUNCTION delete_old_trigger_notifications() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  DELETE FROM trigger_notifications
+  WHERE time < date_trunc('minute', NOW() - '10 minute'::interval);
+  RETURN NULL;
+END;
+$$;
+
+-- creating the trigger
+
+CREATE TRIGGER trigger_delete_old_trigger_notifications
+  AFTER INSERT ON trigger_notifications
+  EXECUTE PROCEDURE delete_old_trigger_notifications();
+
+###
 
