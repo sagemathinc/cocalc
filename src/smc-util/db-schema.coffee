@@ -1018,21 +1018,6 @@ schema.storage_servers =
             desc    : 'hostname of the storage server'
             pg_type : 'VARCHAR(63)'
 
-# they're used to send around the changefeed-like operation: old->new changes
-schema.trigger_notifications =
-    primary_key : 'id'
-    fields:
-        id:
-            type : 'uuid'
-            desc : 'primary key'
-        time:
-            type : 'timestamp'
-            desc : 'time of when the change was created -- delete it with a TTL trigger after some time'
-        notification:
-            type : 'map'
-            desc : "notification array: [TG_OP in ['DELETE', 'INSERT' or 'UPDATE'], obj_new, obj_old]"
-    pg_indexes : [ 'time' ]
-
 schema.system_notifications =
     primary_key : 'id'
     anonymous   : true     # allow users read access, even if not signed in

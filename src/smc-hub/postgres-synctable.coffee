@@ -102,17 +102,8 @@ class exports.PostgreSQL extends PostgreSQL
         )
 
     _notification: (mesg) =>
-        dbg = @_dbg('_notification')
-        # dbg(misc.to_json(mesg))  # this is way too verbose...
-        @_query
-            query: "SELECT notification FROM trigger_notifications WHERE id ='#{mesg.payload}'"
-            cb : (err, result) =>
-                if err
-                    dbg("err=#{err}")
-                else
-                    payload = result.rows[0].notification
-                    # dbg("payload: type=#{typeof(payload)}, data=#{misc.to_json(payload)}")
-                    @emit(mesg.channel, payload)
+        #@_dbg('notification')(misc.to_json(mesg))  # this is way too verbose...
+        @emit(mesg.channel, JSON.parse(mesg.payload))
 
     _clear_listening_state: =>
         @_listening = {}
@@ -915,7 +906,6 @@ trigger_code = (table, select, watch) ->
     code.function = """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
-        notification_id uuid;
         notification json;
         obj_old json;
         obj_new json;
@@ -940,11 +930,8 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
             #{assign_new.join('\n')}
             obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
-        notification_id = md5(random()::text || clock_timestamp()::text)::uuid;
         notification = json_build_array(TG_OP, obj_new, obj_old);
-        INSERT INTO trigger_notifications(id, time, notification)
-        VALUES(notification_id, NOW(), notification);
-        PERFORM pg_notify('#{tgname}', notification_id::text);
+        PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;
 $$ LANGUAGE plpgsql;"""
@@ -952,6 +939,59 @@ $$ LANGUAGE plpgsql;"""
     return code
 
 ###
+
+NOTES: The following is a way to back the changes with a small table.
+This allows to have changes which are larger than the hard 8000 bytes limit.
+HSY did this with the idea of having a temporary workaround for a bug related to this.
+https://github.com/sagemathinc/smc/issues/1718
+
+1. Create a table trigger_notifications via the db-schema.
+   For performance reasons, the table itself should be created with "UNLOGGED"
+   see: https://www.postgresql.org/docs/current/static/sql-createtable.html
+   (I've no idea how to specify that in the code here)
+
+        schema.trigger_notifications =
+            primary_key : 'id'
+            fields:
+                id:
+                    type : 'uuid'
+                    desc : 'primary key'
+                time:
+                    type : 'timestamp'
+                    desc : 'time of when the change was created -- used for TTL'
+                notification:
+                    type : 'map'
+                    desc : "notification payload -- up to 1GB"
+            pg_indexes : [ 'time' ]
+
+2. Modify the trigger function created by trigger_code above such that
+   pg_notifies no longer contains the data structure,
+   but a UUID for an entry in the trigger_notifications table.
+   It creates that UUID on its own and stores the data via a normal insert.
+
+         notification_id = md5(random()::text || clock_timestamp()::text)::uuid;
+         notification = json_build_array(TG_OP, obj_new, obj_old);
+         INSERT INTO trigger_notifications(id, time, notification)
+         VALUES(notification_id, NOW(), notification);
+
+3. PostgresQL::_notification is modified in such a way, that it looks up that UUID
+   in the trigger_notifications table:
+
+        @_query
+            query: "SELECT notification FROM trigger_notifications WHERE id ='#{mesg.payload}'"
+            cb : (err, result) =>
+                if err
+                    dbg("err=#{err}")
+                else
+                    payload = result.rows[0].notification
+                    # dbg("payload: type=#{typeof(payload)}, data=#{misc.to_json(payload)}")
+                    @emit(mesg.channel, payload)
+
+   Fortunately, there is no string -> json conversion necessary.
+
+4. Below, that function and trigger implement a TTL for the trigger_notifications table.
+   The `date_trunc` is a good idea, because then there is just one lock + delete op
+   per minute, instead of potentially at every write.
 
 -- 10 minutes TTL for the trigger_notifications table, deleting only every full minute
 
