@@ -906,6 +906,7 @@ trigger_code = (table, select, watch) ->
     code.function = """
 CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
     DECLARE
+        notification_id uuid;
         notification json;
         obj_old json;
         obj_new json;
@@ -930,7 +931,10 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
             #{assign_new.join('\n')}
             obj_new = json_build_object(#{build_obj_new.join(',')});
         END IF;
+        notification_id = md5(random()::text || clock_timestamp()::text)::uuid;
         notification = json_build_array(TG_OP, obj_new, obj_old);
+        INSERT INTO trigger_notifications(id, time, notification)
+        VALUES(notification_id, NOW(), notification);
         PERFORM pg_notify('#{tgname}', notification::text);
         RETURN NULL;
     END;
