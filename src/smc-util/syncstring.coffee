@@ -1802,9 +1802,56 @@ class exports.SyncObject extends SyncDoc
     get: =>
         @_doc.obj()
 
+###
+Synchronized object-based database, done right.
+###
+
 db_doc = require('./db-doc')
 
-class exports.DBDoc
+# @_value is a db_doc.DocDB instance.
+class DocDBWrapper
+    constructor: (@_value) ->
+        if not @_value?
+            throw Error("@_value must be defined")
+
+    set: (db) ->
+        if not db?
+            throw Error("db must be defined")
+        @_value = db
+
+    get: ->
+        return @_value
+
+
+# apply_patch function for use in syncstring,
+# which creates a DB with the given primary_keys in case
+# the starting db is undefined.  NOTE that this apply_patch
+# is horribly slow because it does NOT mutate the db in place.
+# TODO: We'll fix that later.  For now the syncstring stuff
+# would be horribly broken otherwise.   Fix ideas:
+#   - use immutable.js
+#   - write new version of relevant parts of syncstring
+#     that works instead with patch_mutate.
+doc_db_apply_patch = (patch, db) ->
+    console.log "doc_db_apply_patch(#{misc.to_json(patch)}) -- db=#{misc.to_json(db.get())}",
+    db = db.copy()
+    db.play_recording(patch)
+    db.start_recording()
+    console.log "--> db=#{misc.to_json(db.get())}"
+    return [db, true]
+
+# This is only used to go from @_last to live in syncstring.coffee...
+doc_db_make_patch = (db0, db1) ->
+    if db0 != db1
+        window.db0 = db0
+        window.db1 = db1
+        console.warn('make_patch unequal dbs')
+        #throw Error("not implemented")
+    patch = db1.stop_recording()
+    db1.start_recording()
+    return patch
+
+class exports.SyncDB extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
             primary_keys      : required
@@ -1828,16 +1875,16 @@ class exports.DBDoc
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
             cursors           : false
-            apply_patch       : db_doc.apply_patch
-            make_patch        : db_doc.make_patch
+            apply_patch       : doc_db_apply_patch
+            make_patch        : doc_db_make_patch
             starting_value    : new_db()
-            doc               : new_db()
+            doc               : new DocDBWrapper(new_db())
 
     set: (value) ->
-        @_db = value
+        @_doc = value
 
     get: ->
-        return @_db
+        return @_doc
 
 
 
@@ -1874,3 +1921,4 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
 
     client_id: =>
         return @_client_id
+

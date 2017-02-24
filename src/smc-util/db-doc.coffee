@@ -220,25 +220,3 @@ class DBDoc
             if action.delete?
                 @delete(action.delete)
 
-
-# Returns an apply_patch function for use in syncstring,
-# which creates a DB with the given primary_keys in case
-# the starting db is undefined.  NOTE that this apply_patch
-# is horribly slow because it does NOT mutate the db in place.
-# TODO: We'll fix that later.  For now the syncstring stuff
-# would be horribly broken otherwise.   Fix ideas:
-#   - use immutable.js
-#   - write new version of relevant parts of syncstring
-#     that works instead with patch_mutate.
-exports.apply_patch = (patch, db) ->
-    db = db.copy()
-    db.start_recording()
-    return [db, true]
-
-# This is only used to go from @_last to live in syncstring.coffee...
-exports.make_patch = (db0, db1) ->
-    if db0 != db1
-        throw Error("not implemented")
-    patch = db1.stop_recording()
-    db1.start_recording()
-    return patch
