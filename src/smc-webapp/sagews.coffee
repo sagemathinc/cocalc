@@ -2120,6 +2120,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return ''
         cm = @focused_codemirror()
         x = cm.getLine(line)
+        if not x?
+            return ''
         if not misc.is_valid_uuid_string(x.slice(1,37))
             # worksheet is somehow corrupt
             # TODO: should fix things at this point, or make sure this is never hit; could be caused by
@@ -2138,13 +2140,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     set_input_line_flagstring: (line, value) =>
         cm = @focused_codemirror()
         x = cm.getLine(line)
-        cm.replaceRange(value, {line:line, ch:37}, {line:line, ch:x.length-1})
+        if x?
+            cm.replaceRange(value, {line:line, ch:37}, {line:line, ch:x.length-1})
 
     set_cell_flagstring: (marker, value) =>
         if not marker?
             return
         pos = marker.find()
-        @focused_codemirror().replaceRange(value, {line:pos.from.line, ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
+        if pos?
+            @focused_codemirror().replaceRange(value, {line:pos.from.line, ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
         if not marker?
@@ -2185,6 +2189,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             throw Error("cell_start_marker: line must be defined")
         cm = @focused_codemirror()
         current_line = cm.getLine(line)
+        if not current_line?
+            # line no longer exists (got removed)
+            return
         if current_line.length < 38 or current_line[0] != MARKERS.cell or current_line[current_line.length-1] != MARKERS.cell
             # insert marker uuid text, since it isn't there already
             uuid = misc.uuid()
@@ -2194,7 +2201,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             x = cm.findMarksAt(line:line, ch:0)
             if x.length > 0 and x[0].type == MARKERS.cell
                 # already properly marked
-                return {marker:x[0], created:false, uuid:uuid}
+                return
         if cm.lineCount() < line + 2
             # insert a newline
             cm.replaceRange('\n',{line:line+1,ch:0})
@@ -2203,10 +2210,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         x = cm.findMarksAt(line:line, ch:0)
         if x.length > 0 and x[0].type == MARKERS.cell
             # now properly marked
-            return {marker:x[0], created:true, uuid:uuid}
+            return
         else
             # didn't get marked for some reason
-            return {marker:undefined, created:true, uuid:uuid}
+            return
 
     # map from uuids in document to true.
     doc_uuids: () =>
