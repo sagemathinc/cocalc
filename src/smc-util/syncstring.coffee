@@ -976,7 +976,7 @@ class SyncDoc extends EventEmitter
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
             @_last = value
-            @_doc.set(value)
+            @_doc.from_str(value)
             @_patches_table.on('change', @_handle_patch_update)
             @_patches_table.on('before-change', => @emit('before-change'))
             cb()
@@ -1088,7 +1088,7 @@ class SyncDoc extends EventEmitter
             #dbg("string closed -- can't save")
             cb?("string closed")
             return
-        value = @_doc.get()
+        value = @_doc.to_str()
         if not value?
             #dbg("string not initialized -- can't save")
             cb?("string not initialized")
@@ -1461,7 +1461,7 @@ class SyncDoc extends EventEmitter
                         @_file_watcher.close()
                         return
                     dbg("delete: setting deleted=true and closing")
-                    @set('')
+                    @_doc.from_str('')
                     @save () =>
                         # NOTE: setting deleted=true must be done **after** setting document to blank above,
                         # since otherwise the set would set deleted=false.
@@ -1489,7 +1489,7 @@ class SyncDoc extends EventEmitter
                         exists = x
                         if not exists
                             dbg("file no longer exists")
-                            @set('')
+                            @_doc.from_str('')
                         cb(err)
             (cb) =>
                 if exists
@@ -1509,7 +1509,7 @@ class SyncDoc extends EventEmitter
                             cb(err)
                         else
                             dbg("got it -- length=#{data?.length}")
-                            @set(data)
+                            @_doc.from_str(data)
                             # we also know that this is the version on disk, so we update the hash
                             @_set_save(state:'done', error:false, hash:misc.hash_string(data))
                             cb()
@@ -1559,7 +1559,7 @@ class SyncDoc extends EventEmitter
         return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
 
     hash_of_live_version: =>
-        return misc.hash_string(@get())
+        return misc.hash_string(@_doc.to_str())
 
     # Initiates a save of file to disk, then if cb is set, waits for the state to
     # change to done before calling cb.
@@ -1705,7 +1705,7 @@ class SyncDoc extends EventEmitter
         # if document changed, set to new version
         if live != new_remote
             @_last = new_remote
-            @_doc.set(new_remote)
+            @_doc.from_str(new_remote)
             @emit('change')
 
     # Return true if there are changes to this syncstring that have not been
@@ -1725,7 +1725,7 @@ class SyncDoc extends EventEmitter
         else
             # insert about 25 characters at random
             s = s.slice(0,i) + Math.random().toString(36).slice(2) + s.slice(i)
-        @set(s)
+        @_doc.from_str(s)
 
     test_random_edits: (opts) =>
         opts = defaults opts,
@@ -1737,10 +1737,12 @@ class SyncDoc extends EventEmitter
 # if nothing explicitly passed in for doc in SyncString constructor.
 class StringDocument
     constructor: (@_value='') ->
-    set: (value) ->
+
+    from_str: (value) =>
         @_value = value
-    get: ->
-        @_value
+
+    to_str: =>
+        return @_value
 
 
 class exports.SyncString extends SyncDoc
@@ -1767,24 +1769,24 @@ class exports.SyncString extends SyncDoc
             doc               : new StringDocument(opts.default)
 
     set: (value) ->
-        @_doc.set(value)
+        @_doc.from_str(value)
 
     get: ->
-        @_doc.get()
+        @_doc.to_str()
 
 # A document that represents an arbitrary JSON-able Javascript object.
 class ObjectDocument
     constructor: (@_value={}) ->
-    set: (value) ->
+    from_str: (value) ->
         try
             @_value = misc.from_json(value)
         catch err
             console.warn("error parsing JSON", err)
             # leaves @_value unchanged, so JSON stays valid
-    get: ->
+    to_str: ->
         misc.to_json(@_value)
     # Underlying Javascript object -- safe to directly edit
-    obj: ->
+    to_obj: ->
         return @_value
 
 class exports.SyncObject extends SyncDoc
@@ -1814,12 +1816,18 @@ class DocDBWrapper
         if not @_value?
             throw Error("@_value must be defined")
 
-    set: (db) ->
+    from_str: (s) =>
+        @_value.from_str(s)
+
+    to_str: =>
+        return @_value.to_str()
+
+    set: (db) =>
         if not db?
             throw Error("db must be defined")
         @_value = db
 
-    get: ->
+    get: =>
         return @_value
 
 
