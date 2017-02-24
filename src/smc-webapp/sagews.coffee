@@ -1493,7 +1493,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 x.text(mesg.code.source)
 
         if mesg.html?
-            e = $("<span class='sagews-output-html'>")
+            e = $("<div class='sagews-output-html'>")
             if @editor.opts.allow_javascript_eval
                 e.html(mesg.html)
             else
@@ -1506,7 +1506,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @interact(output, mesg.interact, opts.mark)
 
         if mesg.d3?
-            e = $("<span>")
+            e = $("<div>")
             output.append(e)
             require.ensure [], () =>
                 require('./d3')  # install the d3 plugin
@@ -1517,7 +1517,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.md?
             # markdown
             x = markdown.markdown_to_html(mesg.md)
-            t = $('<span class="sagews-output-md">')
+            t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(x.s)
             else
@@ -1569,7 +1569,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append(video)
 
                     when 'sage3d'
-                        elt = $("<span class='salvus-3d-container'></span>")
+                        elt = $("<div class='salvus-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
                         require.ensure [], () =>   # only load 3d library if needed
@@ -1584,7 +1584,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                         elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg', 'jpeg'
-                        img = $("<span class='sagews-output-image'><img src='#{target}'></span>")
+                        img = $("<div class='sagews-output-image'><img src='#{target}'></div>")
                         output.append(img)
 
                         if mesg.events?
