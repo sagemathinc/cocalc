@@ -207,6 +207,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if gutter != 'smc-sagews-gutter-hide-show'
             return
         x = cm.getLine(line)
+        if not x?
+            return
         switch x[0]
             when MARKERS.cell
                 @action(pos:{line:line, ch:0}, toggle_input:true)
