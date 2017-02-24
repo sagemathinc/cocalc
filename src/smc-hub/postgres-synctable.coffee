@@ -102,8 +102,17 @@ class exports.PostgreSQL extends PostgreSQL
         )
 
     _notification: (mesg) =>
-        #@_dbg('notification')(misc.to_json(mesg))  # this is way too verbose...
-        @emit(mesg.channel, JSON.parse(mesg.payload))
+        dbg = @_dbg('_notification')
+        # dbg(misc.to_json(mesg))  # this is way too verbose...
+        @_query
+            query: "SELECT notification FROM trigger_notifications WHERE id ='#{mesg.payload}'"
+            cb : (err, result) =>
+                if err
+                    dbg("err=#{err}")
+                else
+                    payload = result.rows[0].notification
+                    # dbg("payload: type=#{typeof(payload)}, data=#{misc.to_json(payload)}")
+                    @emit(mesg.channel, payload)
 
     _clear_listening_state: =>
         @_listening = {}
@@ -935,7 +944,7 @@ CREATE OR REPLACE FUNCTION #{tgname}() RETURNS TRIGGER AS $$
         notification = json_build_array(TG_OP, obj_new, obj_old);
         INSERT INTO trigger_notifications(id, time, notification)
         VALUES(notification_id, NOW(), notification);
-        PERFORM pg_notify('#{tgname}', notification::text);
+        PERFORM pg_notify('#{tgname}', notification_id::text);
         RETURN NULL;
     END;
 $$ LANGUAGE plpgsql;"""
