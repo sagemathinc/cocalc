@@ -44,6 +44,7 @@ WrappedEditor = rclass ({project_name}) ->
 
         @props.editor.show()
         @props.editor.focus?()
+        @props.editor.restore_view_state?()
         window.addEventListener('resize', @refresh)
 
     componentDidUpdate: ->
@@ -51,14 +52,15 @@ WrappedEditor = rclass ({project_name}) ->
 
     componentWillUnmount: ->
         window.removeEventListener('resize', @refresh)
-        # These cover all cases for jquery type overrides.
+        # These cover all cases for jQuery type overrides.
+        @props.editor.save_view_state?()
         @props.editor.blur?()
         @props.editor.hide()
 
-    # Refreshes the editor to resize itself
+    # Refreshes -- cause the editor to resize itself
     refresh: ->
         if not @props.editor.show?
-            @props.editor._show()
+            @props.editor._show?()
         else
             @props.editor.show()
 
