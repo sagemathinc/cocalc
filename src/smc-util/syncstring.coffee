@@ -1818,68 +1818,48 @@ Synchronized object-based database, done right.
 
 db_doc = require('./db-doc')
 
-# @_value is a db_doc.DocDB instance.
+# @_db is a db_doc.DocDB instance.
 class DocDBWrapper
-    constructor: (@_value) ->
-        if not @_value?
-            throw Error("@_value must be defined")
+    constructor: (@_db) ->
+        if not @_db?
+            throw Error("@_db must be defined")
 
     to_str: =>
-        return @_value.to_str()
+        return @_db.to_str()
 
     is_equal: (other) =>
-        return @_value.is_equal(other._value)
+        return @_db.is_equal(other._db)
 
-    set: (db) =>
-        if not db?
-            throw Error("db must be defined")
-        @_value = db
+    apply_patch: (patch) =>
+        db = @_db.copy()
+        db.play_recording(patch)
+        db.start_recording()
+        return new DocDBWrapper(db)
 
-    get: =>
-        return @_value
-
-
-# apply_patch function for use in syncstring,
-# which creates a DB with the given primary_keys in case
-# the starting db is undefined.  NOTE that this apply_patch
-# is horribly slow because it does NOT mutate the db in place.
-# TODO: We'll fix that later.  For now the syncstring stuff
-# would be horribly broken otherwise.   Fix ideas:
-#   - use immutable.js
-#   - write new version of relevant parts of syncstring
-#     that works instead with patch_mutate.
-doc_db_apply_patch = (patch, db) ->
-    console.log "doc_db_apply_patch(#{misc.to_json(patch)}) -- db=#{misc.to_json(db.get())}",
-    db = db.copy()
-    db.play_recording(patch)
-    db.start_recording()
-    console.log "--> db=#{misc.to_json(db.get())}"
-    return [db, true]
-
-# This is only used to go from @_last to live in syncstring.coffee...
-doc_db_make_patch = (db0, db1) ->
-    if db0 != db1
-        console.warn('make_patch unequal dbs')
-        #throw Error("not implemented")
-    patch = db1.stop_recording()
-    db1.start_recording()
-    return patch
+    make_patch: (other) =>
+        if @is_equal(other)
+            return []
+        else
+            # TODO: absurd/silly version of patch!
+            patch = other._db.stop_recording()
+            other._db.start_recording()
+            return patch
 
 class exports.SyncDB extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
-            primary_keys      : required
             id                : undefined
             client            : required
             project_id        : undefined
             path              : undefined
             save_interval     : undefined
             file_use_interval : undefined
+            primary_keys      : required
 
-        new_db = ->
+        from_str = (str) ->
             db = db_doc.db_doc(opts.primary_keys)
-            db.start_recording()
-            return db
+            db.from_str(str)
+            return new DocDBWrapper(db)
 
         super
             string_id         : opts.id
@@ -1889,10 +1869,7 @@ class exports.SyncDB extends SyncDoc
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
             cursors           : false
-            apply_patch       : doc_db_apply_patch
-            make_patch        : doc_db_make_patch
-            starting_value    : new_db()
-            doc               : new DocDBWrapper(new_db())
+            from_str          : from_str
 
     set: (value) ->
         @_doc = value
