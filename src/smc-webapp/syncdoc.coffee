@@ -88,6 +88,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
             sync_interval     : 1000       # TODO: ignored right now -- no matter what, we won't send sync messages back to the server more frequently than this (in ms)
             cursors           : false
             cb                : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying
+        # window.w = @
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
@@ -112,12 +113,13 @@ class SynchronizedString extends AbstractSynchronizedDoc
             redux.getProjectActions(@project_id).close_tab(@filename)
 
     live: (s) =>
-        if s? and s != @_syncstring.to_str()
+        cur = @_syncstring.to_str()
+        if s? and s != cur
             @_syncstring.exit_undo_mode()
-            @_syncstring.set(s)
+            @_syncstring.from_str(s)
             @emit('sync')
         else
-            return @_syncstring.to_str()
+            return cur
 
     sync: (cb) =>
         @_syncstring.save(cb)

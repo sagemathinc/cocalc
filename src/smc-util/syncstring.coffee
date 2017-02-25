@@ -582,12 +582,14 @@ class SyncDoc extends EventEmitter
 
     set: (value) =>
         @_doc = value
+        return
 
     get: =>
         return @_doc
 
     from_str: (value) =>
         @_doc = @_from_str(value)
+        return
 
     to_str: =>
         return @_doc.to_str()
@@ -1464,7 +1466,7 @@ class SyncDoc extends EventEmitter
                         @_file_watcher.close()
                         return
                     dbg("delete: setting deleted=true and closing")
-                    @_doc.from_str('')
+                    @from_str('')
                     @save () =>
                         # NOTE: setting deleted=true must be done **after** setting document to blank above,
                         # since otherwise the set would set deleted=false.
@@ -1492,7 +1494,7 @@ class SyncDoc extends EventEmitter
                         exists = x
                         if not exists
                             dbg("file no longer exists")
-                            @_doc.from_str('')
+                            @from_str('')
                         cb(err)
             (cb) =>
                 if exists
@@ -1512,7 +1514,7 @@ class SyncDoc extends EventEmitter
                             cb(err)
                         else
                             dbg("got it -- length=#{data?.length}")
-                            @set(data)
+                            @from_str(data)
                             # we also know that this is the version on disk, so we update the hash
                             @_set_save(state:'done', error:false, hash:misc.hash_string(data))
                             cb()
