@@ -1614,7 +1614,6 @@ class exports.Connection extends EventEmitter
             id                : undefined
             project_id        : undefined
             path              : undefined
-            default           : ''
             file_use_interval : 'default'
             cursors           : false
         opts.client = @

@@ -233,7 +233,7 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        val = @syncstring.version(time)
+        val = @syncstring.version(time).to_str()
         switch @ext
             when 'ipynb'
                 @view_doc.dom.set(val)

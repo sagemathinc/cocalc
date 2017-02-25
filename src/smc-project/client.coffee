@@ -455,7 +455,6 @@ class exports.Client extends EventEmitter
     sync_string: (opts) =>
         opts = defaults opts,
             path    : required
-            default : ''
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()

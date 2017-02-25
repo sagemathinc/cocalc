@@ -15,6 +15,8 @@ Local document-oriented database with only two operations:
 This is the foundation for a distributed synchronized database.
 ###
 
+underscore = require('underscore')
+
 misc = require('./misc')
 
 # Well-defined JSON.stringify...
@@ -165,6 +167,12 @@ class DBDoc
 
     get_one: (where) =>
         return misc.deep_copy(@_records[first_index(@_select(where))])
+
+    is_equal: (other) =>
+        if @ == other
+            return true  # easy special case
+        # harder... TODO: will need to make this faster...
+        return underscore.isEqual(@to_obj(), other.to_obj())
 
     # Conversion to and from an array of records, which are normal Javascript objects
     to_obj: =>

@@ -201,7 +201,7 @@ class PatchValueCache
 
 # Sorted list of patches applied to a string
 class SortedPatchList extends EventEmitter
-    constructor: (@_apply_patch=apply_patch, @_starting_value='') ->
+    constructor: (@_from_str) ->
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
@@ -348,7 +348,8 @@ class SortedPatchList extends EventEmitter
                     break
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
-                        value = @_apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
+                        # apply patch x to update value to be closer to what we want
+                        value = value.apply_patch(x.patch)
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
             if not without? and (not time? or start - cache.start >= 10)
@@ -358,7 +359,7 @@ class SortedPatchList extends EventEmitter
         else
             # Cache is empty or doesn't have anything sufficiently old to be useful.
             # Find the newest snapshot at a time that is <= time.
-            value = @_starting_value # default in case no snapshots
+            value = @_from_str('') # default in case no snapshots
             start = 0
             if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
                 for i in [@_patches.length-1 .. 0]
@@ -371,7 +372,7 @@ class SortedPatchList extends EventEmitter
                         # Found a patch with known snapshot that is as old as the time.
                         # This is the base on which we will apply other patches to move forward
                         # to the requested time.
-                        value = @_patches[i].snapshot
+                        value = @_from_str(@_patches[i].snapshot)
                         start = i + 1
                         break
             # Apply each of the patches we need to get from
@@ -386,7 +387,7 @@ class SortedPatchList extends EventEmitter
                 #console.log("applying patch #{i}")
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
-                        value = @_apply_patch(x.patch, value)[0]
+                        value = value.apply_patch(x.patch)
                 cache_time = x.time
                 cache_start += 1
             if not without? and (not time? or cache_time and cache_start - start >= 10)
@@ -403,7 +404,7 @@ class SortedPatchList extends EventEmitter
 
     # Slow -- only for consistency checking purposes
     _value_no_cache: (time) =>
-        value = @_starting_value # default in case no snapshots
+        value = @_from_str('') # default in case no snapshots
         start = 0
         if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
@@ -411,7 +412,7 @@ class SortedPatchList extends EventEmitter
                     # Found a patch with known snapshot that is as old as the time.
                     # This is the base on which we will apply other patches to move forward
                     # to the requested time.
-                    value = @_patches[i].snapshot
+                    value = @_from_str(@_patches[i].snapshot)
                     start = i + 1
                     break
         # Apply each of the patches we need to get from
@@ -420,7 +421,7 @@ class SortedPatchList extends EventEmitter
             if time? and x.time > time
                 # Done -- no more patches need to be applied
                 break
-            value = @_apply_patch(x.patch, value)[0]
+            value = value.apply_patch(x.patch)
         return value
 
     # integer index of user who made the edit at given point in time (or undefined)
@@ -455,13 +456,13 @@ class SortedPatchList extends EventEmitter
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
-                s = x.snapshot ? @_starting_value
+                s = x.snapshot ? @_from_str('')
             if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
-                t = @_apply_patch(x.patch, s)
+                t = s.apply_patch(x.patch)
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
-            s = t[0]
-            opts.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()))
+            s = t
+            opts.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s.to_str(), opts.trunc).trim()))
             i += 1
         return
 
@@ -520,13 +521,8 @@ class SyncDoc extends EventEmitter
             project_id        : required   # project_id that contains the doc
             path              : required   # path of the file corresponding to the doc
             client            : required
-            apply_patch       : apply_patch  # default is the string one from diff match patch
-            make_patch        : make_patch  # default is the string one from diff match patch
-            starting_value    : ''         # value of empty document
             cursors           : false      # if true, also provide cursor tracking functionality
-            doc               : required   # String-based document that we're editing.  This must have methods:
-                # get -- returns a string: the live version of the document
-                # set -- takes a string as input: sets the live version of the document to this.
+            from_str          : required   # creates a doc from a string.
 
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
@@ -536,10 +532,7 @@ class SyncDoc extends EventEmitter
         @_project_id    = opts.project_id
         @_path          = opts.path
         @_client        = opts.client
-        @_apply_patch   = opts.apply_patch
-        @_make_patch    = opts.make_patch
-        @_starting_value= opts.starting_value
-        @_doc           = opts.doc
+        @_from_str      = opts.from_str
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
@@ -587,6 +580,18 @@ class SyncDoc extends EventEmitter
                 @_cursors?.set(x, 'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
+    set: (value) =>
+        @_doc = value
+
+    get: =>
+        return @_doc
+
+    from_str: (value) =>
+        @_doc = @_from_str(value)
+
+    to_str: =>
+        return @_doc.to_str()
+
     # Used for internal debug logging
     dbg: (f) ->
         return @_client.dbg("SyncString.#{f}:")
@@ -627,14 +632,14 @@ class SyncDoc extends EventEmitter
         if state.pointer == state.my_times.length
             # pointing at live state (e.g., happens on entering undo mode)
             value = @version()     # last saved version
-            live  = @get()
-            if live != value
-                # user had unsaved changes so last undo is to revert to version without those
-                state.final    = @_make_patch(value, live)                  # live redo if needed
+            live  = @_doc
+            if not live.is_equal(value)
+                # User had unsaved changes, so last undo is to revert to version without those.
+                state.final    = value.make_patch(live)                  # live redo if needed
                 state.pointer -= 1  # most recent timestamp
                 return value
             else
-                # user had no unsaved changes, so last undo is version without last saved change
+                # User had no unsaved changes, so last undo is version without last saved change.
                 tm = state.my_times[state.pointer - 1]
                 state.pointer -= 2
                 if tm?
@@ -662,7 +667,7 @@ class SyncDoc extends EventEmitter
         else if state.pointer == state.my_times.length - 1
             # one back from live state, so apply unsaved patch to live version
             state.pointer += 1
-            return @_apply_patch(state.final, @version())[0]
+            return @version().apply_patch(state.final)
         else
             # at least two back from live state
             state.without.pop()
@@ -970,13 +975,12 @@ class SyncDoc extends EventEmitter
         return query
 
     _init_patch_list: (cb) =>
-        @_patch_list = new SortedPatchList(@_apply_patch, @_starting_value)
+        @_patch_list = new SortedPatchList(@_from_str)
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
-            value = @_patch_list.value()
-            @_last = value
-            @_doc.from_str(value)
+            doc = @_patch_list.value()
+            @_last = @_doc = doc
             @_patches_table.on('change', @_handle_patch_update)
             @_patches_table.on('before-change', => @emit('before-change'))
             cb()
@@ -1080,28 +1084,28 @@ class SyncDoc extends EventEmitter
     get_cursors: =>
         return @_cursor_map
 
-    # save any changes we have as a new patch; returns value
-    # of live document at time of save
+    # save any changes we have as a new patch
     _save: (cb) =>
         #dbg = @dbg('_save'); dbg('saving changes to db')
         if @_closed
             #dbg("string closed -- can't save")
             cb?("string closed")
             return
-        value = @_doc.to_str()
-        if not value?
+
+        if not @_last?
             #dbg("string not initialized -- can't save")
             cb?("string not initialized")
             return
-        #dbg("saving at ", new Date())
-        if value == @_last
+
+        if @_last.is_equal(@_doc)
             #dbg("nothing changed so nothing to save")
             cb?()
-            return value
+            return
 
         # compute transformation from _last to live -- exactly what we did
-        patch = @_make_patch(@_last, value)
-        @_last = value
+        patch = @_last.make_patch(@_doc)
+        @_last = @_doc
+
         # now save the resulting patch
         time = @_client.server_time()
         time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
@@ -1115,7 +1119,6 @@ class SyncDoc extends EventEmitter
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
-        return value
 
     _undelete: () =>
         if @_closed
@@ -1434,7 +1437,7 @@ class SyncDoc extends EventEmitter
                             dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get().slice(0,80)}...'")
                             @_client.write_file
                                 path : path
-                                data : @get()
+                                data : @to_str()
                                 cb   : (err) =>
                                     dbg("wrote '#{path}' to disk -- now calling cb")
                                     cb(err)
@@ -1509,7 +1512,7 @@ class SyncDoc extends EventEmitter
                             cb(err)
                         else
                             dbg("got it -- length=#{data?.length}")
-                            @_doc.from_str(data)
+                            @set(data)
                             # we also know that this is the version on disk, so we update the hash
                             @_set_save(state:'done', error:false, hash:misc.hash_string(data))
                             cb()
@@ -1639,8 +1642,9 @@ class SyncDoc extends EventEmitter
         @_set_save(state:'requested', error:false)
 
     __do_save_to_disk_project: (cb) =>
-        # check if on disk version is same as in memory, in which case no save is needed.
-        hash = misc.hash_string(@get())
+        # check if on-disk version is same as in memory, in which case no save is needed.
+        data = @to_str()  # string version of this doc
+        hash = misc.hash_string(data)
         if hash == @hash_of_saved_version()
             # No actual save to disk needed; still we better record this fact in table in case it
             # isn't already recorded
@@ -1659,7 +1663,6 @@ class SyncDoc extends EventEmitter
             return
 
         #dbg("project - write to disk file")
-        data = @version()
         @_save_to_disk_just_happened = true
         @_client.write_file
             path : path
@@ -1704,8 +1707,7 @@ class SyncDoc extends EventEmitter
 
         # if document changed, set to new version
         if live != new_remote
-            @_last = new_remote
-            @_doc.from_str(new_remote)
+            @_last = @_doc = new_remote
             @emit('change')
 
     # Return true if there are changes to this syncstring that have not been
@@ -1717,7 +1719,7 @@ class SyncDoc extends EventEmitter
 
     ###
     _test_random_edit: () =>
-        s = @get()
+        s = @to_str()
         i = misc.randint(0, s.length-1)
         if Math.random() <= .2
             # delete text
@@ -1725,7 +1727,7 @@ class SyncDoc extends EventEmitter
         else
             # insert about 25 characters at random
             s = s.slice(0,i) + Math.random().toString(36).slice(2) + s.slice(i)
-        @_doc.from_str(s)
+        @_doc = @_from_str(s)
 
     test_random_edits: (opts) =>
         opts = defaults opts,
@@ -1733,17 +1735,21 @@ class SyncDoc extends EventEmitter
             cb     : undefined
     ###
 
-# A simple example of a document.  Uses this one by default
-# if nothing explicitly passed in for doc in SyncString constructor.
+# Immutable string document that satisfies our spec.
 class StringDocument
     constructor: (@_value='') ->
-
-    from_str: (value) =>
-        @_value = value
 
     to_str: =>
         return @_value
 
+    is_equal: (other) =>
+        return @_value == other._value
+
+    apply_patch: (patch) =>
+        return new StringDocument(apply_patch(patch, @_value)[0])
+
+    make_patch: (other) =>
+        return make_patch(@_value, other._value)
 
 class exports.SyncString extends SyncDoc
     constructor: (opts) ->
@@ -1754,8 +1760,12 @@ class exports.SyncString extends SyncDoc
             path              : undefined
             save_interval     : undefined
             file_use_interval : undefined
-            default           : ''
             cursors           : false      # if true, also provide cursor tracking ability
+
+
+        from_str = (str) ->
+            new StringDocument(str)
+
         super
             string_id         : opts.id
             client            : opts.client
@@ -1764,15 +1774,8 @@ class exports.SyncString extends SyncDoc
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
-            apply_patch       : apply_patch
-            starting_value    : ''
-            doc               : new StringDocument(opts.default)
+            from_str          : from_str
 
-    set: (value) ->
-        @_doc.from_str(value)
-
-    get: ->
-        @_doc.to_str()
 
 # A document that represents an arbitrary JSON-able Javascript object.
 class ObjectDocument
@@ -1783,11 +1786,15 @@ class ObjectDocument
         catch err
             console.warn("error parsing JSON", err)
             # leaves @_value unchanged, so JSON stays valid
-    to_str: ->
-        misc.to_json(@_value)
+    to_str: =>
+        return misc.to_json(@_value)
+
     # Underlying Javascript object -- safe to directly edit
-    to_obj: ->
+    to_obj: =>
         return @_value
+
+    is_equal: (other) =>
+        return underscore.isEqual(@_value, other._value)
 
 class exports.SyncObject extends SyncDoc
     constructor: (opts) ->
@@ -1799,10 +1806,7 @@ class exports.SyncObject extends SyncDoc
             string_id : opts.id
             client    : opts.client
             doc       : new ObjectDocument(opts.default)
-    set: (obj) =>
-        @_doc._value = obj
-    get: =>
-        @_doc.obj()
+
 
 ###
 Synchronized object-based database, done right.
@@ -1816,11 +1820,11 @@ class DocDBWrapper
         if not @_value?
             throw Error("@_value must be defined")
 
-    from_str: (s) =>
-        @_value.from_str(s)
-
     to_str: =>
         return @_value.to_str()
+
+    is_equal: (other) =>
+        return @_value.is_equal(other._value)
 
     set: (db) =>
         if not db?
@@ -1851,8 +1855,6 @@ doc_db_apply_patch = (patch, db) ->
 # This is only used to go from @_last to live in syncstring.coffee...
 doc_db_make_patch = (db0, db1) ->
     if db0 != db1
-        window.db0 = db0
-        window.db1 = db1
         console.warn('make_patch unequal dbs')
         #throw Error("not implemented")
     patch = db1.stop_recording()

@@ -112,12 +112,12 @@ class SynchronizedString extends AbstractSynchronizedDoc
             redux.getProjectActions(@project_id).close_tab(@filename)
 
     live: (s) =>
-        if s? and s != @_syncstring.get()
+        if s? and s != @_syncstring.to_str()
             @_syncstring.exit_undo_mode()
             @_syncstring.set(s)
             @emit('sync')
         else
-            return @_syncstring.get()
+            return @_syncstring.to_str()
 
     sync: (cb) =>
         @_syncstring.save(cb)
@@ -238,7 +238,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 if @_closed
                     return
                 @editor.show_content()
-                @editor._set(@_syncstring.get())
+                @editor._set(@_syncstring.to_str())
                 @_fully_loaded = true
                 @codemirror.setOption('readOnly', false)
                 @codemirror1.setOption('readOnly', false)
@@ -253,7 +253,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_syncstring.on 'change', =>
                     if @_closed
                         return
-                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
+                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
                     @_set_codemirror_to_syncstring()
                     @emit('sync')
 
@@ -299,13 +299,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
     _set_syncstring_to_codemirror: =>
-        val = @codemirror.getValue()
-        @_last_val = val
-        @_syncstring.set(val)
+        @_last_val = val = @codemirror.getValue()
+        @_syncstring.from_str(val)
 
     _set_codemirror_to_syncstring: =>
-        val = @_syncstring.get()
+        val     = @_syncstring.to_str()
         cur_val = @codemirror.getValue()
+
         if @_last_val? and cur_val != @_last_val
             # We *MERGE* the changes in since, we made changes between when we last set
             # the syncstrind and now.  This can perhaps sometimes happen in rare cases
@@ -327,7 +327,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     has_uncommitted_changes: =>
         # WARNING: potentially expensive to do @codemirror.getValue().
-        return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.get()
+        return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.to_str()
 
     _update_unsaved_uncommitted_changes: =>
         if not @codemirror?
@@ -337,7 +337,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         x = @codemirror.getValue()
         @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(x))
-        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.get()
+        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.to_str()
         @editor.has_uncommitted_changes(uncommitted_changes)
         return uncommitted_changes
 
@@ -359,7 +359,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cm = @focused_codemirror()  # see https://github.com/sagemathinc/smc/issues/1161
         if not @_syncstring.in_undo_mode()
             @_set_syncstring_to_codemirror()
-        value = @_syncstring.undo()
+        value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
@@ -370,7 +370,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         if not @_syncstring.in_undo_mode()
             return
-        value = @_syncstring.redo()
+        value = @_syncstring.redo().to_str()
         @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
