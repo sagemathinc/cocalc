@@ -20,6 +20,7 @@ Based on immutable.js, and very similar API to db-doc.
 ###
 
 immutable = require('immutable')
+underscore = require('underscore')
 
 misc = require('./misc')
 
@@ -128,12 +129,18 @@ class DBDoc
         set   = {}
         for field, val of obj
             if @_primary_keys[field]?
-                where[field] = val
+                if val?
+                    where[field] = val
             else
                 set[field] = val
         return {where:where, set:set}
 
     set: (obj) =>
+        if misc.is_array(obj)
+            z = @
+            for x in obj
+                z = z.set(x)
+            return z
         {where, set} = @_parse(obj)
         matches = @_select(where)
         n = matches?.first()
@@ -141,7 +148,10 @@ class DBDoc
             # edit the first existing record that matches
             before = record = @_records.get(n)
             for field, value of set
-                record = record.set(field, immutable.fromJS(value))
+                if not value?
+                    record = record.delete(field)
+                else
+                    record = record.set(field, immutable.fromJS(value))
             if not before.equals(record)
                 # actual change so update; doesn't change anything involving indexes.
                 return new DBDoc(@_primary_keys, @_records.set(n, record), @_everything, @_indexes)
@@ -166,6 +176,11 @@ class DBDoc
             return new DBDoc(@_primary_keys, records, everything, indexes)
 
     delete: (where) =>
+        if misc.is_array(where)
+            z = @
+            for x in where
+                z = z.delete(x)
+            return z
         # if where undefined, will delete everything
         if @_everything.size == 0
             # no-op -- no data so deleting is trivial
@@ -220,11 +235,12 @@ class DBDoc
             return
         return @_records.get(matches.first())
 
-    is_equal: (other) =>
+    equals: (other) =>
         if @_records == other._records
             return true
-        # TODO: does this really work -- would be amazing...
-        return immutable.Set(@_records).equals(immutable.Set(other._records))
+        if @size != other.size
+            return false
+        return immutable.Set(@_records).add(undefined).equals(immutable.Set(other._records).add(undefined))
 
     # Conversion to and from an array of records, which is the primary key list followed by the normal Javascript objects
     to_obj: =>
@@ -234,3 +250,97 @@ class DBDoc
 
     to_str: =>
         return (misc.to_json(x) for x in @to_obj()).join('\n')
+
+    # x = javascript object
+    _primary_key_part: (x) =>
+        where = {}
+        for k, v of x
+            if @_primary_keys[k]
+                where[k] = v
+        return where
+
+    make_patch: (other) =>
+        if other.size == 0
+            # Special case -- delete everything
+            return [-1,[{}]]
+
+        t0 = immutable.Set(@_records)
+        t1 = immutable.Set(other._records)
+        # Remove the common intersection -- nothing going on there.
+        # Doing this greatly reduces the complexity in the common case in which little has changed
+        common = t0.intersect(t1).add(undefined)
+        t0 = t0.subtract(common)
+        t1 = t1.subtract(common)
+
+        # Easy very common special cases
+        if t0.size == 0
+            # Special case: t0 is empty -- insert all the records.
+            return [1, t1.toJS()]
+        if t1.size == 0
+            # Special case: t1 is empty -- bunch of deletes
+            v = []
+            t0.map (x) =>
+                v.push(@_primary_key_part(x.toJS()))
+                return
+            return [-1, v]
+
+        # compute the key parts of t0 and t1 as sets
+        k0 = t0.map((x) => x.filter((v,k)=>@_primary_keys[k]))  # means -- set got from t0 by taking only the primary_key columns
+        k1 = t1.map((x) => x.filter((v,k)=>@_primary_keys[k]))
+
+        add = []
+        remove = undefined
+
+        # Deletes: everything in k0 that is not in k1
+        deletes = k0.subtract(k1)
+        if deletes.size > 0
+            remove = deletes.toJS()
+
+        # Inserts: everything in k1 that is not in k0
+        inserts = k1.subtract(k0)
+        if inserts.size > 0
+            inserts.map (k) =>
+                add.push(other.get_one(k.toJS()).toJS())
+                return
+
+        # Everything in k1 that is also in k0 -- these must have all changed
+        changed = k1.intersect(k0)
+        if changed.size > 0
+            changed.map (k) =>
+                obj  = k.toJS()
+                obj0 = @_primary_key_part(obj)
+                from = @get_one(obj0).toJS()
+                to   = other.get_one(obj0).toJS()
+                # undefined for each key of from not in to
+                for k of from
+                    if not to[k]?
+                        obj[k] = undefined
+                # explicitly set each key of to that is different than corresponding key of from
+                for k, v of to
+                    if not underscore.isEqual(from[k], v)
+                        obj[k] = v
+                add.push(obj)
+                return
+
+        patch = []
+        if remove?
+            patch.push(-1)
+            patch.push(remove)
+        if add.length > 0
+            patch.push(1)
+            patch.push(add)
+
+        return patch
+
+    apply_patch: (patch) =>
+        i = 0
+        db = @
+        while i < patch.length
+            if patch[i] == -1
+                db = db.delete(patch[i+1])
+            else if patch[i] == 1
+                db = db.set(patch[i+1])
+            i += 2
+        return db
+
+
