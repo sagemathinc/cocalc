@@ -1751,6 +1751,8 @@ class StringDocument
     make_patch: (other) =>
         return make_patch(@_value, other._value)
 
+exports._testStringDocument = StringDocument
+
 class exports.SyncString extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
@@ -1922,7 +1924,6 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
             id                : undefined
             project_id        : undefined
             path              : undefined
-            default           : ''
             file_use_interval : 'default'
             cursors           : false
             save_interval     : 0

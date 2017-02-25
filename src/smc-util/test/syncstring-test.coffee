@@ -19,9 +19,10 @@ Test the SortedPatchList class
 describe "basic test of SortedPatchList -- ", ->
     spl = undefined
     times = (misc.minutes_ago(n) for n in [3, 2, 1, 0])
+    from_str = (str) -> new syncstring._testStringDocument(str)
 
     it 'creates a SortedPatchList', ->
-        spl = new syncstring.SortedPatchList()
+        spl = new syncstring.SortedPatchList(from_str)
 
     it 'creates and adds a patch and does some checks', ->
         patch =
@@ -29,7 +30,7 @@ describe "basic test of SortedPatchList -- ", ->
             user_id : 1
             patch   : syncstring.make_patch('', 'hello world')
         spl.add([patch])
-        expect(spl.value()).toEqual('hello world')
+        expect(spl.value().to_str()).toEqual('hello world')
         expect(spl.user_id(times[1])).toEqual(undefined)
         expect(spl.user_id(times[0])).toEqual(1)
         expect(spl.time_sent(times[0])).toEqual(undefined)
@@ -44,8 +45,8 @@ describe "basic test of SortedPatchList -- ", ->
             user_id : 0
             patch   : syncstring.make_patch('hello world', 'CoCalc: "hello world"')
         spl.add([patch])
-        expect(spl.value()).toEqual('CoCalc: "hello world"')
-        expect(spl.value(times[0])).toEqual('hello world')
+        expect(spl.value().to_str()).toEqual('CoCalc: "hello world"')
+        expect(spl.value(times[0]).to_str()).toEqual('hello world')
         expect(spl.user_id(times[1])).toEqual(0)
         expect(spl.user_id(times[0])).toEqual(1)
         expect(spl.time_sent(times[1])).toEqual(undefined)
@@ -65,10 +66,10 @@ describe "basic test of SortedPatchList -- ", ->
             patch   : syncstring.make_patch('CoCalc: "Hello World!"', 'CoCalc: "HELLO!!"')
             snapshot : 'CoCalc: "HELLO!!"'
         spl.add([patch2, patch3])
-        expect(spl.value()).toEqual('CoCalc: "HELLO!!"')
-        expect(spl.value(times[1])).toEqual('CoCalc: "hello world"')
-        expect(spl.value(times[2])).toEqual('CoCalc: "Hello World!"')
-        expect(spl.value(times[3])).toEqual('CoCalc: "HELLO!!"')
+        expect(spl.value().to_str()).toEqual('CoCalc: "HELLO!!"')
+        expect(spl.value(times[1]).to_str()).toEqual('CoCalc: "hello world"')
+        expect(spl.value(times[2]).to_str()).toEqual('CoCalc: "Hello World!"')
+        expect(spl.value(times[3]).to_str()).toEqual('CoCalc: "HELLO!!"')
         expect(spl.versions()).toEqual(times)
 
     it 'verifies snapshot times', ->
@@ -103,11 +104,11 @@ describe "very basic test of syncstring -- ", ->
         ss.on "connected", -> done()
 
     it 'get the blank new sync string', ->
-        expect(ss.get()).toEqual('')
+        expect(ss.to_str()).toEqual('')
 
-    it 'set the sync string', ->
-        ss.set("cocalc")
-        expect(ss.get()).toEqual('cocalc')
+    it 'from_str the sync string', ->
+        ss.from_str("cocalc")
+        expect(ss.to_str()).toEqual('cocalc')
 
     it 'saves the sync string', (done) ->
         client.once 'query', (opts) =>
@@ -118,8 +119,8 @@ describe "very basic test of syncstring -- ", ->
         ss.save(done)
 
     it 'changes the sync string again', ->
-        ss.set("CoCalc")
-        expect(ss.get()).toEqual('CoCalc')
+        ss.from_str("CoCalc")
+        expect(ss.to_str()).toEqual('CoCalc')
 
     it 'saves the sync string', (done) ->
         client.once 'query', (opts) =>
@@ -166,17 +167,17 @@ describe "test sync editing of two syncstring -- ", ->
 
     it 'verify starting state', ->
         for s in ss
-            expect(s.get()).toEqual('')
+            expect(s.to_str()).toEqual('')
 
-    it 'set the sync string of one', ->
-        ss[0].set("cocalc")
-        expect(ss[0].get()).toEqual('cocalc')
-        expect(ss[1].get()).toEqual('')
+    it 'from_str the sync string of one', ->
+        ss[0].from_str("cocalc")
+        expect(ss[0].to_str()).toEqual('cocalc')
+        expect(ss[1].to_str()).toEqual('')
 
     it 'saves the sync string, hence sending the changes to the other one', (done) ->
         ss[1].once 'change', ->
             # this is what we want to happen
-            expect(ss[1].get()).toEqual('cocalc')
+            expect(ss[1].to_str()).toEqual('cocalc')
             done()
         client.once 'query', (opts) ->
             expect(opts.query.length).toEqual(1)
@@ -187,11 +188,11 @@ describe "test sync editing of two syncstring -- ", ->
         ss[0].save()  # this triggers above query
 
     it 'makes change to both strings then save, and see that changes merge', (done) ->
-        ss[0].set("cocalcX")
-        ss[1].set("Ycocalc")
+        ss[0].from_str("cocalcX")
+        ss[1].from_str("Ycocalc")
 
         ss[1].once 'change', ->
-            expect(ss[1].get()).toEqual('YcocalcX')
+            expect(ss[1].to_str()).toEqual('YcocalcX')
             done()
         client.once 'query', (opts) ->
             opts.cb()
@@ -200,7 +201,7 @@ describe "test sync editing of two syncstring -- ", ->
 
     it 'and the other direction', (done) ->
         ss[0].once 'change', ->
-            expect(ss[0].get()).toEqual('YcocalcX')
+            expect(ss[0].to_str()).toEqual('YcocalcX')
             done()
         # Note that when ss[1] above changed it also sent out its patch already, so
         # we can't wait for it here like we did above.  It is in all_queries.
@@ -245,16 +246,16 @@ describe "test conflicting changes to two syncstrings -- ", ->
         ss[1].on "connected", -> done()
 
     it 'make first change', (done) ->
-        ss[0].set('{"a":389}')
+        ss[0].from_str('{"a":389}')
         setTimeout(done, 2)  # wait 2ms
 
     it 'makes conflicting change to both strings then save', (done) ->
-        ss[1].set('{"a":433}')
+        ss[1].from_str('{"a":433}')
 
         # OBSERVE that though both lines are valid JSON, the resulting
         # merge is **invalid** (hence corrupted).
         ss[1].once 'change', ->
-            expect(ss[1].get()).toEqual('{"a":433}{"a":389}')
+            expect(ss[1].to_str()).toEqual('{"a":433}{"a":389}')
             done()
         client.once 'query', (opts) ->
             opts.cb()
@@ -263,7 +264,7 @@ describe "test conflicting changes to two syncstrings -- ", ->
 
     it 'and the other direction', (done) ->
         ss[0].once 'change', ->
-            expect(ss[0].get()).toEqual('{"a":433}{"a":389}')
+            expect(ss[0].to_str()).toEqual('{"a":433}{"a":389}')
             done()
         # Note that when ss[1] above changed it also sent out its patch already, so
         # we can't wait for it here like we did above.  It is in all_queries.
