@@ -22,6 +22,8 @@ Based on immutable.js, and very similar API to db-doc.
 immutable = require('immutable')
 underscore = require('underscore')
 
+syncstring = require('./syncstring')
+
 misc = require('./misc')
 
 # Well-defined JSON.stringify...
@@ -31,10 +33,12 @@ to_key = (s) ->
         s = s.toJS()
     return json_stable(s)
 
-exports.db_doc = (primary_keys) ->
+exports.db_doc = (primary_keys, string_cols=[]) ->
     if not misc.is_array(primary_keys)
         throw Error("primary_keys must be an array")
-    return new DBDoc(primary_keys)
+    if not misc.is_array(string_cols)
+        throw Error("_string_cols must be an array")
+    return new DBDoc(primary_keys, string_cols)
 
 # Create a DBDoc from a plain javascript object
 exports.from_obj = (obj) ->
@@ -43,35 +47,27 @@ exports.from_obj = (obj) ->
     if obj.length == 0
         throw Error("obj must have length at least 1")
     # Set the data
-    records    = immutable.fromJS(obj.slice(1))
+    records    = immutable.fromJS(obj.slice(2))
     everything = immutable.Set(records.keys()).sort()
-    return new DBDoc(obj[0], records, everything)
+    return new DBDoc(obj[0], obj[1], records, everything)
 
 exports.from_str = (str) ->
-    if str != ''
-        obj = []
-        for line in str.split('\n')
-            try
-                obj.push(misc.from_json(line))
-            catch e
-                console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
-        return exports.from_obj(obj)
-    else
-        return exports.from_obj([])
+    obj = []
+    for line in str.split('\n')
+        try
+            obj.push(misc.from_json(line))
+        catch e
+            console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
+    return exports.from_obj(obj)
 
 class DBDoc
-    constructor : (@_primary_keys, @_records, @_everything, @_indexes) ->
-        if misc.is_array(@_primary_keys)
-            p = {}
-            for field in @_primary_keys
-                p[field] = true
-            @_primary_keys = p
-        else if not misc.is_object(@_primary_keys)
-            throw Error("primary_keys must be a map or array")
+    constructor : (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes) ->
+        @_primary_keys = @_process_cols(@_primary_keys)
+        @_string_cols  = @_process_cols(@_string_cols)
         # list of records -- each is assumed to be an immutable.Map.
-        @_records    ?= immutable.List()
+        @_records     ?= immutable.List()
         # sorted set of i such that @_records.get(i) is defined.
-        @_everything ?= immutable.Set((n for n in [0...@_records.size] when @_records.get(n)?)).sort()
+        @_everything  ?= immutable.Set((n for n in [0...@_records.size] when @_records.get(n)?)).sort()
         if not @_indexes?
             # Build indexes
             @_indexes = immutable.Map()  # from field to Map
@@ -92,6 +88,16 @@ class DBDoc
                     return
                 return
         @size = @_everything.size
+
+    _process_cols: (v) =>
+        if misc.is_array(v)
+            p = {}
+            for field in v
+                p[field] = true
+            return p
+        else if not misc.is_object(v)
+            throw Error("primary_keys must be a map or array")
+        return v
 
     _select: (where) =>
         # Return sparse array with defined indexes the elts of @_records that
@@ -151,12 +157,20 @@ class DBDoc
                 if not value?
                     record = record.delete(field)
                 else
-                    record = record.set(field, immutable.fromJS(value))
+                    if @_string_cols[field] and misc.is_array(value)
+                        # a patch
+                        record = record.set(field, syncstring.apply_patch(value, before.get(field) ? '')[0])
+                    else
+                        record = record.set(field, immutable.fromJS(value))
             if not before.equals(record)
                 # actual change so update; doesn't change anything involving indexes.
-                return new DBDoc(@_primary_keys, @_records.set(n, record), @_everything, @_indexes)
+                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes)
         else
             # The sparse array matches had nothing in it, so append a new record.
+            for field of @_string_cols
+                if obj[field]? and misc.is_array(obj[field])
+                    # it's a patch -- but there is nothing to patch, so discard this field
+                    obj = misc.copy_without(obj, field)
             records = @_records.push(immutable.fromJS(obj))
             n = records.size - 1
             everything = @_everything.add(n)
@@ -173,7 +187,7 @@ class DBDoc
                     else
                         matches = immutable.Set([n])
                     indexes = indexes.set(field, index.set(k, matches))
-            return new DBDoc(@_primary_keys, records, everything, indexes)
+            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
 
     delete: (where) =>
         if misc.is_array(where)
@@ -187,11 +201,11 @@ class DBDoc
             return @
         if not where?
             # delete everything -- easy special case
-            return new DBDoc(@_primary_keys)
+            return new DBDoc(@_primary_keys, @_string_cols)
         remove = @_select(where)
         if remove.size == @_everything.size
             # actually deleting everything; again easy
-            return new DBDoc(@_primary_keys)
+            return new DBDoc(@_primary_keys, @_string_cols)
 
         # remove matches from every index
         indexes = @_indexes
@@ -219,7 +233,7 @@ class DBDoc
 
         everything = @_everything.subtract(remove)
 
-        return new DBDoc(@_primary_keys, records, everything, indexes)
+        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
 
     # Returns immutable list of all matches
     get: (where) =>
@@ -245,6 +259,7 @@ class DBDoc
     # Conversion to and from an array of records, which is the primary key list followed by the normal Javascript objects
     to_obj: =>
         v = @get().toJS()
+        v.unshift(misc.keys(@_string_cols))
         v.unshift(misc.keys(@_primary_keys))
         return v
 
@@ -318,7 +333,11 @@ class DBDoc
                 # explicitly set each key of to that is different than corresponding key of from
                 for k, v of to
                     if not underscore.isEqual(from[k], v)
-                        obj[k] = v
+                        if @_string_cols[k]
+                            # make a string patch
+                            obj[k] = syncstring.make_patch(from[k], v)
+                        else
+                            obj[k] = v
                 add.push(obj)
                 return
 
