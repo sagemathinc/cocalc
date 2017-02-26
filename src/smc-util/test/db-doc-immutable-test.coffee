@@ -16,7 +16,7 @@ describe "test a simple db doc with one record -- ", ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys: ['id'])
         expect(db.size).toBe(0)
 
     it "adds one record", ->
@@ -43,7 +43,7 @@ numdocs = 1000
 describe "test a db doc with #{numdocs} records and one indexed column -- ", ->
     db = undefined
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys: ['id'])
         expect(db.size).toBe(0)
 
     it "adds #{numdocs} documents to db", ->
@@ -73,7 +73,7 @@ describe "test a db with two indexed cols -- ", ->
     times = [misc.minutes_ago(3), misc.minutes_ago(2), misc.minutes_ago(1)]
 
     it "makes db with two indexed cols", ->
-        db = db_doc(['time', 'user'])
+        db = db_doc(primary_keys: ['time', 'user'])
         expect(db.size).toBe(0)
 
     it 'adds an record', ->
@@ -132,7 +132,7 @@ describe "test a db with index on complicated objects -- ", ->
     db = undefined
     times = [misc.minutes_ago(3), misc.minutes_ago(2), misc.minutes_ago(1)]
     it "makes db with two indexed cols", ->
-        db = db_doc(['field1', 'field 2'])
+        db = db_doc(primary_keys: ['field1', 'field 2'])
         expect(db.size).toBe(0)
 
     it "creates two records", ->
@@ -160,7 +160,7 @@ describe 'test error handling of non-indexed cols -- ', ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id'])
+        db = db_doc(primary_keys: ['id'])
         expect(db.size).toBe(0)
 
     it 'try to use a non-indexed column', ->
@@ -178,9 +178,9 @@ describe "create multiple db's at once -- ", ->
     db1 = db2 = undefined
 
     it "makes the db's", ->
-        db1 = db_doc(['id'])
+        db1 = db_doc(primary_keys: ['id'])
         expect(db1.size).toBe(0)
-        db2 = db_doc(['name'])
+        db2 = db_doc(primary_keys: ['name'])
         expect(db2.size).toBe(0)
 
     it "add some records to each", ->
@@ -213,7 +213,7 @@ describe 'ensure first entry only is updated -- ', ->
     db = undefined
 
     it "makes the db", ->
-        db = db_doc(['id', 'group'])
+        db = db_doc(primary_keys: ['id', 'group'])
         expect(db.size).toBe(0)
 
     it "adds records", ->
@@ -234,7 +234,7 @@ describe 'test conversion from and to obj -- ', ->
     time = new Date()
 
     it "makes the db", ->
-        db = db_doc(['id', 'group'])
+        db = db_doc(primary_keys: ['id', 'group'])
         expect(db.size).toBe(0)
 
     it "adds records", ->
@@ -245,17 +245,17 @@ describe 'test conversion from and to obj -- ', ->
 
     it 'convert to obj', ->
         obj = db.to_obj()
-        expect(obj).toEqual([[ 'id', 'group' ], [], {name:"Sage0", active:time, id:"389", group:'user'}, {name:"Sage1", id:"123", group:'admin'}, {name:"Sage2", id:"389", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
+        expect(obj).toEqual([{name:"Sage0", active:time, id:"389", group:'user'}, {name:"Sage1", id:"123", group:'admin'}, {name:"Sage2", id:"389", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
 
     it 'delete two records, then convert to obj', ->
         n = db.size
         db = db.delete(id:'389')
         expect(n - db.size).toEqual(2)
         obj = db.to_obj()
-        expect(obj).toEqual([[ 'id', 'group' ], [], {name:"Sage1", id:"123", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
+        expect(obj).toEqual([{name:"Sage1", id:"123", group:'admin'}, {name:"Sage3", id:"5077", group:'admin'}])
 
     it 'convert from obj', ->
-        db2 = from_obj(db.to_obj())
+        db2 = from_obj(obj:db.to_obj(), primary_keys: ['id', 'group'])
         expect(db2.equals(db)).toBe(true)
 
 
@@ -264,7 +264,7 @@ describe 'test conversion from and to strings -- ', ->
     time = new Date()
 
     it "makes the db", ->
-        db = db_doc(['id', 'group'])
+        db = db_doc(primary_keys: ['id', 'group'])
         expect(db.size).toBe(0)
 
     it "adds records", ->
@@ -275,19 +275,19 @@ describe 'test conversion from and to strings -- ', ->
 
     it 'convert to string', ->
         str = db.to_str()
-        expect(str).toEqual('["id","group"]\n[]\n{"name":"Sage0","active":' +  JSON.stringify(time)  + ',"id":"389","group":"user"}\n{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage2","id":"389","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
+        expect(str).toEqual('{"name":"Sage0","active":' +  JSON.stringify(time)  + ',"id":"389","group":"user"}\n{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage2","id":"389","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
 
     it 'delete two records, then convert to string', ->
         n = db.size
         db = db.delete(id:'389')
         expect(n - db.size).toEqual(2)
-        expect(db.to_str()).toEqual('["id","group"]\n[]\n{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
+        expect(db.to_str()).toEqual('{"name":"Sage1","id":"123","group":"admin"}\n{"name":"Sage3","id":"5077","group":"admin"}')
 
     it 'convert from str', ->
-        db2 = from_str(db.to_str())
+        db2 = from_str(str:db.to_str(), primary_keys: ['id', 'group'])
         expect(db2.get()).toEqual(db.get())
         # then delete and set other way
-        db = from_str(db2.to_str())
+        db = from_str(str:db2.to_str(), primary_keys: ['id', 'group'])
         expect(db2.get()).toEqual(db.get())
 
 
@@ -295,7 +295,7 @@ describe 'test string_cols and patches --', ->
     db = db2 = undefined
 
     it "makes the db with a string col", ->
-        db = db_doc(['id'], ['input', 'input2'])
+        db = db_doc(primary_keys: ['id'], string_cols: ['input', 'input2'])
 
     it 'adds a record', ->
         db = db.set({id:0, input:"2+3"})
@@ -322,7 +322,7 @@ describe 'test string_cols and patches --', ->
 describe 'make a complicated patch --', ->
 
     it "make db, patch, and test", ->
-        v = [db_doc(['id', 'table'], ['input', 'input2'])]
+        v = [db_doc(primary_keys: ['id', 'table'], string_cols: ['input', 'input2'])]
         v.push(v[v.length-1].set({id:0, table:'users', input:'2+3', input2:'3-5', input3:'2+7'}))
         v.push(v[v.length-1].set({id:3, table:'other', foo:'bar'}))
         v.push(v[v.length-1].set({id:'0', table:'users', input:'2-4'}))
@@ -338,7 +338,7 @@ describe 'make a complicated patch --', ->
 describe 'ensure that big string in string_cols makes small patch --', ->
 
     it 'make db with a big test string field', ->
-        db = db_doc(['n'], ['foo'])
+        db = db_doc(primary_keys: ['n'], string_cols: ['foo'])
         db = db.set(n:0, foo:[0...10000].join(''))
         db1 = db.set(n:0, foo:[0...10001].join(''))
         expect(JSON.stringify(db.make_patch(db1)).length).toBe(74)

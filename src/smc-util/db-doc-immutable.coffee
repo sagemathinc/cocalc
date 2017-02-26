@@ -19,12 +19,14 @@ This is the foundation for a distributed synchronized database.
 Based on immutable.js, and very similar API to db-doc.
 ###
 
-immutable = require('immutable')
+immutable  = require('immutable')
 underscore = require('underscore')
 
 syncstring = require('./syncstring')
 
-misc = require('./misc')
+misc       = require('./misc')
+
+{required, defaults} = misc
 
 # Well-defined JSON.stringify...
 json_stable = require('json-stable-stringify')
@@ -33,32 +35,43 @@ to_key = (s) ->
         s = s.toJS()
     return json_stable(s)
 
-exports.db_doc = (primary_keys, string_cols=[]) ->
-    if not misc.is_array(primary_keys)
+exports.db_doc = (opts) ->
+    opts = defaults opts,
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_array(opts.primary_keys)
         throw Error("primary_keys must be an array")
-    if not misc.is_array(string_cols)
+    if not misc.is_array(opts.string_cols)
         throw Error("_string_cols must be an array")
-    return new DBDoc(primary_keys, string_cols)
+    return new DBDoc(opts.primary_keys, opts.string_cols)
 
 # Create a DBDoc from a plain javascript object
-exports.from_obj = (obj) ->
-    if not misc.is_array(obj)
-        throw Error("obj must be an error")
-    if obj.length == 0
-        throw Error("obj must have length at least 1")
+exports.from_obj = (opts) ->
+    opts = defaults opts,
+        obj          : required
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_array(opts.obj)
+        throw Error("obj must be an array")
     # Set the data
-    records    = immutable.fromJS(obj.slice(2))
-    everything = immutable.Set(records.keys()).sort()
-    return new DBDoc(obj[0], obj[1], records, everything)
+    records    = immutable.fromJS(opts.obj)
+    return new DBDoc(opts.primary_keys, opts.string_cols, records)
 
-exports.from_str = (str) ->
+exports.from_str = (opts) ->
+    opts = defaults opts,
+        str          : required
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_string(opts.str)
+        throw Error("obj must be a string")
     obj = []
-    for line in str.split('\n')
-        try
-            obj.push(misc.from_json(line))
-        catch e
-            console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
-    return exports.from_obj(obj)
+    if opts.str != ''
+        for line in opts.str.split('\n')
+            try
+                obj.push(misc.from_json(line))
+            catch e
+                console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
+    return exports.from_obj(obj:obj, primary_keys:opts.primary_keys, string_cols:opts.string_cols)
 
 class DBDoc
     constructor : (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes) ->
@@ -260,10 +273,7 @@ class DBDoc
 
     # Conversion to and from an array of records, which is the primary key list followed by the normal Javascript objects
     to_obj: =>
-        v = @get().toJS()
-        v.unshift(misc.keys(@_string_cols))
-        v.unshift(misc.keys(@_primary_keys))
-        return v
+        return @get().toJS()
 
     to_str: =>
         return (misc.to_json(x) for x in @to_obj()).join('\n')

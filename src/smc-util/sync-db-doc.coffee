@@ -40,10 +40,10 @@ class exports.SyncDB extends SyncDoc
             string_cols       : []
 
         from_str = (str) ->
-            if str == ''
-                db = db_doc.db_doc(opts.primary_keys, opts.string_cols)
-            else
-                db = db_doc.from_str(str)
+            db = db_doc.from_str
+                str          : str
+                primary_keys : opts.primary_keys
+                string_cols  : opts.string_cols
             return new Doc(db)
 
         super
