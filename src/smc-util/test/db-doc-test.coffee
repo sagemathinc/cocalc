@@ -45,8 +45,10 @@ describe "test a db doc with #{numdocs} records and one indexed column -- ", ->
         expect(db.count()).toBe(0)
 
     it "adds #{numdocs} documents to db", ->
+        t0 = new Date()
         for i in [0...numdocs]
             db.set(name : "Sage #{i}", id : i)
+        console.log(new Date() - t0)
         expect(db.count()).toBe(numdocs)
 
     it "modifies a document", ->
