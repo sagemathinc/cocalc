@@ -165,6 +165,8 @@ class DBDoc
             if not before.equals(record)
                 # actual change so update; doesn't change anything involving indexes.
                 return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes)
+            else
+                return @
         else
             # The sparse array matches had nothing in it, so append a new record.
             for field of @_string_cols
@@ -361,5 +363,4 @@ class DBDoc
                 db = db.set(patch[i+1])
             i += 2
         return db
-
 

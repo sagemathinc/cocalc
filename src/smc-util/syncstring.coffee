@@ -456,7 +456,7 @@ class SortedPatchList extends EventEmitter
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
-                s = x.snapshot ? @_from_str('')
+                s = @_from_str(x.snapshot ? '')
             if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                 t = s.apply_patch(x.patch)
             else
@@ -1182,7 +1182,7 @@ class SyncDoc extends EventEmitter
             string_id : @_string_id
             time      : time
             patch     : JSON.stringify(x.patch)
-            snapshot  : @_patch_list.value(time, force)
+            snapshot  : @_patch_list.value(time, force).to_str()
             user_id   : x.user_id
         if force
             # CRITICAL: We are sending the patch/snapshot later, but it was valid.
@@ -1231,7 +1231,7 @@ class SyncDoc extends EventEmitter
         if time1? and time > time1
             return
         if not patch?
-            patch = JSON.parse(x.get('patch') ? '[]')
+            patch = misc.from_json(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
             time    : time
@@ -1736,6 +1736,8 @@ class SyncDoc extends EventEmitter
             number : 5
             cb     : undefined
     ###
+
+exports.SyncDoc = SyncDoc
 
 # Immutable string document that satisfies our spec.
 class StringDocument

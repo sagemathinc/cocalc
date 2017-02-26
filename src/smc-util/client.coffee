@@ -28,6 +28,7 @@ _     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
+sync_db_doc = require('./sync-db-doc')
 
 smc_version = require('./smc-version')
 
@@ -1619,21 +1620,15 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
-    sync_object: (opts) =>
-        opts = defaults opts,
-            id      : required
-            default : {}
-        opts.client = @
-        return new syncstring.SyncObject(opts)
-
-    sync_db: (opts) =>
+    sync_db_doc: (opts) =>
         opts = defaults opts,
             id           : undefined
             project_id   : undefined
             path         : undefined
             primary_keys : required
+            string_cols  : undefined
         opts.client = @
-        return new syncstring.SyncDB(opts)
+        return new sync_db_doc.SyncDB(opts)
 
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.
