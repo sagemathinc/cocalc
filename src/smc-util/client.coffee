@@ -28,7 +28,7 @@ _     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
-sync_db_doc = require('./sync-db-doc')
+db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
 
@@ -1628,7 +1628,7 @@ class exports.Connection extends EventEmitter
             primary_keys : required
             string_cols  : undefined
         opts.client = @
-        return new sync_db_doc.SyncDB(opts)
+        return new db_doc.SyncDB(opts)
 
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.

@@ -7,224 +7,420 @@
 ###############################################################################
 
 ###
-Local document-oriented database with only two operations:
+Local document-oriented database:
 
    - set(obj)    -- creates or modifies an object
    - delete(obj) -- delets all objects matching the spec
+   - get(where)  -- get list of 0 or more matching objects
+   - get_one(where) -- get at most one matching object
 
 This is the foundation for a distributed synchronized database.
+
+Based on immutable.js, and very similar API to db-doc.
 ###
 
+immutable  = require('immutable')
 underscore = require('underscore')
 
-misc = require('./misc')
+syncstring = require('./syncstring')
+
+misc       = require('./misc')
+
+{required, defaults} = misc
 
 # Well-defined JSON.stringify...
-to_key = require('json-stable-stringify')
+json_stable = require('json-stable-stringify')
+to_key = (s) ->
+    if immutable.Map.isMap(s)
+        s = s.toJS()
+    return json_stable(s)
 
-exports.db_doc = (primary_keys) ->
-    if not misc.is_array(primary_keys)
+exports.db_doc = (opts) ->
+    opts = defaults opts,
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_array(opts.primary_keys)
         throw Error("primary_keys must be an array")
-    new DBDoc(primary_keys)
+    if not misc.is_array(opts.string_cols)
+        throw Error("_string_cols must be an array")
+    return new DBDoc(opts.primary_keys, opts.string_cols)
 
-indices = (v) ->
-    (parseInt(n) for n of v)
+# Create a DBDoc from a plain javascript object
+exports.from_obj = (opts) ->
+    opts = defaults opts,
+        obj          : required
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_array(opts.obj)
+        throw Error("obj must be an array")
+    # Set the data
+    records    = immutable.fromJS(opts.obj)
+    return new DBDoc(opts.primary_keys, opts.string_cols, records)
 
-first_index = (v) ->
-    for n of v
-        return parseInt(n)
+exports.from_str = (opts) ->
+    opts = defaults opts,
+        str          : required
+        primary_keys : required
+        string_cols  : []
+    if not misc.is_string(opts.str)
+        throw Error("obj must be a string")
+    obj = []
+    if opts.str != ''
+        for line in opts.str.split('\n')
+            try
+                obj.push(misc.from_json(line))
+            catch e
+                console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
+    return exports.from_obj(obj:obj, primary_keys:opts.primary_keys, string_cols:opts.string_cols)
 
 class DBDoc
-    constructor : (primary_keys=[]) ->
-        @_primary_keys = misc.copy(primary_keys)
-        @_init()
+    constructor : (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes) ->
+        @_primary_keys = @_process_cols(@_primary_keys)
+        @_string_cols  = @_process_cols(@_string_cols)
+        # list of records -- each is assumed to be an immutable.Map.
+        @_records     ?= immutable.List()
+        # sorted set of i such that @_records.get(i) is defined.
+        @_everything  ?= immutable.Set((n for n in [0...@_records.size] when @_records.get(n)?)).sort()
+        if not @_indexes?
+            # Build indexes
+            @_indexes = immutable.Map()  # from field to Map
+            for field of @_primary_keys
+                @_indexes = @_indexes.set(field, immutable.Map())
+            n = 0
+            @_records.map (record, n) =>
+                @_indexes.map (index, field) =>
+                    val = record.get(field)
+                    if val?
+                        k = to_key(val)
+                        matches = index.get(k)
+                        if matches?
+                            matches = matches.add(n).sort()
+                        else
+                            matches = immutable.Set([n])
+                        @_indexes = @_indexes.set(field, index.set(k, matches))
+                    return
+                return
+        @size = @_everything.size
 
-    _init: =>
-        @_records = []
-        @_indexes = {}
-        for field in @_primary_keys
-            @_indexes[field] = {}
-
-    # Return copy of this DB, which can be safely modified
-    # without impacting this DB.
-    copy: =>
-        db = new DBDoc()
-        db._primary_keys = misc.copy(@_primary_keys)
-        db._records = misc.deep_copy(@_records)
-        db._indexes = misc.deep_copy(@_indexes)
-        return db
+    _process_cols: (v) =>
+        if misc.is_array(v)
+            p = {}
+            for field in v
+                p[field] = true
+            return p
+        else if not misc.is_object(v)
+            throw Error("primary_keys must be a map or array")
+        return v
 
     _select: (where) =>
         # Return sparse array with defined indexes the elts of @_records that
-        # satisfy the where condition.  Do NOT mutate this.
+        # satisfy the where condition.
         len = misc.len(where)
+        result = undefined
         for field, value of where
-            index = @_indexes[field]
+            index = @_indexes.get(field)
             if not index?
-                throw Error("field '#{field}' must be indexed")
-            v = index[to_key(value)]
+                throw Error("field '#{field}' must be a primary key")
+            # v is an immutable.js set or undefined
+            v = index.get(to_key(value))
             if len == 1
                 return v  # no need to do further intersection
             if not v?
-                return [] # no matches for this field - done
+                return immutable.Set() # no matches for this field - done
             if result?
                 # intersect with what we've found so far via indexes.
-                for n in indices(result)
-                    if not v[n]?
-                        delete result[n]
+                result = result.intersect(v)
             else
-                result = []
-                for n in indices(v)
-                    result[n] = true
+                result = v
         if not result?
             # where condition must have been empty -- matches everything
-            result = []
-            for n in indices(@_records)
-                result[n] = true
-        return result
+            return @_everything
+        else
+            return result
 
+    # Used internally for determining the set/where parts of an object.
     _parse: (obj) =>
+        if immutable.Map.isMap(obj)
+            obj = obj.toJS() # TODO?
+        if not misc.is_object(obj)
+            throw Error("obj must be a Javascript object")
         where = {}
         set   = {}
-        if obj?
-            for field, val of obj
-                if @_indexes[field]?
+        for field, val of obj
+            if @_primary_keys[field]?
+                if val?
                     where[field] = val
-                else
-                    set[field] = val
+            else
+                set[field] = val
         return {where:where, set:set}
 
     set: (obj) =>
-        if @_recording?
-            @_recording.push(set:obj)
+        if misc.is_array(obj)
+            z = @
+            for x in obj
+                z = z.set(x)
+            return z
         {where, set} = @_parse(obj)
         matches = @_select(where)
-        n = first_index(matches)
+        n = matches?.first()
         if n?
             # edit the first existing record that matches
-            record = @_records[n]
+            before = record = @_records.get(n)
             for field, value of set
-                prev_key      = to_key(record[field])
-                record[field] = value
-
-                # Update index if there is one on the field
-                index = @_indexes[field]
-                if index?
-                    cur_key = to_key(value)
-                    index[cur_key] = n
-                    if prev_key != cur_key
-                        delete index[prev_key][n]
+                if not value?
+                    record = record.delete(field)
+                else
+                    if @_string_cols[field] and misc.is_array(value)
+                        # a patch
+                        record = record.set(field, syncstring.apply_patch(value, before.get(field) ? '')[0])
+                    else
+                        record = record.set(field, immutable.fromJS(value))
+            if not before.equals(record)
+                # actual change so update; doesn't change anything involving indexes.
+                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes)
+            else
+                return @
         else
             # The sparse array matches had nothing in it, so append a new record.
-            record = {}
-            for field, value of set
-                record[field] = value
-            for field, value of where
-                record[field] = value
-            @_records.push(record)
-            n = @_records.length
+            for field of @_string_cols
+                if obj[field]? and misc.is_array(obj[field])
+                    # it's a patch -- but there is nothing to patch, so discard this field
+                    obj = misc.copy_without(obj, field)
+            records = @_records.push(immutable.fromJS(obj))
+            n = records.size - 1
+            everything = @_everything.add(n)
             # update indexes
-            for field, index of @_indexes
-                val = record[field]
+            indexes = @_indexes
+            for field of @_primary_keys
+                val = obj[field]
                 if val?
-                    matches = index[to_key(val)] ?= []
-                    matches[n-1] = true
-            return
+                    index = indexes.get(field) ? immutable.Map()
+                    k = to_key(val)
+                    matches = index.get(k)
+                    if matches?
+                        matches = matches.add(n).sort()
+                    else
+                        matches = immutable.Set([n])
+                    indexes = indexes.set(field, index.set(k, matches))
+            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
 
     delete: (where) =>
+        if misc.is_array(where)
+            z = @
+            for x in where
+                z = z.delete(x)
+            return z
         # if where undefined, will delete everything
-        if @_recording?
-            @_recording.push(delete:where)
+        if @_everything.size == 0
+            # no-op -- no data so deleting is trivial
+            return @
         if not where?
             # delete everything -- easy special case
-            cnt = misc.keys(@_records).length
-            @_init()
-            return cnt
-        remove = indices(@_select(where))
-        if remove.length == misc.keys(@_records).length
+            return new DBDoc(@_primary_keys, @_string_cols)
+        remove = @_select(where)
+        if remove.size == @_everything.size
             # actually deleting everything; again easy
-            @_init()
-            return remove.length
-        # remove from every index
-        for field, index of @_indexes
-            for n in remove
-                record = @_records[n]
-                val = record[field]
+            return new DBDoc(@_primary_keys, @_string_cols)
+
+        # remove matches from every index
+        indexes = @_indexes
+        for field of @_primary_keys
+            index = indexes.get(field)
+            if not index?
+                continue
+            remove.map (n) =>
+                record = @_records.get(n)
+                val = record.get(field)
                 if val?
-                    delete index[to_key(val)][n]
+                    k = to_key(val)
+                    matches = index.get(k).delete(n)
+                    if matches.size == 0
+                        index = index.delete(k)
+                    else
+                        index = index.set(k, matches)
+                    indexes = indexes.set(field, index)
+                return
+
         # delete corresponding records
-        cnt = 0
-        for n in remove
-            cnt += 1
-            delete @_records[n]
-        return cnt
+        records = @_records
+        remove.map (n) =>
+            records = records.set(n, undefined)
 
-    count: =>
-        return indices(@_records).length
+        everything = @_everything.subtract(remove)
 
+        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
+
+    # Returns immutable list of all matches
     get: (where) =>
-        return (misc.deep_copy(@_records[n]) for n in indices(@_select(where)))
+        matches = @_select(where)
+        if not matches?
+            return immutable.List()
+        return @_records.filter((x,n)->matches.includes(n))
 
+    # Returns the first match, or undefined if there are no matches
     get_one: (where) =>
-        return misc.deep_copy(@_records[first_index(@_select(where))])
+        matches = @_select(where)
+        if not matches?
+            return
+        return @_records.get(matches.first())
 
-    is_equal: (other) =>
-        if @ == other
-            return true  # easy special case
-        # harder... TODO: will need to make this faster...
-        return underscore.isEqual(@to_obj(), other.to_obj())
+    equals: (other) =>
+        if @_records == other._records
+            return true
+        if @size != other.size
+            return false
+        return immutable.Set(@_records).add(undefined).equals(immutable.Set(other._records).add(undefined))
 
-    # Conversion to and from an array of records, which are normal Javascript objects
+    # Conversion to and from an array of records, which is the primary key list followed by the normal Javascript objects
     to_obj: =>
-        return (misc.deep_copy(record) for record in misc.values(@_records))
-
-    from_obj: (obj) =>
-        # Set the data
-        @_records = misc.deep_copy(obj)
-        # Reset indexes
-        for field of @_indexes
-            @_indexes[field] = {}
-        # Build indexes
-        n = 0
-        for record in @_records
-            for field, index of @_indexes
-                val = record[field]
-                if val?
-                    matches = index[to_key(val)] ?= []
-                    matches[n] = true
-            n += 1
-        return
+        return @get().toJS()
 
     to_str: =>
-        return (misc.to_json(record) for record in @to_obj()).join('\n')
+        return (misc.to_json(x) for x in @to_obj()).join('\n')
 
-    from_str: (str) =>
-        if str != ''
-            obj = []
-            for line in str.split('\n')
-                try
-                    obj.push(misc.from_json(line))
-                catch e
-                    console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
-            @from_obj(obj)
-        else
-            @from_obj([])
+    # x = javascript object
+    _primary_key_part: (x) =>
+        where = {}
+        for k, v of x
+            if @_primary_keys[k]
+                where[k] = v
+        return where
 
-    # Record all the update actions that happen after this call
-    start_recording: =>
-        @_recording = []
-        return
+    make_patch: (other) =>
+        if other.size == 0
+            # Special case -- delete everything
+            return [-1,[{}]]
 
-    # Stops a previously started recording, returning the result
-    stop_recording: =>
-        x = @_recording
-        delete @_recording
-        return x
+        t0 = immutable.Set(@_records)
+        t1 = immutable.Set(other._records)
+        # Remove the common intersection -- nothing going on there.
+        # Doing this greatly reduces the complexity in the common case in which little has changed
+        common = t0.intersect(t1).add(undefined)
+        t0 = t0.subtract(common)
+        t1 = t1.subtract(common)
 
-    play_recording: (recording) =>
-        for action in recording
-            if action.set?
-                @set(action.set)
-            if action.delete?
-                @delete(action.delete)
+        # Easy very common special cases
+        if t0.size == 0
+            # Special case: t0 is empty -- insert all the records.
+            return [1, t1.toJS()]
+        if t1.size == 0
+            # Special case: t1 is empty -- bunch of deletes
+            v = []
+            t0.map (x) =>
+                v.push(@_primary_key_part(x.toJS()))
+                return
+            return [-1, v]
+
+        # compute the key parts of t0 and t1 as sets
+        k0 = t0.map((x) => x.filter((v,k)=>@_primary_keys[k]))  # means -- set got from t0 by taking only the primary_key columns
+        k1 = t1.map((x) => x.filter((v,k)=>@_primary_keys[k]))
+
+        add = []
+        remove = undefined
+
+        # Deletes: everything in k0 that is not in k1
+        deletes = k0.subtract(k1)
+        if deletes.size > 0
+            remove = deletes.toJS()
+
+        # Inserts: everything in k1 that is not in k0
+        inserts = k1.subtract(k0)
+        if inserts.size > 0
+            inserts.map (k) =>
+                add.push(other.get_one(k.toJS()).toJS())
+                return
+
+        # Everything in k1 that is also in k0 -- these must have all changed
+        changed = k1.intersect(k0)
+        if changed.size > 0
+            changed.map (k) =>
+                obj  = k.toJS()
+                obj0 = @_primary_key_part(obj)
+                from = @get_one(obj0).toJS()
+                to   = other.get_one(obj0).toJS()
+                # undefined for each key of from not in to
+                for k of from
+                    if not to[k]?
+                        obj[k] = undefined
+                # explicitly set each key of to that is different than corresponding key of from
+                for k, v of to
+                    if not underscore.isEqual(from[k], v)
+                        if @_string_cols[k] and from[k]? and v?
+                            # make a string patch
+                            obj[k] = syncstring.make_patch(from[k], v)
+                        else
+                            obj[k] = v
+                add.push(obj)
+                return
+
+        patch = []
+        if remove?
+            patch.push(-1)
+            patch.push(remove)
+        if add.length > 0
+            patch.push(1)
+            patch.push(add)
+
+        return patch
+
+    apply_patch: (patch) =>
+        i = 0
+        db = @
+        while i < patch.length
+            if patch[i] == -1
+                db = db.delete(patch[i+1])
+            else if patch[i] == 1
+                db = db.set(patch[i+1])
+            i += 2
+        return db
+
+
+
+class Doc
+    constructor: (@_db) ->
+        if not @_db?
+            throw Error("@_db must be defined")
+
+    to_str: =>
+        return @_db.to_str()
+
+    is_equal: (other) =>
+        return @_db.equals(other._db)
+
+    apply_patch: (patch) =>
+        window.db = @_db
+        window.patch = patch
+        return new Doc(@_db.apply_patch(patch))
+
+    make_patch: (other) =>
+        return @_db.make_patch(other._db)
+
+class exports.SyncDB extends syncstring.SyncDoc
+    constructor: (opts) ->
+        opts = defaults opts,
+            id                : undefined
+            client            : required
+            project_id        : undefined
+            path              : undefined
+            save_interval     : undefined
+            file_use_interval : undefined
+            primary_keys      : required
+            string_cols       : []
+
+        from_str = (str) ->
+            db = exports.from_str
+                str          : str
+                primary_keys : opts.primary_keys
+                string_cols  : opts.string_cols
+            return new Doc(db)
+
+        super
+            string_id         : opts.id
+            client            : opts.client
+            project_id        : opts.project_id
+            path              : opts.path
+            save_interval     : opts.save_interval
+            file_use_interval : opts.file_use_interval
+            cursors           : false
+            from_str          : from_str
 

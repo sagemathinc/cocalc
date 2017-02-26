@@ -48,6 +48,7 @@ misc       = require('smc-util/misc')
 misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
+db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
 
@@ -459,6 +460,14 @@ class exports.Client extends EventEmitter
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
+
+    sync_db_doc: (opts) =>
+        opts = defaults opts,
+            path         : undefined
+            primary_keys : required
+            string_cols  : undefined
+        opts.client = @
+        return new db_doc.SyncDB(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
     # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
