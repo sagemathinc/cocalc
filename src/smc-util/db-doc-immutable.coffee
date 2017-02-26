@@ -333,7 +333,7 @@ class DBDoc
                 # explicitly set each key of to that is different than corresponding key of from
                 for k, v of to
                     if not underscore.isEqual(from[k], v)
-                        if @_string_cols[k]
+                        if @_string_cols[k] and from[k]? and v?
                             # make a string patch
                             obj[k] = syncstring.make_patch(from[k], v)
                         else

@@ -290,3 +290,62 @@ describe 'test conversion from and to strings -- ', ->
         db = from_str(db2.to_str())
         expect(db2.get()).toEqual(db.get())
 
+
+describe 'test string_cols and patches --', ->
+    db = db2 = undefined
+
+    it "makes the db with a string col", ->
+        db = db_doc(['id'], ['input', 'input2'])
+
+    it 'adds a record', ->
+        db = db.set({id:0, input:"2+3"})
+        expect(db.get_one().toJS()).toEqual({id:0, input:'2+3'})
+
+    it 'modifies record and makes a patch', ->
+        db2 = db.set({id:0, input:"2+3 # add numbers"})
+        patch = db.make_patch(db2)
+        expect(JSON.stringify(patch)).toEqual('[1,[{"id":0,"input":[[[[0,"2+3"],[1," # add numbers"]],0,0,3,17]]}]]')
+        expect(db2.equals(db.apply_patch(patch))).toBe(true)
+
+    it 'modifies db further and makes a more subtle patch', ->
+        db2 = db2.set({id:0, input3:'abc'})
+        db3 = db2.set({id:0, input:"2 + 3 # add numbers", input2:"xyz", input3:'abc1'})
+        patch = db2.make_patch(db3)
+        expect(JSON.stringify(patch)).toEqual(
+            '[1,[{"id":0,"input":[[[[0,"2"],[-1,"+"],[1," + "],[0,"3 # "]],0,0,6,8]],"input3":"abc1","input2":"xyz"}]]')
+        expect(db2.apply_patch(patch).equals(db3)).toBe(true)
+        patch = db3.make_patch(db2)
+        expect(JSON.stringify(patch)).toEqual(
+            '[1,[{"id":0,"input":[[[[0,"2"],[-1," + "],[1,"+"],[0,"3 # "]],0,0,8,6]],"input3":"abc"}]]')
+        expect(db3.apply_patch(patch).equals(db2)).toBe(true)
+
+describe 'make a complicated patch --', ->
+
+    it "make db, patch, and test", ->
+        v = [db_doc(['id', 'table'], ['input', 'input2'])]
+        v.push(v[v.length-1].set({id:0, table:'users', input:'2+3', input2:'3-5', input3:'2+7'}))
+        v.push(v[v.length-1].set({id:3, table:'other', foo:'bar'}))
+        v.push(v[v.length-1].set({id:'0', table:'users', input:'2-4'}))
+        v.push(v[v.length-1].set({id:'0', table:'users', input:'2+3', other_stuff:[{a:5,b:7}, {c:[1,2]}]}))
+        v.push(v[v.length-1].set({id:0, table:'users', input:'5+6', input2:undefined}))
+        v.push(v[v.length-1].delete({id:3, table:'other'}))
+        expect(v[v.length-1].size).toBe(2)
+        for i in [0...v.length]
+            expect(v[0].apply_patch(v[0].make_patch(v[i])).equals(v[i])).toBe(true)
+            expect(v[i].apply_patch(v[i].make_patch(v[0])).equals(v[0])).toBe(true)
+            expect(v[i].apply_patch(v[i].make_patch(v[2])).equals(v[2])).toBe(true)
+
+describe 'ensure that big string in string_cols makes small patch --', ->
+
+    it 'make db with a big test string field', ->
+        db = db_doc(['n'], ['foo'])
+        db = db.set(n:0, foo:[0...10000].join(''))
+        db1 = db.set(n:0, foo:[0...10001].join(''))
+        expect(JSON.stringify(db.make_patch(db1)).length).toBe(74)
+
+        # This will be big
+        db2 = db1.set(n:0, foo2:[0...10000].join(''))
+        db3 = db2.set(n:0, foo2:[0...10001].join(''))
+        expect(JSON.stringify(db2.make_patch(db3)).length).toBe(38918)
+
+
