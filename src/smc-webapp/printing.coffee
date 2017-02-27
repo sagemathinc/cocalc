@@ -337,12 +337,20 @@ class SagewsPrinter extends Printer
         else if mesg.html?
             $html = $("<div>#{mesg.html}</div>")
             @editor.syncdoc.process_html_output($html)
+            #$html.process_smc_links(
+            #    project_id : @editor.project_id
+            #    file_path  : misc.path_split(@editor.filename).head
+            #)
             out = "<div class='output html'>#{$html.html()}</div>"
         else if mesg.md?
             x = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
             $out.html_noscript(x.s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
+            #$out.process_smc_links(
+            #    project_id : @editor.project_id
+            #    file_path  : misc.path_split(@editor.filename).head
+            #)
             out = "<div class='output md'>#{$out.html()}</div>"
         else if mesg.interact?
             out = "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
@@ -394,10 +402,9 @@ class SagewsPrinter extends Printer
         if not html?
             return html
         $html = $('<div>').html(html)
-        $html.process_smc_links(
-            project_id : @editor.project_id
-            file_path  : misc.path_split(@editor.filename).head
-        )
+
+        if DEBUG
+            console.log('$html after', $html.html())
         if not @_title
             for tag in ['h1', 'h2', 'h3']
                 $hx = $html.find(tag + ':first')
@@ -409,11 +416,13 @@ class SagewsPrinter extends Printer
                 continue
             c          = document.createElement("canvas")
             scaling    = img.getAttribute('smc-image-scaling') ? 1
-            c.width    = img.width
-            c.height   = img.height
+            width      = img.width   || 800
+            height     = img.height  || width / 2
+            c.width    = width
+            c.height   = height
             c.getContext('2d').drawImage(img, 0, 0)
-            img.width  = scaling * img.width
-            img.height = scaling * img.height
+            img.width  = scaling * width
+            img.height = scaling * height
             ext = misc.filename_extension(img.src).toLowerCase()
             ext = ext.split('?')[0]
             ext = if ext == 'jpg' then 'jpeg' else ext
@@ -429,7 +438,7 @@ class SagewsPrinter extends Printer
             catch e
                 # ignore a potential CORS security error, when the image comes from another domain.
                 # SecurityError: Failed to execute 'toDataURL' on 'HTMLCanvasElement': Tainted canvases may not be exported.
-                console.info('ignoring CORS error regarding reading the image content via "toDataURL"')
+                console.info('ignoring CORS error regarding reading the image content via "toDataURL"', e)
                 continue
         return $html.html()
 
