@@ -144,7 +144,7 @@ class exports.LatexEditor extends editor.FileEditor
             ev.preventDefault()
             flavor = ev.target.hash ? '#default'
             c = @preview.pdflatex.default_tex_command(flavor[1..])
-            console.log(c)
+            # console.log(c)
             @log_input.val(c)
             @set_conf_doc(latex_command: c)
             @save()
@@ -243,6 +243,8 @@ class exports.LatexEditor extends editor.FileEditor
         @save_conf_doc(conf)
 
     load_conf_doc: () =>
+        if not @latex_editor.codemirror?
+            return {}
         doc = @latex_editor.codemirror.getValue()
         i = doc.indexOf("%sagemathcloud=")
         if i == -1
@@ -261,6 +263,8 @@ class exports.LatexEditor extends editor.FileEditor
 
     save_conf_doc: (conf) =>
         cm  = @latex_editor.codemirror
+        if not cm?
+            return
         doc = cm.getValue()
         i = doc.indexOf('%sagemathcloud=')
         line = '%sagemathcloud=' + misc.to_json(conf)

@@ -866,6 +866,10 @@ exports.define_codemirror_extensions = () ->
             content   : required
             type      : required   # 'docstring', 'source-code' -- FUTURE:
             target    : required
+        if typeof(opts.content) != 'string'
+            # If for some reason the content isn't a string (e.g., undefined or an object or something else),
+            # convert it a string, which will display fine.
+            opts.content = "#{JSON.stringify(opts.content)}"
         element = templates.find(".salvus-codemirror-introspect")
         element.find(".salvus-codemirror-introspect-title").text(opts.target)
         element.modal()

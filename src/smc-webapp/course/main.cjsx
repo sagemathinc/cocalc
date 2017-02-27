@@ -1973,7 +1973,7 @@ CourseEditor = rclass ({name}) ->
         <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
 
     show_files: ->
-        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_active_tab('files')
 
     render_files_button: ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
