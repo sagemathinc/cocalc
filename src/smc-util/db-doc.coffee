@@ -76,7 +76,7 @@ exports.from_str = (opts) ->
     return exports.from_obj(obj:obj, primary_keys:opts.primary_keys, string_cols:opts.string_cols)
 
 class DBDoc
-    constructor : (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes) ->
+    constructor: (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes, @_changes) ->
         @_primary_keys = @_process_cols(@_primary_keys)
         @_string_cols  = @_process_cols(@_string_cols)
         # list of records -- each is assumed to be an immutable.Map.
@@ -103,6 +103,13 @@ class DBDoc
                     return
                 return
         @size = @_everything.size
+        @_changes ?= immutable.List()
+
+    reset_changes: =>
+        @_changes = immutable.List()
+
+    changes: =>
+        return @_changes
 
     _process_cols: (v) =>
         if misc.is_array(v)
@@ -115,6 +122,8 @@ class DBDoc
         return v
 
     _select: (where) =>
+        if immutable.Map.isMap(where)
+            where = where.toJS()
         # Return sparse array with defined indexes the elts of @_records that
         # satisfy the where condition.
         len = misc.len(where)
@@ -164,6 +173,7 @@ class DBDoc
             return z
         {where, set} = @_parse(obj)
         matches = @_select(where)
+        changes = @_changes
         n = matches?.first()
         if n?
             # edit the first existing record that matches
@@ -179,7 +189,8 @@ class DBDoc
                         record = record.set(field, immutable.fromJS(value))
             if not before.equals(record)
                 # actual change so update; doesn't change anything involving indexes.
-                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes)
+                changes = changes.push(record.filter((v,k)=>@_primary_keys[k]))
+                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, changes)
             else
                 return @
         else
@@ -188,7 +199,9 @@ class DBDoc
                 if obj[field]? and misc.is_array(obj[field])
                     # it's a patch -- but there is nothing to patch, so discard this field
                     obj = misc.copy_without(obj, field)
-            records = @_records.push(immutable.fromJS(obj))
+            record = immutable.fromJS(obj)
+            changes = changes.push(record.filter((v,k)=>@_primary_keys[k]))
+            records = @_records.push(record)
             n = records.size - 1
             everything = @_everything.add(n)
             # update indexes
@@ -204,7 +217,7 @@ class DBDoc
                     else
                         matches = immutable.Set([n])
                     indexes = indexes.set(field, index.set(k, matches))
-            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
+            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
 
     delete: (where) =>
         if misc.is_array(where)
@@ -216,13 +229,12 @@ class DBDoc
         if @_everything.size == 0
             # no-op -- no data so deleting is trivial
             return @
-        if not where?
-            # delete everything -- easy special case
-            return new DBDoc(@_primary_keys, @_string_cols)
+        changes = @_changes
         remove = @_select(where)
         if remove.size == @_everything.size
-            # actually deleting everything; again easy
-            return new DBDoc(@_primary_keys, @_string_cols)
+            # actually deleting everything; easy special cases
+            changes = changes.concat(@_records.filter((record)=>record?).map((record) => record.filter((v,k)=>@_primary_keys[k])))
+            return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, changes)
 
         # remove matches from every index
         indexes = @_indexes
@@ -246,11 +258,12 @@ class DBDoc
         # delete corresponding records
         records = @_records
         remove.map (n) =>
+            changes = changes.push(records.get(n).filter((v,k)=>@_primary_keys[k]))
             records = records.set(n, undefined)
 
         everything = @_everything.subtract(remove)
 
-        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes)
+        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
 
     # Returns immutable list of all matches
     get: (where) =>
@@ -390,10 +403,17 @@ class Doc
         return @_db.equals(other._db)
 
     apply_patch: (patch) =>
-        return new Doc(@_db.apply_patch(patch))
+        db = new Doc(@_db.apply_patch(patch))
 
     make_patch: (other) =>
         return @_db.make_patch(other._db)
+
+    changes: =>
+        return @_db.changes()
+
+    reset_changes: =>
+        @_db.reset_changes()
+        return
 
 class SyncDoc extends syncstring.SyncDoc
     constructor: (opts) ->
@@ -426,17 +446,32 @@ class SyncDoc extends syncstring.SyncDoc
 
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
+        @_path = opts.path
         @_doc = new SyncDoc(opts)
         @_doc.on('change', @_on_change)
+        @_doc.on('before-change', => @emit('before-change'))
+        @_doc.on('sync', => @emit('sync'))
+
+    _check: =>
+        if not @_doc?
+            throw Error("SyncDB('#{@_path}') is closed")
 
     has_unsaved_changes: =>
+        @_check()
         return @_doc.has_unsaved_changes()
 
     has_uncommitted_changes: =>
+        @_check()
         return @_doc.has_uncommitted_changes()
 
+    is_read_only: =>
+        @_check()
+        return @_doc.get_read_only()
+
     _on_change: () =>
-        @emit('change')
+        changes = @_doc.get().changes()
+        @_doc.get().reset_changes()
+        @emit('change', changes)
 
     close: () =>
         if not @_doc?
@@ -447,17 +482,20 @@ class exports.SyncDB extends EventEmitter
         delete @_doc
 
     save: (cb) =>
+        @_check()
         @_doc?.save_to_disk(cb)
         return
 
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj) =>
+        @_check()
         @_doc.set(new Doc(@_doc.get()._db.set(obj)))
         @_doc.save()   # always saves to backend after change
         return
 
     get: (where, time) =>
+        @_check()
         if time?
             d = @_doc.version(time)
         else
@@ -465,6 +503,7 @@ class exports.SyncDB extends EventEmitter
         return d._db.get(where)
 
     get_one: (where, time) =>
+        @_check()
         if time?
             d = @_doc.version(time)
         else
@@ -472,28 +511,34 @@ class exports.SyncDB extends EventEmitter
         return d._db.get_one(where)
 
     versions: =>
+        @_check()
         return @_doc.versions()
 
     # delete everything that matches the given criterion; returns number of deleted items
     delete: (where) =>
+        @_check()
         @_doc.set(new Doc(@_doc.get()._db.delete(where)))
         @_doc.save()   # always saves to backend after change
         return
 
     count: =>
+        @_check()
         return @_doc.get()._db.size
 
     undo: =>
+        @_check()
         @_doc.set(@_doc.get().undo())
         @_doc.save()
         return
 
     redo: =>
+        @_check()
         @_doc.set(@_doc.get().redo())
         @_doc.save()
         return
 
     revert: (version) =>
+        @_check()
         @_doc.set(@_doc.version(version))
         @_doc.save()
         return

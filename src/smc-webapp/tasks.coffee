@@ -40,7 +40,6 @@ misc   = require('smc-util/misc')
 {redux} = require('./smc-react')
 {salvus_client}   = require('./salvus_client')
 {alert_message}   = require('./alerts')
-{synchronized_db} = require('./syncdb')
 markdown          = require('./markdown')
 
 underscore = require('underscore')
@@ -82,6 +81,7 @@ CodeMirror.defineMode "tasks", (config) ->
 
 class TaskList
     constructor: (@project_id, @filename, @element, @opts) ->
+        ## window.t = @  # for debugging
         # NOTE: @filename need not be defined, e.g., when this object is being used by the history editor just for rendering
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
@@ -108,7 +108,7 @@ class TaskList
     destroy: () =>
         delete @tasks
         @element.removeData()
-        @db?.destroy()
+        @db?.close()
 
     init_history_button: =>
         if not @opts.viewer
@@ -124,53 +124,44 @@ class TaskList
         @element.find(".salvus-tasks-hashtags-row").remove()  # TODO: only because they don't work in viewer mode; for later.
 
     init_syncdb: (cb) =>
-        synchronized_db
-            project_id : @project_id
-            filename   : @filename
-            cb         : (err, db) =>
-                if err
-                    # TODO -- so what? -- need to close window, etc.... Also this should be a modal dialog
-                    e = "Error: unable to open #{@filename}"
-                    @element.find(".salvus-tasks-loading").text(e)
-                    alert_message(type:"error", message:e)
-                    @readonly = true
-                    @save_button.find("span").text("Try again to load...")
-                    @save_button.removeClass('disabled').off('click').click () =>
-                        @save_button.off('click')
-                        @save_button.addClass('disabled')
-                        @init_syncdb()
-                else
-                    @db = db
-                    @readonly = @db.readonly
-                    if @readonly
-                        @save_button.find("span").text("Readonly")
-                        @element.find(".salvus-tasks-action-buttons").remove()
-                    else
-                        @save_button.find("span").text("Save")
+        @db = salvus_client.sync_db
+            project_id   : @project_id
+            path         : @filename
+            primary_keys : ['task_id']
+            string_cols  : ['desc']
 
-                    @init_tasks()
+        @db.once 'change', =>
+            @readonly = @db.is_read_only()
+            if @readonly
+                @save_button.find("span").text("Readonly")
+                @element.find(".salvus-tasks-action-buttons").remove()
+            else
+                @save_button.find("span").text("Save")
 
-                    @render_hashtag_bar()
-                    @render_task_list()
+                @init_tasks()
 
-                    @set_clean()  # we have made no changes yet.
+                @render_hashtag_bar()
+                @render_task_list()
 
-                    # UI indicators that sync happening...
-                    @db.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
+                @set_clean()  # we have made no changes yet.
 
-                    # Handle any changes, merging in with current state.
-                    @db.on('change', @handle_changes)
+                # UI indicators that sync happening...
+                @db.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
-                    # Before syncing ensure that the db is updated to the
-                    # latest version of what is being edited.  If we don't do
-                    # this, then when two people edit at once, one person
-                    # will randomly loose their work!
-                    @db.on('before-change', @save_live)
+                # Handle any changes, merging in with current state.
+                @db.on('change', @handle_changes)
 
-                    # We are done with initialization.
-                    @element.find(".salvus-tasks-loading").remove()
+                # Before syncing ensure that the db is updated to the
+                # latest version of what is being edited.  If we don't do
+                # this, then when two people edit at once, one person
+                # will randomly loose their work!
+                @db.on('before-change', @save_live)
 
-                    @init_save()
+                # We are done with initialization.
+                @element.find(".salvus-tasks-loading").remove()
+
+                @init_save()
+                cb?()
 
     # Set the task list to what is defined by the given syncdb string.
     # This is used for the history viewer
@@ -190,15 +181,9 @@ class TaskList
 
     init_tasks: () =>
 
-        # anything that couldn't be parsed from JSON as a map gets converted to {desc:thing}.
-        @db.ensure_objects('desc')
-
-        # ensure that every db entry has a distinct task_id
-        @db.ensure_uuid_primary_key('task_id')
-
         # read tasks from the database
         @tasks = {}
-        for task in @db.select()
+        for task in @db.get().toJS()
             @tasks[task.task_id] = task
 
         # ensure positions and desc[riptions] are all defined
@@ -209,26 +194,17 @@ class TaskList
                 # If necessary, the 0 will get changed to something
                 # distinct from others below.
                 t.position = 0
-                @db.update
-                    set   : {position : t.position}
-                    where : {task_id  : task_id}
+                @db.set
+                    task_id  : task_id
+                    position : t.position
             positions[t.position] = true
-
-            # in case of corrupt input (so JSON couldn't be parsed)
-            if t.corrupt?
-                if not t.desc?
-                    t.desc = ''
-                t.desc += t.corrupt
-                @db.update
-                    set   : {desc     : t.desc,    corrupt:undefined}
-                    where : {task_id  : task_id}
 
             if not t.desc?
                 # every description must be defined
                 t.desc = ''
-                @db.update
-                    set   : {desc     : t.desc}
-                    where : {task_id  : task_id}
+                @db.set
+                    task_id : task_id
+                    desc    : t.desc
 
         # and that positions are unique
         if misc.len(positions) != misc.len(@tasks)
@@ -270,9 +246,9 @@ class TaskList
                         t = v[k]
                         d += delta
                         t.position = d
-                        @db.update
-                            set   : {position : t.position}
-                            where : {task_id  : t.task_id}
+                        @db.set
+                            task_id  : t.task_id
+                            position : t.position
                 # reset, so we find next sequence of repeats...
                 i = j
             j += 1
@@ -287,9 +263,9 @@ class TaskList
                 # If necessary, the 0 will get changed to something
                 # distinct from others below.
                 t.position = 0
-                @db.update
-                    set   : {position : t.position}
-                    where : {task_id  : task_id}
+                @db.set
+                    task_id  : task_id
+                    position : t.position
             positions[t.position] = true
 
         if misc.len(positions) != misc.len(@tasks)
@@ -302,19 +278,19 @@ class TaskList
         return v
 
     handle_changes: (changes) =>
-        # Determine the tasks that changed from the changes object, which lists and
-        # insert and remove for a change (but not for a delete), since syncdb is very generic.
-        c = {}
-        for x in changes
-            if x.insert?.task_id?
-                c[x.insert.task_id] = true
-            else if x.remove?.task_id?
-                c[x.remove.task_id] = true
-        if misc.len(c) > 0
-            # something changed, so allow the save button. (TODO: this is of course not really right)
+        if not changes?
+            # possibly every task changed
+            @init_tasks()
+            @render_task_list()
             @set_dirty()
-        for task_id, _ of c
-            t = @db.select_one(where:{task_id:task_id})
+            return
+
+        if changes.size > 0
+            @set_dirty()
+
+        changes.map (x) =>
+            task_id = x.get('task_id')
+            t = @db.get_one(x)?.toJS()
             if not t?
                 # deleted
                 delete @tasks[task_id]
@@ -322,6 +298,7 @@ class TaskList
                 # changed
                 task = @tasks[task_id]
                 if not task?
+                    # new
                     @tasks[task_id] = t
                 else
                     # merge in properties from t (removing missing non-special ones)
@@ -331,6 +308,7 @@ class TaskList
                     for k,v of t
                         task[k] = v
                     task.changed = true
+            return
 
         @render_task_list()
 
@@ -628,9 +606,9 @@ class TaskList
 
     set_task_position: (task, position) =>
         task.position = position
-        @db.update
-            set   : {position : position}
-            where : {task_id : task.task_id}
+        @db.set
+            task_id  : task.task_id
+            position : position
         @set_dirty()
 
     move_task_before: (task, position) =>
@@ -744,21 +722,10 @@ class TaskList
 
     display_last_edited: (task) =>
         if task.last_edited
-            corrupt = false
-            if typeof(task.last_edited) != "number"  # corrupt
-                corrupt = true
-            else
-                d = new Date(task.last_edited)
-                if not misc_page.is_valid_date(d)
-                    corrupt = true
-            if corrupt
+            d = new Date(task.last_edited)
+            if not misc_page.is_valid_date(d)
                 d = new Date()
-                task.last_edited = new Date() - 0
-                @db.update
-                    set   : {last_edited : task.last_edited }
-                    where : {task_id : task.task_id}
-
-            a = $("<span>").attr('title',d.toISOString()).timeago()
+            a = $("<span>").attr('title', d.toISOString()).timeago()
             a.text($.timeago(d.toISOString()))
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
@@ -856,9 +823,10 @@ class TaskList
                         task.desc = task.desc.slice(0,i) + '[ ]' + task.desc.slice(i+3)
                     else
                         task.desc = task.desc.slice(0,i) + '[x]' + task.desc.slice(i+3)
-                    @db.update
-                        set   : {desc  : task.desc, last_edited : new Date() - 0}
-                        where : {task_id : task.task_id}
+                    @db.set
+                        task_id     : task.task_id
+                        desc        : task.desc
+                        last_edited : new Date() - 0
                     @set_dirty()
                     @set_current_task(task)
                 @display_desc(task)
@@ -944,7 +912,6 @@ class TaskList
     # save live state of editor to syncdb by going through all codemirror editors
     # of open in-edit-mode tasks, and saving them.
     save_live: () =>
-        #console.log("save_live")
         for task in @_visible_tasks
             e = task?.element
             if e?.hasClass('salvus-task-editing-desc')
@@ -1054,9 +1021,10 @@ class TaskList
             task.desc      = desc
             @display_desc(task)    # update the preview
             task.last_edited = (new Date()) - 0
-            @db.update
-                set   : {desc    : task.desc, last_edited : task.last_edited}
-                where : {task_id : task.task_id}
+            @db.set
+                task_id     : task.task_id
+                desc        : task.desc
+                last_edited : task.last_edited
             @set_dirty()
 
         cm.sync_desc = sync_desc  # hack -- will go away with react rewrite of tasks...
@@ -1116,8 +1084,6 @@ class TaskList
         picker = elt.data('datetimepicker')
         if task.due_date?
             d = new Date(task.due_date)
-            if not misc_page.is_valid_date(d)  # workaround potential (hopefully extremely rare) corruption
-                d = new Date()
         else
             d = new Date()
         picker.setLocalDate(d)
@@ -1129,12 +1095,12 @@ class TaskList
         @set_due_date(task, undefined)
         @display_due_date(task)
 
-
     set_due_date: (task, due_date) =>
         task.due_date = due_date
-        @db.update
-            set   : {due_date : due_date, last_edited : new Date() - 0}
-            where : {task_id : task.task_id}
+        @db.set
+            due_date    : due_date ? null   # database uses null for deleting field
+            last_edited : new Date() - 0
+            task_id     : task.task_id
         @set_dirty()
 
     display_due_date: (task) =>
@@ -1145,17 +1111,14 @@ class TaskList
             e.replaceWith(f)
             e = f
         if task.due_date
-            if typeof task.due_date != 'number'
-                # very rare corruption -- valid json but date somehow got messed up.
-                @remove_due_date(task)
-                return
             x = task.element.find(".salvus-task-due-clear")
             x.show()
             x.attr('title','Clear due date')
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
+            if not misc_page.is_valid_date(d)
+                d = new Date()
             e.attr('title',d.toISOString()).timeago()
-            e.attr('title',d.toISOString())
             e.text($.timeago(d.toISOString()))
             if not task.done and d < new Date()
                 e.addClass("salvus-task-overdue")
@@ -1191,9 +1154,10 @@ class TaskList
     delete_task: (task, deleted) =>
         task.element?.stop().prop('style').removeProperty('opacity')
         f = () =>
-            @db.update
-                set   : {deleted : deleted, last_edited : new Date() - 0}
-                where : {task_id : task.task_id}
+            @db.set
+                task_id     : task.task_id
+                deleted     : deleted
+                last_edited : new Date() - 0
             task.deleted = deleted
             @set_dirty()
 
@@ -1220,9 +1184,10 @@ class TaskList
         else
             task.done = 0
         f = () =>
-            @db.update
-                set   : {done : task.done, last_edited : new Date() - 0}
-                where : {task_id : task.task_id}
+            @db.set
+                task_id     : task.task_id
+                done        : task.done
+                last_edited : new Date() - 0
             @set_dirty()
         if done and not @showing_done
             task.element.fadeOut () =>
@@ -1273,9 +1238,7 @@ class TaskList
         task.task_id = task_id
         @tasks[task_id] = task
 
-        @db.update
-            set   : task
-            where : {task_id : task_id}
+        @db.set(task)
 
         @set_current_task(task)
         @edit_desc(task, true)
@@ -1366,11 +1329,9 @@ class TaskList
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
             currently_focused_editor = prev
             if result == true
-                a = @db.delete
-                    where : {deleted : true}
-                    one   : false
                 for task_id, task of @tasks
                     if task.deleted
+                        @db.delete(task_id:task_id)
                         delete @tasks[task_id]
                 @set_dirty()
                 @render_task_list()

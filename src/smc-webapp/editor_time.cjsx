@@ -26,8 +26,6 @@ immutable = require('immutable')
 
 {Button, ButtonGroup, Well} = require('react-bootstrap')
 
-{synchronized_db} = require('./syncdb')
-
 {salvus_client} = require('./salvus_client')
 
 misc = require('smc-util/misc')
