@@ -28,6 +28,8 @@ misc       = require('./misc')
 
 {required, defaults} = misc
 
+{EventEmitter} = require('events')
+
 # Well-defined JSON.stringify...
 json_stable = require('json-stable-stringify')
 to_key = (s) ->
@@ -167,7 +169,7 @@ class DBDoc
             # edit the first existing record that matches
             before = record = @_records.get(n)
             for field, value of set
-                if not value?
+                if value == null  # null = how to delete fields
                     record = record.delete(field)
                 else
                     if @_string_cols[field] and misc.is_array(value)
@@ -193,7 +195,7 @@ class DBDoc
             indexes = @_indexes
             for field of @_primary_keys
                 val = obj[field]
-                if val?
+                if val? and val != null
                     index = indexes.get(field) ? immutable.Map()
                     k = to_key(val)
                     matches = index.get(k)
@@ -341,7 +343,7 @@ class DBDoc
                 # undefined for each key of from not in to
                 for k of from
                     if not to[k]?
-                        obj[k] = undefined
+                        obj[k] = null
                 # explicitly set each key of to that is different than corresponding key of from
                 for k, v of to
                     if not underscore.isEqual(from[k], v)
@@ -395,7 +397,7 @@ class Doc
     make_patch: (other) =>
         return @_db.make_patch(other._db)
 
-class exports.SyncDB extends syncstring.SyncDoc
+class SyncDoc extends syncstring.SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
             id                : undefined
@@ -423,4 +425,81 @@ class exports.SyncDB extends syncstring.SyncDoc
             file_use_interval : opts.file_use_interval
             cursors           : false
             from_str          : from_str
+
+
+
+class exports.SyncDB extends EventEmitter
+    constructor: (opts) ->
+        @_doc = new SyncDoc(opts)
+        @_doc.on('sync', @_on_sync)
+
+    has_unsaved_changes: =>
+        return @_doc.has_unsaved_changes()
+
+    has_uncommitted_changes: =>
+        return @_doc.has_uncommitted_changes()
+
+    _on_sync: () =>
+        @emit('sync')
+
+    close: () =>
+        if not @_doc?
+            return
+        @removeAllListeners()
+        @_doc?.removeListener('sync', @_on_sync)
+        @_doc?.disconnect_from_session()
+        @_doc?.close()
+        delete @_doc
+
+    save: (cb) =>
+        @_doc?.save_to_disk(cb)
+        return
+
+    # change (or create) exactly *one* database entry that matches
+    # the given where criterion.
+    set: (obj) =>
+        @_doc.set(new Doc(@_doc.get()._db.set(obj)))
+        @_doc.save()   # always saves to backend after change
+        return
+
+    get: (where, time) =>
+        if time?
+            d = @_doc.version(time)
+        else
+            d = @_doc.get()
+        return d._db.get(where)
+
+    get_one: (where, time) =>
+        if time?
+            d = @_doc.version(time)
+        else
+            d = @_doc.get()
+        return d._db.get_one(where)
+
+    versions: =>
+        return @_doc.versions()
+
+    # delete everything that matches the given criterion; returns number of deleted items
+    delete: (where) =>
+        @_doc.set(new Doc(@_doc.get()._db.delete(where)))
+        @_doc.save()   # always saves to backend after change
+        return
+
+    count: =>
+        return @_doc.get()._db.size
+
+    undo: =>
+        @_doc.set(@_doc.get().undo())
+        @_doc.save()
+        return
+
+    redo: =>
+        @_doc.set(@_doc.get().redo())
+        @_doc.save()
+        return
+
+    revert: (version) =>
+        @_doc.set(@_doc.version(version))
+        @_doc.save()
+        return
 

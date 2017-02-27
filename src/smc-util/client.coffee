@@ -1620,7 +1620,7 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
-    sync_db_doc: (opts) =>
+    sync_db: (opts) =>
         opts = defaults opts,
             id           : undefined
             project_id   : undefined

@@ -461,12 +461,13 @@ class exports.Client extends EventEmitter
         @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
-    sync_db_doc: (opts) =>
+    sync_db: (opts) =>
         opts = defaults opts,
             path         : undefined
             primary_keys : required
             string_cols  : undefined
         opts.client = @
+        opts.project_id = @project_id
         return new db_doc.SyncDB(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
