@@ -938,5 +938,78 @@ $$ LANGUAGE plpgsql;"""
     code.trigger = "CREATE TRIGGER #{tgname} AFTER INSERT OR DELETE OR UPDATE #{update_of} ON #{table} FOR EACH ROW EXECUTE PROCEDURE #{tgname}();"
     return code
 
+###
 
+NOTES: The following is a way to back the changes with a small table.
+This allows to have changes which are larger than the hard 8000 bytes limit.
+HSY did this with the idea of having a temporary workaround for a bug related to this.
+https://github.com/sagemathinc/smc/issues/1718
+
+1. Create a table trigger_notifications via the db-schema.
+   For performance reasons, the table itself should be created with "UNLOGGED"
+   see: https://www.postgresql.org/docs/current/static/sql-createtable.html
+   (I've no idea how to specify that in the code here)
+
+        schema.trigger_notifications =
+            primary_key : 'id'
+            fields:
+                id:
+                    type : 'uuid'
+                    desc : 'primary key'
+                time:
+                    type : 'timestamp'
+                    desc : 'time of when the change was created -- used for TTL'
+                notification:
+                    type : 'map'
+                    desc : "notification payload -- up to 1GB"
+            pg_indexes : [ 'time' ]
+
+2. Modify the trigger function created by trigger_code above such that
+   pg_notifies no longer contains the data structure,
+   but a UUID for an entry in the trigger_notifications table.
+   It creates that UUID on its own and stores the data via a normal insert.
+
+         notification_id = md5(random()::text || clock_timestamp()::text)::uuid;
+         notification = json_build_array(TG_OP, obj_new, obj_old);
+         INSERT INTO trigger_notifications(id, time, notification)
+         VALUES(notification_id, NOW(), notification);
+
+3. PostgresQL::_notification is modified in such a way, that it looks up that UUID
+   in the trigger_notifications table:
+
+        @_query
+            query: "SELECT notification FROM trigger_notifications WHERE id ='#{mesg.payload}'"
+            cb : (err, result) =>
+                if err
+                    dbg("err=#{err}")
+                else
+                    payload = result.rows[0].notification
+                    # dbg("payload: type=#{typeof(payload)}, data=#{misc.to_json(payload)}")
+                    @emit(mesg.channel, payload)
+
+   Fortunately, there is no string -> json conversion necessary.
+
+4. Below, that function and trigger implement a TTL for the trigger_notifications table.
+   The `date_trunc` is a good idea, because then there is just one lock + delete op
+   per minute, instead of potentially at every write.
+
+-- 10 minutes TTL for the trigger_notifications table, deleting only every full minute
+
+CREATE FUNCTION delete_old_trigger_notifications() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  DELETE FROM trigger_notifications
+  WHERE time < date_trunc('minute', NOW() - '10 minute'::interval);
+  RETURN NULL;
+END;
+$$;
+
+-- creating the trigger
+
+CREATE TRIGGER trigger_delete_old_trigger_notifications
+  AFTER INSERT ON trigger_notifications
+  EXECUTE PROCEDURE delete_old_trigger_notifications();
+
+###
 

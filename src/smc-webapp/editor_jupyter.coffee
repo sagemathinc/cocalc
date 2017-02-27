@@ -1191,7 +1191,7 @@ class JupyterNotebook extends EventEmitter
             @save_button.addClass('disabled')
 
     save: (cb) =>
-        if @state != 'ready'
+        if @state != 'ready' or not @save_button?  # save button isn't defined when document is readonly.
             cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)

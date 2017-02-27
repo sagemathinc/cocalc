@@ -10,6 +10,11 @@
 
 require("script!primus/primus-engine.min.js")
 
+# polyfill for internet explorer's lack of knowing String.prototype.startswith
+String::startsWith ?= (searchString, position) ->
+    pos = position ? 0
+    @indexOf(searchString, pos) == pos
+
 # this must come before anything that touches event handling, etc.
 require('webapp-lib/webapp-error-reporter.coffee')
 
