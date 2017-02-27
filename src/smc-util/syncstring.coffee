@@ -794,6 +794,8 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
+        if @_closed
+            return
         @emit('close')
         @removeAllListeners()  # must be after @emit('close') above.
         @_closed = true

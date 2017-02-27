@@ -426,12 +426,10 @@ class SyncDoc extends syncstring.SyncDoc
             cursors           : false
             from_str          : from_str
 
-
-
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
         @_doc = new SyncDoc(opts)
-        @_doc.on('sync', @_on_sync)
+        @_doc.on('change', @_on_change)
 
     has_unsaved_changes: =>
         return @_doc.has_unsaved_changes()
@@ -439,15 +437,14 @@ class exports.SyncDB extends EventEmitter
     has_uncommitted_changes: =>
         return @_doc.has_uncommitted_changes()
 
-    _on_sync: () =>
-        @emit('sync')
+    _on_change: () =>
+        @emit('change')
 
     close: () =>
         if not @_doc?
             return
         @removeAllListeners()
-        @_doc?.removeListener('sync', @_on_sync)
-        @_doc?.disconnect_from_session()
+        @_doc?.removeListener('change', @_on_change)
         @_doc?.close()
         delete @_doc
 

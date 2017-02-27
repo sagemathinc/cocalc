@@ -1622,7 +1622,6 @@ class exports.Connection extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            id           : undefined
             project_id   : undefined
             path         : undefined
             primary_keys : required
