@@ -315,7 +315,8 @@ class SyncTable extends EventEmitter
                 else
                     if @_state != 'connected'
                         dbg("nothing to do -- ignore these, and make sure they stop")
-                        @_client.query_cancel(id:this_query_id)
+                        if this_query_id?
+                            @_client.query_cancel(id:this_query_id)
                         return
                     if err or resp?.event == 'query_cancel'
                         @_disconnected("err=#{err}, resp?.event=#{resp?.event}")

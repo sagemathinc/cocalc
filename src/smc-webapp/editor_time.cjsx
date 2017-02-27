@@ -77,7 +77,7 @@ EditorTime = rclass ({name}) ->
     render: ->
         if @props.error?
             return @render_error()
-        else if @props.timers?
+        else if @props.timers? and @props.timers.size > 0
             <div style={margin:'15px'}>
                 {@render_stopwatches()}
             </div>
@@ -195,11 +195,15 @@ class TimeActions extends Actions
         if @syncdb.count() == 0
             @add_stopwatch()
 
+    _set: (obj) =>
+        @syncdb.set(obj)
+        @syncdb.save()  # save to file on disk
+
     add_stopwatch: =>
         id = 1
         while @syncdb.get_one(id:id)?
             id += 1
-        @syncdb.set
+        @_set
             id     : id
             label  : ''
             total  : 0
@@ -207,14 +211,14 @@ class TimeActions extends Actions
             time   : salvus_client.server_time()
 
     stop_stopwatch: (id) =>
-        @syncdb.set
+        @_set
             id    : id
             total : 0
             state : 'stopped'
             time  : salvus_client.server_time()
 
     start_stopwatch: (id) =>
-        @syncdb.set
+        @_set
             id    : id
             time  : salvus_client.server_time()
             state : 'running'
@@ -224,7 +228,7 @@ class TimeActions extends Actions
         if not x?
             # stopwatch was deleted
             return
-        @syncdb.set
+        @_set
             id    : id
             time  : salvus_client.server_time()
             total : x.get('total') + (salvus_client.server_time() - x.get('time'))

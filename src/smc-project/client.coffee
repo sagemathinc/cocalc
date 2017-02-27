@@ -143,6 +143,7 @@ class exports.Client extends EventEmitter
             path        : null
             last_active : null
             deleted     : null
+            doctype     : null
 
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
@@ -208,10 +209,23 @@ class exports.Client extends EventEmitter
                             dbg("ignoring deleted path '#{path}'")
                         else if not @_open_syncstrings[string_id]?
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
-                            ss = @_open_syncstrings[string_id] = @sync_string(path:path)
+
+                            doctype = val.get('doctype')
+                            if doctype?
+                                dbg("using doctype='#{doctype}'")
+                                doctype   = misc.from_json(doctype)
+                                opts      = doctype.opts ? {}
+                                opts.path = path
+                                type      = doctype.type
+                            else
+                                opts = {path:path}
+                                type = 'string'
+                            ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
+
                             ss.on 'error', (err) =>
                                 dbg("ERROR creating syncstring '#{path}' -- #{err}; will try again later")
                                 ss.close()
+
                             ss.on 'close', () =>
                                 dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
                                 delete @_open_syncstrings[string_id]
@@ -463,11 +477,12 @@ class exports.Client extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            path         : undefined
+            path         : required
             primary_keys : required
-            string_cols  : undefined
+            string_cols  : []
         opts.client = @
         opts.project_id = @project_id
+        @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.

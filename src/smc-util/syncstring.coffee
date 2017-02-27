@@ -523,7 +523,7 @@ class SyncDoc extends EventEmitter
             client            : required
             cursors           : false      # if true, also provide cursor tracking functionality
             from_str          : required   # creates a doc from a string.
-
+            doctype           : undefined  # optional object describing document constructor (used by project to open file)
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
@@ -533,6 +533,7 @@ class SyncDoc extends EventEmitter
         @_path          = opts.path
         @_client        = opts.client
         @_from_str      = opts.from_str
+        @_doctype       = opts.doctype
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
@@ -749,6 +750,7 @@ class SyncDoc extends EventEmitter
                     path        : @_path
                     deleted     : @_deleted
                     last_active : misc.server_time()
+                    doctype     : misc.to_json(@_doctype)  # important to set here, since this is when syncstring is often first created
 
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
@@ -844,6 +846,7 @@ class SyncDoc extends EventEmitter
                 init              : null
                 read_only         : null
                 last_file_change  : null
+                doctype           : null
 
         @_syncstring_table = @_client.sync_table(query)
 
@@ -1353,9 +1356,11 @@ class SyncDoc extends EventEmitter
                 last_snapshot : @_last_snapshot
                 users         : @_users
                 deleted       : @_deleted
+                doctype       : misc.to_json(@_doctype)
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            # TODO: handle doctype change here (?)
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval
             @_users             = x.users
@@ -1783,8 +1788,9 @@ class exports.SyncString extends SyncDoc
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
             from_str          : from_str
+            doctype           : {type:'string'}
 
-
+###
 # A document that represents an arbitrary JSON-able Javascript object.
 class ObjectDocument
     constructor: (@_value={}) ->
@@ -1815,73 +1821,7 @@ class exports.SyncObject extends SyncDoc
             client    : opts.client
             doc       : new ObjectDocument(opts.default)
 
-
 ###
-Synchronized object-based database, done right.
-###
-
-db_doc = require('./db-doc')
-
-# @_db is a db_doc.DocDB instance.
-class DocDBWrapper
-    constructor: (@_db) ->
-        if not @_db?
-            throw Error("@_db must be defined")
-
-    to_str: =>
-        return @_db.to_str()
-
-    is_equal: (other) =>
-        return @_db.is_equal(other._db)
-
-    apply_patch: (patch) =>
-        db = @_db.copy()
-        db.play_recording(patch)
-        db.start_recording()
-        return new DocDBWrapper(db)
-
-    make_patch: (other) =>
-        if @is_equal(other)
-            return []
-        else
-            # TODO: absurd/silly version of patch!
-            patch = other._db.stop_recording()
-            other._db.start_recording()
-            return patch
-
-class exports.SyncDB extends SyncDoc
-    constructor: (opts) ->
-        opts = defaults opts,
-            id                : undefined
-            client            : required
-            project_id        : undefined
-            path              : undefined
-            save_interval     : undefined
-            file_use_interval : undefined
-            primary_keys      : required
-
-        from_str = (str) ->
-            db = db_doc.db_doc(opts.primary_keys)
-            db.from_str(str)
-            return new DocDBWrapper(db)
-
-        super
-            string_id         : opts.id
-            client            : opts.client
-            project_id        : opts.project_id
-            path              : opts.path
-            save_interval     : opts.save_interval
-            file_use_interval : opts.file_use_interval
-            cursors           : false
-            from_str          : from_str
-
-    set: (value) ->
-        @_doc = value
-
-    get: ->
-        return @_doc
-
-
 
 ###
 Used for testing

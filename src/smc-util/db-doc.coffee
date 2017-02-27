@@ -67,8 +67,8 @@ exports.from_str = (opts) ->
     if not misc.is_string(opts.str)
         throw Error("obj must be a string")
     obj = []
-    if opts.str != ''
-        for line in opts.str.split('\n')
+    for line in opts.str.split('\n')
+        if line.length > 0
             try
                 obj.push(misc.from_json(line))
             catch e
@@ -390,8 +390,6 @@ class Doc
         return @_db.equals(other._db)
 
     apply_patch: (patch) =>
-        window.db = @_db
-        window.patch = patch
         return new Doc(@_db.apply_patch(patch))
 
     make_patch: (other) =>
@@ -400,7 +398,6 @@ class Doc
 class SyncDoc extends syncstring.SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
-            id                : undefined
             client            : required
             project_id        : undefined
             path              : undefined
@@ -425,6 +422,7 @@ class SyncDoc extends syncstring.SyncDoc
             file_use_interval : opts.file_use_interval
             cursors           : false
             from_str          : from_str
+            doctype           : {type:'db', opts:{primary_keys: opts.primary_keys, string_cols: opts.string_cols}}
 
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->

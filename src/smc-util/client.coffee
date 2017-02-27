@@ -1613,8 +1613,8 @@ class exports.Connection extends EventEmitter
     sync_string: (opts) =>
         opts = defaults opts,
             id                : undefined
-            project_id        : undefined
-            path              : undefined
+            project_id        : required
+            path              : required
             file_use_interval : 'default'
             cursors           : false
         opts.client = @
@@ -1622,8 +1622,8 @@ class exports.Connection extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            project_id   : undefined
-            path         : undefined
+            project_id   : required
+            path         : required
             primary_keys : required
             string_cols  : undefined
         opts.client = @
