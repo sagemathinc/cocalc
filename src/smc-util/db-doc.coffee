@@ -172,6 +172,7 @@ class DBDoc
                 z = z.set(x)
             return z
         {where, set} = @_parse(obj)
+        ## console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
         matches = @_select(where)
         changes = @_changes
         n = matches?.first()
@@ -452,6 +453,7 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        @setMaxListeners(100)
 
     _check: =>
         if not @_doc?
