@@ -403,6 +403,7 @@ class Doc
         return @_db.equals(other._db)
 
     apply_patch: (patch) =>
+        #console.log("apply_patch")
         db = new Doc(@_db.apply_patch(patch))
 
     make_patch: (other) =>
@@ -489,12 +490,14 @@ class exports.SyncDB extends EventEmitter
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj) =>
+        #console.log('set', obj)
         @_check()
         @_doc.set(new Doc(@_doc.get()._db.set(obj)))
         @_doc.save()   # always saves to backend after change
         return
 
     get: (where, time) =>
+        #console.log('get', where)
         @_check()
         if time?
             d = @_doc.version(time)
@@ -503,6 +506,7 @@ class exports.SyncDB extends EventEmitter
         return d._db.get(where)
 
     get_one: (where, time) =>
+        #console.log('get_one', where)
         @_check()
         if time?
             d = @_doc.version(time)

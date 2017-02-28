@@ -278,6 +278,7 @@ class TaskList
         return v
 
     handle_changes: (changes) =>
+        #console.log "change", changes
         if not changes?
             # possibly every task changed
             @init_tasks()
@@ -485,7 +486,8 @@ class TaskList
             else
                 task.desc = ''
             if not skip
-                @_visible_tasks.push(task)
+                if count < 50
+                    @_visible_tasks.push(task)
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 count += 1
 
@@ -561,11 +563,12 @@ class TaskList
             @element.find(".salvus-tasks-list-none").hide()
         # Show number of displayed tasks in UI.
         if count != 1
-            count = "#{count} tasks"
+            count_desc = "#{@_visible_tasks.length} tasks"
+            if @_visible_tasks.length < count
+                count_desc += " (#{count} match; refine search to see other tasks)"
         else
-            count = "#{count} task"
-        search_describe.find(".salvus-tasks-count").text(count).show()
-
+            count_desc = "1 task"
+        search_describe.find(".salvus-tasks-count").text(count_desc).show()
 
         if @readonly
             # Task list is read only so there is nothing further to do -- in
