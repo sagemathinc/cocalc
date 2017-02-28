@@ -103,10 +103,10 @@ class DBDoc
                     return
                 return
         @size = @_everything.size
-        @_changes ?= immutable.List()
+        @_changes ?= immutable.Set()
 
     reset_changes: =>
-        @_changes = immutable.List()
+        @_changes = immutable.Set()
 
     changes: =>
         return @_changes
@@ -190,7 +190,7 @@ class DBDoc
                         record = record.set(field, immutable.fromJS(value))
             if not before.equals(record)
                 # actual change so update; doesn't change anything involving indexes.
-                changes = changes.push(record.filter((v,k)=>@_primary_keys[k]))
+                changes = changes.add(record.filter((v,k)=>@_primary_keys[k]))
                 return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, changes)
             else
                 return @
@@ -201,7 +201,7 @@ class DBDoc
                     # it's a patch -- but there is nothing to patch, so discard this field
                     obj = misc.copy_without(obj, field)
             record = immutable.fromJS(obj)
-            changes = changes.push(record.filter((v,k)=>@_primary_keys[k]))
+            changes = changes.add(record.filter((v,k)=>@_primary_keys[k]))
             records = @_records.push(record)
             n = records.size - 1
             everything = @_everything.add(n)
@@ -234,7 +234,7 @@ class DBDoc
         remove = @_select(where)
         if remove.size == @_everything.size
             # actually deleting everything; easy special cases
-            changes = changes.concat(@_records.filter((record)=>record?).map((record) => record.filter((v,k)=>@_primary_keys[k])))
+            changes = changes.union(@_records.filter((record)=>record?).map((record) => record.filter((v,k)=>@_primary_keys[k])))
             return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, changes)
 
         # remove matches from every index
@@ -259,7 +259,7 @@ class DBDoc
         # delete corresponding records
         records = @_records
         remove.map (n) =>
-            changes = changes.push(records.get(n).filter((v,k)=>@_primary_keys[k]))
+            changes = changes.add(records.get(n).filter((v,k)=>@_primary_keys[k]))
             records = records.set(n, undefined)
 
         everything = @_everything.subtract(remove)
@@ -449,6 +449,10 @@ class SyncDoc extends syncstring.SyncDoc
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
         @_path = opts.path
+        if opts.throttle
+            # console.log("throttling on_change #{opts.throttle}")
+            @_on_change = underscore.throttle(@_on_change, opts.throttle)
+            delete opts.throttle
         @_doc = new SyncDoc(opts)
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
@@ -472,9 +476,11 @@ class exports.SyncDB extends EventEmitter
         return @_doc.get_read_only()
 
     _on_change: () =>
+        # console.log '_on_change'
         changes = @_doc.get().changes()
         @_doc.get().reset_changes()
-        @emit('change', changes)
+        if changes.size > 0  # something actually probably changed
+            @emit('change', changes)
 
     close: () =>
         if not @_doc?
@@ -483,6 +489,9 @@ class exports.SyncDB extends EventEmitter
         @_doc?.removeListener('change', @_on_change)
         @_doc?.close()
         delete @_doc
+
+    is_closed: =>
+        return not @_doc?
 
     save: (cb) =>
         @_check()

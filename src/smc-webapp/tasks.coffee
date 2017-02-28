@@ -129,6 +129,7 @@ class TaskList
             path         : @filename
             primary_keys : ['task_id']
             string_cols  : ['desc']
+            throttle     : 500
 
         @db.once 'change', =>
             @readonly = @db.is_read_only()

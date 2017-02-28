@@ -106,11 +106,14 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         # Set one object in the syncdb
         _set: (obj) =>
-            if not @_loaded() then return
+            if not @_loaded() or syncdb?.is_closed()
+                return
             syncdb.set(obj)
 
         # Get one object from syncdb as a Javascript object (or undefined)
         _get_one: (obj) =>
+            if syncdb?.is_closed()
+                return
             return syncdb.get_one(obj)?.toJS()
 
         set_tab: (tab) =>
@@ -1603,7 +1606,8 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_students: =>
             @get('students')
 
-        # Uses an instructor given name if it exists
+        # Get the student's name.
+        # Uses an instructor-given name if it exists.
         get_student_name: (student, include_email=false) =>
             student = @get_student(student)
             if not student?
@@ -1626,6 +1630,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 full = full_name + " <#{email}>"
             else
                 full = full_name
+            if full_name == 'Unknown User' and email?
+                full_name = email
             return {simple:full_name.replace(/\W/g, ' '), full:full}
 
         get_student_email: (student) =>
@@ -1931,8 +1937,9 @@ init_redux = (course_filename, redux, course_project_id) ->
         path         : course_filename
         primary_keys : ['table', 'handout_id', 'student_id', 'assignment_id']
         string_cols  : ['note', 'description', 'title', 'email_invite']
+        throttle     : 500  # helps when doing a lot of assign/collect, etc.
     syncdbs[the_redux_name] = syncdb
-    syncdb.on 'change', =>
+    syncdb.once 'change', =>
         i = course_filename.lastIndexOf('.')
         t =
             settings    :

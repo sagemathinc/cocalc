@@ -1626,6 +1626,7 @@ class exports.Connection extends EventEmitter
             path         : required
             primary_keys : required
             string_cols  : undefined
+            throttle     : 0  # if given, all change events will be throttled
         opts.client = @
         return new db_doc.SyncDB(opts)
 
