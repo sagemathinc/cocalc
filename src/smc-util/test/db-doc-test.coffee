@@ -316,7 +316,7 @@ describe 'test string_cols and patches --', ->
         expect(db2.apply_patch(patch).equals(db3)).toBe(true)
         patch = db3.make_patch(db2)
         expect(JSON.stringify(patch)).toEqual(
-            '[1,[{"id":0,"input":[[[[0,"2"],[-1," + "],[1,"+"],[0,"3 # "]],0,0,8,6]],"input3":"abc"}]]')
+            '[1,[{"id":0,"input2":null,"input":[[[[0,"2"],[-1," + "],[1,"+"],[0,"3 # "]],0,0,8,6]],"input3":"abc"}]]')
         expect(db3.apply_patch(patch).equals(db2)).toBe(true)
 
 describe 'make a complicated patch --', ->
@@ -327,7 +327,7 @@ describe 'make a complicated patch --', ->
         v.push(v[v.length-1].set({id:3, table:'other', foo:'bar'}))
         v.push(v[v.length-1].set({id:'0', table:'users', input:'2-4'}))
         v.push(v[v.length-1].set({id:'0', table:'users', input:'2+3', other_stuff:[{a:5,b:7}, {c:[1,2]}]}))
-        v.push(v[v.length-1].set({id:0, table:'users', input:'5+6', input2:undefined}))
+        v.push(v[v.length-1].set({id:0, table:'users', input:'5+6', input2:null}))
         v.push(v[v.length-1].delete({id:3, table:'other'}))
         expect(v[v.length-1].size).toBe(2)
         for i in [0...v.length]
@@ -348,4 +348,44 @@ describe 'ensure that big string in string_cols makes small patch --', ->
         db3 = db2.set(n:0, foo2:[0...10001].join(''))
         expect(JSON.stringify(db2.make_patch(db3)).length).toBe(38918)
 
+
+describe 'test one-level merge setting of maps --', ->
+
+    it 'does some sets that illustrate merge setting', ->
+        db = db_doc(primary_keys: ['id'])
+        db = db.set(id:0, a:{b:1, c:2}, d:{e:{f:'g'}})
+        db = db.set(id:0, a:{b:3})
+        expect(db.get_one().toJS()).toEqual(id:0, a:{b:3, c:2}, d:{e:{f:'g'}})
+        # delete something using null
+        db = db.set(id:0, a:{c:null})
+        expect(db.get_one().toJS()).toEqual(id:0, a:{b:3}, d:{e:{f:'g'}})
+        # can only use null to delete one level deep
+        db = db.set(id:0, d:{e:{f:null}})
+        expect(db.get_one().toJS()).toEqual(id:0, a:{b:3}, d:{e:{f:null}})
+
+
+    it 'lists do not merge set', ->
+        db = db_doc(primary_keys: ['id'])
+        db = db.set(id:0, a:[2,4])
+        db = db.set(id:0, a:[2])
+        expect(db.get_one().toJS()).toEqual(id:0, a:[2])
+
+
+describe 'test patches use merge maps --', ->
+    it "does a first test", ->
+        db = db_doc(primary_keys: ['id'])
+        db = db.set(id:0, a:{b:1, c:2}, d:{e:{f:'g'}})
+        db2 = db.set(id:0, a:{b:3})
+        patch = db.make_patch(db2)
+        expect(patch).toEqual([1, [{a: {b: 3}, id: 0}] ])
+        db3 = db2.set(id:0, d:{e:{f:null}})
+        patch = db2.make_patch(db3)
+        expect(patch).toEqual([ 1, [ { d: { e: { f: null } }, id: 0 } ] ])
+
+    it 'make a patch involving both a string patch and map merge patch', ->
+        db = db_doc(primary_keys: ['id'], string_cols:['name'])
+        db = db.set(id:0, name:'cocalc', a:{b:1, c:[1,2,3]})
+        db2 = db.set(id:0, name:'Cocalc', a:{b:['x','y'], c:[1,2,3], d:5})
+        patch = db.make_patch(db2)
+        expect(patch).toEqual([1,[{"id":0,"name":[[[[-1,"c"],[1,"C"],[0,"ocalc"]],0,0,6,6]],"a":{"b":["x","y"],"d":5}}]])
 

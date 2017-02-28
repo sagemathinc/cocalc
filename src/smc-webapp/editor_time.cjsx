@@ -263,6 +263,7 @@ require('./project_file').register_file_editor
             project_id   : project_id
             path         : path
             primary_keys : ['id']
+            string_cols  : ['label']
         actions.syncdb = syncdb
         actions.store  = store
         actions.init_from_syncdb()

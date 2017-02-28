@@ -1412,7 +1412,10 @@ init_redux = (course_filename, redux, course_project_id) ->
                 store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
                 obj = {table:'handouts', handout_id:handout.get('handout_id')}
                 status_map = @_get_one(obj)?.status ? {}
-                status_map[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                student_id = student.get('student_id')
+                status_map[student_id] = {time: misc.mswalltime()}
+                if err
+                    x[student_id].error = err
                 obj.status = status_map
                 @_set(obj)
 

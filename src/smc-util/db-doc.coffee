@@ -74,6 +74,44 @@ exports.from_str = (opts) ->
                 console.warn("CORRUPT db-doc string: #{e} -- skipping '#{line}'")
     return exports.from_obj(obj:obj, primary_keys:opts.primary_keys, string_cols:opts.string_cols)
 
+# obj and change are both immutable.js Maps.  Do the following:
+#  - for each value of change that is null or undefined, we delete that key from obj
+#  - we set the other vals of obj, accordingly.
+# So this is a shallow merge with the ability to *delete* keys.
+merge_set = (obj, change) ->
+    ##return obj.merge(change).filter((v,k) => v != null)
+    change.map (v, k) ->
+        if v == null or not v?
+            obj = obj.delete(k)
+        else
+            obj = obj.set(k, v)
+        return
+    return obj
+
+# Create an object change such that merge_set(obj1, change) produces obj2.
+# Thus for each key, value1 of obj1 and key, value2 of obj2:
+#  If value1 is the same as value2, do nothing.
+#  If value1 exists but value2 does not, do change[key] = null
+#  If value2 exists but value1 does not, do change[key] = value2
+map_merge_patch = (obj1, obj2) ->
+    change = {}
+    for key, val1 of obj1
+        val2 = obj2[key]
+        if underscore.isEqual(val1, val2)
+            # nothing to do
+        else if not val2?
+            change[key] = null
+        else
+            change[key] = val2
+    for key, val2 of obj2
+        if obj1[key]?
+            continue
+        change[key] = val2
+    return change
+
+nonnull_cols = (f) ->
+    return f.filter((v,k) => v != null)
+
 class DBDoc
     constructor: (@_primary_keys, @_string_cols, @_records, @_everything, @_indexes, @_changes) ->
         @_primary_keys = @_process_cols(@_primary_keys)
@@ -110,6 +148,12 @@ class DBDoc
     changes: =>
         return @_changes
 
+    # Given an immutable map f, return its restriction to the primary keys
+    _primary_key_cols: (f) =>
+        return f.filter((v, k) => @_primary_keys[k])
+
+    # Given an immutable map f, return its restriction to only keys that
+    # have non-null defined values.
     _process_cols: (v) =>
         if misc.is_array(v)
             p = {}
@@ -175,6 +219,7 @@ class DBDoc
         matches = @_select(where)
         changes = @_changes
         n = matches?.first()
+        # TODO: very natural optimization would be be to fully support and use obj being immutable
         if n?
             # edit the first existing record that matches
             before = record = @_records.get(n)
@@ -183,13 +228,20 @@ class DBDoc
                     record = record.delete(field)
                 else
                     if @_string_cols[field] and misc.is_array(value)
-                        # a patch
+                        # special case: a string patch
                         record = record.set(field, syncstring.apply_patch(value, before.get(field) ? '')[0])
                     else
-                        record = record.set(field, immutable.fromJS(value))
+                        cur    = record.get(field)
+                        change = immutable.fromJS(value)
+                        if immutable.Map.isMap(cur) and immutable.Map.isMap(change)
+                            new_val = merge_set(cur, change)
+                        else
+                            new_val = change
+                        record = record.set(field, new_val)
+
             if not before.equals(record)
-                # actual change so update; doesn't change anything involving indexes.
-                changes = changes.add(record.filter((v,k)=>@_primary_keys[k]))
+                # there was an actual change, so update; doesn't change anything involving indexes.
+                changes = changes.add(@_primary_key_cols(record))
                 return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, changes)
             else
                 return @
@@ -199,8 +251,8 @@ class DBDoc
                 if obj[field]? and misc.is_array(obj[field])
                     # it's a patch -- but there is nothing to patch, so discard this field
                     obj = misc.copy_without(obj, field)
-            record = immutable.fromJS(obj)
-            changes = changes.add(record.filter((v,k)=>@_primary_keys[k]))
+            record  = nonnull_cols(immutable.fromJS(obj))  # remove null columns (indicate delete)
+            changes = changes.add(@_primary_key_cols(record))
             records = @_records.push(record)
             n = records.size - 1
             everything = @_everything.add(n)
@@ -233,7 +285,7 @@ class DBDoc
         remove = @_select(where)
         if remove.size == @_everything.size
             # actually deleting everything; easy special cases
-            changes = changes.union(@_records.filter((record)=>record?).map((record) => record.filter((v,k)=>@_primary_keys[k])))
+            changes = changes.union(@_records.filter((record)=>record?).map(@_primary_key_cols))
             return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, changes)
 
         # remove matches from every index
@@ -258,7 +310,7 @@ class DBDoc
         # delete corresponding records
         records = @_records
         remove.map (n) =>
-            changes = changes.add(records.get(n).filter((v,k)=>@_primary_keys[k]))
+            changes = changes.add(@_primary_key_cols(records.get(n)))
             records = records.set(n, undefined)
 
         everything = @_everything.subtract(remove)
@@ -327,8 +379,9 @@ class DBDoc
             return [-1, v]
 
         # compute the key parts of t0 and t1 as sets
-        k0 = t0.map((x) => x.filter((v,k)=>@_primary_keys[k]))  # means -- set got from t0 by taking only the primary_key columns
-        k1 = t1.map((x) => x.filter((v,k)=>@_primary_keys[k]))
+        # means -- set got from t0 by taking only the primary_key columns
+        k0 = t0.map(@_primary_key_cols)
+        k1 = t1.map(@_primary_key_cols)
 
         add = []
         remove = undefined
@@ -361,8 +414,13 @@ class DBDoc
                 for k, v of to
                     if not underscore.isEqual(from[k], v)
                         if @_string_cols[k] and from[k]? and v?
-                            # make a string patch
+                            # A string patch
                             obj[k] = syncstring.make_patch(from[k], v)
+                        else if misc.is_object(from[k]) and misc.is_object(v)
+                            # Changing from one map to another, where they are not equal -- can use
+                            # a merge to make this more efficient.  This is an important optimization,
+                            # to avoid making patches HUGE.
+                            obj[k] = map_merge_patch(from[k], v)
                         else
                             obj[k] = v
                 add.push(obj)
@@ -453,6 +511,9 @@ class exports.SyncDB extends EventEmitter
             @_on_change = underscore.throttle(@_on_change, opts.change_throttle)
             delete opts.change_throttle
         @_doc = new SyncDoc(opts)
+        # Ensure that we always emit first change event, even if it is [] (in case of empty syncdb);
+        # clients depend on this to know when the syncdb has been properly loaded.
+        @_first_change_event = true
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
@@ -478,8 +539,9 @@ class exports.SyncDB extends EventEmitter
         # console.log '_on_change'
         changes = @_doc.get().changes()
         @_doc.get().reset_changes()
-        if changes.size > 0  # something actually probably changed
+        if changes.size > 0 or @_first_change_event  # something actually probably changed
             @emit('change', changes)
+        delete @_first_change_event
 
     close: () =>
         if not @_doc?

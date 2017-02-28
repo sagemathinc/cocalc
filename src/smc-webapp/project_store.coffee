@@ -246,7 +246,7 @@ class ProjectActions extends Actions
                     # TODO: what do we want to do if a log doesn't get recorded?
                     # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
-                    console.warn('error recording a log entry: ', err)
+                    console.warn('error recording a log entry: ', err, event)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
