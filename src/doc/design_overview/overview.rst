@@ -76,7 +76,7 @@ Most software developers are, at this point, at least passingly familiar
 Node.js (often referred to as just "Node"). But in short, it is a
 stand-alone JavaScript runtime that can run on a server.  It includes an
 HTTP server and various I/O primitives that have been designed from the
-groud up for event-driven asynchronous I/O.  Because it uses JavaScript it
+ground up for event-driven asynchronous I/O.  Because it uses JavaScript it
 has been meteorically popular in the web development world because it allows
 developers to write both their front-end and back-end code in JavaScript,
 and even share library code between the front- and back-ends.  This also
