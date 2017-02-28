@@ -29,7 +29,6 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
 {salvus_client} = require('./salvus_client')
-{synchronized_db} = require('./syncdb')
 
 {alert_message} = require('./alerts')
 
