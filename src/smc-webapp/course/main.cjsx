@@ -990,7 +990,10 @@ init_redux = (course_filename, redux, course_project_id) ->
                 assignment = store.get_assignment(assignment)
                 obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = @_get_one(obj)?[type] ? {}
-                x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                student_id = student.get('student_id')
+                x[student_id] = {time: misc.mswalltime()}
+                if err
+                    x[student_id].error = err
                 obj[type] = x
                 @_set(obj)
 
@@ -1933,11 +1936,12 @@ init_redux = (course_filename, redux, course_project_id) ->
     redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
     syncdb = salvus_client.sync_db
-        project_id   : course_project_id
-        path         : course_filename
-        primary_keys : ['table', 'handout_id', 'student_id', 'assignment_id']
-        string_cols  : ['note', 'description', 'title', 'email_invite']
-        throttle     : 500  # helps when doing a lot of assign/collect, etc.
+        project_id      : course_project_id
+        path            : course_filename
+        primary_keys    : ['table', 'handout_id', 'student_id', 'assignment_id']
+        string_cols     : ['note', 'description', 'title', 'email_invite']
+        change_throttle : 500  # helps when doing a lot of assign/collect, etc.
+        save_interval   : 3000  # wait at least 3s between saving changes to backend
     syncdbs[the_redux_name] = syncdb
     syncdb.once 'change', =>
         i = course_filename.lastIndexOf('.')

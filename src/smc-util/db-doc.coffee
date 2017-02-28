@@ -7,16 +7,15 @@
 ###############################################################################
 
 ###
-Local document-oriented database:
+Efficient local document-oriented database with complete history
+recording backed by a backend database.
 
    - set(obj)    -- creates or modifies an object
    - delete(obj) -- delets all objects matching the spec
-   - get(where)  -- get list of 0 or more matching objects
-   - get_one(where) -- get at most one matching object
+   - get(where)  -- get immutable list of 0 or more matching objects
+   - get_one(where) -- get one matching object or undefined
 
 This is the foundation for a distributed synchronized database.
-
-Based on immutable.js, and very similar API to db-doc.
 ###
 
 immutable  = require('immutable')
@@ -449,10 +448,10 @@ class SyncDoc extends syncstring.SyncDoc
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
         @_path = opts.path
-        if opts.throttle
+        if opts.change_throttle
             # console.log("throttling on_change #{opts.throttle}")
-            @_on_change = underscore.throttle(@_on_change, opts.throttle)
-            delete opts.throttle
+            @_on_change = underscore.throttle(@_on_change, opts.change_throttle)
+            delete opts.change_throttle
         @_doc = new SyncDoc(opts)
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
@@ -505,6 +504,7 @@ class exports.SyncDB extends EventEmitter
         @_check()
         @_doc.set(new Doc(@_doc.get()._db.set(obj)))
         @_doc.save()   # always saves to backend after change
+        @_on_change()
         return
 
     get: (where, time) =>
@@ -534,6 +534,7 @@ class exports.SyncDB extends EventEmitter
         @_check()
         @_doc.set(new Doc(@_doc.get()._db.delete(where)))
         @_doc.save()   # always saves to backend after change
+        @_on_change()
         return
 
     count: =>

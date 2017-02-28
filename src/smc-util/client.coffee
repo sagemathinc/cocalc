@@ -1622,11 +1622,12 @@ class exports.Connection extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            project_id   : required
-            path         : required
-            primary_keys : required
-            string_cols  : undefined
-            throttle     : 0  # if given, all change events will be throttled
+            project_id      : required
+            path            : required
+            primary_keys    : required
+            string_cols     : undefined
+            change_throttle : 500     # amount to throttle change events (in ms)
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
 

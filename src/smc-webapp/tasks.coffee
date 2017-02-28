@@ -125,11 +125,12 @@ class TaskList
 
     init_syncdb: (cb) =>
         @db = salvus_client.sync_db
-            project_id   : @project_id
-            path         : @filename
-            primary_keys : ['task_id']
-            string_cols  : ['desc']
-            throttle     : 500
+            project_id      : @project_id
+            path            : @filename
+            primary_keys    : ['task_id']
+            string_cols     : ['desc']
+            change_throttle : 500
+            save_interval   : 3000
 
         @db.once 'change', =>
             @readonly = @db.is_read_only()
