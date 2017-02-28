@@ -517,6 +517,7 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        @_doc.on('connected', => @emit('connected'))
         @setMaxListeners(100)
 
     _check: =>
@@ -537,8 +538,8 @@ class exports.SyncDB extends EventEmitter
 
     _on_change: () =>
         # console.log '_on_change'
-        changes = @_doc.get().changes()
-        @_doc.get().reset_changes()
+        changes = @_doc.get_doc().changes()
+        @_doc.get_doc().reset_changes()
         if changes.size > 0 or @_first_change_event  # something actually probably changed
             @emit('change', changes)
         delete @_first_change_event
@@ -556,68 +557,147 @@ class exports.SyncDB extends EventEmitter
 
     save: (cb) =>
         @_check()
-        @_doc?.save_to_disk(cb)
+        @_doc.save_to_disk(cb)
         return
+
+    set_doc: (value) =>
+        @_check()
+        @_doc.set_doc(value)
+        return
+
+    get_doc: () =>
+        @_check()
+        return @_doc.get_doc()
 
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj) =>
-        #console.log('set', obj)
-        @_check()
-        @_doc.set(new Doc(@_doc.get()._db.set(obj)))
+        if not @_doc?
+            return
+        @_doc.set_doc(new Doc(@_doc.get_doc()._db.set(obj)))
         @_doc.save()   # always saves to backend after change
         @_on_change()
         return
 
     get: (where, time) =>
-        #console.log('get', where)
-        @_check()
+        if not @_doc?
+            return immutable.List()
         if time?
             d = @_doc.version(time)
         else
-            d = @_doc.get()
+            d = @_doc.get_doc()
         return d._db.get(where)
 
     get_one: (where, time) =>
-        #console.log('get_one', where)
-        @_check()
+        if not @_doc?
+            return
         if time?
             d = @_doc.version(time)
         else
-            d = @_doc.get()
+            d = @_doc.get_doc()
         return d._db.get_one(where)
+
+    # delete everything that matches the given criterion; returns number of deleted items
+    delete: (where) =>
+        if not @_doc?
+            return
+        @_doc.set_doc(new Doc(@_doc.get_doc()._db.delete(where)))
+        @_doc.save()   # always saves to backend after change
+        @_on_change()
+        return
 
     versions: =>
         @_check()
         return @_doc.versions()
 
-    # delete everything that matches the given criterion; returns number of deleted items
-    delete: (where) =>
+    all_versions: =>
         @_check()
-        @_doc.set(new Doc(@_doc.get()._db.delete(where)))
-        @_doc.save()   # always saves to backend after change
-        @_on_change()
-        return
+        return @_doc.all_versions()
+
+    version: (t) =>
+        @_check()
+        return @_doc.version(t)
+
+    account_id: (t) =>
+        @_check()
+        return @_doc.account_id(t)
+
+    time_sent: (t) =>
+        @_check()
+        return @_doc.time_sent(t)
+
+    show_history: =>
+        @_check()
+        return @_doc.show_history()
+
+    has_full_history: =>
+        @_check()
+        return @_doc.has_full_history()
+
+    load_full_history: (cb) =>
+        @_check()
+        @_doc.load_full_history(cb)
+
+    wait_until_read_only_known: (cb) =>
+        @_check()
+        return @_doc.wait_until_read_only_known(cb)
+
+    get_read_only: =>
+        @_check()
+        return @_doc.get_read_only()
 
     count: =>
         @_check()
-        return @_doc.get()._db.size
+        return @_doc.get_doc()._db.size
 
     undo: =>
         @_check()
-        @_doc.set(@_doc.get().undo())
+        @_doc.set_doc(@_doc.get_doc().undo())
         @_doc.save()
         return
 
     redo: =>
         @_check()
-        @_doc.set(@_doc.get().redo())
+        @_doc.set_doc(@_doc.get_doc().redo())
         @_doc.save()
         return
 
     revert: (version) =>
         @_check()
-        @_doc.set(@_doc.version(version))
+        @_doc.revert(version)
         @_doc.save()
         return
+
+# Open an existing sync document -- returns instance of SyncString or SyncDB, depending
+# on what is already in the database.  Error if file doesn't exist.
+exports.open_existing_sync_document = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        path       : required
+        cb         : required
+    opts.client.query
+        query :
+            syncstrings:
+                project_id : opts.project_id
+                path       : opts.path
+                doctype    : null
+        cb: (err, resp) ->
+            if err
+                opts.cb(err)
+                return
+            if resp.event == 'error'
+                opts.cb(resp.error)
+                return
+            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
+            opts2 =
+                project_id : opts.project_id
+                path       : opts.path
+            if doctype.opts?
+                opts2 = misc.merge(opts2, doctype.opts)
+            doc = opts.client["sync_#{doctype.type}"](opts2)
+            opts.cb(undefined, doc)
+
+
+
 

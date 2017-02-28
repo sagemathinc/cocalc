@@ -462,7 +462,7 @@ class SortedPatchList extends EventEmitter
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
             s = t
-            opts.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s.to_str(), opts.trunc).trim()))
+            opts.log((if x.snapshot then "(SNAPSHOT) " else "           "), if s? then JSON.stringify(misc.trunc_middle(s.to_str(), opts.trunc).trim()))
             i += 1
         return
 
@@ -581,11 +581,11 @@ class SyncDoc extends EventEmitter
                 @_cursors?.set(x, 'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
-    set: (value) =>
+    set_doc: (value) =>
         @_doc = value
         return
 
-    get: =>
+    get_doc: =>
         return @_doc
 
     from_str: (value) =>
@@ -608,6 +608,10 @@ class SyncDoc extends EventEmitter
     # This is a building block that is used for implementing undo functionality for client editors.
     version_without: (times) =>
         return @_patch_list.value(undefined, undefined, times)
+
+    revert: (version) =>
+        @set_doc(@version(version))
+        return
 
     # Undo/redo public api.
     #   Calling @undo and @redo returns the version of the document after
@@ -663,10 +667,10 @@ class SyncDoc extends EventEmitter
         state = @_undo_state
         if not state?
             # nothing to do but return latest live version
-            return @get()
+            return @get_doc()
         if state.pointer == state.my_times.length
             # pointing at live state -- nothing to do
-            return @get()
+            return @get_doc()
         else if state.pointer == state.my_times.length - 1
             # one back from live state, so apply unsaved patch to live version
             state.pointer += 1
@@ -1135,6 +1139,7 @@ class SyncDoc extends EventEmitter
 
     _save_patch: (time, patch, cb) =>
         if @_closed
+            cb?('closed')
             return
         obj =  # version for database
             string_id : @_string_id
@@ -1443,7 +1448,7 @@ class SyncDoc extends EventEmitter
                         if err
                             cb(err)
                         else if not exists
-                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get().slice(0,80)}...'")
+                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get_doc().slice(0,80)}...'")
                             @_client.write_file
                                 path : path
                                 data : @to_str()

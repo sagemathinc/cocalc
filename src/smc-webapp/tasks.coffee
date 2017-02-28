@@ -174,6 +174,8 @@ class TaskList
         # get tossed when we rewrite tasks using React.js.
         @render_task_list()
         for x in value.split('\n')
+            if not x
+                continue   # skip blank lines
             try
                 task = JSON.parse(x)
                 @tasks[task.task_id] = task
@@ -1461,6 +1463,7 @@ class TaskList
                     alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
+        @element.show()
         set_key_handler(@)
         redux.getActions('page').set_active_key_handler(tasks_key_handler)
 

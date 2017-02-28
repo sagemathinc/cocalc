@@ -39,6 +39,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        # window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
         @init_view_doc opts, (err) =>
@@ -65,27 +66,32 @@ class exports.HistoryEditor extends FileEditor
             @_path = s.head + '/' + @_path
 
     init_syncstring: =>
-        @syncstring = salvus_client.sync_string
+        salvus_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
-        @syncstring.once 'connected', =>
-            @render_slider()
-            @render_diff_slider()
-            @syncstring.on 'change', =>
-                if @_diff_mode
-                    @resize_diff_slider()
-                else
-                    @resize_slider()
+            cb         : (err, syncstring) =>
+                if err
+                    alert_message(type:'error', message:"Failed to open document -- #{err}")
+                    return
+                @syncstring = syncstring
+                @syncstring.once 'connected', =>
+                    @render_slider()
+                    @render_diff_slider()
+                    @syncstring.on 'change', =>
+                        if @_diff_mode
+                            @resize_diff_slider()
+                        else
+                            @resize_slider()
 
-            if @syncstring.has_full_history()
-                @load_all.hide()
-            else
-                @load_all.show()
+                    if @syncstring.has_full_history()
+                        @load_all.hide()
+                    else
+                        @load_all.show()
 
-            # only show button for reverting if not read only
-            @syncstring.wait_until_read_only_known (err) =>
-                if not @syncstring.get_read_only()
-                    @element.find("a[href=\"#revert\"]").show()
+                    # only show button for reverting if not read only
+                    @syncstring.wait_until_read_only_known (err) =>
+                        if not @syncstring.get_read_only()
+                            @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -184,7 +190,7 @@ class exports.HistoryEditor extends FileEditor
             time  = @syncstring?.all_versions()?[@revision_num]
             if not time?
                 return
-            @syncstring.set(@syncstring.version(time))
+            @syncstring.revert(time)
             @syncstring.save()
             open_file()
             @syncstring.emit('change')

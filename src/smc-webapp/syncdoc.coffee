@@ -161,12 +161,12 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     # per-session sync-aware undo
     undo: () =>
-        @_syncstring.set(@_syncstring.undo())
+        @_syncstring.set_doc(@_syncstring.undo())
         @emit('sync')
 
     # per-session sync-aware redo
     redo: () =>
-        @_syncstring.set(@_syncstring.redo())
+        @_syncstring.set_doc(@_syncstring.redo())
         @emit('sync')
 
     in_undo_mode: () =>

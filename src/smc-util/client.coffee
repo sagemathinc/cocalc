@@ -1631,6 +1631,15 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new db_doc.SyncDB(opts)
 
+    open_existing_sync_document: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required  # cb(err, document)
+        opts.client = @
+        db_doc.open_existing_sync_document(opts)
+        return
+
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.
     mark_file: (opts) =>
