@@ -888,15 +888,9 @@ class SyncDoc extends EventEmitter
                 if err
                     cb(err)
                 else
-                    if not @_client.is_project() and @_patch_list.count() == 0
-                        @_patches_table.once 'change', =>
-                            @emit('change')
-                            @emit('connected')
-                            cb()
-                    else
-                        @emit('change')
-                        @emit('connected')
-                        cb()
+                    @emit('change')
+                    @emit('connected')
+                    cb()
             )
 
     # Delete the synchronized string and **all** patches from the database -- basically
@@ -1747,24 +1741,6 @@ class SyncDoc extends EventEmitter
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
 
-    ###
-    _test_random_edit: () =>
-        s = @to_str()
-        i = misc.randint(0, s.length-1)
-        if Math.random() <= .2
-            # delete text
-            s = s.slice(0,i) + s.slice(i-misc.randint(1,25))
-        else
-            # insert about 25 characters at random
-            s = s.slice(0,i) + Math.random().toString(36).slice(2) + s.slice(i)
-        @_doc = @_from_str(s)
-
-    test_random_edits: (opts) =>
-        opts = defaults opts,
-            number : 5
-            cb     : undefined
-    ###
-
 exports.SyncDoc = SyncDoc
 
 # Immutable string document that satisfies our spec.
@@ -1810,39 +1786,6 @@ class exports.SyncString extends SyncDoc
             cursors           : opts.cursors
             from_str          : from_str
             doctype           : {type:'string'}
-
-###
-# A document that represents an arbitrary JSON-able Javascript object.
-class ObjectDocument
-    constructor: (@_value={}) ->
-    from_str: (value) ->
-        try
-            @_value = misc.from_json(value)
-        catch err
-            console.warn("error parsing JSON", err)
-            # leaves @_value unchanged, so JSON stays valid
-    to_str: =>
-        return misc.to_json(@_value)
-
-    # Underlying Javascript object -- safe to directly edit
-    to_obj: =>
-        return @_value
-
-    is_equal: (other) =>
-        return underscore.isEqual(@_value, other._value)
-
-class exports.SyncObject extends SyncDoc
-    constructor: (opts) ->
-        opts = defaults opts,
-            id      : required
-            client  : required
-            default : {}
-        super
-            string_id : opts.id
-            client    : opts.client
-            doc       : new ObjectDocument(opts.default)
-
-###
 
 ###
 Used for testing
