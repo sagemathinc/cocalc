@@ -41,7 +41,6 @@ misc_page        = require('./misc_page')
 
 {salvus_client}  = require('./salvus_client')
 
-{synchronized_db} = require('./syncdb')
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
@@ -196,6 +195,8 @@ class Console extends EventEmitter
             @set_session(opts.session)
 
     _init_syncdb: (cb) =>
+        # TODO! -- not even defined now
+        return
         synchronized_db
             project_id : @project_id
             filename   : @path
