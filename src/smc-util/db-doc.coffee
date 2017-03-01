@@ -501,7 +501,12 @@ class SyncDoc extends syncstring.SyncDoc
             file_use_interval : opts.file_use_interval
             cursors           : false
             from_str          : from_str
-            doctype           : {type:'db', opts:{primary_keys: opts.primary_keys, string_cols: opts.string_cols}}
+            doctype           :
+                type         : 'db'
+                patch_format : 1
+                opts         :
+                    primary_keys : opts.primary_keys
+                    string_cols  : opts.string_cols
 
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->

@@ -214,6 +214,9 @@ schema.patches =
         prev :
             type : 'timestamp'
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
+        format :
+            type : 'integer'
+            desc : "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects;"
     user_query :
         get :
             throttle_changes : 1000
@@ -225,6 +228,7 @@ schema.patches =
                 snapshot  : null
                 sent      : null
                 prev      : null
+                format    : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -237,6 +241,7 @@ schema.patches =
                 snapshot  : true
                 sent      : true
                 prev      : true
+                format    : true
             required_fields :
                 string_id : true
                 time      : true

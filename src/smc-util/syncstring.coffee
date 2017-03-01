@@ -490,8 +490,11 @@ class SortedPatchList extends EventEmitter
 
     # Times of all snapshots in memory on this client; these are the only ones
     # we need to worry about for offline patches...
-    snapshot_times: () =>
+    snapshot_times: =>
         return (x.time for x in @_patches when x.snapshot?)
+
+    count: =>
+        return @_patches.length
 
 
 # For testing purposes
@@ -534,6 +537,7 @@ class SyncDoc extends EventEmitter
         @_client        = opts.client
         @_from_str      = opts.from_str
         @_doctype       = opts.doctype
+        @_patch_format  = opts.doctype.patch_format
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
@@ -796,6 +800,8 @@ class SyncDoc extends EventEmitter
         v = @versions()
         if v.length > 0
             return v[v.length-1]
+        else
+            return new Date(0)
 
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
@@ -882,9 +888,15 @@ class SyncDoc extends EventEmitter
                 if err
                     cb(err)
                 else
-                    @emit('change')
-                    @emit('connected')
-                    cb()
+                    if not @_client.is_project() and @_patch_list.count() == 0
+                        @_patches_table.once 'change', =>
+                            @emit('change')
+                            @emit('connected')
+                            cb()
+                    else
+                        @emit('change')
+                        @emit('connected')
+                        cb()
             )
 
     # Delete the synchronized string and **all** patches from the database -- basically
@@ -983,6 +995,8 @@ class SyncDoc extends EventEmitter
             snapshot : null      # (optional) a snapshot at this point in time
             sent     : null      # (optional) when patch actually sent, which may be later than when made
             prev     : null      # (optional) timestamp of previous patch sent from this session
+        if @_patch_format?
+            query.format = @_patch_format
         return query
 
     _init_patch_list: (cb) =>
@@ -1146,6 +1160,8 @@ class SyncDoc extends EventEmitter
             time      : time
             patch     : JSON.stringify(patch)
             user_id   : @_user_id
+        if @_patch_format?
+            obj.format = @_patch_format
         if @_deleted
             # file was deleted but now change is being made, so undelete it.
             @_undelete()
