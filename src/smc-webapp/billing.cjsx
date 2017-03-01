@@ -139,8 +139,8 @@ class BillingActions extends Actions
     create_subscription: (plan='standard') =>
         {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
-        if lsa? and lsa > misc.server_minutes_ago(1)
-            @setState(action:'', error: 'Too many subscription attempts in the last minute. Please check if you are already subscribed!')
+        if lsa? and lsa > misc.server_minutes_ago(2)
+            @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
         else
             @setState(error: '')
             @_action('create_subscription', 'Create a subscription', plan : plan)
