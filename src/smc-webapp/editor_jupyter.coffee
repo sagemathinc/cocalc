@@ -68,7 +68,6 @@ misc                 = require('smc-util/misc')
 {salvus_client}      = require('./salvus_client')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
-{synchronized_db}    = require('./syncdb')
 misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")
@@ -1191,7 +1190,7 @@ class JupyterNotebook extends EventEmitter
             @save_button.addClass('disabled')
 
     save: (cb) =>
-        if @state != 'ready'
+        if @state != 'ready' or not @save_button?  # save button isn't defined when document is readonly.
             cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)

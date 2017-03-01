@@ -8,6 +8,8 @@
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
+ACTIVE_BG_COLOR = '#e7e7e7'
+
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
         when 'projects'
@@ -68,7 +70,7 @@ exports.NavTab = rclass
         outer_style.border = 'none'
 
         if is_active
-            outer_style.backgroundColor = "#e7e7e7"
+            outer_style.backgroundColor = ACTIVE_BG_COLOR
 
         if @props.inner_style
             inner_style = @props.inner_style
@@ -92,7 +94,11 @@ exports.NotificationBell = rclass
     displayName: 'NotificationBell'
 
     propTypes :
-        count : rtypes.number
+        count  : rtypes.number
+        active : rtypes.bool
+
+    getDefaultProps: ->
+        active : false
 
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
@@ -114,11 +120,14 @@ exports.NotificationBell = rclass
             <span style={count_styles}>{@props.count}</span>
 
     render: ->
-        outer_styles =
+        outer_style =
             position    : 'relative'
             float       : 'left'
 
-        inner_styles =
+        if @props.active
+            outer_style.backgroundColor = ACTIVE_BG_COLOR
+
+        inner_style =
             padding  : '10px'
             fontSize : '17pt'
             cursor   : 'pointer'
@@ -130,10 +139,10 @@ exports.NotificationBell = rclass
             bell_style = {color: COLOR.FG_RED}
 
         <NavItem
-            style={outer_styles}
+            style={outer_style}
             onClick={@on_click}
         >
-            <div style={inner_styles}>
+            <div style={inner_style}>
                 <Icon name='bell-o' className={clz} style={bell_style} />
                 {@notification_count()}
             </div>

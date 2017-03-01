@@ -97,8 +97,9 @@ exports.alert_message = (opts={}) ->
 
 check_for_clock_skew = () ->
     local_time = new Date()
-    if Math.abs(salvus_client.server_time() - local_time) > 60000
-        exports.alert_message(type:'error', timeout:30,  message:"Your computer's clock is off by over a minute.  Please set it correctly.")
+    s = Math.ceil(Math.abs(salvus_client.server_time() - local_time)/1000)
+    if s > 10
+        exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly to use SageMathCloud.  Expect very serious problems until you do.")
 
 # Wait until after the page is loaded and clock sync'd before checking for skew.
 setTimeout(check_for_clock_skew, 60000)

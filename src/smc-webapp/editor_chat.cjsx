@@ -66,7 +66,6 @@ misc_page = require('./misc_page')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
-{synchronized_db} = require('./syncdb')
 
 {alert_message} = require('./alerts')
 
@@ -98,12 +97,8 @@ class ChatActions extends Actions
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: () =>
         v = {}
-        for x in @syncdb.select()
-            if x.corrupt?
-                continue
-
+        for x in @syncdb.get().toJS()
             switch x.event
-
                 when 'chat'
                     if x.video_chat?.is_video_chat
                         # discard/ignore anything related to the old old video chat approach
@@ -134,22 +129,20 @@ class ChatActions extends Actions
         if not messages?
             # Messages need not be defined when changes appear in case of problems or race.
             return
-        for x in changes
-            if x.insert
-                # Assumes all fields to be provided in x.insert
-                # console.log('Received', x.insert)
-                # OPTIMIZATION: make into custom conversion to immutable
-                switch x.insert.event
-
+        changes.map (obj) =>
+            record = @syncdb.get_one(obj)
+            x = record?.toJS()
+            if not x?
+                # delete
+                messages = messages.delete(obj.date - 0)
+            else
+                # TODO/OPTIMIZATION: make into custom conversion to immutable
+                switch x.event
                     when 'chat'
-                        message  = immutable.fromJS(x.insert)
-                        message  = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
-                        message  = message.set('editing', immutable.Map(x.insert.editing))
-                        messages = messages.set("#{x.insert.date - 0}", message)
-
-            else if x.remove
-                if x.remove.event == 'chat'
-                    messages = messages.delete(x.remove.date - 0)
+                        message  = record
+                        message  = message.set('history', immutable.Stack(immutable.fromJS(x.history)))
+                        message  = message.set('editing', immutable.Map(x.editing))
+                        messages = messages.set("#{x.date - 0}", message)
 
         if messages_before != messages
             @setState(messages: messages)
@@ -160,15 +153,11 @@ class ChatActions extends Actions
             return
         sender_id = @redux.getStore('account').get_account_id()
         time_stamp = salvus_client.server_time()
-        @syncdb.update
-            set :
-                sender_id : sender_id
-                event     : "chat"
-                history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
-            where :
-                date: time_stamp
-            is_equal: (a, b) => (a - 0) == (b - 0)
-
+        @syncdb.set
+            sender_id : sender_id
+            event     : "chat"
+            history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
+            date      : time_stamp
         @syncdb.save()
         @setState(last_sent: mesg)
 
@@ -182,20 +171,16 @@ class ChatActions extends Actions
             # FUTURE: Save edit changes
             editing = message.get('editing').set(author_id, 'FUTURE')
         else
-            editing = message.get('editing').remove(author_id)
+            editing = message.get('editing').set(author_id, null)
 
         # console.log("Currently Editing:", editing.toJS())
-        @syncdb.update
-            set :
-                history : message.get('history').toJS()
-                editing : editing.toJS()
-            where :
-                date: message.get('date')
-            is_equal: (a, b) => (a - 0) == (b - 0)
-        @syncdb.save()
+        @syncdb.set
+            history : message.get('history').toJS()
+            editing : editing.toJS()
+            date    : message.get('date')
 
     # Used to edit sent messages.
-    # Inefficient. Assumes number of edits is small.
+    # **Extremely** shockingly inefficient. Assumes number of edits is small.
     send_edit: (message, mesg) =>
         if not @syncdb?
             # WARNING: give an error or try again later?
@@ -204,13 +189,10 @@ class ChatActions extends Actions
         # OPTIMIZATION: send less data over the network?
         time_stamp = salvus_client.server_time()
 
-        @syncdb.update
-            set :
-                history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
-                editing : message.get('editing').remove(author_id).toJS()
-            where :
-                date: message.get('date')
-            is_equal: (a, b) => (a - 0) == (b - 0)
+        @syncdb.set
+            history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
+            editing : message.get('editing').set(author_id, null).toJS()
+            date    : message.get('date')
         @syncdb.save()
 
     set_to_last_input: =>
@@ -245,38 +227,21 @@ exports.init_redux = (path, redux, project_id) ->
 
     actions._init()
 
-    require('./syncdb').synchronized_db
-        project_id    : project_id
-        filename      : path
-        sync_interval : 0
-        cb            : (err, syncdb) ->
-            if err
-                alert_message(type:'error', message:"unable to open #{@path}")
-            else
-                actions.syncdb = syncdb
-                actions.store = store
-
-                if not syncdb.valid_data
-                    # This should never happen, but obviously it can -- just open the file and randomly edit with vim!
-                    # If there were any corrupted chats, append them as a new chat at the bottom, then delete from syncdb.
-                    ###
-                    # DISABLING THIS -- it leads to feedback loops of death.
-                    corrupted = (x.corrupt for x in syncdb.select() when x.corrupt?)
-                    actions.send_chat("Corrupted chat: " + corrupted.join('\n\n'))
-                    syncdb.delete_with_field(field:'corrupt')
-                    ###
-                    console.warn("'#{path}' contains some illegable chats -- you may need to use TimeTravel")
-                    # See https://github.com/sagemathinc/smc/issues/944 for our plan regarding making corruption impossible.
-                    # Basically, we will switch to a restricted patch format.
-
-                actions.init_from_syncdb()
-                syncdb.on('change', actions._syncdb_change)
+    syncdb = salvus_client.sync_db
+        project_id   : project_id
+        path         : path
+        primary_keys : ['date']
+    syncdb.once 'change', =>
+        actions.syncdb = syncdb
+        actions.store = store
+        actions.init_from_syncdb()
+        syncdb.on('change', actions._syncdb_change)
     return name
 
 exports.remove_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
-    actions?.syncdb?.destroy()
+    actions?.syncdb?.close()
     store = redux.getStore(name)
     if not store?
         return

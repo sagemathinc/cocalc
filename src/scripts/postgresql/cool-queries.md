@@ -108,3 +108,15 @@ Search for a specific part in an error message in a specific release (first char
 
     SELECT * FROM webapp_errors WHERE message LIKE '%call'' of%'  AND smc_git_rev LIKE 'cc75%' ORDER BY time LIMIT 3;
 
+## Analytics
+
+Hourly (or 10minute blocks) active users
+
+    SELECT
+        COUNT(DISTINCT(account_id)),
+        EXTRACT('isodow' FROM time) as day,
+        EXTRACT('hour' FROM time) as hour
+        -- , trunc(EXTRACT('minute' FROM time) / 10) as min10
+    FROM file_access_log
+    WHERE time >= NOW() - '2 week'::interval
+    GROUP BY day, hour -- , min10

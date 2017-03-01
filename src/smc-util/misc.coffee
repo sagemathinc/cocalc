@@ -50,6 +50,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+
 _ = underscore = require('underscore')
 
 if process?.env?.DEVEL and not process?.env?.SMC_TEST
@@ -361,7 +362,7 @@ exports.len = (obj) ->
     a = obj.length
     if a?
         return a
-    Object.keys(obj).length
+    underscore.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
@@ -1890,8 +1891,9 @@ exports.top_sort = (DAG, opts={omit_sources:false}) ->
         node = data[name]
         node.name = name
         node.children ?= []
-        node.parent_set = new Set(parents)
+        node.parent_set = {}
         for parent_name in parents
+            node.parent_set[parent_name] = true  # include element in "parent_set" (see https://github.com/sagemathinc/smc/issues/1710)
             data[parent_name] ?= {}
             data[parent_name].children ?= []
             data[parent_name].children.push(node)
@@ -1907,9 +1909,9 @@ exports.top_sort = (DAG, opts={omit_sources:false}) ->
         curr_name = source_names.shift()
         path.push(curr_name)
         for child in data[curr_name].children
-            child.parent_set.delete(curr_name)
+            delete child.parent_set[curr_name]
             num_edges -= 1
-            if child.parent_set.size == 0
+            if exports.len(child.parent_set) == 0
                 source_names.push(child.name)
 
     # Detect lack of sources

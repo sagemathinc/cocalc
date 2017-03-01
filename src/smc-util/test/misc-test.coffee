@@ -20,6 +20,8 @@
 #                                                                             #
 ###############################################################################
 
+require('coffee-cache')
+
 misc = require('../misc.coffee')
 underscore = require('underscore')
 

@@ -28,6 +28,7 @@ _     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
+db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
 
@@ -237,7 +238,15 @@ class exports.Connection extends EventEmitter
             x = misc.get_local_storage('clock_skew')
             if x?
                 @_clock_skew = parseFloat(x)
-        return new Date(new Date() - (@_clock_skew ? 0))
+        # NOTE: We DO NOT even mess with the clock at all unless it is off by
+        # at least 15s.  Otherwise, we're going to get all kinds of subtle
+        # issues with random variation in the clock due to slight accuracy/ping issues.
+        # Being off by 15s would be basically OK -- much more, and we have to compensate
+        # and warn the user aggressively to avoid disaster.
+        if @_clock_skew? and Math.abs(@_clock_skew) > 15000
+            return new Date(new Date() - @_clock_skew)
+        else
+            return new Date()
 
     ping_test: (opts) =>
         opts = defaults opts,
@@ -1475,20 +1484,32 @@ class exports.Connection extends EventEmitter
     sync_string: (opts) =>
         opts = defaults opts,
             id                : undefined
-            project_id        : undefined
-            path              : undefined
-            default           : ''
+            project_id        : required
+            path              : required
             file_use_interval : 'default'
             cursors           : false
         opts.client = @
         return new syncstring.SyncString(opts)
 
-    sync_object: (opts) =>
+    sync_db: (opts) =>
         opts = defaults opts,
-            id      : required
-            default : {}
+            project_id      : required
+            path            : required
+            primary_keys    : required
+            string_cols     : undefined
+            change_throttle : 500     # amount to throttle change events (in ms)
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
-        return new syncstring.SyncObject(opts)
+        return new db_doc.SyncDB(opts)
+
+    open_existing_sync_document: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required  # cb(err, document)
+        opts.client = @
+        db_doc.open_existing_sync_document(opts)
+        return
 
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.
@@ -1521,6 +1542,7 @@ class exports.Connection extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         @call
+
             message     : mesg
             error_event : true
             timeout     : opts.timeout

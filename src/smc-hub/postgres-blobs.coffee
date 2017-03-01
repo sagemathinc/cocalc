@@ -594,10 +594,10 @@ class exports.PostgreSQL extends PostgreSQL
             string_id : required
             compress  : 'zlib'
             level     : -1   # the default
+            cutoff    : misc.minutes_ago(30)  # never touch anything this new
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
         syncstring = patches = blob_uuid = project_id = last_active =undefined
-        cutoff = misc.minutes_ago(30)
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
@@ -617,7 +617,7 @@ class exports.PostgreSQL extends PostgreSQL
                             last_active = x.last_active
                             cb()
             (cb) =>
-                if last_active? and last_active >= cutoff
+                if last_active? and last_active >= opts.cutoff
                     cb(); return
                 dbg("get patches")
                 @_query
@@ -630,7 +630,7 @@ class exports.PostgreSQL extends PostgreSQL
                             delete p.epoch
                         cb(err)
             (cb) =>
-                if last_active? and last_active >= cutoff
+                if last_active? and last_active >= opts.cutoff
                     cb(); return
                 dbg("create blob from patches")
                 try
@@ -649,7 +649,7 @@ class exports.PostgreSQL extends PostgreSQL
                     level      : opts.level
                     cb         : cb
             (cb) =>
-                if last_active? and last_active >= cutoff
+                if last_active? and last_active >= opts.cutoff
                     cb(); return
                 dbg("update syncstring to indicate patches have been archived in a blob")
                 @_query
@@ -658,7 +658,7 @@ class exports.PostgreSQL extends PostgreSQL
                     where : where
                     cb    : cb
             (cb) =>
-                if last_active? and last_active >= cutoff
+                if last_active? and last_active >= opts.cutoff
                     cb(); return
                 dbg("actually delete patches")
                 @_query

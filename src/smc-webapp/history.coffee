@@ -84,9 +84,9 @@ exports.set_url = (url) ->
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
-    logged_in = redux.getStore('account').is_logged_in()
     if not target
         return
+    logged_in = redux.getStore('account')?.is_logged_in()
     segments = target.split('/')
     switch segments[0]
         when 'help'

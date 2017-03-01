@@ -76,7 +76,7 @@ Most software developers are, at this point, at least passingly familiar
 Node.js (often referred to as just "Node"). But in short, it is a
 stand-alone JavaScript runtime that can run on a server.  It includes an
 HTTP server and various I/O primitives that have been designed from the
-groud up for even-driven asynchronous I/O.  Because it uses JavaScript it
+ground up for event-driven asynchronous I/O.  Because it uses JavaScript it
 has been meteorically popular in the web development world because it allows
 developers to write both their front-end and back-end code in JavaScript,
 and even share library code between the front- and back-ends.  This also
@@ -562,7 +562,7 @@ A few explanations about this diagram:
 
 * The pink arrows are communications between the client and a project,
   and/or processes (such as the Jupyter server) running within a project.
-  Again, this goes through HAproxy, but then pass through the hub proxy
+  Again, this goes through HAproxy, but then passes through the hub proxy
   which forwards the request directly to the relevant project.
 
 * The red arrows are communication just between a hub and a compute node,
@@ -579,7 +579,7 @@ connected to any projects (perhaps they're just setting up their accounts,
 or doing other administrative tasks not related to a project).
 
 The fourth client is connected to the third hub, and is connected to
-resources on two different projects (albeit on the same comput node) through
+resources on two different projects (albeit on the same compute node) through
 the same proxy.
 
 This is of course still leaving out a lot of details that would be hard to
@@ -646,7 +646,7 @@ but SMC has it configured (see ``webapp-lib/primus/update_primus.coffee``) to
 
 Assuming one or more hubs are already running (the full server-side story
 should be described in another chapter), HAproxy recognizes the path ``/hub``
-and forward's Primus's connection to start talking to one of the hubs.  Each
+and forwards Primus's connection to start talking to one of the hubs.  Each
 connection Primus makes is handled by an object that Primus calls a "spark".
 (This name is used so as to not be confused with an actual "socket" or
 something like that, since Primus is abstracting out the details of the

@@ -137,8 +137,6 @@ exports.SettingsPanel = rclass
         delete_student_projects_confirm : false
         upgrade_quotas                  : false
         show_students_pay_dialog        : false
-        students_pay_when               : @props.settings.get('pay')
-        students_pay                    : !!@props.settings.get('pay')
 
     ###
     # Editing title/description
@@ -650,22 +648,22 @@ exports.SettingsPanel = rclass
     Students pay
     ###
     get_student_pay_when: ->
-        if @state.students_pay_when  # since '' is same as not being set
-            return @state.students_pay_when
+        date = @props.settings.get('pay')
+        if date
+            return date
         else
             return misc.days_ago(-7)
 
     click_student_pay_button: ->
-        @setState
-            show_students_pay_dialog : true
-            students_pay_when        : @get_student_pay_when()
+        @setState(show_students_pay_dialog : true)
 
     render_students_pay_button: ->
         <Button bsStyle='primary' onClick={@click_student_pay_button}>
             <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Require students to pay"}...
         </Button>
 
-    render_require_students_pay_desc: (date) ->
+    render_require_students_pay_desc: ->
+        date = @props.settings.get('pay')
         if date > salvus_client.server_time()
             <span>
                 Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
@@ -676,65 +674,41 @@ exports.SettingsPanel = rclass
             </span>
 
     render_require_students_pay_when: ->
-        if not @state.students_pay_when
+        if not @props.settings.get('pay')
             return <span/>
         <div style={marginBottom:'1em'}>
             <div style={width:'50%', marginLeft:'3em', marginBottom:'1ex'}>
                 <Calendar
-                    value     = {@state.students_pay_when}
-                    on_change = {(date)=>@setState(students_pay_when:date)}
+                    value     = {@props.settings.get('pay')}
+                    on_change = {(date)=>@actions(@props.name).set_course_info(date)}
                 />
             </div>
-            {@render_require_students_pay_desc(@state.students_pay_when) if @state.students_pay_when}
+            {@render_require_students_pay_desc() if @props.settings.get('pay')}
         </div>
 
-    save_student_pay_settings: ->
-        @actions(@props.name).set_course_info(@state.students_pay_when)
-        @setState
-            show_students_pay_dialog : false
-
-    student_pay_submittable: ->
-        if not @state.students_pay
-            return !!@props.settings.get('pay')
-        else
-            return misc.cmp_Date(@state.students_pay_when, @props.settings.get('pay')) != 0
-
     render_students_pay_submit_buttons: ->
-        <ButtonToolbar>
-            <Button
-                bsStyle  = 'primary'
-                onClick  = {@save_student_pay_settings}
-                disabled = {not @student_pay_submittable()}
-            >
-                <Icon name='arrow-circle-up' /> Submit changes
-            </Button>
-            <Button onClick={=>@setState(show_students_pay_dialog:false, students_pay_when : @props.settings.get('pay'), students_pay                    : !!@props.settings.get('pay'))}>
-                Cancel
-            </Button>
-        </ButtonToolbar>
+        <Button onClick={=>@setState(show_students_pay_dialog:false)}>
+            Close
+        </Button>
 
     handle_students_pay_checkbox: (e) ->
         if e.target.checked
-            @setState
-                students_pay      : true
-                students_pay_when : @get_student_pay_when()
+            @actions(@props.name).set_course_info(@get_student_pay_when())
         else
-            @setState
-                students_pay      : false
-                students_pay_when : ''
+            @actions(@props.name).set_course_info('')
 
     render_students_pay_checkbox_label: ->
-        if @state.students_pay
-            if salvus_client.server_time() >= @state.students_pay_when
+        if @props.settings.get('pay')
+            if salvus_client.server_time() >= @props.settings.get('pay')
                 <span>Require that students upgrade immediately:</span>
             else
-                <span>Require that students upgrade by <TimeAgo date={@state.students_pay_when} />: </span>
+                <span>Require that students upgrade by <TimeAgo date={@props.settings.get('pay')} />: </span>
         else
             <span>Require that students upgrade...</span>
 
     render_students_pay_checkbox: ->
         <span>
-            <Checkbox checked  = {@state.students_pay}
+            <Checkbox checked  = {!!@props.settings.get('pay')}
                    key      = 'students_pay'
                    ref      = 'student_pay'
                    onChange = {@handle_students_pay_checkbox}
@@ -750,13 +724,13 @@ exports.SettingsPanel = rclass
             <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
 
             {@render_students_pay_checkbox()}
-            {@render_require_students_pay_when() if @state.students_pay}
+            {@render_require_students_pay_when() if @props.settings.get('pay')}
             {@render_students_pay_submit_buttons()}
         </Alert>
 
     render_student_pay_desc: ->
-        if @state.students_pay
-            <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc(@state.students_pay_when)}</span>
+        if @props.settings.get('pay')
+            <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc()}</span>
         else
             <span>Require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
 

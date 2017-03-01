@@ -127,7 +127,7 @@ exports.AccountPage = rclass
         return v
 
     render: ->
-        logged_in = @props.redux.getStore('account').is_logged_in()
+        logged_in = @props.redux.getStore('account')?.is_logged_in()
         <Grid className='constrained'>
             {@render_landing_page() if not logged_in}
             {<Row>
