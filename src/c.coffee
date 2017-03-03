@@ -106,7 +106,7 @@ global.close_unused_projects = (host, cb) ->
                 dry_run      : false
                 min_age_days : DEFAULT_CLOSE_DAYS
                 max_age_days : 1000
-                threads      : 3
+                threads      : 1
                 host         : host
                 cb           : (err) -> cb?(err)
 
