@@ -253,7 +253,7 @@ def divide_into_blocks(code):
             merge()
 
         # function definitions
-        elif s.startswith('def') and blocks[i-1][-1].splitlines()[-1].lstrip().startswith('@'):
+        elif (s.startswith('def') or s.startswith('@')) and blocks[i-1][-1].splitlines()[-1].lstrip().startswith('@'):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
