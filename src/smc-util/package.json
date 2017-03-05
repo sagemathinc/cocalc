@@ -4,7 +4,7 @@
   "description": "SageMathCloud code shared between the frontend and the backend",
   "main": "index.js",
   "scripts": {
-    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress test",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -c *.coffee"
   },

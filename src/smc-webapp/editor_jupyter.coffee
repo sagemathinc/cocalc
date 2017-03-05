@@ -68,7 +68,6 @@ misc                 = require('smc-util/misc')
 {salvus_client}      = require('./salvus_client')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
-{synchronized_db}    = require('./syncdb')
 misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")

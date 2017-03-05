@@ -47,7 +47,6 @@ markdownlib = require('../markdown')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {salvus_client} = require('../salvus_client')
-{synchronized_db} = require('../syncdb')
 schema = require('smc-util/schema')
 
 # React libraries
@@ -105,10 +104,17 @@ init_redux = (course_filename, redux, course_project_id) ->
                 return false
             return true
 
-        _update: (opts) =>
-            if not @_loaded() then return
-            syncdb.update(opts)
-            @save()
+        # Set one object in the syncdb
+        _set: (obj) =>
+            if not @_loaded() or syncdb?.is_closed()
+                return
+            syncdb.set(obj)
+
+        # Get one object from syncdb as a Javascript object (or undefined)
+        _get_one: (obj) =>
+            if syncdb?.is_closed()
+                return
+            return syncdb.get_one(obj)?.toJS()
 
         set_tab: (tab) =>
             @setState(tab:tab)
@@ -131,32 +137,33 @@ init_redux = (course_filename, redux, course_project_id) ->
                     @setState(show_save_button:false)
 
         _syncdb_change: (changes) =>
+            # console.log('_syncdb_change', JSON.stringify(changes.toJS()))
             store = get_store()
             return if not store?
             cur = t = store.getState()
-
-            remove = (x.remove for x in changes when x.remove?)
-            insert = (x.insert for x in changes when x.insert?)
-            # first remove, then insert (or we could loose things!)
-            if not t.get(x.table)?
-                t = t.set(x.table, immutable.Map())
-            for x in remove
-                if x.table != 'settings'
-                    y = misc.copy_without(x, 'table')
-                    a = t.get(x.table).delete(x[primary_key[x.table]])
-                    t = t.set(x.table, a)
-
-            for x in insert
-                if x.table == 'settings'
-                    s = t.get('settings')
-                    for k, v of misc.copy_without(x, 'table')
-                        s = s.set(k, immutable.fromJS(v))
-                    t = s.set('settings', s)
+            changes.map (obj) =>
+                table = obj.get('table')
+                if not table?
+                    # no idea what to do with something that doesn't have table defined
+                    return
+                x = syncdb.get_one(obj)
+                key = primary_key[table]
+                if not x?
+                    # delete
+                    if key?
+                        t = t.set(table, t.get(table).delete(obj.get(key)))
                 else
-                    y = immutable.fromJS(misc.copy_without(x, 'table'))
-                    a = t.get(x.table).set(x[primary_key[x.table]], y)
-                    t = t.set(x.table, a)
-            if cur != t  # something changed
+                    # edit or insert
+                    if key?
+                        t = t.set(table, t.get(table).set(x.get(key), x))
+                    else if table == 'settings'
+                        t = t.set(table, x)
+                    else
+                        # no idea what to do with this
+                        console.warn("unknown table '#{table}'")
+                return  # ensure map doesn't terminate
+
+            if not cur.equals(t)  # something definitely changed
                 @setState(t)
                 @setState(unsaved:syncdb?.has_unsaved_changes())
 
@@ -209,18 +216,18 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         # Settings
         set_title: (title) =>
-            @_update(set:{title:title}, where:{table:'settings'})
+            @_set(title:title, table:'settings')
             @set_all_student_project_titles(title)
 
         set_description: (description) =>
-            @_update(set:{description:description}, where:{table:'settings'})
+            @_set(description:description, table:'settings')
             @set_all_student_project_descriptions(description)
 
         set_allow_collabs: (allow_collabs) =>
-            @_update(set:{allow_collabs:allow_collabs}, where:{table:'settings'})
+            @_set(allow_collabs:allow_collabs, table:'settings')
 
         set_email_invite: (body) =>
-            @_update(set:{email_invite:body}, where:{table:'settings'})
+            @_set(email_invite:body, table:'settings')
 
         # return the default title and description of the shared project.
         shared_project_settings: () =>
@@ -287,9 +294,9 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         # set the shared project id in our syncdb
         _set_shared_project_id: (project_id) =>
-            @_update
-                set   : {shared_project_id:project_id}
-                where : {table:'settings'}
+            @_set
+                table             : 'settings'
+                shared_project_id : project_id
 
         # create the globally shared project if it doesn't exist
         create_shared_project: () =>
@@ -313,7 +320,9 @@ init_redux = (course_filename, redux, course_project_id) ->
         # set on every student project in the course (see schema.coffee for format
         # of the course field) to reflect this change in the database.
         set_course_info: (pay='') =>
-            @_update(set:{pay:pay}, where:{table:'settings'})
+            @_set
+                pay   : pay
+                table : 'settings'
             @set_all_student_project_course_info(pay)
 
         # Takes an item_name and the id of the time
@@ -338,9 +347,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             for x in students
                 student_id = misc.uuid()
                 student_ids.push(student_id)
-                obj = {table:'students', student_id:student_id}
-                syncdb.update(set:x, where:obj)
-            syncdb.save()
+                x.table = 'students'
+                x.student_id = student_id
+                syncdb.set(x)
             f = (student_id, cb) =>
                 async.series([
                     (cb) =>
@@ -374,18 +383,20 @@ init_redux = (course_filename, redux, course_project_id) ->
             store = get_store()
             return if not store?
             student = store.get_student(student)
-            @_update
-                set   : {deleted : true}
-                where : {student_id : student.get('student_id'), table : 'students'}
+            @_set
+                deleted    : true
+                student_id : student.get('student_id')
+                table      : 'students'
             @configure_all_projects()   # since they may get removed from shared project, etc.
 
         undelete_student: (student) =>
             store = get_store()
             return if not store?
             student = store.get_student(student)
-            @_update
-                set   : {deleted : false}
-                where : {student_id : student.get('student_id'), table : 'students'}
+            @_set
+                deleted    : false
+                student_id : student.get('student_id')
+                table      : 'students'
             @configure_all_projects()   # since they may get added back to shared project, etc.
 
         # Some students might *only* have been added using their email address, but they
@@ -412,9 +423,10 @@ init_redux = (course_filename, redux, course_project_id) ->
                             console.warn("lookup_nonregistered_students: search error -- #{err}")
                         else
                             for x in result
-                                @_update
-                                    set   : {account_id: x.account_id}
-                                    where : {table: 'students', student_id: v[x.email_address]}
+                                @_set
+                                    account_id : x.account_id
+                                    table      : 'students'
+                                    student_id : v[x.email_address]
 
         # columns: first_name ,last_name, email, last_active, hosting
         # Toggles ascending/decending order
@@ -431,9 +443,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             store = get_store()
             return if not store?
             student = store.get_student(student)
-            @_update
-                set   : {first_name, last_name}
-                where : {student_id : student.get('student_id'), table : 'students'}
+            @_set
+                first_name : first_name
+                last_name  : last_name
+                student_id : student.get('student_id')
+                table      : 'students'
             @configure_all_projects()   # since they may get removed from shared project, etc.
 
         # Student projects
@@ -461,7 +475,10 @@ init_redux = (course_filename, redux, course_project_id) ->
             store = get_store()
             return if not store?
             student_id = store.get_student(student).get('student_id')
-            @_update(set:{create_project:salvus_client.server_time()}, where:{table:'students',student_id:student_id})
+            @_set
+                create_project : salvus_client.server_time()
+                table          : 'students'
+                student_id     : student_id
             id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
             token = misc.uuid()
             redux.getActions('projects').create_project
@@ -473,9 +490,11 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("error creating student project -- #{err}")
                 else
-                    @_update
-                        set   : {create_project:undefined, project_id:project_id}
-                        where : {table:'students', student_id:student_id}
+                    @_set
+                        create_project : null
+                        project_id     : project_id
+                        table          : 'students'
+                        student_id     : student_id
                     @configure_project(student_id)
                 delete @_creating_student_project
                 queue.shift()
@@ -599,7 +618,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             if not pay?
                 pay = get_store().get_pay()
             else
-                @_update(set:{pay:pay}, where:{table:'settings'})
+                @_set
+                    pay   : pay
+                    table : 'settings'
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 # account_id: might not be known when student first added, or if student
@@ -633,9 +654,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             student_project_id = store.getIn(['students', student_id, 'project_id'])
             if student_project_id?
                 redux.getActions('projects').delete_project(student_project_id)
-                @_update
-                    set   : {create_project:undefined, project_id:undefined}
-                    where : {table:'students', student_id:student_id}
+                @_set
+                    create_project : null
+                    project_id     : null
+                    table          : 'students'
+                    student_id     : student_id
 
         configure_all_projects: =>
             id = @set_activity(desc:"Configuring all projects")
@@ -703,8 +726,10 @@ init_redux = (course_filename, redux, course_project_id) ->
             store = get_store()
             return if not store?
             student = store.get_student(student)
-            where      = {table:'students', student_id:student.get('student_id')}
-            @_update(set:{"note":note}, where:where)
+            @_set
+                note       : note
+                table      : 'students'
+                student_id : student.get('student_id')
 
         _collect_path: (path) =>
             i = course_filename.lastIndexOf('.')
@@ -720,42 +745,51 @@ init_redux = (course_filename, redux, course_project_id) ->
             graded_path = path + '-graded'
             # folder where we copy the assignment to
             target_path = path
-            @_update
-                set   : {path: path, collect_path:collect_path, graded_path:graded_path, target_path:target_path}
-                where : {table: 'assignments', assignment_id:misc.uuid()}
+            @_set
+                path          : path
+                collect_path  : collect_path
+                graded_path   : graded_path
+                target_path   : target_path
+                table         : 'assignments'
+                assignment_id : misc.uuid()
 
         delete_assignment: (assignment) =>
             store = get_store()
             return if not store?
             assignment = store.get_assignment(assignment)
-            @_update
-                set   : {deleted: true}
-                where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
+            @_set
+                deleted       : true
+                assignment_id : assignment.get('assignment_id')
+                table         : 'assignments'
 
         undelete_assignment: (assignment) =>
             store = get_store()
             return if not store?
             assignment = store.get_assignment(assignment)
-            @_update
-                set   : {deleted: false}
-                where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
+            @_set
+                deleted       : false
+                assignment_id : assignment.get('assignment_id')
+                table         : 'assignments'
 
         set_grade: (assignment, student, grade) =>
             store = get_store()
             return if not store?
             assignment = store.get_assignment(assignment)
             student    = store.get_student(student)
-            where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-            grades     = syncdb.select_one(where:where).grades ? {}
+            obj        = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+            grades     = @_get_one(obj).grades ? {}
             grades[student.get('student_id')] = grade
-            @_update(set:{grades:grades}, where:where)
+            obj.grades = grades
+            @_set(obj)
 
         _set_assignment_field: (assignment, name, val) =>
             store = get_store()
             return if not store?
             assignment = store.get_assignment(assignment)
-            where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-            @_update(set:{"#{name}":val}, where:where)
+            @_set
+                "#{name}"     : val
+                table         : 'assignments'
+                assignment_id : assignment.get('assignment_id')
 
         set_due_date: (assignment, due_date) =>
             @_set_assignment_field(assignment, 'due_date', due_date)
@@ -950,11 +984,18 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         _finish_copy: (assignment, student, type, err) =>
             if student? and assignment?
-                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
-                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                x = syncdb.select_one(where:where)?[type] ? {}
-                x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                @_update(set:{"#{type}":x}, where:where)
+
+                store = get_store()
+                student = store.get_student(student)
+                assignment = store.get_assignment(assignment)
+                obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = @_get_one(obj)?[type] ? {}
+                student_id = student.get('student_id')
+                x[student_id] = {time: misc.mswalltime()}
+                if err
+                    x[student_id].error = err
+                obj[type] = x
+                @_set(obj)
 
         # This is called internally before doing any copy/collection operation
         # to ensure that we aren't doing the same thing repeatedly, and that
@@ -962,21 +1003,22 @@ init_redux = (course_filename, redux, course_project_id) ->
         _start_copy: (assignment, student, type) =>
             if student? and assignment?
                 store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
-                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                x = syncdb.select_one(where:where)?[type] ? {}
+                obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = @_get_one(obj)?[type] ? {}
                 y = (x[student.get('student_id')]) ? {}
                 if y.start? and salvus_client.server_time() - y.start <= 15000
                     return true  # never retry a copy until at least 15 seconds later.
                 y.start = misc.mswalltime()
                 x[student.get('student_id')] = y
-                @_update(set:{"#{type}":x}, where:where)
+                obj[type] = x
+                @_set(obj)
             return false
 
         _stop_copy: (assignment, student, type) =>
             if student? and assignment?
                 store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
-                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                x = syncdb.select_one(where:where)?[type]
+                obj   = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = @_get_one(obj)?[type]
                 if not x?
                     return
                 y = (x[student.get('student_id')])
@@ -985,7 +1027,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if y.start?
                     delete y.start
                     x[student.get('student_id')] = y
-                    @_update(set:{"#{type}":x}, where:where)
+                    obj[type] = x
+                    @_set(obj)
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
@@ -1328,32 +1371,38 @@ init_redux = (course_filename, redux, course_project_id) ->
         # Handouts
         add_handout: (path) =>
             target_path = path # folder where we copy the handout to
-            @_update
-                set   : {path: path, target_path:target_path}
-                where : {table: 'handouts', handout_id:misc.uuid()}
+            @_set
+                path        : path
+                target_path : target_path
+                table       : 'handouts'
+                handout_id  : misc.uuid()
 
         delete_handout: (handout) =>
             store = get_store()
             return if not store?
             handout = store.get_handout(handout)
-            @_update
-                set   : {deleted: true}
-                where : {handout_id: handout.get('handout_id'), table: 'handouts'}
+            @_set
+                deleted    : true
+                handout_id : handout.get('handout_id')
+                table      : 'handouts'
 
         undelete_handout: (handout) =>
             store = get_store()
             return if not store?
             handout = store.get_handout(handout)
-            @_update
-                set   : {deleted: false}
-                where : {handout_id: handout.get('handout_id'), table: 'handouts'}
+            @_set
+                deleted    : false
+                handout_id : handout.get('handout_id')
+                table      : 'handouts'
 
         _set_handout_field: (handout, name, val) =>
             store = get_store()
             return if not store?
             handout = store.get_handout(handout)
-            where      = {table:'handouts', handout_id:handout.get('handout_id')}
-            @_update(set:{"#{name}":val}, where:where)
+            @_set
+                "#{name}"  : val
+                table      : 'handouts'
+                handout_id : handout.get('handout_id')
 
         set_handout_note: (handout, note) =>
             @_set_handout_field(handout, 'note', note)
@@ -1361,30 +1410,35 @@ init_redux = (course_filename, redux, course_project_id) ->
         _handout_finish_copy: (handout, student, err) =>
             if student? and handout?
                 store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
-                where = {table:'handouts', handout_id:handout.get('handout_id')}
-                status_map = syncdb.select_one(where:where)?.status ? {}
-                status_map[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                @_update(set:{"status":status_map}, where:where)
+                obj = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = @_get_one(obj)?.status ? {}
+                student_id = student.get('student_id')
+                status_map[student_id] = {time: misc.mswalltime()}
+                if err
+                    x[student_id].error = err
+                obj.status = status_map
+                @_set(obj)
 
         _handout_start_copy: (handout, student) =>
             if student? and handout?
                 store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
-                where = {table:'handouts', handout_id:handout.get('handout_id')}
-                status_map = syncdb.select_one(where:where)?.status ? {}
+                obj   = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = @_get_one(obj)?.status ? {}
                 student_status = (status_map[student.get('student_id')]) ? {}
                 if student_status.start? and salvus_client.server_time() - student_status.start <= 15000
                     return true  # never retry a copy until at least 15 seconds later.
                 student_status.start = misc.mswalltime()
                 status_map[student.get('student_id')] = student_status
-                @_update(set:{"status":status_map}, where:where)
+                obj.status = status_map
+                @_set(obj)
             return false
 
         # "Copy" of `stop_copying_assignment:`
         stop_copying_handout: (handout, student) =>
             if student? and handout?
                 store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
-                where = {table:'handouts', handout_id:handout.get('handout_id')}
-                status_map = syncdb.select_one(where:where)?.status_map
+                obj = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = @_get_one(obj)?.status_map
                 if not status_map?
                     return
                 student_status = (status_map[student.get('student_id')])
@@ -1393,7 +1447,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if student_status.start?
                     delete student_status.start
                     status_map[student.get('student_id')] = student_status
-                    @_update(set:{"status_map":status_map}, where:where)
+                    obj.status_map = status_map
+                    @_set(obj)
 
         # Copy the files for the given handout to the given student. If
         # the student project doesn't exist yet, it will be created.
@@ -1557,7 +1612,8 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_students: =>
             @get('students')
 
-        # Uses an instructor given name if it exists
+        # Get the student's name.
+        # Uses an instructor-given name if it exists.
         get_student_name: (student, include_email=false) =>
             student = @get_student(student)
             if not student?
@@ -1580,6 +1636,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 full = full_name + " <#{email}>"
             else
                 full = full_name
+            if full_name == 'Unknown User' and email?
+                full_name = email
             return {simple:full_name.replace(/\W/g, ' '), full:full}
 
         get_student_email: (student) =>
@@ -1749,7 +1807,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             #
             if not @_assignment_status?
                 @_assignment_status = {}
-                @on 'change', =>
+                @on 'change', =>   # clear cache on any change to the store
                     @_assignment_status = {}
             assignment = @get_assignment(assignment)
             if not assignment?
@@ -1816,9 +1874,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             student_id = student.get('student_id')
             status = @get_handout_status(handout)
             info =                         # RHS -- important to be undefined if no info -- assumed in code
-                status      : handout.get('status')?.get(student_id)?.toJS()
-                student_id        : student_id
-                handout_id        : handout.get('handout_id')
+                status     : handout.get('status')?.get(student_id)?.toJS()
+                student_id : student_id
+                handout_id : handout.get('handout_id')
             return info
 
         # Return the last time the handout was copied to/from the
@@ -1844,7 +1902,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             #
             if not @_handout_status?
                 @_handout_status = {}
-                @on 'change', =>
+                @on 'change', =>   # clear cache on any change to the store
                     @_handout_status = {}
             handout = @get_handout(handout)
             if not handout?
@@ -1880,46 +1938,53 @@ init_redux = (course_filename, redux, course_project_id) ->
 
     redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
-    synchronized_db
-        project_id : course_project_id
-        filename   : course_filename
-        cb         : (err, _db) ->
-            if err
-                get_actions()?.set_error("unable to open #{@filename}")
-            else
-                syncdbs[the_redux_name] = syncdb = _db
-                i = course_filename.lastIndexOf('.')
-                t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}, handouts:{}}
-                for x in syncdb.select()
-                    if x.table == 'settings'
-                        misc.merge(t.settings, misc.copy_without(x, 'table'))
-                    else if x.table == 'students'
-                        t.students[x.student_id] = misc.copy_without(x, 'table')
-                    else if x.table == 'assignments'
-                        t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
-                    else if x.table == 'handouts'
-                        t.handouts[x.handout_id] = misc.copy_without(x, 'table')
-                for k, v of t
-                    t[k] = immutable.fromJS(v)
-                get_actions()?.setState(t)
-                syncdb.on('change', (changes) -> get_actions()?._syncdb_change(changes))
-                syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
+    syncdb = salvus_client.sync_db
+        project_id      : course_project_id
+        path            : course_filename
+        primary_keys    : ['table', 'handout_id', 'student_id', 'assignment_id']
+        string_cols     : ['note', 'description', 'title', 'email_invite']
+        change_throttle : 500  # helps when doing a lot of assign/collect, etc.
+        save_interval   : 3000  # wait at least 3s between saving changes to backend
+    syncdbs[the_redux_name] = syncdb
+    syncdb.once 'change', =>
+        i = course_filename.lastIndexOf('.')
+        t =
+            settings    :
+                title       : course_filename.slice(0,i)
+                description : 'No description'
+            assignments : {}
+            students    : {}
+            handouts    : {}
+        for x in syncdb.get().toJS()
+            if x.table == 'settings'
+                misc.merge(t.settings, misc.copy_without(x, 'table'))
+            else if x.table == 'students'
+                t.students[x.student_id] = misc.copy_without(x, 'table')
+            else if x.table == 'assignments'
+                t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
+            else if x.table == 'handouts'
+                t.handouts[x.handout_id] = misc.copy_without(x, 'table')
+        for k, v of t
+            t[k] = immutable.fromJS(v)
+        get_actions()?.setState(t)
+        syncdb.on('change', (changes) -> get_actions()?._syncdb_change(changes))
+        syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
-                # Wait until the projects store has data about users of our project before configuring anything.
-                projects_store = redux.getStore('projects')
-                projects_store.wait
-                    until   :  (store) -> store.get_users(course_project_id)?
-                    timeout : 30
-                    cb      : ->
-                        actions = get_actions()
-                        if not actions?
-                            return
-                        actions.lookup_nonregistered_students()
-                        actions.configure_all_projects()
+        # Wait until the projects store has data about users of our project before configuring anything.
+        projects_store = redux.getStore('projects')
+        projects_store.wait
+            until   :  (store) -> store.get_users(course_project_id)?
+            timeout : 30
+            cb      : ->
+                actions = get_actions()
+                if not actions?
+                    return
+                actions.lookup_nonregistered_students()
+                actions.configure_all_projects()
 
-                        # Also
-                        projects_store.on 'change', actions.handle_projects_store_update
-                        actions.handle_projects_store_update(projects_store)  # initialize
+                # Also
+                projects_store.on 'change', actions.handle_projects_store_update
+                actions.handle_projects_store_update(projects_store)  # initialize
 
     return the_redux_name
 
@@ -1933,7 +1998,7 @@ remove_redux = (course_filename, redux, course_project_id) ->
     # Remove the store and actions.
     redux.removeStore(the_redux_name)
     redux.removeActions(the_redux_name)
-    syncdbs[the_redux_name]?.destroy()
+    syncdbs[the_redux_name]?.close()
     delete syncdbs[the_redux_name]
     return the_redux_name
 

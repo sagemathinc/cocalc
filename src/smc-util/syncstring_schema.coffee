@@ -71,6 +71,9 @@ schema.syncstrings =
         archived :
             type : 'uuid'
             desc : "if set, then syncstring patches array have been archived in the blob with given uuid."
+        doctype :
+            type : 'string'
+            desc : "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}"
 
     pg_indexes : ['last_active']
 
@@ -89,6 +92,7 @@ schema.syncstrings =
                 init              : null
                 read_only         : null
                 last_file_change  : null
+                doctype           : null
             required_fields :
                 path              : true
                 project_id        : true
@@ -115,6 +119,7 @@ schema.syncstrings =
                 init              : true
                 read_only         : true
                 last_file_change  : true
+                doctype           : true
             required_fields :
                 path              : true
                 project_id        : true
@@ -153,6 +158,7 @@ schema.recent_syncstrings_in_project =
         path        : true
         last_active : true
         deleted     : true
+        doctype     : true
     user_query :
         get :
             pg_where : (obj, db) ->
@@ -172,6 +178,7 @@ schema.recent_syncstrings_in_project =
                 last_active : null
                 path        : null
                 deleted     : null
+                doctype     : null
             required_fields :
                 project_id  : true
                 max_age_m   : true
@@ -207,6 +214,9 @@ schema.patches =
         prev :
             type : 'timestamp'
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
+        format :
+            type : 'integer'
+            desc : "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects;"
     user_query :
         get :
             throttle_changes : 1000
@@ -218,6 +228,7 @@ schema.patches =
                 snapshot  : null
                 sent      : null
                 prev      : null
+                format    : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -230,6 +241,7 @@ schema.patches =
                 snapshot  : true
                 sent      : true
                 prev      : true
+                format    : true
             required_fields :
                 string_id : true
                 time      : true

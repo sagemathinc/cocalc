@@ -26,8 +26,6 @@ immutable = require('immutable')
 
 {Button, ButtonGroup, Well} = require('react-bootstrap')
 
-{synchronized_db} = require('./syncdb')
-
 {salvus_client} = require('./salvus_client')
 
 misc = require('smc-util/misc')
@@ -44,7 +42,7 @@ EditorTime = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            timers : rtypes.immutable.Map
+            timers : rtypes.immutable.List
             error  : rtypes.string
 
     render_stopwatches: ->
@@ -52,14 +50,14 @@ EditorTime = rclass ({name}) ->
             return
         v = []
         click_button = @click_button
-        @props.timers.map (data, id) =>
+        @props.timers.map (data) =>
             v.push <Stopwatch
-                    key          = {id}
+                    key          = {data.get('id')}
                     label        = {data.get('label')}
                     total        = {data.get('total')}
                     state        = {data.get('state')}
                     time         = {data.get('time')}
-                    click_button = {(button) -> click_button(id, button)} />
+                    click_button = {(button) -> click_button(data.get('id'), button)} />
             return
         return v
 
@@ -77,10 +75,10 @@ EditorTime = rclass ({name}) ->
     render: ->
         if @props.error?
             return @render_error()
-        else if @props.timers?
-            <Well style={margin:'15px'}>
+        else if @props.timers? and @props.timers.size > 0
+            <div style={margin:'15px'}>
                 {@render_stopwatches()}
-            </Well>
+            </div>
         else
             <Loading/>
 
@@ -141,10 +139,10 @@ Stopwatch = rclass
                 </ButtonGroup>
 
     render: ->
-        <div>
+        <Well>
             {@render_time()}
             {@render_buttons()}
-        </div>
+        </Well>
 
 zpad = (n) ->
     n = "#{n}"
@@ -175,7 +173,7 @@ underlying synchronized state.
 class TimeActions extends Actions
 
     _init: () =>
-        window.t = @  # for debugging
+        # window.t = @  # for debugging
         # be explicit about exactly what state is in the store
         @setState
             timers : undefined
@@ -186,73 +184,53 @@ class TimeActions extends Actions
 
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: =>
-        v = {}
-        for x in @syncdb.select()
-            if x.corrupt?
-                console.warn('corrupt timer: ', x)
-                continue
-            v[x.id] = x
-
-        @setState
-            timers : immutable.fromJS(v)
-
         @syncdb.on('change', @_syncdb_change)
 
-        if misc.len(v) == 0
+    _syncdb_change: =>
+        @setState
+            timers : @syncdb.get()
+
+        if @syncdb.count() == 0
             @add_stopwatch()
 
-    _syncdb_change: (changes) =>
-        w = v = @store.get('timers')
-        if not w?
-            return
-        for x in changes
-            if x.remove?
-                w = w.delete(x.remove.id)
-            if x.insert?
-                w = w.set(x.insert.id, immutable.fromJS(x.insert))
-        if w != v
-            @setState(timers : w)
+    _set: (obj) =>
+        @syncdb.set(obj)
+        @syncdb.save()  # save to file on disk
 
     add_stopwatch: =>
-        @syncdb.update
-            set :
-                label  : ''
-                total  : 0
-                state  : 'stopped'  # 'paused', 'running', 'stopped'
-                time   : salvus_client.server_time()
-            where :
-                id : '0'
-        @syncdb.save()
+        id = 1
+        while @syncdb.get_one(id:id)?
+            id += 1
+        @_set
+            id     : id
+            label  : ''
+            total  : 0
+            state  : 'stopped'  # 'paused', 'running', 'stopped'
+            time   : salvus_client.server_time()
 
     stop_stopwatch: (id) =>
-        @syncdb.update
-            set :
-                total : 0
-                state : 'stopped'
-                time  : salvus_client.server_time()
-            where :
-                id : id
-        @syncdb.save()
+        @_set
+            id    : id
+            total : 0
+            state : 'stopped'
+            time  : salvus_client.server_time()
 
     start_stopwatch: (id) =>
-        @syncdb.update
-            set :
-                time  : salvus_client.server_time()
-                state : 'running'
-            where :
-                id : id
-        @syncdb.save()
+        @_set
+            id    : id
+            time  : salvus_client.server_time()
+            state : 'running'
 
     pause_stopwatch: (id) =>
-        x = @store.get('timers').get(id)
-        @syncdb.update
-            set :
-                time  : salvus_client.server_time()
-                total : x.get('total') + (salvus_client.server_time() - x.get('time'))
-                state : 'paused'
-            where :
-                id : id
-        @syncdb.save()
+        x = @syncdb.get_one(id:id)
+        if not x?
+            # stopwatch was deleted
+            return
+        @_set
+            id    : id
+            time  : salvus_client.server_time()
+            total : x.get('total') + (salvus_client.server_time() - x.get('time'))
+            state : 'paused'
 
 
 
@@ -281,23 +259,20 @@ require('./project_file').register_file_editor
 
         actions._init()
 
-        require('./syncdb').synchronized_db
-            project_id    : project_id
-            filename      : path
-            sync_interval : 0
-            cb            : (err, syncdb) ->
-                if err
-                    actions.init_error("unable to open '#{path}'")
-                else
-                    actions.syncdb = syncdb
-                    actions.store  = store
-                    actions.init_from_syncdb()
+        syncdb = salvus_client.sync_db
+            project_id   : project_id
+            path         : path
+            primary_keys : ['id']
+            string_cols  : ['label']
+        actions.syncdb = syncdb
+        actions.store  = store
+        actions.init_from_syncdb()
         return name
 
     remove    : (path, redux, project_id) ->
         name = redux_name(project_id, path)
         actions = redux.getActions(name)
-        actions?.syncdb?.destroy()
+        actions?.syncdb?.close()
         store = redux.getStore(name)
         if not store?
             return
