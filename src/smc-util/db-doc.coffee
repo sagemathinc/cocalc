@@ -591,7 +591,7 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
-        return d._db.get(where)
+        return d?._db.get(where) ? []
 
     get_one: (where, time) =>
         if not @_doc?
@@ -600,7 +600,7 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
-        return d._db.get_one(where)
+        return d?._db.get_one(where)
 
     # delete everything that matches the given criterion; returns number of deleted items
     delete: (where) =>

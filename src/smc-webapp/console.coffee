@@ -195,23 +195,20 @@ class Console extends EventEmitter
             @set_session(opts.session)
 
     _init_syncdb: (cb) =>
-        # TODO! -- not even defined now
-        return
-        synchronized_db
-            project_id : @project_id
-            filename   : @path
-            cb         : (err, db) =>
-                if err
-                    console.warn("ERROR connecting to state file '#{@path}' -- #{err}")
-                else
-                    if @_closed
-                        db.close()
-                    else
-                        @_syncdb = db
-                        @emit("init-syncdb")
-                        @update_size()
-                        @set_renderer_size()
-                        @_syncdb.on('change', @set_renderer_size)
+        syncdb = salvus_client.sync_db
+            project_id   : @project_id
+            path         : @path
+            primary_keys : ['table', 'id']
+        syncdb.once 'change', =>
+            if @_closed
+                syncdb?.close()
+                cb?('closed')
+            else
+                @_syncdb = syncdb
+                @emit("init-syncdb")
+                @update_size()
+                @set_renderer_size()
+                @_syncdb.on('change', @set_renderer_size)
                 cb?(err)
 
     append_to_value: (data) =>
@@ -594,9 +591,9 @@ class Console extends EventEmitter
         delete @session
 
         if @_syncdb?
-            @_syncdb.delete(where:{id: salvus_client._conn_id})
+            @_syncdb.delete(id: salvus_client._conn_id)
             @_syncdb.save () =>
-                @_syncdb.close()
+                @_syncdb?.close()
                 delete @_syncdb
 
         if @_mousedown?
@@ -877,10 +874,9 @@ class Console extends EventEmitter
         @_character_width = character_width
         @_row_height = row_height
 
-        cur = @_syncdb.select_one
-            where:
-                id : salvus_client._conn_id
-                table : 'clients'
+        cur = @_syncdb.get_one
+            id    : salvus_client._conn_id
+            table : 'clients'
 
         if cur? and cur.rows == rows and cur.cols == cols and cur.active >= misc.server_minutes_ago(1)
             # No change in our size *and* we set the active field less than a minute ago.
@@ -888,14 +884,12 @@ class Console extends EventEmitter
 
         # Set our size
         console.log "report our size as (rows=#{rows}, cols=#{cols})"
-        @_syncdb.update
-            set:
-                rows   : rows
-                cols   : cols
-                active : misc.server_time()
-            where:
-                table : 'clients'
-                id    : salvus_client._conn_id
+        @_syncdb.set
+            rows   : rows
+            cols   : cols
+            active : misc.server_time()
+            table  : 'clients'
+            id     : salvus_client._conn_id
         @_syncdb.save()
 
     set_renderer_size: =>
@@ -905,7 +899,7 @@ class Console extends EventEmitter
             # Not ready yet -- try again on connect
             @once('init-syncdb', @set_renderer_size)
             return
-        settings = @_syncdb.select_one(where:{table:'settings'})
+        settings = @_syncdb.get_one(table:'settings')
         if not settings?.cols? or not settings?.rows?
             return
         console.log "set our renderer size to (rows=#{settings.rows}, cols=#{settings.cols})"

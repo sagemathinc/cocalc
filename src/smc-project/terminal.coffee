@@ -58,28 +58,24 @@ class Terminal
 
     _init_file: (cb) =>
         @dbg("_init_file")
-        @client.syncdb
-            path : @path
-            cb   : (err, syncdb) =>
-                if err
-                    @dbg("_init_file -- ERROR=#{err}")
-                else
-                    @dbg("_init_file: success")
-                @_syncdb = syncdb
+        @_syncdb = @client.sync_db
+            path         : @path
+            primary_keys : ['table', 'id']
+        @_syncdb.once 'change', =>
+            @dbg("_init_file: success")
+            @_update_syncdb()
+            @_syncdb.on 'change', =>
+                @dbg("syncdb change to #{JSON.stringify(@_syncdb.get())}")
+                settings = @_syncdb.get_one(table:'settings')
+                if @_pty? and settings?.rows? and settings?.cols?
+                    @_pty.resize(settings.cols, settings.rows)
                 @_update_syncdb()
-                @_syncdb.on 'change', =>
-                    @dbg("syncdb change to #{JSON.stringify(@_syncdb.select())}")
-                    settings = @_syncdb.select_one(where:{table:'settings'})
-                    if @_pty? and settings?.rows? and settings?.cols?
-                        @_pty.resize(settings.cols, settings.rows)
-                    @_update_syncdb()
-
-                cb?(err)
+            cb?(err)
 
     _update_syncdb: =>
         if not @_syncdb?
             return
-        clients = @_syncdb.select(where:{table:'clients'})
+        clients = @_syncdb.get(table:'clients')
         changed = false
 
         # delete clients that haven't updated recently
@@ -89,14 +85,13 @@ class Terminal
             if (client.active ? 0) < cutoff
                 changed = true
                 @_syncdb.delete
-                    where :
-                        table : 'clients'
-                        id    : client.id
+                    table : 'clients'
+                    id    : client.id
             else
                 v.push(client)
         clients = v
 
-        settings = @_syncdb.select_one(where:{table:'settings'})
+        settings = @_syncdb.get_one(table:'settings')
         if clients.length > 0
             # determine a size that works for all active clients
             {rows, cols} = clients[0]
@@ -108,12 +103,10 @@ class Terminal
             if settings?.rows != rows or settings?.cols != cols
                 changed = true
                 @_pty?.resize(cols, rows)
-                @_syncdb.update
-                    set :
-                        rows : rows
-                        cols : cols
-                    where :
-                        table : 'settings'
+                @_syncdb.set
+                    rows  : rows
+                    cols  : cols
+                    table : 'settings'
         if changed
             @_syncdb.save()
 

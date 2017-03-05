@@ -52,8 +52,6 @@ db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
 
-syncdb = require('./syncdb')
-
 {json} = require('./common')
 
 {defaults, required} = misc
