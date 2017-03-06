@@ -523,6 +523,7 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
         @_doc.on('connected', => @emit('connected'))
+        @_doc.on('init', (err) => @emit('init', err))
         @setMaxListeners(100)
 
     _check: =>

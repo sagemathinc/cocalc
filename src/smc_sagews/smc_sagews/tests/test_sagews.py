@@ -7,6 +7,24 @@ import re
 
 from textwrap import dedent
 
+class TestDecorators:
+    def test_simple_dec(self, exec2):
+        code = dedent(r"""
+        def d2(f): return lambda x: f(x)+'-'+f(x)
+        @d2
+        def s(str): return str.upper()
+        s('spam')""")
+        exec2(code, "'SPAM-SPAM'\n")
+
+    def test_multiple_dec(self, exec2):
+        code = dedent(r"""
+        def dummy(f): return f
+        @dummy
+        @dummy
+        def f(x): return 2*x+1
+        f(2)""")
+        exec2(code, "5\n")
+
 class TestErr:
     def test_non_ascii(self, test_id, sagews):
         # assign x to hbar to trigger non-ascii warning

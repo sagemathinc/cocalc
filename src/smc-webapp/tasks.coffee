@@ -132,7 +132,10 @@ class TaskList
             change_throttle : 500
             save_interval   : 3000
 
-        @db.once 'change', =>
+        @db.once 'init', (err) =>
+            if err
+                cb?(err)
+                return
             @readonly = @db.is_read_only()
             if @readonly
                 @save_button.find("span").text("Readonly")

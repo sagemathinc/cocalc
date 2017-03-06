@@ -592,15 +592,18 @@ class SyncDoc extends EventEmitter
         @_doc = value
         return
 
+    # Return underlying document, or undefined if document hasn't been set yet.
     get_doc: =>
         return @_doc
 
+    # Set this doc from its string representation.
     from_str: (value) =>
         @_doc = @_from_str(value)
         return
 
+    # Return string representation of this doc, or undefined if the doc hasn't been se yet.
     to_str: =>
-        return @_doc.to_str()
+        return @_doc?.to_str()
 
     # Used for internal debug logging
     dbg: (f) ->

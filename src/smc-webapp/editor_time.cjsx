@@ -27,6 +27,7 @@ immutable = require('immutable')
 {Button, ButtonGroup, Well} = require('react-bootstrap')
 
 {salvus_client} = require('./salvus_client')
+{alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -182,10 +183,6 @@ class TimeActions extends Actions
         @setState
             error : err
 
-    # Initialize the state of the store from the contents of the syncdb.
-    init_from_syncdb: =>
-        @syncdb.on('change', @_syncdb_change)
-
     _syncdb_change: =>
         @setState
             timers : @syncdb.get()
@@ -266,7 +263,14 @@ require('./project_file').register_file_editor
             string_cols  : ['label']
         actions.syncdb = syncdb
         actions.store  = store
-        actions.init_from_syncdb()
+        syncdb.once 'init', (err) =>
+            if err
+                mesg = "Error opening '#{path}' -- #{err}"
+                console.warn(mesg)
+                alert_message(type:"error", message:mesg)
+                return
+            actions._syncdb_change()
+            syncdb.on('change', actions._syncdb_change)
         return name
 
     remove    : (path, redux, project_id) ->
