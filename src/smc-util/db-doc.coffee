@@ -591,7 +591,7 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
-        return d?._db.get(where) ? []
+        return d?._db.get(where) ? immutable.List([])
 
     get_one: (where, time) =>
         if not @_doc?

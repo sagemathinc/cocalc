@@ -899,7 +899,7 @@ class Console extends EventEmitter
             # Not ready yet -- try again on connect
             @once('init-syncdb', @set_renderer_size)
             return
-        settings = @_syncdb.get_one(table:'settings')
+        settings = @_syncdb.get_one(table:'settings').toJS()  # TODO: use immutable...
         if not settings?.cols? or not settings?.rows?
             return
         console.log "set our renderer size to (rows=#{settings.rows}, cols=#{settings.cols})"

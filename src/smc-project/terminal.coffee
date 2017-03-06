@@ -63,26 +63,22 @@ class Terminal
             primary_keys : ['table', 'id']
         @_syncdb.once 'change', =>
             @dbg("_init_file: success")
-            @_update_syncdb()
-            @_syncdb.on 'change', =>
-                @dbg("syncdb change to #{JSON.stringify(@_syncdb.get())}")
-                settings = @_syncdb.get_one(table:'settings')
-                if @_pty? and settings?.rows? and settings?.cols?
-                    @_pty.resize(settings.cols, settings.rows)
-                @_update_syncdb()
             cb?(err)
+        @_syncdb.on('change', @_update_syncdb)
 
     _update_syncdb: =>
         if not @_syncdb?
             return
-        clients = @_syncdb.get(table:'clients')
-        changed = false
+        @dbg("syncdb change to #{JSON.stringify(@_syncdb.get())}")
+        # TODO: redo this whole function to use immutable more effectively
+        clients = @_syncdb.get(table:'clients').toJS()
 
         # delete clients that haven't updated recently
         cutoff = misc.minutes_ago(CLIENT_TIMEOUT_M)
         v = []
         for client in clients
             if (client.active ? 0) < cutoff
+                @dbg("deleting non-active client: #{JSON.stringify(client)}")
                 changed = true
                 @_syncdb.delete
                     table : 'clients'
@@ -90,6 +86,7 @@ class Terminal
             else
                 v.push(client)
         clients = v
+        @dbg("active clients: #{JSON.stringify(clients)}")
 
         settings = @_syncdb.get_one(table:'settings')
         if clients.length > 0
@@ -100,15 +97,18 @@ class Terminal
                     rows = client.rows
                 if client.cols < cols
                     cols = client.cols
-            if settings?.rows != rows or settings?.cols != cols
-                changed = true
+            if @_pty_rows != rows or @_pty_cols != cols
+                @dbg("changing pty to (#{rows},#{cols})")
                 @_pty?.resize(cols, rows)
+                @_pty_rows = rows
+                @_pty_cols = cols
                 @_syncdb.set
                     rows  : rows
                     cols  : cols
                     table : 'settings'
-        if changed
-            @_syncdb.save()
+                @_syncdb.save()
+            else
+                @dbg("leaving pty as (#{rows},#{cols})")
 
     _init_pty: (file='bash', args=[], options={}) =>
         if @_pty?
