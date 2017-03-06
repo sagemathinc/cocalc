@@ -462,7 +462,7 @@ class Doc
 
     apply_patch: (patch) =>
         #console.log("apply_patch")
-        db = new Doc(@_db.apply_patch(patch))
+        return new Doc(@_db.apply_patch(patch))
 
     make_patch: (other) =>
         return @_db.make_patch(other._db)

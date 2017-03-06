@@ -332,7 +332,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.to_str()
 
     _update_unsaved_uncommitted_changes: =>
-        if not @codemirror?
+        if not @_fully_loaded or not @codemirror? or @_closed
             return
         if new Date() - (@_last_change_time ? 0) <= 1000
             # wait at least a second from when the user last changed the document, in case it's just a burst of typing.
