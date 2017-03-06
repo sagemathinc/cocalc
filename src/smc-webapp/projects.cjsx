@@ -103,6 +103,26 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    # Apply default upgrades -- if available -- to the given project.
+    # Right now this means upgrading to member hosting and enabling
+    # network access.  Later this could mean something else, or be
+    # configurable by the user.
+    apply_default_upgrades: (opts) =>
+        opts = defaults opts,
+            project_id : required
+        # WARNING/TODO: This may be invalid if redux.getActions('billing')?.update_customer() has
+        # not been recently called. There's no big *harm* if it is out of date (since quotas will
+        # just get removed when the project is started), but it could be mildly confusing.
+        total = redux.getStore('account').get_total_upgrades()
+        applied = store.get_total_upgrades_you_have_applied()
+        to_upgrade = {}
+        for quota in ['member_host', 'network']
+            avail = (total[quota] ? 0) - (applied[quota] ? 0)
+            if avail > 0
+                to_upgrade[quota] = 1
+        if misc.len(to_upgrade) > 0
+            @apply_upgrades_to_project(opts.project_id, to_upgrade)
+
     # only owner can set course description.
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not @have_project(project_id)
@@ -666,47 +686,28 @@ NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
     propTypes :
-        nb_projects                          : rtypes.number.isRequired
-        customer                             : rtypes.object
-        upgrades_you_can_use                 : rtypes.object
-        upgrades_you_applied_to_all_projects : rtypes.object
-        quota_params                         : rtypes.object.isRequired # from the schema
-        actions                              : rtypes.object.isRequired # projects actions
-
-    getDefaultProps: ->
-        upgrades_you_can_use                 : {}
-        upgrades_you_applied_to_all_projects : {}
+        nb_projects : rtypes.number.isRequired
 
     getInitialState: ->
         state =
-            upgrading         : true
-            has_subbed        : false
-            state             : if @props.nb_projects == 0 then 'edit' else 'view'    # view --> edit --> saving --> view
-            title_text        : ''
-            description_text  : ''
-            error             : ''
-            create_button_hit : ''
-
-    componentWillReceiveProps: (nextProps) ->
-        # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
-        subs = @props.customer?.subscriptions?.total_count ? 0
-        if subs > 0 and not @state["has_subbed"]
-            @setState(has_subbed: true)
+            state      : if @props.nb_projects == 0 then 'edit' else 'view'    # view --> edit --> saving --> view
+            title_text : ''
+            error      : ''
 
     start_editing: ->
-        redux.getActions('billing')?.update_customer()
         @setState
-            state           : 'edit'
-            title_text      : ''
-            description_text: ''
+            state      : 'edit'
+            title_text : ''
+        # We also update the customer billing iformation; this is important since
+        # we will call apply_default_upgrades in a moment, and it will be more
+        # accurate with the latest billing information recently loaded.
+        redux.getActions('billing')?.update_customer()
 
     cancel_editing: ->
         @setState
-            state             : 'view'
-            title_text        : ''
-            description_text  : ''
-            error             : ''
-            create_button_hit : '' # Options are 'with_members_and_network' and 'with_custom_upgrades'
+            state      : 'view'
+            title_text : ''
+            error      : ''
 
     toggle_editing: ->
         if @state.state == 'view'
@@ -714,211 +715,85 @@ NewProjectCreator = rclass
         else
             @cancel_editing()
 
-    render_upgrades_adjustor: ->
-        <UpgradeAdjustor
-            upgrades_you_can_use                 = {@props.upgrades_you_can_use}
-            upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
-            upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-            submit_text                          = {"Create project with upgrades"}
-            disable_submit                       = {@state.title_text == '' or @state.state == 'saving'}
-            submit_upgrade_quotas                = {@create_project}
-            cancel_upgrading                     = {@cancel_editing}
-            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-        >
-            {@render_info_alert()}
-        </UpgradeAdjustor>
-
     create_project: (quotas_to_apply) ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
-            title       : @state.title_text
-            description : @state.description_text
-            token       : token
+            title : @state.title_text
+            token : token
         store.wait_until_project_created token, 30, (err, project_id) =>
             if err?
                 @setState
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
-                if quotas_to_apply
-                    @props.actions.apply_upgrades_to_project(project_id, quotas_to_apply)
-                @actions('projects').open_project(project_id:project_id)
+                actions.apply_default_upgrades(project_id: project_id)
+                actions.open_project(project_id: project_id)
+
 
     handle_keypress: (e) ->
-        if e.keyCode == 13 and @state.title_text != ''
+        if e.keyCode == 27
+            @cancel_editing()
+        else if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
-    render_upgrade_before_create: (subs) ->
-        <Col sm=12>
-            <div>
-                {<div id="upgrade_before_creation"></div> if subs == 0}
-                <BillingPageSimplifiedRedux redux={redux} />
-                {<div id="upgrade_before_creation"></div> if subs > 0}
-                {@render_upgrades_adjustor() if subs > 0}
-            </div>
-        </Col>
-
     render_info_alert: ->
-        if @state.title_text == '' and @state.state != 'saving'
-            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
-        else if @state.state == 'saving'
-            <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
+        if @state.state == 'saving'
+            <div style={marginTop:'30px'}>
+                <Alert bsStyle='info'>Creating project... <Icon name='circle-o-notch' spin /></Alert>
+            </div>
 
-    create_project_with_members_and_network: ->
-        remaining_upgrades = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
-        if remaining_upgrades.member_host > 0 and remaining_upgrades.network > 0
-            @setState(create_button_hit: 'with_members_and_network')
-        else
-            @setState(create_button_hit: 'with_custom_upgrades')
+    render_error: ->
+        if @state.error
+            <div style={marginTop:'30px'}>
+                <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            </div>
 
-    render_upgrade_buttons: ->
-        <ButtonToolbar>
-            <Button
-                disabled  = {@state.title_text == '' or @state.state == 'saving'}
-                onClick   = {=>@create_project(false)}
-                bsStyle  = 'success' >
-                Create project
-            </Button>
-            <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_members_and_network'}
-                bsStyle  = 'success'
-                onClick  = {=>@create_project_with_members_and_network()} >
-                <Icon name="arrow-circle-up" /> Create with hosting and network upgrades…
-            </Button>
-            <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving' or @state.create_button_hit == 'with_custom_upgrades'}
-                bsStyle  = 'success'
-                onClick  = {=>@setState(create_button_hit: 'with_custom_upgrades')} >
-                <Icon name="cog" /> Create with custom upgrades...
-            </Button>
-            <Button
-                disabled = {@state.state is 'saving'}
-                onClick  = {@cancel_editing} >
-                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-            </Button>
-        </ButtonToolbar>
-
-    render_create_button: ->
-        <ButtonToolbar>
-            <Button
-                disabled = {@state.title_text == '' or @state.state == 'saving'}
-                bsStyle  = 'success'
-                onClick  = {=>@create_project(false)} >
-                Create project
-            </Button>
-            <Button
-                disabled = {@state.state is 'saving'}
-                onClick  = {@cancel_editing} >
-                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-            </Button>
-        </ButtonToolbar>
-
-    render_commercial_explanation_of_project: ->
-        <div>
-            Creating basic projects without upgrades is free while upgrades require a subscription.
-            Core upgrades are members only hosting and network access. You may also upgrade the CPU, RAM, and disk space.
-            If you have any questions, please
-            email <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately.<br/><br/>
-            <span className="highlight">If you are
-            purchasing a course subscription, but need a short trial to test things out first,
-            then please immediately email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
-            </span>
-        </div>
-
-    render_no_title_warning: ->
-        <Alert bsStyle='warning'>No project title specified. Please enter title at the top.</Alert>
-
-    render_create_buttons: ->
-        if require('./customize').commercial then @render_upgrade_buttons() else @render_create_button()
-
-    render_confirm_members_and_network_upgrades: ->
-        <Well style={'marginTop': '20px'}>
-            <ButtonToolbar>
-                <p>Create this project on a members-only host with full network access.</p>
-                <Button
-                    bsStyle  = 'success'
-                    onClick  = {=>@create_project({member_host: 1, network: 1})} >
-                    Create
-                </Button>
-                <Button
-                    onClick  = {=>@setState(create_button_hit: '')} >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Well>
-
-    render_input_section: (subs)  ->
-        create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
-
-        <Well style={backgroundColor: '#FFF', color:'#666'}>
+    render_input_section: ->
+        <Well style={backgroundColor: '#FFF'}>
             <Row>
-                <Col sm=5>
-                    <h4 id="new_project_title">Title</h4>
+                <Col sm=6>
                     <FormGroup>
                         <FormControl
                             ref         = 'new_project_title'
                             type        = 'text'
-                            placeholder = 'Title'
+                            placeholder = 'Project title'
                             disabled    = {@state.state == 'saving'}
                             value       = {@state.title_text}
                             onChange    = {=>@setState(title_text:ReactDOM.findDOMNode(@refs.new_project_title).value)}
                             onKeyDown   = {@handle_keypress}
                             autoFocus   />
                     </FormGroup>
+                    <ButtonToolbar>
+                        <Button
+                            disabled  = {@state.title_text == '' or @state.state == 'saving'}
+                            onClick   = {=>@create_project(false)}
+                            bsStyle  = 'success' >
+                            Create project
+                        </Button>
+                        <Button
+                            disabled = {@state.state is 'saving'}
+                            onClick  = {@cancel_editing} >
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
                 </Col>
-
-                <Col sm=7>
-                    <h4>Description</h4>
-                    <FormGroup>
-                        <FormControl
-                            ref         = 'new_project_description'
-                            type        = 'text'
-                            placeholder = 'Project description'
-                            disabled    = {@state.state == 'saving'}
-                            value       = {@state.description_text}
-                            onChange    = {=>@setState(description_text:ReactDOM.findDOMNode(@refs.new_project_description).value)}
-                            onKeyDown   = {@handle_keypress} />
-                    </FormGroup>
-                </Col>
-
-            </Row>
-            <Row>
-                <Col sm=5>
-                </Col>
-                <Col sm=7>
-                    <div style={marginBottom: '12px'}>You can <b>very easily</b> change the title and description at any time later.</div>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    {if @state.title_text then @render_create_buttons() else @render_no_title_warning()}
-                    {@render_confirm_members_and_network_upgrades() if @state.create_button_hit == 'with_members_and_network'}
-                    <br/>A <b>project</b> is your own private computational workspace that you can share
-                    with others. <br/><br/>
-                    {@render_commercial_explanation_of_project() if require('./customize').commercial}<br/>
-                    {@render_error()}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    <span id="new_project_billing_section"></span>
-                    {@render_upgrade_before_create(subs) if @state.create_button_hit == 'with_custom_upgrades'}
+                <Col sm=6>
+                    <div style={color:'#666'}>
+                        A <b>project</b> is your own computational workspace that you can share with others.
+                        You can easily change the project title later.
+                    </div>
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
                     {@render_error()}
+                    {@render_info_alert()}
                 </Col>
             </Row>
         </Well>
 
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
     render: ->
-        subs = @props.customer?.subscriptions?.total_count ? 0
         <Row>
             <Col sm=4>
                 <Button
@@ -933,7 +808,7 @@ NewProjectCreator = rclass
             </Col>
             {<Col sm=12>
                 <Space/>
-                {@render_input_section(subs)}
+                {@render_input_section()}
             </Col> if @state.state != 'view'}
         </Row>
 
@@ -1530,11 +1405,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                         <Col sm=12 style={marginTop:'1ex'}>
                             <NewProjectCreator
                                 nb_projects = {@project_list().length}
-                                customer    = {@props.customer}
-                                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
-                                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                                actions                              = {redux.getActions('projects')} />
+                                />
                         </Col>
                     </Row>
                     <Row>

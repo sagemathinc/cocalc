@@ -150,7 +150,7 @@ SignUp = rclass
                         ref         = 'name'
                         type        = 'text'
                         autoFocus   = {false}
-                        placeholder = 'First and last Name'
+                        placeholder = 'First and last name'
                         maxLength   = 254 />
                 </FormGroup>
                 <FormGroup>
