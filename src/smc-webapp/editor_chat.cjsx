@@ -71,7 +71,6 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
-{Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -231,7 +230,12 @@ exports.init_redux = (path, redux, project_id) ->
         project_id   : project_id
         path         : path
         primary_keys : ['date']
-    syncdb.once 'change', =>
+    syncdb.once 'init', (err) =>
+        if err
+            mesg = "Error opening '#{path}' -- #{err}"
+            console.warn(mesg)
+            alert_message(type:"error", message:mesg)
+            return
         actions.syncdb = syncdb
         actions.store = store
         actions.init_from_syncdb()

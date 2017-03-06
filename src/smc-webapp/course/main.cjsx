@@ -1946,7 +1946,11 @@ init_redux = (course_filename, redux, course_project_id) ->
         change_throttle : 500  # helps when doing a lot of assign/collect, etc.
         save_interval   : 3000  # wait at least 3s between saving changes to backend
     syncdbs[the_redux_name] = syncdb
-    syncdb.once 'change', =>
+    syncdb.once 'init', (err) =>
+        if err
+            get_actions()?.set_error(err)
+            console.warn("Error opening '#{course_filename}' -- #{err}")
+            return
         i = course_filename.lastIndexOf('.')
         t =
             settings    :

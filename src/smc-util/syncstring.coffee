@@ -887,7 +887,8 @@ class SyncDoc extends EventEmitter
                     return
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
-                    cb    : (err, init) => @emit('init', err ? init.toJS().error)
+                    cb    : (err, init) =>
+                        @emit('init', err ? init.toJS().error)
                 if err
                     cb(err)
                 else
