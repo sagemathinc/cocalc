@@ -270,7 +270,7 @@ require('./project_file').register_file_editor
                 alert_message(type:"error", message:mesg)
                 return
             actions._syncdb_change()
-            @syncdb.on('change', actions._syncdb_change)
+            syncdb.on('change', actions._syncdb_change)
         return name
 
     remove    : (path, redux, project_id) ->
