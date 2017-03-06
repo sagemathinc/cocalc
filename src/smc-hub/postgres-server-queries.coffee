@@ -352,8 +352,13 @@ class exports.PostgreSQL extends PostgreSQL
                         email_address : opts.email_address
                         columns       : ['account_id']
                         cb            : (err, x) =>
-                            opts.account_id = x.account_id
-                            cb(err)
+                            if err
+                                cb(err)
+                            else if not x?
+                                cb("no such email address")
+                            else
+                                opts.account_id = x.account_id
+                                cb()
             (cb) =>
                 @clear_cache()  # caching is mostly for permissions so this is exactly when it would be nice to clear it.
                 @_query
