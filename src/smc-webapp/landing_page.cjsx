@@ -614,7 +614,7 @@ exports.LandingPage = rclass
                         <div style={clear:'both'}></div>
                 </Row>
                 <Row style={fontSize        : 3*UNIT,\
-                            backgroundColor : COLORS.BLUE_BG,\
+                            backgroundColor : COLORS.YELL_D,\
                             padding         : 5,\
                             margin          : 0,\
                             borderRadius    : 4,\

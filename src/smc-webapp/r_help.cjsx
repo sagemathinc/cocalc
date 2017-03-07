@@ -502,7 +502,8 @@ exports.HelpPage = HelpPage = rclass
                     <div style={display: 'inline-block', \
                                 backgroundImage: "url('#{APP_ICON_URL}')", \
                                 backgroundSize: 'contain', \
-                                backgroundColor: COLORS.BLUE_D}
+                                borderColor: COLORS.BLUE_D,
+                                borderSize: '1px'}
                           className='img-rounded pull-right help-smc-logo' ></div>
                     <SiteName/> <SiteDescription/>
                 </h3>

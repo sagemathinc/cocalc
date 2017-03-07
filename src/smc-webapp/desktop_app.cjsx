@@ -172,9 +172,9 @@ Page = rclass
             width         : '100%'
             minHeight     : '42px'
             position      : 'fixed'
-            right         : '0'
+            right         : 0
             zIndex        : '100'
-            opacity       : '0.8'
+            borderRadius  : 0
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
