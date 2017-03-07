@@ -288,20 +288,19 @@ exports.FullscreenButton = rclass
 
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
-exports.SMCLogo = rclass
-    displayName : 'SMCLogo'
+exports.AppLogo = rclass
+    displayName : 'AppLogo'
 
     render: ->
-        smc_icon_url = require('salvus-icon.svg')
+        app_icon_url = require('cocalc-icon.svg')
         styles =
             display         : 'inline-block'
-            backgroundImage : "url('#{smc_icon_url}')"
+            backgroundImage : "url('#{app_icon_url}')"
             backgroundSize  : 'contain'
-            backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
             height          : 40
-            width           : 42
+            width           : 40
             position        : 'relative'
-        <div className='img-rounded' style={styles}></div>
+        <div style={styles}></div>
 
 exports.VersionWarning = rclass
     displayName : 'VersionWarning'

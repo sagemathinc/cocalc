@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
+{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
@@ -242,7 +242,7 @@ FileRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
         # See https://github.com/sagemathinc/smc/issues/1020
         # support right-click → copy url for the download button
@@ -355,7 +355,7 @@ DirectoryRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
         directory_styles =
             fontWeight     : 'bold'

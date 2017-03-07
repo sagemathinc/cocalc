@@ -17,7 +17,7 @@ Sidebar = require('react-sidebar').default
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -85,7 +85,7 @@ Page = rclass
     render_projects_button: ->
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
             <NavItem onClick={(e)=>@actions('page').set_active_tab('projects')}>
-                <SMCLogo />
+                <AppLogo />
             </NavItem>
         </Nav>
 

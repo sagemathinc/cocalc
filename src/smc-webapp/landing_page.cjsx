@@ -23,14 +23,14 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 {HelpPageUsageSection} = require('./r_help')
 #DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
-SMC_ICON_URL = require('salvus-icon.svg')
+APP_ICON_URL = require('cocalc-icon.svg')
 
 images = [
     require('sagepreview/01-worksheet.png'),
@@ -603,7 +603,7 @@ exports.LandingPage = rclass
                         forgot_password_success={@props.forgot_password_success}
                     /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
-                            backgroundColor: SAGE_LOGO_COLOR,\
+                            backgroundColor: COLORS.BLUE_BG,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
@@ -614,7 +614,7 @@ exports.LandingPage = rclass
                         <div style={clear:'both'}></div>
                 </Row>
                 <Row style={fontSize        : 3*UNIT,\
-                            backgroundColor : SAGE_LOGO_COLOR,\
+                            backgroundColor : COLORS.BLUE_BG,\
                             padding         : 5,\
                             margin          : 0,\
                             borderRadius    : 4,\
@@ -635,7 +635,7 @@ exports.LandingPage = rclass
                               xs            = {false} />
                       </div>
                       <span style={display         : 'inline-block', \
-                                   backgroundImage : "url('#{SMC_ICON_URL}')", \
+                                   backgroundImage : "url('#{APP_ICON_URL}')", \
                                    backgroundSize  : 'contain', \
                                    height          : UNIT * 4, width: UNIT * 4, \
                                    borderRadius    : 10, \

@@ -22,7 +22,7 @@ project_file = require('./project_file')
 {file_associations} = require('./editor')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
+{Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -87,7 +87,7 @@ FileTab = rclass
         if @props.file_tab
             styles = misc.copy(DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
-                styles.backgroundColor = SAGE_LOGO_COLOR
+                styles.backgroundColor = COLORS.BLUE_BG
         else
             styles.flex = 'none'
 

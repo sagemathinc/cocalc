@@ -1,10 +1,7 @@
 #smc-startup-banner {
     width: 450px;
-    background-color: #428BCA;
     /* bootstrap 3.3 has this line height. fix it, if it changes! */
     line-height: 1.42857143;
-    border-radius: 5px;
-    padding: 15px 0;
     text-align: center;
     position: fixed;
     top: 150px;
@@ -14,7 +11,6 @@
     font-family: sans-serif;
     font-size: 26px;
     color: white;
-    animation: banner-error-main ease-in 31s forwards;
 }
 
 #smc-startup-banner-status {
@@ -26,25 +22,31 @@
     left: 0;
     right: 0;
 }
-@keyframes banner-error-main {
-     95% {background-color: #428BCA; }
-    100% {background-color: #bf1919; }
-}
 #smc-startup-banner img {
-    width: 80px;
-    height: 80px;
+    width:  188px;   /* original 94px */
+    height: 154px;   /* original 77px */
 }
 #smc-startup-banner .banner-blink,
 #smc-startup-banner .banner-error {
   width: 450px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  opacity: 0.0;
+  animation: banner-error ease-in 31s forwards;
 }
 
-#smc-startup-banner .banner-error { float: left; }
-#smc-startup-banner .banner-blink { position: absolute; }
-
+#smc-startup-banner .banner-error {
+  float: left;
+  border-radius: 5px;
+  padding: 15px 0;
+}
 #smc-startup-banner .banner-blink {
+  border-radius: 5px;
+  padding: 15px 0;
+  background-color: #4474c0;
+  margin-bottom: 5px;
+  opacity: 1.0;
+}
+
+#smc-startup-banner .banner-blink img {
   animation: banner-blink 31s forwards;
 }
 @keyframes banner-blink {
@@ -65,16 +67,12 @@
     70% {opacity: 1.0; }
     80% {opacity:  .1; }
     90% {opacity: 0.8; }
-    95% {opacity: 0.0; }
-   100% {opacity: 0.0; }
-}
-#smc-startup-banner .banner-error {
-  animation: banner-error ease-in 31s forwards;
-  opacity: 0.0;
+    95% {opacity: 0.1; }
+   100% {opacity: 1.0; }
 }
 @keyframes banner-error {
- 95% {opacity: 0.0;}
-100% {opacity: 1.0;}
+ 95% {opacity: 0.0; background-color: #428BCA;}
+100% {opacity: 1.0; background-color: #bf1919;}
 }
 #smc-startup-banner .message {
     margin-top: 10px;

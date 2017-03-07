@@ -12,33 +12,27 @@ html
     title= htmlWebpackPlugin.options.title
 
     //- http://realfavicongenerator.net
-    link(rel="apple-touch-icon", sizes="180x180", href="/apple-touch-icon.png")
-    link(rel="icon", type="image/png", href="/favicon-32x32.png", sizes="32x32")
-    link(rel="icon", type="image/png", href="/android-chrome-192x192.png", sizes="192x192")
-    link(rel="icon", type="image/png", href="/favicon-16x16.png", sizes="16x16")
-    link(rel="manifest", href="/manifest.json")
-    link(rel="mask-icon", href="/safari-pinned-tab.svg", color="#bf7b00")
+    link(rel="apple-touch-icon", sizes="180x180", href=require('!file!apple-touch-icon.png'))
+    link(rel="icon", type="image/png", href=require('!file!favicon-32x32.png'), sizes="32x32")
+    link(rel="icon", type="image/png", href=require('!file!android-chrome-192x192.png'), sizes="192x192")
+    link(rel="icon", type="image/png", href=require('!file!favicon-16x16.png'), sizes="16x16")
+    link(rel="manifest", href=require('!file!manifest.json'))
+    link(rel="mask-icon", href=require('!file!safari-pinned-tab.svg'), color="#bf7b00")
     meta(name="apple-mobile-web-app-title", content="CoCalc")
     meta(name="application-name", content="CoCalc")
     meta(name="theme-color", content="#bf7b00")
 
   body
     style.
-      #{require('!css?minimize!smc-startup-style.css')}
+      #{require('!css?minimize!app-startup-style.css')}
     div#smc-startup-banner
-      div
-        img(src=require('!url?mimetype=image/svg+xml!salvus-icon.svg'))
-      div
-        div.banner-blink
-            | Loading
-            br/
-            | #{ htmlWebpackPlugin.options.title } ...
-        div.banner-error
-          div.message
-            | Something bad must have happened.
-            br/
-            | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
-        div(style="clear: both;")
+      div.banner-blink
+        img(src=require('!url?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
+      div.banner-error
+        div.message
+          | Something bad must have happened.
+          br/
+          | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
     div#smc-startup-banner-status
       | Initializing ...
 

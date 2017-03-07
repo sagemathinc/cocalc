@@ -19,7 +19,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -139,7 +139,7 @@ Page = rclass
                 <div style={projects_styles}>
                     Projects
                 </div>
-                <SMCLogo />
+                <AppLogo />
             </NavTab>
         </Nav>
 

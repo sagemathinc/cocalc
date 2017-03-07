@@ -29,7 +29,7 @@ $ = window.$
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR, Footer} = require('./r_misc')
+{Icon, Loading, Space, TimeAgo, UNIT, COLORS, Footer} = require('./r_misc')
 
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 
@@ -37,8 +37,7 @@ $ = window.$
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
-#{SMC_ICON_URL} = require('./misc_page')
-SMC_ICON_URL = require('salvus-icon.svg')
+APP_ICON_URL = require('cocalc-icon.svg')
 
 
 # CSS
@@ -501,9 +500,9 @@ exports.HelpPage = HelpPage = rclass
 
                 <h3>
                     <div style={display: 'inline-block', \
-                                backgroundImage: "url('#{SMC_ICON_URL}')", \
+                                backgroundImage: "url('#{APP_ICON_URL}')", \
                                 backgroundSize: 'contain', \
-                                backgroundColor: SAGE_LOGO_COLOR}
+                                backgroundColor: COLORS.BLUE_D}
                           className='img-rounded pull-right help-smc-logo' ></div>
                     <SiteName/> <SiteDescription/>
                 </h3>
