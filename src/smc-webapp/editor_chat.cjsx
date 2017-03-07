@@ -50,7 +50,7 @@ Chat message types after immutable conversion:
 sender_id : String
 event     : String
 date      : Date Object
-history   : immutable.Stack of immutable.Maps
+history   : immutable.List of immutable.Maps
 editing   : immutable.Map
 
 ###
@@ -93,32 +93,44 @@ class ChatActions extends Actions
             saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
             use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
 
+    _process_syncdb_obj: (x) =>
+        if x.event != 'chat'
+            # Event used to be used for video chat, etc...; but we have a better approach now, so
+            # all events we care about are chat.
+            return
+        if x.video_chat?.is_video_chat
+            # discard/ignore anything else related to the old old video chat approach
+            return
+        if x.history?.length > 0
+            # nontrivial history -- nothing to do
+        else if x.payload?
+            # for old chats with payload: content (2014-2016)... plus the script @hsy wrote in the work project ;-(
+            x.history = []
+            x.history.push
+                content   : x.payload.content
+                author_id : x.sender_id
+                date      : x.date
+            delete x.payload
+        else if x.mesg?
+            # for old chats with mesg: content (up to 2014)
+            x.history = []
+            x.history.push
+                content   : x.mesg.content
+                author_id : x.sender_id
+                date      : x.date
+            delete x.mesg
+        x.history ?= []
+        if not x.editing
+            x.editing = {}
+        return x
+
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: () =>
         v = {}
         for x in @syncdb.get().toJS()
-            switch x.event
-                when 'chat'
-                    if x.video_chat?.is_video_chat
-                        # discard/ignore anything related to the old old video chat approach
-                        continue
-                    if x.history
-                        x.history = immutable.Stack(immutable.fromJS(x.history))
-                    else if x.payload? # for old chats with payload: content (2014-2016)
-                        initial = immutable.fromJS
-                            content   : x.payload.content
-                            author_id : x.sender_id
-                            date      : x.date
-                        x.history = immutable.Stack([initial])
-                    else if x.mesg? # for old chats with mesg: content (up to 2014)
-                        initial = immutable.fromJS
-                            content   : x.mesg.content
-                            author_id : x.sender_id
-                            date      : x.date
-                        x.history = immutable.Stack([initial])
-                    if not x.editing
-                        x.editing = {}
-                    v[x.date - 0] = x
+            x = @_process_syncdb_obj(x)
+            if x?
+                v[x.date - 0] = x
 
         @setState
             messages : immutable.fromJS(v)
@@ -135,15 +147,11 @@ class ChatActions extends Actions
                 # delete
                 messages = messages.delete(obj.date - 0)
             else
-                # TODO/OPTIMIZATION: make into custom conversion to immutable
-                switch x.event
-                    when 'chat'
-                        message  = record
-                        message  = message.set('history', immutable.Stack(immutable.fromJS(x.history)))
-                        message  = message.set('editing', immutable.Map(x.editing))
-                        messages = messages.set("#{x.date - 0}", message)
-
-        if messages_before != messages
+                # TODO/OPTIMIZATION: make into custom conversion to immutable (when rewrite)
+                x = @_process_syncdb_obj(x)
+                if x?
+                    messages = messages.set("#{x.date - 0}", immutable.fromJS(x))
+        if not messages_before.equals(messages)
             @setState(messages: messages)
 
     send_chat: (mesg) =>
@@ -258,7 +266,7 @@ exports.remove_redux = (path, redux, project_id) ->
 
 ### Message Methods ###
 exports.newest_content = newest_content = (message) ->
-    message.get('history').peek()?.get('content') ? ''
+    return message.get('history').first()?.get('content') ? ''
 
 exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
     account_id == message.get('sender_id')
@@ -318,7 +326,9 @@ exports.render_history_footer = render_history_footer = ->
     </ListGroupItem>
 
 exports.render_history = render_history = (history, user_map) ->
-    historyList = history?.pop()?.toJS()
+    if not history?
+        return
+    historyList = history.toJS().slice(1)  # convert to javascrip from immutable, and remove current version.
     for index, objects of historyList
         value = objects.content
         value = misc.smiley

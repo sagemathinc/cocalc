@@ -78,7 +78,7 @@ Message = rclass
             @setState(history_size:@props.message.get('history').size)
         changes = false
         if @state.edited_message == newest_content(@props.message)
-            @setState(edited_message : newProps.message.get('history')?.peek()?.get('content') ? '')
+            @setState(edited_message : newProps.message.get('history')?.first()?.get('content') ? '')
         else
             changes = true
         @setState(new_changes : changes)
@@ -163,7 +163,7 @@ Message = rclass
             name = " by #{@props.editor_name}"
             <span className="small">
                 {edit}
-                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                <TimeAgo date={new Date(@props.message.get('history').first()?.get('date'))} />
                 {name}
             </span>
         else
@@ -351,7 +351,7 @@ ChatLog = rclass
     close_edit_inputs: (current_message_date, id, saved_message) ->
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         for date in sorted_dates
-            historyContent = @props.messages.get(date).get('history').peek()?.get('content') ? ''
+            historyContent = @props.messages.get(date).get('history').first()?.get('content') ? ''
             if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
                 if historyContent != saved_message
                     @props.actions.send_edit(@props.messages.get(date), saved_message)
@@ -377,7 +377,7 @@ ChatLog = rclass
         v = []
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').first()?.get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
