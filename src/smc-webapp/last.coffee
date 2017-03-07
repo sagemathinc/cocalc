@@ -118,13 +118,4 @@ $ ->
         MathJax.Hub?.Queue([mathjax_finish_startup])
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
-    # hsy: showing firefox warning on all platforms (no idea why MacIntel was excluded)
-    if $.browser.firefox    # and window.navigator.platform != "MacIntel"
-        # See https://github.com/sagemathinc/smc/issues/1314
-        {alert_message} = require('./alerts')
-        alert_message
-            type    : 'info'
-            message : "There are major performance issues with Firefox and CoCalc due to bugs in Firefox.  We strongly recommend using Chrome, Safari, or Edge."
-            timeout : 120
-
     misc.wrap_log()
