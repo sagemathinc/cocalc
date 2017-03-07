@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -125,7 +125,7 @@ SUPPORT_LINKS =
     frequently_asked_questions :
         icon : 'question-circle'
         href : 'https://github.com/sagemathinc/smc/wiki/Portal'
-        link : 'SageMathCloud documentation'
+        link : 'CoCalc documentation'
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -141,11 +141,11 @@ SUPPORT_LINKS =
         #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
         #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
         href : 'https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md'
-        link : <span>Teaching a course with SageMathCloud</span>
+        link : <span>Teaching a course with CoCalc</span>
     courses :
         icon : 'graduation-cap'
         href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
-        link :  <span>List of courses that use SageMathCloud</span>
+        link :  <span>List of courses that use CoCalc</span>
     realtime_chat :
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
@@ -158,11 +158,11 @@ SUPPORT_LINKS =
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/smc'
-        link : 'SageMathCloud source code'
+        link : 'CoCalc source code'
     github_issue_tracker :
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
-        link : 'Known bugs in SageMathCloud'
+        link : 'Known bugs in CoCalc'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
@@ -202,7 +202,7 @@ SUPPORT_LINKS =
     user_survey :
         icon      : 'pencil-square'
         href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
-        link      : 'SageMathCloud User Survey'
+        link      : 'CoCalc User Survey'
 
 HelpPageSupportSection = rclass
     displayName : 'HelpPage-HelpPageSupportSection'
@@ -495,7 +495,7 @@ exports.HelpPage = HelpPage = rclass
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
                     <hr/>
-                    <a href="#{SmcWikiUrl}" target="_blank">The SageMathCloud Documentation</a>
+                    <a href="#{SmcWikiUrl}" target="_blank">The CoCalc Documentation</a>
                 </div>
 
                 <h3>

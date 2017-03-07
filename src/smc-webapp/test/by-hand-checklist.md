@@ -19,7 +19,7 @@ We will make all these tests be automated eventually. For now, at least figure o
 - click "Help" and check that all links under "Support" work and also open in another new tab
 - Verify that Current usage section looks reasonable
 - Check all the links under About (work and open in new tab)
-- Check everything under "Getting started with SageMathCloud"
+- Check everything under "Getting started with CoCalc"
 
 ## Logged in
 

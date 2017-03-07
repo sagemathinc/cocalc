@@ -1,7 +1,7 @@
 {
   "name": "smc-util-node",
   "version": "1.0.0",
-  "description": "SageMathCloud compute server code",
+  "description": "CoCalc compute server code",
   "main": "index.js",
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",

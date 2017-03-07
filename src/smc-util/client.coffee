@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -665,7 +665,7 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the SageMathCloud Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
             return
 
         if @_create_account_lock

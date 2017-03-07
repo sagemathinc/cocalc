@@ -98,7 +98,7 @@ def install_all(compute=False, web=False):
         install_webapp()
 
 def main():
-    parser = argparse.ArgumentParser(description="Install components of SageMathCloud into the system")
+    parser = argparse.ArgumentParser(description="Install components of CoCalc into the system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser_pull = subparsers.add_parser('pull', help='pull latest version of code from github')

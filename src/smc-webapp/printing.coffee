@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2014--2016, SageMath, Inc.
 #
@@ -146,7 +146,7 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            SiteName = redux.getStore('customize').site_name ? 'SageMathCloud'
+            SiteName = redux.getStore('customize').site_name ? 'CoCalc'
             if window?
                 loc = window.location
                 {join} = require('path')
@@ -165,7 +165,7 @@ class SagewsPrinter extends Printer
                     <meta charset="utf-8">
 
                     <title>#{data.title}</title>
-                    <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on SageMathCloud">
+                    <meta name="description" content="automatically generated from '#{data.project_id}:#{data.filename}' on CoCalc">
                     <meta name="date" content="#{data.timestamp}">
                     <meta data-name="smc-generated" content="version:2">
 

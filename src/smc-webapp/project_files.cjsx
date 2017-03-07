@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -1520,7 +1520,8 @@ ProjectFilesActionBox = rclass
         switch where
             when 'facebook'
                 # https://developers.facebook.com/docs/sharing/reference/share-dialog
-                # 806558949398043 is the ID of "SageMathCloud"
+                # 806558949398043 is the ID of "SageMathcloud"
+                # TODO CoCalc
                 url = """https://www.facebook.com/dialog/share?app_id=806558949398043&display=popup&
                 href=#{public_url}&redirect_uri=https%3A%2F%2Ffacebook.com&quote=#{text}"""
             when 'twitter'
@@ -1530,7 +1531,7 @@ ProjectFilesActionBox = rclass
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
                 # don't do encodeURIComponent -- strangely messes up everything for email
-                url = """mailto:?to=&subject=#{filename} on SageMathCloud&
+                url = """mailto:?to=&subject=#{filename} on CoCalc&
                 body=A file is shared with you: #{file_url}"""
         if url?
             {open_popup_window} = require('./misc_page')

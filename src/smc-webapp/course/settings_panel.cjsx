@@ -279,7 +279,7 @@ exports.SettingsPanel = rclass
                 <ul>
                     <li>
                         <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">
-                            A tutorial for anyone wanting to use SageMathCloud for teaching
+                            A tutorial for anyone wanting to use CoCalc for teaching
                         </a> (by Mike Croucher)
                     </li>
                     <li>
@@ -316,7 +316,7 @@ exports.SettingsPanel = rclass
             <hr/>
             <span style={color:'#666'}>
                 If you add a student to this course using their email address, and they do not
-                have a SageMathCloud account, then they will receive an email invitation. {template_instr}
+                have a CoCalc account, then they will receive an email invitation. {template_instr}
             </span>
         </Panel>
 

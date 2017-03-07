@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -520,7 +520,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if '@' in x
                     if not do_not_invite_student_by_email
                         title   = s.getIn(['settings', 'title'])
-                        subject = "SageMathCloud Invitation to Course #{title}"
+                        subject = "CoCalc Invitation to Course #{title}"
                         body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                         body    = markdownlib.markdown_to_html(body).s
                         redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
@@ -1604,7 +1604,7 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         get_email_invite: =>
             host = window.location.hostname
-            @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
+            @getIn(['settings', 'email_invite']) ? "We will use [CoCalc](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
 
         get_activity: =>
             @get('activity')

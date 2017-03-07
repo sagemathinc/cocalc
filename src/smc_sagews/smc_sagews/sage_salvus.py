@@ -1673,7 +1673,7 @@ import sage.misc.cython
 
 def cython(code=None, **kwds):
     """
-    Block decorator to easily include Cython code in SageMathCloud worksheets.
+    Block decorator to easily include Cython code in CoCalc worksheets.
 
     Put %cython at the top of a cell, and the rest of that cell is compiled as
     Cython code and made directly available to use in other cells.
@@ -2991,7 +2991,7 @@ def var(*args, **kwds):
     """
     Create symbolic variables and inject them into the global namespace.
 
-    NOTE: In SageMathCloud, you can use var as a line decorator::
+    NOTE: In CoCalc, you can use var as a line decorator::
 
         %var x
         %var a,b,theta          # separate with commas
@@ -3038,7 +3038,7 @@ import sage.misc.reset
 def reset(vars=None, attached=False):
     """
     If vars is specified, just restore the value of vars and leave
-    all other variables alone.   In SageMathCloud, you can also use
+    all other variables alone.   In CoCalc, you can also use
     reset as a line decorator::
 
          %reset x, pi, sin   # comma-separated
@@ -3427,7 +3427,7 @@ def load(*args, **kwds):
     If you load a pdf, it is displayed in the output of the worksheet.  The extra
     options are passed to smc.pdf -- see the docstring for that.
 
-    In SageMathCloud you may also use load as a decorator, with exactly one filename as input::
+    In CoCalc you may also use load as a decorator, with exactly one filename as input::
 
         %load foo.sage
 

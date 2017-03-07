@@ -2,7 +2,7 @@
 
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -292,7 +292,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     import argparse
-    parser = argparse.ArgumentParser(description="SageMathCloud firewall control script")
+    parser = argparse.ArgumentParser(description="CoCalc firewall control script")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     def f(subparser):

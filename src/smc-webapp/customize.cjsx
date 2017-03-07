@@ -1,5 +1,5 @@
 ###
-SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 Copyright (C) 2016, Sagemath Inc.
 ---
 

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -313,7 +313,7 @@ class ProjectsActions extends Actions
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()
-            body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
+            body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
 
         link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
 

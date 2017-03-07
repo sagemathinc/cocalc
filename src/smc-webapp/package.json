@@ -1,7 +1,7 @@
 {
-  "name": "sagemathcloud",
+  "name": "cocalc",
   "version": "1.0.0",
-  "description": "SageMathCloud: the browser-based web application",
+  "description": "CoCalc: collaborative computations online",
   "main": "index.js",
   "directories": {},
   "dependencies": {

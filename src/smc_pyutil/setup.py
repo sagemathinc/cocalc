@@ -41,7 +41,7 @@ if 'user' not in d.command_options.get("install", {}).keys():
 setup(
     name             = 'smc_pyutil',
     version          = '1.1',
-    description      = 'SageMathCloud Python Utilities',
+    description      = 'CoCalc Python Utilities',
     long_description = readme(),
     url              = 'https://github.com/sagemathinc/smc',
     author           = 'SageMath, Inc.',

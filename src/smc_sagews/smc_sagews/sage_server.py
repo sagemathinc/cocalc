@@ -500,7 +500,7 @@ namespace = Namespace({})
 
 class Salvus(object):
     """
-    Cell execution state object and wrapper for access to special SageMathCloud functionality.
+    Cell execution state object and wrapper for access to special CoCalc functionality.
 
     An instance of this object is created each time you execute a cell.  It has various methods
     for sending different types of output messages, links to files, etc.   Type 'help(smc)' for

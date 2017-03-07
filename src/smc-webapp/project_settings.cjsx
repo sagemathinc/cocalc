@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -754,11 +754,11 @@ CollaboratorsSearch = rclass
         title = @props.project.get('title')
         host = window.location.hostname
         target = "[project '#{title}'](https://#{host}/projects/#{project_id})"
-        body = "Hello!\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
+        body = "Hello!\n\nPlease collaborate with me using [CoCalc](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
-        subject      = "SageMathCloud Invitation to #{@props.project.get('title')}"
+        subject      = "CoCalc Invitation to #{@props.project.get('title')}"
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),

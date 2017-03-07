@@ -1,7 +1,7 @@
 {
   "name": "smc-hub",
   "version": "1.0.0",
-  "description": "SageMathCloud: Backend webserver component",
+  "description": "CoCalc: Backend webserver component",
   "main": "index.js",
   "directories": {},
   "dependencies": {

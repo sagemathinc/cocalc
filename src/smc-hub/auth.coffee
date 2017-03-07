@@ -139,7 +139,7 @@ passport_login = (opts) ->
                         else
                             if has_valid_remember_me and account_id != _account_id
                                 dbg("passport exists but is associated with another account already")
-                                cb("Your #{opts.strategy} account is already attached to another SageMathCloud account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
+                                cb("Your #{opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
                             else
                                 if has_valid_remember_me
                                     dbg("passport already exists and is associated to the currently logged into account")

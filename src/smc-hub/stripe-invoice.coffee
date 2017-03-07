@@ -97,7 +97,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
         else if x.plan?
             desc = x.plan.name
         else
-            desc = "SageMathCloud services"
+            desc = "CoCalc services"
         v.push
             desc   : desc
             amount : "USD $#{x.amount/100}"

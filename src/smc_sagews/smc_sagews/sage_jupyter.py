@@ -38,7 +38,7 @@ class JUPYTER(object):
 
     def _get_doc(self):
         ds0 = textwrap.dedent(r"""\
-        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet
+        Use the jupyter command to use any Jupyter kernel that you have installed using from your CoCalc worksheet
 
             | py3 = jupyter("python3")
 

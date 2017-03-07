@@ -40,7 +40,7 @@ describe "create a simple synctable and do basic operations -- ", ->
             expect(v[projects[0].project_id]).toEqual(projects[0])
 
     it "add a project to the table via changefeed update from client", (done) ->
-        projects.push({project_id:'1f623948-615b-4a49-a865-a4616921d101', title:'SageMathCloud', last_active:misc.minutes_ago(2)})
+        projects.push({project_id:'1f623948-615b-4a49-a865-a4616921d101', title:'CoCalc', last_active:misc.minutes_ago(2)})
 
         # Confirm get the right change
         table.once 'change', (keys) ->

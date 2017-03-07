@@ -1222,7 +1222,7 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            subject  = "SageMathCloud Invitation"
+                            subject  = "CoCalc Invitation"
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
@@ -1239,7 +1239,7 @@ class Client extends EventEmitter
                             opts =
                                 to           : email_address
                                 bcc          : 'invites@sagemath.com'
-                                fromname     : 'SageMathCloud'
+                                fromname     : 'CoCalc'
                                 from         : 'invites@sagemath.com'
                                 replyto      : mesg.replyto ? 'help@sagemath.com'
                                 replyto_name : mesg.replyto_name
@@ -3005,7 +3005,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 <div>Hello,</div>
                 <div>&nbsp;</div>
                 <div>
-                Somebody just requested to change the password of your SageMathCloud account.
+                Somebody just requested to change the password of your CoCalc account.
                 If you requested this password change, please click this link:</div>
                 <div>&nbsp;</div>
                 <div style="text-align: center;">
@@ -3023,7 +3023,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 """
 
             send_email
-                subject : 'SageMathCloud Password Reset'
+                subject : 'CoCalc Password Reset'
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address

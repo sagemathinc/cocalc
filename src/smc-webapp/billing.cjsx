@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -1194,7 +1194,7 @@ FAQS =
            prioritize supporting paying users.
            We very strongly encourage you to make an account and explore our product for free!
            There is no difference in functionality between the free and for-pay versions of
-           SageMathCloud; everything is still private by default for free users, and you can
+           CoCalc; everything is still private by default for free users, and you can
            make as many projects as you want.  You can even fully start teaching a course
            in SMC completely for free, then upgrade at any point later so that your students
            have a <b>much</b> better quality experience (for a small fraction of the cost of
@@ -1223,7 +1223,7 @@ FAQS =
             you are actually working in a highly restricted environment.
             Processes running <em>inside</em> a free project are not allowed to directly
             access the internet.  (We do not allow such access for free users, since when we did,
-            malicious users launched attacks on other computers from SageMathCloud.)
+            malicious users launched attacks on other computers from CoCalc.)
             Enable internet access by adding the "internet access" quota.
            </span>
     idle_timeout:
@@ -1236,7 +1236,7 @@ FAQS =
             Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
             running on is rebooted.
             (NOTE: Projects do not normally stop if you are continuously using them, and there are no
-            daily or monthly caps on how much you may use a SageMathCloud project, even a free one.)
+            daily or monthly caps on how much you may use a CoCalc project, even a free one.)
            </span>
     cpu_shares:
         q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
@@ -1311,7 +1311,7 @@ FAQS =
         q: <span>Are my files backed up?</span>
         a: <span>
             All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
-            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, SageMathCloud records
+            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, CoCalc records
             the history of all edits you or your collaborators make to most files, and you can browse
             that history with a slider by clicking on the "History" button (next to save) in files.
             We care about your data, and also make offsite backups periodically to encrypted USB

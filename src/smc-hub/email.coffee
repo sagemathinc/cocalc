@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: collaborative mathematics
+# CoCalc: collaborative mathematics
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #

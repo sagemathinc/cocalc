@@ -1,4 +1,4 @@
-# SageMathCloud, by SageMath, Inc., (c) 2016 -- License: GPLv3
+# CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
 
 ###
 # Webpack configuration file
@@ -96,7 +96,7 @@ SMC_VERSION   = require('smc-util/smc-version').version
 
 git_head      = child_process.execSync("git rev-parse HEAD")
 GIT_REV       = git_head.toString().trim()
-TITLE         = 'SageMathCloud'
+TITLE         = 'CoCalc'
 SMC_REPO      = 'https://github.com/sagemathinc/smc'
 SMC_LICENSE   = 'GPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB

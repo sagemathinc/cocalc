@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX
 # and the Terminal.
 #
 #    Copyright (C) 2016, SageMath, Inc.
@@ -99,7 +99,7 @@ class VideoChat
         chat_window_is_open()
         @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
 
-        title = "SageMathCloud Video Chat: #{misc.trunc_middle(@path, 30)}"
+        title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
         url   = "https://appear.in/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w

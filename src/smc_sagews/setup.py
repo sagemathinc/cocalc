@@ -7,7 +7,7 @@ from setuptools import setup
 setup(
     name             = 'smc_sagews',
     version          = '1.0',
-    description      = 'SageMathCloud Sage Worksheets',
+    description      = 'CoCalc Sage Worksheets',
     long_description = readme(),
     url              = 'https://github.com/sagemathinc/smc',
     author           = 'SageMath, Inc.',

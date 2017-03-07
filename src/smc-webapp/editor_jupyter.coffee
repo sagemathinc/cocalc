@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -809,7 +809,7 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1537' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1537' target='_blank'>not currently supported</a> in CoCalc using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
             @element.data("jupyter_notebook", @)
             opts.cb?()
             return
@@ -1149,7 +1149,7 @@ class JupyterNotebook extends EventEmitter
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
-        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
+        t += "<h4>Enhanced with CoCalc Sync</h4>"
         t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization and history logging."
         t += "<h4>Use Sage by pasting this into a cell</h4>"
         t += "<pre>%load_ext sage</pre>"

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -165,7 +165,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <span style={marginRight:'5px'}></span>
                     <Tip
                         title='Folder'  placement='left' icon='folder-open-o'
-                        tip='Create a folder in which to store and organize your files.  SageMathCloud provides a full featured filesystem.' >
+                        tip='Create a folder in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
                         <NewFileButton
                             icon='folder-open-o' name='Folder'
                             on_click={@props.create_folder} />
@@ -179,7 +179,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@props.create_file} ext='tex' />
                     </Tip>
                     <Tip title='Terminal'  icon='terminal'
-                        tip="Create a command line terminal.  SageMathCloud includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
+                        tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
                     <Tip title='Task List'   icon='tasks'

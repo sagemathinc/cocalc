@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -124,7 +124,7 @@ $ ->
         {alert_message} = require('./alerts')
         alert_message
             type    : 'info'
-            message : "There are major performance issues with Firefox and SageMathCloud due to bugs in Firefox.  We strongly recommend using Chrome, Safari, or Edge."
+            message : "There are major performance issues with Firefox and CoCalc due to bugs in Firefox.  We strongly recommend using Chrome, Safari, or Edge."
             timeout : 120
 
     misc.wrap_log()

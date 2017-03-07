@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -372,7 +372,7 @@ SupportInfo = rclass
             {what}
             <p>
                 Looking for documentation and help? Go to
-                the <a href="#{SmcWikiUrl}" target="_blank">SageMathCloud documentation</a>.
+                the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
             </p>
             <p>
                 After submitting a ticket, you{"'"}ll get a link, which you may

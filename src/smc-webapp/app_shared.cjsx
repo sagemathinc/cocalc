@@ -369,7 +369,7 @@ exports.CookieWarning = rclass
 
     render: ->
         <div style={warning_styles}>
-            <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
+            <Icon name='warning' /> You <em>must</em> enable cookies to use CoCalc.
         </div>
 
 misc = require('smc-util/misc')
@@ -381,5 +381,5 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud.  On some browsers you must also disable private browsing mode.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use CoCalc.  On some browsers you must also disable private browsing mode.
         </div>

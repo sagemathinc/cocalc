@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -471,10 +471,10 @@ SMC_Commercial = ->
 
 SMC_Quote = ->
     <div style={marginTop:'15px'}>
-        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of SageMathCloud in the Mathematics for Life Scientists">
+        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of CoCalc in the Mathematics for Life Scientists">
             <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
         </a>
-        <p className='lighten'>"SageMathCloud provides a user-friendly interface. Students don’t need to install any software at all.
+        <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
         The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
@@ -482,7 +482,7 @@ SMC_Quote = ->
         </p>
         <p style={marginBottom:0} >
             <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
-            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses using SageMathCloud</a> {' | '}
+            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses using CoCalc</a> {' | '}
             <a href="https://github.com/sagemathinc/smc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
         </p>
     </div>
@@ -527,7 +527,7 @@ SagePreview = rclass
                             <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
                             The <strong>preview</strong> helps you understanding what&#39;s going on.
                             The LaTeX editor also supports <strong>forward and inverse search</strong> to avoid getting lost in large documents.
-                            SageMathCloud also allows you to publish documents online.
+                            CoCalc also allows you to publish documents online.
                         </ExampleBox>
                     </Col>
                     <Col sm=6>

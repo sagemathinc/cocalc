@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -923,7 +923,7 @@ exports.site_settings_conf =
     site_name:
         name    : "Site name"
         desc    : "The heading name of your site."
-        default : "SageMathCloud"
+        default : "CoCalc"
     site_description:
         name    : "Site description"
         desc    : "The description of your site."
