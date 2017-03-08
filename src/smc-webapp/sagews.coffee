@@ -2434,7 +2434,7 @@ class SynchronizedWorksheetCell
 
         # Input
         x = @cm.getLine(start)
-        if x[0] == MARKERS.cell
+        if x?[0] == MARKERS.cell
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[x.length-1] == MARKERS.cell
                 # valid input line
                 @_start_uuid = x.slice(1,37)
@@ -2450,7 +2450,7 @@ class SynchronizedWorksheetCell
 
         # Output
         x = @cm.getLine(end)
-        if x[0] == MARKERS.output
+        if x?[0] == MARKERS.output
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[37] == MARKERS.output
                 # valid output line
                 @_output_uuid = x.slice(1,37)
