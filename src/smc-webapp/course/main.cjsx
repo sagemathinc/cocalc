@@ -2039,6 +2039,9 @@ remove_redux = (course_filename, redux, course_project_id) ->
 
     # Remove the listener for changes in the collaborators on this project.
     actions = redux.getActions(the_redux_name)
+    if not actions?
+        # already cleaned up and removed.
+        return
     redux.getStore('projects').removeListener('change', actions.handle_projects_store_update)
 
     # Remove the store and actions.
