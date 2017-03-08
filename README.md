@@ -1,17 +1,28 @@
-# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-48.png) SageMathCloud (SMC)
+# ![logo](https://raw.githubusercontent.com/sagemathinc/cocalc/master/src/webapp-lib/favicon-32x32.png) CoCalc (CC)
 
-#### _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
+#### _Collaborative Calculations Online_
+
+**CoCalc** offers a collaborative web-based interface to calculate in Python, SageMath, Julia, R, and more.
+It also offers capabilities to author documents in LaTeX, R/knitr or Markdown,
+a web-based Linux Terminal, communication tools like a chat, course management and much more.
 
 ## Website
 
-   * [SageMathCloud](https://cloud.sagemath.com) -- the online service
-   * [Github](https://github.com/sagemathinc/smc)
-   * [Mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
+   * **[CoCalc](https://cocalc.com) -- the online service**
+   * [Github](https://github.com/sagemathinc/cocalc)
+   * **[Mailing List](https://groups.google.com/forum/#!forum/cocalc)**
+   * [SMC mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
    * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
+
+## History
+
+*CoCalc* was formerly called *SageMathCloud*.
+It started to offer way more than just SageMath and hence outgrew itself.
+The name changed around Spring 2017.
 
 ## Evaluation install
 
-To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/smc/blob/master/src/dev/docker/README.md)**.
+To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
 
 ## Contributors
 
@@ -34,11 +45,11 @@ To quickly evaluate SMC on your own machine, you can **[run a Docker image](http
    * Nicholas Ruhland
    * Todd Zimmerman
 
-... and *many* others: See https://github.com/sagemathinc/smc/graphs/contributors
+... and *many* others: See https://github.com/sagemathinc/cocalc/graphs/contributors
 
 ## Copyright/License
 
-The copyright of SMC is owned by SageMath, Inc., and the source code
+The copyright of CoCalc is owned by SageMath, Inc., and the source code
 here is released under the GNU Affero General Public License version 3+.
 See the included file LICENSE.md.
 
@@ -46,6 +57,10 @@ None of the frontend or server dependencies of SMC are themselves GPL
 licensed; they all have non-viral liberal licenses.   If want to host
 your own SMC at a company, and need a different AGPL-free license,
 please contact help@sagemath.com.
+
+## Trademark
+
+"CoCalc" is a registered trademark.
 
 ## ARCHITECTURE
 
@@ -63,7 +78,7 @@ please contact help@sagemath.com.
    Client    Client    Client   Client  ...
      /|\
       |
-   https://cloud.sagemath.com (primus)
+   https://cocalc.com (primus)
       |
       |
      \|/
@@ -89,11 +104,11 @@ please contact help@sagemath.com.
 
 The following instruction **don't** install SMC. They're for development purposes only!
 
-   * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `cd smc/src`
+   * `git clone https://github.com/sagemathinc/cocalc` -- copy repo
+   * `cd cocalc/src`
    * `npm run install-all` -- build
    * `npm test` -- run test suite (expected failures if your clock is not UTC)
    * `install.py all --compute --web` -- build and install some parts system-wide for development use
    * See `INSTALL.md` for more details.
 
-For further options please [go here](https://github.com/sagemathinc/smc/tree/master/src/dev).
+For further options please [go here](https://github.com/sagemathinc/cocalc/tree/master/src/dev).
