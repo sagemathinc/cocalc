@@ -75,18 +75,32 @@ class SupportActions extends Actions
             @check_valid()
 
     load_support_tickets: () ->
-        salvus_client.get_support_tickets (err, tickets) =>
-            # console.log("tickets: #{misc.to_json(tickets)}")
-            # sort by .updated_at
-            if err?
-                @setState
-                    support_ticket_error : err
-                    support_tickets      : []
-            else
-                tickets = tickets.sort(cmp_tickets)
-                @setState
-                    support_ticket_error : err
-                    support_tickets      : tickets
+        # mockup for testing -- set it to "true" to see some tickets
+        if DEBUG and false
+            @setState
+                support_tickets : [
+                    id : 123
+                    status: 'open'
+                    description: 'test ticket 123'
+                ,
+                    id : 456
+                    status : 'open'
+                    description: 'test ticket 456'
+                ]
+                support_ticket_error : null
+        else
+            salvus_client.get_support_tickets (err, tickets) =>
+                # console.log("tickets: #{misc.to_json(tickets)}")
+                # sort by .updated_at
+                if err?
+                    @setState
+                        support_ticket_error : err
+                        support_tickets      : []
+                else
+                    tickets = tickets.sort(cmp_tickets)
+                    @setState
+                        support_ticket_error : err
+                        support_tickets      : tickets
 
     reset: =>
         @init_email_address()
@@ -241,36 +255,38 @@ exports.SupportPage = rclass
 
     render_body: ->
         for i, ticket of @props.support_tickets
-            style = switch ticket.status
-                when 'open', 'new'
-                    'danger'
-                when 'closed'
-                    'info'
-                when 'solved'
-                    'success'
-                else
-                    'info'
+            do (ticket, i) =>
+                style = switch ticket.status
+                    when 'open', 'new'
+                        'danger'
+                    when 'closed'
+                        'info'
+                    when 'solved'
+                        'success'
+                    else
+                        'info'
 
-            <tr key={i} className="#{style}">
-                <td><h4>{ticket.subject}</h4>
-                    <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
-                        created: {date2str(ticket.created_at)},
-                        {' '}
-                        last update: {date2str(ticket.updated_at)}
-                    </div>
-                    <div style={maxHeight:"10em", "overflowY":"auto"}>
-                        <Markdown value={ticket.description} />
-                    </div>
-                </td>
-                <td>
-                    <br/>
-                    <Button bsStyle="#{style}" onClick={=> @open(ticket.id)}>
-                        {ticket.status.toUpperCase()}
+                <tr key={i} className="#{style}">
+                    <td><h4>{ticket.subject}</h4>
+                        <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
+                            created: {date2str(ticket.created_at)},
+                            {' '}
+                            last update: {date2str(ticket.updated_at)}
+                        </div>
+                        <div style={maxHeight:"10em", "overflowY":"auto"}>
+                            <Markdown value={ticket.description} />
+                        </div>
+                    </td>
+                    <td>
                         <br/>
-                        Go to {ticket.id}
-                    </Button>
-                </td>
-            </tr>
+                        <Button bsStyle="#{style}"
+                            onClick={=> @open(ticket.id)}>
+                            {ticket.status.toUpperCase()}
+                            <br/>
+                            Go to {ticket.id}
+                        </Button>
+                    </td>
+                </tr>
 
     render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
