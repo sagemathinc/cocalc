@@ -783,7 +783,6 @@ class CodeMirrorEditor extends FileEditor
             "Shift-Ctrl-\\" : (editor)   => @action_key(execute:false, toggle_output:true)
             #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
 
-            "Ctrl-S"       : (editor)   => @click_save_button()
             "Cmd-S"        : (editor)   => @click_save_button()
 
             "Ctrl-L"       : (editor)   => @goto_line(editor)
@@ -814,6 +813,10 @@ class CodeMirrorEditor extends FileEditor
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
+
+        if opts.bindings != 'emacs'
+            # Emacs uses control s for find.
+            extraKeys["Ctrl-S"] = (editor) => @click_save_button()
 
         # FUTURE: We will replace this by a general framework...
         if misc.filename_extension_notilde(filename).toLowerCase() == "sagews"
