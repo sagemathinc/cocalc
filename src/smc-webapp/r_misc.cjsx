@@ -44,13 +44,7 @@ exports.UNIT = UNIT = 15
 exports.BS_BLUE_BGRND = "rgb(66, 139, 202)"
 
 # This is the applications color scheme
-exports.COLORS =
-    BLUE_D : '#4474c0'
-    BLUE_L : '#80afff'
-    YELL_D : '#bf7b00'
-    YELL_L : '#fbb635'
-    GRAY_D : '#434343'
-    GRAY_L : '#eeeeee'
+exports.COLORS = require('colors').COLORS
 
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.

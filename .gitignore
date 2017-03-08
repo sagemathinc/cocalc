@@ -23,6 +23,7 @@ src/static/
 src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html
 src/webapp-lib/wizard/
+src/smc-webapp/_colors.sass
 
 src/page/temp
 
@@ -92,3 +93,4 @@ src/smc-build/prometheus/alertmanager.yml
 **/.cache/
 .gitignore
 postgres-env
+
