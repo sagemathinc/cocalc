@@ -1073,7 +1073,7 @@ exports.commands =
         mode_cython:
             insert : "%cython\n"
         mode_default_mode:
-            insert : "%default_mode mode_name\n"
+            insert : "%default_mode r # change r to any mode\n"
         mode_exercise:
             insert : "%exercise\n"
         mode_gap:
