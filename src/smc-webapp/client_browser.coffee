@@ -35,11 +35,10 @@ WHITE_APP_ICON_URL = require('cocalc-icon-white-transparent.svg')
 idle_notification_html = ->
     {redux}   = require('./smc-react')
     customize = redux.getStore('customize')
-    site_name = customize?.get('site_name') ? "CoCalc"
     """
     <div>
     <img src="#{WHITE_APP_ICON_URL}">
-    <h1>#{site_name}<br> is on standby</h1>
+    <h1>... is on standby</h1>
     &mdash; click to resume &mdash;
     </div>
     """

@@ -1,6 +1,6 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
-{Icon, Space, Tip} = require('./r_misc')
+{Icon, Space, Tip, COLORS} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 
 {HelpPage} = require('./r_help')
@@ -8,7 +8,7 @@
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
-ACTIVE_BG_COLOR = '#e7e7e7'
+ACTIVE_BG_COLOR = COLORS.GRAY_D
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
