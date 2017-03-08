@@ -29,6 +29,23 @@ misc = require('smc-util/misc')
 The React components
 ###
 
+InputEditor = rclass
+    propTypes :
+        value    : rtypes.string
+        style    : rtypes.object
+        onChange : rtypes.func.isRequired
+
+    handle_change: (e) ->
+        @props.onChange(e.target.value)
+
+    render : ->
+        <FormControl
+            componentClass = 'textarea'
+            value          = {@props.value}
+            style          = {@props.style}
+            onChange       = {@handle_change}
+        />
+
 JupyterEditor = rclass ({name}) ->
     propTypes :
         error      : rtypes.string
@@ -296,9 +313,11 @@ JupyterEditor = rclass ({name}) ->
             <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
                 In [{cell.get('number') ? '*'}]:
             </div>
-            <pre style={width:'100%', backgroundColor: '#f7f7f7'}>
-                {cell.get('input') ? ''}
-            </pre>
+            <InputEditor
+                value = {cell.get('input')}
+                style = {width:'100%', backgroundColor: '#f7f7f7', fontFamily: 'monospace'}
+                onChange = {(value) => @props.actions.set_cell_input(cell.get('id'), value)}
+            />
         </div>
 
     render_output_number: (n) ->
@@ -363,6 +382,13 @@ class JupyterActions extends Actions
     set_error: (err) =>
         @setState
             error : err
+
+    set_cell_input: (id, value) =>
+        # TODO: insanely stupid/slow -- just for proof of concept
+        @syncdb.set
+            type  : 'cell'
+            id    : id
+            input : value
 
     _syncdb_change: =>
         # TODO: this is not efficient!
