@@ -80,7 +80,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
         # We set a custom rangeFinder that is output cell marker aware.
-        # See https://github.com/sagemathinc/smc/issues/966
+        # See https://github.com/sagemathinc/cocalc/issues/966
         foldOptions =
             rangeFinder : (cm, start) ->
                 helpers = cm.getHelpers(start, "fold")
@@ -752,7 +752,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # Showing user an alert_message at this point isn't useful; but we do want to know
                     # about this.  The user is just going to see no completion or popup, which is
                     # possibly reasonable behavior from their perspective.
-                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/smc/issues/1685
+                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/cocalc/issues/1685
                     err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
                     console.log(err)  # this is intentional... -- it's may be useful to know
                     salvus_client.log_error(err)
@@ -1350,7 +1350,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y           = $(x)
             src         = y.attr('src')
-            # see https://github.com/sagemathinc/smc/issues/1192
+            # see https://github.com/sagemathinc/cocalc/issues/1192
             img_scaling = y.attr('smc-image-scaling')
             if img_scaling?
                 img = y.get(0)
@@ -1365,11 +1365,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
             is_blob     = misc.startswith(src, "#{window.smc_base_url}/blobs/")
-            # see https://github.com/sagemathinc/smc/issues/651
+            # see https://github.com/sagemathinc/cocalc/issues/651
             is_data     = misc.startswith(src, 'data:')
             if is_fullurl or is_data or is_blob
                 continue
-            # see https://github.com/sagemathinc/smc/issues/1184
+            # see https://github.com/sagemathinc/cocalc/issues/1184
             file_path = @file_path()
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"

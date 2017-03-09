@@ -216,7 +216,7 @@ class exports.HistoryEditor extends FileEditor
             @set_doc_diff(@goto_diff()...)
             # Switch to default theme for diff viewer, until we implement
             # red/green colors that are selected to match the user's theme
-            # See https://github.com/sagemathinc/smc/issues/884
+            # See https://github.com/sagemathinc/cocalc/issues/884
             for cm in @view_doc.codemirrors()
                 @_non_diff_theme ?= cm.getOption('theme')
                 cm.setOption('theme', '')

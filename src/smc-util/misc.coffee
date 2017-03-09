@@ -1824,7 +1824,7 @@ exports.suggest_duplicate_filename = (name) ->
 
 # Wrapper around localStorage, so we can safely touch it without raising an
 # exception if it is banned (like in some browser modes) or doesn't exist.
-# See https://github.com/sagemathinc/smc/issues/237
+# See https://github.com/sagemathinc/cocalc/issues/237
 
 exports.set_local_storage = (key, val) ->
     try
@@ -1893,7 +1893,7 @@ exports.top_sort = (DAG, opts={omit_sources:false}) ->
         node.children ?= []
         node.parent_set = {}
         for parent_name in parents
-            node.parent_set[parent_name] = true  # include element in "parent_set" (see https://github.com/sagemathinc/smc/issues/1710)
+            node.parent_set[parent_name] = true  # include element in "parent_set" (see https://github.com/sagemathinc/cocalc/issues/1710)
             data[parent_name] ?= {}
             data[parent_name].children ?= []
             data[parent_name].children.push(node)

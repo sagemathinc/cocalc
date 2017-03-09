@@ -976,7 +976,7 @@ class Salvus(object):
                             # this fixup has to happen after first block has executed (os.chdir etc)
                             # but before user assigns any variable in worksheet
                             # sage.misc.session.init() is not called until first call of show_identifiers
-                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals

@@ -1641,7 +1641,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             return @getIn(['settings', 'pay']) ? ''
 
         get_allow_collabs: =>
-            return true  # see https://github.com/sagemathinc/smc/issues/1494
+            return true  # see https://github.com/sagemathinc/cocalc/issues/1494
             # return @getIn(['settings', 'allow_collabs']) ? false
 
         get_email_invite: =>

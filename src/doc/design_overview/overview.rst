@@ -310,7 +310,7 @@ somewhere.
     In the process of researching this we learned that the original
     developer of CJSX has abandoned the project and there isn't really
     anything to take its place yet.  William `insists
-    <https://github.com/sagemathinc/smc/issues/1545>`_ that SMC will
+    <https://github.com/sagemathinc/cocalc/issues/1545>`_ that SMC will
     continue to use it, and with good reason!, but it leaves me not without
     doubts...
 
@@ -931,7 +931,7 @@ In principle the scheme supports other web services embedded in SMC as well.
 
 
 
-.. _README: https://github.com/sagemathinc/smc/blob/master/README.md#architecture
+.. _README: https://github.com/sagemathinc/cocalc/blob/master/README.md#architecture
 .. _Babel: http://babeljs.io/
 .. _webpack: https://webpack.github.io/
 .. _Node.js: https://nodejs.org/

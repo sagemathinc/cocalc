@@ -1066,7 +1066,7 @@ AccountCreationToken = rclass
         if @state.state == 'save'
             <Saving />
 
-    render_unsupported: ->  # see https://github.com/sagemathinc/smc/issues/333
+    render_unsupported: ->  # see https://github.com/sagemathinc/cocalc/issues/333
         <div style={color:"#666"}>
             Not supported since some passport strategies are enabled.
         </div>
@@ -1470,7 +1470,7 @@ ugly_error = (err) ->
 # loaded; otherwise returns undefined and starts load
 zxcvbn = undefined
 password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/smc/issues/687
+    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
     # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
     ###
     if zxcvbn?

@@ -124,7 +124,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
 SUPPORT_LINKS =
     frequently_asked_questions :
         icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        href : 'https://github.com/sagemathinc/cocalc/wiki/Portal'
         link : 'CoCalc documentation'
     pricing :
         icon : 'money'
@@ -144,7 +144,7 @@ SUPPORT_LINKS =
         link : <span>Teaching a course with CoCalc</span>
     courses :
         icon : 'graduation-cap'
-        href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
+        href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
         link :  <span>List of courses that use CoCalc</span>
     realtime_chat :
         icon : 'comments-o'
@@ -157,11 +157,11 @@ SUPPORT_LINKS =
     #    link : 'Ask a quick question'
     github :
         icon : 'github-square'
-        href : 'https://github.com/sagemathinc/smc'
+        href : 'https://github.com/sagemathinc/cocalc'
         link : 'CoCalc source code'
     github_issue_tracker :
         icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
+        href : 'https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
         link : 'Known bugs in CoCalc'
     support_mailing_list :
         icon : 'life-ring'
@@ -239,7 +239,7 @@ ABOUT_SECTION =
     developers :
         <span>
             <a target='_blank' href='http://wstein.org'>William Stein</a> and <a target='_blank' href='http://harald.schil.ly/'>
-            Harald Schilly</a> develop and run <SiteName/>, and <a href='https://github.com/sagemathinc/smc/graphs/contributors' target='_blank'>many people  contribute code</a>
+            Harald Schilly</a> develop and run <SiteName/>, and <a href='https://github.com/sagemathinc/cocalc/graphs/contributors' target='_blank'>many people  contribute code</a>
         </span>
     funding :
         <span>

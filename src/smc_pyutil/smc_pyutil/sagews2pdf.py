@@ -578,7 +578,7 @@ class Cell(object):
                             filename = base+'.pdf'
                         img = filename
                     # omitting [width=\\textwidth] allows figsize to set displayed size
-                    # see https://github.com/sagemathinc/smc/issues/114
+                    # see https://github.com/sagemathinc/cocalc/issues/114
                     s += '{\\centering\n\\includegraphics{%s}\n\\par\n}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available

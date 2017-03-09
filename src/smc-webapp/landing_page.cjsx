@@ -46,7 +46,7 @@ $.get window.smc_base_url + "/registration", (obj, status) ->
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
-    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/smc/issues/294
+    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/cocalc/issues/294
     if url_args.length == 2 and url_args[1].slice(0, 6).toLowerCase() == 'forgot'
         return url_args[1].slice(7, 7+36).toLowerCase()
     return undefined
@@ -481,9 +481,9 @@ SMC_Quote = ->
         management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
         </p>
         <p style={marginBottom:0} >
-            <a href="https://github.com/sagemathinc/smc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
-            <a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">Courses using CoCalc</a> {' | '}
-            <a href="https://github.com/sagemathinc/smc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
+            <a href="https://github.com/sagemathinc/cocalc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
+            <a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank">Courses using CoCalc</a> {' | '}
+            <a href="https://github.com/sagemathinc/cocalc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
         </p>
     </div>
 
@@ -516,7 +516,7 @@ SagePreview = rclass
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
                             Conveniently handout assignments, collect them, grade them, and finally return them.
-                            (<a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">SMC used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
+                            (<a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank">SMC used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
                         </ExampleBox>
                     </Col>
                 </Row>

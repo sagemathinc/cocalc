@@ -6,7 +6,7 @@ This is a self-contained single-image multi-user SageMathCloud server.
   - This is _**not blatantly insecure**_: the database has a long random password, user accounts are separate, ssl communication is supported by default, etc.
   - That said, **a determined user with an account can very likely access or change files of other users in the same container!** Use this for personal use, behind a firewall, or with an account creation token, so that only other people you trust create accounts.  Don't make one of these publicly available with important data in it and no account creation token!
   - There are no quotas except idle timeout.
-  - See the [open docker-related SageMathCloud issues](https://github.com/sagemathinc/smc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues.
+  - See the [open docker-related SageMathCloud issues](https://github.com/sagemathinc/cocalc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues.
 
 ## Instructions
 

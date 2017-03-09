@@ -83,7 +83,7 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-# See https://github.com/sagemathinc/smc/issues/174 -- some stupid (?)
+# See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
 # code sometimes assumes this exists, and it's not so hard to just ensure
 # it does, rather than fixing any such code.
 SAGE = path.join(process.env.HOME, '.sage')

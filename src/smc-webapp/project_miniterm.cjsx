@@ -52,7 +52,7 @@ BAD_COMMANDS =
     vi      : "Type vi in a full terminal instead,\nor just click on the file in the listing."
     vim     : "Type vim in a full terminal instead,\nor just click on the file in the listing."
     emacs   : "Type emacs in a full terminal instead,\nor just click on the file in the listing."
-    open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/smc/issues/230"
+    open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230"
 
 EXEC_TIMEOUT = 10 # in seconds
 

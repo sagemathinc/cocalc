@@ -943,7 +943,7 @@ $$ LANGUAGE plpgsql;"""
 NOTES: The following is a way to back the changes with a small table.
 This allows to have changes which are larger than the hard 8000 bytes limit.
 HSY did this with the idea of having a temporary workaround for a bug related to this.
-https://github.com/sagemathinc/smc/issues/1718
+https://github.com/sagemathinc/cocalc/issues/1718
 
 1. Create a table trigger_notifications via the db-schema.
    For performance reasons, the table itself should be created with "UNLOGGED"

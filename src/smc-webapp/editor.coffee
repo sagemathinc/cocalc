@@ -1225,7 +1225,7 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror.focus()
         f = () =>
             for x in @codemirrors()
-                x.scrollIntoView()  # scroll the cursors back into view -- see https://github.com/sagemathinc/smc/issues/1044
+                x.scrollIntoView()  # scroll the cursors back into view -- see https://github.com/sagemathinc/cocalc/issues/1044
         setTimeout(f, 1)   # wait until next loop after codemirror has laid itself out.
         @emit 'toggle-split-view'
 
@@ -1318,7 +1318,7 @@ class CodeMirrorEditor extends FileEditor
                       This SageWS to HTML conversion transforms the current worksheet
                       to a static HTML file.
                       <br/>
-                      <a href="https://github.com/sagemathinc/smc/wiki/sagews2html" target='_blank'>Click here for more information</a>.
+                      <a href="https://github.com/sagemathinc/cocalc/wiki/sagews2html" target='_blank'>Click here for more information</a>.
                       </p>
                     </div>
                   </div>
@@ -1575,7 +1575,7 @@ class CodeMirrorEditor extends FileEditor
                 # THIS IS HORRIBLE and SUCKS, but I can't understand what is going on sufficiently
                 # well to remove this.  Sometimes scrollTo fails (due to the document being reported as much
                 # smaller than it is for a few ms) **and** it's then not possible to scroll,
-                # so we just try again. See https://github.com/sagemathinc/smc/issues/1327
+                # so we just try again. See https://github.com/sagemathinc/cocalc/issues/1327
                 if not second_try and info.top != v.top
                     # didn't work -- not fully visible; try again one time when rendering is presumably done.
                     setTimeout((=>@restore_view_state(true)), 250)
@@ -1670,7 +1670,7 @@ class CodeMirrorEditor extends FileEditor
         refresh = (cm) =>
             return if not cm?
             cm.refresh()
-            # See https://github.com/sagemathinc/smc/issues/1327#issuecomment-265488872
+            # See https://github.com/sagemathinc/cocalc/issues/1327#issuecomment-265488872
             setTimeout((=>cm.refresh()), 1)
 
         for cm in @codemirrors()
@@ -2108,7 +2108,7 @@ class PDFLatexDocument
         # since in some cases things will hang (using )
         #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
         # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
-        # See https://github.com/sagemathinc/smc/issues/156
+        # See https://github.com/sagemathinc/cocalc/issues/156
         latexmk = (f) =>
             # f: force even when there are errors
             # g: ignore heuristics to stop processing latex (sagetex)
@@ -3137,7 +3137,7 @@ class PublicHTML extends FileEditor
         if not @iframe?
             # Setting the iframe in the *next* tick is critical on Firefox; otherwise, the browser
             # just deletes what we set.  I do not claim to fully understand why, but this does work.
-            # See https://github.com/sagemathinc/smc/issues/843
+            # See https://github.com/sagemathinc/cocalc/issues/843
             # -- wstein
             setTimeout(@set_iframe, 1)
         else

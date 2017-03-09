@@ -345,7 +345,7 @@ class Console extends EventEmitter
                 @update_scrollbar()
 
             setTimeout(@set_scrollbar_to_term, 10)
-            # See https://github.com/sagemathinc/smc/issues/1301
+            # See https://github.com/sagemathinc/cocalc/issues/1301
             #redux.getProjectActions(@project_id).flag_file_activity(@path)
         catch e
             # WARNING -- these are all basically bugs, I think...

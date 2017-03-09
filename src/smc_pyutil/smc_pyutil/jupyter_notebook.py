@@ -80,7 +80,7 @@ def command():
 
     # We always use the system-wide version on IPython, which is much easier to keep up to date.
     # Sage's often lags behind with bugs.  This also makes it easier for users to run their
-    # own custom IPython.   See https://github.com/sagemathinc/smc/issues/1343
+    # own custom IPython.   See https://github.com/sagemathinc/cocalc/issues/1343
     ##ipython = "ipython"
     # SADLY, rolling this back, since Jupyter 4.3.1 doesn't load properly and
     # in practice turns out to be broken for us.  Oh well.  Reverting everything... :-(

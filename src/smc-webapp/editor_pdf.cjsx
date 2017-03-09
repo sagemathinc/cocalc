@@ -80,7 +80,7 @@ refresh_iframe = (project_id, path, elt, show) ->
     elt = $(elt)
 
     if last_visible_key?
-        # See https://github.com/sagemathinc/smc/issues/1322
+        # See https://github.com/sagemathinc/cocalc/issues/1322
         # React optimizes things and doesn't unmount the component when switching
         # between two editors both display PDF's, so componentWillUnmount isn't called
         # (instead the PDF viewer is mutated from one to the other!).

@@ -358,7 +358,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     undo: () =>
         if not @codemirror?
             return
-        cm = @focused_codemirror()  # see https://github.com/sagemathinc/smc/issues/1161
+        cm = @focused_codemirror()  # see https://github.com/sagemathinc/cocalc/issues/1161
         if not @_syncstring.in_undo_mode()
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()

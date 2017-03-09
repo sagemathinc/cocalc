@@ -199,7 +199,7 @@ class exports.Connection extends EventEmitter
 
     constructor: (@url) ->
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
-        # The issue is https://github.com/sagemathinc/smc/issues/1098 and the errors we got are
+        # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
@@ -684,7 +684,7 @@ class exports.Connection extends EventEmitter
             return
 
         if @_create_account_lock
-            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/smc/issues/1187
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
             opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
             return
 

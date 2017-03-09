@@ -44,8 +44,8 @@ labels to triage issues:
 
 If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 
-[inom]:https://github.com/sagemathinc/smc/labels/I-nominated
-[eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
+[inom]:https://github.com/sagemathinc/cocalc/labels/I-nominated
+[eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
 
 
 ## The Components of SMC

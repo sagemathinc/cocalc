@@ -74,7 +74,7 @@ class JUPYTER(object):
             | p2('print(a)')   # prints 10
 
         For details on supported features and known issues, see the SMC Wiki page:
-        https://github.com/sagemathinc/smc/wiki/sagejupyter
+        https://github.com/sagemathinc/cocalc/wiki/sagejupyter
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()

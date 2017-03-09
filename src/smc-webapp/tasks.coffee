@@ -1482,7 +1482,7 @@ set_key_handler = (task) ->
 tasks_key_handler = (evt) =>
     if not current_task_list?
         return
-    # See https://github.com/sagemathinc/smc/issues/1318 -- this is a temporary
+    # See https://github.com/sagemathinc/cocalc/issues/1318 -- this is a temporary
     # way to deal with keyboard focus -- just check that if something is focused,
     # it is one of *our* text areas.
     focused = $(":focus")

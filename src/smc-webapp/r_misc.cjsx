@@ -727,7 +727,7 @@ exports.Markdown = rclass
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     _update_mathjax: (cb) ->
-        if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
+        if not @_isMounted  # see https://github.com/sagemathinc/cocalc/issues/1689
             return
         #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
         if @_x?.has_mathjax
@@ -752,7 +752,7 @@ exports.Markdown = rclass
             if not @_isMounted
                 return
             @_update_escaped_chars()
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
 
     componentDidUpdate: ->
         @update_content()
@@ -763,7 +763,7 @@ exports.Markdown = rclass
 
     componentWillUnmount: ->
         # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
-        # and https://github.com/sagemathinc/smc/issues/1689
+        # and https://github.com/sagemathinc/cocalc/issues/1689
         @_isMounted = false
 
     to_html: ->

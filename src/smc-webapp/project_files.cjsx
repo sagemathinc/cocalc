@@ -244,7 +244,7 @@ FileRow = rclass
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
-        # See https://github.com/sagemathinc/smc/issues/1020
+        # See https://github.com/sagemathinc/cocalc/issues/1020
         # support right-click → copy url for the download button
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 

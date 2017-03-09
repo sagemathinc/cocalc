@@ -117,7 +117,7 @@ class exports.LatexEditor extends editor.FileEditor
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
         if not $.browser.firefox
-            # see https://github.com/sagemathinc/smc/issues/1313
+            # see https://github.com/sagemathinc/cocalc/issues/1313
             preview_filename = misc.change_filename_extension(@filename, 'pdf')
             @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
             @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
@@ -361,7 +361,7 @@ class exports.LatexEditor extends editor.FileEditor
             return false
 
         @element.find('a[href="#pdf-preview"]').click () =>
-            # see https://github.com/sagemathinc/smc/issues/1313
+            # see https://github.com/sagemathinc/cocalc/issues/1313
             if $.browser.firefox
                 @download_pdf()
             else

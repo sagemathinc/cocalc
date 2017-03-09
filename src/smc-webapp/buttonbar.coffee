@@ -84,7 +84,7 @@ exports.commands =
         clone_remote_repo :
                 insert:
                         """
-                        git clone https://github.com/sagemathinc/smc.git
+                        git clone https://github.com/sagemathinc/cocalc.git
                         """
         add_file_to_repo :
                 insert:

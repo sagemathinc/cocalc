@@ -102,7 +102,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     return aa
                 select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
                 # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                # NOTE (see comment on https://github.com/sagemathinc/smc/issues/677): it is very important to pass in
+                # NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
                 # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
                 # bringing back everything in the search, which is a bug.
                 select3 = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select2)

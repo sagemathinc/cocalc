@@ -65,7 +65,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "keywords": [
     "python",
@@ -87,7 +87,7 @@
   ],
   "license": "GPL-3.0+",
   "bugs": {
-    "url": "https://github.com/sagemathinc/smc/issues"
+    "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/smc"
+  "homepage": "https://github.com/sagemathinc/cocalc"
 }

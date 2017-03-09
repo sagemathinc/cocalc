@@ -97,7 +97,7 @@ class exports.Evaluator
             time      : time
             user_id   : 0
             input     : misc.copy_without(opts, 'cb')
-        @_inputs.save()  # root cause of https://github.com/sagemathinc/smc/issues/1589
+        @_inputs.save()  # root cause of https://github.com/sagemathinc/cocalc/issues/1589
         if opts.cb?
             # Listen for output until we receive a message with mesg.done true.
             messages = {}

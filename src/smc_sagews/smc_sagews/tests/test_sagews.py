@@ -132,13 +132,13 @@ class TestBasic:
         assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
         conftest.recv_til_done(sagews, test_id)
 
-    # https://github.com/sagemathinc/smc/issues/1107
+    # https://github.com/sagemathinc/cocalc/issues/1107
     def test_sage_underscore_1(self, exec2):
         exec2("2/5","2/5\n")
     def test_sage_underscore_2(self, exec2):
         exec2("_","2/5\n")
 
-    # https://github.com/sagemathinc/smc/issues/978
+    # https://github.com/sagemathinc/cocalc/issues/978
     def test_mode_comments_1(self, exec2):
         exec2(dedent("""
         def f(s):

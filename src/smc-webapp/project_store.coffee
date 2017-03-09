@@ -598,7 +598,7 @@ class ProjectActions extends Actions
             # Very rarely should you need something to execute exactly after this
 
         if not path?
-            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
+            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
             return
 
         if not @_set_directory_files_lock?
@@ -831,7 +831,7 @@ class ProjectActions extends Actions
         if opts.only_contents
             opts.src = with_slashes
 
-        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
+        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
         deal_with_leading_dash = (src_path) ->
             if src_path[0] == '-'
                 return "./#{src_path}"
