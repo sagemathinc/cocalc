@@ -15,7 +15,7 @@ For debugging, this may help:
 
 # NOTE: This file is GPL'd
 # because it imports the Sage library.  This file is not directly
-# imported by anything else in Salvus; the Python process it runs is
+# imported by anything else in CoCalc; the Python process it runs is
 # used over a TCP connection.
 
 #########################################################################################
@@ -500,7 +500,7 @@ namespace = Namespace({})
 
 class Salvus(object):
     """
-    Cell execution state object and wrapper for access to special CoCalc functionality.
+    Cell execution state object and wrapper for access to special CoCalc Server functionality.
 
     An instance of this object is created each time you execute a cell.  It has various methods
     for sending different types of output messages, links to files, etc.   Type 'help(smc)' for

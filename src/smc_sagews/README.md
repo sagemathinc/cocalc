@@ -1,4 +1,4 @@
-# SageMathCloud Sage server
+# CoCalc Worksheet Server
 
 ## Install
 
