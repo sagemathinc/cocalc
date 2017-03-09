@@ -228,7 +228,7 @@ class exports.HistoryEditor extends FileEditor
                     # Set theme back to default
                     cm.setOption('theme', @_non_diff_theme)
                 cm.setValue('')
-                cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
+                cm.setValue(@syncstring.version(@goto_revision(@revision_num)).to_str())
             @element.find("a[href=\"#hide-diff\"]").hide()
             @element.find("a[href=\"#show-diff\"]").show()
             @element.find(".salvus-editor-history-diff-mode").hide()
@@ -251,8 +251,8 @@ class exports.HistoryEditor extends FileEditor
 
     set_doc_diff: (time0, time1) =>
         # Set the doc to show a diff from time0 to time1
-        v0 = @syncstring.version(time0)
-        v1 = @syncstring.version(time1)
+        v0 = @syncstring.version(time0).to_str()
+        v1 = @syncstring.version(time1).to_str()
         {patches, to_line} = line_diff(v0, v1)
         #console.log "#{misc.to_json(patches)}"
         # [{"diffs":[[-1,"BC"],[1,"DCCCBCCECCFCGHCCICJ"]],"start1":0,"start2":0,"length1":2,"length2":19}]

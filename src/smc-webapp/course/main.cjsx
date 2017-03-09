@@ -432,9 +432,11 @@ init_redux = (course_filename, redux, course_project_id) ->
         # Toggles ascending/decending order
         set_active_student_sort: (column_name) =>
             store = get_store()
+            if not store?
+                return
             current_column = store.getIn(['active_student_sort', 'column_name'])
             if current_column == column_name
-                is_descending = not get_store().getIn(['active_student_sort', 'is_descending'])
+                is_descending = not store.getIn(['active_student_sort', 'is_descending'])
             else
                 is_descending = false
             @setState(active_student_sort : {column_name, is_descending})
@@ -512,6 +514,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 return
             # Define function to invite or add collaborator
             s = get_store()
+            if not s?
+                return
             body = s.get_email_invite()
             invite = (x) ->
                 account_store = redux.getStore('account')
@@ -561,6 +565,8 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         configure_project_title: (student_project_id, student_id) =>
             store = get_store()
+            if not store?
+                return
             title = "#{store.get_student_name(student_id)} - #{store.getIn(['settings', 'title'])}"
             redux.getActions('projects').set_project_title(student_project_id, title)
 
@@ -606,7 +612,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                     actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            redux.getActions('projects').set_project_description(student_project_id, get_store().getIn(['settings', 'description']))
+            redux.getActions('projects').set_project_description(student_project_id, get_store()?.getIn(['settings', 'description']))
 
         set_all_student_project_descriptions: (description) =>
             get_store()?.get_students().map (student, student_id) =>
@@ -615,13 +621,16 @@ init_redux = (course_filename, redux, course_project_id) ->
                     redux.getActions('projects').set_project_description(student_project_id, description)
 
         set_all_student_project_course_info: (pay) =>
+            store = get_store()
+            if not store?
+                return
             if not pay?
-                pay = get_store().get_pay()
+                pay = store.get_pay()
             else
                 @_set
                     pay   : pay
                     table : 'settings'
-            get_store()?.get_students().map (student, student_id) =>
+            store.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 # account_id: might not be known when student first added, or if student
                 # hasn't joined smc yet so there is no id.
@@ -887,7 +896,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("return to student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return finish("store not yet initialized")
             grade = store.get_grade(assignment, student)
             if not student = store.get_student(student)
@@ -950,7 +959,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 @clear_activity(id)
                 @set_error("return to student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
                 return error("no assignment")
@@ -984,8 +993,9 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         _finish_copy: (assignment, student, type, err) =>
             if student? and assignment?
-
                 store = get_store()
+                if not store?
+                    return
                 student = store.get_student(student)
                 assignment = store.get_assignment(assignment)
                 obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
@@ -1002,7 +1012,11 @@ init_redux = (course_filename, redux, course_project_id) ->
         # everything is in place to do the operation.
         _start_copy: (assignment, student, type) =>
             if student? and assignment?
-                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                store = get_store()
+                if not store?
+                    return
+                student = store.get_student(student)
+                assignment = store.get_assignment(assignment)
                 obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = @_get_one(obj)?[type] ? {}
                 y = (x[student.get('student_id')]) ? {}
@@ -1016,7 +1030,11 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         _stop_copy: (assignment, student, type) =>
             if student? and assignment?
-                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                store = get_store()
+                if not store?
+                    return
+                student = store.get_student(student)
+                assignment = store.get_assignment(assignment)
                 obj   = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = @_get_one(obj)?[type]
                 if not x?
@@ -1049,7 +1067,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("copy to student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
                 return finish("no student")
@@ -1066,8 +1084,12 @@ init_redux = (course_filename, redux, course_project_id) ->
                     if not student_project_id?
                         @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so creating it.")
                         @create_student_project(student)
-                        get_store().wait
-                            until : => get_store().get_student_project_id(student_id)
+                        store = get_store()
+                        if not store?
+                            cb("no store")
+                            return
+                        store.wait
+                            until : => store.get_student_project_id(student_id)
                             cb    : (err, x) =>
                                 student_project_id = x
                                 cb(err)
@@ -1146,7 +1168,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 err="#{short_desc}: #{err}"
                 @set_error(err)
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
@@ -1185,7 +1207,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("copy peer-grading to student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
                 return finish("no student")
@@ -1260,7 +1282,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("collecting peer-grading of a student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
                 return finish("no student")
@@ -1337,6 +1359,8 @@ init_redux = (course_filename, redux, course_project_id) ->
         open_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
             store = get_store()
+            if not store?
+                return
             assignment = store.get_assignment(assignment_id)
             student    = store.get_student(student_id)
             student_project_id = student.get('project_id')
@@ -1409,7 +1433,11 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         _handout_finish_copy: (handout, student, err) =>
             if student? and handout?
-                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                store = get_store()
+                if not store?
+                    return
+                student = store.get_student(student)
+                handout = store.get_handout(handout)
                 obj = {table:'handouts', handout_id:handout.get('handout_id')}
                 status_map = @_get_one(obj)?.status ? {}
                 student_id = student.get('student_id')
@@ -1421,7 +1449,11 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         _handout_start_copy: (handout, student) =>
             if student? and handout?
-                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                store = get_store()
+                if not store?
+                    return
+                student = store.get_student(student)
+                handout = store.get_handout(handout)
                 obj   = {table:'handouts', handout_id:handout.get('handout_id')}
                 status_map = @_get_one(obj)?.status ? {}
                 student_status = (status_map[student.get('student_id')]) ? {}
@@ -1436,7 +1468,11 @@ init_redux = (course_filename, redux, course_project_id) ->
         # "Copy" of `stop_copying_assignment:`
         stop_copying_handout: (handout, student) =>
             if student? and handout?
-                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                store = get_store()
+                if not store?
+                    return
+                student = store.get_student(student)
+                handout = store.get_handout(handout)
                 obj = {table:'handouts', handout_id:handout.get('handout_id')}
                 status_map = @_get_one(obj)?.status_map
                 if not status_map?
@@ -1469,7 +1505,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 if err
                     @set_error("copy to student: #{err}")
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
                 return finish("no student")
@@ -1486,8 +1522,12 @@ init_redux = (course_filename, redux, course_project_id) ->
                     if not student_project_id?
                         @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so creating it.")
                         @create_student_project(student)
-                        get_store().wait
-                            until : => get_store().get_student_project_id(student_id)
+                        store = get_store()
+                        if not store?
+                            cb("no store")
+                            return
+                        store.wait
+                            until : => store.get_student_project_id(student_id)
                             cb    : (err, x) =>
                                 student_project_id = x
                                 cb(err)
@@ -1520,7 +1560,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 err="#{short_desc}: #{err}"
                 @set_error(err)
             store = get_store()
-            if not @_store_is_initialized()
+            if not store? or not @_store_is_initialized()
                 return error("store not yet initialized")
             if not handout = store.get_handout(handout)
                 return error("no handout")
@@ -1546,6 +1586,8 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         open_handout: (handout_id, student_id) =>
             store = get_store()
+            if not store?
+                return
             handout = store.get_handout(handout_id)
             student = store.get_student(student_id)
             student_project_id = student.get('project_id')
@@ -1997,6 +2039,9 @@ remove_redux = (course_filename, redux, course_project_id) ->
 
     # Remove the listener for changes in the collaborators on this project.
     actions = redux.getActions(the_redux_name)
+    if not actions?
+        # already cleaned up and removed.
+        return
     redux.getStore('projects').removeListener('change', actions.handle_projects_store_update)
 
     # Remove the store and actions.

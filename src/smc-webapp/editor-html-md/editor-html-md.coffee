@@ -374,7 +374,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     html_to_html: (cb) =>   # cb(error, source)
         # add in cursor(s)
-        source = @source_editor._get()
+        source = @_get()
         cm = @source_editor.syncdoc.focused_codemirror()
         # figure out where pos is in the source and put HTML cursor there
         lines = source.split('\n')
@@ -436,7 +436,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         cb(undefined, source)
 
     md_to_html: (cb) =>
-        source = @source_editor._get()
+        source = @_get()
         m = require('../markdown').markdown_to_html(source)
         cb(undefined, m.s)
 
@@ -576,7 +576,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @cm().focus()
 
     _get: () =>
-        return @source_editor._get()
+        return @source_editor._get() ? ''  # empty string if not yet initialized
 
     _set: (content) =>
         @source_editor._set(content)
