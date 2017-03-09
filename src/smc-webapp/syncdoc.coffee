@@ -438,6 +438,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_render_other_cursor(account_id)
 
     get_users_cursors: (account_id) =>
+        if not @_syncstring?
+            return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.

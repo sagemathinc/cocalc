@@ -1589,8 +1589,13 @@ class SyncDoc extends EventEmitter
     hash_of_saved_version: =>
         return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
 
+    # Return hash of the live version of the document, or undefined if the document
+    # isn't loaded yet.  (TODO: faster version of this for syncdb, which avoids
+    # converting to a string, which is a waste of time.)
     hash_of_live_version: =>
-        return misc.hash_string(@_doc.to_str())
+        s = @_doc?.to_str?()
+        if s?
+            return misc.hash_string(s)
 
     # Initiates a save of file to disk, then if cb is set, waits for the state to
     # change to done before calling cb.

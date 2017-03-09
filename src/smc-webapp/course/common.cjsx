@@ -1,3 +1,5 @@
+underscore = require('underscore')
+
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -377,14 +379,14 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         item_name        : 'result'
 
     getInitialState: ->
-        selected_items : '' # currently selected options
-        show_selector : false
+        selected_items : [] # currently selected options
+        show_selector  : false
 
     shouldComponentUpdate: (newProps, newState) ->
         return newProps.search_results != @props.search_results or
             newProps.item_name != @props.item_name or
             newProps.is_searching != @props.is_searching or
-            newState.selected_items != @state.selected_items
+            not underscore.isEqual(newState.selected_items, @state.selected_items)
 
     componentWillReceiveProps: (newProps) ->
         @setState
@@ -392,7 +394,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     clear_and_focus_search_input: ->
         @props.clear_search()
-        @setState(selected_items:'')
+        @setState(selected_items:[])
         @refs.search_input.clear_and_focus_search_input()
 
     search_button: ->
@@ -451,8 +453,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 when 0 then "Select #{@props.item_name} above"
                 when 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        disabled = @props.search_results.size == 0 or (@props.search_results.size >= 2 and num_items_selected == 0)
-        <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+        <Button disabled={num_items_selected == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
     render: ->
         <div>
@@ -532,7 +533,12 @@ exports.FoldersToolbar = rclass
         return directories
 
     submit_selected: (path_list) ->
-        @props.add_folders(path_list)
+        if path_list?
+            # If nothing is selected and the user clicks the button to "Add handout (etc)" then
+            # path_list is undefined, hence don't do this.
+            # (NOTE: I'm also going to make it so that button is disabled, which fits our
+            # UI guidelines, so there's two reasons that path_list is defined here.)
+            @props.add_folders(path_list)
         @clear_add_search()
 
     clear_add_search: ->
