@@ -138,7 +138,7 @@ require('./editor_archive')
 require('./course/main')
 require('./editor_pdf')
 require('./editor_time')
-require('./jupyter/jupyter')
+require('./jupyter/register')
 
 # Public editors
 require('./public/editor_md')
