@@ -737,6 +737,11 @@ exports.define_codemirror_extensions = () ->
             # there is no meaningful thing to do but "do nothing".  We detected this periodically
             # by catching user stacktraces in production...  See https://github.com/sagemathinc/smc/issues/1768
             return
+        current_value = @getValue()
+        if value == current_value
+            # Nothing to do
+            return
+
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -749,7 +754,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(current_value, value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
