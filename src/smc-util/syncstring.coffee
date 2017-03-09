@@ -1127,6 +1127,10 @@ class SyncDoc extends EventEmitter
 
         # compute transformation from _last to live -- exactly what we did
         patch = @_last.make_patch(@_doc)
+        if not patch?
+            # document not initialized (or closed) so nothing to save
+            cb?()
+            return
         @_last = @_doc
 
         # now save the resulting patch
@@ -1766,6 +1770,9 @@ class StringDocument
         return new StringDocument(apply_patch(patch, @_value)[0])
 
     make_patch: (other) =>
+        if not @_value? or not other?._value?
+            # document not inialized or other not meaningful
+            return
         return make_patch(@_value, other._value)
 
 exports._testStringDocument = StringDocument

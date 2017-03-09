@@ -731,6 +731,12 @@ exports.define_codemirror_extensions = () ->
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
+        if not value?
+            # Special case -- trying to set to value=undefined.  This is the sort of thing
+            # that might rarely happen right as the document opens or closes, for which
+            # there is no meaningful thing to do but "do nothing".  We detected this periodically
+            # by catching user stacktraces in production...  See https://github.com/sagemathinc/smc/issues/1768
+            return
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
