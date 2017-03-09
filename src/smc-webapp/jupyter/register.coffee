@@ -36,7 +36,7 @@ register_file_editor
 
         syncdb = salvus_client.sync_db
             project_id   : project_id
-            path         : misc.meta_file(path, 'cocalc')
+            path         : misc.meta_file(path, 'cocalc')  # TODO
             primary_keys : ['type', 'id']
             string_cols  : ['input']
 

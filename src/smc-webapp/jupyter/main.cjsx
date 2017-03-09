@@ -32,7 +32,7 @@ exports.JupyterEditor = rclass ({name}) ->
             />
 
     render_menubar_file: ->
-        <DropdownButton noCaret bsStyle='default' title='File' key='file' id='menu-file'>
+        <DropdownButton noCaret bsStyle='default' title='File' key='file' id='menu-file' style={border:0}>
             <MenuItem eventKey="new">New Notebook...</MenuItem>
             <MenuItem eventKey="open">Open...</MenuItem>
             <MenuItem divider />
@@ -58,7 +58,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </DropdownButton>
 
     render_menubar_edit: ->
-        <DropdownButton noCaret bsStyle='default' title='Edit' key='edit'  id='menu-edit'>
+        <DropdownButton noCaret bsStyle='default' title='Edit' key='edit'  id='menu-edit'  style={border:0}>
             <MenuItem eventKey="cut-cells">Undo</MenuItem>
             <MenuItem eventKey="copy-cells">Redo</MenuItem>
             <MenuItem divider />
@@ -83,7 +83,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </DropdownButton>
 
     render_menubar_view: ->
-        <DropdownButton noCaret bsStyle='default' title='View' key='view'  id='menu-view'>
+        <DropdownButton noCaret bsStyle='default' title='View' key='view'  id='menu-view'  style={border:0}>
             <MenuItem eventKey="toggle-header">Toggle Header</MenuItem>
             <MenuItem eventKey="toggle-toolbar">Toggle Toolbar</MenuItem>
             <MenuItem divider />
@@ -98,13 +98,13 @@ exports.JupyterEditor = rclass ({name}) ->
         </DropdownButton>
 
     render_menubar_insert: ->
-        <DropdownButton noCaret bsStyle='default' title='Insert' key='insert'  id='menu-insert'>
+        <DropdownButton noCaret bsStyle='default' title='Insert' key='insert'  id='menu-insert'  style={border:0}>
             <MenuItem eventKey="insert-cell-above">Insert Cell Above</MenuItem>
             <MenuItem eventKey="insert-cell-below">Insert Cell Below</MenuItem>
         </DropdownButton>
 
     render_menubar_cell: ->
-        <DropdownButton noCaret bsStyle='default' title='Cell' key='cell'  id='menu-cell'>
+        <DropdownButton noCaret bsStyle='default' title='Cell' key='cell'  id='menu-cell'  style={border:0}>
             <MenuItem eventKey="run-cells">Run Cells</MenuItem>
             <MenuItem eventKey="run-cells-select-below">Run Cells and Select Below</MenuItem>
             <MenuItem eventKey="run-cells-insert-below">Run Cells and Insert Below</MenuItem>
@@ -130,7 +130,7 @@ exports.JupyterEditor = rclass ({name}) ->
 
     # obviously TODO regarding kernel selection
     render_menubar_kernel: ->
-        <DropdownButton noCaret bsStyle='default' title='Kernel' key='kernel'  id='menu-kernel'>
+        <DropdownButton noCaret bsStyle='default' title='Kernel' key='kernel'  id='menu-kernel'  style={border:0}>
             <MenuItem eventKey="kernel-interrupt">Inerrrupt</MenuItem>
             <MenuItem eventKey="kernel-restart">Restart</MenuItem>
             <MenuItem eventKey="kernel-restart-clear">Restart & Clear Output</MenuItem>
@@ -155,14 +155,14 @@ exports.JupyterEditor = rclass ({name}) ->
         </DropdownButton>
 
     render_menubar_widgets: ->
-        <DropdownButton noCaret bsStyle='default' title='Widgets' key='widgets'  id='menu-widgets'>
+        <DropdownButton noCaret bsStyle='default' title='Widgets' key='widgets'  id='menu-widgets'  style={border:0}>
             <MenuItem eventKey="widgets-save-with-snapshots">Save notebook with snapshots</MenuItem>
             <MenuItem eventKey="widgets-download">Download widget state</MenuItem>
             <MenuItem eventKey="widgets-embed">Embed widgets</MenuItem>
         </DropdownButton>
 
     render_menubar_help: ->
-        <DropdownButton noCaret bsStyle='default' title='Help' key='help'  id='menu-help'>
+        <DropdownButton noCaret bsStyle='default' title='Help' key='help'  id='menu-help'  style={border:0}>
             <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
             <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
             <MenuItem divider />
@@ -187,7 +187,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render_menubar: ->
-        <div style={padding: '5px', backgroundColor:'rgb(247,247,247)'}>
+        <div style={padding: '5px', backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7'}>
             <ButtonGroup>
                 {@render_menubar_file()}
                 {@render_menubar_edit()}
@@ -280,8 +280,7 @@ exports.JupyterEditor = rclass ({name}) ->
                 In [{cell.get('number') ? '*'}]:
             </div>
             <InputEditor
-                value = {cell.get('input')}
-                style = {width:'100%', backgroundColor: '#f7f7f7', fontFamily: 'monospace'}
+                value    = {cell.get('input') ? ''}
                 onChange = {(value) => @props.actions.set_cell_input(cell.get('id'), value)}
             />
         </div>
@@ -301,13 +300,13 @@ exports.JupyterEditor = rclass ({name}) ->
             <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
                 {@render_output_number(n)}
             </div>
-            <pre style={width:'100%', backgroundColor: '#fff', border: 0}>
+            <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0'}>
                 {cell.get('output') ? ''}
             </pre>
         </div>
 
     render_cell: (cell) ->
-        <div key={cell.get('id')}>
+        <div key={cell.get('id')} style={padding:'5px'}>
             {@render_cell_input(cell)}
             {@render_cell_output(cell)}
         </div>
