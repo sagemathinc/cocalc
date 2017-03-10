@@ -465,6 +465,9 @@ class Doc
         return new Doc(@_db.apply_patch(patch))
 
     make_patch: (other) =>
+        if not @_db? or not other?._db?
+            # not initialized or closed, etc., -- undefined means done.
+            return
         return @_db.make_patch(other._db)
 
     changes: =>
