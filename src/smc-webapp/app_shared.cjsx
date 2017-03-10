@@ -1,3 +1,24 @@
+##############################################################################
+#
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip, COLORS} = require('./r_misc')
@@ -381,5 +402,39 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to use CoCalc.  On some browsers you must also disable private browsing mode.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use this website.  On some browsers you must also disable private browsing mode.
         </div>
+
+# This is used in the "desktop_app" to show a global announcement on top of CC
+# It was first used for a general CoCalc announcement, but it's general enough to be used later on
+# for other global announcements.
+# For now, it just has a simple dismiss button backed by the account → other_settings, though.
+exports.GlobalInformationMessage = rclass
+    displayName: 'GlobalInformationMessage'
+
+    dismiss: ->
+        redux.getTable('account').set(other_settings:{show_global_info:false})
+
+    render: ->
+        more_url = 'https://github.com/sagemathinc/smc/wiki/CoCalc'
+        bgcol = require('colors').COLORS.YELL_L
+        style =
+            padding         : '5px 0 5px 5px'
+            backgroundColor : bgcol
+            fontSize        : '18px'
+            position        : 'fixed'
+            zIndex          : '101'
+            right           : 0
+            left            : 0
+            height          : '40px'
+
+        <Row style={style}>
+            <Col sm={9}>
+                <p>Welcome to <strong>CoCalc</strong>! SageMathCloud outgrew itself and changed its name.
+                {' '}<a target='_blank' href={more_url}>Read more...</a></p>
+            </Col>
+            <Col sm={3}>
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                    onClick={@dismiss}>Dismiss and hide</Button>
+            </Col>
+        </Row>

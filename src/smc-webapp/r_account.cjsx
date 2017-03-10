@@ -964,6 +964,7 @@ OtherSettings = rclass
                     onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                     Confirm: always ask for confirmation before closing the browser window
                 </Checkbox>
+
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
         if @props.other_settings.page_size > BIG_PAGE_SIZE
@@ -982,6 +983,13 @@ OtherSettings = rclass
                 onChange = {(e)=>@on_change('mask_files', e.target.checked)}
             >
                 Mask files: grey-out files in the files viewer that you probably do not want to open
+            </Checkbox>
+            <Checkbox
+                checked  = {@props.other_settings.show_global_info}
+                ref      = 'show_global_info'
+                onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
+            >
+                Show global information: if enabled, a dismissable banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput

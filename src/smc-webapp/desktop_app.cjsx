@@ -1,3 +1,24 @@
+##############################################################################
+#
+# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {isMobile} = require('./feature')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
@@ -19,7 +40,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -69,6 +90,7 @@ Page = rclass
             get_fullname : rtypes.func
             user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
+            other_settings : rtypes.object
         support :
             show : rtypes.bool
 
@@ -166,6 +188,8 @@ Page = rclass
             width         : '100vw'
             overflow      : 'auto'
 
+        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen)
+
         style_top_bar =
             display       : 'flex'
             marginBottom  : 0
@@ -175,6 +199,9 @@ Page = rclass
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
+            top           : if show_global_info then '40px' else 0
+
+        positionHackHeight = (42 + if show_global_info then 40 else 0 ) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
@@ -183,12 +210,13 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
+            {<GlobalInformationMessage /> if show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
-            {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}
+            {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
