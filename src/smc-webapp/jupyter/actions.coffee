@@ -13,6 +13,9 @@ immutable = require('immutable')
 
 {React, ReactDOM, Redux, Actions, Store}  = require('../smc-react')
 
+misc = require('smc-util/misc')
+
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -25,7 +28,6 @@ class exports.JupyterActions extends Actions
             error  : undefined
             cur_id : undefined
             mode   : 'escape'
-
 
     set_error: (err) =>
         @setState
@@ -44,19 +46,58 @@ class exports.JupyterActions extends Actions
     set_mode: (mode) =>
         @setState(mode: mode)
 
-    _syncdb_change: =>
-        # TODO: this is horrendously not efficient!
-        cells = @syncdb.get(type:'cell')
-        # Sort and ensure at least one cell
+    set_cell_list: =>
+        cells = @store.get('cells')
+        if not cells?
+            return
+        # TODO (j3?): rewrite staying immutable
+        v = []
+        cells.map (record, id) ->
+            v.push({id:id, pos:record.get('pos')})
+            return
+        v.sort (a,b) ->
+            misc.cmp(a.pos, b.pos)
+        v = (x.id for x in v)
+        cell_list = immutable.List(v)
+        if not cell_list.equals(@store.get('cell_list'))
+            @setState(cell_list : cell_list)
+        return
 
-        @setState
-            cells  : cells
-            kernel : @syncdb.get_one(type:'settings')?.get('kernel')
+    _syncdb_cell_change: (id, record) =>
+        cells = @store.get('cells') ? immutable.Map()
+        if not record?
+            # delete cell
+            if cells?.get(id)?
+                @setState
+                    cells     : cells.delete(id)
+                    cell_list : undefined
+        else
+            # change or add cell
+            if not record.equals(cells.get(id))
+                @setState
+                    cells     : cells.set(id, record)
+                    cell_list : undefined
+        return
 
+    _syncdb_change: (changes) =>
+        # console.log 'changes', changes, changes?.toJS()
+        if not changes?  # nothing to do
+            return
+        changes.map (key) =>
+            record = @syncdb.get_one(key)
+            switch key.get('type')
+                when 'cell'
+                    @_syncdb_cell_change(key.get('id'), record)
+                when 'settings'
+                    @setState
+                        kernel : record?.get('kernel')
+            return
+        if not @store.get('cell_list')?
+            @set_cell_list()
         # cells.sort...
         cur_id = @store.get('cur_id')
         if not cur_id? # todo: or the cell doesn't exist
-            @set_cur_id(cells.get(0)?.get('id'))
+            @set_cur_id(@store.get('cell_list')?[0])
 
     _set: (obj) =>
         @syncdb.set(obj)

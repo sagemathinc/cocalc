@@ -19,12 +19,14 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            kernel : rtypes.string          # string name of the kernel
-            cells  : rtypes.immutable.List  # ordered list of cells
+            kernel    : rtypes.string          # string name of the kernel
+            cells     : rtypes.immutable.Map   # map from id to cells
+            cell_list : rtypes.immutable.List  # list of ids of cells in order
 
-            cur_id : rtypes.string          # id of currently selected cell
-            mode   : rtypes.string          # 'edit' or 'escape'
-            error  : rtypes.string
+            cur_id    : rtypes.string          # id of currently selected cell
+            mode      : rtypes.string          # 'edit' or 'escape'
+            error     : rtypes.string
+
 
     render_error: ->
         if @props.error
@@ -313,8 +315,7 @@ exports.JupyterEditor = rclass ({name}) ->
     click_on_cell: (id) ->
         @props.actions.set_cur_id(id)
 
-    render_cell: (cell, cm_options) ->
-        id = cell.get('id')
+    render_cell: (id, cm_options) ->
         if @props.cur_id == id
             # currently selected cell
             if @props.mode == 'edit'
@@ -330,15 +331,13 @@ exports.JupyterEditor = rclass ({name}) ->
             border          : "1px solid #{color1}"
             borderLeft      : "5px solid #{color2}"
             padding         : '5px'
-        id = cell.get('id')
+        cell = @props.cells.get(id)
         <div key={id} style={style} onClick={=>@click_on_cell(id)}>
             {@render_cell_input(cell, cm_options)}
             {@render_cell_output(cell)}
         </div>
 
     render_cells: ->
-        v = []
-
         cm_options =
             indentUnit        : 4
             matchBrackets     : true
@@ -348,18 +347,18 @@ exports.JupyterEditor = rclass ({name}) ->
                 version                : 3
                 singleLineStringErrors : false
 
-        @props.cells.map (cell) =>
-            v.push(@render_cell(cell, cm_options))
+        v = []
+        @props.cell_list.map (id) =>
+            v.push @render_cell(id, cm_options)
             return
-
-        <div style={paddingLeft:'20px', padding:'20px',  backgroundColor:'#eee', height: '100%', overflowY:'scroll'}>
+        <div key='cells' style={paddingLeft:'20px', padding:'20px',  backgroundColor:'#eee', height: '100%', overflowY:'scroll'}>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
                 {v}
             </div>
         </div>
 
     render: ->
-        if not @props.cells?
+        if not @props.cells? or not @props.cell_list?
             return <Loading/>
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
