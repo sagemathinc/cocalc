@@ -19,9 +19,11 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            title  : rtypes.string          # title of the notebook
-            kernel : rtypes.string         # string name of the kernel
+            kernel : rtypes.string          # string name of the kernel
             cells  : rtypes.immutable.List  # ordered list of cells
+
+            cur_id : rtypes.string          # id of currently selected cell
+            mode   : rtypes.string          # 'edit' or 'escape'
             error  : rtypes.string
 
     render_error: ->
@@ -275,14 +277,16 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render_cell_input: (cell, cm_options) ->
+        id = cell.get('id')
         <div key='in' style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
                 In [{cell.get('number') ? '*'}]:
             </div>
             <InputEditor
                 value    = {cell.get('input') ? ''}
-                onChange = {(value) => @props.actions.set_cell_input(cell.get('id'), value)}
                 options  = {cm_options}
+                actions  = {@props.actions}
+                id       = {id}
             />
         </div>
 
@@ -298,16 +302,36 @@ exports.JupyterEditor = rclass ({name}) ->
             return
         n = cell.get('number')
         <div key='out'  style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
-            <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
+            <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em', paddingBottom:0}>
                 {@render_output_number(n)}
             </div>
-            <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0'}>
+            <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
                 {cell.get('output') ? ''}
             </pre>
         </div>
 
+    click_on_cell: (id) ->
+        @props.actions.set_cur_id(id)
+
     render_cell: (cell, cm_options) ->
-        <div key={cell.get('id')} style={padding:'5px'}>
+        id = cell.get('id')
+        if @props.cur_id == id
+            # currently selected cell
+            if @props.mode == 'edit'
+                # edit mode
+                color1 = color2 = '#66bb6a'
+            else
+                # escape mode
+                color1 = '#ababab'
+                color2 = '#42a5f5'
+        else
+            color1 = color2 = 'white'
+        style =
+            border          : "1px solid #{color1}"
+            borderLeft      : "5px solid #{color2}"
+            padding         : '5px'
+        id = cell.get('id')
+        <div key={id} style={style} onClick={=>@click_on_cell(id)}>
             {@render_cell_input(cell, cm_options)}
             {@render_cell_output(cell)}
         </div>
@@ -335,7 +359,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render: ->
-        if not @props.title? or not @props.cells?
+        if not @props.cells?
             return <Loading/>
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}

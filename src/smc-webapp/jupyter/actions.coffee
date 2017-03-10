@@ -21,6 +21,11 @@ underlying synchronized state.
 class exports.JupyterActions extends Actions
 
     _init: () =>
+        @setState
+            error  : undefined
+            cur_id : undefined
+            mode   : 'escape'
+
 
     set_error: (err) =>
         @setState
@@ -33,11 +38,25 @@ class exports.JupyterActions extends Actions
             id    : id
             input : value
 
+    set_cur_id: (id) =>
+        @setState(cur_id : id)
+
+    set_mode: (mode) =>
+        @setState(mode: mode)
+
     _syncdb_change: =>
-        # TODO: this is not efficient!
+        # TODO: this is horrendously not efficient!
+        cells = @syncdb.get(type:'cell')
+        # Sort and ensure at least one cell
+
         @setState
-            cells : @syncdb.get(type:'cell')
-            title : @syncdb.get_one(type:'settings')?.get('title')
+            cells  : cells
+            kernel : @syncdb.get_one(type:'settings')?.get('kernel')
+
+        # cells.sort...
+        cur_id = @store.get('cur_id')
+        if not cur_id? # todo: or the cell doesn't exist
+            @set_cur_id(cells.get(0)?.get('id'))
 
     _set: (obj) =>
         @syncdb.set(obj)

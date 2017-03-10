@@ -25,10 +25,8 @@ exports.InputEditor = rclass
     propTypes :
         options  : rtypes.object
         value    : rtypes.string.isRequired
-        onChange : rtypes.func.isRequired
-
-    handle_change: (e) ->
-        @props.onChange(e.target.value)
+        id       : rtypes.string.isRequired
+        actions  : rtypes.object.isRequired
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
@@ -38,8 +36,16 @@ exports.InputEditor = rclass
             @cm.toTextArea()
             if @_cm_change?
                 @cm.off('change', @_cm_change)
+                @cm.off('focus', @_cm_focus)
+                @cm.off('blur', @_cm_blur)
                 delete @_cm_change
             delete @cm
+
+    _cm_focus: ->
+        @props.actions.set_mode('edit')
+
+    _cm_blur: ->
+        @props.actions.set_mode('escape')
 
     init_codemirror: (options, value) ->
         @_cm_destroy()
@@ -48,9 +54,11 @@ exports.InputEditor = rclass
         @cm.setValueNoJump(value)
         $(@cm.getWrapperElement()).css(height: 'auto')
         f = =>
-            @props.onChange(@cm.getValue())
+            @props.actions.set_cell_input(@props.id, @cm.getValue())
         @_cm_change = underscore.debounce(f, 2000)
         @cm.on('change', @_cm_change)
+        @cm.on('focus', @_cm_focus)
+        @cm.on('blur', @_cm_blur)
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
