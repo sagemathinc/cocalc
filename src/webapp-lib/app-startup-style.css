@@ -1,5 +1,5 @@
 #smc-startup-banner {
-    width: 450px;
+    width: 400px;
     /* bootstrap 3.3 has this line height. fix it, if it changes! */
     line-height: 1.42857143;
     text-align: center;
@@ -23,29 +23,32 @@
     right: 0;
 }
 #smc-startup-banner img {
+    vertical-align: middle;
     width:  188px;   /* original 94px */
     height: 154px;   /* original 77px */
 }
-#smc-startup-banner .banner-blink,
 #smc-startup-banner .banner-error {
-  width: 450px;
+  width: 400px;
   opacity: 0.0;
   animation: banner-error ease-in 31s forwards;
-}
-
-#smc-startup-banner .banner-error {
   float: left;
   border-radius: 5px;
   padding: 15px 0;
 }
 #smc-startup-banner .banner-blink {
+  width: 400px;
   border-radius: 5px;
   padding: 15px 0;
   background-color: #4474c0;
   margin-bottom: 5px;
   opacity: 1.0;
+  animation: banner-red 31s forwards;
 }
-
+@keyframes banner-red {
+    0% {background-color: #4474c0;}
+   95% {background-color: #4474c0;}
+  100% {background-color: #bf1919;}
+}
 #smc-startup-banner .banner-blink img {
   animation: banner-blink 31s forwards;
 }
@@ -53,25 +56,25 @@
      0% {opacity: 1.0; }
      5% {opacity:  .1; }
     10% {opacity: 1.0; }
-    15% {opacity:  .15;}
+    15% {opacity:  .1;}
     20% {opacity: 1.0; }
-    25% {opacity:  .2; }
+    25% {opacity:  .1; }
     30% {opacity: 1.0; }
-    35% {opacity:  .25;}
+    35% {opacity:  .1;}
     40% {opacity: 1.0; }
-    45% {opacity:  .3; }
+    45% {opacity:  .1; }
     50% {opacity: 1.0; }
-    55% {opacity:  .35;}
+    55% {opacity:  .1; }
     60% {opacity: 1.0; }
-    65% {opacity:  .4; }
+    65% {opacity:  .2; }
     70% {opacity: 1.0; }
-    80% {opacity:  .1; }
-    90% {opacity: 0.8; }
-    95% {opacity: 0.1; }
-   100% {opacity: 1.0; }
+    80% {opacity:  .3; }
+    90% {opacity: 0.7; }
+    95% {opacity: 0.1;}
+   100% {opacity: 1.0;}
 }
 @keyframes banner-error {
- 95% {opacity: 0.0; background-color: #428BCA;}
+ 95% {opacity: 0.0; background-color: #FFFFFF;}
 100% {opacity: 1.0; background-color: #bf1919;}
 }
 #smc-startup-banner .message {
