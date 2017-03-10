@@ -36,13 +36,13 @@ class exports.JupyterActions extends Actions
             error : err
 
     set_cell_input: (id, value) =>
-        @syncdb.set
+        @_set
             type  : 'cell'
             id    : id
             input : value
 
     set_cell_pos: (id, pos) =>
-        @syncdb.set
+        @_set
             type  : 'cell'
             id    : id
             pos   : pos
@@ -104,10 +104,15 @@ class exports.JupyterActions extends Actions
         cells = @store.get('cells') ? immutable.Map()
         if not record?
             # delete cell
+            console.log('delete cell', id)
             if cells?.get(id)?
-                @setState
-                    cells     : cells.delete(id)
-                    cell_list : cell_list.delete(id)
+                console.log('have cell ', id)
+                obj = {cells: cells.delete(id)}
+                cell_list = @store.get('cell_list')
+                if cell_list?
+                    obj.cell_list = cell_list.filter((x) -> x != id)
+                window.obj = obj
+                @setState(obj)
         else
             # change or add cell
             current = cells.get(id)
@@ -140,6 +145,7 @@ class exports.JupyterActions extends Actions
             @set_cur_id(@store.get('cell_list')?[0])
 
     _set: (obj) =>
+        @syncdb.exit_undo_mode()
         @syncdb.set(obj)
         @syncdb.save()  # save to file on disk
 
@@ -173,7 +179,7 @@ class exports.JupyterActions extends Actions
             pos = (adjacent_pos + current_pos)/2
         else
             pos = current_pos + delta
-        @syncdb.set
+        @_set
             type  : 'cell'
             id    : @_new_id()
             pos   : pos
@@ -218,3 +224,9 @@ class exports.JupyterActions extends Actions
             id = w[pos]
             if cells.get(id).get('pos') != pos
                 @set_cell_pos(id, pos)
+
+    undo: =>
+        @syncdb.undo()
+
+    redo: =>
+        @syncdb.redo()

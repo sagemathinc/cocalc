@@ -66,8 +66,8 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_menubar_edit: ->
         <DropdownButton noCaret bsStyle='default' title='Edit' key='edit'  id='menu-edit'  style={border:0}>
-            <MenuItem eventKey="cut-cells">Undo</MenuItem>
-            <MenuItem eventKey="copy-cells">Redo</MenuItem>
+            <MenuItem eventKey="cut-cells"  onSelect={=>@props.actions.undo()}>Undo</MenuItem>
+            <MenuItem eventKey="copy-cells" onSelect={=>@props.actions.redo()}>Redo</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="cut-cells">Cut Cells</MenuItem>
             <MenuItem eventKey="copy-cells">Copy Cells</MenuItem>
@@ -75,7 +75,7 @@ exports.JupyterEditor = rclass ({name}) ->
             <MenuItem eventKey="paste-cells-below">Paste Cells Below</MenuItem>
             <MenuItem eventKey="paste-cells-and-replace">Paste Cells & Replace</MenuItem>
             <MenuItem eventKey="delete-cells">Delete Cells</MenuItem>
-            <MenuItem eventKey="undo-delete-cells">Undo Delete Cells</MenuItem>
+            <MenuItem eventKey="undo-delete-cells" onSelect={=>@props.actions.undo()}>Undo Delete Cells</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="split-cell">Split Cell</MenuItem>
             <MenuItem eventKey="merge-cell-above">Merge Cell Above</MenuItem>
@@ -223,6 +223,12 @@ exports.JupyterEditor = rclass ({name}) ->
             </Button>
             <Button>
                 <Icon name='clipboard'/>
+            </Button>
+            <Button onClick={=>@props.actions.undo()}>
+                <Icon name='undo'/>
+            </Button>
+            <Button onClick={=>@props.actions.redo()}>
+                <Icon name='repeat'/>
             </Button>
         </ButtonGroup>
 

@@ -661,15 +661,19 @@ class exports.SyncDB extends EventEmitter
 
     undo: =>
         @_check()
-        @_doc.set_doc(@_doc.get_doc().undo())
+        @_doc.set_doc(@_doc.undo())
         @_doc.save()
         return
 
     redo: =>
         @_check()
-        @_doc.set_doc(@_doc.get_doc().redo())
+        @_doc.set_doc(@_doc.redo())
         @_doc.save()
         return
+
+    exit_undo_mode: =>
+        @_check()
+        @_doc.exit_undo_mode()
 
     revert: (version) =>
         @_check()
