@@ -1150,11 +1150,11 @@ ProjectFilesActionBox = rclass
 
     render_rename_or_duplicate: () ->
         single_item = @props.checked_files.first()
-        action_title = switch @props.file_action
-                            when 'rename'
-                                'Rename'
-                            when 'duplicate'
-                                'Duplicate'
+        switch @props.file_action
+            when 'rename'
+                action_title = 'Rename'
+            when 'duplicate'
+                action_title = 'Duplicate'
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1198,10 +1198,15 @@ ProjectFilesActionBox = rclass
     render_duplicate: ->
         @render_rename_or_duplicate()
 
-    submit_action_rename: () ->
+    submit_action_rename: ->
         single_item = @props.checked_files.first()
         if @valid_rename_input(single_item)
             @rename_or_duplicate_click()
+
+    # Make submit_action_duplicate an alias for submit_action_rename, due to how our
+    # dynamically generated function calls work.
+    submit_action_duplicate: ->
+        @submit_action_rename()
 
     move_click: ->
         @props.actions.move_files
