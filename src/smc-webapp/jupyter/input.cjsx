@@ -42,14 +42,12 @@ exports.InputEditor = rclass
             delete @cm
 
     init_codemirror: (options, value) ->
-        console.log 'init_codemirror'
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         @cm = CodeMirror.fromTextArea(node, options)
         @cm.setValueNoJump(value)
         $(@cm.getWrapperElement()).css(height: 'auto')
         f = =>
-            console.log 'on_change'
             @props.onChange(@cm.getValue())
         @_cm_change = underscore.debounce(f, 2000)
         @cm.on('change', @_cm_change)

@@ -274,7 +274,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_buttonbar()}
         </div>
 
-    render_cell_input: (cell) ->
+    render_cell_input: (cell, cm_options) ->
         <div key='in' style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
                 In [{cell.get('number') ? '*'}]:
@@ -282,6 +282,7 @@ exports.JupyterEditor = rclass ({name}) ->
             <InputEditor
                 value    = {cell.get('input') ? ''}
                 onChange = {(value) => @props.actions.set_cell_input(cell.get('id'), value)}
+                options  = {cm_options}
             />
         </div>
 
@@ -305,17 +306,26 @@ exports.JupyterEditor = rclass ({name}) ->
             </pre>
         </div>
 
-    render_cell: (cell) ->
+    render_cell: (cell, cm_options) ->
         <div key={cell.get('id')} style={padding:'5px'}>
-            {@render_cell_input(cell)}
+            {@render_cell_input(cell, cm_options)}
             {@render_cell_output(cell)}
         </div>
 
     render_cells: ->
         v = []
 
+        cm_options =
+            indentUnit        : 4
+            matchBrackets     : true
+            autoCloseBrackets : true
+            mode              :
+                name                   : "python"
+                version                : 3
+                singleLineStringErrors : false
+
         @props.cells.map (cell) =>
-            v.push(@render_cell(cell))
+            v.push(@render_cell(cell, cm_options))
             return
 
         <div style={paddingLeft:'20px', padding:'20px',  backgroundColor:'#eee', height: '100%', overflowY:'scroll'}>
