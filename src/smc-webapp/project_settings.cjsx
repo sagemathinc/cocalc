@@ -506,6 +506,12 @@ SageWorksheetPanel = rclass
         loading : false
         message : ''
 
+    componentDidMount: ->
+        @_mounted = true
+
+    componentWillUnmount: ->
+        delete @_mounted
+
     propTypes :
         project : rtypes.object.isRequired
 
@@ -516,6 +522,8 @@ SageWorksheetPanel = rclass
             command    : 'smc-sage-server stop; smc-sage-server start'
             timeout    : 30
             cb         : (err, output) =>
+                if not @_mounted # see https://github.com/sagemathinc/smc/issues/1684
+                    return
                 @setState(loading : false)
                 if err
                     @setState(message:'Error trying to restart worksheet server. Try restarting the project server instead.')
