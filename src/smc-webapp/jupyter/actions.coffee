@@ -104,14 +104,11 @@ class exports.JupyterActions extends Actions
         cells = @store.get('cells') ? immutable.Map()
         if not record?
             # delete cell
-            console.log('delete cell', id)
             if cells?.get(id)?
-                console.log('have cell ', id)
                 obj = {cells: cells.delete(id)}
                 cell_list = @store.get('cell_list')
                 if cell_list?
                     obj.cell_list = cell_list.filter((x) -> x != id)
-                window.obj = obj
                 @setState(obj)
         else
             # change or add cell
@@ -149,6 +146,11 @@ class exports.JupyterActions extends Actions
         @syncdb.set(obj)
         @syncdb.save()  # save to file on disk
 
+    _delete: (obj) =>
+        @syncdb.exit_undo_mode()
+        @syncdb.delete(obj)
+        @syncdb.save()  # save to file on disk
+
     _new_id: =>
         return misc.uuid().slice(0,8)  # TODO: choose something...
 
@@ -184,6 +186,11 @@ class exports.JupyterActions extends Actions
             id    : @_new_id()
             pos   : pos
             value : ''
+
+    delete_selected_cells: =>
+        for id,_ of @store.get_selected_cell_ids()
+            @_delete(type:'cell', id:id)
+        return
 
     # move all selected cells delta positions, e.g., delta = +1 or delta = -1
     move_selected_cells: (delta) =>

@@ -74,7 +74,7 @@ exports.JupyterEditor = rclass ({name}) ->
             <MenuItem eventKey="paste-cells-above">Paste Cells Above</MenuItem>
             <MenuItem eventKey="paste-cells-below">Paste Cells Below</MenuItem>
             <MenuItem eventKey="paste-cells-and-replace">Paste Cells & Replace</MenuItem>
-            <MenuItem eventKey="delete-cells">Delete Cells</MenuItem>
+            <MenuItem eventKey="delete-cells"      onSelect={=>@props.actions.delete_selected_cells()}>Delete Cells</MenuItem>
             <MenuItem eventKey="undo-delete-cells" onSelect={=>@props.actions.undo()}>Undo Delete Cells</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="split-cell">Split Cell</MenuItem>
