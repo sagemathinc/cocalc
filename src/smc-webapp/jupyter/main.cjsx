@@ -8,6 +8,8 @@ React components
 
 {ErrorDisplay, Icon, Loading} = require('../r_misc')
 
+misc_page = require('../misc_page')
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {InputEditor} = require('./input')
@@ -24,6 +26,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cell_list : rtypes.immutable.List  # list of ids of cells in order
 
             cur_id    : rtypes.string          # id of currently selected cell
+            sel_ids   : rtypes.immutable.Set   # set of selected cells
             mode      : rtypes.string          # 'edit' or 'escape'
             error     : rtypes.string
 
@@ -312,10 +315,16 @@ exports.JupyterEditor = rclass ({name}) ->
             </pre>
         </div>
 
-    click_on_cell: (id) ->
-        @props.actions.set_cur_id(id)
+    click_on_cell: (id, event) ->
+        if event.shiftKey
+            misc_page.clear_selection()
+            @props.actions.select_cell_range(id)
+        else
+            @props.actions.set_cur_id(id)
+            @props.actions.unselect_all_cells()
 
     render_cell: (id, cm_options) ->
+        selected = @props.sel_ids?.contains(id)
         if @props.cur_id == id
             # currently selected cell
             if @props.mode == 'edit'
@@ -326,13 +335,20 @@ exports.JupyterEditor = rclass ({name}) ->
                 color1 = '#ababab'
                 color2 = '#42a5f5'
         else
-            color1 = color2 = 'white'
+            if selected
+                color1 = color2 = '#e3f2fd'
+            else
+                color1 = color2 = 'white'
         style =
             border          : "1px solid #{color1}"
             borderLeft      : "5px solid #{color2}"
             padding         : '5px'
+
+        if selected
+            style.background = '#e3f2fd'
+
         cell = @props.cells.get(id)
-        <div key={id} style={style} onClick={=>@click_on_cell(id)}>
+        <div key={id} style={style} onClick={(e) =>@click_on_cell(id, e)}>
             {@render_cell_input(cell, cm_options)}
             {@render_cell_output(cell)}
         </div>

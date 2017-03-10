@@ -59,6 +59,27 @@ class exports.JupyterActions extends Actions
     unselect_all_cells: =>
         @setState(sel_ids : immutable.Set())
 
+    # select all cells from the currently focused one (where the cursor is -- cur_id)
+    # to the cell with the given id, then set the cursor to be at id.
+    select_cell_range: (id) =>
+        cur_id = @store.get('cur_id')
+        if not cur_id?  # must be selected
+            return
+        if cur_id == id # nothing to do
+            return
+        i = 0
+        v = @store.get('cell_list').toJS()
+        for i, x of v
+            if x == id
+                endpoint0 = i
+            if x == cur_id
+                endpoint1 = i
+        if endpoint0 > endpoint1
+            [endpoint0, endpoint1] = [endpoint1, endpoint0]
+        for i in [endpoint0..endpoint1]
+            @select_cell(v[i])
+        @set_cur_id(id)
+
     set_mode: (mode) =>
         @setState(mode: mode)
 

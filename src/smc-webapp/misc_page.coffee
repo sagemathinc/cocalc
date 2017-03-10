@@ -1783,3 +1783,11 @@ exports.open_new_tab = (url, popup=false) ->
         return null
     return tab
 
+# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
+exports.clear_selection = ->
+    if window.getSelection?().empty?
+        window.getSelection().empty() # chrome
+    else if window.getSelection?().removeAllRanges?
+        window.getSelection().removeAllRanges() # firefox
+    else
+        document.selection?.empty?()
