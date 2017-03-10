@@ -54,7 +54,8 @@ exports.InputEditor = rclass
         @cm.setValueNoJump(value)
         $(@cm.getWrapperElement()).css(height: 'auto')
         f = =>
-            @props.actions.set_cell_input(@props.id, @cm.getValue())
+            if @cm?
+                @props.actions.set_cell_input(@props.id, @cm.getValue())
         @_cm_change = underscore.debounce(f, 2000)
         @cm.on('change', @_cm_change)
         @cm.on('focus', @_cm_focus)

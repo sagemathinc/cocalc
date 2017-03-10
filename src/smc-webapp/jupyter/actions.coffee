@@ -9,11 +9,12 @@ Jupyter notebooks.  The goals are:
 
 ###
 
-immutable = require('immutable')
+immutable  = require('immutable')
+underscore = require('underscore')
 
-{React, ReactDOM, Redux, Actions, Store}  = require('../smc-react')
+misc       = require('smc-util/misc')
 
-misc = require('smc-util/misc')
+{Actions}  = require('../smc-react')
 
 
 ###
@@ -25,23 +26,38 @@ class exports.JupyterActions extends Actions
 
     _init: () =>
         @setState
-            error  : undefined
-            cur_id : undefined
-            mode   : 'escape'
+            error   : undefined
+            cur_id  : undefined
+            sel_ids : immutable.Set()  # immutable set of selected cells
+            mode    : 'escape'
 
     set_error: (err) =>
         @setState
             error : err
 
     set_cell_input: (id, value) =>
-        # TODO: insanely stupid/slow -- just for proof of concept
         @syncdb.set
             type  : 'cell'
             id    : id
             input : value
 
+    set_cell_pos: (id, pos) =>
+        @syncdb.set
+            type  : 'cell'
+            id    : id
+            pos   : pos
+
     set_cur_id: (id) =>
         @setState(cur_id : id)
+
+    select_cell: (id) =>
+        sel_ids = @store.get('sel_ids')
+        if sel_ids.contains(id)
+            return
+        @setState(sel_ids : sel_ids.add(id))
+
+    unselect_all_cells: =>
+        @setState(sel_ids : immutable.Set())
 
     set_mode: (mode) =>
         @setState(mode: mode)
@@ -80,7 +96,7 @@ class exports.JupyterActions extends Actions
         return
 
     _syncdb_change: (changes) =>
-        # console.log 'changes', changes, changes?.toJS()
+        #console.log 'changes', changes, changes?.toJS()
         if not changes?  # nothing to do
             return
         changes.map (key) =>
@@ -102,3 +118,43 @@ class exports.JupyterActions extends Actions
     _set: (obj) =>
         @syncdb.set(obj)
         @syncdb.save()  # save to file on disk
+
+    # move all selected cells delta positions, e.g., delta = +1 or delta = -1
+    move_selected_cells: (delta) =>
+        if delta == 0
+            return
+        # This action changes the pos attributes of 0 or more cells.
+        selected = @store.get_selected_cell_ids()
+        if misc.len(selected) == 0
+            return # nothing to do
+        v = @store.get('cell_list')
+        if not v?
+            return  # don't even have cell list yet...
+        v = v.toJS()  # javascript array of unique cell id's, properly ordered
+        w = []
+        # put selected cells in their proper new positions
+        for i in [0...v.length]
+            if selected[v[i]]
+                n = i + delta
+                if n < 0 or n >= v.length
+                    # would move cells out of document, so nothing to do
+                    return
+                w[n] = v[i]
+        # now put non-selected in remaining places
+        k = 0
+        for i in [0...v.length]
+            if not selected[v[i]]
+                while w[k]?
+                    k += 1
+                w[k] = v[i]
+        # now w is a complete list of the id's in the proper order; use it to set pos
+        t = new Date()
+        if underscore.isEqual(v, w)
+            # no change
+            return
+        cells = @store.get('cells')
+        changes = immutable.Set()
+        for pos in [0...w.length]
+            id = w[pos]
+            if cells.get(id).get('pos') != pos
+                @set_cell_pos(id, pos)

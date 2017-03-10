@@ -14,6 +14,7 @@ misc                   = require('smc-util/misc')
 
 {JupyterEditor}        = require('./main')
 {JupyterActions}       = require('./actions')
+{JupyterStore}         = require('./store')
 
 register_file_editor
     ext       : ['ipynb2']
@@ -30,7 +31,7 @@ register_file_editor
             return name  # already initialized
 
         actions = redux.createActions(name, JupyterActions)
-        store   = redux.createStore(name)
+        store   = redux.createStore(name, JupyterStore)
 
         actions._init()
 

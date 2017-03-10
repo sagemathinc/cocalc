@@ -78,8 +78,8 @@ exports.JupyterEditor = rclass ({name}) ->
             <MenuItem eventKey="merge-cell-above">Merge Cell Above</MenuItem>
             <MenuItem eventKey="merge-cell-below">Merge Cell Below</MenuItem>
             <MenuItem divider />
-            <MenuItem eventKey="move-cell-up">Move Cell Up</MenuItem>
-            <MenuItem eventKey="move-cell-down">Move Cell Down</MenuItem>
+            <MenuItem eventKey="move-cell-up" onSelect={=>@props.actions.move_selected_cells(-1)}>Move Cell Up</MenuItem>
+            <MenuItem eventKey="move-cell-down"  onSelect={=>@props.actions.move_selected_cells(1)}>Move Cell Down</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="edit-notebook-metadata">Edit Notebook Metadata</MenuItem>
             <MenuItem divider />
@@ -225,10 +225,10 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_button_group_move: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button>
+            <Button onClick={=>@props.actions.move_selected_cells(-1)}>
                 <Icon name='arrow-up'/>
             </Button>
-            <Button>
+            <Button  onClick={=>@props.actions.move_selected_cells(1)}>
                 <Icon name='arrow-down'/>
             </Button>
         </ButtonGroup>
