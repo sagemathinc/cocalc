@@ -106,8 +106,8 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_menubar_insert: ->
         <DropdownButton noCaret bsStyle='default' title='Insert' key='insert'  id='menu-insert'  style={border:0}>
-            <MenuItem eventKey="insert-cell-above">Insert Cell Above</MenuItem>
-            <MenuItem eventKey="insert-cell-below">Insert Cell Below</MenuItem>
+            <MenuItem eventKey="insert-cell-above" onSelect={=>@props.actions.insert_cell(-1)}>Insert Cell Above</MenuItem>
+            <MenuItem eventKey="insert-cell-below" onSelect={=>@props.actions.insert_cell(1)} >Insert Cell Below</MenuItem>
         </DropdownButton>
 
     render_menubar_cell: ->
@@ -209,7 +209,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render_button_add_cell: ->
-        <Button>
+        <Button onClick={=>@props.actions.insert_cell(1)}>
             <Icon name='plus'/>
         </Button>
 

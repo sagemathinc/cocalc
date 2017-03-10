@@ -89,7 +89,7 @@ class exports.JupyterActions extends Actions
             return
         # TODO (j3?): rewrite staying immutable
         v = []
-        cells.map (record, id) ->
+        cells.forEach (record, id) ->
             v.push({id:id, pos:record.get('pos')})
             return
         v.sort (a,b) ->
@@ -107,20 +107,23 @@ class exports.JupyterActions extends Actions
             if cells?.get(id)?
                 @setState
                     cells     : cells.delete(id)
-                    cell_list : undefined
+                    cell_list : cell_list.delete(id)
         else
             # change or add cell
-            if not record.equals(cells.get(id))
-                @setState
-                    cells     : cells.set(id, record)
-                    cell_list : undefined
-        return
+            current = cells.get(id)
+            if record.equals(current)
+                return # nothing to do
+            obj = {cells: cells.set(id, record)}
+            if not current? or current.get('pos') != record.get('pos')
+                # new cell -- or change pos; for now we just recompute cell_list
+                obj.cell_list = undefined
+            @setState(obj)
 
     _syncdb_change: (changes) =>
         #console.log 'changes', changes, changes?.toJS()
         if not changes?  # nothing to do
             return
-        changes.map (key) =>
+        changes.forEach (key) =>
             record = @syncdb.get_one(key)
             switch key.get('type')
                 when 'cell'
@@ -139,6 +142,42 @@ class exports.JupyterActions extends Actions
     _set: (obj) =>
         @syncdb.set(obj)
         @syncdb.save()  # save to file on disk
+
+    _new_id: =>
+        return misc.uuid().slice(0,8)  # TODO: choose something...
+
+    # TODO: for insert i'm using averaging; for move I'm just resetting all to integers.
+    # **should** use averaging but if get close re-spread all properly.  OR use strings?
+    insert_cell: (delta) =>  # delta = -1 (above) or +1 (below)
+        cur_id = @store.get('cur_id')
+        if not cur_id? # TODO
+            return
+        v = @store.get('cell_list')
+        if not v?
+            return
+        adjacent_id = undefined
+        v.forEach (id, i) ->
+            if id == cur_id
+                j = i + delta
+                if j >= 0 and j < v.size
+                    adjacent_id = v.get(j)
+                return false  # break iteration
+            return
+        cells = @store.get('cells')
+        if adjacent_id?
+            adjacent_pos = cells.get(adjacent_id)?.get('pos')
+        else
+            adjacent_pos = undefined
+        current_pos = cells.get(cur_id).get('pos')
+        if adjacent_pos?
+            pos = (adjacent_pos + current_pos)/2
+        else
+            pos = current_pos + delta
+        @syncdb.set
+            type  : 'cell'
+            id    : @_new_id()
+            pos   : pos
+            value : ''
 
     # move all selected cells delta positions, e.g., delta = +1 or delta = -1
     move_selected_cells: (delta) =>
