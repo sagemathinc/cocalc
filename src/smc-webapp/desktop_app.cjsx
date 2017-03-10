@@ -186,7 +186,7 @@ Page = rclass
             flexDirection : 'column'
             height        : '100vh'
             width         : '100vw'
-            overflow      : 'auto'
+            overflow      : 'hidden'
 
         show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen)
 
@@ -199,6 +199,7 @@ Page = rclass
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
+            boxShadow     : '0px 2px 4px 0px rgba(0,0,0,0.5)'
             top           : if show_global_info then '40px' else 0
 
         positionHackHeight = (42 + if show_global_info then 40 else 0 ) + 'px'

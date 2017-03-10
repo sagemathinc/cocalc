@@ -128,16 +128,18 @@ exports.AccountPage = rclass
 
     render: ->
         logged_in = @props.redux.getStore('account')?.is_logged_in()
-        <Grid className='constrained'>
-            {@render_landing_page() if not logged_in}
-            {<Row>
-                <Col md={12}>
-                    <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                        <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
-                            {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
-                        </Tab>
-                        {@render_commercial_tabs()}
-                    </Tabs>
-                </Col>
-            </Row> if logged_in}
-        </Grid>
+        <div style={overflow:'auto'}>
+            <Grid className='constrained'>
+                {@render_landing_page() if not logged_in}
+                {<Row>
+                    <Col md={12}>
+                        <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
+                            <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
+                                {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                            </Tab>
+                            {@render_commercial_tabs()}
+                        </Tabs>
+                    </Col>
+                </Row> if logged_in}
+            </Grid>
+        </div>

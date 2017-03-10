@@ -483,7 +483,7 @@ exports.HelpPage = HelpPage = rclass
 
     render: ->
         {SmcWikiUrl} = require('./customize')
-        <Row style={padding:'10px', margin:'0px'}>
+        <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
                     <Icon name='medkit'/><Space/><Space/>

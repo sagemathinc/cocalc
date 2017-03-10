@@ -1372,7 +1372,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
 
         visible_projects = @visible_projects()
-        <div className='container-content'>
+        <div className='container-content' style={overflow:'auto'}>
             <Grid fluid className='constrained' style={minHeight:"75vh"}>
                 <Well style={marginTop:'1em',overflow:'hidden'}>
                     <Row>

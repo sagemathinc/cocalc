@@ -303,7 +303,7 @@ exports.FullscreenButton = rclass
             top        : '1px'
             fontSize   : '13pt'
             padding    : 4
-            color      : '#666'
+            color      : COLORS.GRAY
             cursor     : 'pointer'
             borderRadius: '3px'
 
