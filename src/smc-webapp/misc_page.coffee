@@ -160,6 +160,8 @@ $.fn.process_smc_links = (opts={}) ->
                 for x in e.find(tag)
                     y = $(x)
                     src = y.attr(attr)
+                    if not src?
+                        continue
                     if src.indexOf('://') != -1
                         continue
                     {join} = require('path')
