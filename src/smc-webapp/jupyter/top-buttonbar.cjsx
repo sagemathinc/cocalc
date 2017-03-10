@@ -1,0 +1,92 @@
+###
+The static buttonbar at the top.
+###
+
+
+{ButtonGroup, Button, Form, FormControl} = require('react-bootstrap')
+
+{Icon} = require('../r_misc')
+
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+
+
+exports.TopButtonbar = rclass
+    shouldComponentUpdate: ->
+        # the menus are currently static -- *when* we change that... change this,
+        # e.g., cell type selector will depend... on cur cell type
+        return false
+
+    propTypes :
+        actions : rtypes.object.isRequired
+
+    render_add_cell: ->
+        <Button onClick={=>@props.actions.insert_cell(1)}>
+            <Icon name='plus'/>
+        </Button>
+
+    render_group_edit: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button>
+                <Icon name='scissors'/>
+            </Button>
+            <Button>
+                <Icon name='files-o'/>
+            </Button>
+            <Button>
+                <Icon name='clipboard'/>
+            </Button>
+            <Button onClick={=>@props.actions.undo()}>
+                <Icon name='undo'/>
+            </Button>
+            <Button onClick={=>@props.actions.redo()}>
+                <Icon name='repeat'/>
+            </Button>
+        </ButtonGroup>
+
+    render_group_move: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button onClick={=>@props.actions.move_selected_cells(-1)}>
+                <Icon name='arrow-up'/>
+            </Button>
+            <Button  onClick={=>@props.actions.move_selected_cells(1)}>
+                <Icon name='arrow-down'/>
+            </Button>
+        </ButtonGroup>
+
+    render_group_run: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button>
+                <Icon name='step-forward'/>
+            </Button>
+            <Button>
+                <Icon name='stop'/>
+            </Button>
+            <Button>
+                <Icon name='repeat'/>
+            </Button>
+        </ButtonGroup>
+
+    render_select_cell_type: ->
+        <FormControl style={marginLeft:'5px'} componentClass="select" placeholder="select">
+            <option value="code">Code</option>
+            <option value="markdown">Markdown</option>
+            <option value="raw-nbconvert">Raw NBConvert</option>
+            <option value="heading">Heading</option>
+        </FormControl>
+
+    render_keyboard: ->
+        <Button style={marginLeft:'5px'}>
+            <Icon name='keyboard-o'/>
+        </Button>
+
+    render: ->
+        <div style={margin: '5px', backgroundColor:'#fff'}>
+            <Form inline>
+                {@render_add_cell()}
+                {@render_group_edit()}
+                {@render_group_move()}
+                {@render_group_run()}
+                {@render_select_cell_type()}
+                {@render_keyboard()}
+            </Form>
+        </div>
