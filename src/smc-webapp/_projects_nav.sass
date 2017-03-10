@@ -1,7 +1,7 @@
 .navbar-default
-  background-color: #eeeeee
-  border-color:     #434343
-  border-width:     0 0 1px 0
+  background-color: $COL_GRAY_D
+  border-color:     $COL_GRAY_D
+  border-width:     0 0 0 0
 
 .smc-top-bar > .container
   position : absolute
@@ -11,6 +11,17 @@
   > ul > li > a
     padding : 0px
     +disable-user-select
+    color: $COL_GRAY
+    &:hover
+      color: $COL_GRAY_L
+
+.smc-top-bar.navbar-default .navbar-nav>.active>a,
+.smc-top-bar.navbar-default .navbar-nav>.active>a:focus,
+.smc-top-bar.navbar-default .navbar-nav>.active>a:hover,
+.smc-top-bar.navbar-default .navbar-nav>li>a:focus,
+.smc-top-bar.navbar-default .navbar-nav>li>a:hover
+  background-color : $COL_GRAY
+  color            : $COL_GRAY_D
 
 .smc-project-tab-floating
   background-color    : rgb(255, 255, 255)

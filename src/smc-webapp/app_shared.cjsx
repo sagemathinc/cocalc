@@ -29,7 +29,7 @@
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
-ACTIVE_BG_COLOR = COLORS.GRAY_D
+ACTIVE_BG_COLOR = COLORS.GRAY
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -123,6 +123,7 @@ exports.NotificationBell = rclass
 
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
+        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     notification_count: ->
         count_styles =
@@ -134,7 +135,7 @@ exports.NotificationBell = rclass
             background : 'transparent'
         if @props.count > 9
             count_styles.left         = '15.8px'
-            count_styles.background   = 'white'
+            count_styles.background   = COLORS.GRAY_L
             count_styles.borderRadius = '50%'
             count_styles.border       = '2px solid lightgrey'
         if @props.count > 0
@@ -160,8 +161,10 @@ exports.NotificationBell = rclass
             bell_style = {color: COLOR.FG_RED}
 
         <NavItem
+            ref='bell'
             style={outer_style}
             onClick={@on_click}
+            className={'active' if @props.active}
         >
             <div style={inner_style}>
                 <Icon name='bell-o' className={clz} style={bell_style} />
