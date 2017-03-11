@@ -8,6 +8,8 @@ misc_page = require('../misc_page')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{Loading} = require('../r_misc')
+
 exports.CellList = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
@@ -93,6 +95,8 @@ exports.CellList = rclass ({name}) ->
         </div>
 
     render: ->
+        if not @props.cells? or not @props.cell_list?
+            return <Loading/>
         cm_options =
             indentUnit        : 4
             matchBrackets     : true
