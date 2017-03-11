@@ -38,7 +38,7 @@ exports.JupyterEditor = rclass ({name}) ->
         <TopMenubar actions = {@props.actions} />
 
     render_buttonbar: ->
-        <TopButtonbar actions = {@props.actions} />
+        <TopButtonbar actions={@props.actions} name={name} />
 
     render_heading: ->
         <div style={boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)', zIndex: 100}>

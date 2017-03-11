@@ -26,7 +26,7 @@ exports.CellOutput = rclass
         </div>
 
     render_output_value: ->
-        output = JSON.stringify(@props.cell.get('output')?.toJS() ? [])
+        output = JSON.stringify(@props.cell.get('output').toJS())
         <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
             {output}
         </pre>

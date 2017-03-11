@@ -45,17 +45,38 @@ class exports.JupyterActions extends Actions
         @setState
             error : err
 
-    set_cell_input: (id, value) =>
+    set_cell_input: (id, input) =>
         @_set
             type  : 'cell'
             id    : id
-            input : value
+            input : input
 
     set_cell_pos: (id, pos) =>
         @_set
             type  : 'cell'
             id    : id
             pos   : pos
+
+    set_cell_type : (id, cell_type) =>
+        obj =
+            type      : 'cell'
+            id        : id
+            cell_type : cell_type
+        if cell_type != 'code'
+            # delete output when switching to non-code cell_type
+            obj.output = null
+        @_set(obj)
+
+    set_selected_cell_type: (cell_type) =>
+        sel_ids = @store.get('sel_ids')
+        cur_id = @store.get('cur_id')
+        if sel_ids.size == 0
+            if cur_id?
+                @set_cell_type(cur_id, cell_type)
+        else
+            sel_ids.forEach (id) =>
+                @set_cell_type(id, cell_type)
+                return
 
     set_cur_id: (id) =>
         @setState(cur_id : id)

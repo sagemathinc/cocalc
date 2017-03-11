@@ -19,7 +19,7 @@ exports.TopMenubar = rclass
         actions : rtypes.object.isRequired
 
     render_file: ->
-        <DropdownButton noCaret bsStyle='default' title='File' key='file' id='menu-file' style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='File' key='file' id='menu-file' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="new">New Notebook...</MenuItem>
             <MenuItem eventKey="open">Open...</MenuItem>
             <MenuItem divider />
@@ -45,7 +45,7 @@ exports.TopMenubar = rclass
         </DropdownButton>
 
     render_edit: ->
-        <DropdownButton noCaret bsStyle='default' title='Edit' key='edit'  id='menu-edit'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Edit' key='edit'  id='menu-edit'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="cut-cells"  onSelect={=>@props.actions.undo()}>Undo</MenuItem>
             <MenuItem eventKey="copy-cells" onSelect={=>@props.actions.redo()}>Redo</MenuItem>
             <MenuItem divider />
@@ -70,7 +70,7 @@ exports.TopMenubar = rclass
         </DropdownButton>
 
     render_view: ->
-        <DropdownButton noCaret bsStyle='default' title='View' key='view'  id='menu-view'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='View' key='view'  id='menu-view'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="toggle-header">Toggle Header</MenuItem>
             <MenuItem eventKey="toggle-toolbar">Toggle Toolbar</MenuItem>
             <MenuItem divider />
@@ -85,13 +85,13 @@ exports.TopMenubar = rclass
         </DropdownButton>
 
     render_insert: ->
-        <DropdownButton noCaret bsStyle='default' title='Insert' key='insert'  id='menu-insert'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Insert' key='insert'  id='menu-insert'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="insert-cell-above" onSelect={=>@props.actions.insert_cell(-1)}>Insert Cell Above</MenuItem>
             <MenuItem eventKey="insert-cell-below" onSelect={=>@props.actions.insert_cell(1)} >Insert Cell Below</MenuItem>
         </DropdownButton>
 
     render_cell: ->
-        <DropdownButton noCaret bsStyle='default' title='Cell' key='cell'  id='menu-cell'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Cell' key='cell'  id='menu-cell'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="run-cells">Run Cells</MenuItem>
             <MenuItem eventKey="run-cells-select-below">Run Cells and Select Below</MenuItem>
             <MenuItem eventKey="run-cells-insert-below">Run Cells and Insert Below</MenuItem>
@@ -100,9 +100,9 @@ exports.TopMenubar = rclass
             <MenuItem eventKey="run-all-below">Run All Below</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="" disabled>Cell Type...</MenuItem>
-            <MenuItem eventKey="cell-type-code"     ><span style={marginLeft:'4ex'}/> Code</MenuItem>
-            <MenuItem eventKey="cell-type-markdown" ><span style={marginLeft:'4ex'}/> Markdown</MenuItem>
-            <MenuItem eventKey="cell-type-nbconvert"><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
+            <MenuItem eventKey="cell-type-code"      onSelect={=>@props.actions.set_selected_cell_type('code')} ><span style={marginLeft:'4ex'}/> Code</MenuItem>
+            <MenuItem eventKey="cell-type-markdown"  onSelect={=>@props.actions.set_selected_cell_type('markdown')} ><span style={marginLeft:'4ex'}/> Markdown</MenuItem>
+            <MenuItem eventKey="cell-type-nbconvert" onSelect={=>@props.actions.set_selected_cell_type('nbconvert')} ><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="" disabled>Current Outputs...</MenuItem>
             <MenuItem eventKey="current-outputs-toggle"     ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
@@ -117,7 +117,7 @@ exports.TopMenubar = rclass
 
     # obviously TODO regarding kernel selection
     render_kernel: ->
-        <DropdownButton noCaret bsStyle='default' title='Kernel' key='kernel'  id='menu-kernel'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Kernel' key='kernel'  id='menu-kernel'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="kernel-interrupt">Inerrrupt</MenuItem>
             <MenuItem eventKey="kernel-restart">Restart</MenuItem>
             <MenuItem eventKey="kernel-restart-clear">Restart & Clear Output</MenuItem>
@@ -142,14 +142,14 @@ exports.TopMenubar = rclass
         </DropdownButton>
 
     render_widgets: ->
-        <DropdownButton noCaret bsStyle='default' title='Widgets' key='widgets'  id='menu-widgets'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Widgets' key='widgets'  id='menu-widgets'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="widgets-save-with-snapshots">Save notebook with snapshots</MenuItem>
             <MenuItem eventKey="widgets-download">Download widget state</MenuItem>
             <MenuItem eventKey="widgets-embed">Embed widgets</MenuItem>
         </DropdownButton>
 
     render_help: ->
-        <DropdownButton noCaret bsStyle='default' title='Help' key='help'  id='menu-help'  style={border:0}>
+        <DropdownButton noCaret bsStyle='default' title='Help' key='help'  id='menu-help'  style={border:0, backgroundColor: 'rgb(247,247,247)'}>
             <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
             <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
             <MenuItem divider />

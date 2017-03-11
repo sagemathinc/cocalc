@@ -44,6 +44,11 @@ register_file_editor
         actions.syncdb = syncdb
         actions.store  = store
 
+        # Useful to know.
+        actions._project_id = project_id
+        actions._path = path
+        actions._directory = misc.path_split(path).head
+
         window.a = actions # for DEBUGGING
 
         syncdb.once 'init', (err) =>
