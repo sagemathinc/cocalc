@@ -19,19 +19,30 @@ exports.Cell = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            cells      : rtypes.immutable.Map   # map from id to cells
-            cur_id     : rtypes.string          # id of currently selected cell
-            sel_ids    : rtypes.immutable.Set   # set of selected cells
-            mode       : rtypes.string          # 'edit' or 'escape'
-            cm_options : rtypes.immutable.Map
+            cells       : rtypes.immutable.Map   # map from id to cells
+            cur_id      : rtypes.string          # id of currently selected cell
+            sel_ids     : rtypes.immutable.Set   # set of selected cells
+            mode        : rtypes.string          # 'edit' or 'escape'
+            cm_options  : rtypes.immutable.Map
+            md_edit_ids : rtypes.immutable.Set.isRequired
+
+    shouldComponentUpdate: (next) ->
+        return next.cm_options != @props.cm_options or \
+            next.id != @props.id or \
+            next.cells.get(@props.id) != @props.cells.get(@props.id) or \
+            next.cur_id != @props.cur_id or\
+            next.sel_ids != @props.sel_ids or \
+            next.mode != @props.mode or \
+            next.md_edit_ids != @props.md_edit_ids
 
     render_cell_input: (cell) ->
         <CellInput
-            key        = 'in'
-            cell       = {cell}
-            actions    = {@props.actions}
-            cm_options = {@props.cm_options}
-            id         = {@props.id}
+            key         = 'in'
+            cell        = {cell}
+            actions     = {@props.actions}
+            cm_options  = {@props.cm_options}
+            md_edit_ids = {@props.md_edit_ids}
+            id          = {@props.id}
             />
 
     render_cell_output: (cell) ->

@@ -38,6 +38,7 @@ class exports.JupyterActions extends Actions
             error      : undefined
             cur_id     : undefined
             sel_ids    : immutable.Set()  # immutable set of selected cells
+            md_edit_ids: immutable.Set()  # set of ids of markdown cells in edit mode
             mode       : 'escape'
             cm_options : immutable.fromJS(cm_options)
 
@@ -77,6 +78,18 @@ class exports.JupyterActions extends Actions
             sel_ids.forEach (id) =>
                 @set_cell_type(id, cell_type)
                 return
+
+    set_md_cell_editing: (id) =>
+        md_edit_ids = @store.get('md_edit_ids')
+        if md_edit_ids.contains(id)
+            return
+        @setState(md_edit_ids : md_edit_ids.add(id))
+
+    set_md_cell_not_editing: (id) =>
+        md_edit_ids = @store.get('md_edit_ids')
+        if not md_edit_ids.contains(id)
+            return
+        @setState(md_edit_ids : md_edit_ids.delete(id))
 
     set_cur_id: (id) =>
         @setState(cur_id : id)
@@ -268,6 +281,42 @@ class exports.JupyterActions extends Actions
 
     undo: =>
         @syncdb.undo()
+        return
 
     redo: =>
         @syncdb.redo()
+        return
+
+    run_cell: (id) =>
+        cell = @store.getIn(['cells', id])
+        if not cell?
+            return
+        cell_type = cell.get('cell_type') ? 'code'
+        switch cell_type
+            when 'code'
+                return  # TODO: implement :-)
+            when 'markdown'
+                @set_md_cell_not_editing(id)
+        @move_cursor(1)
+        return
+
+    run_selected_cells: =>
+        selected = @store.get_selected_cell_ids()
+        if misc.len(selected) <= 1
+            for id, _ of selected
+                @run_cell(id)
+            return
+        # iterate over *ordered* list so we run the selected cells in order
+        @store.get('cell_list').forEach (id) =>
+            if selected[id]
+                @run_cell(id)
+            return
+
+    run_all_cells: =>
+        @store.get('cell_list').forEach (id) =>
+            @run_cell(id)
+            return
+
+    move_cursor: (delta) =>
+        # TODO: implement moving cursor delta positions from current position
+        return
