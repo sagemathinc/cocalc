@@ -167,7 +167,7 @@ class exports.JupyterActions extends Actions
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
-        #console.log 'changes', changes, changes?.toJS()
+        # console.log 'changes', changes, changes?.toJS()
         if not changes?  # nothing to do
             return
         cell_list_needs_recompute = false
@@ -192,11 +192,14 @@ class exports.JupyterActions extends Actions
         @syncdb.exit_undo_mode()
         @syncdb.set(obj)
         @syncdb.save()  # save to file on disk
+        # ensure that we update locally immediately for our own changes.
+        @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
     _delete: (obj) =>
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj)
         @syncdb.save()  # save to file on disk
+        @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
     _new_id: =>
         return misc.uuid().slice(0,8)  # TODO: choose something...

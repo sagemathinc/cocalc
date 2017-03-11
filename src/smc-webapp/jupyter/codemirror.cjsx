@@ -84,6 +84,14 @@ exports.CodeMirrorEditor = rclass
         @_cm_last_remote = new_val
         @cm.setValueNoJump(new_val)
 
+    _cm_undo: ->
+        if not @props.actions.syncdb.in_undo_mode() or @cm.getValue() != @_cm_last_remote
+            @_cm_save()
+        @props.actions.undo()
+
+    _cm_redo: ->
+        @props.actions.redo()
+
     init_codemirror: (options, value) ->
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
@@ -96,6 +104,10 @@ exports.CodeMirrorEditor = rclass
         @cm.on('change', @_cm_change)
         @cm.on('focus' , @_cm_focus)
         @cm.on('blur'  , @_cm_blur)
+
+        # replace undo/redo by our sync aware versions
+        @cm.undo = @_cm_undo
+        @cm.redo = @_cm_redo
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)

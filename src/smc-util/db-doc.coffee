@@ -675,6 +675,10 @@ class exports.SyncDB extends EventEmitter
         @_check()
         @_doc.exit_undo_mode()
 
+    in_undo_mode: =>
+        @_check()
+        return @_doc.in_undo_mode()
+
     revert: (version) =>
         @_check()
         @_doc.revert(version)
