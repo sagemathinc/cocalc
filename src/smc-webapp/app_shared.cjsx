@@ -209,6 +209,7 @@ exports.ConnectionIndicator = rclass
     connection_click: ->
         @props.actions.show_connection(true)
         @props.on_click?()
+        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
         outer_styles =
@@ -316,14 +317,16 @@ exports.AppLogo = rclass
     displayName : 'AppLogo'
 
     render: ->
-        app_icon_url = require('cocalc-icon.svg')
+        {APP_ICON_URL} = require('./misc_page')
         styles =
             display         : 'inline-block'
-            backgroundImage : "url('#{app_icon_url}')"
+            backgroundImage : "url('#{APP_ICON_URL}')"
             backgroundSize  : 'contain'
-            height          : 40
-            width           : 40
+            backgroundRepeat: 'no-repeat'
+            height          : 36
+            width           : 36
             position        : 'relative'
+            margin          : '3px'
         <div style={styles}></div>
 
 exports.VersionWarning = rclass

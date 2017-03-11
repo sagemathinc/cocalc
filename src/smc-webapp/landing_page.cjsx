@@ -30,7 +30,7 @@ The Landing Page
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
-APP_ICON_URL = require('cocalc-icon.svg')
+{APP_ICON_URL} = require('./misc_page')
 
 images = [
     require('sagepreview/01-worksheet.png'),

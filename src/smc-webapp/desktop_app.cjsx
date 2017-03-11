@@ -149,6 +149,7 @@ Page = rclass
             whiteSpace : 'nowrap'
             float      : 'right'
             padding    : '11px 7px'
+            fontWeight : 'bold'
 
         <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
             <NavTab

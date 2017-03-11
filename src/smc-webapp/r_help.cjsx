@@ -37,7 +37,7 @@ $ = window.$
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
-APP_ICON_URL = require('cocalc-icon.svg')
+{APP_ICON_URL} = require('./misc_page')
 
 
 # CSS
