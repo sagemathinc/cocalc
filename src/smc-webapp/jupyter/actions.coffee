@@ -25,11 +25,21 @@ underlying synchronized state.
 class exports.JupyterActions extends Actions
 
     _init: () =>
+        cm_options =
+            indentUnit        : 4
+            matchBrackets     : true
+            autoCloseBrackets : true
+            mode              :
+                name                   : "python"
+                version                : 3
+                singleLineStringErrors : false
+
         @setState
-            error   : undefined
-            cur_id  : undefined
-            sel_ids : immutable.Set()  # immutable set of selected cells
-            mode    : 'escape'
+            error      : undefined
+            cur_id     : undefined
+            sel_ids    : immutable.Set()  # immutable set of selected cells
+            mode       : 'escape'
+            cm_options : immutable.fromJS(cm_options)
 
     set_error: (err) =>
         @setState
@@ -102,6 +112,7 @@ class exports.JupyterActions extends Actions
 
     _syncdb_cell_change: (id, record) =>
         cells = @store.get('cells') ? immutable.Map()
+        cell_list_needs_recompute = false
         if not record?
             # delete cell
             if cells?.get(id)?
@@ -117,24 +128,26 @@ class exports.JupyterActions extends Actions
                 return # nothing to do
             obj = {cells: cells.set(id, record)}
             if not current? or current.get('pos') != record.get('pos')
-                # new cell -- or change pos; for now we just recompute cell_list
-                obj.cell_list = undefined
+                cell_list_needs_recompute = true
             @setState(obj)
+        return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
         #console.log 'changes', changes, changes?.toJS()
         if not changes?  # nothing to do
             return
+        cell_list_needs_recompute = false
         changes.forEach (key) =>
             record = @syncdb.get_one(key)
             switch key.get('type')
                 when 'cell'
-                    @_syncdb_cell_change(key.get('id'), record)
+                    if @_syncdb_cell_change(key.get('id'), record)
+                        cell_list_needs_recompute = true
                 when 'settings'
                     @setState
                         kernel : record?.get('kernel')
             return
-        if not @store.get('cell_list')?
+        if cell_list_needs_recompute
             @set_cell_list()
         # cells.sort...
         cur_id = @store.get('cur_id')

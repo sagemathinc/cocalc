@@ -19,10 +19,11 @@ exports.Cell = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            cells   : rtypes.immutable.Map   # map from id to cells
-            cur_id  : rtypes.string          # id of currently selected cell
-            sel_ids : rtypes.immutable.Set   # set of selected cells
-            mode    : rtypes.string          # 'edit' or 'escape'
+            cells      : rtypes.immutable.Map   # map from id to cells
+            cur_id     : rtypes.string          # id of currently selected cell
+            sel_ids    : rtypes.immutable.Set   # set of selected cells
+            mode       : rtypes.string          # 'edit' or 'escape'
+            cm_options : rtypes.immutable.Map
 
     render_cell_input: (cell) ->
         <CellInput

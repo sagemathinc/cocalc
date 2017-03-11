@@ -23,10 +23,13 @@ CELL_STYLE =
 
 exports.InputEditor = rclass
     propTypes :
-        options  : rtypes.object
+        actions  : rtypes.object.isRequired
+        options  : rtypes.immutable.Map.isRequired
         value    : rtypes.string.isRequired
         id       : rtypes.string.isRequired
-        actions  : rtypes.object.isRequired
+
+    shouldComponentUpdate: (next) ->
+        return next.options != @props.options or next.value != @props.value
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
@@ -50,7 +53,7 @@ exports.InputEditor = rclass
     init_codemirror: (options, value) ->
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
-        @cm = CodeMirror.fromTextArea(node, options)
+        @cm = CodeMirror.fromTextArea(node, options.toJS())
         @cm.setValueNoJump(value)
         $(@cm.getWrapperElement()).css(height: 'auto')
         f = =>
@@ -65,7 +68,7 @@ exports.InputEditor = rclass
         @init_codemirror(@props.options, @props.value)
 
     componentWillReceiveProps: (newProps) ->
-        if not @cm? or not underscore.isEqual(@props.options, newProps.options)
+        if not @cm? or not @props.options.equals(newProps.options)
             @init_codemirror(newProps.options, newProps.value)
         else if newProps.value != @props.value
             @cm?.setValueNoJump(newProps.value)
