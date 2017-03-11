@@ -108,6 +108,18 @@ patch_cmp = (a, b) ->
 time_cmp = (a,b) ->
     return a - b   # sorting Date objects doesn't work perfectly!
 
+# Do a 3-way **string** merge by computing patch that transforms
+# base to remote, then applying that patch to local.
+exports.three_way_merge = (opts) ->
+    opts = defaults opts,
+        base   : required
+        local  : required
+        remote : required
+    if opts.base == opts.remote # trivial special case...
+        return opts.local
+    return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0]
+
+
 ###
 The PatchValueCache is used to cache values returned
 by SortedPatchList.value.  Caching is critical, since otherwise
