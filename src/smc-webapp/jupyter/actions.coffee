@@ -93,6 +93,19 @@ class exports.JupyterActions extends Actions
 
     set_cur_id: (id) =>
         @setState(cur_id : id)
+        return
+
+    set_cur_id_from_index: (i) =>
+        if not i?
+            return
+        cell_list = @store.get('cell_list')
+        if not cell_list?
+            return
+        if i < 0
+            i = 0
+        else if i >= cell_list.size
+            i = cell_list.size - 1
+        @set_cur_id(cell_list.get(i))
 
     select_cell: (id) =>
         sel_ids = @store.get('sel_ids')
@@ -297,30 +310,46 @@ class exports.JupyterActions extends Actions
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
-                return  # TODO: implement :-)
+                @run_code_cell(id)
             when 'markdown'
                 @set_md_cell_not_editing(id)
-        @move_cursor(1)
         return
+
+    run_code_cell: (id) =>
+        # TODO: implement :-)
 
     run_selected_cells: =>
         selected = @store.get_selected_cell_ids()
         if misc.len(selected) <= 1
             for id, _ of selected
                 @run_cell(id)
-            return
+                @move_cursor_after(id)
+                return
         # iterate over *ordered* list so we run the selected cells in order
         # TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...
+        last_id = undefined
         @store.get('cell_list').forEach (id) =>
             if selected[id]
+                last_id = id
                 @run_cell(id)
             return
+        if last_id?
+            @move_cursor_after(last_id)
 
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
             @run_cell(id)
             return
 
+    # move cursor delta positions from current position
     move_cursor: (delta) =>
-        # TODO: implement moving cursor delta positions from current position
+        console.log 'move_cursor', delta, @store.get_cur_cell_index()
+        @set_cur_id_from_index(@store.get_cur_cell_index() + delta)
+        return
+
+    move_cursor_after: (id) =>
+        i = @store.get_cell_index(id)
+        if not i?
+            return
+        @set_cur_id_from_index(i + 1)
         return
