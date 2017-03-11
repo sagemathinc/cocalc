@@ -517,6 +517,9 @@ connect_component = (spec) =>
         if not state?
             return props
         for store_name, info of spec
+            if store_name=='undefined'  # gets turned into this string when making a common mistake
+                console.warn("spec = ", spec)
+                throw Error("store_name of spec *must* be defined")
             for prop, type of info
                 if redux.getStore(store_name).__converted?
                     val = redux.getStore(store_name)[prop]
