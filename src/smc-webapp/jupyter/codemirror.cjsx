@@ -15,7 +15,7 @@ syncstring = require('smc-util/syncstring')
 
 underscore = require('underscore')
 
-CELL_STYLE =
+EDITOR_STYLE =
     width        : '100%'
     overflowX    : 'hidden'
     border       : '1px solid #cfcfcf'
@@ -29,7 +29,7 @@ enable_folding = (options) ->
     options.foldGutter = true
     options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
-exports.InputEditor = rclass
+exports.CodeMirrorEditor = rclass
     propTypes :
         actions  : rtypes.object.isRequired
         options  : rtypes.immutable.Map.isRequired
@@ -114,6 +114,6 @@ exports.InputEditor = rclass
             @_cm_destroy()
 
     render : ->
-        <div style={CELL_STYLE}>
+        <div style={EDITOR_STYLE}>
             <textarea />
         </div>

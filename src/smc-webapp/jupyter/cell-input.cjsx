@@ -6,7 +6,7 @@ immutable = require('immutable')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Markdown} = require('../r_misc')
 
-{InputEditor}  = require('./input')
+{CodeMirrorEditor}  = require('./codemirror')
 
 MD_OPTIONS = immutable.fromJS
     indentUnit : 4
@@ -38,7 +38,7 @@ exports.CellInput = rclass
         id = @props.cell.get('id')
         switch type
             when 'code'
-                <InputEditor
+                <CodeMirrorEditor
                     value    = {@props.cell.get('input') ? ''}
                     options  = {@props.cm_options}
                     actions  = {@props.actions}
@@ -46,7 +46,7 @@ exports.CellInput = rclass
                 />
             when 'markdown'
                 if @props.md_edit_ids.contains(id)
-                    <InputEditor
+                    <CodeMirrorEditor
                         value    = {@props.cell.get('input') ? ''}
                         options  = {MD_OPTIONS}
                         actions  = {@props.actions}
