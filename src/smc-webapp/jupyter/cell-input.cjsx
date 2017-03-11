@@ -8,8 +8,9 @@ immutable = require('immutable')
 
 {InputEditor}  = require('./input')
 
-md_options = immutable.fromJS
+MD_OPTIONS = immutable.fromJS
     indentUnit : 4
+    tabSize    : 4
     mode       : {name: "gfm2"}
 
 exports.CellInput = rclass
@@ -47,7 +48,7 @@ exports.CellInput = rclass
                 if @props.md_edit_ids.contains(id)
                     <InputEditor
                         value    = {@props.cell.get('input') ? ''}
-                        options  = {md_options}
+                        options  = {MD_OPTIONS}
                         actions  = {@props.actions}
                         id       = {id}
                     />
