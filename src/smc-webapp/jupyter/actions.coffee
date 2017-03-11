@@ -310,6 +310,7 @@ class exports.JupyterActions extends Actions
                 @run_cell(id)
             return
         # iterate over *ordered* list so we run the selected cells in order
+        # TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...
         @store.get('cell_list').forEach (id) =>
             if selected[id]
                 @run_cell(id)
