@@ -244,11 +244,13 @@ class exports.JupyterActions extends Actions
             pos = (adjacent_pos + current_pos)/2
         else
             pos = current_pos + delta
+        new_id = @_new_id()
         @_set
             type  : 'cell'
-            id    : @_new_id()
+            id    : new_id
             pos   : pos
             value : ''
+        return new_id  # technically violates CQRS -- but not from the store.
 
     delete_selected_cells: =>
         for id,_ of @store.get_selected_cell_ids()
@@ -352,3 +354,41 @@ class exports.JupyterActions extends Actions
             return
         @set_cur_id_from_index(i + 1)
         return
+
+    set_cursor_locs: (locs) =>
+        @_cursor_locs = locs
+        # TODO: also right to cursors table
+
+    split_current_cell: =>
+        cursor = @_cursor_locs?[0]
+        if not cursor?
+            return
+        # insert a new cell after the currently selected one
+        new_id = @insert_cell(1)
+        # split the cell content at the cursor loc
+        cell = @store.get('cells').get(cursor.id)
+        if not cell?
+            return  # this would be a bug?
+        cell_type = cell.get('cell_type')
+        if cell_type != 'code'
+            @set_cell_type(new_id, cell_type)
+            @set_md_cell_editing(new_id)
+        input = cell.get('input')
+        if not input?
+            return
+        lines  = input.split('\n')
+        v      = lines.slice(0, cursor.y)
+        line   = lines[cursor.y]
+        left = line.slice(0, cursor.x)
+        if left
+            v.push(left)
+        top = v.join('\n')
+
+        v     = lines.slice(cursor.y+1)
+        right = line.slice(cursor.x)
+        if right
+            v = [right].concat(v)
+        bottom = v.join('\n')
+        @set_cell_input(cursor.id, top)
+        @set_cell_input(new_id, bottom)
+

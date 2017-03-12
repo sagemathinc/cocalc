@@ -57,7 +57,7 @@ exports.TopMenubar = rclass
             <MenuItem eventKey="delete-cells"      onSelect={=>@props.actions.delete_selected_cells()}>Delete Cells</MenuItem>
             <MenuItem eventKey="undo-delete-cells" onSelect={=>@props.actions.undo()}>Undo Delete Cells</MenuItem>
             <MenuItem divider />
-            <MenuItem eventKey="split-cell">Split Cell</MenuItem>
+            <MenuItem eventKey="split-cell" onSelect={=>@props.actions.split_current_cell()}>Split Cell</MenuItem>
             <MenuItem eventKey="merge-cell-above">Merge Cell Above</MenuItem>
             <MenuItem eventKey="merge-cell-below">Merge Cell Below</MenuItem>
             <MenuItem divider />

@@ -59,6 +59,12 @@ exports.CodeMirrorEditor = rclass
     _cm_blur: ->
         @props.actions.set_mode('escape')
 
+    _cm_cursor: ->
+        if @cm._setValueNoJump   # if true, cursor move is being caused by external setValueNoJump
+            return
+        locs = ({x:c.anchor.ch, y:c.anchor.line, id:@props.id} for c in @cm.listSelections())
+        @props.actions.set_cursor_locs(locs)
+
     _cm_save: ->
         if not @cm?
             return
@@ -104,6 +110,7 @@ exports.CodeMirrorEditor = rclass
         @cm.on('change', @_cm_change)
         @cm.on('focus' , @_cm_focus)
         @cm.on('blur'  , @_cm_blur)
+        @cm.on('cursorActivity', @_cm_cursor)
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
