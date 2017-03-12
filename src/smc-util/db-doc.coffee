@@ -580,11 +580,12 @@ class exports.SyncDB extends EventEmitter
 
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
-    set: (obj) =>
+    set: (obj, save=true) =>
         if not @_doc?
             return
         @_doc.set_doc(new Doc(@_doc.get_doc()._db.set(obj)))
-        @_doc.save()   # always saves to backend after change
+        if save
+            @_doc.save()
         @_on_change()
         return
 
@@ -607,11 +608,12 @@ class exports.SyncDB extends EventEmitter
         return d._db.get_one(where)
 
     # delete everything that matches the given criterion; returns number of deleted items
-    delete: (where) =>
+    delete: (where, save=true) =>
         if not @_doc?
             return
         @_doc.set_doc(new Doc(@_doc.get_doc()._db.delete(where)))
-        @_doc.save()   # always saves to backend after change
+        if save
+            @_doc.save()
         @_on_change()
         return
 

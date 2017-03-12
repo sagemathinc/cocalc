@@ -25,3 +25,14 @@ class exports.JupyterStore extends Store
 
     get_cur_cell_index: =>
         return @get_cell_index(@get('cur_id'))
+
+    # Get the id of the cell that is delta positions from the cursor.
+    # Returns undefined if no currently selected cell, or if delta
+    # positions moves out of the notebook (so there is no such cell).
+    get_cell_id: (delta=0) =>
+        i = @get_cur_cell_index()
+        if not i?
+            return
+        return @get('cell_list')?.get(i + delta)
+
+

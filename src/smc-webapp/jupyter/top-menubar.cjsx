@@ -58,8 +58,8 @@ exports.TopMenubar = rclass
             <MenuItem eventKey="undo-delete-cells" onSelect={=>@props.actions.undo()}>Undo Delete Cells</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="split-cell" onSelect={=>@props.actions.split_current_cell()}>Split Cell</MenuItem>
-            <MenuItem eventKey="merge-cell-above">Merge Cell Above</MenuItem>
-            <MenuItem eventKey="merge-cell-below">Merge Cell Below</MenuItem>
+            <MenuItem eventKey="merge-cell-above"  onSelect={=>@props.actions.merge_cell_above()}>Merge Cell Above</MenuItem>
+            <MenuItem eventKey="merge-cell-below"  onSelect={=>@props.actions.merge_cell_below()}>Merge Cell Below</MenuItem>
             <MenuItem divider />
             <MenuItem eventKey="move-cell-up" onSelect={=>@props.actions.move_selected_cells(-1)}>Move Cell Up</MenuItem>
             <MenuItem eventKey="move-cell-down"  onSelect={=>@props.actions.move_selected_cells(1)}>Move Cell Down</MenuItem>
@@ -169,7 +169,7 @@ exports.TopMenubar = rclass
         </DropdownButton>
 
     render: ->
-        <div style={padding: '5px', backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7'}>
+        <div style={backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7'}>
             <ButtonGroup>
                 {@render_file()}
                 {@render_edit()}

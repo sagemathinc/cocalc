@@ -201,17 +201,15 @@ class exports.JupyterActions extends Actions
         if not cur_id? # todo: or the cell doesn't exist
             @set_cur_id(@store.get('cell_list')?[0])
 
-    _set: (obj) =>
+    _set: (obj, save=true) =>
         @syncdb.exit_undo_mode()
-        @syncdb.set(obj)
-        @syncdb.save()  # save to file on disk
+        @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
-    _delete: (obj) =>
+    _delete: (obj, save=true) =>
         @syncdb.exit_undo_mode()
-        @syncdb.delete(obj)
-        @syncdb.save()  # save to file on disk
+        @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
     _new_id: =>
@@ -392,3 +390,22 @@ class exports.JupyterActions extends Actions
         @set_cell_input(cursor.id, top)
         @set_cell_input(new_id, bottom)
 
+    # Copy content from the cell below the current cell into the currently
+    # selected cell, then delete the cell below the current cell.s
+    merge_cell_below: =>
+        cur_id = @store.get('cur_id')
+        if not cur_id?
+            return
+        next_id = @store.get_cell_id(1)
+        if not next_id?
+            return
+        cells = @store.get('cells')
+        if not cells?
+            return
+        input  = (cells.get(cur_id)?.get('input') ? '') + '\n' + (cells.get(next_id)?.get('input') ? '')
+        @_delete({type:'cell', id:next_id}, false)
+        @set_cell_input(cur_id, input)
+
+    merge_cell_above: =>
+        @move_cursor(-1)
+        @merge_cell_below()
