@@ -343,7 +343,6 @@ class exports.JupyterActions extends Actions
 
     # move cursor delta positions from current position
     move_cursor: (delta) =>
-        console.log 'move_cursor', delta, @store.get_cur_cell_index()
         @set_cur_id_from_index(@store.get_cur_cell_index() + delta)
         return
 

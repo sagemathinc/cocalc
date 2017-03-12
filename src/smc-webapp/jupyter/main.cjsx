@@ -12,7 +12,7 @@ Top-level react component, which ties everything together
 {TopMenubar}   = require('./top-menubar')
 {TopButtonbar} = require('./top-buttonbar')
 {CellList}     = require('./cell-list')
-{Kernel}       = require('./kernel')
+{Kernel, Mode} = require('./status')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -32,7 +32,10 @@ exports.JupyterEditor = rclass ({name}) ->
             />
 
     render_kernel: ->
-        <Kernel name={@props.name} />
+        <span>
+            <Kernel name={@props.name} />
+            <Mode   name={@props.name} />
+        </span>
 
     render_menubar: ->
         <TopMenubar actions = {@props.actions} />
