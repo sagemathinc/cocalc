@@ -194,8 +194,8 @@ class DBDoc
 
     # Used internally for determining the set/where parts of an object.
     _parse: (obj) =>
-        if immutable.Map.isMap(obj)
-            obj = obj.toJS() # TODO?
+        if immutable.Map.isMap(obj)  # it is very clean/convenient to allow this
+            obj = obj.toJS()
         if not misc.is_object(obj)
             throw Error("obj must be a Javascript object")
         where = {}
@@ -206,7 +206,7 @@ class DBDoc
                     where[field] = val
             else
                 set[field] = val
-        return {where:where, set:set}
+        return {where:where, set:set, obj:obj}  # return obj, in case had to convert from immutable
 
     set: (obj) =>
         if misc.is_array(obj)
@@ -214,8 +214,8 @@ class DBDoc
             for x in obj
                 z = z.set(x)
             return z
-        {where, set} = @_parse(obj)
-        ## console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
+        {where, set, obj} = @_parse(obj)
+        # console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
         matches = @_select(where)
         changes = @_changes
         n = matches?.first()
@@ -277,6 +277,7 @@ class DBDoc
             for x in where
                 z = z.delete(x)
             return z
+        # console.log("delete #{misc.to_json(where)}")
         # if where undefined, will delete everything
         if @_everything.size == 0
             # no-op -- no data so deleting is trivial
@@ -307,7 +308,7 @@ class DBDoc
                     indexes = indexes.set(field, index)
                 return
 
-        # delete corresponding records
+        # delete corresponding records (actually set to undefined)
         records = @_records
         remove.map (n) =>
             changes = changes.add(@_primary_key_cols(records.get(n)))
@@ -563,6 +564,11 @@ class exports.SyncDB extends EventEmitter
 
     is_closed: =>
         return not @_doc?
+
+    sync: (cb) =>
+        @_check()
+        @_doc.save(cb)
+        return
 
     save: (cb) =>
         @_check()

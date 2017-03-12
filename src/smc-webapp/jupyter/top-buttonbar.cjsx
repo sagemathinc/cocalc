@@ -35,15 +35,19 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_group_edit: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button>
+            <Button onClick={=>@props.actions.cut_selected_cells()}>
                 <Icon name='scissors'/>
             </Button>
-            <Button>
+            <Button onClick={=>@props.actions.copy_selected_cells()}>
                 <Icon name='files-o'/>
             </Button>
-            <Button>
+            <Button onClick={=>@props.actions.paste_cells(1)}>
                 <Icon name='clipboard'/>
             </Button>
+        </ButtonGroup>
+
+    render_group_undo_redo: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
             <Button onClick={=>@props.actions.undo()}>
                 <Icon name='undo'/>
             </Button>
@@ -105,6 +109,7 @@ exports.TopButtonbar = rclass ({name}) ->
             <Form inline>
                 {@render_add_cell()}
                 {@render_group_edit()}
+                {@render_group_undo_redo()}
                 {@render_group_move()}
                 {@render_group_run()}
                 {@render_select_cell_type()}

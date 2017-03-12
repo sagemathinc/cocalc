@@ -53,7 +53,7 @@ exports.Cell = rclass ({name}) ->
 
     click_on_cell: (event) ->
         if event.shiftKey
-            misc_page.clear_selection()
+            setTimeout((->misc_page.clear_selection()), 50)
             @props.actions.select_cell_range(@props.id)
         else
             @props.actions.set_cur_id(@props.id)

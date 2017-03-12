@@ -59,15 +59,16 @@ register_file_editor
                 console.warn(mesg)
                 alert_message(type:"error", message:mesg)
                 return
-            actions._syncdb_change()
-            syncdb.on('change', actions._syncdb_change)  # TODO: make efficient
+            syncdb.on('change', actions._syncdb_change)
+            if syncdb.count() == 0
+                actions._syncdb_change()  # cause initialization -- TODO: will get moved to backend/project.
 
         return name
 
     remove    : (path, redux, project_id) ->
         name = redux_name(project_id, path)
         actions = redux.getActions(name)
-        actions?.syncdb?.close()
+        actions?.close()
         store = redux.getStore(name)
         if not store?
             return

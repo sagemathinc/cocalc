@@ -57,23 +57,23 @@ exports.TopMenubar = rclass
                 Edit
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="cut-cells"  onSelect={=>@props.actions.undo()}>Undo</MenuItem>
-                <MenuItem eventKey="copy-cells" onSelect={=>@props.actions.redo()}>Redo</MenuItem>
+                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.undo()}                 >Undo</MenuItem>
+                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.redo()}                 >Redo</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="cut-cells">Cut Cells</MenuItem>
-                <MenuItem eventKey="copy-cells">Copy Cells</MenuItem>
-                <MenuItem eventKey="paste-cells-above">Paste Cells Above</MenuItem>
-                <MenuItem eventKey="paste-cells-below">Paste Cells Below</MenuItem>
-                <MenuItem eventKey="paste-cells-and-replace">Paste Cells & Replace</MenuItem>
-                <MenuItem eventKey="delete-cells"      onSelect={=>@props.actions.delete_selected_cells()}>Delete Cells</MenuItem>
-                <MenuItem eventKey="undo-delete-cells" onSelect={=>@props.actions.undo()}>Undo Delete Cells</MenuItem>
+                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.cut_selected_cells()}   >Cut Cells</MenuItem>
+                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.copy_selected_cells()}  >Copy Cells</MenuItem>
+                <MenuItem eventKey="paste-cells-above"       onSelect={=>@props.actions.paste_cells(-1)}        >Paste Cells Above</MenuItem>
+                <MenuItem eventKey="paste-cells-below"       onSelect={=>@props.actions.paste_cells(1)}         >Paste Cells Below</MenuItem>
+                <MenuItem eventKey="paste-cells-and-replace" onSelect={=>@props.actions.paste_cells(0)}         >Paste Cells & Replace</MenuItem>
+                <MenuItem eventKey="delete-cells"            onSelect={=>@props.actions.delete_selected_cells()}>Delete Cells</MenuItem>
+                <MenuItem eventKey="undo-delete-cells"       onSelect={=>@props.actions.undo()}                 >Undo Delete Cells</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="split-cell" onSelect={=>@props.actions.split_current_cell()}>Split Cell</MenuItem>
-                <MenuItem eventKey="merge-cell-above"  onSelect={=>@props.actions.merge_cell_above()}>Merge Cell Above</MenuItem>
-                <MenuItem eventKey="merge-cell-below"  onSelect={=>@props.actions.merge_cell_below()}>Merge Cell Below</MenuItem>
+                <MenuItem eventKey="split-cell"              onSelect={=>@props.actions.split_current_cell()}   >Split Cell</MenuItem>
+                <MenuItem eventKey="merge-cell-above"        onSelect={=>@props.actions.merge_cell_above()}     >Merge Cell Above</MenuItem>
+                <MenuItem eventKey="merge-cell-below"        onSelect={=>@props.actions.merge_cell_below()}     >Merge Cell Below</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="move-cell-up" onSelect={=>@props.actions.move_selected_cells(-1)}>Move Cell Up</MenuItem>
-                <MenuItem eventKey="move-cell-down"  onSelect={=>@props.actions.move_selected_cells(1)}>Move Cell Down</MenuItem>
+                <MenuItem eventKey="move-cell-up"            onSelect={=>@props.actions.move_selected_cells(-1)}>Move Cell Up</MenuItem>
+                <MenuItem eventKey="move-cell-down"          onSelect={=>@props.actions.move_selected_cells(1)} >Move Cell Down</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="edit-notebook-metadata">Edit Notebook Metadata</MenuItem>
                 <MenuItem divider />

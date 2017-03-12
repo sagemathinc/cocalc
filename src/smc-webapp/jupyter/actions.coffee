@@ -24,7 +24,7 @@ underlying synchronized state.
 
 class exports.JupyterActions extends Actions
 
-    _init: () =>
+    _init: =>
         cm_options =
             indentUnit        : 4
             matchBrackets     : true
@@ -42,6 +42,13 @@ class exports.JupyterActions extends Actions
             mode       : 'escape'
             cm_options : immutable.fromJS(cm_options)
 
+    close: =>
+        if @_closed
+            return
+        @syncdb.close()
+        @_closed = true
+        delete @syncdb
+
     set_error: (err) =>
         @setState
             error : err
@@ -52,11 +59,8 @@ class exports.JupyterActions extends Actions
             id    : id
             input : input
 
-    set_cell_pos: (id, pos) =>
-        @_set
-            type  : 'cell'
-            id    : id
-            pos   : pos
+    set_cell_pos: (id, pos, save=true) =>
+        @_set({type: 'cell', id: id, pos: pos}, save)
 
     set_cell_type : (id, cell_type) =>
         obj =
@@ -180,11 +184,9 @@ class exports.JupyterActions extends Actions
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
-        # console.log 'changes', changes, changes?.toJS()
-        if not changes?  # nothing to do
-            return
+        #console.log 'changes', changes, changes?.toJS()
         cell_list_needs_recompute = false
-        changes.forEach (key) =>
+        changes?.forEach (key) =>
             record = @syncdb.get_one(key)
             switch key.get('type')
                 when 'cell'
@@ -196,24 +198,43 @@ class exports.JupyterActions extends Actions
             return
         if cell_list_needs_recompute
             @set_cell_list()
-        # cells.sort...
+        else
+            @ensure_there_is_a_cell()
         cur_id = @store.get('cur_id')
         if not cur_id? # todo: or the cell doesn't exist
             @set_cur_id(@store.get('cell_list')?[0])
 
+    ensure_there_is_a_cell: =>
+        cells = @store.get('cells')
+        if not cells? or cells.size == 0
+            @_set
+                type  : 'cell'
+                id    : @_new_id()
+                pos   : 0
+                value : ''
+
     _set: (obj, save=true) =>
+        if @_closed
+            return
         @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
     _delete: (obj, save=true) =>
+        if @_closed
+            return
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
+    _sync: =>
+        if @_closed
+            return
+        @syncdb.sync()
+
     _new_id: =>
-        return misc.uuid().slice(0,8)  # TODO: choose something...
+        return misc.uuid().slice(0,8)  # TODO: choose something...; ensure is unique, etc.
 
     # TODO: for insert i'm using averaging; for move I'm just resetting all to integers.
     # **should** use averaging but if get close re-spread all properly.  OR use strings?
@@ -250,9 +271,11 @@ class exports.JupyterActions extends Actions
             value : ''
         return new_id  # technically violates CQRS -- but not from the store.
 
-    delete_selected_cells: =>
+    delete_selected_cells: (sync=true) =>
         for id,_ of @store.get_selected_cell_ids()
-            @_delete(type:'cell', id:id)
+            @_delete({type:'cell', id:id}, false)
+        if sync
+            @_sync()
         return
 
     # move all selected cells delta positions, e.g., delta = +1 or delta = -1
@@ -293,14 +316,15 @@ class exports.JupyterActions extends Actions
         for pos in [0...w.length]
             id = w[pos]
             if cells.get(id).get('pos') != pos
-                @set_cell_pos(id, pos)
+                @set_cell_pos(id, pos, false)
+        @_sync()
 
     undo: =>
-        @syncdb.undo()
+        @syncdb?.undo()
         return
 
     redo: =>
-        @syncdb.redo()
+        @syncdb?.redo()
         return
 
     run_cell: (id) =>
@@ -319,22 +343,11 @@ class exports.JupyterActions extends Actions
         # TODO: implement :-)
 
     run_selected_cells: =>
-        selected = @store.get_selected_cell_ids()
-        if misc.len(selected) <= 1
-            for id, _ of selected
-                @run_cell(id)
-                @move_cursor_after(id)
-                return
-        # iterate over *ordered* list so we run the selected cells in order
-        # TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...
-        last_id = undefined
-        @store.get('cell_list').forEach (id) =>
-            if selected[id]
-                last_id = id
-                @run_cell(id)
-            return
-        if last_id?
-            @move_cursor_after(last_id)
+        v = @store.get_selected_cell_ids_list()
+        for id in v
+            @run_cell(id)
+        if v.length > 0
+            @move_cursor_after(v[v.length-1])
 
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
@@ -409,3 +422,78 @@ class exports.JupyterActions extends Actions
     merge_cell_above: =>
         @move_cursor(-1)
         @merge_cell_below()
+
+    # Copy all currently selected cells into our internal clipboard
+    copy_selected_cells: =>
+        cells = @store.get('cells')
+        clipboard = immutable.List()
+        for id in @store.get_selected_cell_ids_list()
+            clipboard = clipboard.push(cells.get(id))
+        @setState(clipboard: clipboard)
+
+    # Cut currently selected cells, putting them in internal clipboard
+    cut_selected_cells: =>
+        @copy_selected_cells()
+        @delete_selected_cells()
+
+    # Javascript array of num equally spaced positions starting after before_pos and ending
+    # before after_pos, so
+    #   [before_pos+delta, before_pos+2*delta, ..., after_pos-delta]
+    _positions_between: (before_pos, after_pos, num) =>
+        if not before_pos?
+            if not after_pos?
+                pos = 0
+                delta = 1
+            else
+                pos = after_pos - num
+                delta = 1
+        else
+            if not after_pos?
+                pos = before_pos + 1
+                delta = 1
+            else
+                delta = (after_pos - before_pos) / (num + 1)
+                pos = before_pos + delta
+        v = []
+        for i in [0...num]
+            v.push(pos)
+            pos += delta
+        return v
+
+    # Paste cells from the internal clipboard; also
+    #   delta = 0 -- replace currently selected cells
+    #   delta = 1 -- paste cells below last selected cell
+    #   delta = -1 -- paste cells above first selected cell
+    paste_cells: (delta=1) =>
+        cells = @store.get('cells')
+        v = @store.get_selected_cell_ids_list()
+        if v.length == 0
+            return # no selected cells
+        if delta == 0 or delta == -1
+            cell_before_pasted_id = @store.get_cell_id(-1, v[0])  # one before first selected
+        else if delta == 1
+            cell_before_pasted_id = v[v.length-1]                 # last selected
+        else
+            console.warn("paste_cells: invalid delta=#{delta}")
+            return
+        if delta == 0
+            # replace, so delete currently selected
+            @delete_selected_cells(false)
+        clipboard = @store.get('clipboard')
+        if not clipboard? or clipboard.size == 0
+            return   # nothing more to do
+        # put the cells from the clipboard into the document, setting their positions
+        if not cell_before_pasted_id?
+            # very top cell
+            before_pos = undefined
+            after_pos  = cells.getIn([v[0], 'pos'])
+        else
+            before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
+            after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
+        positions = @_positions_between(before_pos, after_pos, clipboard.size)
+        clipboard.forEach (cell, i) =>
+            cell = cell.set('id', @_new_id())   # randomize the id of the cell
+            cell = cell.set('pos', positions[i])
+            @_set(cell, false)
+            return
+        @_sync()

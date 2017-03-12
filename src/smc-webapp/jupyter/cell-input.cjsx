@@ -53,9 +53,12 @@ exports.CellInput = rclass
                         id       = {id}
                     />
                 else
+                    value = @props.cell.get('input')?.trim()
+                    if not value
+                        value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
                     <div onDoubleClick={=>@props.actions.set_md_cell_editing(id)} style={width:'100%'}>
                         <Markdown
-                            value      = {@props.cell.get('input') ? 'Type *Markdown* and LaTeX: $\\alpha^2$'}
+                            value      = {value}
                             project_id = {@props.actions._project_id}
                             file_path  = {@props.actions._directory}
                         />
