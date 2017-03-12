@@ -483,8 +483,15 @@ exports.HelpPage = HelpPage = rclass
 
     render: ->
         {SmcWikiUrl} = require('./customize')
+        app_logo = require('cocalc-logo.svg')
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+                <h3 style={textAlign: 'center', marginBottom: '25px'}>
+                <img src="#{app_logo}" style={width:'25%', height:'auto'} />
+                <br/>
+                <SiteDescription/>
+                </h3>
+
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
                     <Icon name='medkit'/><Space/><Space/>
                     <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
@@ -497,16 +504,6 @@ exports.HelpPage = HelpPage = rclass
                     <hr/>
                     <a href="#{SmcWikiUrl}" target="_blank">The CoCalc Documentation</a>
                 </div>
-
-                <h3>
-                    <div style={display: 'inline-block', \
-                                backgroundImage: "url('#{APP_ICON_URL}')", \
-                                backgroundSize: 'contain', \
-                                borderColor: COLORS.BLUE_D,
-                                borderSize: '1px'}
-                          className='img-rounded pull-right help-smc-logo' ></div>
-                    <SiteName/> <SiteDescription/>
-                </h3>
 
                 <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 

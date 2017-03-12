@@ -12,11 +12,11 @@ html
     title= htmlWebpackPlugin.options.title
 
     //- http://realfavicongenerator.net
-    link(rel="apple-touch-icon", sizes="180x180", href="/apple-touch-icon.png")
-    link(rel="icon", type="image/png", href="/favicon-32x32.png", sizes="32x32")
-    link(rel="icon", type="image/png", href="/favicon-16x16.png", sizes="16x16")
-    link(rel="manifest", href="/manifest.json")
-    link(rel="mask-icon", href="/safari-pinned-tab.svg", color="#fbb635")
+    link(rel="apple-touch-icon", sizes="180x180", href=require("apple-touch-icon.png"))
+    link(rel="icon", type="image/png", href=require("favicon-32x32.png"), sizes="32x32")
+    link(rel="icon", type="image/png", href=require("favicon-16x16.png"), sizes="16x16")
+    link(rel="manifest", href=require("manifest.json"))
+    link(rel="mask-icon", href=require("safari-pinned-tab.svg"), color="#fbb635")
     meta(name="apple-mobile-web-app-title", content="CoCalc")
     meta(name="application-name", content="CoCalc")
     meta(name="theme-color", content="#fbb635")
