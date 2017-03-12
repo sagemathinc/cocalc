@@ -21,8 +21,9 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            kernel    : rtypes.string          # string name of the kernel
-            error     : rtypes.string
+            kernel  : rtypes.string          # string name of the kernel
+            error   : rtypes.string
+            toolbar : rtypes.bool
 
     render_error: ->
         if @props.error
@@ -47,7 +48,7 @@ exports.JupyterEditor = rclass ({name}) ->
         <div style={boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)', zIndex: 100}>
             {@render_kernel()}
             {@render_menubar()}
-            {@render_buttonbar()}
+            {@render_buttonbar() if @props.toolbar}
         </div>
 
     render_cells: ->

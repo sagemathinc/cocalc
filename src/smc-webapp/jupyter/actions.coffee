@@ -37,6 +37,7 @@ class exports.JupyterActions extends Actions
         @setState
             error      : undefined
             cur_id     : undefined
+            toolbar    : true
             sel_ids    : immutable.Set()  # immutable set of selected cells
             md_edit_ids: immutable.Set()  # set of ids of markdown cells in edit mode
             mode       : 'escape'
@@ -497,3 +498,9 @@ class exports.JupyterActions extends Actions
             @_set(cell, false)
             return
         @_sync()
+
+    toggle_toolbar: =>
+        @setState(toolbar: not @store.get('toolbar'))
+
+    toggle_header: =>
+        # TODO

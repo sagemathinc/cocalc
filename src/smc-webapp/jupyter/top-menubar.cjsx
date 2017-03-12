@@ -87,13 +87,12 @@ exports.TopMenubar = rclass
                 View
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="toggle-header">Toggle Header</MenuItem>
-                <MenuItem eventKey="toggle-toolbar">Toggle Toolbar</MenuItem>
+                <MenuItem eventKey="toggle-header"  onSelect={=>@props.actions.toggle_header()}>Toggle Header</MenuItem>
+                <MenuItem eventKey="toggle-toolbar" onSelect={=>@props.actions.toggle_toolbar()}>Toggle Toolbar</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Cell Toolbar...</MenuItem>
                 <MenuItem eventKey="cell-toolbar-none"     ><span style={marginLeft:'4ex'}/> None</MenuItem>
                 <MenuItem eventKey="cell-toolbar-metadata" ><span style={marginLeft:'4ex'}/> Edit Metadata</MenuItem>
-                <MenuItem eventKey="cell-toolbar-raw"      ><span style={marginLeft:'4ex'}/> Raw Cell Format</MenuItem>
                 <MenuItem eventKey="cell-toolbar-slideshow"><span style={marginLeft:'4ex'}/> Slideshow</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="view-zoom-in">Zoom In</MenuItem>
