@@ -250,6 +250,9 @@ class exports.HistoryEditor extends FileEditor
         @process_view()
 
     set_doc_diff: (time0, time1) =>
+        if not @syncstring?
+            # nothing to do if syncstring isn't opened/initialized yet.
+            return
         # Set the doc to show a diff from time0 to time1
         v0 = @syncstring.version(time0).to_str()
         v1 = @syncstring.version(time1).to_str()
