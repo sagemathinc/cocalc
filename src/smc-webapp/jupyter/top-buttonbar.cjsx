@@ -46,16 +46,6 @@ exports.TopButtonbar = rclass ({name}) ->
             </Button>
         </ButtonGroup>
 
-    render_group_undo_redo: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.undo()}>
-                <Icon name='undo'/>
-            </Button>
-            <Button onClick={=>@props.actions.redo()}>
-                <Icon name='repeat'/>
-            </Button>
-        </ButtonGroup>
-
     render_group_move: ->
         <ButtonGroup  style={marginLeft:'5px'}>
             <Button onClick={=>@props.actions.move_selected_cells(-1)}>
@@ -104,15 +94,36 @@ exports.TopButtonbar = rclass ({name}) ->
             <Icon name='keyboard-o'/>
         </Button>
 
+    render_group_undo_redo: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button onClick={=>@props.actions.undo()}>
+                <Icon name='undo'/>
+            </Button>
+            <Button onClick={=>@props.actions.redo()}>
+                <Icon name='repeat'/>
+            </Button>
+        </ButtonGroup>
+
+    render_group_zoom: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button onClick={=>@props.actions.zoom(-1)}>
+                <Icon name='font' style={fontSize:'7pt'}/>
+            </Button>
+            <Button onClick={=>@props.actions.zoom(1)}>
+                <Icon name='font' style={fontSize:'11pt'}/>
+            </Button>
+        </ButtonGroup>
+
     render: ->
         <div style={margin: '5px', backgroundColor:'#fff'}>
             <Form inline>
                 {@render_add_cell()}
                 {@render_group_edit()}
-                {@render_group_undo_redo()}
                 {@render_group_move()}
                 {@render_group_run()}
                 {@render_select_cell_type()}
                 {@render_keyboard()}
+                {@render_group_undo_redo()}
+                {@render_group_zoom()}
             </Form>
         </div>

@@ -55,4 +55,6 @@ class exports.JupyterStore extends Store
             return   # .get negative for List in immutable wraps around rather than undefined (like Python)
         return @get('cell_list')?.get(i)
 
+    get_font_size: =>
+        return @get('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
 

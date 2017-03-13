@@ -25,6 +25,7 @@ exports.Cell = rclass ({name}) ->
             mode        : rtypes.string          # 'edit' or 'escape'
             cm_options  : rtypes.immutable.Map
             md_edit_ids : rtypes.immutable.Set.isRequired
+            font_size   : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return next.cm_options != @props.cm_options or \
@@ -33,7 +34,8 @@ exports.Cell = rclass ({name}) ->
             next.cur_id != @props.cur_id or\
             next.sel_ids != @props.sel_ids or \
             next.mode != @props.mode or \
-            next.md_edit_ids != @props.md_edit_ids
+            next.md_edit_ids != @props.md_edit_ids or \
+            next.font_size != @props.font_size
 
     render_cell_input: (cell) ->
         <CellInput
@@ -43,6 +45,7 @@ exports.Cell = rclass ({name}) ->
             cm_options  = {@props.cm_options}
             md_edit_ids = {@props.md_edit_ids}
             id          = {@props.id}
+            font_size   = {@props.font_size}
             />
 
     render_cell_output: (cell) ->

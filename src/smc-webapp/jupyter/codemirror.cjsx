@@ -35,9 +35,10 @@ exports.CodeMirrorEditor = rclass
         options  : rtypes.immutable.Map.isRequired
         value    : rtypes.string.isRequired
         id       : rtypes.string.isRequired
+        font_size : rtypes.number # not used, but critical to re-render on change!
 
     shouldComponentUpdate: (next) ->
-        return next.options != @props.options or next.value != @props.value
+        return next.options != @props.options or next.value != @props.value or next.font_size != @props.font_size
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
@@ -120,7 +121,7 @@ exports.CodeMirrorEditor = rclass
         @init_codemirror(@props.options, @props.value)
 
     componentWillReceiveProps: (next) ->
-        if not @cm? or not @props.options.equals(next.options)
+        if not @cm? or not @props.options.equals(next.options) or @props.font_size != next.font_size
             @init_codemirror(next.options, next.value)
         else if next.value != @props.value
             @_cm_merge_remote(next.value)

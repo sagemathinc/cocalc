@@ -95,8 +95,8 @@ exports.TopMenubar = rclass
                 <MenuItem eventKey="cell-toolbar-metadata" ><span style={marginLeft:'4ex'}/> Edit Metadata</MenuItem>
                 <MenuItem eventKey="cell-toolbar-slideshow"><span style={marginLeft:'4ex'}/> Slideshow</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="view-zoom-in">Zoom In</MenuItem>
-                <MenuItem eventKey="view-zoom-out">Zoom Out</MenuItem>
+                <MenuItem eventKey="view-zoom-in"  onSelect={=>@props.actions.zoom(1)}>Zoom In</MenuItem>
+                <MenuItem eventKey="view-zoom-out" onSelect={=>@props.actions.zoom(-1)}>Zoom Out</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 

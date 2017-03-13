@@ -42,6 +42,7 @@ class exports.JupyterActions extends Actions
             md_edit_ids: immutable.Set()  # set of ids of markdown cells in edit mode
             mode       : 'escape'
             cm_options : immutable.fromJS(cm_options)
+            font_size  : @redux.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
 
     close: =>
         if @_closed
@@ -504,3 +505,12 @@ class exports.JupyterActions extends Actions
 
     toggle_header: =>
         @redux.getActions('page').toggle_fullscreen()
+
+    # zoom in or out delta font sizes
+    set_font_size: (pixels) =>
+        @setState
+            font_size : pixels
+
+    zoom: (delta) =>
+        @set_font_size(@store.get_font_size() + delta)
+

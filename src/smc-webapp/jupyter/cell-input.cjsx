@@ -19,18 +19,20 @@ exports.CellInput = rclass
         cm_options  : rtypes.immutable.Map.isRequired
         cell        : rtypes.immutable.Map.isRequired
         md_edit_ids : rtypes.immutable.Set.isRequired
+        font_size   : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
 
     shouldComponentUpdate: (next) ->
         return next.cell.get('input') != @props.cell.get('input') or \
             next.cell.get('number') != @props.cell.get('number') or \
             next.cell.get('cell_type') != @props.cell.get('cell_type') or \
             next.cm_options != @props.cm_options or \
-            (next.md_edit_ids != @props.md_edit_ids and next.cell.get('cell_type') == 'markdown')
+            (next.md_edit_ids != @props.md_edit_ids and next.cell.get('cell_type') == 'markdown') or \
+            next.font_size != @props.font_size
 
     render_input_prompt: (type) ->
         if type != 'code'
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
-        <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em'}>
+        <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', paddingRight:'.4em'}>
             In [{@props.cell.get('number') ? '*'}]:
         </div>
 
@@ -39,18 +41,20 @@ exports.CellInput = rclass
         switch type
             when 'code'
                 <CodeMirrorEditor
-                    value    = {@props.cell.get('input') ? ''}
-                    options  = {@props.cm_options}
-                    actions  = {@props.actions}
-                    id       = {id}
+                    value     = {@props.cell.get('input') ? ''}
+                    options   = {@props.cm_options}
+                    actions   = {@props.actions}
+                    id        = {id}
+                    font_size = {@props.font_size}
                 />
             when 'markdown'
                 if @props.md_edit_ids.contains(id)
                     <CodeMirrorEditor
-                        value    = {@props.cell.get('input') ? ''}
-                        options  = {MD_OPTIONS}
-                        actions  = {@props.actions}
-                        id       = {id}
+                        value     = {@props.cell.get('input') ? ''}
+                        options   = {MD_OPTIONS}
+                        actions   = {@props.actions}
+                        id        = {id}
+                        font_size = {@props.font_size}
                     />
                 else
                     value = @props.cell.get('input')?.trim()
