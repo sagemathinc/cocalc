@@ -485,6 +485,9 @@ ChatRoom = rclass ({name}) ->
             @props.actions.set_to_last_input()
 
     on_scroll: (e) ->
+        # TODO: this is so *stupid*; the scroll state should be saved in componentWillUnmount; saving
+        # it every time there is scrolling is absurdly inefficient....  See jupyter/cell-list.cjsx for
+        # how to do this right.
         @props.actions.set_use_saved_position(true)
         #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)

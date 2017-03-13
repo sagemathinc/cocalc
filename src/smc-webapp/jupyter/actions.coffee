@@ -514,3 +514,6 @@ class exports.JupyterActions extends Actions
     zoom: (delta) =>
         @set_font_size(@store.get_font_size() + delta)
 
+    save_scroll_state: (state) =>
+        @setState
+            scroll_state : state

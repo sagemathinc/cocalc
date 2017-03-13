@@ -11,17 +11,32 @@ immutable = require('immutable')
 {Cell} = require('./cell')
 
 exports.CellList = rclass ({name}) ->
-    propTypes :
+    propTypes:
         actions    : rtypes.object.isRequired
 
-    reduxProps :
+    reduxProps:
         "#{name}" :
             cell_list : rtypes.immutable.List  # list of ids of cells in order
             font_size : rtypes.number
 
+    componentWillUnmount: ->
+        # save scroll state
+        @props.actions.setState(scroll_state: ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop)
+
+    componentDidMount: ->
+        # restore scroll state
+        scrollTop = @props.actions.store.get('scroll_state')
+        if scrollTop?
+            ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = scrollTop
+
+    render_loading: ->
+        <div style={fontSize: '32pt', color: '#888', textAlign: 'center', marginTop: '15px'}>
+            <Loading/>
+        </div>
+
     render: ->
         if not @props.cell_list?
-            return <Loading/>
+            return @render_loading()
 
         v = []
         @props.cell_list.map (id) =>
@@ -35,7 +50,7 @@ exports.CellList = rclass ({name}) ->
             height          : '100%'
             overflowY       : 'auto'
 
-        <div key='cells' style={style}>
+        <div key='cells' style={style} ref='cell_list'>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
                 {v}
             </div>
