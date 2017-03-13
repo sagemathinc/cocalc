@@ -2388,7 +2388,10 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     command: 'latexmk'
                     args   : ['-c', @base_filename]
                     cb     : (err, output) ->
-                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if output?
+                            log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if err
+                            log += "#{err}" + '\n\n'
                         cb(err)
             (cb) =>
                 # this in particular gets rid of the sagetex files
@@ -2399,7 +2402,10 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     command : "rm"
                     args    : ['-v', '-f', '--'].concat(files)
                     cb      : (err, output) ->
-                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if output?
+                            log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if err
+                            log += "#{err}" + '\n\n'
                         cb(err)
         ], (err) =>
             log += 'done.'

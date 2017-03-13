@@ -871,6 +871,15 @@ class JupyterNotebook extends EventEmitter
         async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
             @element.find(".smc-jupyter-notebook-buttons").show()
+
+            if not err and not @dom?.nb?
+                # I read through all code and there is "no possible way" this can
+                # happen.  Except it does and would cause a traceback later:
+                # https://github.com/sagemathinc/smc/issues/1775
+                # This is just a lame hack, rather than really understanding the issue,
+                # as this code is going to be deleted in a week or two anyways.
+                err = "failed to properly initialize notebook"
+
             if err
                 @state = 'failed'
             else
