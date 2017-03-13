@@ -503,4 +503,4 @@ class exports.JupyterActions extends Actions
         @setState(toolbar: not @store.get('toolbar'))
 
     toggle_header: =>
-        # TODO
+        @redux.getActions('page').toggle_fullscreen()
