@@ -639,7 +639,14 @@ ProfileSettings = rclass
             </Button>
         </Well>
 
+    render_gravatar_needs_email: ->
+        <div className="lighten">
+            Gravatar only available if you set an email address in the account settings panel above.
+        </div>
+
     render_set_gravatar: ->
+        if not @props.email_address
+            return @render_gravatar_needs_email()
         <Row>
             <Col md=6 key='checkbox'>
                 <Checkbox
@@ -672,7 +679,7 @@ ProfileSettings = rclass
             <LabeledRow label='Color'>
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
-            <LabeledRow label='Color'>
+            <LabeledRow label='Picture'>
                 {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
              </LabeledRow>
         </Panel>
