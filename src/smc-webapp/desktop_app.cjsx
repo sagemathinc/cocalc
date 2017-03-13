@@ -134,7 +134,7 @@ Page = rclass
 
     render_right_nav: ->
         logged_in = @props.is_logged_in()
-        <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
@@ -151,7 +151,7 @@ Page = rclass
             padding    : '11px 7px'
             fontWeight : 'bold'
 
-        <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
+        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = 'projects'
                 inner_style    = {padding:'0px'}
@@ -195,7 +195,7 @@ Page = rclass
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '42px'
+            minHeight     : '40px'
             position      : 'fixed'
             right         : 0
             zIndex        : '100'

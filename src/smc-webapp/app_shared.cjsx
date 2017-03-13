@@ -326,7 +326,7 @@ exports.AppLogo = rclass
             height          : 36
             width           : 36
             position        : 'relative'
-            margin          : '3px'
+            margin          : '2px'
         <div style={styles}></div>
 
 exports.VersionWarning = rclass

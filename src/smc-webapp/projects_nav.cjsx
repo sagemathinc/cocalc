@@ -41,7 +41,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style = {flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
+        style = {flexShrink:'1', width:'200px', height:'40px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -105,7 +105,7 @@ ProjectTab = rclass
             name={@props.project_id}
             actions={@actions('page')}
             active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'41px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref='tab'
         >
             <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}>
@@ -176,7 +176,7 @@ FullProjectsNav = rclass
             width       : '100%'
             display     : 'flex'
 
-        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', height:'41px', margin:'0'}
+        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', height:'40px', margin:'0'}
             helperClass={'smc-project-tab-floating'}
             onSortEnd={@on_sort_end}
             axis={'x'}
