@@ -1686,7 +1686,6 @@ class exports.Connection extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         @call
-
             message     : mesg
             error_event : true
             timeout     : opts.timeout

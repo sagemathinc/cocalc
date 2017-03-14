@@ -518,7 +518,7 @@ class exports.SyncDB extends EventEmitter
         if opts.change_throttle
             # console.log("throttling on_change #{opts.throttle}")
             @_on_change = underscore.throttle(@_on_change, opts.change_throttle)
-            delete opts.change_throttle
+        delete opts.change_throttle
         @_doc = new SyncDoc(opts)
         # Ensure that we always emit first change event, even if it is [] (in case of empty syncdb);
         # clients depend on this to know when the syncdb has been properly loaded.

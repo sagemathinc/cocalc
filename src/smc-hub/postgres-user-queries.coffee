@@ -76,7 +76,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         if misc.is_object(query)
             query = misc.deep_copy(query)
-            obj_key_subs(query, subs)
+            misc.obj_key_subs(query, subs)
             if not is_set_query?
                 is_set_query = not misc.has_null_leaf(query)
             if is_set_query
@@ -812,9 +812,10 @@ class exports.PostgreSQL extends PostgreSQL
     # Make any functional substitutions defined by the schema.
     # This may mutate query in place.
     _user_get_query_functional_subs: (query, fields) =>
-        for field, val of fields
-            if typeof(val) == 'function'
-                query[field] = val(query, @)
+        if fields?
+            for field, val of fields
+                if typeof(val) == 'function'
+                    query[field] = val(query, @)
 
     _parse_get_query_opts: (opts) =>
         if opts.changes? and not opts.changes.cb?
@@ -1417,22 +1418,6 @@ class exports.PostgreSQL extends PostgreSQL
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("only users and projects can access syncstrings")
-
-
-# modify obj in place substituting keys as given.
-obj_key_subs = (obj, subs) ->
-    for k, v of obj
-        s = subs[k]
-        if s?
-            delete obj[k]
-            obj[s] = v
-        if typeof(v) == 'object'
-            obj_key_subs(v, subs)
-        else if typeof(v) == 'string'
-            s = subs[v]
-            if s?
-                obj[k] = s
-
 
 _last_awaken_time = {}
 awaken_project = (db, project_id) ->

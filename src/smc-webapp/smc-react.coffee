@@ -644,7 +644,7 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-if DEBUG
+if DEBUG? and DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
     exports._internals =
         AppRedux                 : AppRedux

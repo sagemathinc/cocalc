@@ -33,7 +33,7 @@ register_file_editor
         actions = redux.createActions(name, JupyterActions)
         store   = redux.createStore(name, JupyterStore)
 
-        actions._init()
+        actions._init(project_id, path)
 
         syncdb = salvus_client.sync_db
             project_id   : project_id
@@ -45,11 +45,6 @@ register_file_editor
 
         actions.syncdb = syncdb
         actions.store  = store
-
-        # Useful to know.
-        actions._project_id = project_id
-        actions._path = path
-        actions._directory = misc.path_split(path).head
 
         window.a = actions # for DEBUGGING
 

@@ -1847,4 +1847,3 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
 
     client_id: =>
         return @_client_id
-

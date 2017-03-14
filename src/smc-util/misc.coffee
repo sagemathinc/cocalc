@@ -1991,3 +1991,20 @@ exports.op_to_function = (op) ->
             return (a,b) -> a > b
         else
             throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
+
+
+
+
+# modify obj in place substituting keys as given.
+exports.obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            exports.obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s

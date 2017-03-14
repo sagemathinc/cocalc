@@ -24,7 +24,11 @@ underlying synchronized state.
 
 class exports.JupyterActions extends Actions
 
-    _init: =>
+    _init: (project_id, path) =>
+        @_project_id = project_id
+        @_path = path
+        @_directory = misc.path_split(path)?.head
+
         cm_options =
             indentUnit        : 4
             matchBrackets     : true
@@ -204,7 +208,7 @@ class exports.JupyterActions extends Actions
             @ensure_there_is_a_cell()
         cur_id = @store.get('cur_id')
         if not cur_id? # todo: or the cell doesn't exist
-            @set_cur_id(@store.get('cell_list')?[0])
+            @set_cur_id(@store.get('cell_list')?.get(0))
 
     ensure_there_is_a_cell: =>
         cells = @store.get('cells')
