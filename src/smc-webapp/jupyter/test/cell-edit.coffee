@@ -170,7 +170,7 @@ describe 'creates and splits cells in various ways', ->
         expect(store.getIn(['cells', list.get(0), 'cell_type'])).toBe('markdown')
         expect(store.getIn(['cells', list.get(1), 'cell_type'])).toBe('markdown')
 
-describe 'merge content with cell above', ->
+describe 'merge cell with cell above', ->
     before(setup)
     after(teardown)
 
@@ -180,13 +180,26 @@ describe 'merge content with cell above', ->
         actions.set_cursor_locs([{id:id, x:3, y:0}])
         actions.split_current_cell()
 
-    it 'now merge cells back together', ->
+    it 'now merge cells back together above', ->
         actions.merge_cell_above()
         list = store.get('cell_list')
         expect(list.size).toBe(1)
         expect(store.getIn(['cells', list.get(0), 'input'])).toBe('abc\n123')
 
-describe 'merge content with cell below', ->
+describe 'merge cell with cell below', ->
     before(setup)
     after(teardown)
+
+    it 'puts some input in a code cell then splits it', ->
+        id = store.get('cur_id')
+        actions.set_cell_input(id, 'abc123')
+        actions.set_cursor_locs([{id:id, x:3, y:0}])
+        actions.split_current_cell()
+
+    it 'now merge cells back together below', ->
+        actions.set_cur_id(store.get('cell_list').get(0))
+        actions.merge_cell_below()
+        list = store.get('cell_list')
+        expect(list.size).toBe(1)
+        expect(store.getIn(['cells', list.get(0), 'input'])).toBe('abc\n123')
 

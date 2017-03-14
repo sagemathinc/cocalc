@@ -7,7 +7,7 @@ Copyright (C) 2017, Sagemath Inc.
 AGPLv3
 ###
 
-require('coffee-cache').setCacheDir('.coffee/cache') 
+require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache") 
 
 misc = require('smc-util/misc')
 {redux} = require('../../smc-react')
