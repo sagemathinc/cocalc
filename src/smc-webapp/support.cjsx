@@ -159,7 +159,7 @@ class SupportActions extends Actions
             return null
 
     location: ->
-        window.location.pathname.slice(window.smc_base_url.length)
+        window.location.pathname.slice(window.app_base_url.length)
 
     # sends off the support request
     support: () =>

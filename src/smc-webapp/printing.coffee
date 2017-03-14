@@ -146,13 +146,9 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            SiteName = redux.getStore('customize').site_name ? 'CoCalc'
-            if window?
-                loc = window.location
-                {join} = require('path')
-                url = "#{loc.protocol}//" + join(loc.hostname, window.smc_base_url ? '')
-            else
-                url = 'https://cloud.sagemath.com/'
+            {DEFAULT_SITE_NAME, BASE_URL} = require('./misc_page')
+            SiteName = redux.getStore('customize').site_name ? DEFAULT_SITE_NAME
+            url = BASE_URL
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
             # e.g. this can be used to import it later on

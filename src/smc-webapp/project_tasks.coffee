@@ -77,12 +77,12 @@ class ProjectTasks
         else
             base = 'https://cloud.sagemath.com'
         {join} = require('path')
-        path = join("#{window.smc_base_url ? '/'}", "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
+        path = join("#{window.app_base_url ? '/'}", "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
         return "#{base}" + (if path[0] == '/' then '' else '/') + path
 
     # returns the URL for the file at the given path
     url_href: (path) =>
-        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
+        return "#{window.app_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
 
     # returns the download URL for a file at a given path
     download_href: (path) =>

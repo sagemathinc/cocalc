@@ -38,6 +38,11 @@ exports.is_escape      = (e) -> e.which is 27
 
 exports.APP_ICON_URL = require('cocalc-icon.svg')
 
+{join} = require('path')
+exports.BASE_URL = if window? then join(window.location.origin, window.smc_base_url ? '') else 'https://cocalc.com/'
+
+exports.DEFAULT_SITE_NAME = 'CoCalc'
+
 local_diff = exports.local_diff = (before, after) ->
     # Return object
     #
@@ -167,7 +172,7 @@ $.fn.process_smc_links = (opts={}) ->
                     if src.indexOf('://') != -1
                         continue
                     {join} = require('path')
-                    new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
+                    new_src = join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e

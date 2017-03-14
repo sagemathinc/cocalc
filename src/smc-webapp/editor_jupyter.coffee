@@ -822,15 +822,15 @@ class JupyterNotebook extends EventEmitter
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.smc_base_url}/#{@project_id}/port/jupyter/notebooks/"
+        @server_url = "#{window.app_base_url}/#{@project_id}/port/jupyter/notebooks/"
 
         # special case/hack for developing SMC-in-SMC
-        if window.smc_base_url.indexOf('/port/') != -1
+        if window.app_base_url.indexOf('/port/') != -1
             # Hack until we can figure out how to proxy websockets through a proxy
             # (things just get too complicated)...
             console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
-            i = window.smc_base_url.lastIndexOf('/')
-            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
+            i = window.app_base_url.lastIndexOf('/')
+            @server_url = "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
 
         s = misc.path_split(@filename)
         @path = s.head
@@ -1395,7 +1395,7 @@ class JupyterNBViewer
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@filename}"
+        @ipynb_html_src = "#{window.app_base_url}/#{@project_id}/raw/#{@filename}"
         @init_buttons()
 
     show: () =>

@@ -40,7 +40,7 @@ images = [
 ]
 # 'static/sagepreview/04-files.png'
 
-$.get window.smc_base_url + "/registration", (obj, status) ->
+$.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
 
@@ -74,7 +74,7 @@ Passports = rclass
     render_strategy: (name) ->
         if name is 'email'
             return
-        url = "#{window.smc_base_url}/auth/#{name}"
+        url = "#{window.app_base_url}/auth/#{name}"
         <a href={url} key={name}>
             <Icon size='2x' name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}

@@ -341,7 +341,7 @@ AccountSettings = rclass
             login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
-                <Button href={"#{window.smc_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
+                <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
                     <Icon name="external-link" /> Link my {name} account
                 </Button>
@@ -1458,7 +1458,7 @@ exports.AccountSettingsTop = rclass
 
 STRATEGIES = ['email']
 f = () ->
-    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
+    $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!

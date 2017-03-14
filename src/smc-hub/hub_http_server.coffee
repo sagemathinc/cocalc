@@ -72,7 +72,7 @@ exports.init_express_http_server = (opts) ->
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
-        res.send("window.smc_base_url='#{opts.base_url}';")
+        res.send("window.app_base_url='#{opts.base_url}';")
 
     # used by HAPROXY for testing that this hub is OK to receive traffic
     router.get '/alive', (req, res) ->

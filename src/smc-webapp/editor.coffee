@@ -3326,7 +3326,7 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
-                             window.smc_base_url,
+                             window.app_base_url,
                              @project_id,
                              'raw',
                              @filename)

@@ -405,7 +405,7 @@ class exports.Connection extends EventEmitter
 
     is_connected: => !!@_connected
 
-    remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
+    remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
@@ -892,7 +892,7 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : undefined
 
-        base = window?.smc_base_url ? '' # will be defined in web browser
+        base = window?.app_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc

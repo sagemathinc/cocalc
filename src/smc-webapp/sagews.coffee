@@ -1364,7 +1364,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 img.onload = scale_img
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
-            is_blob     = misc.startswith(src, "#{window.smc_base_url}/blobs/")
+            is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")
             # see https://github.com/sagemathinc/cocalc/issues/651
             is_data     = misc.startswith(src, 'data:')
             if is_fullurl or is_data or is_blob
@@ -1374,7 +1374,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
             {join} = require('path')
-            new_src = join('/', window.smc_base_url, @project_id, 'raw', file_path, src)
+            new_src = join('/', window.app_base_url, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1558,7 +1558,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.smc_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
+                    target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 

@@ -227,10 +227,11 @@ FreeProjectWarning = rclass ({name}) ->
             padding      : 3
             paddingLeft  : 7
             paddingRight : 7
-            cursor       : 'pointer'
             margin       : 3
+            marginTop    : 0
             fontSize     : 12
         dismiss_styles =
+            cursor     : 'pointer'
             display    : 'inline-block'
             float      : 'right'
             fontWeight : 700
@@ -241,7 +242,7 @@ FreeProjectWarning = rclass ({name}) ->
             height     : 0
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
+            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
         </Alert>
