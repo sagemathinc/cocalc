@@ -211,7 +211,6 @@ describe 'use of eval_inputs table --', ->
                                 cb         : cb
                 (x, cb) ->
                     expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t2, user_id:0, input:input}})
-
                     # modify existing input
                     db.user_query
                         account_id : accounts[0]              # query has deep merge semantics by default.

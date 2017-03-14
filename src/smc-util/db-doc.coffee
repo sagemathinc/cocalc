@@ -16,6 +16,11 @@ recording backed by a backend database.
    - get_one(where) -- get one matching object or undefined
 
 This is the foundation for a distributed synchronized database.
+
+DO **NOT** store anything that can't be converted from/to pure JSON.
+In particular, do *NOT* store Date objects -- they will come back as
+ISO strings and not be parsed.  See https://github.com/sagemathinc/smc/issues/1771
+Instead use ms since epoch (or .toISOString()) for dates.  Please!!
 ###
 
 immutable  = require('immutable')

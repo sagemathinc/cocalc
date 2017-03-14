@@ -121,7 +121,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                         s = mesg.toString()
                         try
                             # Do not use "obj = JSON.parse(s)"
-                            obj = misc.from_json(s)  # this also parses iso Dates
+                            obj = misc.from_json_socket(s)  # this properly parses Date objects
                         catch e
                             winston.debug("Error parsing JSON message='#{misc.trunc(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
@@ -172,7 +172,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
 
         switch type
             when 'json'
-                send('j' + JSON.stringify(data))
+                send('j' + misc.to_json_socket(data))
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")
