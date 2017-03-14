@@ -71,14 +71,10 @@ class ProjectTasks
 
     # returns the full URL path to the file (not the "raw" server)
     url_fullpath: (path) ->
-        if window?
-            loc = window.location
-            base = "#{loc.protocol}//#{loc.hostname}"
-        else
-            base = 'https://cloud.sagemath.com'
         {join} = require('path')
-        path = join("#{window.app_base_url ? '/'}", "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
-        return "#{base}" + (if path[0] == '/' then '' else '/') + path
+        {BASE_URL} = require('./misc_page')
+        path = join(BASE_URL, "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
+        return path
 
     # returns the URL for the file at the given path
     url_href: (path) =>
