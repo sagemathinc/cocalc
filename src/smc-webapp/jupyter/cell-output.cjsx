@@ -8,8 +8,12 @@ exports.CellOutput = rclass
     propTypes :
         cell : rtypes.immutable.Map.isRequired
 
-    shouldComponentUpdate: (nextProps) ->
-        new_output = nextProps.cell.get('output')
+    shouldComponentUpdate: (next) ->
+        if next.cell.get('collapsed') != @props.cell.get('collapsed')
+            return true
+        if next.cell.get('scrolled') != @props.cell.get('scrolled')
+            return true
+        new_output = next.cell.get('output')
         cur_output = @props.cell.get('output')
         if not new_output?
             return cur_output?
@@ -25,11 +29,17 @@ exports.CellOutput = rclass
             Out[{n}]:
         </div>
 
+    render_collapsed: ->
+        <div>collapsed (todo)</div>
+
     render_output_value: ->
-        output = JSON.stringify(@props.cell.get('output').toJS())
-        <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
-            {output}
-        </pre>
+        if @props.cell.get('collapsed')
+            return @render_collapsed()
+        else
+            output = JSON.stringify(@props.cell.get('output').toJS())
+            <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
+                {output}
+            </pre>
 
     render: ->
         if not @props.cell.get('output')?
@@ -37,4 +47,5 @@ exports.CellOutput = rclass
         <div key='out'  style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_output_prompt()}
             {@render_output_value()}
+            {<div>scrolled</div> if @props.cell.get('scrolled')}
         </div>

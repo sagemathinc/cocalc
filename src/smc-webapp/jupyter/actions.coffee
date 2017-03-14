@@ -65,10 +65,45 @@ class exports.JupyterActions extends Actions
             id    : id
             input : input
 
+    set_cell_output: (id, output) =>
+        @_set
+            type   : 'cell'
+            id     : id
+            output : output
+
+    clear_selected_outputs: =>
+        cells = @store.get('cells')
+        for id in @store.get_selected_cell_ids_list()
+            if cells.get(id).get('output')?
+                @_set({type:'cell', id:id, output:null}, false)
+        @_sync()
+
+    clear_all_outputs: =>
+        @store.get('cells').forEach (cell, id) =>
+            if cell.get('output')?
+                @_set({type:'cell', id:id, output:null}, false)
+            return
+        @_sync()
+
+    # prop can be: 'collapsed', 'scrolled'
+    toggle_selected_outputs: (prop) =>
+        cells = @store.get('cells')
+        for id in @store.get_selected_cell_ids_list()
+            @_set({type:'cell', id:id, "#{prop}": not cells.get(id).get(prop)}, false)
+        @_sync()
+
+    toggle_all_outputs: (prop) =>
+        @store.get('cells').forEach (cell, id) =>
+            @_set({type:'cell', id:id, "#{prop}": not cell.get(prop)}, false)
+            return
+        @_sync()
+
     set_cell_pos: (id, pos, save=true) =>
         @_set({type: 'cell', id: id, pos: pos}, save)
 
     set_cell_type : (id, cell_type) =>
+        if cell_type != 'markdown' and cell_type != 'raw' and cell_type != 'code'
+            throw Error("cell type must be 'markdown', 'raw', or 'code'")
         obj =
             type      : 'cell'
             id        : id
@@ -543,3 +578,4 @@ class exports.JupyterActions extends Actions
     save_scroll_state: (state) =>
         @setState
             scroll_state : state
+

@@ -130,14 +130,14 @@ exports.TopMenubar = rclass
                 <MenuItem eventKey="cell-type-nbconvert" onSelect={=>@props.actions.set_selected_cell_type('nbconvert')} ><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Current Outputs...</MenuItem>
-                <MenuItem eventKey="current-outputs-toggle"     ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="current-outputs-toggle-scrolling" ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="current-outputs-clear"      ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
+                <MenuItem eventKey="current-outputs-toggle"   onSelect={=>@props.actions.toggle_selected_outputs('collapsed')}  ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
+                <MenuItem eventKey="current-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_selected_outputs('scrolled')}><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
+                <MenuItem eventKey="current-outputs-clear"    onSelect={=>@props.actions.clear_selected_outputs()} ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>All Output...</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle"     ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle-scrolling" ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="all-outputs-clear"      ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
+                <MenuItem eventKey="all-outputs-toggle"     onSelect={=>@props.actions.toggle_all_outputs('collapsed')}><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
+                <MenuItem eventKey="all-outputs-toggle-scrolling"onSelect={=>@props.actions.toggle_all_outputs('scrolled')} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
+                <MenuItem eventKey="all-outputs-clear"      onSelect={=>@props.actions.clear_all_outputs()}  ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
