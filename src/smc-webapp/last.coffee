@@ -104,9 +104,9 @@ window.MathJax = exports.MathJaxConfig =
     showProcessingMessages: false
 
 $ = window.$
+$("#smc-startup-banner")?.remove()
+$('#smc-startup-banner-status')?.remove()
 $ ->
-    $("#smc-startup-banner")?.remove()
-    $('#smc-startup-banner-status')?.remove()
     $(parent).trigger('initialize:frame')
 
     # dynamically inserting the mathjax script URL

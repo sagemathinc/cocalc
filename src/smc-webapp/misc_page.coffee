@@ -26,6 +26,7 @@ misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
+theme       = require('smc-util/theme')
 
 {redux} = require('./smc-react')
 
@@ -36,12 +37,14 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON_URL = require('cocalc-icon.svg')
-
+exports.APP_ICON               = require('webapp-lib/cocalc-icon.svg')
+exports.APP_ICON_WHITE         = require('webapp-lib/cocalc-icon-white.svg')
+exports.APP_LOGO               = require('webapp-lib/cocalc-logo.svg')
+exports.APP_LOGO_WHITE         = require('webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
+DEFAULT_DOMAIN_NAME            = theme.DEFAULT_DOMAIN_NAME
 {join} = require('path')
-exports.BASE_URL = if window? then join(window.location.origin, window.smc_base_url ? '') else 'https://cocalc.com/'
-
-exports.DEFAULT_SITE_NAME = 'CoCalc'
+exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.smc_base_url ? '')}" else DEFAULT_DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object

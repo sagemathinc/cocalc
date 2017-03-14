@@ -21,7 +21,8 @@
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
-{Icon, Space, Tip, COLORS} = require('./r_misc')
+{Icon, Space, Tip} = require('./r_misc')
+{COLORS} = require('smc-util/theme')
 {salvus_client} = require('./salvus_client')
 
 {HelpPage} = require('./r_help')
@@ -29,7 +30,7 @@
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
-ACTIVE_BG_COLOR = COLORS.GRAY
+ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -317,10 +318,10 @@ exports.AppLogo = rclass
     displayName : 'AppLogo'
 
     render: ->
-        {APP_ICON_URL} = require('./misc_page')
+        {APP_ICON} = require('./misc_page')
         styles =
             display         : 'inline-block'
-            backgroundImage : "url('#{APP_ICON_URL}')"
+            backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
             height          : 36
@@ -423,7 +424,7 @@ exports.GlobalInformationMessage = rclass
 
     render: ->
         more_url = 'https://github.com/sagemathinc/smc/wiki/CoCalc'
-        bgcol = require('colors').COLORS.YELL_L
+        bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
             backgroundColor : bgcol

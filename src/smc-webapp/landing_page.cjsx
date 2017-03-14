@@ -30,7 +30,8 @@ The Landing Page
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
-{APP_ICON_URL} = require('./misc_page')
+{APP_TAGLINE} = require('smc-util/theme')
+{APP_ICON_WHITE, APP_LOGO_NAME_WHITE} = require('./misc_page')
 
 images = [
     require('sagepreview/01-worksheet.png'),
@@ -470,12 +471,13 @@ SMC_Commercial = ->
     </iframe>
 
 SMC_Quote = ->
+    DEFAULT_DOMAIN_NAME = require('smc-util/theme').DEFAULT_DOMAIN_NAME
     <div style={marginTop:'15px'}>
         <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of CoCalc in the Mathematics for Life Scientists">
             <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
         </a>
         <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
-        They just open up a web browser and go to cloud.sagemath.com and that’s it. They just type code directly
+        They just open up a web browser and go to {DEFAULT_DOMAIN_NAME} and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
         The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
         management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
@@ -516,7 +518,7 @@ SagePreview = rclass
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
                             Conveniently handout assignments, collect them, grade them, and finally return them.
-                            (<a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank">SMC used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
+                            (<a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank"><SiteName /> used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
@@ -613,18 +615,18 @@ exports.LandingPage = rclass
                             xs            = {true} />
                         <div style={clear:'both'}></div>
                 </Row>
-                <Row style={fontSize        : 3*UNIT,\
-                            backgroundColor : COLORS.YELL_D,\
+                <Row style={backgroundColor : COLORS.LANDING.TOP_BAR_BG,\
                             padding         : 5,\
                             margin          : 0,\
                             borderRadius    : 4,\
+                            position        : 'relative',\
                             whiteSpace      : 'nowrap'}
                      className="hidden-xs">
                       <div style={width    : 490,\
                                   zIndex   : 10,\
                                   position : "relative",\
-                                  top      : 12,\
-                                  right    : 12,\
+                                  top      : UNIT,\
+                                  right    : UNIT,\
                                   fontSize : '11pt',\
                                   float    : "right"}
                           >
@@ -634,31 +636,37 @@ exports.LandingPage = rclass
                               has_account   = {@props.has_account}
                               xs            = {false} />
                       </div>
-                      <span style={display         : 'inline-block', \
-                                   backgroundImage : "url('#{APP_ICON_URL}')", \
-                                   backgroundSize  : 'contain', \
-                                   height          : UNIT * 4, width: UNIT * 4, \
-                                   borderRadius    : 10, \
-                                   verticalAlign   : 'center'}>
-                      </span>
+                      <div style={ display          : 'inline-block', \
+                                   backgroundImage  : "url('#{APP_ICON_WHITE}')", \
+                                   backgroundSize   : 'contain', \
+                                   height           : UNIT * 5, width: UNIT * 5, \
+                                   margin           : 5,\
+                                   verticalAlign    : 'center',\
+                                   backgroundRepeat : 'no-repeat'}>
+                      </div>
                       <div className="hidden-sm"
-                          style={display       : 'inline-block',\
-                                  fontFamily   : DESC_FONT,\
-                                  fontSize     : "28px",\
-                                  top          : -1 * UNIT,\
-                                  position     : 'relative',\
-                                  color        : 'white',\
-                                  lineHeight   : 0,\
-                                  paddingRight : UNIT}><SiteName /></div>
-                      <div style={fontWeight   : "700",\
+                          style={ display          : 'inline-block',\
+                                  fontFamily       : DESC_FONT,\
+                                  fontSize         : "28px",\
+                                  top              : UNIT,\
+                                  left             : UNIT * 7,\
+                                  width            : 250,\
+                                  height           : 55,\
+                                  position         : 'absolute',\
+                                  color            : 'white',\
+                                  backgroundImage  : "url('#{APP_LOGO_NAME_WHITE}')",\
+                                  backgroundSize   : 'contain',\
+                                  backgroundRepeat : 'no-repeat'}>
+                      </div>
+                      <div className="hidden-sm"
+                          style={ fontWeight   : "700",\
                                   fontSize     : "15px",\
-                                  lineHeight   : "1.3",\
                                   fontFamily   : "sans-serif",\
-                                  top          : 1,\
+                                  bottom       : 10,\
+                                  left         : UNIT * 7,\
                                   display      : 'inline-block',\
-                                  position     : "relative",\
-                                  color        : "white",\
-                                  paddingRight : UNIT}>Collaborative<br/>Computational<br/>Mathematics</div>
+                                  position     : "absolute",\
+                                  color        : "white"}>{APP_TAGLINE}</div>
                 </Row>
                 <Row>
                     <div className="hidden-xs" style={padding: "#{UNIT}px"}>
@@ -678,7 +686,7 @@ exports.LandingPage = rclass
                         <Well style={'float':'right', marginBottom:'15px'} className="lighten">
                             <h3 style={marginTop: 0}>For professors teaching courses using open source software</h3>
                             <p style={marginBottom:'15px'}>
-                            SMC is the easiest way to get your class up and running.  We eliminate installation
+                            <SiteName /> is the easiest way to get your class up and running.  We eliminate installation
                             problems, and the limitations of the Mathematica and ShareLaTeX cloud offerings.
                             Our collaborative environment includes LaTeX, R, Jupyter, Python, SageMath,
                             Octave, Julia, and much more.</p>

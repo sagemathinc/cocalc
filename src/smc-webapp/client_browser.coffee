@@ -28,7 +28,7 @@ _ = require('underscore')
 
 client = require('smc-util/client')
 
-WHITE_APP_ICON_URL = require('cocalc-icon-white-transparent.svg')
+{APP_LOGO_WHITE} = require('./misc_page')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -37,7 +37,7 @@ idle_notification_html = ->
     customize = redux.getStore('customize')
     """
     <div>
-    <img src="#{WHITE_APP_ICON_URL}">
+    <img src="#{APP_LOGO_WHITE}">
     <h1>... is on standby</h1>
     &mdash; click to resume &mdash;
     </div>

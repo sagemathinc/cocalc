@@ -3332,7 +3332,7 @@ class JupyterNBViewerEmbedded extends FileEditor
                              @filename)
             # for testing, set it to a src like this: (smc-in-smc doesn't work for published files, since it
             # still requires the user to be logged in with access to the host project)
-            #ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
+            #ipynb_src = 'cocalc.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
 

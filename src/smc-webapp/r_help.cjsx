@@ -37,7 +37,7 @@ $ = window.$
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
-{APP_ICON_URL} = require('./misc_page')
+{APP_LOGO} = require('./misc_page')
 
 
 # CSS
@@ -290,6 +290,7 @@ HelpPageGettingStartedSection = rclass
         $(ReactDOM.findDOMNode(@)).mathjax()
 
     render: ->
+        BASE_URL = require('./misc_page').BASE_URL
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
 
@@ -299,7 +300,7 @@ HelpPageGettingStartedSection = rclass
                         <a target='_blank' href='https://www.youtube.com/watch?v=eadnL5hDg9M'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        Navigate to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>.
+                        Navigate to <a target='_blank' href={BASE_URL}>{BASE_URL}</a>.
                         If you are already signed in, first sign out
                         by clicking on your email address by the <Icon name='cog' /> icon
                         in the upper right, and clicking 'Sign out'.
@@ -331,7 +332,7 @@ HelpPageGettingStartedSection = rclass
                         <a target='_blank' href='https://www.youtube.com/watch?v=A9zltIsU2cM'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        Log into <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>,
+                        Log into <a target='_blank' href={BASE_URL}>{BASE_URL}</a>,
                         then click in the upper right corner on your email address by
                         the <Icon name='cog' /> icon.
                         Change your first or last name in the settings tab that appears, then click save.
@@ -358,12 +359,6 @@ HelpPageGettingStartedSection = rclass
                                 can use it to reset your password when you forget it.
                             </li>
                         </ul>
-                    </div>
-                </Panel>
-
-                <Panel header={@get_panel_header('line-chart', 'Get a bunch of examples')} eventKey='3'>
-                    <div>
-                        You can browse and copy a <a target='blank' href="https://cloud.sagemath.com/projects/4a5f0542-5873-4eed-a85c-a18c706e8bcd/files/cloud-examples/">collection of examples</a>.
                     </div>
                 </Panel>
 
@@ -466,7 +461,7 @@ HelpPageGettingStartedSection = rclass
                             <li>
                                 You can also run a normal version of the Jupyter notebook server
                                 (no sync, not integrated into cloud) by (1) finding your project id in project settings, then (2) visiting
-                                <span style={fontFamily:'monospace'}> https://cloud.sagemath.com/[project_id]/port/jupyter</span> (you
+                                <span style={fontFamily:'monospace'}> {BASE_URL}/[project_id]/port/jupyter</span> (you
                                 will possibly have to refresh your browser if this takes too long the first time).
                                 Any collaborator on your project can securely use the Jupyter notebook server by visiting
                                 this link, but nobody else can.
@@ -483,11 +478,10 @@ exports.HelpPage = HelpPage = rclass
 
     render: ->
         {SmcWikiUrl} = require('./customize')
-        app_logo = require('cocalc-logo.svg')
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <h3 style={textAlign: 'center', marginBottom: '25px'}>
-                <img src="#{app_logo}" style={width:'25%', height:'auto'} />
+                <img src="#{APP_LOGO}" style={width:'25%', height:'auto'} />
                 <br/>
                 <SiteDescription/>
                 </h3>

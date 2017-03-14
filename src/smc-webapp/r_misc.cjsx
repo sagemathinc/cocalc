@@ -32,6 +32,7 @@ smc_git_rev = SMC_GIT_REV ? 'N/A'
 Combobox    = require('react-widgets/lib/Combobox')
 
 misc        = require('smc-util/misc')
+theme       = require('smc-util/theme')
 immutable   = require('immutable')
 underscore  = require('underscore')
 
@@ -41,10 +42,10 @@ markdown    = require('./markdown')
 exports.UNIT = UNIT = 15
 
 # bootstrap blue background
-exports.BS_BLUE_BGRND = "rgb(66, 139, 202)"
+exports.BS_BLUE_BGRND = theme.COLORS.BS_BLUE_BGRND
 
 # This is the applications color scheme
-exports.COLORS = require('colors').COLORS
+exports.COLORS = theme.COLORS
 
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
