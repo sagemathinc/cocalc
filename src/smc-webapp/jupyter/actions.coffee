@@ -132,7 +132,10 @@ class exports.JupyterActions extends Actions
         cur_id = @store.get('cur_id')
         if not cur_id?  # must be selected
             return
+        sel_ids = @store.get('sel_ids')
         if cur_id == id # nothing to do
+            if sel_ids.size > 0
+                @setState(sel_ids : immutable.Set())  # empty (cur_id always included)
             return
         i = 0
         v = @store.get('cell_list').toJS()
@@ -141,11 +144,9 @@ class exports.JupyterActions extends Actions
                 endpoint0 = i
             if x == cur_id
                 endpoint1 = i
-        if endpoint0 > endpoint1
-            [endpoint0, endpoint1] = [endpoint1, endpoint0]
-        for i in [endpoint0..endpoint1]
-            @select_cell(v[i])
-        @set_cur_id(id)
+        @setState
+            sel_ids : immutable.Set( (v[i] for i in [endpoint0..endpoint1]) )
+            cur_id  : id
 
     set_mode: (mode) =>
         @setState(mode: mode)
@@ -217,7 +218,7 @@ class exports.JupyterActions extends Actions
                 type  : 'cell'
                 id    : @_new_id()
                 pos   : 0
-                value : ''
+                input : ''
 
     _set: (obj, save=true) =>
         if @_closed
@@ -274,7 +275,7 @@ class exports.JupyterActions extends Actions
             type  : 'cell'
             id    : new_id
             pos   : pos
-            value : ''
+            input : ''
         return new_id  # technically violates CQRS -- but not from the store.
 
     delete_selected_cells: (sync=true) =>
@@ -384,6 +385,9 @@ class exports.JupyterActions extends Actions
         cursor = @_cursor_locs?[0]
         if not cursor?
             return
+        if cursor.id != @store.get('cur_id')
+            # cursor isn't in currently selected cell, so don't know how to split
+            return
         # insert a new cell after the currently selected one
         new_id = @insert_cell(1)
         # split the cell content at the cursor loc
@@ -412,6 +416,7 @@ class exports.JupyterActions extends Actions
         bottom = v.join('\n')
         @set_cell_input(cursor.id, top)
         @set_cell_input(new_id, bottom)
+        @set_cur_id(new_id)
 
     # Copy content from the cell below the current cell into the currently
     # selected cell, then delete the cell below the current cell.s
@@ -428,10 +433,12 @@ class exports.JupyterActions extends Actions
         input  = (cells.get(cur_id)?.get('input') ? '') + '\n' + (cells.get(next_id)?.get('input') ? '')
         @_delete({type:'cell', id:next_id}, false)
         @set_cell_input(cur_id, input)
+        return
 
     merge_cell_above: =>
         @move_cursor(-1)
         @merge_cell_below()
+        return
 
     # Copy all currently selected cells into our internal clipboard
     copy_selected_cells: =>
@@ -440,6 +447,7 @@ class exports.JupyterActions extends Actions
         for id in @store.get_selected_cell_ids_list()
             clipboard = clipboard.push(cells.get(id))
         @setState(clipboard: clipboard)
+        return
 
     # Cut currently selected cells, putting them in internal clipboard
     cut_selected_cells: =>
