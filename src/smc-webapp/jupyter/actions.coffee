@@ -278,7 +278,11 @@ class exports.JupyterActions extends Actions
         return new_id  # technically violates CQRS -- but not from the store.
 
     delete_selected_cells: (sync=true) =>
-        for id,_ of @store.get_selected_cell_ids()
+        selected = @store.get_selected_cell_ids_list()
+        if selected.length == 0
+            return
+        @move_cursor_after(selected[selected.length-1])
+        for id in selected
             @_delete({type:'cell', id:id}, false)
         if sync
             @_sync()
