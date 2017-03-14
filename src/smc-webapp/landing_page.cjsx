@@ -26,7 +26,6 @@ The Landing Page
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 {HelpPageUsageSection} = require('./r_help')
-#DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
@@ -39,7 +38,6 @@ images = [
     require('sagepreview/03-latex.png'),
     require('sagepreview/05-sky_is_the_limit.png'),
 ]
-# 'static/sagepreview/04-files.png'
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
@@ -138,7 +136,11 @@ SignUp = rclass
             </FormGroup>
 
     render: ->
-        <Well style={marginTop:'10px'}>
+        well_style =
+            marginTop      : '10px'
+            borderWidth    : 5
+            'border-color' : COLORS.LANDING.TOP_BAR_BG
+        <Well style=well_style>
             {@display_token_input()}
             {@display_error("token")}
             {@display_error("account_creation_failed")}   {# a generic error}
@@ -605,7 +607,7 @@ exports.LandingPage = rclass
                         forgot_password_success={@props.forgot_password_success}
                     /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
-                            backgroundColor: COLORS.BLUE_BG,\
+                            backgroundColor: COLORS.LANDING.TOP_BAR_BG,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
