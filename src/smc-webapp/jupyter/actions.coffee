@@ -208,7 +208,7 @@ class exports.JupyterActions extends Actions
         else
             @ensure_there_is_a_cell()
         cur_id = @store.get('cur_id')
-        if not cur_id? # todo: or the cell doesn't exist
+        if not cur_id? or not @store.getIn(['cells', cur_id])?
             @set_cur_id(@store.get('cell_list')?.get(0))
 
     ensure_there_is_a_cell: =>
@@ -276,13 +276,17 @@ class exports.JupyterActions extends Actions
             id    : new_id
             pos   : pos
             input : ''
+        @set_cur_id(new_id)
         return new_id  # technically violates CQRS -- but not from the store.
 
     delete_selected_cells: (sync=true) =>
         selected = @store.get_selected_cell_ids_list()
         if selected.length == 0
             return
+        id = @store.get('cur_id')
         @move_cursor_after(selected[selected.length-1])
+        if @store.get('cur_id') == id
+            @move_cursor_before(selected[0])
         for id in selected
             @_delete({type:'cell', id:id}, false)
         if sync
@@ -377,6 +381,13 @@ class exports.JupyterActions extends Actions
         @set_cur_id_from_index(i + 1)
         return
 
+    move_cursor_before: (id) =>
+        i = @store.get_cell_index(id)
+        if not i?
+            return
+        @set_cur_id_from_index(i - 1)
+        return
+
     set_cursor_locs: (locs) =>
         @_cursor_locs = locs
         # TODO: also right to cursors table
@@ -416,7 +427,6 @@ class exports.JupyterActions extends Actions
         bottom = v.join('\n')
         @set_cell_input(cursor.id, top)
         @set_cell_input(new_id, bottom)
-        @set_cur_id(new_id)
 
     # Copy content from the cell below the current cell into the currently
     # selected cell, then delete the cell below the current cell.s

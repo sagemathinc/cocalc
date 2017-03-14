@@ -34,6 +34,17 @@ describe 'tests inserting and deleting a cell -- ', ->
         actions.redo()
         expect(store.get('cell_list').size).toBe(1)
 
+    it 'delete the only remaining cell', ->
+        cell_list = store.get('cell_list')
+        id = store.get('cur_id')
+        expect(cell_list.get(0)).toBe(id)
+        actions.set_cell_input(id, 'xyz')
+        actions.delete_selected_cells()
+        new_cell_list = store.get('cell_list')
+        expect(new_cell_list.size).toBe(1)
+        expect(store.getIn(['cells', new_cell_list.get(0), 'input'])).toBe('')
+        expect(store.get('cur_id')).toBe(new_cell_list.get(0))
+
 describe 'tests inserting several cells, selecting several, and deleting all that are selected -- ', ->
     before(setup)
     after(teardown)
@@ -45,6 +56,7 @@ describe 'tests inserting several cells, selecting several, and deleting all tha
         expect(store.get('cells').size).toBe(4)
 
     it 'select cells 0-2 with the current at position 0', ->
+        actions.set_cur_id(store.get('cell_list').get(0))
         actions.select_cell(store.get('cell_list').get(1))
         actions.select_cell(store.get('cell_list').get(2))
 
@@ -202,4 +214,46 @@ describe 'merge cell with cell below', ->
         list = store.get('cell_list')
         expect(list.size).toBe(1)
         expect(store.getIn(['cells', list.get(0), 'input'])).toBe('abc\n123')
+
+describe 'inserting a cell in various ways', ->
+    before(setup)
+    after(teardown)
+
+    it 'inserts a cell after default first cell', ->
+        id = store.get('cur_id')
+        actions.set_cell_input(id, 'cell 0')
+        actions.insert_cell(1)
+        list = store.get('cell_list')
+        expect(list.size).toBe(2)
+        expect(list.get(0)).toBe(id)
+        expect(store.get('cur_id')).toBe(list.get(1))
+        expect(store.getIn(['cells', list.get(0), 'input'])).toBe('cell 0')
+        expect(store.getIn(['cells', list.get(1), 'input'])).toBe('')
+
+    it 'inserts another cell after first cell', ->
+        list = store.get('cell_list')
+        actions.set_cur_id(list.get(0))
+        actions.set_cell_input(list.get(1), 'cell 1')
+        actions.insert_cell(1)
+        list = store.get('cell_list')
+        expect(list.size).toBe(3)
+        expect(store.get('cur_id')).toBe(list.get(1))
+        expect(store.getIn(['cells', list.get(1), 'input'])).toBe('')
+        actions.set_cell_input(list.get(2), 'cell 2')
+        actions.set_cur_id(list.get(2))
+
+    it 'inserts a cell before the last cell', ->
+        actions.insert_cell(-1)
+        list = store.get('cell_list')
+        expect(list.size).toBe(4)
+        expect(store.get('cur_id')).toBe(list.get(2))
+        expect(store.getIn(['cells', list.get(2), 'input'])).toBe('')
+        actions.set_cur_id(list.get(0))
+
+    it 'inserts a new cell before the first cell', ->
+        actions.insert_cell(-1)
+        list = store.get('cell_list')
+        expect(list.size).toBe(5)
+        expect(store.getIn(['cells', list.get(0), 'input'])).toBe('')
+        expect(store.getIn(['cells', list.get(1), 'input'])).toBe('cell 0')
 
