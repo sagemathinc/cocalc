@@ -141,6 +141,13 @@ Assignment = rclass
     getInitialState: ->
         confirm_delete : false
 
+    _due_date: ->
+        due_date = @props.assignment.get('due_date')  # a string
+        if not due_date?
+            return salvus_client.server_time()
+        else
+            return new Date(due_date)
+
     render_due: ->
         <Row>
             <Col xs=1 style={marginTop:'8px', color:'#666'}>
@@ -151,16 +158,15 @@ Assignment = rclass
             </Col>
             <Col xs=11>
                 <DateTimePicker
-                    value     = {@props.assignment.get('due_date') ? salvus_client.server_time()}
+                    value     = {@_due_date()}
                     on_change = {@date_change}
                 />
             </Col>
         </Row>
 
     date_change: (date) ->
-        if not date
-            date = @props.assignment.get('due_date') ? misc.server_time()
-        @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
+        date ?= @_due_date()
+        @props.redux.getActions(@props.name).set_due_date(@props.assignment, date?.toISOString())
 
     render_note: ->
         <Row key='note' style={styles.note}>
@@ -550,10 +556,15 @@ Assignment = rclass
             Enable Peer Grading
         </span>
 
+    _peer_due: (date) ->
+        date ?= @props.assignment.getIn(['peer_grade', 'due_date'])
+        if date?
+            return new Date(date)
+        else
+            return misc.server_days_ago(-7)
+
     peer_due_change: (date) ->
-        if not date
-            date = @props.assignment.getIn(['peer_grade', 'due_date']) ? misc.server_days_ago(-7)
-        @set_peer_grade(due_date : date)
+        @set_peer_grade(due_date : @_peer_due(date)?.toISOString())
 
     render_configure_peer_due: (config) ->
         label = <Tip placement='top' title="Set the due date"
@@ -562,7 +573,7 @@ Assignment = rclass
         </Tip>
         <LabeledRow label_cols=6 label={label}>
             <DateTimePicker
-                value     = {config.due_date ? misc.server_days_ago(-7)}
+                value     = {@_peer_due(config.due_date)}
                 on_change = {@peer_due_change}
             />
         </LabeledRow>

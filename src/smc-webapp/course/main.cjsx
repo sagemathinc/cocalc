@@ -801,6 +801,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 assignment_id : assignment.get('assignment_id')
 
         set_due_date: (assignment, due_date) =>
+            if not typeof(due_date) == 'string'
+                due_date = due_date?.toISOString()  # using strings instead of ms for backward compatibility.
             @_set_assignment_field(assignment, 'due_date', due_date)
 
         set_assignment_note: (assignment, note) =>
@@ -1230,7 +1232,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             guidelines = assignment.getIn(['peer_grade', 'guidelines']) ? 'Please grade this assignment.'
             due_date = assignment.getIn(['peer_grade', 'due_date'])
             if due_date?
-                guidelines = "GRADING IS DUE #{due_date.toLocaleString()} \n\n " + guidelines
+                guidelines = "GRADING IS DUE #{new Date(due_date).toLocaleString()} \n\n " + guidelines
 
             target_base_path = assignment.get('path') + "-peer-grade"
             f = (student_id, cb) =>
@@ -1443,7 +1445,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 student_id = student.get('student_id')
                 status_map[student_id] = {time: misc.mswalltime()}
                 if err
-                    x[student_id].error = err
+                    status_map[student_id].error = err
                 obj.status = status_map
                 @_set(obj)
 
@@ -1733,7 +1735,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
 
         get_due_date: (assignment) =>
-            return @get_assignment(assignment)?.get('due_date')
+            due_date = @get_assignment(assignment)?.get('due_date')
+            if due_date?
+                return new Date(due_date)
 
         get_assignment_note: (assignment) =>
             return @get_assignment(assignment)?.get('note')

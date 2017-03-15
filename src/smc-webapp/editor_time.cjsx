@@ -203,19 +203,19 @@ class TimeActions extends Actions
             label  : ''
             total  : 0
             state  : 'stopped'  # 'paused', 'running', 'stopped'
-            time   : salvus_client.server_time()
+            time   : salvus_client.server_time() - 0
 
     stop_stopwatch: (id) =>
         @_set
             id    : id
             total : 0
             state : 'stopped'
-            time  : salvus_client.server_time()
+            time  : salvus_client.server_time() - 0
 
     start_stopwatch: (id) =>
         @_set
             id    : id
-            time  : salvus_client.server_time()
+            time  : salvus_client.server_time() - 0
             state : 'running'
 
     pause_stopwatch: (id) =>
@@ -225,7 +225,7 @@ class TimeActions extends Actions
             return
         @_set
             id    : id
-            time  : salvus_client.server_time()
+            time  : salvus_client.server_time() - 0
             total : x.get('total') + (salvus_client.server_time() - x.get('time'))
             state : 'paused'
 
