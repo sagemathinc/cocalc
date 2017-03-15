@@ -21,9 +21,10 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            kernel  : rtypes.string          # string name of the kernel
-            error   : rtypes.string
-            toolbar : rtypes.bool
+            kernel              : rtypes.string          # string name of the kernel
+            error               : rtypes.string
+            toolbar             : rtypes.bool
+            has_unsaved_changes : rtypes.bool
 
     render_error: ->
         if @props.error
@@ -39,7 +40,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </span>
 
     render_menubar: ->
-        <TopMenubar actions = {@props.actions} />
+        <TopMenubar actions = {@props.actions} has_unsaved_changes = {@props.has_unsaved_changes} />
 
     render_buttonbar: ->
         <TopButtonbar actions={@props.actions} name={name} />

@@ -33,8 +33,6 @@ register_file_editor
         actions = redux.createActions(name, JupyterActions)
         store   = redux.createStore(name, JupyterStore)
 
-        actions._init(project_id, path)
-
         syncdb = salvus_client.sync_db
             project_id      : project_id
             path            : misc.meta_file(path, 'cocalc')  # TODO
@@ -44,9 +42,7 @@ register_file_editor
             string_cols     : ['input']
             cursors         : true
 
-        actions.syncdb = syncdb
-        actions.store  = store
-        store.syncdb   = syncdb
+        actions._init(project_id, path, syncdb, store)
 
         window.a = actions # for DEBUGGING
 

@@ -71,3 +71,5 @@ class exports.JupyterStore extends Store
     get_global_clipboard: =>
         return global_clipboard
 
+    has_uncommitted_changes: =>
+        return @syncdb.has_uncommitted_changes()

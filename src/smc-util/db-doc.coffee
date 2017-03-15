@@ -530,6 +530,7 @@ class exports.SyncDB extends EventEmitter
         # clients depend on this to know when the syncdb has been properly loaded.
         @_first_change_event = true
         @_doc.on('change', @_on_change)
+        @_doc.on('metadata-change', => @emit('metadata-change'))
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
         if opts.cursors

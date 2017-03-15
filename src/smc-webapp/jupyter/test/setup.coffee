@@ -31,7 +31,6 @@ exports.setup = (cb) ->
     actions = new (require('../actions').JupyterActions)(redux_name, smc_react.redux)
     store   = new (require('../store').JupyterStore)(redux_name, smc_react.redux)
     actions.store = store
-    actions._init(project_id, path)
 
     syncdb = salvus_client.sync_db
         project_id      : project_id
@@ -42,9 +41,7 @@ exports.setup = (cb) ->
         string_cols     : ['input']
         cursors         : true
 
-    actions.syncdb = syncdb
-    store.syncdb   = syncdb
-
+    actions._init(project_id, path, syncdb, store)
 
     syncdb.once 'init', (err) =>
         if err

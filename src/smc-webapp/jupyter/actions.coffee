@@ -23,10 +23,20 @@ underlying synchronized state.
 
 class exports.JupyterActions extends Actions
 
-    _init: (project_id, path) =>
+    _init: (project_id, path, syncdb, store) =>
+        # ugly and obviously shouldn't be done here...
+        @store       = store
+        store.syncdb = syncdb
+        @syncdb      = syncdb
         @_project_id = project_id
-        @_path = path
-        @_directory = misc.path_split(path)?.head
+        @_path       = path
+        @_directory  = misc.path_split(path)?.head
+
+        f = () =>
+            @setState(has_unsaved_changes : @syncdb.has_unsaved_changes())
+            setTimeout((=>@setState(has_unsaved_changes : @syncdb.has_unsaved_changes())), 3000)
+        @set_has_unsaved_changes = underscore.debounce(f, 1500)
+        @syncdb.on('metadata-change', @set_has_unsaved_changes)
 
         cm_options =
             indentUnit        : 4
@@ -38,14 +48,15 @@ class exports.JupyterActions extends Actions
                 singleLineStringErrors : false
 
         @setState
-            error      : undefined
-            cur_id     : undefined
-            toolbar    : true
-            sel_ids    : immutable.Set()  # immutable set of selected cells
-            md_edit_ids: immutable.Set()  # set of ids of markdown cells in edit mode
-            mode       : 'escape'
-            cm_options : immutable.fromJS(cm_options)
-            font_size  : @redux.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
+            error               : undefined
+            cur_id              : undefined
+            toolbar             : true
+            has_unsaved_changes : true
+            sel_ids             : immutable.Set()  # immutable set of selected cells
+            md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
+            mode                : 'escape'
+            cm_options          : immutable.fromJS(cm_options)
+            font_size           : @redux.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
 
     close: =>
         if @_closed
@@ -228,6 +239,7 @@ class exports.JupyterActions extends Actions
 
     _syncdb_change: (changes) =>
         #console.log 'changes', changes, changes?.toJS()
+        @set_has_unsaved_changes()
         cell_list_needs_recompute = false
         changes?.forEach (key) =>
             record = @syncdb.get_one(key)
@@ -275,6 +287,13 @@ class exports.JupyterActions extends Actions
         if @_closed
             return
         @syncdb.sync()
+
+    save: =>
+        # Saves our customer format sync doc-db to disk; the backend will
+        # (TODO) also save the normal ipynb file to disk right after.
+        @syncdb.save () =>
+            @set_has_unsaved_changes()
+        @set_has_unsaved_changes()
 
     _new_id: =>
         return misc.uuid().slice(0,8)  # TODO: choose something...; ensure is unique, etc.

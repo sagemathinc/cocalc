@@ -13,25 +13,30 @@ File, Edit, etc....
 OPACITY='.93'
 
 exports.TopMenubar = rclass
-    shouldComponentUpdate: ->
-        # the menus are currently static -- if we change that... change this.
-        return false
+    shouldComponentUpdate: (next) ->
+        return next.has_unsaved_changes != @props.has_unsaved_changes
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions             : rtypes.object.isRequired
+        has_unsaved_changes : rtypes.bool
 
     render_file: ->
         <Dropdown key='file' id='menu-file'>
             <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
                 File
             </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
+            <Dropdown.Menu style={opacity:OPACITY} >
                 <MenuItem eventKey="new">New Notebook...</MenuItem>
                 <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="copy">Make a Copy...</MenuItem>
                 <MenuItem eventKey="rename">Rename...</MenuItem>
-                <MenuItem eventKey="save">Save</MenuItem>
+                <MenuItem
+                    eventKey = "save"
+                    onSelect = {=>@props.actions.save()}
+                    disabled = {not @props.has_unsaved_changes} >
+                    Save
+                </MenuItem>
                 <MenuItem eventKey="timetravel">Publish...</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="timetravel">TimeTravel...</MenuItem>
