@@ -11,22 +11,20 @@ The static buttonbar at the top.
 
 
 exports.TopButtonbar = rclass ({name}) ->
-    shouldComponentUpdate: ->
-        # the menus are currently static -- *when* we change that... change this,
-        # e.g., cell type selector will depend... on cur cell type
-        return false
-
     propTypes :
         actions : rtypes.object.isRequired
 
     reduxProps :
         "#{name}" :
-            cells   : rtypes.immutable.Map   # map from id to cells
-            cur_id  : rtypes.string          # id of currently selected cell
-            sel_ids : rtypes.immutable.Set   # set of selected cells
+            cells               : rtypes.immutable.Map   # map from id to cells
+            cur_id              : rtypes.string          # id of currently selected cell
+            sel_ids             : rtypes.immutable.Set   # set of selected cells
+            has_unsaved_changes : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return next.cur_id != @props.cur_id or next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type'])
+        return next.cur_id != @props.cur_id or \
+            next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
+            next.has_unsaved_changes != @props.has_unsaved_changes
 
     render_add_cell: ->
         <Button onClick={=>@props.actions.insert_cell(1)}>
@@ -114,6 +112,22 @@ exports.TopButtonbar = rclass ({name}) ->
             </Button>
         </ButtonGroup>
 
+
+    render_group_save_timetravel: ->
+        <ButtonGroup  style={marginLeft:'5px'}>
+            <Button
+                bsStyle  = "success"
+                onClick  = {=>@props.actions.save()}
+                disabled = {not @props.has_unsaved_changes}>
+                <Icon name='save'/> Save
+            </Button>
+            <Button
+                bsStyle = "info"
+                onClick = {=>@props.actions.open_timetravel()}>
+                <Icon name='history'/> TimeTravel
+            </Button>
+        </ButtonGroup>
+
     render: ->
         <div style={margin: '5px', backgroundColor:'#fff'}>
             <Form inline>
@@ -125,5 +139,6 @@ exports.TopButtonbar = rclass ({name}) ->
                 {@render_keyboard()}
                 {@render_group_undo_redo()}
                 {@render_group_zoom()}
+                {@render_group_save_timetravel()}
             </Form>
         </div>

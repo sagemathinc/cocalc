@@ -603,3 +603,7 @@ class exports.JupyterActions extends Actions
     file_open: =>
         @redux.getProjectActions(@_project_id).set_active_tab('files')
         return
+
+    open_timetravel: =>
+        console.warn 'not implemented'
+        return
