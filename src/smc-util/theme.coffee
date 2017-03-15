@@ -2,19 +2,21 @@
 # This is used mainly in the front-end, but some aspects are also used on the back-end
 # Note: it is not possible to "require" assets, like the logos -- they're defined in webapp/misc_page.
 
-exports.SITE_NAME     = 'CoCalc'
-exports.COMPANY_NAME  = 'SageMath, Inc.'
-exports.COMPANY_EMAIL = 'office@sagemath.com'
-exports.APP_TAGLINE   = 'Collaborative Calculations in the Cloud'
-exports.DNS           = 'cocalc.com'
-exports.DOMAIN_NAME   = 'https://' + exports.DNS
-exports.HELP_EMAIL    = 'help@sagemath.com'
+exports.SITE_NAME            = 'CoCalc'
+exports.COMPANY_NAME         = 'SageMath, Inc.'
+exports.COMPANY_EMAIL        = 'office@sagemath.com'
+exports.APP_TAGLINE          = 'Collaborative Calculations in the Cloud'
+exports.DNS                  = 'cocalc.com'
+exports.DOMAIN_NAME          = 'https://' + exports.DNS
+exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
+exports.HELP_EMAIL           = 'help@sagemath.com'
+exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.COPYRIGHT_AGENT_HTML = '''
                                William Stein (Copyright Agent)<br>
                                c/o SageMath, Inc.<br>
                                1212 East Barclay Court<br>
                                Seattle, WA 98122<br>
-                               <a href='mailto:copyright@sagemath.com' target='_blank'>copyright@sagemath.com</a>
+                               <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>
                                <br>
                                206-419-0925 (telephone)
                                '''

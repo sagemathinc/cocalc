@@ -285,7 +285,7 @@ def active_courses(days=7):
         for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
             # pprint(p)
             host = p.get("host", "N/A")
-            h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
+            h3 = '<a href="https://cocalc.com/projects/{project_id}/">{title}</a>'.format(**p)
             edited = p["last_edited"].isoformat()[:16]
             started = p.get("created")
             started = started.isoformat()[:16] if started else 'N/A'

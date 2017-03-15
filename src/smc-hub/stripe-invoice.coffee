@@ -3,6 +3,8 @@ fs         = require('fs')
 async      = require('async')
 
 misc       = require('smc-util/misc')
+theme      = require('smc-util/theme')
+{DOMAIN_NAME, COMPANY_NAME, BILLING_EMAIL, SITE_NAME} = theme
 
 misc_node  = require('smc-util-node/misc_node')
 
@@ -57,13 +59,13 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     doc.pipe(res)
 
-    doc.image(path.join(process.env.SMC_ROOT, "#{WEBAPP_LIB}/favicon-128.png"), 268, 15, {width: 64, align: 'center'})
+    doc.image(path.join(process.env.SMC_ROOT, "#{WEBAPP_LIB}/android-chrome-192x192.png"), 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid
-        doc.fontSize(35).text('SageMath, Inc. - Receipt', c1, y)
+        doc.fontSize(35).text("#{COMPANY_NAME} - Receipt", c1, y)
     else
-        doc.fontSize(35).text('SageMath, Inc. - Invoice', c1, y)
+        doc.fontSize(35).text("#{COMPANY_NAME} - Invoice", c1, y)
 
     y += 60
     c2 = 260
@@ -97,7 +99,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
         else if x.plan?
             desc = x.plan.name
         else
-            desc = "CoCalc services"
+            desc = "#{SITE_NAME} services"
         v.push
             desc   : desc
             amount : "USD $#{x.amount/100}"
@@ -127,12 +129,12 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     y += 300
     doc.fontSize(14)
-    doc.text("Contact us with any questions by emailing billing@sagemath.com.", c1, y)
+    doc.text("Contact us with any questions by emailing #{BILLING_EMAIL}.", c1, y)
     if not invoice.paid
         doc.moveDown()
-        doc.text("To pay, sign into your account at https://cloud.sagemath.com and add a payment method in the billing tab under account settings.")
+        doc.text("To pay, sign into your account at #{DOMAIN_NAME} and add a payment method in the billing tab under account settings.")
     else
-        doc.text("Thank you for using https://cloud.sagemath.com.")
+        doc.text("Thank you for using #{SITE_NAME} -- #{DOMAIN_NAME}.")
 
     doc.end()
     cb()
