@@ -1445,7 +1445,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                 student_id = student.get('student_id')
                 status_map[student_id] = {time: misc.mswalltime()}
                 if err
-                    x[student_id].error = err
+                    status_map[student_id].error = err
                 obj.status = status_map
                 @_set(obj)
 
