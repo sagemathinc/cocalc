@@ -36,7 +36,7 @@ class exports.Client extends syncstring.TestBrowserClient1
         # the entries in the tables.
         # Efficiency does not matter, of course -- this is 100% just
         # for testing!
-        @_account_id = misc.uuid()
+        @account_id = misc.uuid()
         @_changefeeds = []
         @db = immutable.Map()
 
@@ -101,7 +101,7 @@ class exports.Client extends syncstring.TestBrowserClient1
 
     user_query: (opts) =>
         opts = defaults opts,
-            account_id : @_account_id
+            account_id : @account_id
             project_id : undefined
             query      : required
             changes    : undefined
@@ -116,7 +116,7 @@ class exports.Client extends syncstring.TestBrowserClient1
             '{now}'        : new Date()
         if opts.changes?
             changes =
-                id : opts.changes
+                id : misc.uuid()
                 cb : opts.cb
         v = misc.keys(opts.query)
         table = v[0]
@@ -211,6 +211,7 @@ class exports.Client extends syncstring.TestBrowserClient1
                 @_changefeeds.push
                     id : opts.changes.id
                     cb : opts.changes.cb
+                    table : table_name
                     query : opts.query
         else
             # one match
@@ -243,12 +244,12 @@ class exports.Client extends syncstring.TestBrowserClient1
             table = table.set(key, new_val)
             obj = new_val.toJS()
             for c in @_changefeeds
-                if matches_query(obj, c.query)
+                if c.table == table_name and matches_query(obj, c.query)
                     c.cb(undefined, {old_val:cur.toJS(), new_val:obj})
         else
             table = table.set(key, query)
             for c in @_changefeeds
-                if matches_query(opts.query, c.query)
+                if c.table == table_name and matches_query(opts.query, c.query)
                     c.cb(undefined, {new_val:opts.query})
 
         @db = @db.set(table_name, table)
@@ -278,6 +279,7 @@ class exports.Client extends syncstring.TestBrowserClient1
             path            : required
             primary_keys    : required
             string_cols     : undefined
+            cursors         : false
             change_throttle : 0
             save_interval   : 0
         opts.client = @

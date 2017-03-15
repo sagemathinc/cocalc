@@ -531,6 +531,7 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         @_opts = opts = defaults opts,
             save_interval     : 1500
+            cursor_interval   : 2000
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
@@ -597,7 +598,7 @@ class SyncDoc extends EventEmitter
                     locs      : locs
                     time      : @_client.server_time()
                 @_cursors?.set(x, 'none')
-            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
+            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
 
     set_doc: (value) =>
         @_doc = value
@@ -1090,7 +1091,7 @@ class SyncDoc extends EventEmitter
                 if not t?
                     f = () =>
                         @emit('cursor_activity', account_id)
-                    t = @_cursor_throttled[account_id] = underscore.throttle(f, 2000)
+                    t = @_cursor_throttled[account_id] = underscore.throttle(f, @_opts.cursor_interval)
                 t()
 
             @_cursors.on 'change', (keys) =>

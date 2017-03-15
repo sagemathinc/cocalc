@@ -58,3 +58,5 @@ class exports.JupyterStore extends Store
     get_font_size: =>
         return @get('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
 
+    get_cursors: =>
+        return @syncdb.get_cursors()

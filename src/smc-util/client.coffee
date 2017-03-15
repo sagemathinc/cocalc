@@ -1641,6 +1641,7 @@ class exports.Connection extends EventEmitter
             path            : required
             primary_keys    : required
             string_cols     : undefined
+            cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
             save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @

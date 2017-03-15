@@ -31,3 +31,27 @@ describe 'tests the setup code -- ', ->
     it 'inserts a cell and sees that there are now 2', ->
         actions.insert_cell(1)
         expect(store.get('cells').size).toBe(2)
+
+describe 'test cursors positions -- ', ->
+    before(setup)
+    after(teardown)
+
+    list = undefined
+    it 'inserts a cell', ->
+        actions.insert_cell(1)
+        list = store.get('cell_list').toJS()
+        expect(list.length).toBe(2)
+
+    it 'sets cursor locs', (done) ->
+        actions.set_cur_id(list[0])
+        actions.set_mode('edit')
+        actions.syncdb.once 'cursor_activity', ->
+            c = store.get_cursors().toJS()
+            client_id = global.salvus_client._client_id
+            expect(c[client_id].locs).toEqual([ { id: list[0], x: 0, y: 0 }, { id: list[0], x: 2, y: 1 } ])
+            done()
+        # hack so cursor saving enabled (add two fake users...)
+        actions.syncdb._doc._users.push(actions.syncdb._doc._users[0])
+        actions.syncdb._doc._users.push(actions.syncdb._doc._users[0])
+        actions.set_cursor_locs([{id:list[0], x:0, y:0}, {id:list[0], x:2, y:1}])
+

@@ -491,6 +491,7 @@ class SyncDoc extends syncstring.SyncDoc
             path              : undefined
             save_interval     : undefined
             file_use_interval : undefined
+            cursors           : false
             primary_keys      : required
             string_cols       : []
 
@@ -508,7 +509,7 @@ class SyncDoc extends syncstring.SyncDoc
             path              : opts.path
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
-            cursors           : false
+            cursors           : opts.cursors
             from_str          : from_str
             doctype           :
                 type         : 'db'
@@ -531,6 +532,8 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('change', @_on_change)
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        if opts.cursors
+            @_doc.on('cursor_activity', (args...) => @emit('cursor_activity', args...))
         @_doc.on('connected', => @emit('connected'))
         @_doc.on('init', (err) => @emit('init', err))
         @setMaxListeners(100)
@@ -697,6 +700,14 @@ class exports.SyncDB extends EventEmitter
         @_doc.revert(version)
         @_doc.save()
         return
+
+    set_cursor_locs: (locs) =>
+        @_check()
+        @_doc.set_cursor_locs(locs)
+        return
+
+    get_cursors: =>
+        return @_doc?.get_cursors()
 
 # Open an existing sync document -- returns instance of SyncString or SyncDB, depending
 # on what is already in the database.  Error if file doesn't exist.

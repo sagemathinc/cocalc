@@ -7,7 +7,7 @@ Copyright (C) 2017, Sagemath Inc.
 AGPLv3
 ###
 
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache") 
+require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
 misc = require('smc-util/misc')
 {redux} = require('../../smc-react')
@@ -20,6 +20,7 @@ exports.setup = (cb) ->
     actions.store = store
     actions._init(project_id, path)
     salvus_client = new (require('smc-util/client-test').Client)()
+    global.salvus_client = salvus_client
 
     syncdb = salvus_client.sync_db
         project_id      : project_id
@@ -28,8 +29,11 @@ exports.setup = (cb) ->
         save_interval   : 0
         primary_keys    : ['type', 'id']
         string_cols     : ['input']
+        cursors         : true
 
     actions.syncdb = syncdb
+    store.syncdb   = syncdb
+
 
     syncdb.once 'init', (err) =>
         if err

@@ -101,7 +101,7 @@ class exports.JupyterActions extends Actions
     set_cell_pos: (id, pos, save=true) =>
         @_set({type: 'cell', id: id, pos: pos}, save)
 
-    set_cell_type : (id, cell_type) =>
+    set_cell_type : (id, cell_type='code') =>
         if cell_type != 'markdown' and cell_type != 'raw' and cell_type != 'code'
             throw Error("cell type must be 'markdown', 'raw', or 'code'")
         obj =
@@ -185,6 +185,8 @@ class exports.JupyterActions extends Actions
 
     set_mode: (mode) =>
         @setState(mode: mode)
+        if mode == 'escape'
+            @set_cursor_locs([])  # none
 
     set_cell_list: =>
         cells = @store.get('cells')
@@ -423,9 +425,9 @@ class exports.JupyterActions extends Actions
         @set_cur_id_from_index(i - 1)
         return
 
-    set_cursor_locs: (locs) =>
-        @_cursor_locs = locs
-        # TODO: also right to cursors table
+    set_cursor_locs: (locs=[]) =>
+        @_cursor_locs = locs  # remember our own cursors for splitting cell
+        @syncdb.set_cursor_locs(locs)
 
     split_current_cell: =>
         cursor = @_cursor_locs?[0]
