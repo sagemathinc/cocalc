@@ -4,23 +4,29 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="CoCalc">
-        <meta name="author" content="SageMath, Inc.">
+        <meta name="description" content="<%= htmlWebpackPlugin.options.theme.SITE_NAME %>">
+        <meta name="author" content="<%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>">
         <link rel="icon" type="image/png" href="<%= require('!file!favicon-32x32.png') %>" sizes="32x32">
         <link href="<%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>" rel="stylesheet">
-        <title>CoCalc Policies</title>
+        <title><%= htmlWebpackPlugin.options.theme.SITE_NAME %> Policies</title>
         <style>
             .smc-terms .uppercase {text-transform: uppercase;}
             .smc-terms ul > li {padding-bottom: 1em;}
         </style>
     </head>
     <body>
-        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;"><br>
-        CoCalc</a>
+        <a target="_blank" class="pull-right" style="text-align:center"
+           href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>">
+            <img  src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;">
+            <br>
+            <%= htmlWebpackPlugin.options.theme.SITE_NAME %>
+        </a>
         <div class="jumbotron">
             <div class="container">
                 <h1>
-                    <a href="http://www.sagemath.com" target="_blank">SageMath, Inc.</a></h1>
+                    <a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>" target="_blank">
+                        <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>
+                    </a></h1>
                 <h2>
                     Terms of Service (May 8, 2015)
                 </h2>
@@ -33,9 +39,9 @@
                 <div class="col-sm-offset-1 col-md-10">
 
                     <p>
-                        Welcome to the SageMath, Inc. ("<b>SMI</b>") website located at
-                        <a target="_blank" href="https://cloud.sagemath.com">
-                            https://cloud.sagemath.com
+                        Welcome to the <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %> ("<b>SMI</b>") website located at
+                        <a target="_blank" href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>">
+                            <%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>
                         </a>
                         (the "<b>Site</b>").
                         Please read these Terms of Service (the "<b>Terms</b>") carefully because they
@@ -59,8 +65,8 @@
                         We may modify the Terms at any time, in our sole
                         discretion. If we do so, we’ll let you know either by posting the modified Terms
                         on the Site at
-                        <a href="https://cloud.sagemath.com/policies/terms.html">
-                            https://cloud.sagemath.com/policies/terms.html
+                        <a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/terms.html">
+                            <%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/terms.html
                         </a>
                         or through other communications. It’s important that you review the Terms
                         whenever we modify them because if you continue to use the Services after we
@@ -240,8 +246,8 @@
                         in relation to your use of the Services.
                         The fees for your
                         subscription to use the Services are set forth at
-                        <a href="https://cloud.sagemath.com/policies/pricing.html">
-                            https://cloud.sagemath.com/policies/pricing.html
+                        <a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/pricing.html">
+                            <%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/pricing.html
                         </a>.
                         Pricing for the Services, including but not limited to monthly subscription
                         plan fees, are subject to change upon thirty (30) days’ notice from SMI.
@@ -272,8 +278,8 @@
 
                     <p>
                         Please refer to our Privacy Policy
-                        (<a href="https://cloud.sagemath.com/policies/privacy.html">
-                        https://cloud.sagemath.com/policies/privacy.html</a>)
+                        (<a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/privacy.html">
+                        <%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/privacy.html</a>)
                         for information on how we collect, use and disclose information from our users.
                     </p>
 
@@ -477,8 +483,8 @@
                         same. It is SMI’s policy to terminate in appropriate circumstances Account
                         holders who repeatedly infringe the rights of copyright holders. Please see
                         SMI’<i>s</i> Copyright and IP Policy at
-                        <a href="https://cloud.sagemath.com/policies/copyright.html">
-                            https://cloud.sagemath.com/policies/copyright.html
+                        <a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/copyright.html">
+                            <%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>/policies/copyright.html
                         </a>
                         for further information.
                     </p>
@@ -773,9 +779,9 @@
                         The look and feel of the Services is copyright &copy;2015
                         SageMath, Inc. All rights reserved. You may only duplicate, copy, or reuse any
                         portion of the HTML/CSS, Javascript, or visual design elements or concepts
-                        under the terms of the GNU General Public License, version 3, as stated at
-                        <a href="https://github.com/sagemathinc/cocalc-public">
-                            https://github.com/sagemathinc/cocalc-public
+                        under the terms of the GNU Affero General Public License, version 3, as stated at
+                        <a href="https://github.com/sagemathinc/cocalc">
+                            https://github.com/sagemathinc/cocalc
                         </a>.
                     </p>
 
@@ -784,7 +790,9 @@
                     <p>
                         If you have any questions about these Terms or the
                         Services, please contact SMI at
-                        <a href="mailto:office@sagemath.com">office@sagemath.com</a>.
+                        <a href="mailto:<%= htmlWebpackPlugin.options.theme.COMPANY_EMAIL %>">
+                            <%= htmlWebpackPlugin.options.theme.COMPANY_EMAIL %>
+                        </a>.
                     </p>
                 </div>
             </div>
@@ -792,7 +800,7 @@
             <hr>
 
             <footer>
-                <p>&copy; SageMath, Inc. 2016</p>
+                <p>&copy; <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %> 2017</p>
             </footer>
         </div>
     </body>

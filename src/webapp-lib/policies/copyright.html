@@ -4,19 +4,26 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="CoCalc">
-        <meta name="author" content="SageMath, Inc.">
+        <meta name="description" content="<%= htmlWebpackPlugin.options.theme.SITE_NAME %>">
+        <meta name="author" content="<%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>">
         <link rel="icon" type="image/png" href="<%= require('!file!favicon-32x32.png') %>" sizes="32x32">
-        <title>CoCalc - Notification of Copyright Infringement</title>
+        <title><%= htmlWebpackPlugin.options.theme.SITE_NAME %> - Notification of Copyright Infringement</title>
         <link href="<%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>" rel="stylesheet">
     </head>
     <body>
-        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;"><br>
-            CoCalc</a>
+        <a target="_blank" class="pull-right" style="text-align:center"
+           href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>">
+            <img  src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;">
+            <br>
+            <%= htmlWebpackPlugin.options.theme.SITE_NAME %>
+        </a>
         <div class="jumbotron">
             <div class="container">
                 <h1>
-                    <a href="http://www.sagemath.com" target="_blank">SageMath, Inc.</a></h1>
+                    <a href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>" target="_blank">
+                        <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>
+                    </a>
+                </h1>
                 <h2>
                     Copyright Policy (April 2, 2015)
                 </h2>
@@ -59,16 +66,9 @@
                         <li>Provide your full legal name and your electronic or physical signature.</li>
                     </ol>
 
-                    Deliver this Notice, with all items completed, to SageMath’s Designated Copyright Agent:<br><br>
+                    Deliver this Notice, with all items completed, to <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>'s Designated Copyright Agent:<br><br>
 
-                    William Stein (Copyright Agent)<br>
-                    c/o SageMath, Inc.<br>
-                    1212 East Barclay Court<br>
-                    Seattle, WA 98122<br>
-                    <a href='mailto:copyright@sagemath.com' target='_blank'>copyright@sagemath.com</a>
-                    <br>
-                    206-419-0925 (telephone)
-
+                    <%= htmlWebpackPlugin.options.theme.COPYRIGHT_AGENT_HTML %>
 
                 </div>
             </div>
@@ -77,7 +77,7 @@
 
 
             <footer>
-                <p>&copy; SageMath, Inc. 2016</p>
+                <p>&copy; <%= htmlWebpackPlugin.options.theme.COMPANY_NAME %> 2017</p>
             </footer>
         </div>
     </body>

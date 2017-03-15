@@ -4,10 +4,10 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="CoCalc">
-        <meta name="author" content="SageMath, Inc.">
+        <meta name="description" content="<%= htmlWebpackPlugin.options.theme.SITE_NAME %>">
+        <meta name="author" content="<%= htmlWebpackPlugin.options.theme.COMPANY_NAME %>">
         <link rel="icon" type="image/png" href="<%= require('!file!favicon-32x32.png') %>" sizes="32x32">
-        <title>SageMath, Inc. Pricing</title>
+        <title><%= htmlWebpackPlugin.options.theme.SITE_NAME %> Pricing</title>
         <!--
         <link href="<%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>" rel="stylesheet">
         -->
@@ -17,8 +17,12 @@
         -->
     </head>
     <body>
-        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;"><br>
-            CoCalc</a>
+        <a target="_blank" class="pull-right" style="text-align:center"
+           href="<%= htmlWebpackPlugin.options.theme.DOMAIN_NAME %>">
+            <img  src="<%= require('!file!webapp-lib/cocalc-icon.svg') %>" style="height: 96px; width: 96px;">
+            <br>
+            <%= htmlWebpackPlugin.options.theme.SITE_NAME %>
+        </a>
         <div class="jumbotron">
             <div class="container">
                 <h1>

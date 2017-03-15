@@ -93,11 +93,12 @@ async         = require('async')
 program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
+theme         = require('smc-util/theme')
 
 git_head      = child_process.execSync("git rev-parse HEAD")
 GIT_REV       = git_head.toString().trim()
-TITLE         = 'CoCalc'
-DESCRIPTION   = 'Collaborative Calculations in the Cloud'
+TITLE         = theme.SITE_NAME
+DESCRIPTION   = theme.APP_TAGLINE
 SMC_REPO      = 'https://github.com/sagemathinc/cocalc'
 SMC_LICENSE   = 'AGPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB
@@ -218,6 +219,7 @@ pug2html = new HtmlWebpackPlugin
                         title            : TITLE
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
+                        theme            : theme
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'index.html'
@@ -234,6 +236,7 @@ policyPages = []
 for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename(x)[0] != '_')
     policyPages.push new HtmlWebpackPlugin
                         filename : "policies/#{path.basename(pp)}"
+                        theme    : theme
                         inject   : 'head'
                         favicon  : path.join(INPUT, 'favicon.ico')
                         template : pp
