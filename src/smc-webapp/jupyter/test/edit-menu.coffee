@@ -126,7 +126,7 @@ describe 'tests inserting several cells, selecting several, and cut/paste/copy t
         actions.select_cell_range(list[3])   # 0,1,2,3
         actions.copy_selected_cells()
 
-        v = (x.input for x in store.get('clipboard').toJS())
+        v = (x.input for x in store.get_global_clipboard().toJS())
         expect(v).toEqual(['0','1','2','3'])
 
         actions.set_cur_id(list[1])

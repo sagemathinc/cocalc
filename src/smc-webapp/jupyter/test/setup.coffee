@@ -10,17 +10,28 @@ AGPLv3
 require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
 misc = require('smc-util/misc')
-{redux} = require('../../smc-react')
+smc_react = require('../../smc-react')
+require('../../project_store')  # needed so that project store is available.
+
+project_id = '197cebae-6410-469a-8299-54498e438f51'
+path       = 'path.ipynb'
+redux_name = smc_react.redux_name(project_id, path)
 
 exports.setup = (cb) ->
-    project_id = '197cebae-6410-469a-8299-54498e438f51'
-    path = 'path.ipynb'
-    actions = new (require('../actions').JupyterActions)('name', redux)
-    store   = new (require('../store').JupyterStore)('name', redux)
+    # ensure project store is initialized, so can test file menu.
+    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    smc_react.redux.getProjectStore(project_id)
+
+    # Initialize/reset the testing client that the synctables connect to.
+    {salvus_client} = require('../../salvus_client')
+    global.salvus_client = salvus_client
+    salvus_client.reset()
+
+    # initialize actions/store
+    actions = new (require('../actions').JupyterActions)(redux_name, smc_react.redux)
+    store   = new (require('../store').JupyterStore)(redux_name, smc_react.redux)
     actions.store = store
     actions._init(project_id, path)
-    salvus_client = new (require('smc-util/client-test').Client)()
-    global.salvus_client = salvus_client
 
     syncdb = salvus_client.sync_db
         project_id      : project_id
@@ -52,6 +63,8 @@ exports.setup = (cb) ->
                 init       : {time: new Date()}
 
 exports.teardown = (cb) ->
-    redux.getActions('name')?.close()
-    redux.constructor()  # this instantly resets the state
+    smc_react.redux.getActions(redux_name)?.close()
+    smc_react.redux.removeProjectReferences(project_id)
+    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    salvus_client.reset()
     cb()

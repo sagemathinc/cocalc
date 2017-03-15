@@ -18,7 +18,6 @@ Part of CoCALC, which is (c) 2017, SageMath, Inc. and AGPLv3+ licensed.
 
 async = require('async')
 immutable = require('immutable')
-require('coffee-cache')
 
 misc      = require('./misc')
 {defaults, required} = misc
@@ -37,6 +36,10 @@ class exports.Client extends syncstring.TestBrowserClient1
         # Efficiency does not matter, of course -- this is 100% just
         # for testing!
         @account_id = misc.uuid()
+        @reset()
+
+    reset: =>
+        @removeAllListeners()
         @_changefeeds = []
         @db = immutable.Map()
 

@@ -27,7 +27,7 @@ exports.TopMenubar = rclass
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
                 <MenuItem eventKey="new">New Notebook...</MenuItem>
-                <MenuItem eventKey="open">Open...</MenuItem>
+                <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="copy">Make a Copy...</MenuItem>
                 <MenuItem eventKey="rename">Rename...</MenuItem>

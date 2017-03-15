@@ -16,10 +16,6 @@ misc       = require('smc-util/misc')
 
 {Actions}  = require('../smc-react')
 
-# Used for copy/paste.  We make a single global clipboard, so that
-# copy/paste between different notebooks works.
-global_clipboard = undefined
-
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -496,6 +492,7 @@ class exports.JupyterActions extends Actions
         global_clipboard = immutable.List()
         for id in @store.get_selected_cell_ids_list()
             global_clipboard = global_clipboard.push(cells.get(id))
+        @store.set_global_clipboard(global_clipboard)
         return
 
     # Cut currently selected cells, putting them in internal clipboard
@@ -546,7 +543,8 @@ class exports.JupyterActions extends Actions
         if delta == 0
             # replace, so delete currently selected
             @delete_selected_cells(false)
-        if not global_clipboard? or global_clipboard.size == 0
+        clipboard = @store.get_global_clipboard()
+        if not clipboard? or clipboard.size == 0
             return   # nothing more to do
         # put the cells from the clipboard into the document, setting their positions
         if not cell_before_pasted_id?
@@ -556,8 +554,8 @@ class exports.JupyterActions extends Actions
         else
             before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
             after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
-        positions = @_positions_between(before_pos, after_pos, global_clipboard.size)
-        global_clipboard.forEach (cell, i) =>
+        positions = @_positions_between(before_pos, after_pos, clipboard.size)
+        clipboard.forEach (cell, i) =>
             cell = cell.set('id', @_new_id())   # randomize the id of the cell
             cell = cell.set('pos', positions[i])
             @_set(cell, false)
@@ -582,3 +580,7 @@ class exports.JupyterActions extends Actions
         @setState
             scroll_state : state
 
+    # File --> Open: just show the file listing page.
+    file_open: =>
+        @redux.getProjectActions(@_project_id).set_active_tab('files')
+        return

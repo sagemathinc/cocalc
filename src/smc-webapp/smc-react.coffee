@@ -360,7 +360,7 @@ class AppRedux
         if not name?
             throw Error("name must be a string")
         if @_tables[name]?
-            @_tables[name]._table.close()
+            @_tables[name]._table?.close()
             delete @_tables[name]
 
     removeStore: (name) =>

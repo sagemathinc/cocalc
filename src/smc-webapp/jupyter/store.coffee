@@ -1,5 +1,9 @@
 {Store}  = require('../smc-react')
 
+# Used for copy/paste.  We make a single global clipboard, so that
+# copy/paste between different notebooks works.
+global_clipboard = undefined
+
 class exports.JupyterStore extends Store
     # Return map from selected cell ids to true, in no particular order
     get_selected_cell_ids: =>
@@ -60,3 +64,10 @@ class exports.JupyterStore extends Store
 
     get_cursors: =>
         return @syncdb.get_cursors()
+
+    set_global_clipboard: (clipboard) =>
+        global_clipboard = clipboard
+
+    get_global_clipboard: =>
+        return global_clipboard
+

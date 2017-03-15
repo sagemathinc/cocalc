@@ -24,11 +24,16 @@
 # connection to Salvus hub
 ############################################
 
-if not window.smc_base_url?
-    window.smc_base_url = ""
+if window?
+    # running in a web browser
+    if not window.smc_base_url?
+        window.smc_base_url = ""
 
-if window.location.hash.length > 1
-    window.smc_target = decodeURIComponent(window.location.hash.slice(1))
+    if window.location.hash.length > 1
+        window.smc_target = decodeURIComponent(window.location.hash.slice(1))
 
-client_browser = require('client_browser')
-exports.salvus_client = client_browser.connect()
+    client_browser = require('client_browser')
+    exports.salvus_client = client_browser.connect()
+else
+    exports.salvus_client = new (require('smc-util/client-test').Client)()
+
