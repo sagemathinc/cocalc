@@ -292,11 +292,11 @@ exports.init_passport = (opts) ->
     # Set the site conf like this:
     #
     #  require 'c'; db()
-    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:done())
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/auth'}, cb:done())
     #
     #  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
     #
-    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/project_uuid.../port/YYYYY/auth'}, cb:done())
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
 
 
     auth_url = undefined # gets set below
