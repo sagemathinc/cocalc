@@ -16,6 +16,9 @@ misc       = require('smc-util/misc')
 
 {Actions}  = require('../smc-react')
 
+# Used for copy/paste.  We make a single global clipboard, so that
+# copy/paste between different notebooks works.
+global_clipboard = undefined
 
 ###
 The actions -- what you can do with a jupyter notebook, and also the
@@ -490,10 +493,9 @@ class exports.JupyterActions extends Actions
     # Copy all currently selected cells into our internal clipboard
     copy_selected_cells: =>
         cells = @store.get('cells')
-        clipboard = immutable.List()
+        global_clipboard = immutable.List()
         for id in @store.get_selected_cell_ids_list()
-            clipboard = clipboard.push(cells.get(id))
-        @setState(clipboard: clipboard)
+            global_clipboard = global_clipboard.push(cells.get(id))
         return
 
     # Cut currently selected cells, putting them in internal clipboard
@@ -544,8 +546,7 @@ class exports.JupyterActions extends Actions
         if delta == 0
             # replace, so delete currently selected
             @delete_selected_cells(false)
-        clipboard = @store.get('clipboard')
-        if not clipboard? or clipboard.size == 0
+        if not global_clipboard? or global_clipboard.size == 0
             return   # nothing more to do
         # put the cells from the clipboard into the document, setting their positions
         if not cell_before_pasted_id?
@@ -555,8 +556,8 @@ class exports.JupyterActions extends Actions
         else
             before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
             after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
-        positions = @_positions_between(before_pos, after_pos, clipboard.size)
-        clipboard.forEach (cell, i) =>
+        positions = @_positions_between(before_pos, after_pos, global_clipboard.size)
+        global_clipboard.forEach (cell, i) =>
             cell = cell.set('id', @_new_id())   # randomize the id of the cell
             cell = cell.set('pos', positions[i])
             @_set(cell, false)
