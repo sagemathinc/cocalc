@@ -354,16 +354,20 @@ exports.to_safe_str = (x) ->
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 exports.date_parser = date_parser = (k, v) ->
     if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
-        if v.indexOf('Z') == -1
-            # Firefox assumes local time rather than UTC if there is no Z.   However,
-            # our backend might possibly send a timestamp with no Z and it should be
-            # interpretted as UTC anyways.
-            # That said, with the to_json_socket/from_json_socket code, the browser
-            # shouldn't be running this parser anyways.
-            v += 'Z'
-        return new Date(v)
+        return ISO_to_Date(v)
     else
         return v
+
+exports.ISO_to_Date = ISO_to_Date = (s) ->
+    if s.indexOf('Z') == -1
+        # Firefox assumes local time rather than UTC if there is no Z.   However,
+        # our backend might possibly send a timestamp with no Z and it should be
+        # interpretted as UTC anyways.
+        # That said, with the to_json_socket/from_json_socket code, the browser
+        # shouldn't be running this parser anyways.
+        s += 'Z'
+    return new Date(s)
+
 
 exports.from_json = (x) ->
     try

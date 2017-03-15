@@ -1417,3 +1417,14 @@ describe 'test the date parser --- ', ->
     it 'a non-date does nothing', ->
         expect(misc.date_parser(undefined, "cocalc")).toEqual('cocalc')
 
+describe 'test ISO_to_Date -- ', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does NaN', ->
+        expect(isNaN(misc.ISO_to_Date("cocalc"))).toEqual(true)

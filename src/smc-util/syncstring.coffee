@@ -246,8 +246,8 @@ class SortedPatchList extends EventEmitter
                 if not misc.is_date(x.time)
                     # ensure that time is not a string representation of a time
                     try
-                        x.time = new Date(x.time)
-                        if isNaN(x.time)  # ignore bad times
+                        x.time = misc.ISO_to_Date(x.time)
+                        if isNaN(x.time) # ignore bad times
                             continue
                     catch err
                         # ignore invalid times
@@ -307,7 +307,7 @@ class SortedPatchList extends EventEmitter
         #start_time = new Date()
         # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
         if time? and not misc.is_date(time)
-            time = new Date(time)
+            time = misc.ISO_to_Date(time)
         if without_times?
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
@@ -1247,7 +1247,7 @@ class SyncDoc extends EventEmitter
         time    = x.get('time')
         if not misc.is_date(time)
             try
-                time = new Date(time)
+                time = misc.ISO_to_Date(time)
                 if isNaN(time)  # ignore patches with bad times
                     return
             catch err
