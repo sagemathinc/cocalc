@@ -52,6 +52,7 @@ schema.syncstrings =
         init :
             type : 'map'
             desc : '{time:timestamp, error:?} - info about what happened when project tried to initialize this string'
+            date : ['time']
         save :
             type : 'map'
             desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"

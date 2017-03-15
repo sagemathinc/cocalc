@@ -376,7 +376,7 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json(mesg))
+        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -408,7 +408,7 @@ class exports.Connection extends EventEmitter
     remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
-        mesg = misc.from_json(data)
+        mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
         switch mesg.event
@@ -1323,7 +1323,7 @@ class exports.Connection extends EventEmitter
                 else if output.exit_code
                     opts.cb(output.stderr)
                 else
-                    v = misc.from_json(output.stdout)
+                    v = JSON.parse(output.stdout)
                     opts.cb(err, v)
 
     project_get_state: (opts) =>

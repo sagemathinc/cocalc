@@ -343,7 +343,7 @@ class Client extends EventEmitter
             setTimeout(f, 15000) # timeout after some seconds
 
         t = new Date()
-        json = to_json(mesg)
+        json = misc.to_json_socket(mesg)
         tm = new Date() - t
         if tm > 10
             winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
@@ -614,7 +614,7 @@ class Client extends EventEmitter
         if @_ignore_client
             return
         try
-            mesg = from_json(data)
+            mesg = misc.from_json_socket(data)
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return

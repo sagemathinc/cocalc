@@ -439,6 +439,7 @@ schema.compute_servers =
         status       :
             type : 'map'
             desc : 'something like {stuff:?,...,timestamp:?}'
+            date : ['timestamp']
 
 schema.file_access_log =
     primary_key : 'id'
@@ -475,6 +476,7 @@ schema.file_use =
         users       :
             type : 'map'
             desc : '{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}'
+            date : 'all'
         last_edited :
             type : 'timestamp'
 
@@ -546,6 +548,7 @@ schema.instances =
         action                :
             type : 'map'
             desc : "{action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}"
+            date : ['started', 'finished']
 
 schema.instance_actions_log =
     primary_key: 'id'
@@ -559,6 +562,7 @@ schema.instance_actions_log =
         action    :
             type : 'map'
             desc : 'same as finished action object for instances above'
+            date : ['started', 'finished']
 
 schema.passport_settings =
     primary_key:'strategy'
@@ -654,15 +658,18 @@ schema.projects =
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
+            date : ['time']
         invite_requests :
             type : 'map'
             desc : "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}."
+            date : ['timestamp']
         deleted     :
             type : 'boolean'
             desc : 'Whether or not this project is deleted.'
         host        :
             type : 'map'
             desc : "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}."
+            date : ['assigned']
         settings    :
             type : 'map'
             desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
@@ -672,30 +679,36 @@ schema.projects =
         state       :
             type : 'map'
             desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+            date : ['time']
         last_edited :
             type : 'timestamp'
             desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
         last_active :
             type : 'map'
             desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
+            date : 'all'
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
         action_request :
             type : 'map'
             desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
+            date : ['started', 'finished']
         storage :
             type : 'map'
             desc : "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}."
+            date : ['assigned', 'saved']
         last_backup :
             type : 'timestamp'
             desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
         storage_request :
             type : 'map'
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+            date : ['started', 'finished', 'requested']
         course :
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+            date : ['pay']
         run :
             type : 'boolean'
             desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'

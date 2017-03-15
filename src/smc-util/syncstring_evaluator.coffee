@@ -151,7 +151,7 @@ class exports.Evaluator
         output_line = sagews.MARKERS.output
         process = (mesg) =>
             dbg("processing mesg '#{misc.to_json(mesg)}'")
-            content = @string.get()
+            content = @string.to_str()
             i = content.indexOf(sagews.MARKERS.output + output_uuid)
             if i == -1
                 # no cell anymore -- do nothing further
@@ -178,7 +178,7 @@ class exports.Evaluator
                         S.set_cell_flag(cell_id, sagews.FLAGS.this_session)
                         content = S.content
                         #dbg("removing a cell flag: after='#{content}'")
-                @string.set(content)
+                @string.from_str(content)
                 @string.save()
 
         hook = (mesg) =>

@@ -350,7 +350,7 @@ describe 'test changefeeds with project_log', ->
                     cb()
             ], done)
 
-describe 'test time constrained changefeed on project_log', ->
+describe 'test time-constrained changefeed on project_log', ->
     before(setup)
     after(teardown)
 

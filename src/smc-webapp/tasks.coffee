@@ -793,9 +793,8 @@ class TaskList
         if task.deleted
             desc = "<del>#{desc}</del>"
 
+        task.element.find(".salvus-tasks-desc-column").css({fontSize: "#{@default_font_size ? 14}px"})
         e = task.element.find(".salvus-task-desc")
-        e.css({fontSize: "#{@default_font_size ? 14}px"})
-
         e.html(desc)
         if has_mathjax
             # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most

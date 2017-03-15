@@ -176,7 +176,7 @@ class exports.Client extends EventEmitter
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-
+            #winston.debug("LAST_ACTIVE: #{val.get('last_active')}, typeof=#{typeof(val.get('last_active'))}")
             if val.get("last_active") > cutoff
                 keys[string_id] = true   # anything not set here gets closed below.
                 #dbg("considering '#{path}' with id '#{string_id}'")

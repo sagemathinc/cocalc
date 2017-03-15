@@ -373,7 +373,7 @@ ChatLog = rclass
             prev_message = messages.get(dates[index - 1])
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
-        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        sorted_dates = @props.messages.keySeq().sort().toJS()
         v = []
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
