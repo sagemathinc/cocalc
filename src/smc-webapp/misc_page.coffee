@@ -42,9 +42,9 @@ exports.APP_ICON_WHITE         = require('webapp-lib/cocalc-icon-white.svg')
 exports.APP_LOGO               = require('webapp-lib/cocalc-logo.svg')
 exports.APP_LOGO_WHITE         = require('webapp-lib/cocalc-icon-white-transparent.svg')
 exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
-DEFAULT_DOMAIN_NAME            = theme.DEFAULT_DOMAIN_NAME
+
 {join} = require('path')
-exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.smc_base_url ? '')}" else DEFAULT_DOMAIN_NAME
+exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.smc_base_url ? '')}" else theme.DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object

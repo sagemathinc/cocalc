@@ -473,13 +473,13 @@ SMC_Commercial = ->
     </iframe>
 
 SMC_Quote = ->
-    DEFAULT_DOMAIN_NAME = require('smc-util/theme').DEFAULT_DOMAIN_NAME
+    {DOMAIN_NAME} = require('smc-util/theme')
     <div style={marginTop:'15px'}>
         <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of CoCalc in the Mathematics for Life Scientists">
             <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
         </a>
         <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
-        They just open up a web browser and go to {DEFAULT_DOMAIN_NAME} and that’s it. They just type code directly
+        They just open up a web browser and go to {DOMAIN_NAME} and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
         The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
         management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles

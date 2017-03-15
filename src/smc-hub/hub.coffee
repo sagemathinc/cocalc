@@ -1222,7 +1222,8 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            subject  = "CoCalc Invitation"
+                            theme = require('smc-util/theme')
+                            subject  = "#{theme.SITE_NAME} Invitation"
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
@@ -1232,20 +1233,19 @@ class Client extends EventEmitter
                                 base_url = "#{base_url[0]}//#{base_url[2]}"
                                 direct_link = "Then go to <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
                             else # fallback for outdated clients
-                                base_url = 'https://cloud.sagemath.com/'
+                                base_url = theme.DOMAIN_NAME
                                 direct_link = ''
 
-                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to           : email_address
                                 bcc          : 'invites@sagemath.com'
-                                fromname     : 'CoCalc'
+                                fromname     : theme.SITE_NAME
                                 from         : 'invites@sagemath.com'
-                                replyto      : mesg.replyto ? 'help@sagemath.com'
+                                replyto      : mesg.replyto ? theme.DEFAULT_HELP_EMAIL
                                 replyto_name : mesg.replyto_name
                                 subject      : subject
                                 category     : "invite"
-                                asm_group    : 699
+                                asm_group    : theme.SENDGRID_ASM_INVITES
                                 body         : email + """<br/><br/>
                                                <b>To accept the invitation, please sign up at
                                                <a href='#{base_url}'>#{base_url}</a>
@@ -3001,31 +3001,32 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     id = _id; cb(err)
         (cb) ->
             # send an email to mesg.email_address that has a password reset link
+            {DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
             body = """
                 <div>Hello,</div>
                 <div>&nbsp;</div>
                 <div>
-                Somebody just requested to change the password of your CoCalc account.
+                Somebody just requested to change the password of your #{SITE_NAME} account.
                 If you requested this password change, please click this link:</div>
                 <div>&nbsp;</div>
                 <div style="text-align: center;">
                 <span style="font-size:12px;"><b>
-                  <a href="https://cloud.sagemath.com#forgot-#{id}">https://cloud.sagemath.com#forgot-#{id}</a>
+                  <a href="#{DOMAIN_NAME}#forgot-#{id}">#{DOMAIN_NAME}#forgot-#{id}</a>
                 </b></span>
                 </div>
                 <div>&nbsp;</div>
                 <div>If you don't want to change your password, ignore this message.</div>
                 <div>&nbsp;</div>
                 <div>In case of problems, email
-                <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
+                <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a> immediately
                 (or just reply to this email).
                 <div>&nbsp;</div>
                 """
 
             send_email
-                subject : 'CoCalc Password Reset'
+                subject : "#{SITE_NAME} Password Reset"
                 body    : body
-                from    : 'SageMath Help <help@sagemath.com>'
+                from    : "SageMath Help <#{HELP_EMAIL}>"
                 to      : mesg.email_address
                 category: "password_reset"
                 cb      : cb
@@ -3096,7 +3097,7 @@ connect_to_database = (opts) ->
         error : undefined   # ignored
         pool  : program.db_pool
         cb    : required
-    dbg = (m) -> winston.debug("connect_to_database (postgreSQL): #{m}")
+    dbg = (m) -> winston.debug("connect_to_database (PostgreSQL): #{m}")
     if database? # already did this
         dbg("already done")
         opts.cb(); return

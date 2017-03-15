@@ -27,6 +27,7 @@
 misc = require('smc-util/misc')
 {isMobile} = require('./feature')
 {set_window_title} = require('./browser')
+{COLORS} = require('smc-util/theme')
 
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
@@ -95,10 +96,12 @@ ProjectTab = rclass
             textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
+            text_color = COLORS.TOP_BAR.TEXT_ACTIVE
 
         if @state.x_hovered
-            x_color = "white"
+            x_color = COLORS.TOP_BAR.X_HOVER
+        else
+            x_color = COLORS.TOP_BAR.X
 
         <SortableNavTab
             index={@props.index}
@@ -108,7 +111,7 @@ ProjectTab = rclass
             style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref='tab'
         >
-            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}>
+            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
                 <Icon
                     name = 'times'
                     onClick = {@close_tab}
@@ -227,21 +230,23 @@ OpenProjectMenuItem = rclass
             textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
+            text_color = COLORS.TOP_BAR.TEXT_ACTIVE
 
         if @state.x_hovered
-            x_color = "white"
+            x_color = COLORS.TOP_BAR.X_HOVER
+        else
+            x_color = COLORS.TOP_BAR.X
 
         <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color}>
             <Button
                 bsStyle="warning"
                 onClick={@close_tab}
-                style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}
+                style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
             >
                 <Icon name='times'/>
             </Button>
             <Tip style={project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                <div style={height: '36px', padding: '7px 5px', fontSize: '18px'}>
+                <div style={height: '36px', padding: [7, 5], fontSize: '18px'}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>

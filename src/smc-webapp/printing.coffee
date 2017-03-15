@@ -146,8 +146,8 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            {DEFAULT_SITE_NAME, BASE_URL} = require('smc-util/theme')
-            SiteName = redux.getStore('customize').site_name ? DEFAULT_SITE_NAME
+            {SITE_NAME, BASE_URL} = require('smc-util/theme')
+            SiteName = redux.getStore('customize').site_name ? SITE_NAME
             url = BASE_URL
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
