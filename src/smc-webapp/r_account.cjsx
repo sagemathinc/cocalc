@@ -495,7 +495,7 @@ AccountSettings = rclass
                         initial_click = {()=>@setState(show_delete_confirmation:true)}
                         confirm_click = {=>@actions('account').delete_account()}
                         cancel_click  = {()=>@setState(show_delete_confirmation:false)}
-                        user_name     = {@props.first_name + ' ' + @props.last_name}
+                        user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
                         show_confirmation={@state.show_delete_confirmation}
                         />
                 </Col>

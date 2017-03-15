@@ -1403,3 +1403,17 @@ describe 'bind_objects', ->
 
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
+
+describe 'test the date parser --- ', ->
+    it 'a date with a zone', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does nothing', ->
+        expect(misc.date_parser(undefined, "cocalc")).toEqual('cocalc')
+

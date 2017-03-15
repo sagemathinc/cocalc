@@ -26,6 +26,7 @@ describe 'some basic testing of user_queries', ->
     it 'creates an account', (done) ->
         db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
                           email_address:"sage@example.com", password_hash:"blah", cb:(err, x) -> account_id=x; done(err))
+
     it 'queries for the first_name and account_id property', (done) ->
         db.user_query
             account_id : account_id

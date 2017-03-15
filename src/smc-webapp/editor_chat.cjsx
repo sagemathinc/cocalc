@@ -33,7 +33,7 @@ editing   : Object of <account id's> : <"FUTURE">
  --- History object ---
 author_id : String which is this message version's author's account id
 content   : The raw display content of the message
-date      : The date this edit was sent
+date      : Date **string** of when this edit was sent
 
 Example object:
 {"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
@@ -101,6 +101,7 @@ class ChatActions extends Actions
         if x.video_chat?.is_video_chat
             # discard/ignore anything else related to the old old video chat approach
             return
+        x.date = new Date(x.date)
         if x.history?.length > 0
             # nontrivial history -- nothing to do
         else if x.payload?
@@ -109,7 +110,7 @@ class ChatActions extends Actions
             x.history.push
                 content   : x.payload.content
                 author_id : x.sender_id
-                date      : x.date
+                date      : new Date(x.date)
             delete x.payload
         else if x.mesg?
             # for old chats with mesg: content (up to 2014)
@@ -117,7 +118,7 @@ class ChatActions extends Actions
             x.history.push
                 content   : x.mesg.content
                 author_id : x.sender_id
-                date      : x.date
+                date      : new Date(x.date)
             delete x.mesg
         x.history ?= []
         if not x.editing
@@ -141,6 +142,7 @@ class ChatActions extends Actions
             # Messages need not be defined when changes appear in case of problems or race.
             return
         changes.map (obj) =>
+            obj.date = new Date(obj.date)
             record = @syncdb.get_one(obj)
             x = record?.toJS()
             if not x?
@@ -159,7 +161,7 @@ class ChatActions extends Actions
             # WARNING: give an error or try again later?
             return
         sender_id = @redux.getStore('account').get_account_id()
-        time_stamp = salvus_client.server_time()
+        time_stamp = salvus_client.server_time().toISOString()
         @syncdb.set
             sender_id : sender_id
             event     : "chat"
@@ -184,7 +186,7 @@ class ChatActions extends Actions
         @syncdb.set
             history : message.get('history').toJS()
             editing : editing.toJS()
-            date    : message.get('date')
+            date    : message.get('date').toISOString()
 
     # Used to edit sent messages.
     # **Extremely** shockingly inefficient. Assumes number of edits is small.
@@ -194,12 +196,12 @@ class ChatActions extends Actions
             return
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
-        time_stamp = salvus_client.server_time()
+        time_stamp = salvus_client.server_time().toISOString()
 
         @syncdb.set
             history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
             editing : message.get('editing').set(author_id, null).toJS()
-            date    : message.get('date')
+            date    : message.get('date').toISOString()
         @syncdb.save()
 
     set_to_last_input: =>

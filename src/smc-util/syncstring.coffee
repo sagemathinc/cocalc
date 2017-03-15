@@ -539,6 +539,7 @@ class SyncDoc extends EventEmitter
             cursors           : false      # if true, also provide cursor tracking functionality
             from_str          : required   # creates a doc from a string.
             doctype           : undefined  # optional object describing document constructor (used by project to open file)
+            from_patch_str    : JSON.parse
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
@@ -548,6 +549,7 @@ class SyncDoc extends EventEmitter
         @_path          = opts.path
         @_client        = opts.client
         @_from_str      = opts.from_str
+        @_from_patch_str= opts.from_patch_str
         @_doctype       = opts.doctype
         @_patch_format  = opts.doctype.patch_format
         @_save_interval = opts.save_interval
@@ -1271,7 +1273,12 @@ class SyncDoc extends EventEmitter
         if time1? and time > time1
             return
         if not patch?
-            patch = misc.from_json(x.get('patch') ? '[]')
+            # Do **NOT** use misc.from_json, since we definitely do not want to
+            # unpack ISO timestamps as Date, since patch just contains the raw
+            # patches from user editing.  This was done for a while, which
+            # led to horrific bugs in some edge cases...
+            # See https://github.com/sagemathinc/smc/issues/1771
+            patch = JSON.parse(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
             time    : time

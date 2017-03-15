@@ -285,8 +285,46 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
             break
     return Math.ceil(i/tm)
 
-exports.to_json = (x) ->
-    JSON.stringify(x)
+exports.to_json = JSON.stringify
+
+###
+The functions to_json_socket and from_json_socket are for sending JSON data back
+and forth in serialized form over a socket connection.   They replace Date objects by the
+object {DateEpochMS:ms_since_epoch} *only* during transit.   This is much better than
+converting to ISO, then using a regexp, since then all kinds of strings will get
+converted that were never meant to be date objects at all, e.g., a filename that is
+a ISO time string.  Also, ms since epoch is less ambiguous regarding old/different
+browsers, and more compact.
+
+If you change SOCKET_DATE_KEY, then all clients and servers and projects must be
+simultaneously restarted.
+###
+SOCKET_DATE_KEY = 'DateEpochMS'
+
+socket_date_replacer = (key, value) ->
+    if this[key] instanceof Date
+        date = this[key]
+        return {"#{SOCKET_DATE_KEY}":date - 0}
+    else
+        return value
+
+exports.to_json_socket = (x) ->
+    JSON.stringify(x, socket_date_replacer)
+
+socket_date_parser = (key, value) ->
+    if value?[SOCKET_DATE_KEY]
+        return new Date(value[SOCKET_DATE_KEY])
+    else
+        return value
+
+exports.from_json_socket = (x) ->
+    try
+        JSON.parse(x, socket_date_parser)
+    catch err
+        console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        throw err
+
+
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
 # any values that are potentially big -- this is meant to only be used for loging.
@@ -314,8 +352,15 @@ exports.to_safe_str = (x) ->
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
 #   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
-date_parser = (k, v) ->
+exports.date_parser = date_parser = (k, v) ->
     if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
+        if v.indexOf('Z') == -1
+            # Firefox assumes local time rather than UTC if there is no Z.   However,
+            # our backend might possibly send a timestamp with no Z and it should be
+            # interpretted as UTC anyways.
+            # That said, with the to_json_socket/from_json_socket code, the browser
+            # shouldn't be running this parser anyways.
+            v += 'Z'
         return new Date(v)
     else
         return v
@@ -330,17 +375,20 @@ exports.from_json = (x) ->
 # Returns modified version of obj with any string
 # that look like ISO dates to actual Date objects.  This mutates
 # obj in place as part of the process.
-exports.fix_json_dates = fix_json_dates = (obj) ->
+# date_keys = 'all' or list of keys in nested object whose values should be considered.  Nothing else is considered!
+exports.fix_json_dates = fix_json_dates = (obj, date_keys) ->
+    if not date_keys? # nothing to do
+        return obj
     if exports.is_object(obj)
         for k, v of obj
             if typeof(v) == 'object'
-                fix_json_dates(v)
-            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
+                fix_json_dates(v, date_keys)
+            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v) and (date_keys == 'all' or k in date_keys)
                 obj[k] = new Date(v)
     else if exports.is_array(obj)
         for i, x of obj
-            obj[i] = fix_json_dates(x)
-    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj)
+            obj[i] = fix_json_dates(x, date_keys)
+    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj) and date_keys == 'all'
         return new Date(obj)
     return obj
 
