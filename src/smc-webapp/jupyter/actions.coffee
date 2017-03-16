@@ -29,12 +29,12 @@ class exports.JupyterActions extends Actions
         store.syncdb = syncdb
         @syncdb      = syncdb
         @_client     = client
-        @_is_project = client.is_project()
+        @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         @_project_id = project_id
         @_path       = path
         @_directory  = misc.path_split(path)?.head
 
-        #dbg = @_client.dbg("JupyterActions._init")
+        #dbg = @dbg("JupyterActions._init")
 
         f = () =>
             @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
@@ -63,6 +63,9 @@ class exports.JupyterActions extends Actions
             mode                : 'escape'
             cm_options          : immutable.fromJS(cm_options)
             font_size           : @redux?.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
+
+    dbg: (m) =>
+        return @_client.dbg(m)
 
     close: =>
         if @_closed
@@ -221,13 +224,14 @@ class exports.JupyterActions extends Actions
             @setState(cell_list : cell_list)
         return
 
-    _syncdb_cell_change: (id, record) =>
+    _syncdb_cell_change: (id, new_cell) =>
         cells = @store.get('cells') ? immutable.Map()
         cell_list_needs_recompute = false
-        #@_client.dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(record?.toJS())}")
-        if not record?
+        #@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
+        old_cell = cells.get(id)
+        if not new_cell?
             # delete cell
-            if cells?.get(id)?
+            if old_cell?
                 obj = {cells: cells.delete(id)}
                 cell_list = @store.get('cell_list')
                 if cell_list?
@@ -235,20 +239,21 @@ class exports.JupyterActions extends Actions
                 @setState(obj)
         else
             # change or add cell
-            current = cells.get(id)
-            if record.equals(current)
+            old_cell = cells.get(id)
+            if new_cell.equals(old_cell)
                 return # nothing to do
-            obj = {cells: cells.set(id, record)}
-            if not current? or current.get('pos') != record.get('pos')
+            obj = {cells: cells.set(id, new_cell)}
+            if not old_cell? or old_cell.get('pos') != new_cell.get('pos')
                 cell_list_needs_recompute = true
             @setState(obj)
-            if @_is_project and record.get('state') == 'start'
-                @project_run_cell(id)
+        if @_is_manager
+            @manage_on_cell_change(id, new_cell, old_cell)
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
+        do_init = @_is_manager and not @store.get('cells')?
         #console.log 'changes', changes, changes?.toJS()
-        #@_client.dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
+        #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
         @set_has_unsaved_changes()
         cell_list_needs_recompute = false
         changes?.forEach (key) =>
@@ -268,6 +273,9 @@ class exports.JupyterActions extends Actions
         cur_id = @store.get('cur_id')
         if not cur_id? or not @store.getIn(['cells', cur_id])?
             @set_cur_id(@store.get('cell_list')?.get(0))
+
+        if do_init
+            @initialize_manager()
 
     ensure_there_is_a_cell: =>
         cells = @store.get('cells')
@@ -621,34 +629,47 @@ class exports.JupyterActions extends Actions
         console.warn 'not implemented'
         return
 
+    ###
+    MANAGE:
+
+    Code that manages execution and conflict resolution/sanity.
+    This must run in exactly ONE client.   For now, that client
+    will be the project itself.
+    ###
+
+    # Called when the manager first starts up after the store is initialized.
+    # Here we ensure everything is in a consistent state so that we can react
+    # to changes later.
+    initialize_manager: =>
+        dbg = @dbg("initialize_manager")
+        dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
+
+
+    # _manage_cell_change is called after a cell change has been
+    # incorporated into the store by _syncdb_cell_change.
+    # It should do things like ensure any cell with a compute request
+    # gets computed, that all positions are unique, that there is a
+    # cell, etc.  Only one client will run this code.
+    manage_on_cell_change: (id, new_cell, old_cell) =>
+        if not new_cell?
+            # delete cell -- if it was running, stop it.
+            # TODO
+            return
+        if new_cell.get('state') == 'start'
+            @manager_run_cell(id)
+
     # Runs only on the backend
-    project_run_cell: (id) =>
-        dbg = @_client.dbg("jupyter-project_run_cell")
+    manager_run_cell: (id) =>
+        dbg = @dbg("manager_run_cell")
         dbg()
         cell = @store.get('cells').get(id)
 
+        try
+            out = "#{eval(cell.get('input'))}"
+        catch e
+            out = "#{e}"
         @_set
             type  : 'cell'
             id    : id
-            state : 'starting'
-
-        f1 = =>
-            dbg('f1')
-            @_set
-                type  : 'cell'
-                id    : id
-                state : 'running'
-
-        f2 = =>
-            dbg('f2')
-            try
-                out = "#{eval(cell.get('input'))}"
-            catch e
-                out = "#{e}"
-            @_set
-                type  : 'cell'
-                id    : id
-                state : 'done'
-                output : [out]
-        setTimeout(f1, 500)
-        setTimeout(f2, 1000)
+            state : 'done'
+            output : [out]
