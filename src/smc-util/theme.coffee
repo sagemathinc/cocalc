@@ -29,29 +29,38 @@ exports.SENDGRID_ASM_NEWSLETTER = 698
 
 # This is the applications color scheme
 COLORS =
-    BLUE_D : '#4474c0'
-    BLUE_L : '#80afff'
-    YELL_D : '#bf7b00'
-    YELL_L : '#fbb635'
-    GRAY_D : '#434343'
-    GRAY   : '#c0c0c0'
-    GRAY_L : '#eeeeee'
-    GRAY_LL: '#f5f5f5'
+    BLUE_DDD : '#0E2B59'
+    BLUE_DD  : '#2A5AA6'
+    BLUE_D   : '#4474c0'  # use this for the logo background, etc.
+    BLUE     : '#6690D2'
+    BLUE_L   : '#80afff'
+    BLUE_LL  : '#94B3E5'
+    BRWN     : '#593E05'
+    YELL_D   : '#bf7b00'
+    YELL_L   : '#fbb635'
+    GRAY_DD  : '#303030'
+    GRAY_D   : '#434343'
+    GRAY     : '#808080'
+    GRAY_L   : '#c0c0c0'
+    GRAY_LL  : '#eeeeee'
+    GRAY_LLL : '#f5f5f5'
     BS_BLUE_BGRND : "rgb(66, 139, 202)"
 
 # The definitions below add semantic meaning by using the colors
 
+# navigation bar at the top
 COLORS.TOP_BAR =
-    BG          : COLORS.GRAY_L
-    HOVER       : COLORS.GRAY_LL
+    BG          : COLORS.GRAY_LL
+    HOVER       : COLORS.GRAY_LLL
     ACTIVE      : 'white'
-    TEXT        : COLORS.GRAY_D
+    TEXT        : COLORS.GRAY
     TEXT_ACTIVE : COLORS.GRAY_D
     X           : COLORS.GRAY_D
     X_HOVER     : COLORS.GRAY
 
+# landing page
 COLORS.LANDING =
-    TOP_BAR_BG  : COLORS.BLUE_D
+    LOGIN_BAR_BG  : COLORS.BLUE_D
 
 
 exports.COLORS = COLORS

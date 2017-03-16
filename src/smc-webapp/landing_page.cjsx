@@ -139,7 +139,7 @@ SignUp = rclass
         well_style =
             marginTop      : '10px'
             borderWidth    : 5
-            'border-color' : COLORS.LANDING.TOP_BAR_BG
+            'border-color' : COLORS.LANDING.LOGIN_BAR_BG
         <Well style=well_style>
             {@display_token_input()}
             {@display_error("token")}
@@ -607,7 +607,7 @@ exports.LandingPage = rclass
                         forgot_password_success={@props.forgot_password_success}
                     /> if @props.show_forgot_password}
                 <Row style={fontSize: UNIT,\
-                            backgroundColor: COLORS.LANDING.TOP_BAR_BG,\
+                            backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
                         <SignIn
@@ -617,7 +617,7 @@ exports.LandingPage = rclass
                             xs            = {true} />
                         <div style={clear:'both'}></div>
                 </Row>
-                <Row style={backgroundColor : COLORS.LANDING.TOP_BAR_BG,\
+                <Row style={backgroundColor : COLORS.LANDING.LOGIN_BAR_BG,\
                             padding         : 5,\
                             margin          : 0,\
                             borderRadius    : 4,\
