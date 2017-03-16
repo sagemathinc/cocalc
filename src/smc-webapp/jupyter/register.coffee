@@ -33,9 +33,10 @@ register_file_editor
         actions = redux.createActions(name, JupyterActions)
         store   = redux.createStore(name, JupyterStore)
 
+        base = misc.separate_file_extension(path).name
         syncdb = salvus_client.sync_db
             project_id      : project_id
-            path            : misc.meta_file(path, 'cocalc')  # TODO
+            path            : misc.meta_file(base, 'ipython')  # TODO
             change_throttle : 250   # our UI/React can handle more rapid updates
             save_interval   : 1500  # so other users see changes quickly.
             primary_keys    : ['type', 'id']

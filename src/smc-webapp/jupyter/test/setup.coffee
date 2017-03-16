@@ -32,9 +32,10 @@ exports.setup = (cb) ->
     store   = new (require('../store').JupyterStore)(redux_name, smc_react.redux)
     actions.store = store
 
+    base = misc.separate_file_extension(path).name
     syncdb = salvus_client.sync_db
         project_id      : project_id
-        path            : misc.meta_file(path, 'cocalc')  # TODO
+        path            : misc.meta_file(base, 'ipython')  # TODO
         change_throttle : 0
         save_interval   : 0
         primary_keys    : ['type', 'id']

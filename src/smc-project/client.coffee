@@ -52,6 +52,8 @@ db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
 
+{jupyter_backend} = require('./jupyter')
+
 {json} = require('./common')
 
 {defaults, required} = misc
@@ -220,6 +222,7 @@ class exports.Client extends EventEmitter
                             else
                                 opts = {path:path}
                                 type = 'string'
+
                             ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
 
                             ss.on 'error', (err) =>
@@ -232,6 +235,11 @@ class exports.Client extends EventEmitter
                                 # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
                                 @_wait_syncstrings[string_id] = true
                                 setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
+
+                            switch misc.separate_file_extension(path).ext
+                                when 'sage-ipython'
+                                    jupyter_backend(ss, @)
+
                     )
             return  # so map doesn't terminate due to funny return value
 

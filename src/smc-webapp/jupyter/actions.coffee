@@ -56,7 +56,7 @@ class exports.JupyterActions extends Actions
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
             cm_options          : immutable.fromJS(cm_options)
-            font_size           : @redux.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
+            font_size           : @redux?.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
 
     close: =>
         if @_closed
@@ -585,7 +585,7 @@ class exports.JupyterActions extends Actions
         @setState(toolbar: not @store.get('toolbar'))
 
     toggle_header: =>
-        @redux.getActions('page').toggle_fullscreen()
+        @redux?.getActions('page').toggle_fullscreen()
 
     # zoom in or out delta font sizes
     set_font_size: (pixels) =>
@@ -601,7 +601,7 @@ class exports.JupyterActions extends Actions
 
     # File --> Open: just show the file listing page.
     file_open: =>
-        @redux.getProjectActions(@_project_id).set_active_tab('files')
+        @redux?.getProjectActions(@_project_id).set_active_tab('files')
         return
 
     open_timetravel: =>
