@@ -90,7 +90,7 @@ exports.BigTime = BigTime = rclass
         if not date?
             return
         if typeof(date) == 'string'
-            return <span>{date}</span>
+            date = misc.ISO_to_Date(date)
         return <TimeAgo popover={true} date={date} />
 
 exports.StudentAssignmentInfoHeader = rclass
