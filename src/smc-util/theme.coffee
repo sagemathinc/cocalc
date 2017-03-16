@@ -1,6 +1,15 @@
-# Theme configuration file for CoCalc
-# This is used mainly in the front-end, but some aspects are also used on the back-end
-# Note: it is not possible to "require" assets, like the logos -- they're defined in webapp/misc_page.
+###
+Theme configuration file for CoCalc
+
+Copyright 2017, SageMath, Inc. -- ALL RIGHTS RESERVED
+
+This file is not part of the open-source licensed release, because it contains information
+specific to the company "SageMath, Inc." and the product "CoCalc".
+Upon deployment, please replace this file with a suitable replacement (i.e. come up with your own name, etc.)
+
+This is used mainly in the front-end, but some aspects are also used on the back-end
+Note: it is not possible to "require" assets, like the logos -- they're defined in webapp/misc_page.
+###
 
 exports.SITE_NAME            = 'CoCalc'
 exports.COMPANY_NAME         = 'SageMath, Inc.'

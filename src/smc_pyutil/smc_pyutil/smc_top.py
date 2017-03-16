@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 ###############################################################################
 #
-# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculations in the Cloud
 #
 #    Copyright (C) 2015, CoCalc Authors
 #

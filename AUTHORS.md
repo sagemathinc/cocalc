@@ -5,6 +5,7 @@ William Stein ([wstein@sagemath.com](mailto:wstein@sagemath.com)) wrote most of 
 Everytime the GPL licensing note refers to the _"Authors of SageMathCloud"_, the following  (maybe incomplete) list is meant.
 
 * Keith Clawson
+* Tim Clemans
 * Russ Hensel
 * Jonathan Lee
 * Andrew Ohana
@@ -12,6 +13,7 @@ Everytime the GPL licensing note refers to the _"Authors of SageMathCloud"_, the
 * Issa Rice
 * Nicholas Ruhland
 * Harald Schilly
+* Hal Snyder
 * William Stein
 * Christopher Swenson
 * Vivek Venkatachalam

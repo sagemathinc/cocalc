@@ -1,10 +1,12 @@
-# ![logo](https://raw.githubusercontent.com/sagemathinc/cocalc/master/src/webapp-lib/favicon-32x32.png) CoCalc (CC)
+# ![logo](https://raw.githubusercontent.com/sagemathinc/cocalc/master/src/webapp-lib/favicon-32x32.png) CoCalc
 
 #### _Collaborative Calculations Online_
 
-**CoCalc** offers a collaborative web-based interface to calculate in Python, SageMath, Julia, R, and more.
+**CoCalc** offers collaborative calculations in the cloud.
+This includes working with the full (scientific) Python stack, SageMath, Julia, R, Octave, and more.
 It also offers capabilities to author documents in LaTeX, R/knitr or Markdown,
-a web-based Linux Terminal, communication tools like a chat, course management and much more.
+storing and organizing files, a web-based Linux Terminal,
+communication tools like a chat, course management and more.
 
 ## Website
 
@@ -14,15 +16,15 @@ a web-based Linux Terminal, communication tools like a chat, course management a
    * [SMC mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
    * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
 
+## Evaluation install
+
+To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+
 ## History
 
 *CoCalc* was formerly called *SageMathCloud*.
 It started to offer way more than just SageMath and hence outgrew itself.
-The name changed around Spring 2017.
-
-## Evaluation install
-
-To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
@@ -73,7 +75,7 @@ please contact help@sagemath.com.
   * HTTP server  -- Nginx
 
 ### Architectural Diagram
-<pre>
+```
 
    Client    Client    Client   Client  ...
      /|\
@@ -97,7 +99,7 @@ please contact help@sagemath.com.
   \|/               \|/      \|/
  Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has ZFS snapshots
 
-</pre>
+```
 
 
 ## Development installation

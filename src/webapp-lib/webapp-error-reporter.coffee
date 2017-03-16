@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+# SageMathCloud: Collaborative Calculations in the Cloud
 #
 #    Copyright (C) 2017, SageMath, Inc.
 #

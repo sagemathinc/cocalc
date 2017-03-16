@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculations in the Cloud
 #
 #    Copyright (C) 2014--2016, SageMath, Inc.
 #

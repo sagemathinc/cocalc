@@ -1,7 +1,7 @@
 {
   "name": "sagemathcloud",
   "version": "1.0.0",
-  "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
+  "description": "Collaborative Calculations in the Cloud",
   "main": "index.js",
   "directories": {
     "doc": "doc"

@@ -7,7 +7,7 @@ from __future__ import print_function
 
 # *********************************************************************************************
 #
-# CoCalc: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculations in the Cloud
 #
 #    Copyright (C) 2015 -- 2017, SageMath, Inc.
 #
