@@ -11,6 +11,7 @@ Jupyter notebooks.  The goals are:
 
 immutable  = require('immutable')
 underscore = require('underscore')
+#async      = require('async')
 
 misc       = require('smc-util/misc')
 
@@ -436,9 +437,10 @@ class exports.JupyterActions extends Actions
 
     run_code_cell: (id) =>
         @_set
-            type  : 'cell'
-            id    : id
-            state : 'start'
+            type   : 'cell'
+            id     : id
+            state  : 'start'
+            output : []
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -679,7 +681,41 @@ class exports.JupyterActions extends Actions
         dbg = @dbg("manager_run_cell")
         dbg()
         cell = @store.get('cells').get(id)
+        input = (cell.get('input') ? '').trim()
+        if input.length == 0
+            @_set
+                type   : 'cell'
+                id     : id
+                state  : null
+                output : []
+            return
 
+        @_sage_session ?= @_client.sage_session(path : @_directory)
+        outputs = []
+        state = 'running'
+        @_set
+            type   : 'cell'
+            id     : id
+            state  : 'running'
+            output : outputs
+        @_sage_session.call
+            input : input
+            cb    : (mesg) =>
+                outputs.push(mesg)
+                if mesg.done
+                    state = 'done'
+                @_set
+                    type   : 'cell'
+                    id     : id
+                    state  : state
+                    output : outputs
+        ###
+
+        @_set
+            type  : 'cell'
+            id    : id
+            state : ''
+            output : []
         try
             out = "#{eval(cell.get('input'))}"
         catch e
@@ -689,3 +725,4 @@ class exports.JupyterActions extends Actions
             id    : id
             state : 'done'
             output : [out]
+        ###
