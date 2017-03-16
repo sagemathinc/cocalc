@@ -1622,8 +1622,8 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000) =>
-        return synctable.sync_table(query, options, @, debounce_interval)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1632,6 +1632,7 @@ class exports.Connection extends EventEmitter
             path              : required
             file_use_interval : 'default'
             cursors           : false
+            patch_interval    : 1000
         opts.client = @
         return new syncstring.SyncString(opts)
 
@@ -1644,6 +1645,7 @@ class exports.Connection extends EventEmitter
             cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
             save_interval   : 2000    # amount to debounce saves (in ms)
+            patch_interval  : 1000
         opts.client = @
         return new db_doc.SyncDB(opts)
 

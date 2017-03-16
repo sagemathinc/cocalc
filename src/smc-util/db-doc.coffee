@@ -490,6 +490,7 @@ class SyncDoc extends syncstring.SyncDoc
             project_id        : undefined
             path              : undefined
             save_interval     : undefined
+            patch_interval    : undefined
             file_use_interval : undefined
             cursors           : false
             primary_keys      : required
@@ -508,6 +509,7 @@ class SyncDoc extends syncstring.SyncDoc
             project_id        : opts.project_id
             path              : opts.path
             save_interval     : opts.save_interval
+            patch_interval    : opts.patch_interval
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
             from_str          : from_str
@@ -582,6 +584,11 @@ class exports.SyncDB extends EventEmitter
     save: (cb) =>
         @_check()
         @_doc.save_to_disk(cb)
+        return
+
+    save_asap: (cb) =>
+        @_check()
+        @_doc.save_asap(cb)
         return
 
     set_doc: (value) =>

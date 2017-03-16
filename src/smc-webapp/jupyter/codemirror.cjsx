@@ -24,7 +24,6 @@ EDITOR_STYLE =
     lineHeight   : '1.21429em'
 
 enable_folding = (options) ->
-    options.extraKeys ?= {}
     options.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
     options.foldGutter = true
     options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
@@ -99,11 +98,17 @@ exports.CodeMirrorEditor = rclass
     _cm_redo: ->
         @props.actions.redo()
 
+    run_cell: ->
+        @_cm_save()
+        @props.actions.run_cell(@props.id)
+
     init_codemirror: (options, value) ->
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         options = options.toJS()
+        options.extraKeys ?= {}
         enable_folding(options)
+        options.extraKeys["Shift-Enter"] = @run_cell
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height: 'auto')
         @_cm_merge_remote(value)

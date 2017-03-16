@@ -64,8 +64,8 @@ class exports.JupyterActions extends Actions
             cm_options          : immutable.fromJS(cm_options)
             font_size           : @redux?.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
 
-    dbg: (m) =>
-        return @_client.dbg(m)
+    dbg: (f) =>
+        return @_client.dbg("JupyterActions.#{f}")
 
     close: =>
         if @_closed
@@ -313,6 +313,11 @@ class exports.JupyterActions extends Actions
             @set_has_unsaved_changes()
         @set_has_unsaved_changes()
 
+    save_asap: =>
+        @syncdb.save_asap (err) =>
+            if err
+                setTimeout((()=>@syncdb.save_asap()), 50)
+
     _new_id: =>
         return misc.uuid().slice(0,8)  # TODO: choose something...; ensure is unique, etc.
 
@@ -425,6 +430,7 @@ class exports.JupyterActions extends Actions
                 @run_code_cell(id)
             when 'markdown'
                 @set_md_cell_not_editing(id)
+        @save_asap()
         return
 
     run_code_cell: (id) =>
@@ -439,11 +445,13 @@ class exports.JupyterActions extends Actions
             @run_cell(id)
         if v.length > 0
             @move_cursor_after(v[v.length-1])
+        @save_asap()
 
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
             @run_cell(id)
             return
+        @save_asap()
 
     # move cursor delta positions from current position
     move_cursor: (delta) =>

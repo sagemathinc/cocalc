@@ -212,6 +212,8 @@ class exports.Client extends EventEmitter
                         else if not @_open_syncstrings[string_id]?
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
 
+                            ext = misc.separate_file_extension(path).ext
+
                             doctype = val.get('doctype')
                             if doctype?
                                 dbg("using doctype='#{doctype}'")
@@ -222,6 +224,10 @@ class exports.Client extends EventEmitter
                             else
                                 opts = {path:path}
                                 type = 'string'
+
+                            if ext == 'sage-ipython'
+                                opts.change_throttle = opts.patch_interval = 1
+                                opts.save_interval = 10
 
                             ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
 
@@ -236,7 +242,7 @@ class exports.Client extends EventEmitter
                                 @_wait_syncstrings[string_id] = true
                                 setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
 
-                            switch misc.separate_file_extension(path).ext
+                            switch ext
                                 when 'sage-ipython'
                                     jupyter_backend(ss, @)
 
@@ -465,8 +471,8 @@ class exports.Client extends EventEmitter
             opts.cb(undefined, ids)
 
     # Get the synchronized table defined by the given query.
-    sync_table: (query, options, debounce_interval=2000) =>
-        return synctable.sync_table(query, options, @, debounce_interval)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,
         #    query             : required
@@ -477,7 +483,10 @@ class exports.Client extends EventEmitter
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
-            path    : required
+            path            : required
+            change_throttle : 0      # amount to throttle change events (in ms)
+            save_interval   : 500    # amount to debounce saves (in ms)
+            patch_interval  : 500    # debouncing of incoming patches
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -485,9 +494,12 @@ class exports.Client extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            path         : required
-            primary_keys : required
-            string_cols  : []
+            path            : required
+            primary_keys    : required
+            string_cols     : []
+            change_throttle : 0      # amount to throttle change events (in ms)
+            save_interval   : 500    # amount to debounce saves (in ms)
+            patch_interval  : 500    # debouncing of incoming patches
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()

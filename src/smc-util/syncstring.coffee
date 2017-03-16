@@ -532,6 +532,7 @@ class SyncDoc extends EventEmitter
         @_opts = opts = defaults opts,
             save_interval     : 1500
             cursor_interval   : 2000
+            patch_interval    : 1000       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
@@ -544,16 +545,18 @@ class SyncDoc extends EventEmitter
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
-        @_closed        = true
-        @_string_id     = opts.string_id
-        @_project_id    = opts.project_id
-        @_path          = opts.path
-        @_client        = opts.client
-        @_from_str      = opts.from_str
-        @_from_patch_str= opts.from_patch_str
-        @_doctype       = opts.doctype
-        @_patch_format  = opts.doctype.patch_format
-        @_save_interval = opts.save_interval
+        @_closed         = true
+        @_string_id      = opts.string_id
+        @_project_id     = opts.project_id
+        @_path           = opts.path
+        @_client         = opts.client
+        @_from_str       = opts.from_str
+        @_from_patch_str = opts.from_patch_str
+        @_doctype        = opts.doctype
+        @_patch_format   = opts.doctype.patch_format
+        @_save_interval  = opts.save_interval
+        @_patch_interval = opts.patch_interval
+
         @_my_patches    = {}  # patches that this client made during this editing session.
 
         # For debugging -- this is a (slight) security risk in production.
@@ -1014,7 +1017,8 @@ class SyncDoc extends EventEmitter
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList(@_from_str)
-        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
+        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
+                                              undefined, @_patch_interval, @_patch_interval)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
             doc = @_patch_list.value()
@@ -1122,6 +1126,9 @@ class SyncDoc extends EventEmitter
     get_cursors: =>
         return @_cursor_map
 
+    save_asap: (cb) =>
+        @_save(cb)
+
     # save any changes we have as a new patch
     _save: (cb) =>
         #dbg = @dbg('_save'); dbg('saving changes to db')
@@ -1140,10 +1147,17 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
+        if @_saving  # this makes it at least safe to call @_save() directly...
+            cb?("saving")
+            return
+
+        @_saving = true
+
         # compute transformation from _last to live -- exactly what we did
         patch = @_last.make_patch(@_doc)
         if not patch?
             # document not initialized (or closed) so nothing to save
+            @_saving = false
             cb?()
             return
         @_last = @_doc
@@ -1161,6 +1175,7 @@ class SyncDoc extends EventEmitter
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
+        @_saving = false
 
     _undelete: () =>
         if @_closed
@@ -1805,6 +1820,7 @@ class exports.SyncString extends SyncDoc
             project_id        : undefined
             path              : undefined
             save_interval     : undefined
+            patch_interval    : undefined
             file_use_interval : undefined
             cursors           : false      # if true, also provide cursor tracking ability
 
@@ -1818,6 +1834,7 @@ class exports.SyncString extends SyncDoc
             project_id        : opts.project_id
             path              : opts.path
             save_interval     : opts.save_interval
+            patch_interval    : opts.patch_interval
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
             from_str          : from_str

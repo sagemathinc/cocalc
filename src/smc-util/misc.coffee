@@ -197,7 +197,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -205,7 +205,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -215,7 +215,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
