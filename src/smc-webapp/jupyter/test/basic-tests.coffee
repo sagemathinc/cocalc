@@ -12,6 +12,12 @@ describe 'tests the setup code -- ', ->
     before(setup)
     after(teardown)
 
+    it 'does nothing', ->
+
+describe 'tests basic use of store -- ', ->
+    before(setup)
+    after(teardown)
+    
     it 'sets something in the store', ->
         actions.setState(test:'value')
         expect(store.get('test')).toBe('value')

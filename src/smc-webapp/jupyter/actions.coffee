@@ -23,20 +23,26 @@ underlying synchronized state.
 
 class exports.JupyterActions extends Actions
 
-    _init: (project_id, path, syncdb, store) =>
+    _init: (project_id, path, syncdb, store, client) =>
         # ugly and obviously shouldn't be done here...
         @store       = store
         store.syncdb = syncdb
         @syncdb      = syncdb
+        @_client     = client
+        @_is_project = client.is_project()
         @_project_id = project_id
         @_path       = path
         @_directory  = misc.path_split(path)?.head
 
+        #dbg = @_client.dbg("JupyterActions._init")
+
         f = () =>
-            @setState(has_unsaved_changes : @syncdb.has_unsaved_changes())
-            setTimeout((=>@setState(has_unsaved_changes : @syncdb.has_unsaved_changes())), 3000)
+            @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
+            setTimeout((=>@setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())), 3000)
         @set_has_unsaved_changes = underscore.debounce(f, 1500)
+
         @syncdb.on('metadata-change', @set_has_unsaved_changes)
+        @syncdb.on('change', @_syncdb_change)
 
         cm_options =
             indentUnit        : 4
@@ -218,6 +224,7 @@ class exports.JupyterActions extends Actions
     _syncdb_cell_change: (id, record) =>
         cells = @store.get('cells') ? immutable.Map()
         cell_list_needs_recompute = false
+        #@_client.dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(record?.toJS())}")
         if not record?
             # delete cell
             if cells?.get(id)?
@@ -235,10 +242,13 @@ class exports.JupyterActions extends Actions
             if not current? or current.get('pos') != record.get('pos')
                 cell_list_needs_recompute = true
             @setState(obj)
+            if @_is_project and record.get('state') == 'start'
+                @project_run_cell(id)
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
         #console.log 'changes', changes, changes?.toJS()
+        #@_client.dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
         @set_has_unsaved_changes()
         cell_list_needs_recompute = false
         changes?.forEach (key) =>
@@ -410,7 +420,10 @@ class exports.JupyterActions extends Actions
         return
 
     run_code_cell: (id) =>
-        # TODO: implement :-)
+        @_set
+            type  : 'cell'
+            id    : id
+            state : 'start'
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -607,3 +620,35 @@ class exports.JupyterActions extends Actions
     open_timetravel: =>
         console.warn 'not implemented'
         return
+
+    # Runs only on the backend
+    project_run_cell: (id) =>
+        dbg = @_client.dbg("jupyter-project_run_cell")
+        dbg()
+        cell = @store.get('cells').get(id)
+
+        @_set
+            type  : 'cell'
+            id    : id
+            state : 'starting'
+
+        f1 = =>
+            dbg('f1')
+            @_set
+                type  : 'cell'
+                id    : id
+                state : 'running'
+
+        f2 = =>
+            dbg('f2')
+            try
+                out = "#{eval(cell.get('input'))}"
+            catch e
+                out = "#{e}"
+            @_set
+                type  : 'cell'
+                id    : id
+                state : 'done'
+                output : [out]
+        setTimeout(f1, 500)
+        setTimeout(f2, 1000)

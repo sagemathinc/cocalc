@@ -43,7 +43,7 @@ register_file_editor
             string_cols     : ['input']
             cursors         : true
 
-        actions._init(project_id, path, syncdb, store)
+        actions._init(project_id, path, syncdb, store, salvus_client)
 
         window.a = actions # for DEBUGGING
 
@@ -53,7 +53,6 @@ register_file_editor
                 console.warn(mesg)
                 alert_message(type:"error", message:mesg)
                 return
-            syncdb.on('change', actions._syncdb_change)
             if syncdb.count() == 0
                 actions._syncdb_change()  # cause initialization -- TODO: will get moved to backend/project.
 

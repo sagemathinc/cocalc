@@ -30,25 +30,24 @@ exports.setup = (cb) ->
     # initialize actions/store
     actions = new (require('../actions').JupyterActions)(redux_name, smc_react.redux)
     store   = new (require('../store').JupyterStore)(redux_name, smc_react.redux)
-    actions.store = store
 
     base = misc.separate_file_extension(path).name
+    syncdb_path = misc.meta_file(base, 'ipython')
     syncdb = salvus_client.sync_db
         project_id      : project_id
-        path            : misc.meta_file(base, 'ipython')  # TODO
+        path            : syncdb_path
         change_throttle : 0
         save_interval   : 0
         primary_keys    : ['type', 'id']
         string_cols     : ['input']
         cursors         : true
 
-    actions._init(project_id, path, syncdb, store)
+    actions._init(project_id, path, syncdb, store, salvus_client)
 
     syncdb.once 'init', (err) =>
         if err
             cb(err)
         else
-            syncdb.on('change', actions._syncdb_change)
             actions._syncdb_change()
             cb(undefined, actions)
 
@@ -57,7 +56,7 @@ exports.setup = (cb) ->
         query :
             syncstrings :
                 project_id : project_id
-                path       : misc.meta_file(path, 'cocalc')
+                path       : syncdb_path
                 init       : {time: new Date()}
 
 exports.teardown = (cb) ->
