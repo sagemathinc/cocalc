@@ -52,6 +52,7 @@ exports.CodeMirrorEditor = rclass
                 delete @_cm_change
             delete @_cm_last_remote
             delete @cm
+            @props.actions.unregister_input_editor(id)
 
     _cm_focus: ->
         @props.actions.set_mode('edit')
@@ -99,7 +100,6 @@ exports.CodeMirrorEditor = rclass
         @props.actions.redo()
 
     run_cell: ->
-        @_cm_save()
         @props.actions.run_cell(@props.id)
 
     init_codemirror: (options, value) ->
@@ -121,6 +121,8 @@ exports.CodeMirrorEditor = rclass
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
+
+        @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)

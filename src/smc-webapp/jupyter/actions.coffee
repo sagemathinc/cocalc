@@ -424,6 +424,7 @@ class exports.JupyterActions extends Actions
         cell = @store.getIn(['cells', id])
         if not cell?
             return
+        @_input_editors?[id]?()
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
@@ -636,6 +637,13 @@ class exports.JupyterActions extends Actions
     open_timetravel: =>
         console.warn 'not implemented'
         return
+
+    register_input_editor: (id, save_value) =>
+        @_input_editors ?= {}
+        @_input_editors[id] = save_value
+
+    unregister_input_editor: (id) =>
+        delete @_input_editors?[id]
 
     ###
     MANAGE:
