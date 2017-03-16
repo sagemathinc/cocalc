@@ -1,7 +1,7 @@
 {
   "name": "smc-project",
   "version": "1.0.0",
-  "description": "SageMathCloud: project daemons",
+  "description": "CoCalc: project daemons",
   "main": "index.js",
   "dependencies": {
     "async": "^1.5.0",
