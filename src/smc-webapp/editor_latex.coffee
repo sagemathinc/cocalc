@@ -246,7 +246,9 @@ class exports.LatexEditor extends editor.FileEditor
         if not @latex_editor.codemirror?
             return {}
         doc = @latex_editor.codemirror.getValue()
-        i = doc.indexOf("%sagemathcloud=")
+        i_old = doc.indexOf('%sagemathcloud=')
+        i_new = doc.indexOf('%configuration=')
+        i = Math.max(i_old, i_new)
         if i == -1
             return {}
 
@@ -266,13 +268,18 @@ class exports.LatexEditor extends editor.FileEditor
         if not cm?
             return
         doc = cm.getValue()
-        i = doc.indexOf('%sagemathcloud=')
-        line = '%sagemathcloud=' + misc.to_json(conf)
+        i_old = doc.indexOf('%sagemathcloud=')
+        i_new = doc.indexOf('%configuration=')
+        i = Math.max(i_old, i_new)
+        line = '%configuration=' + misc.to_json(conf)
         if i != -1
             # find the line m where it is already
-            for n in [0..cm.doc.lastLine()]
+            for n in [cm.doc.lastLine()..0]
                 z = cm.getLine(n)
-                if z.indexOf('%sagemathcloud=') != -1
+                i2_old = z.indexOf('%sagemathcloud=')
+                i2_new = z.indexOf('%configuration=')
+                i2 = Math.max(i2_old, i2_new)
+                if i2 != -1
                     m = n
                     break
             cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})

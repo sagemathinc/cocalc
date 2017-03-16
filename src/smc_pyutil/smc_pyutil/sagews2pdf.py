@@ -220,7 +220,7 @@ COMMON += ur"""
 """
 
 FOOTER = """
-%sagemathcloud={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
+%configuration={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
 """
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
