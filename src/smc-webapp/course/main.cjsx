@@ -1788,7 +1788,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             n = 0
             get_store()?.get_students().map (student, student_id) =>
                 if not student.get('deleted')
-                    if project_map.getIn([student.get('project_id'), 'state', 'state']) == 'running'
+                    if project_map?.getIn([student.get('project_id'), 'state', 'state']) == 'running'
                         n += 1
             return n
 
