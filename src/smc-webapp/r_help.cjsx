@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculations in the Cloud
 #
@@ -24,26 +24,20 @@
 ###
 
 $ = window.$
-
+misc = require('smc-util/misc')
 {React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
-
-{Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
-
-{Icon, Loading, Space, TimeAgo, UNIT, COLORS, Footer} = require('./r_misc')
-
+{Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
+{Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
-
 {ShowSupportLink} = require('./support')
-
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-
 {APP_LOGO} = require('./misc_page')
+{COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
 
-
-# CSS
+# List item style
 li_style =
-    lineHeight : 'inherit'
-    marginTop  : '0.7ex'
+    lineHeight    : 'inherit'
+    marginBottom  : '10px'
 
 exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     reduxProps :
@@ -70,27 +64,60 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
 
     render_active_users_stats: ->
         if @props.loading
-            <li style={li_style}> Live server stats <Loading /> </li>
+            <div> Live server stats <Loading /> </div>
         else
             n = @number_of_active_users()
-            <ProgressBar style={marginBottom:0} now={Math.max(n / 12 , 45 / 8) } label={"#{n} connected users"} />
+            <div style={textAlign:'center'}>
+                    Currently connected users
+                <ProgressBar style={marginBottom:10}
+                    now={Math.max(n / 12 , 45 / 8) }
+                    label={"#{n} connected users"} />
+            </div>
 
     render_active_projects_stats: ->
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
+    recent_usage_stats_rows: ->
+        stats = [
+            ['Modified projects', @props.projects_edited],
+            ['Created projects', @props.projects_created],
+            ['Created accounts', @props.accounts_created]
+        ]
+        for stat in stats
+            <tr key={stat[0]}>
+                <th style={textAlign:'left'}>{stat[0]}</th>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_hour]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_day]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_week]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_month]}
+                </td>
+            </tr>
+
     render_recent_usage_stats: ->
-        if not @props.loading
-            <li style={li_style}>
-                Users modified
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_hour]  ? @props.last_hour_projects} projects</strong> in the last hour,
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_day]   ? @props.last_day_projects} projects</strong> in the last day,
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_week]  ? @props.last_week_projects} projects</strong> in the last week and
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month.
-                <Space/> <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                <Icon name='line-chart' fixedWidth /> More data...
-                </a>
-            </li>
+        if @props.loading
+            return
+        <Table bordered condensed hover className='cc-help-stats-table'>
+            <thead>
+                <tr>
+                    <th>past</th>
+                    <th>hour</th>
+                    <th>day</th>
+                    <th>week</th>
+                    <th>month</th>
+                </tr>
+            </thead>
+            <tbody>
+                {@recent_usage_stats_rows()}
+            </tbody>
+        </Table>
 
     render_historical_metrics: ->
         return  # disabled, due to being broken...
@@ -107,127 +134,145 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             </span>
 
     render: ->
-        <div>
+        <Col sm={6} xs={12}>
             <h3>
-                <Icon name='dashboard' /> Current connected users
+                <Icon name='dashboard' /> Statistics
                 {@render_when_updated()}
             </h3>
-            <ul>
+            <div>
                 {@render_active_users_stats()}
                 {# @render_active_projects_stats()}
                 {@render_recent_usage_stats()}
+                <Icon name='line-chart' fixedWidth />{' '}
+                <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                More data...
+                </a>
+                <br/>
                 {@render_historical_metrics()}
-            </ul>
-        </div>
+            </div>
+        </Col>
 
 
 SUPPORT_LINKS =
+    email_help :
+        commercial: true
+        bold : true
+        icon : 'envelope'
+        href : 'mailto:' + HELP_EMAIL
+        link : HELP_EMAIL
+        text : 'Please include the URL link to the relevant project or file!'
     frequently_asked_questions :
         icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/cocalc/wiki/Portal'
-        link : 'CoCalc documentation'
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    # commented out since link doesn't work
-    #getting_started :
-    #    icon : 'play'
-    #    href : '#help-page-getting-started'
-    #    link : <span>Getting started with <SiteName/></span>
     teaching :
         icon : 'users'
-        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
-        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
-        href : 'https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md'
-        link : <span>Teaching a course with CoCalc</span>
+        href : 'https://mikecroucher.github.io/SMC_tutorial/'
+        link : <span>How to teach a course with <SiteName/></span>
     courses :
         icon : 'graduation-cap'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
-        link :  <span>List of courses that use CoCalc</span>
-    realtime_chat :
-        icon : 'comments-o'
-        href : 'https://gitter.im/sagemath/cloud'
-        link : 'Realtime chat and help'
-    # removed since none of us SMC devs use ask.sagemath these days
-    #quick_question :
-    #    icon : 'question-circle'
-    #    href : 'http://ask.sagemath.org/questions/'
-    #    link : 'Ask a quick question'
+        link :  <span>List of courses that use <SiteName/></span>
+
+CONNECT_LINKS =
+    support_mailing_list :
+        bold : true
+        icon : 'list-alt'
+        href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
+        link : <span>Mailing list</span>
+    sagemath_blog :
+        icon : 'rss'
+        href : 'http://blog.sagemath.com/'
+        link : 'News and updates on our blog'
+    twitter :
+        icon : 'twitter-square'
+        href : 'https://twitter.com/co_calc'
+        link : '@co_calc on twitter'
+    facebook :
+        icon : 'facebook-square'
+        href : 'https://www.facebook.com/SageMathCloudOnline/'
+        link : 'Like our facebook page'
+    google_plus :
+        icon : 'google-plus-square'
+        href : 'https://plus.google.com/117696122667171964473/posts'
+        link : <span>+1 our Google+ page</span>
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/cocalc'
-        link : 'CoCalc source code'
-    github_issue_tracker :
-        icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
-        link : 'Known bugs in CoCalc'
-    support_mailing_list :
-        icon : 'life-ring'
-        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
-        link : <span>Support mailing list</span>
-    developer_mailing_list :
-        icon : 'envelope-o'
-        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
-        link : <span>Developer mailing list</span>
-    sagemath_blog :
-        icon : 'rss'
-        href : 'http://sagemath.blogspot.com/'
-        link : <span>Blog</span>
-    google_plus_smc :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/117696122667171964473/posts'
-        link : <span>Google+</span>
-        text : 'updates'
-    google_plus :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/115360165819500279592/posts'
-        link : 'Google+ William Stein'
-        text : 'development updates'
-    twitter :
-        icon : 'twitter-square'
-        href : 'https://twitter.com/wstein389'
-        link : 'Twitter'
-        text : 'the Twitter feed'
-    general_sagemath :
+        link : 'GitHub'
+        text : 'Source code, bug tracker and issue database'
+
+THIRD_PARTY =
+    sagemath :
         icon : 'superscript'
         href : 'http://www.sagemath.org/help.html'
-        link : 'General SageMath help and support pages'
-    chrome_app :
-        icon      : 'google'
-        href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
-        link      : 'Install the Chrome App'
-        className : 'salvus-chrome-only'
-    user_survey :
-        icon      : 'pencil-square'
-        href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
-        link      : 'CoCalc User Survey'
+        link : 'SageMath'
+        text : 'help and support for SageMath'
+    r :
+        icon : 'table'
+        href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
+        link : 'An Introduction to R'
+        text : 'open source statistics software'
+    python :
+        icon : 'flask'
+        href : 'http://www.scipy-lectures.org/'
+        link : 'Scientific Python'
+        text : <span>see also{' '}
+                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
+                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
+                    <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
+                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a> and many more
+               </span>
+    tensorflow :
+        icon : 'lightbulb-o'
+        href : 'https://www.tensorflow.org/get_started/get_started'
+        link : 'Tensorflow'
+        text : 'open-source software library for machine intelligence'
+    latex :
+        icon : 'sticky-note-o'
+        href : 'https://en.wikibooks.org/wiki/LaTeX'
+        link : 'LaTeX introduction'
+    linux :
+        icon : 'linux'
+        href : 'http://ryanstutorials.net/linuxtutorial/'
+        link : 'Linux tutorial'
 
-HelpPageSupportSection = rclass
-    displayName : 'HelpPage-HelpPageSupportSection'
+
+LinkList = rclass
+    displayName : 'HelpPage-LinkList'
 
     propTypes :
-        support_links : rtypes.object
+        title : rtypes.string.isRequired
+        icon  : rtypes.string.isRequired
+        links : rtypes.object.isRequired
 
-    get_support_links: ->
+    render_links: ->
         {commercial} = require('./customize')
-        for name, data of @props.support_links
+        for name, data of @props.links
             if data.commercial and not commercial
                 continue
-            <li key={name} style={li_style} className={if data.className? then data.className}>
+            style = misc.copy(li_style)
+            if data.bold
+                style.fontWeight = 'bold'
+            <div key={name} style={style} className={if data.className? then data.className}>
+                <Icon name={data.icon} fixedWidth />{' '}
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
-                    <Icon name={data.icon} fixedWidth /> {data.link}
-                </a> <span style={color:'#666'}>{data.text}</span>
-            </li>
+                   {data.link}
+                </a>
+                {<span style={color:COLORS.GRAY_D}> &mdash; {data.text}</span> if data.text}
+            </div>
 
     render: ->
-        <div>
-            <h3> <Icon name='support' /> Support</h3>
-            <ul>
-                {@get_support_links()}
-            </ul>
-        </div>
+        <Col md={6} sm={12}>
+            <h3> <Icon name={@props.icon} /> {@props.title}</h3>
+            {@render_links()}
+        </Col>
 
 ABOUT_SECTION =
     legal :
@@ -295,38 +340,6 @@ HelpPageGettingStartedSection = rclass
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
 
             <Accordion>
-                <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=eadnL5hDg9M'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        Navigate to <a target='_blank' href={BASE_URL}>{BASE_URL}</a>.
-                        If you are already signed in, first sign out
-                        by clicking on your email address by the <Icon name='cog' /> icon
-                        in the upper right, and clicking 'Sign out'.
-                        Click on 'create an account', then agree to the terms of usage.
-                        Next either enter your name, email address, and password for
-                        the new account you would like to create, or login
-                        using your Google, Github, Facebook, etc., account.
-                        You may change your name, email address or password
-                        at any time later, and also reset your password in case you forget it.
-                    </p>
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li> Please
-                                use a strong password or login via Google, Github or another provider,
-                                especially when you start using <SiteName/> frequently.
-                            </li>
-                            <li> Only the hash of your password is stored by the server, which uses 1000 iterations
-                                of a sha-512 hash function, with a salt length of 32. This makes it more
-                                difficult for a hacker to brute-force your password, even if they have the database of
-                                password hashes, since every guess takes much more work to make.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
-
                 <Panel header={@get_panel_header('user', 'Change your name, email address, or password')} eventKey='2'>
                     <p>
                         <a target='_blank' href='https://www.youtube.com/watch?v=A9zltIsU2cM'><Icon name='youtube-play' /> video</a>
@@ -477,6 +490,16 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render: ->
+        banner_style =
+            backgroundColor : 'white'
+            padding         : '15px'
+            border          : "1px solid #{COLORS.GRAY}"
+            borderRadius    : '5px'
+            margin          : '20px 0'
+            width           : '100%'
+            fontSize        : '115%'
+            textAlign       : 'center'
+
         {SmcWikiUrl} = require('./customize')
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
@@ -486,25 +509,22 @@ exports.HelpPage = HelpPage = rclass
                 <SiteDescription/>
                 </h3>
 
-                <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
+                <div style={banner_style}>
                     <Icon name='medkit'/><Space/><Space/>
                     <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
                     <br/>
                     We want to know if anything is broken!
-                    <hr/>
-                    <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
-                    <br/>
-                    In such an email, please include the URL link to the relevant project or file.
-                    <hr/>
-                    <a href="#{SmcWikiUrl}" target="_blank">The CoCalc Documentation</a>
                 </div>
 
-                <HelpPageSupportSection support_links={SUPPORT_LINKS} />
-
-                <HelpPageUsageSection />
-
+                <Row>
+                    <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+                    <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+                </Row>
+                <Row style={marginTop:'20px'}>
+                    <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+                    <HelpPageUsageSection />
+                </Row>
                 {<HelpPageAboutSection /> if require('./customize').commercial}
-
                 <HelpPageGettingStartedSection />
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
@@ -514,6 +534,8 @@ exports.HelpPage = HelpPage = rclass
         </Row>
 
 exports._test =
-    HelpPageSupportSection : HelpPageSupportSection
+    HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+    ConnectSection : <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
     SUPPORT_LINKS : SUPPORT_LINKS
+    CONNECT_LINKS : CONNECT_LINKS
 

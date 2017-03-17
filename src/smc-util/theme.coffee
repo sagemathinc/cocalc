@@ -18,6 +18,7 @@ exports.APP_TAGLINE          = 'Collaborative Calculations in the Cloud'
 exports.DNS                  = 'cocalc.com'
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
 exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
+exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
 exports.HELP_EMAIL           = 'help@sagemath.com'
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.COPYRIGHT_AGENT_HTML = '''

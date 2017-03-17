@@ -559,7 +559,7 @@ exports.Support = rclass
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
 
-        <Modal show={@props.show} onHide={@close} animation={false}>
+        <Modal bsSize={"large"} show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>Support Ticket</Modal.Title>
             </Modal.Header>

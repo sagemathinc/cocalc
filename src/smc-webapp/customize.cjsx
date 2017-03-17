@@ -11,6 +11,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 {Loading} = require('./r_misc')
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
+theme  = require('smc-util/theme')
 
 actions  = redux.createActions('customize')
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
@@ -145,4 +146,4 @@ exports.PolicyPricingPageUrl   = app_base_url + '/policies/pricing.html'
 exports.PolicyPrivacyPageUrl   = app_base_url + '/policies/privacy.html'
 exports.PolicyCopyrightPageUrl = app_base_url + '/policies/copyright.html'
 exports.PolicyTOSPageUrl       = app_base_url + '/policies/terms.html'
-exports.SmcWikiUrl             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
+exports.SmcWikiUrl             = theme.WIKI_URL

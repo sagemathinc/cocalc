@@ -122,7 +122,7 @@ ProjectTab = rclass
             <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                     <Icon name={icon} style={fontSize:'20px'} />
-                    <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
             </div>
         </SortableNavTab>
