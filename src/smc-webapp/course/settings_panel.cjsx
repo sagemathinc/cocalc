@@ -208,6 +208,8 @@ exports.SettingsPanel = rclass
 
     save_grades_to_csv: ->
         store = @props.redux.getStore(@props.name)
+        user_store = @props.redux.getStore('users')
+        
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
         # CSV definition: http://edoceo.com/utilitas/csv-file-format
@@ -215,13 +217,17 @@ exports.SettingsPanel = rclass
         timestamp  = (salvus_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
-        content += "Name,Email,"
+        content += "First name,Last name,Email,"
         content += ("\"#{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
+            account_id = student.get('account_id')
+            first_name = student.get('first_name') ? user_store.get_first_name(account_id)
+            last_name = student.get('last_name') ? user_store.get_last_name(account_id)
             grades = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
-            name   = "\"#{store.get_student_name(student)}\""
+            first_name   = "\"#{first_name}\""
+            last_name   = "\"#{last_name}\""
             email  = "\"#{store.get_student_email(student) ? ''}\""
-            line   = [name, email, grades].join(',')
+            line   = [first_name, last_name, email, grades].join(',')
             content += line + '\n'
         @write_file(@path('csv'), content)
 
