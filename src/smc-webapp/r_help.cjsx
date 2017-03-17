@@ -123,87 +123,87 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
 
 
 SUPPORT_LINKS =
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
-        link : 'SageMathCloud documentation'
+    teaching :
+        icon : 'users'
+        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
+        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        href : 'https://mikecroucher.github.io/SMC_tutorial/'
+        link : <span>Tutorial for anyone wanting to use SageMathCloud for teaching</span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
+    frequently_asked_questions :
+        icon : 'question-circle'
+        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        link : 'SageMathCloud documentation'
     # commented out since link doesn't work
     #getting_started :
     #    icon : 'play'
     #    href : '#help-page-getting-started'
     #    link : <span>Getting started with <SiteName/></span>
-    teaching :
-        icon : 'users'
-        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
-        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
-        href : 'https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md'
-        link : <span>Teaching a course with SageMathCloud</span>
     courses :
         icon : 'graduation-cap'
         href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
-        link :  <span>List of courses that use SageMathCloud</span>
-    realtime_chat :
-        icon : 'comments-o'
-        href : 'https://gitter.im/sagemath/cloud'
-        link : 'Realtime chat and help'
+        link :  <span>Courses using SageMathCloud</span>
+    #realtime_chat :
+    #    icon : 'comments-o'
+    #    href : 'https://gitter.im/sagemath/cloud'
+    #    link : 'Realtime chat and help'
     # removed since none of us SMC devs use ask.sagemath these days
     #quick_question :
     #    icon : 'question-circle'
     #    href : 'http://ask.sagemath.org/questions/'
     #    link : 'Ask a quick question'
-    github :
-        icon : 'github-square'
-        href : 'https://github.com/sagemathinc/smc'
-        link : 'SageMathCloud source code'
-    github_issue_tracker :
-        icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
-        link : 'Known bugs in SageMathCloud'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
-        link : <span>Support mailing list</span>
-    developer_mailing_list :
-        icon : 'envelope-o'
-        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
-        link : <span>Developer mailing list</span>
+        link : <span>Mailing list</span>
+    #developer_mailing_list :
+    #    icon : 'envelope-o'
+    #    href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
+    #    link : <span>Developer mailing list</span>
     sagemath_blog :
         icon : 'rss'
-        href : 'http://sagemath.blogspot.com/'
+        href : 'http://blog.sagemath.com/'
         link : <span>Blog</span>
     google_plus_smc :
         icon : 'google-plus-square'
         href : 'https://plus.google.com/117696122667171964473/posts'
         link : <span>Google+</span>
         text : 'updates'
-    google_plus :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/115360165819500279592/posts'
-        link : 'Google+ William Stein'
-        text : 'development updates'
+    #google_plus :
+    #    icon : 'google-plus-square'
+    #    href : 'https://plus.google.com/115360165819500279592/posts'
+    #    link : 'Google+ William Stein'
+    #    text : 'development updates'
     twitter :
         icon : 'twitter-square'
-        href : 'https://twitter.com/wstein389'
+        href : 'https://twitter.com/sagemathcloud'
         link : 'Twitter'
         text : 'the Twitter feed'
-    general_sagemath :
-        icon : 'superscript'
-        href : 'http://www.sagemath.org/help.html'
-        link : 'General SageMath help and support pages'
+    github :
+        icon : 'github-square'
+        href : 'https://github.com/sagemathinc/smc'
+        link : 'Source code'
+    github_issue_tracker :
+        icon : 'exclamation-circle'
+        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
+        link : 'Bugs'
+    #general_sagemath :
+    #    icon : 'superscript'
+    #    href : 'http://www.sagemath.org/help.html'
+    #    link : 'SageMath help and support'
     chrome_app :
         icon      : 'google'
         href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
-        link      : 'Install the Chrome App'
+        link      : 'Chrome App'
         className : 'salvus-chrome-only'
     user_survey :
         icon      : 'pencil-square'
         href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
-        link      : 'SageMathCloud User Survey'
+        link      : 'User Survey'
 
 HelpPageSupportSection = rclass
     displayName : 'HelpPage-HelpPageSupportSection'
@@ -514,7 +514,7 @@ exports.HelpPage = HelpPage = rclass
 
                 {<HelpPageAboutSection /> if require('./customize').commercial}
 
-                <HelpPageGettingStartedSection />
+                {# <HelpPageGettingStartedSection /> }
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>
