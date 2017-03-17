@@ -49,6 +49,7 @@ exports.setup = (cb) ->
             cb(err)
         else
             actions._syncdb_change()
+            actions.ensure_there_is_a_cell()
             cb(undefined, actions)
 
     # Cause the syncstring to be initialized so that the above 'init' happens.

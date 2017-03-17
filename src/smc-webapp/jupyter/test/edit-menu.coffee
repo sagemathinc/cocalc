@@ -41,6 +41,10 @@ describe 'tests inserting and deleting a cell -- ', ->
         actions.set_cell_input(id, 'xyz')
         actions.delete_selected_cells()
         new_cell_list = store.get('cell_list')
+        expect(new_cell_list.size).toBe(0)
+        actions.ensure_there_is_a_cell()
+        
+        new_cell_list = store.get('cell_list')
         expect(new_cell_list.size).toBe(1)
         expect(store.getIn(['cells', new_cell_list.get(0), 'input'])).toBe('')
         expect(store.get('cur_id')).toBe(new_cell_list.get(0))
