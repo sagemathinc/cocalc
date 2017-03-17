@@ -17,6 +17,8 @@ misc       = require('smc-util/misc')
 
 {Actions}  = require('../smc-react')
 
+jupyter_kernels = undefined
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -266,10 +268,13 @@ class exports.JupyterActions extends Actions
                 when 'settings'
                     @setState
                         kernel : record?.get('kernel')
+                when 'config'
+                    @setState
+                        kernels : record?.get('kernels')
             return
         if cell_list_needs_recompute
             @set_cell_list()
-        else
+        else if @_is_manager
             @ensure_there_is_a_cell()
         cur_id = @store.get('cur_id')
         if not cur_id? or not @store.getIn(['cells', cur_id])?
@@ -662,6 +667,23 @@ class exports.JupyterActions extends Actions
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
+        @init_kernels()
+
+    init_kernels: =>
+        if not jupyter_kernels?
+            @_client.shell
+                command : 'jupyter'
+                args    : ['kernelspec', 'list']
+                cb      : (err, output) =>
+                    if err
+                        return
+                    jupyter_kernels = (misc.split(x)[0].trim() for x in output.stdout.trim().split('\n').slice(1))
+                    @init_kernels()
+        else
+            @_set
+                type    : 'config'
+                id      : 'kernels'
+                kernels : jupyter_kernels
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
@@ -693,14 +715,30 @@ class exports.JupyterActions extends Actions
         @_sage_session ?= @_client.sage_session(path : @_directory)
         outputs = []
         state = 'running'
-        @_set
-            type   : 'cell'
-            id     : id
-            state  : 'running'
-            output : outputs
+        report_started = =>
+            if outputs.length > 0
+                # do nothing -- already getting output
+                return
+            @_set
+                type   : 'cell'
+                id     : id
+                state  : 'running'
+                output : outputs
+        # If there was no output during the first few ms, we set the start to running
+        # and start reporting output.  We don't just do this immediately, since that's
+        # a waste of time, as very often the whole computation takes little time.
+        setTimeout(report_started, 200)
+
+        dbg("calling sage_session")
         @_sage_session.call
-            input : input
+            input :
+                event    : 'execute_code'
+                code     : input
+                preparse : false
             cb    : (mesg) =>
+                dbg("got output #{JSON.stringify(mesg)}")
+                delete mesg.event
+                delete mesg.id
                 outputs.push(mesg)
                 if mesg.done
                     state = 'done'
@@ -709,20 +747,3 @@ class exports.JupyterActions extends Actions
                     id     : id
                     state  : state
                     output : outputs
-        ###
-
-        @_set
-            type  : 'cell'
-            id    : id
-            state : ''
-            output : []
-        try
-            out = "#{eval(cell.get('input'))}"
-        catch e
-            out = "#{e}"
-        @_set
-            type  : 'cell'
-            id    : id
-            state : 'done'
-            output : [out]
-        ###

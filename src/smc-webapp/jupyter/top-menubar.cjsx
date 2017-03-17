@@ -12,13 +12,18 @@ File, Edit, etc....
 
 OPACITY='.93'
 
-exports.TopMenubar = rclass
+exports.TopMenubar = rclass ({name}) ->
     shouldComponentUpdate: (next) ->
-        return next.has_unsaved_changes != @props.has_unsaved_changes
+        return next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.kernels != @props.kernels
 
     propTypes :
-        actions             : rtypes.object.isRequired
-        has_unsaved_changes : rtypes.bool
+        actions : rtypes.object.isRequired
+
+    reduxProps :
+        "#{name}" :
+            kernels             : rtypes.immutable.List
+            has_unsaved_changes : rtypes.bool
 
     render_file: ->
         <Dropdown key='file' id='menu-file'>
@@ -146,7 +151,14 @@ exports.TopMenubar = rclass
             </Dropdown.Menu>
         </Dropdown>
 
-    # obviously TODO regarding kernel selection
+    # TODO: upper case kernel names, descriptions... ?
+    render_kernel_items: ->
+        if not @props.kernels?
+            return
+        else
+            for kernel in @props.kernels.toJS()
+                <MenuItem key={kernel} eventKey="kernel-change-#{kernel}"><span style={marginLeft:'4ex'}/> {kernel} </MenuItem>
+
     render_kernel: ->
         <Dropdown key='kernel'  id='menu-kernel'>
             <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
@@ -160,20 +172,7 @@ exports.TopMenubar = rclass
                 <MenuItem eventKey="kernel-reconnect">Reconnect</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Change kernel...</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
-                <MenuItem eventKey="kernel-change-anaconda"     ><span style={marginLeft:'4ex'}/> Anaconda (Python 3)</MenuItem>
-                <MenuItem eventKey="kernel-change-python2sage" ><span style={marginLeft:'4ex'}/> Python 2 (SageMath</MenuItem>
+                {@render_kernel_items()}
             </Dropdown.Menu>
         </Dropdown>
 

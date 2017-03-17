@@ -40,7 +40,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </span>
 
     render_menubar: ->
-        <TopMenubar actions = {@props.actions} has_unsaved_changes = {@props.has_unsaved_changes} />
+        <TopMenubar actions = {@props.actions} name={name} />
 
     render_buttonbar: ->
         <TopButtonbar actions={@props.actions} name={name} />

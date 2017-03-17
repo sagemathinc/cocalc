@@ -37,8 +37,8 @@ register_file_editor
         syncdb = salvus_client.sync_db
             project_id      : project_id
             path            : misc.meta_file(base, 'ipython')  # TODO
-            change_throttle : 50    # our UI/React can handle more rapid updates; plus we want output FAST.
-            patch_interval  : 50
+            change_throttle : 5    # our UI/React can handle more rapid updates; plus we want output FAST.
+            patch_interval  : 5
             save_interval   : 1500
             primary_keys    : ['type', 'id']
             string_cols     : ['input']

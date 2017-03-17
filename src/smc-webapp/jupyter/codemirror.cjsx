@@ -52,7 +52,7 @@ exports.CodeMirrorEditor = rclass
                 delete @_cm_change
             delete @_cm_last_remote
             delete @cm
-            @props.actions.unregister_input_editor(id)
+            @props.actions.unregister_input_editor(@props.id)
 
     _cm_focus: ->
         @props.actions.set_mode('edit')

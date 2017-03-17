@@ -1528,7 +1528,7 @@ class SyncDoc extends EventEmitter
                         if err
                             cb(err)
                         else if not exists
-                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get_doc().slice(0,80)}...'")
+                            dbg("write '#{path}' to disk from syncstring in-memory database version")
                             @_client.write_file
                                 path : path
                                 data : @to_str()
