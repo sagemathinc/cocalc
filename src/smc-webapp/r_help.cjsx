@@ -234,24 +234,23 @@ ABOUT_SECTION =
     legal :
         <span>
             <a target='_blank' href='/policies/index.html'>
-                LEGAL: Terms of Service, Pricing, Copyright and Privacy policies
+                Terms of Service, Pricing, Copyright and Privacy policies
             </a>
         </span>
     developers :
         <span>
-            <a target='_blank' href='http://wstein.org'>William Stein</a> and <a target='_blank' href='http://harald.schil.ly/'>
-            Harald Schilly</a> develop and run <SiteName/>, and <a href='https://github.com/sagemathinc/smc/graphs/contributors' target='_blank'>many people  contribute code</a>
+            Core fulltime developers: John Jeng, <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>, <a target="_blank" href='https://twitter.com/haldroid?lang=en'>Hal Snyder</a>, <a target='_blank' href='http://wstein.org'>William Stein</a>
         </span>
-    funding :
-        <span>
-            <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
-        </span>
-    launched :
-        <span>
-            <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
-            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
-            Education Grant program</a>
-        </span>
+    #funding :
+    #    <span>
+    #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
+    #    </span>
+    #launched :
+    #    <span>
+    #        <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
+    #        <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
+    #        Education Grant program</a>
+    #    </span>
     incorporated :
         'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
 
