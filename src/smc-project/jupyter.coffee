@@ -29,14 +29,18 @@ exports.jupyter_backend = (syncdb, client) ->
 
 exports.kernel = (opts) ->
     opts = defaults opts,
-        name : required   # name of the kernel as a string
-    return new Kernel(opts.name)
+        name   : required   # name of the kernel as a string
+        client : required
+    return new Kernel(opts.name, opts.client.dbg)
 
 class Kernel extends EventEmitter
-    constructor : (@name) ->
+    constructor : (@name, @_dbg) ->
+        dbg = @dbg('constructor')
         @_state = 'init'
         @_identity = misc.uuid()
+        dbg('spawning kernel')
         require('spawnteract').launch(@name).then (kernel) =>
+            dbg("got kernel; creating channels")
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
@@ -44,15 +48,26 @@ class Kernel extends EventEmitter
             @_state = 'running'
             @emit('init')
 
+            # kill this kernel no matter what if process exits.
+            process.on('exit', @close)
+
+    dbg: (f) =>
+        if not @_dbg?
+            return ->
+        else
+            return @_dbg("jupyter.Kernel('#{@name}').#{f}")
+
     execute_code: (opts) =>
         opts = defaults opts,
             code : required
             cb   : required    # this happens **repeatedly**:  cb(undefined, output message)
+        dbg = @dbg("execute_code")
+        dbg("code='#{opts.code}'")
         if not @_channels?
             if @_state == 'closed'
                 opts.cb("closed")
             else
-                # wait until kernel/channels are setup, then try again.
+                dbg("wait until kernel/channels are setup, then try again.")
                 @once('init', => @execute_code(opts))
             return
         message =
@@ -71,18 +86,21 @@ class Kernel extends EventEmitter
 
         # setup handling of the results
         f = (mesg) =>
+            dbg("got message -- #{JSON.stringify(mesg)}")
             if mesg.parent_header.msg_id == message.header.msg_id
                 if mesg.content?.execution_state == 'idle'
                     @removeListener('iopub', f)
                 opts.cb(undefined, misc.copy_with(mesg,['metadata', 'content', 'buffers']))
         @on('iopub', f)
 
-        # send the message
+        dbg("send the message")
         @_channels.shell.next(message)
 
     close: =>
+        @dbg("close")()
         if @_state == 'closed'
             return
+        process.removeListener('exit', @close)
         if @_kernel?
             @_kernel.spawn.kill()
             fs.unlink(@_kernel.connectionFile)

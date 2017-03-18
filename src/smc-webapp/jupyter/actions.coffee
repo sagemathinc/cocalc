@@ -652,6 +652,30 @@ class exports.JupyterActions extends Actions
     unregister_input_editor: (id) =>
         delete @_input_editors?[id]
 
+
+    set_kernel: (kernel) =>
+        @_set
+            type   : 'settings'
+            kernel : kernel
+
+    # Run by the manager to set the available kernels
+    init_kernels: =>
+        if not jupyter_kernels?
+            @_client.shell
+                command : 'jupyter'
+                args    : ['kernelspec', 'list']
+                cb      : (err, output) =>
+                    if err
+                        return
+                    jupyter_kernels = (misc.split(x)[0].trim() for x in output.stdout.trim().split('\n').slice(1))
+                    @init_kernels()
+        else
+            @_set
+                type    : 'config'
+                id      : 'kernels'
+                kernels : jupyter_kernels
+
+
     ###
     MANAGE:
 
@@ -668,22 +692,6 @@ class exports.JupyterActions extends Actions
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
         @init_kernels()
-
-    init_kernels: =>
-        if not jupyter_kernels?
-            @_client.shell
-                command : 'jupyter'
-                args    : ['kernelspec', 'list']
-                cb      : (err, output) =>
-                    if err
-                        return
-                    jupyter_kernels = (misc.split(x)[0].trim() for x in output.stdout.trim().split('\n').slice(1))
-                    @init_kernels()
-        else
-            @_set
-                type    : 'config'
-                id      : 'kernels'
-                kernels : jupyter_kernels
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.

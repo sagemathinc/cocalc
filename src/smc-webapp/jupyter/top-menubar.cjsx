@@ -10,12 +10,13 @@ File, Edit, etc....
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-OPACITY='.93'
+OPACITY='.9'
 
 exports.TopMenubar = rclass ({name}) ->
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
-            next.kernels != @props.kernels
+            next.kernels != @props.kernels or \
+            next.kernel != @props.kernel
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -23,6 +24,7 @@ exports.TopMenubar = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             kernels             : rtypes.immutable.List
+            kernel              : rtypes.string
             has_unsaved_changes : rtypes.bool
 
     render_file: ->
@@ -30,7 +32,7 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
                 File
             </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY} >
+            <Dropdown.Menu >
                 <MenuItem eventKey="new">New Notebook...</MenuItem>
                 <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
                 <MenuItem divider />
@@ -152,19 +154,32 @@ exports.TopMenubar = rclass ({name}) ->
         </Dropdown>
 
     # TODO: upper case kernel names, descriptions... ?
+    render_kernel_item: (kernel) ->
+        style = {marginLeft:'4ex'}
+        if kernel == @props.kernel
+            style.color = '#2196F3'
+            style.fontWeight = 'bold'
+        <MenuItem
+            key      = {kernel}
+            eventKey = "kernel-change-#{kernel}"
+            onSelect = {=>@props.actions.set_kernel(kernel)}
+            >
+            <span style={style}> {kernel} </span>
+        </MenuItem>
+
     render_kernel_items: ->
         if not @props.kernels?
             return
         else
             for kernel in @props.kernels.toJS()
-                <MenuItem key={kernel} eventKey="kernel-change-#{kernel}"><span style={marginLeft:'4ex'}/> {kernel} </MenuItem>
+                @render_kernel_item(kernel)
 
     render_kernel: ->
         <Dropdown key='kernel'  id='menu-kernel'>
             <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
                 Kernel
             </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
+            <Dropdown.Menu>
                 <MenuItem eventKey="kernel-interrupt">Inerrrupt</MenuItem>
                 <MenuItem eventKey="kernel-restart">Restart</MenuItem>
                 <MenuItem eventKey="kernel-restart-clear">Restart & Clear Output</MenuItem>
@@ -193,7 +208,7 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
                 Help
             </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
+            <Dropdown.Menu>
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />

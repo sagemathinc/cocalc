@@ -635,6 +635,7 @@ class exports.Client extends EventEmitter
 
     # returns a Jupyter kernel session
     jupyter_kernel: (opts) =>
+        opts.client = @
         return jupyter.kernel(opts)
 
     # Watch for changes to the given file.  Returns obj, which
