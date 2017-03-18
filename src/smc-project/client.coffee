@@ -52,7 +52,7 @@ db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
 
-{jupyter_backend} = require('./jupyter')
+jupyter = require('./jupyter')
 
 {json} = require('./common')
 
@@ -244,7 +244,7 @@ class exports.Client extends EventEmitter
 
                             switch ext
                                 when 'sage-ipython'
-                                    jupyter_backend(ss, @)
+                                    jupyter.jupyter_backend(ss, @)
 
                     )
             return  # so map doesn't terminate due to funny return value
@@ -484,7 +484,6 @@ class exports.Client extends EventEmitter
     sync_string: (opts) =>
         opts = defaults opts,
             path            : required
-            change_throttle : 0      # amount to throttle change events (in ms)
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
         opts.client = @
@@ -633,6 +632,10 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
+
+    # returns a Jupyter kernel session
+    jupyter_kernel: (opts) =>
+        return jupyter.kernel(opts)
 
     # Watch for changes to the given file.  Returns obj, which
     # is an event emitter with events:

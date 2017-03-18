@@ -36,7 +36,7 @@ exports.CellOutput = rclass
         if @props.cell.get('collapsed')
             return @render_collapsed()
         else
-            output = JSON.stringify(@props.cell.get('output').toJS())
+            output = (JSON.stringify(x) for x in @props.cell.get('output').toJS()).join('\n')
             <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
                 {output}
             </pre>

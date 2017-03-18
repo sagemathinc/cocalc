@@ -298,7 +298,7 @@ class exports.JupyterActions extends Actions
         @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
-        @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
+        @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
 
     _delete: (obj, save=true) =>
         if @_closed
@@ -702,17 +702,32 @@ class exports.JupyterActions extends Actions
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell")
         dbg()
-        cell = @store.get('cells').get(id)
-        input = (cell.get('input') ? '').trim()
+        cell   = @store.get('cells').get(id)
+        input  = (cell.get('input') ? '').trim()
+        kernel = @store.get('kernel') ? 'python3'  # TODO...
+
         if input.length == 0
             @_set
                 type   : 'cell'
                 id     : id
                 state  : null
+                kernel : kernel
                 output : []
             return
+        if not kernel
+            @_set
+                type   : 'cell'
+                id     : id
+                state  : null
+                output : [{error:'set a valid kernel'}]
+            return
 
-        @_sage_session ?= @_client.sage_session(path : @_directory)
+        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
+        if @_jupyter_kernel.name != kernel
+            # user has since changed the kernel, so close this one and make a new one
+            @_jupyter_kernel.close()
+            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
+
         outputs = []
         state = 'running'
         report_started = =>
@@ -723,12 +738,47 @@ class exports.JupyterActions extends Actions
                 type   : 'cell'
                 id     : id
                 state  : 'running'
+                kernel : kernel
                 output : outputs
         # If there was no output during the first few ms, we set the start to running
         # and start reporting output.  We don't just do this immediately, since that's
         # a waste of time, as very often the whole computation takes little time.
         setTimeout(report_started, 200)
 
+        @_jupyter_kernel.execute_code
+            code : input
+            cb   : (err, mesg) =>
+                if err
+                    # TODO
+                    @_set
+                        type   : 'cell'
+                        id     : id
+                        state  : 'done'
+                        kernel : kernel
+                        output : [{error:err}]
+                    return
+                dbg("got mesg='#{JSON.stringify(mesg)}'")
+                if mesg.content.execution_state == 'idle'
+                    state = 'done'
+                mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code', 'execution_count'])
+                for k, v of mesg.content
+                    if misc.is_object(v) and misc.len(v) == 0
+                        delete mesg.content[k]
+                if misc.len(mesg.content) > 0
+                    if misc.len(mesg.metadata) == 0
+                        delete mesg.metadata
+                    if misc.len(mesg.buffers) == 0
+                        delete mesg.buffers
+                    outputs.push(mesg)
+                @_set
+                    type   : 'cell'
+                    id     : id
+                    state  : state
+                    kernel : kernel
+                    output : outputs
+
+
+        ###
         dbg("calling sage_session")
         @_sage_session.call
             input :
@@ -747,3 +797,4 @@ class exports.JupyterActions extends Actions
                     id     : id
                     state  : state
                     output : outputs
+        ###
