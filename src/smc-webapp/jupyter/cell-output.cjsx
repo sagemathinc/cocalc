@@ -4,30 +4,7 @@ React component that describes the output of a cell
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-{CellOutputMessage} = require('./cell-output-message')
-
-CellOutputMessages = rclass
-    propTypes :
-        output : rtypes.immutable.Map.isRequired  # the actual messages
-
-    shouldComponentUpdate: (next) ->
-        return next.output != @props.output
-
-    render_output_message: (n) ->
-        msg = @props.output.get("#{n}")
-        if not msg?
-            return
-        <CellOutputMessage
-            key     = {n}
-            message = {msg}
-        />
-
-    render: ->
-        v = (@render_output_message(n) for n in [0...@props.output.size])
-        <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
-            {v}
-        </div>
-
+{CellOutputMessages} = require('./cell-output-message')
 
 exports.CellOutput = rclass
     propTypes :

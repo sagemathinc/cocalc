@@ -73,14 +73,14 @@ class Kernel extends EventEmitter
         message =
             header:
                 msg_id   : "execute_#{misc.uuid()}"
-                username : 'cocalc'
+                username : ''
                 session  : ''
                 msg_type : 'execute_request'
                 version  : '5.0'
             content:
                 code             : opts.code
                 silent           : false
-                store_history    : false
+                store_history    : true   # so execution_count is updated.
                 user_expressions : {}
                 allow_stdin      : false
 

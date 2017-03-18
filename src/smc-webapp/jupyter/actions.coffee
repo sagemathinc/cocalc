@@ -766,30 +766,30 @@ class exports.JupyterActions extends Actions
 
         @_jupyter_kernel.execute_code
             code : input
-            cb   : (err, msg) =>
-                dbg("got msg='#{JSON.stringify(msg)}'")
+            cb   : (err, mesg) =>
+                dbg("got mesg='#{JSON.stringify(mesg)}'")
                 if err
-                    msg = {error:err}
+                    mesg = {error:err}
                     state = 'done'
                     set_cell()
-                else if msg.content.execution_state == 'idle'
+                else if mesg.content.execution_state == 'idle'
                     state = 'done'
                     set_cell()
                 if not err
-                    if msg.content.execution_count?
-                        exec_count = msg.content.execution_count
-                    msg.content = misc.copy_without(msg.content, ['execution_state', 'code', 'execution_count'])
-                    for k, v of msg.content
+                    if mesg.content.execution_count?
+                        exec_count = mesg.content.execution_count
+                    mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code', 'execution_count'])
+                    for k, v of mesg.content
                         if misc.is_object(v) and misc.len(v) == 0
-                            delete msg.content[k]
-                    if misc.len(msg.metadata) > 0
-                        msg.content.metadata = msg.metadata
-                    if misc.len(msg.buffers) > 0
-                        msg.content.buffers = msg.buffers
-                    if misc.len(msg.content) == 0
+                            delete mesg.content[k]
+                    if misc.len(mesg.metadata) > 0
+                        mesg.content.metadata = mesg.metadata
+                    if misc.len(mesg.buffers) > 0
+                        mesg.content.buffers = mesg.buffers
+                    if misc.len(mesg.content) == 0
                         # nothing to send.
                         return
-                outputs[n] = msg.content
+                outputs[n] = mesg.content
                 n += 1
                 set_cell()
 
