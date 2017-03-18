@@ -6,10 +6,11 @@ misc = require('smc-util/misc')
 LEFT='17px'
 
 STDOUT_STYLE =
-    whiteSpace  : 'pre-wrap'
-    fontFamily  : 'monospace'
-    paddingTop  : '5px'
-    paddingLeft : LEFT
+    whiteSpace    : 'pre-wrap'
+    fontFamily    : 'monospace'
+    paddingTop    : '5px'
+    paddingBottom : '5px'
+    paddingLeft   : LEFT
 
 STDERR_STYLE = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 
@@ -50,6 +51,27 @@ Data = rclass
         else
             <pre>Unsupported message: {text}</pre>
 
+Ansi = require('ansi-to-react')
+
+Traceback = rclass
+    propTypes :
+        message : rtypes.immutable.Map.isRequired
+
+    mixins: [ImmutablePureRenderMixin]
+
+    render: ->
+        v = []
+        n = 0
+        @props.message.get('traceback').forEach (x) ->
+            console.log("x='#{x}'", typeof(x), x)
+            v.push(<Ansi key={n}>{x}</Ansi>)
+            n += 1
+            return
+        <div style={STDOUT_STYLE}>
+            {v}
+        </div>
+
+
 NotImplemented = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
@@ -61,15 +83,17 @@ NotImplemented = rclass
             {JSON.stringify(@props.message.toJS())}
         </pre>
 
+
+
 message_component = (message) ->
-    name = message.get('name')
-    if name == 'stdout'
+    if message.get('name') == 'stdout'
         return Stdout
-    else if name == 'stderr'
+    if message.get('name') == 'stderr'
         return Stderr
-    data = message.get('data')
-    if data?
+    if message.get('data')?
         return Data
+    if message.get('traceback')?
+        return Traceback
     return NotImplemented
 
 CellOutputMessage = rclass
@@ -100,6 +124,7 @@ exports.CellOutputMessages = rclass
     message_list: ->
         v = []
         k = 0
+        # TODO: use caching to make this more efficient...
         # combine stdout and stderr messages...
         for n in [0...@props.output.size]
             mesg = @props.output.get("#{n}")
