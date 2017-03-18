@@ -659,9 +659,9 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.time_sent(t)
 
-    show_history: =>
+    show_history: (opts) =>
         @_check()
-        return @_doc.show_history()
+        return @_doc.show_history(opts)
 
     has_full_history: =>
         @_check()

@@ -4,6 +4,8 @@ React component that describes the output of a cell
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{CellOutputMessage} = require('./cell-output-message')
+
 exports.CellOutput = rclass
     propTypes :
         cell : rtypes.immutable.Map.isRequired
@@ -12,6 +14,8 @@ exports.CellOutput = rclass
         if next.cell.get('collapsed') != @props.cell.get('collapsed')
             return true
         if next.cell.get('scrolled') != @props.cell.get('scrolled')
+            return true
+        if next.cell.get('exec_count') != @props.cell.get('exec_count')
             return true
         new_output = next.cell.get('output')
         cur_output = @props.cell.get('output')
@@ -22,8 +26,8 @@ exports.CellOutput = rclass
         return not new_output.equals(cur_output)
 
     render_output_prompt: ->
-        n = @props.cell.get('number')
-        if not n
+        n = @props.cell.get('exec_count')
+        if not n?
             return
         <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em', paddingBottom:0}>
             Out[{n}]:
@@ -32,14 +36,26 @@ exports.CellOutput = rclass
     render_collapsed: ->
         <div>collapsed (todo)</div>
 
+    render_output_message: (n) ->
+        msg = @props.cell.getIn(['output', "#{n}"])
+        if not msg?
+            return
+        <CellOutputMessage
+            key     = {n}
+            message = {msg}
+        />
+
     render_output_value: ->
         if @props.cell.get('collapsed')
             return @render_collapsed()
         else
-            output = (JSON.stringify(x) for x in @props.cell.get('output').toJS()).join('\n')
-            <pre style={width:'100%', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
-                {output}
-            </pre>
+            output = @props.cell.get('output')
+            if not output?
+                return
+            v = (@render_output_message(n) for n in [0...output.size])
+            <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
+                {v}
+            </div>
 
     render: ->
         if not @props.cell.get('output')?

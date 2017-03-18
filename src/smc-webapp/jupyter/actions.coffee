@@ -442,10 +442,11 @@ class exports.JupyterActions extends Actions
 
     run_code_cell: (id) =>
         @_set
-            type   : 'cell'
-            id     : id
-            state  : 'start'
-            output : []
+            type       : 'cell'
+            id         : id
+            state      : 'start'
+            exec_count : null
+            output     : null
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -710,25 +711,10 @@ class exports.JupyterActions extends Actions
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell")
         dbg()
-        cell   = @store.get('cells').get(id)
-        input  = (cell.get('input') ? '').trim()
-        kernel = @store.get('kernel') ? 'python3'  # TODO...
 
-        if input.length == 0
-            @_set
-                type   : 'cell'
-                id     : id
-                state  : null
-                kernel : kernel
-                output : []
-            return
-        if not kernel
-            @_set
-                type   : 'cell'
-                id     : id
-                state  : null
-                output : [{error:'set a valid kernel'}]
-            return
+        cell       = @store.get('cells').get(id)
+        input      = (cell.get('input') ? '').trim()
+        kernel     = @store.get('kernel') ? 'python3'  # TODO...
 
         @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
         if @_jupyter_kernel.name != kernel
@@ -736,18 +722,25 @@ class exports.JupyterActions extends Actions
             @_jupyter_kernel.close()
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
 
-        outputs = []
-        state = 'running'
+        # For efficiency reasons (involving syncdb patch sizes),
+        # outputs is a map from the (string representations of) the numbers
+        # from 0 to n-1, where there are n messages.
+        outputs    = {}
+        exec_count = null
+        n          = 0
+        state      = 'running'
         report_started = =>
-            if outputs.length > 0
+            if n > 0
                 # do nothing -- already getting output
                 return
             @_set
-                type   : 'cell'
-                id     : id
-                state  : 'running'
-                kernel : kernel
-                output : outputs
+                type       : 'cell'
+                id         : id
+                state      : state
+                kernel     : kernel
+                output     : outputs
+                exec_count : exec_count
+
         # If there was no output during the first few ms, we set the start to running
         # and start reporting output.  We don't just do this immediately, since that's
         # a waste of time, as very often the whole computation takes little time.
@@ -755,36 +748,36 @@ class exports.JupyterActions extends Actions
 
         @_jupyter_kernel.execute_code
             code : input
-            cb   : (err, mesg) =>
+            cb   : (err, msg) =>
+                dbg("got msg='#{JSON.stringify(msg)}'")
                 if err
-                    # TODO
-                    @_set
-                        type   : 'cell'
-                        id     : id
-                        state  : 'done'
-                        kernel : kernel
-                        output : [{error:err}]
-                    return
-                dbg("got mesg='#{JSON.stringify(mesg)}'")
-                if mesg.content.execution_state == 'idle'
+                    msg = {error:err}
                     state = 'done'
-                mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code', 'execution_count'])
-                for k, v of mesg.content
-                    if misc.is_object(v) and misc.len(v) == 0
-                        delete mesg.content[k]
-                if misc.len(mesg.content) > 0
-                    if misc.len(mesg.metadata) == 0
-                        delete mesg.metadata
-                    if misc.len(mesg.buffers) == 0
-                        delete mesg.buffers
-                    outputs.push(mesg)
+                else if msg.content.execution_state == 'idle'
+                    state = 'done'
+                if not err
+                    if msg.content.execution_count?
+                        exec_count = msg.content.execution_count
+                    msg.content = misc.copy_without(msg.content, ['execution_state', 'code', 'execution_count'])
+                    for k, v of msg.content
+                        if misc.is_object(v) and misc.len(v) == 0
+                            delete msg.content[k]
+                    if misc.len(msg.metadata) > 0
+                        msg.content.metadata = msg.metadata
+                    if misc.len(msg.buffers) > 0
+                        msg.content.buffers = msg.buffers
+                    if misc.len(msg.content) == 0
+                        # nothing left to send!
+                        return
+                outputs[n] = msg.content
+                n += 1
                 @_set
-                    type   : 'cell'
-                    id     : id
-                    state  : state
-                    kernel : kernel
-                    output : outputs
-
+                    type       : 'cell'
+                    id         : id
+                    state      : state
+                    kernel     : kernel
+                    output     : outputs
+                    exec_count : exec_count
 
         ###
         dbg("calling sage_session")

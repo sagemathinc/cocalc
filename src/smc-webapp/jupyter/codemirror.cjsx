@@ -110,7 +110,7 @@ exports.CodeMirrorEditor = rclass
         enable_folding(options)
         options.extraKeys["Shift-Enter"] = @run_cell
         @cm = CodeMirror.fromTextArea(node, options)
-        $(@cm.getWrapperElement()).css(height: 'auto')
+        $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
