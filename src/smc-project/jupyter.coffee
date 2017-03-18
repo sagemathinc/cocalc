@@ -25,7 +25,7 @@ exports.jupyter_backend = (syncdb, client) ->
     actions._init(project_id, path, syncdb, store, client)
 
     syncdb.once 'init', (err) ->
-        dbg('syncdb init complete #{err}')
+        dbg("syncdb init complete -- #{err}")
 
 exports.kernel = (opts) ->
     opts = defaults opts,
@@ -74,7 +74,7 @@ class Kernel extends EventEmitter
             header:
                 msg_id   : "execute_#{misc.uuid()}"
                 username : 'cocalc'
-                session  : '00000000-0000-0000-0000-000000000000'
+                session  : ''
                 msg_type : 'execute_request'
                 version  : '5.0'
             content:

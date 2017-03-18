@@ -675,6 +675,8 @@ class exports.JupyterActions extends Actions
                 type    : 'config'
                 id      : 'kernels'
                 kernels : jupyter_kernels
+            if not @store.get('kernel')
+                @set_kernel('python2')  # TODO -- need a meaningful default.
 
 
     ###
@@ -700,21 +702,27 @@ class exports.JupyterActions extends Actions
     # gets computed, that all positions are unique, that there is a
     # cell, etc.  Only one client will run this code.
     manage_on_cell_change: (id, new_cell, old_cell) =>
+        @_running_cells ?= {}
         if not new_cell?
             # delete cell -- if it was running, stop it.
             # TODO
             return
         if new_cell.get('state') == 'start'
-            @manager_run_cell(id)
+            # Use a lock to ensure that we only start the cell running once
+            # whenever there is a state transition to start.
+            if not @_running_cells[id]
+                # cell not running
+                @_running_cells[id] = true
+                @manager_run_cell(id)
 
     # Runs only on the backend
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell")
         dbg()
 
-        cell       = @store.get('cells').get(id)
-        input      = (cell.get('input') ? '').trim()
-        kernel     = @store.get('kernel') ? 'python3'  # TODO...
+        cell   = @store.get('cells').get(id)
+        input  = (cell.get('input') ? '').trim()
+        kernel = @store.get('kernel') ? 'python3'  # TODO...
 
         @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
         if @_jupyter_kernel.name != kernel
@@ -729,10 +737,11 @@ class exports.JupyterActions extends Actions
         exec_count = null
         n          = 0
         state      = 'running'
-        report_started = =>
-            if n > 0
-                # do nothing -- already getting output
-                return
+
+        set_cell = =>
+            dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}'")
+            if state == 'done'
+                delete @_running_cells[id]
             @_set
                 type       : 'cell'
                 id         : id
@@ -740,6 +749,12 @@ class exports.JupyterActions extends Actions
                 kernel     : kernel
                 output     : outputs
                 exec_count : exec_count
+
+        report_started = =>
+            if n > 0
+                # do nothing -- already getting output
+                return
+            set_cell()
 
         # If there was no output during the first few ms, we set the start to running
         # and start reporting output.  We don't just do this immediately, since that's
@@ -753,8 +768,10 @@ class exports.JupyterActions extends Actions
                 if err
                     msg = {error:err}
                     state = 'done'
+                    set_cell()
                 else if msg.content.execution_state == 'idle'
                     state = 'done'
+                    set_cell()
                 if not err
                     if msg.content.execution_count?
                         exec_count = msg.content.execution_count
@@ -767,17 +784,11 @@ class exports.JupyterActions extends Actions
                     if misc.len(msg.buffers) > 0
                         msg.content.buffers = msg.buffers
                     if misc.len(msg.content) == 0
-                        # nothing left to send!
+                        # nothing to send.
                         return
                 outputs[n] = msg.content
                 n += 1
-                @_set
-                    type       : 'cell'
-                    id         : id
-                    state      : state
-                    kernel     : kernel
-                    output     : outputs
-                    exec_count : exec_count
+                set_cell()
 
         ###
         dbg("calling sage_session")
