@@ -121,25 +121,29 @@ exports.Icon = Icon = rclass
 
     render: ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
-        # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'fa-'
-            classNames = "fa #{name}"
+        if name.slice(0, 3) == 'cc-'
+            classNames = "cc-icons #{name}"
+            # the cocalc icon font can't do any extra tricks
         else
-            classNames = "fa fa-#{name}"
-        if size
-            classNames += " fa-#{size}"
-        if rotate
-            classNames += " fa-rotate-#{rotate}"
-        if flip
-            classNames += " fa-flip-#{flip}"
-        if fixedWidth
-            classNames += ' fa-fw'
-        if spin
-            classNames += ' fa-spin'
-        if stack
-            classNames += " fa-stack-#{stack}"
-        if inverse
-            classNames += ' fa-inverse'
+            # temporary until file_associations can be changed
+            if name.slice(0, 3) == 'fa-'
+                classNames = "fa #{name}"
+            else
+                classNames = "fa fa-#{name}"
+            if size
+                classNames += " fa-#{size}"
+            if rotate
+                classNames += " fa-rotate-#{rotate}"
+            if flip
+                classNames += " fa-flip-#{flip}"
+            if fixedWidth
+                classNames += ' fa-fw'
+            if spin
+                classNames += ' fa-spin'
+            if stack
+                classNames += " fa-stack-#{stack}"
+            if inverse
+                classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
         return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>

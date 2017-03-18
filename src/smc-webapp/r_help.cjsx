@@ -134,7 +134,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             </span>
 
     render: ->
-        <Col sm={6} xs={12}>
+        <Col sm={12} md={6}>
             <h3>
                 <Icon name='dashboard' /> Statistics
                 {@render_when_updated()}
@@ -142,7 +142,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             <div>
                 {@render_active_users_stats()}
                 {# @render_active_projects_stats()}
-                <div style={marginTop: 10, textAlign:'center'}>
+                <div style={marginTop: 20, textAlign:'center'}>
                     Recent user activity
                 </div>
                 {@render_recent_usage_stats()}
@@ -213,10 +213,10 @@ CONNECT_LINKS =
 
 THIRD_PARTY =
     sagemath :
-        icon : 'superscript'
+        icon : 'cc-icon-sagemath'
         href : 'http://www.sagemath.org/help.html'
         link : 'SageMath'
-        text : 'documentation, help, support and books'
+        text : <span>documentation, help, support and books</span>
     r :
         icon : 'table'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'

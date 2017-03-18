@@ -464,6 +464,7 @@ module.exports =
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
+            { test: /\.(ttf|eot)$/, loader: "file-loader?name=#{hashname}" },
             # { test: /\.css$/,    loader: 'style!css' },
             { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
             { test: /\.pug$/, loader: 'pug-loader' },
