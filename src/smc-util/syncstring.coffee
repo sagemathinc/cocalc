@@ -1529,10 +1529,10 @@ class SyncDoc extends EventEmitter
                             cb(err)
                         else if not exists
                             dbg("write '#{path}' to disk from syncstring in-memory database version")
-                            data = @to_str() ? ''
+                            data = @to_str() ? ''  # maybe in case of no patches yet (?).
                             @_client.write_file
                                 path : path
-                                data : @to_str()
+                                data : data
                                 cb   : (err) =>
                                     dbg("wrote '#{path}' to disk -- now calling cb")
                                     cb(err)
