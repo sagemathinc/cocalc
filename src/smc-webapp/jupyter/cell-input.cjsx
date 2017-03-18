@@ -34,13 +34,10 @@ exports.CellInput = rclass
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
         n = @props.cell.get('exec_count')
         if not n?
-            switch @props.cell.get('state')
-                when 'start'
-                    n = '-'
-                when 'running'
-                    n = '*'
-                else
-                    n = ' '
+            if @props.cell.get('state')?
+                n = '*'
+            else
+                n = ' '
         <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', paddingRight:'.4em'}>
             In [{n}]:
         </div>

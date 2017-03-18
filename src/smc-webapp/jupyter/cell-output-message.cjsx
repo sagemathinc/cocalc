@@ -9,6 +9,18 @@ Stdout = rclass
             {@props.text}
         </span>
 
+Data = rclass
+    propTypes :
+        data : rtypes.immutable.Map.isRequired
+
+    render: ->
+        text = @props.data.get('text/plain')
+        if text?
+            <span style={whiteSpace: 'pre-wrap', fontFamily:'monospace'}>
+                {text}
+            </span>
+        else
+            <pre>Unsupported message: {text}</pre>
 
 exports.CellOutputMessage = rclass
     propTypes :
@@ -21,6 +33,10 @@ exports.CellOutputMessage = rclass
         name = @props.message.get('name')
         if name == 'stdout'
             return <Stdout text={@props.message.get('text')} />
+
+        data = @props.message.get('data')
+        if data?
+            return <Data data={data} />
 
         <pre>
             {JSON.stringify(@props.message.toJS())}

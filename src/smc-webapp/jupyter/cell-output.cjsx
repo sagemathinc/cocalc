@@ -53,7 +53,7 @@ exports.CellOutput = rclass
             if not output?
                 return
             v = (@render_output_message(n) for n in [0...output.size])
-            <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 0', marginBottom:0}>
+            <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 15px', marginBottom:0}>
                 {v}
             </div>
 
