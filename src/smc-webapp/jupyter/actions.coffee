@@ -228,6 +228,9 @@ class exports.JupyterActions extends Actions
         return
 
     _syncdb_cell_change: (id, new_cell) =>
+        if typeof(id) != 'string'
+            console.warn("ignoring cell with invalid id='#{JSON.stringify(id)}'")
+            return
         cells = @store.get('cells') ? immutable.Map()
         cell_list_needs_recompute = false
         #@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")

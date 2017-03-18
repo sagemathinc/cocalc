@@ -6,6 +6,29 @@ React component that describes the output of a cell
 
 {CellOutputMessage} = require('./cell-output-message')
 
+CellOutputMessages = rclass
+    propTypes :
+        output : rtypes.immutable.Map.isRequired  # the actual messages
+
+    shouldComponentUpdate: (next) ->
+        return next.output != @props.output
+
+    render_output_message: (n) ->
+        msg = @props.output.get("#{n}")
+        if not msg?
+            return
+        <CellOutputMessage
+            key     = {n}
+            message = {msg}
+        />
+
+    render: ->
+        v = (@render_output_message(n) for n in [0...@props.output.size])
+        <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
+            {v}
+        </div>
+
+
 exports.CellOutput = rclass
     propTypes :
         cell : rtypes.immutable.Map.isRequired
@@ -36,15 +59,6 @@ exports.CellOutput = rclass
     render_collapsed: ->
         <div>collapsed (todo)</div>
 
-    render_output_message: (n) ->
-        msg = @props.cell.getIn(['output', "#{n}"])
-        if not msg?
-            return
-        <CellOutputMessage
-            key     = {n}
-            message = {msg}
-        />
-
     render_output_value: ->
         if @props.cell.get('collapsed')
             return @render_collapsed()
@@ -52,10 +66,7 @@ exports.CellOutput = rclass
             output = @props.cell.get('output')
             if not output?
                 return
-            v = (@render_output_message(n) for n in [0...output.size])
-            <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, padding: '9.5px 9.5px 0 15px', marginBottom:0}>
-                {v}
-            </div>
+            return <CellOutputMessages output={output} />
 
     render: ->
         if not @props.cell.get('output')?

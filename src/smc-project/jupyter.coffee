@@ -80,7 +80,7 @@ class Kernel extends EventEmitter
             content:
                 code             : opts.code
                 silent           : false
-                store_history    : true
+                store_history    : false
                 user_expressions : {}
                 allow_stdin      : false
 
