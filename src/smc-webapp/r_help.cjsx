@@ -142,6 +142,9 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             <div>
                 {@render_active_users_stats()}
                 {# @render_active_projects_stats()}
+                <div style={marginTop: 10, textAlign:'center'}>
+                    Recent user activity
+                </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
                 <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
@@ -213,7 +216,7 @@ THIRD_PARTY =
         icon : 'superscript'
         href : 'http://www.sagemath.org/help.html'
         link : 'SageMath'
-        text : 'help and support for SageMath'
+        text : 'documentation, help, support and books'
     r :
         icon : 'table'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
@@ -229,6 +232,11 @@ THIRD_PARTY =
                     <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
                     <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a> and many more
                </span>
+    julia :
+        icon : 'building-o'
+        href : 'http://docs.julialang.org/en/stable/manual/introduction/'
+        link : 'Julia'
+        text : 'programming language for numerical computing'
     tensorflow :
         icon : 'lightbulb-o'
         href : 'https://www.tensorflow.org/get_started/get_started'
