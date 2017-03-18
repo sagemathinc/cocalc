@@ -12,6 +12,7 @@
   "author": "",
   "license": "AGPLv3+",
   "dependencies": {
+    "ansi-to-html": "^0.6.0",
     "expect": "^1.20.2",
     "mocha": "^3.2.0"
   }
