@@ -6,6 +6,8 @@ React component that describes the output of a cell
 
 {CellOutputMessages} = require('./cell-output-message')
 
+{OutputPrompt} = require('./prompt')
+
 exports.CellOutput = rclass
     propTypes :
         cell : rtypes.immutable.Map.isRequired
@@ -28,20 +30,10 @@ exports.CellOutput = rclass
         return not new_output.equals(cur_output)
 
     render_output_prompt: ->
-        # TODO: refactor this and the same code from cell-input into
-        # a new file prompt.cjsx for both input and output.
-        state = @props.cell.get('state')
-        if state == 'start'
-            n = '-'
-        else if state == 'run'
-            n = '*'
-        else
-            n = @props.cell.get('exec_count')
-        if not n?
-            return
-        <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em', paddingBottom:0}>
-            Out[{n}]:
-        </div>
+        <OutputPrompt
+            state      = {@props.cell.get('state')}
+            exec_count = {@props.cell.get('exec_count')}
+        />
 
     render_collapsed: ->
         <div>collapsed (todo)</div>

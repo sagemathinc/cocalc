@@ -8,13 +8,15 @@ immutable = require('immutable')
 
 {CodeMirrorEditor}  = require('./codemirror')
 
+{InputPrompt} = require('./prompt')
+
 MD_OPTIONS = immutable.fromJS
     indentUnit : 4
     tabSize    : 4
     mode       : {name: "gfm2"}
 
 exports.CellInput = rclass
-    propTypes :
+    propTypes:
         actions     : rtypes.object.isRequired
         cm_options  : rtypes.immutable.Map.isRequired
         cell        : rtypes.immutable.Map.isRequired
@@ -31,18 +33,11 @@ exports.CellInput = rclass
             next.font_size != @props.font_size
 
     render_input_prompt: (type) ->
-        if type != 'code'
-            return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
-        state = @props.cell.get('state')
-        if state == 'start'
-            n = '-'
-        else if state == 'run'
-            n = '*'
-        else
-            n = @props.cell.get('exec_count')
-        <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', paddingRight:'.4em'}>
-            In [{n}]:
-        </div>
+        <InputPrompt
+            type       = {type}
+            state      = {@props.cell.get('state')}
+            exec_count = {@props.cell.get('exec_count')}
+        />
 
     render_input_value: (type) ->
         id = @props.cell.get('id')
