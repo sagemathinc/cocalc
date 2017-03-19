@@ -259,9 +259,26 @@ class exports.Client extends EventEmitter
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
         if DEBUG
-            return (m) -> winston.debug("Client.#{f}: #{m}")
+            return (m...) ->
+                switch m.length
+                    when 0
+                        s = ''
+                    when 1
+                        s = m[0]
+                    else
+                        s = JSON.stringify(m)
+                winston.debug("Client.#{f}: #{s}")
         else
             return (m) ->
+
+    alert_message: (opts) =>
+        opts = defaults opts,
+            type    : 'default'
+            title   : undefined
+            message : required
+            block   : undefined
+            timeout : undefined  # time in seconds
+        @dbg('alert_message')(opts.title, opts.message)
 
     # todo: more could be closed...
     close: () =>
@@ -653,6 +670,7 @@ class exports.Client extends EventEmitter
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
         return new Watcher(path, opts.interval)
+
 
 class Watcher extends EventEmitter
     constructor: (@path, @interval) ->

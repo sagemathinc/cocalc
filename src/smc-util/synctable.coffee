@@ -544,6 +544,8 @@ class SyncTable extends EventEmitter
             cb      : (err) =>
                 if err
                     console.warn("_save('#{@_table}') error:", err)
+                    if err == 'clock'
+                        @_client.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is or was off!  Fix it and **refresh your browser**.")
                     cb?(err)
                 else
                     if @_state == 'closed'

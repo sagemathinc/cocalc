@@ -279,6 +279,9 @@ class Connection extends client.Connection
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
 
+    alert_message: (args...) =>
+        require('./alerts').alert_message(args...)
+
 connection = undefined
 exports.connect = (url) ->
     if connection?

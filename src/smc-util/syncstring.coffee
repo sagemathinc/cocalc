@@ -53,7 +53,7 @@ OFFLINE_THRESH_S = 5*60
 immutable = require('immutable')
 underscore = require('underscore')
 
-node_uuid = require('node-uuid')
+node_uuid = require('uuid')
 async     = require('async')
 
 misc      = require('./misc')

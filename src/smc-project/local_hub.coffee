@@ -20,7 +20,7 @@ async   = require('async')
 fs      = require('fs')
 os      = require('os')
 net     = require('net')
-uuid    = require('node-uuid')
+uuid    = require('uuid')
 winston = require('winston')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
