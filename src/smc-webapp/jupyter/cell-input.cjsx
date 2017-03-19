@@ -34,9 +34,9 @@ exports.CellInput = rclass
         if type != 'code'
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
         state = @props.cell.get('state')
-        if state == 'starting'
+        if state == 'start'
             n = '-'
-        else if state == 'running'
+        else if state == 'run'
             n = '*'
         else
             n = @props.cell.get('exec_count')

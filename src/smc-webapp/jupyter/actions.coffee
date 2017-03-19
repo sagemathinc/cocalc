@@ -447,13 +447,9 @@ class exports.JupyterActions extends Actions
         @_set
             type         : 'cell'
             id           : id
-            exec_request : (@store.getIn(['cells', id, 'exec_request']) ? -1) + 1
             state        : 'start'
             output       : null
             exec_count   : null
-
-    run_code_cell2: (id, n) =>
-        @_set({id:id, type:'cell', exec_request:n, state:'start', exec_count   : null, output:null})
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -712,18 +708,11 @@ class exports.JupyterActions extends Actions
         dbg = @dbg("manage_on_cell_change(id='#{id}')")
         dbg("new_cell='#{misc.to_json(new_cell?.toJS())}',old_cell='#{misc.to_json(old_cell?.toJS())}')")
 
-        @_running_cells ?= {}
-        dbg("@_running_cells=#{misc.to_json(@_running_cells)}")
-
         if not new_cell?
-            delete @_running_cells[id]
-            # delete cell -- if it was running, stop it.
-            # TODO
+            # TODO: delete cell -- if it was running, stop it.
             return
 
-        exec_request = new_cell.get('exec_request')
-        if exec_request? and exec_request > (@_running_cells[id] ? -1)
-            @_running_cells[id] = exec_request
+        if new_cell.get('state') == 'start' and old_cell?.get('state') != 'start'
             @manager_run_cell(id)
             return
 
@@ -747,7 +736,7 @@ class exports.JupyterActions extends Actions
         # from 0 to n-1, where there are n messages.
         outputs    = {}
         exec_count = null
-        state      = 'running'
+        state      = 'run'
         n          = 0
 
         set_cell = =>
@@ -799,24 +788,3 @@ class exports.JupyterActions extends Actions
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()
-
-        ###
-        dbg("calling sage_session")
-        @_sage_session.call
-            input :
-                event    : 'execute_code'
-                code     : input
-                preparse : false
-            cb    : (mesg) =>
-                dbg("got output #{JSON.stringify(mesg)}")
-                delete mesg.event
-                delete mesg.id
-                outputs.push(mesg)
-                if mesg.done
-                    state = 'done'
-                @_set
-                    type   : 'cell'
-                    id     : id
-                    state  : state
-                    output : outputs
-        ###

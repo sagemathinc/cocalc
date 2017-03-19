@@ -17,6 +17,8 @@ exports.CellOutput = rclass
             return true
         if next.cell.get('exec_count') != @props.cell.get('exec_count')
             return true
+        if next.cell.get('state') != @props.cell.get('state')
+            return true
         new_output = next.cell.get('output')
         cur_output = @props.cell.get('output')
         if not new_output?
@@ -26,7 +28,15 @@ exports.CellOutput = rclass
         return not new_output.equals(cur_output)
 
     render_output_prompt: ->
-        n = @props.cell.get('exec_count')
+        # TODO: refactor this and the same code from cell-input into
+        # a new file prompt.cjsx for both input and output.
+        state = @props.cell.get('state')
+        if state == 'start'
+            n = '-'
+        else if state == 'run'
+            n = '*'
+        else
+            n = @props.cell.get('exec_count')
         if not n?
             return
         <div style={color:'#D84315', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', padding:'.4em', paddingBottom:0}>

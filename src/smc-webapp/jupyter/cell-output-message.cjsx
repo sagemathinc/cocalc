@@ -127,6 +127,8 @@ exports.CellOutputMessages = rclass
         # combine stdout and stderr messages...
         for n in [0...@props.output.size]
             mesg = @props.output.get("#{n}")
+            if not mesg?
+                continue
             name = mesg.get('name')
             if k > 0 and (name == 'stdout' or name == 'stderr') and v[k-1].get('name') == name
                 v[k-1] = v[k-1].set('text', v[k-1].get('text') + mesg.get('text'))
