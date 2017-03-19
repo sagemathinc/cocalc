@@ -149,10 +149,19 @@ for ext, mode of codemirror_associations
     if i != -1
         name = name.slice(i+2)
     name = name.replace('src','')
+    icon = switch mode
+                when 'python'
+                    'cc-icon-python'
+                when 'coffeescript'
+                    'fa-coffee'
+                else
+                    'fa-file-code-o'
+    if ext in ['r', 'rmd']
+        icon = 'cc-icon-r'
     file_associations[ext] =
         editor : 'codemirror'
         binary : false
-        icon   : 'fa-file-code-o'
+        icon   : icon
         opts   : {mode:mode}
         name   : name
 
@@ -188,13 +197,13 @@ file_associations['html'] =
 
 file_associations['md'] =
     editor : 'html-md'
-    icon   : 'fa-file-code-o'
+    icon   : 'cc-icon-markdown'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
     name   : "markdown"
 
 file_associations['rmd'] =
     editor : 'html-md'
-    icon   : 'fa-file-code-o'
+    icon   : 'cc-icon-r'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
     name   : "Rmd"
 
@@ -243,7 +252,7 @@ file_associations['term'] =
 
 file_associations['ipynb'] =
     editor : 'ipynb'
-    icon   : 'fa-list-alt'
+    icon   : 'cc-icon-ipynb'
     opts   : {}
     name   : "jupyter notebook"
 
@@ -322,9 +331,11 @@ for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(
     file_associations[ext] = archive_association
 
 file_associations['sage'].name = "sage code"
+file_associations['sage'].icon = 'cc-icon-sagemath'
 
 file_associations['sagews'].name = "sage worksheet"
 file_associations['sagews'].exclude_from_menu = true
+file_associations['sagews'].icon = 'cc-icon-sagemath-file'
 
 initialize_new_file_type_list = () ->
     file_types_so_far = {}

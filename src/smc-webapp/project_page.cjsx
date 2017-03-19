@@ -542,7 +542,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
 
-        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, marginTop: '5px', overflow:'auto'}>
+        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, paddingTop: '5px', overflow:'auto'}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer

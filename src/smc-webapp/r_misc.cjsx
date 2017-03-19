@@ -122,7 +122,7 @@ exports.Icon = Icon = rclass
     render: ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
         if name.slice(0, 3) == 'cc-'
-            classNames = "cc-icons #{name}"
+            classNames = "fa #{name}"
             # the cocalc icon font can't do any extra tricks
         else
             # temporary until file_associations can be changed
@@ -130,20 +130,20 @@ exports.Icon = Icon = rclass
                 classNames = "fa #{name}"
             else
                 classNames = "fa fa-#{name}"
-            if size
-                classNames += " fa-#{size}"
-            if rotate
-                classNames += " fa-rotate-#{rotate}"
-            if flip
-                classNames += " fa-flip-#{flip}"
-            if fixedWidth
-                classNames += ' fa-fw'
-            if spin
-                classNames += ' fa-spin'
-            if stack
-                classNames += " fa-stack-#{stack}"
-            if inverse
-                classNames += ' fa-inverse'
+        if size
+            classNames += " fa-#{size}"
+        if rotate
+            classNames += " fa-rotate-#{rotate}"
+        if flip
+            classNames += " fa-flip-#{flip}"
+        if fixedWidth
+            classNames += ' fa-fw'
+        if spin
+            classNames += ' fa-spin'
+        if stack
+            classNames += " fa-stack-#{stack}"
+        if inverse
+            classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
         return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
