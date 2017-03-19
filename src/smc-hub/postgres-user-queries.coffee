@@ -7,6 +7,9 @@ LICENSE   : AGPLv3
 
 MAX_CHANGEFEEDS_PER_CLIENT = 4*100
 
+# Reject all patches that have timestamp that is more than 3 minutes in the future.
+MAX_PATCH_FUTURE_MS = 1000*60*3
+
 EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
@@ -1358,6 +1361,10 @@ class exports.PostgreSQL extends PostgreSQL
 
     # Verify that writing a patch is allowed.
     _user_set_query_patches_check: (obj, account_id, project_id, cb) =>
+        # Reject any patch that is too new
+        if obj.time - new Date() > MAX_PATCH_FUTURE_MS
+            cb("clock")    # this exact error is assumed in synctable!
+            return
         # Write access
         @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
