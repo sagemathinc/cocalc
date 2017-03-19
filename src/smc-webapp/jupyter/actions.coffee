@@ -445,11 +445,15 @@ class exports.JupyterActions extends Actions
 
     run_code_cell: (id) =>
         @_set
-            type       : 'cell'
-            id         : id
-            state      : 'start'
-            exec_count : null
-            output     : null
+            type         : 'cell'
+            id           : id
+            exec_request : (@store.getIn(['cells', id, 'exec_request']) ? -1) + 1
+            state        : 'start'
+            output       : null
+            exec_count   : null
+
+    run_code_cell2: (id, n) =>
+        @_set({id:id, type:'cell', exec_request:n, state:'start', exec_count   : null, output:null})
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -705,27 +709,32 @@ class exports.JupyterActions extends Actions
     # gets computed, that all positions are unique, that there is a
     # cell, etc.  Only one client will run this code.
     manage_on_cell_change: (id, new_cell, old_cell) =>
+        dbg = @dbg("manage_on_cell_change(id='#{id}')")
+        dbg("new_cell='#{misc.to_json(new_cell?.toJS())}',old_cell='#{misc.to_json(old_cell?.toJS())}')")
+
         @_running_cells ?= {}
+        dbg("@_running_cells=#{misc.to_json(@_running_cells)}")
+
         if not new_cell?
+            delete @_running_cells[id]
             # delete cell -- if it was running, stop it.
             # TODO
             return
-        if new_cell.get('state') == 'start'
-            # Use a lock to ensure that we only start the cell running once
-            # whenever there is a state transition to start.
-            if not @_running_cells[id]
-                # cell not running
-                @_running_cells[id] = true
-                @manager_run_cell(id)
+
+        exec_request = new_cell.get('exec_request')
+        if exec_request? and exec_request > (@_running_cells[id] ? -1)
+            @_running_cells[id] = exec_request
+            @manager_run_cell(id)
+            return
 
     # Runs only on the backend
     manager_run_cell: (id) =>
-        dbg = @dbg("manager_run_cell")
+        dbg = @dbg("manager_run_cell(id='#{id}')")
         dbg()
 
         cell   = @store.get('cells').get(id)
         input  = (cell.get('input') ? '').trim()
-        kernel = @store.get('kernel') ? 'python3'  # TODO...
+        kernel = @store.get('kernel') ? 'python2'  # TODO...
 
         @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
         if @_jupyter_kernel.name != kernel
@@ -738,13 +747,11 @@ class exports.JupyterActions extends Actions
         # from 0 to n-1, where there are n messages.
         outputs    = {}
         exec_count = null
-        n          = 0
         state      = 'running'
+        n          = 0
 
         set_cell = =>
-            dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}'")
-            if state == 'done'
-                delete @_running_cells[id]
+            dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
             @_set
                 type       : 'cell'
                 id         : id
@@ -762,7 +769,7 @@ class exports.JupyterActions extends Actions
         # If there was no output during the first few ms, we set the start to running
         # and start reporting output.  We don't just do this immediately, since that's
         # a waste of time, as very often the whole computation takes little time.
-        setTimeout(report_started, 200)
+        setTimeout(report_started, 250)
 
         @_jupyter_kernel.execute_code
             code : input

@@ -923,6 +923,9 @@ exports.eval_until_defined = (opts) ->
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
+
+# TODO: this is actually throttle, not debounce...
+
 exports.async_debounce = (opts) ->
     opts = defaults opts,
         f        : required   # async function f whose *only* argument is a callback

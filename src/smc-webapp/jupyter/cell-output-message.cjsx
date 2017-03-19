@@ -63,7 +63,6 @@ Traceback = rclass
         v = []
         n = 0
         @props.message.get('traceback').forEach (x) ->
-            console.log("x='#{x}'", typeof(x), x)
             v.push(<Ansi key={n}>{x}</Ansi>)
             n += 1
             return

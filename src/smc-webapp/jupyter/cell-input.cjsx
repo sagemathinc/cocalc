@@ -25,6 +25,7 @@ exports.CellInput = rclass
         return next.cell.get('input') != @props.cell.get('input') or \
             next.cell.get('exec_count') != @props.cell.get('exec_count') or \
             next.cell.get('cell_type') != @props.cell.get('cell_type') or \
+            next.cell.get('state') != @props.cell.get('state') or \
             next.cm_options != @props.cm_options or \
             (next.md_edit_ids != @props.md_edit_ids and next.cell.get('cell_type') == 'markdown') or \
             next.font_size != @props.font_size
@@ -32,12 +33,13 @@ exports.CellInput = rclass
     render_input_prompt: (type) ->
         if type != 'code'
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
-        n = @props.cell.get('exec_count')
-        if not n?
-            if @props.cell.get('state')?
-                n = '*'
-            else
-                n = ' '
+        state = @props.cell.get('state')
+        if state == 'starting'
+            n = '-'
+        else if state == 'running'
+            n = '*'
+        else
+            n = @props.cell.get('exec_count')
         <div style={color:'#303F9F', minWidth: '14ex', fontFamily: 'monospace', textAlign:'right', paddingRight:'.4em'}>
             In [{n}]:
         </div>

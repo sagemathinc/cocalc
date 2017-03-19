@@ -27,11 +27,18 @@ exports.jupyter_backend = (syncdb, client) ->
     syncdb.once 'init', (err) ->
         dbg("syncdb init complete -- #{err}")
 
+# for interactive testing
+class Client
+    dbg: (f) ->
+        return (m) -> console.log("Client.#{f}: ", m)
+
 exports.kernel = (opts) ->
     opts = defaults opts,
         name   : required   # name of the kernel as a string
-        client : required
-    return new Kernel(opts.name, opts.client.dbg)
+        client : undefined
+    if not opts.client?
+        opts.client = new Client()
+    return new Kernel(opts.name, opts.client?.dbg)
 
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
