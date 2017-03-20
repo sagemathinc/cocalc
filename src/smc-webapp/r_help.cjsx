@@ -164,24 +164,24 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
+    teaching :
+        icon : 'graduation-cap'
+        href : 'https://mikecroucher.github.io/SMC_tutorial/'
+        link : <span>How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    teaching :
-        icon : 'graduation-cap'
-        href : 'https://mikecroucher.github.io/SMC_tutorial/'
-        link : <span>How to teach a course with <SiteName/></span>
+    frequently_asked_questions :
+        icon : 'question-circle'
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     courses :
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
-        link :  <span>List of courses that use <SiteName/></span>
+        link :  <span>Courses using <SiteName/></span>
 
 CONNECT_LINKS =
     support_mailing_list :
@@ -210,6 +210,10 @@ CONNECT_LINKS =
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
         text : 'source code, bug tracker and issue database'
+    github_issue_tracker :
+        icon : 'exclamation-circle'
+        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
+        link : 'Bugs'
 
 THIRD_PARTY =
     sagemath :
@@ -287,24 +291,23 @@ ABOUT_SECTION =
         <span>
             <Icon name='cc-icon-section' />
             <a target='_blank' href='/policies/index.html'>
-                LEGAL: Terms of Service, Pricing, Copyright and Privacy policies
+                Terms of Service, Pricing, Copyright and Privacy policies
             </a>
         </span>
     developers :
         <span>
-            <a target='_blank' href='http://wstein.org'>William Stein</a> and <a target='_blank' href='http://harald.schil.ly/'>
-            Harald Schilly</a> develop and run <SiteName/>, and <a href='https://github.com/sagemathinc/cocalc/graphs/contributors' target='_blank'>many people  contribute code</a>
+            Core fulltime developers: John Jeng, <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>, <a target="_blank" href='https://twitter.com/haldroid?lang=en'>Hal Snyder</a>, <a target='_blank' href='http://wstein.org'>William Stein</a>
         </span>
-    funding :
-        <span>
-            <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
-        </span>
-    launched :
-        <span>
-            <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
-            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
-            Education Grant program</a>
-        </span>
+    #funding :
+    #    <span>
+    #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
+    #    </span>
+    #launched :
+    #    <span>
+    #        <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
+    #        <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
+    #        Education Grant program</a>
+    #    </span>
     incorporated :
         'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
 
@@ -532,7 +535,7 @@ exports.HelpPage = HelpPage = rclass
                     <HelpPageUsageSection />
                 </Row>
                 {<HelpPageAboutSection /> if require('./customize').commercial}
-                <HelpPageGettingStartedSection />
+                {# <HelpPageGettingStartedSection /> }
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>

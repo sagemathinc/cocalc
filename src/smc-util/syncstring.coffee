@@ -53,7 +53,7 @@ OFFLINE_THRESH_S = 5*60
 immutable = require('immutable')
 underscore = require('underscore')
 
-node_uuid = require('node-uuid')
+node_uuid = require('uuid')
 async     = require('async')
 
 misc      = require('./misc')
@@ -517,6 +517,9 @@ class SortedPatchList extends EventEmitter
     # we need to worry about for offline patches...
     snapshot_times: =>
         return (x.time for x in @_patches when x.snapshot?)
+
+    newest_patch_time: =>
+        return @_patches[@_patches.length-1]?.time
 
     count: =>
         return @_patches.length
@@ -1164,6 +1167,15 @@ class SyncDoc extends EventEmitter
 
         # now save the resulting patch
         time = @_client.server_time()
+
+        min_time = @_patch_list.newest_patch_time()
+        if min_time? and min_time >= time
+            # Ensure that time is newer than *all* already known times.
+            # This is critical to ensure that patches are saved in order,
+            # and that the new patch we are making is *on top* of all
+            # known patches (otherwise it won't apply cleanly, etc.).
+            time = new Date((min_time - 0) + 1)
+
         time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
 
         # FOR *nasty* worst case DEBUGGING/TESTING ONLY!

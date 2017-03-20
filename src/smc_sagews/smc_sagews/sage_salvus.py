@@ -2490,6 +2490,7 @@ def plot3d_using_matplotlib(expr, rangeX, rangeY,
 
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
+from sage.plot.plot3d.tachyon import Tachyon
 import cgi
 
 def show(*objs, **kwds):
@@ -2583,6 +2584,8 @@ def show(*objs, **kwds):
             else:
                 salvus.threed(obj, **kwds)
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
+        elif isinstance(obj, Tachyon):
+            show_3d_plot_using_tachyon(obj, **kwds)
         elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
             if d3:
                 show_graph_using_d3(obj, **kwds)
@@ -3547,7 +3550,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation, Tachyon)):
         show(obj)
     else:
         _system_sys_displayhook(obj)

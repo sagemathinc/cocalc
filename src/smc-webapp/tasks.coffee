@@ -493,7 +493,7 @@ class TaskList
             else
                 task.desc = ''
             if not skip
-                if count < 50
+                if count < 200
                     @_visible_tasks.push(task)
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 count += 1
