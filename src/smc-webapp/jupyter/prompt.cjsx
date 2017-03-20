@@ -44,9 +44,9 @@ exports.OutputPrompt = rclass
     render: ->
         n = prompt(@props.state, @props.exec_count)
         if not n?
-            return <span/>
-        <div style={OUTPUT_STYLE}>
-            Out[{n}]:
-        </div>
+            return <div style={OUTPUT_STYLE}> </div>
+        else
+            <div style={OUTPUT_STYLE}>
+                Out[{n}]:
+            </div>
 
-        

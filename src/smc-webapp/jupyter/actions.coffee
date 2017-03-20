@@ -790,7 +790,7 @@ class exports.JupyterActions extends Actions
                     if misc.len(mesg.content) == 0
                         # nothing to send.
                         return
-                    jupyter_kernel.process_large_output(mesg.content)
+                    jupyter_kernel.process_output(mesg.content)
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()

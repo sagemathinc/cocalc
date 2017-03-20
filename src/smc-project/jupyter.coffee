@@ -103,7 +103,7 @@ class Kernel extends EventEmitter
         dbg("send the message")
         @_channels.shell.next(message)
 
-    process_large_output: (content) ->
+    process_output: (content) ->
         if @_state == 'closed'
             return
         dbg = @dbg("process_large_output")
@@ -122,6 +122,16 @@ class Kernel extends EventEmitter
         # TODO: actually store images and make available via raw http server
         # TODO: remove other types of output, e.g., big text.  Have UI make
         # it selectively available.
+        # imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
+
+        # We only keep the *left-most* text type, since it provides the richest
+        # representation in the client; there is no need for the others.
+        text_modes = ['text/markdown', 'text/html', 'text/plain', 'text/latex']
+        for i, mode of text_modes
+            if content.data[mode]?
+                for mode2 in text_modes.slice(i+1)
+                    delete content.data[mode2]
+                break
 
     close: =>
         @dbg("close")()
