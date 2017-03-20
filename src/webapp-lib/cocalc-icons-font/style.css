@@ -24,11 +24,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.cc-icon-markdown:before {
-  content: "\e907";
-}
 .cc-icon-r:before {
   content: "\e906";
+}
+.cc-icon-markdown:before {
+  content: "\e907";
 }
 .cc-icon-python:before {
   content: "\e905";
