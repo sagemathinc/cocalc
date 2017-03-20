@@ -267,7 +267,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{s}")
+                winston.debug("Client.#{f}: #{misc.trunc_middle(s,1000)}")
         else
             return (m) ->
 

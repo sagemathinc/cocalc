@@ -731,6 +731,8 @@ class exports.JupyterActions extends Actions
             @_jupyter_kernel.close()
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
 
+        jupyter_kernel = @_jupyter_kernel
+
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
         # from 0 to n-1, where there are n messages.
@@ -760,7 +762,7 @@ class exports.JupyterActions extends Actions
         # a waste of time, as very often the whole computation takes little time.
         setTimeout(report_started, 250)
 
-        @_jupyter_kernel.execute_code
+        jupyter_kernel.execute_code
             code : input
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
@@ -775,6 +777,9 @@ class exports.JupyterActions extends Actions
                     if mesg.content.execution_count?
                         exec_count = mesg.content.execution_count
                     mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code', 'execution_count'])
+                    # TODO: mesg.content isn't a normal javascript object; it's **silently** immutable, which
+                    # is pretty annoying for our use. Investigate.  For now, we just copy it, which is a waste.
+                    mesg.content = misc.deep_copy(mesg.content)
                     for k, v of mesg.content
                         if misc.is_object(v) and misc.len(v) == 0
                             delete mesg.content[k]
@@ -785,6 +790,8 @@ class exports.JupyterActions extends Actions
                     if misc.len(mesg.content) == 0
                         # nothing to send.
                         return
+                    jupyter_kernel.process_large_output(mesg.content)
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()
+

@@ -103,6 +103,26 @@ class Kernel extends EventEmitter
         dbg("send the message")
         @_channels.shell.next(message)
 
+    process_large_output: (content) ->
+        if @_state == 'closed'
+            return
+        dbg = @dbg("process_large_output")
+        dbg(JSON.stringify(content))
+        if not content.data?
+            # todo: FOR now -- later may remove large stdout, stderr, etc...
+            dbg("no data, so nothing to do")
+            return
+        if content.data['image/png']?
+            dbg("there is an image/png")
+            image = content.data['image/png']
+            content.data['image/png'] = 'removed!'
+            dbg("removed img/png -- new content: #{JSON.stringify(content)}")
+        else
+            dbg("no image/png")
+        # TODO: actually store images and make available via raw http server
+        # TODO: remove other types of output, e.g., big text.  Have UI make
+        # it selectively available.
+
     close: =>
         @dbg("close")()
         if @_state == 'closed'
@@ -114,3 +134,21 @@ class Kernel extends EventEmitter
             delete @_kernel
         # TODO -- clean up channels?
         @_state = 'closed'
+
+    export_ipynb: (opts) =>
+        opts = defaults opts,
+            path : required   # path ending in .ipynb
+            cb   : required
+        opts.cb('todo')
+
+    export_pdf: (opts) =>
+        opts = defaults opts,
+            path : required   # path ending in .pdf
+            cb   : required
+        opts.cb('todo')
+
+    export_py: (opts) =>
+        opts = defaults opts,
+            path : required   # path ending in .py
+            cb   : required
+        opts.cb('todo')
