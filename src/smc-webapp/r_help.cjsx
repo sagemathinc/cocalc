@@ -196,7 +196,7 @@ CONNECT_LINKS =
     twitter :
         icon : 'twitter-square'
         href : 'https://twitter.com/co_calc'
-        link : '@co_calc on twitter'
+        link : 'follow @co_calc on twitter'
     facebook :
         icon : 'facebook-square'
         href : 'https://www.facebook.com/SageMathCloudOnline/'
@@ -256,48 +256,19 @@ THIRD_PARTY =
         link : 'Linux tutorial'
 
 
-LinkList = rclass
-    displayName : 'HelpPage-LinkList'
-
-    propTypes :
-        title : rtypes.string.isRequired
-        icon  : rtypes.string.isRequired
-        links : rtypes.object.isRequired
-
-    render_links: ->
-        {commercial} = require('./customize')
-        for name, data of @props.links
-            if data.commercial and not commercial
-                continue
-            style = misc.copy(li_style)
-            if data.bold
-                style.fontWeight = 'bold'
-            <div key={name} style={style} className={if data.className? then data.className}>
-                <Icon name={data.icon} fixedWidth />{' '}
-                <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
-                   {data.link}
-                </a>
-                {<span style={color:COLORS.GRAY_D}> &mdash; {data.text}</span> if data.text}
-            </div>
-
-    render: ->
-        <Col md={6} sm={12}>
-            <h3> <Icon name={@props.icon} /> {@props.title}</h3>
-            {@render_links()}
-        </Col>
-
-ABOUT_SECTION =
+ABOUT_LINKS =
     legal :
-        <span>
-            <Icon name='cc-icon-section' />
-            <a target='_blank' href='/policies/index.html'>
-                Terms of Service, Pricing, Copyright and Privacy policies
-            </a>
-        </span>
+        icon : 'cc-icon-section'
+        link : 'Terms of Service, Pricing, Copyright and Privacy policies'
+        href : '/policies/index.html'
     developers :
-        <span>
-            Core fulltime developers: John Jeng, <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>, <a target="_blank" href='https://twitter.com/haldroid?lang=en'>Hal Snyder</a>, <a target='_blank' href='http://wstein.org'>William Stein</a>
-        </span>
+        icon : 'keyboard-o'
+        text : <span>
+                Core fulltime developers: John Jeng,{' '}
+                <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
+                <a target="_blank" href='https://twitter.com/haldroid?lang=en'>Hal Snyder</a>,{' '}
+                <a target='_blank' href='http://wstein.org'>William Stein</a>
+               </span>
     #funding :
     #    <span>
     #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
@@ -309,22 +280,46 @@ ABOUT_SECTION =
     #        Education Grant program</a>
     #    </span>
     incorporated :
-        'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        icon : 'gavel'
+        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
 
-HelpPageAboutSection = rclass
-    displayName : 'HelpPage-HelpPageAboutSection'
 
-    get_about_section: ->
-        for name, item of ABOUT_SECTION
-            <div key={name} style={li_style}>
-                {item}
+LinkList = rclass
+    displayName : 'HelpPage-LinkList'
+
+    propTypes :
+        title : rtypes.string.isRequired
+        icon  : rtypes.string.isRequired
+        links : rtypes.object.isRequired
+        width : rtypes.number
+
+    getDefaultProps: ->
+        width : 6
+
+    render_links: ->
+        {commercial} = require('./customize')
+        for name, data of @props.links
+            if data.commercial and not commercial
+                continue
+            style = misc.copy(li_style)
+            if data.bold
+                style.fontWeight = 'bold'
+            <div key={name} style={style} className={if data.className? then data.className}>
+                <Icon name={data.icon} fixedWidth />{' '}
+                { <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
+                   {data.link}
+                </a> if data.href}
+                {<span style={color:COLORS.GRAY_D}>
+                   {<span> &mdash; </span> if data.href }
+                   {data.text}
+                </span> if data.text}
             </div>
 
     render: ->
-        <div>
-            <h3> <Icon name='info-circle' /> About </h3>
-            {@get_about_section()}
-        </div>
+        <Col md={@props.width} sm={12}>
+            <h3> <Icon name={@props.icon} /> {@props.title}</h3>
+            {@render_links()}
+        </Col>
 
 HelpPageGettingStartedSection = rclass
     displayName : 'Help-HelpPageGettingStartedSection'
@@ -509,12 +504,13 @@ exports.HelpPage = HelpPage = rclass
             width           : '100%'
             fontSize        : '115%'
             textAlign       : 'center'
+            marginBottom    : '30px'
 
         {SmcWikiUrl} = require('./customize')
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
-                <h3 style={textAlign: 'center', marginBottom: '25px'}>
-                <img src="#{APP_LOGO}" style={width:'25%', height:'auto'} />
+                <h3 style={textAlign: 'center', marginBottom: '30px'}>
+                <img src="#{APP_LOGO}" style={width:'33%', height:'auto'} />
                 <br/>
                 <SiteDescription/>
                 </h3>
@@ -534,8 +530,10 @@ exports.HelpPage = HelpPage = rclass
                     <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
                     <HelpPageUsageSection />
                 </Row>
-                {<HelpPageAboutSection /> if require('./customize').commercial}
-                {# <HelpPageGettingStartedSection /> }
+                <Row>
+                    {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
+                    {# <HelpPageGettingStartedSection /> }
+                </Row>
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>
