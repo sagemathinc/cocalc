@@ -175,11 +175,11 @@ SUPPORT_LINKS =
         link : 'Pricing and subscription options'
         commercial: true
     teaching :
-        icon : 'users'
+        icon : 'graduation-cap'
         href : 'https://mikecroucher.github.io/SMC_tutorial/'
         link : <span>How to teach a course with <SiteName/></span>
     courses :
-        icon : 'graduation-cap'
+        icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
         link :  <span>List of courses that use <SiteName/></span>
 
@@ -209,7 +209,7 @@ CONNECT_LINKS =
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
-        text : 'Source code, bug tracker and issue database'
+        text : 'source code, bug tracker and issue database'
 
 THIRD_PARTY =
     sagemath :
@@ -218,12 +218,12 @@ THIRD_PARTY =
         link : 'SageMath'
         text : <span>documentation, help, support and books</span>
     r :
-        icon : 'table'
+        icon : 'cc-icon-r'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
         link : 'An Introduction to R'
         text : 'open source statistics software'
     python :
-        icon : 'flask'
+        icon : 'cc-icon-python'
         href : 'http://www.scipy-lectures.org/'
         link : 'Scientific Python'
         text : <span>see also{' '}
@@ -285,6 +285,7 @@ LinkList = rclass
 ABOUT_SECTION =
     legal :
         <span>
+            <Icon name='cc-icon-section' />
             <a target='_blank' href='/policies/index.html'>
                 LEGAL: Terms of Service, Pricing, Copyright and Privacy policies
             </a>
@@ -312,16 +313,14 @@ HelpPageAboutSection = rclass
 
     get_about_section: ->
         for name, item of ABOUT_SECTION
-            <li key={name} style={li_style}>
+            <div key={name} style={li_style}>
                 {item}
-            </li>
+            </div>
 
     render: ->
         <div>
             <h3> <Icon name='info-circle' /> About </h3>
-            <ul>
-                {@get_about_section()}
-            </ul>
+            {@get_about_section()}
         </div>
 
 HelpPageGettingStartedSection = rclass

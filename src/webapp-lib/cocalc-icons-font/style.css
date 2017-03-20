@@ -54,6 +54,9 @@
 .cc-icon-video-camera:before {
   content: "\e914";
 }
+.cc-icon-library:before {
+  content: "\e921";
+}
 .cc-icon-earth:before {
   content: "\e9ca";
 }
