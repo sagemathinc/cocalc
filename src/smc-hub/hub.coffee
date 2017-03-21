@@ -2265,7 +2265,21 @@ init_primus_server = (http_server) ->
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
+
+    recent_clients = {}
     primus_server.on "connection", (conn) ->
+
+        # Small anti DOS measure -- allow at most one connection from a given
+        # ip address every second.
+        ip = conn.address.ip
+        if recent_clients[ip]
+            winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id} -- DENIED due to anti DOS measures")
+            conn.end()
+            return
+        recent_clients[ip] = true
+        setTimeout((->delete recent_clients[ip]), 1000)
+
+        # Now handle the connection
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         f = (data) ->
             id = data.toString()

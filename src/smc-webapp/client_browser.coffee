@@ -134,8 +134,14 @@ class Connection extends client.Connection
 
         delayed_disconnect = undefined
 
-        recconn = (=> if not @_connected then @_conn?.open())
-        disconn = (=> if @_connected then @_conn?.end())
+        reconn = =>
+            if @_connection_is_totally_dead # CRITICAL: See https://github.com/primus/primus#primusopen !!!!!
+                @_conn?.open()
+        reconn = _.throttle(reconn, 10*1000)  # never attempt to reconnect more than once per 10s, no matter what.
+
+        disconn = =>
+            if @_connected
+                @_conn?.end()
 
         @on 'idle', (state) ->
             #console.log("idle state: #{state}")
@@ -150,27 +156,28 @@ class Connection extends client.Connection
                     if delayed_disconnect?
                         clearTimeout(delayed_disconnect)
                         delayed_disconnect = undefined
-                    recconn()
-                    setTimeout(recconn, 2000) # avoid race condition???
+                    reconn()
+                    setTimeout(reconn, 5000) # avoid race condition???
 
-    # periodically check if the user hasn't been active
+    # This is called periodically. If the user hasn't been active
+    # for @_idle_timeout ms, then we emit an idle event.
     _idle_check: =>
+        if not @_idle_time?
+            return
         now = (new Date()).getTime()
         # console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
-            true
-        else
-            false
 
-    # ATTN use @reset_idle, not this one here (see constructor above)
+    # Set @_idle_time to the **moment in in the future** at which the user will be
+    # considered idle, and also emit event indicator using is currently active.
     _idle_reset: =>
-        #if DEBUG
-        #    console.log("idle: client_browser._idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
+        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
-    # called when the user configuration settings are set
+    # Change the standby timeout to a particular time in minutes.
+    # This gets called when the user configuration settings are set/loaded.
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
@@ -200,11 +207,12 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
+            @_connected = true
+            @_connection_is_totally_dead = false
             if @_conn_id?
                 conn.write(@_conn_id)
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
-            @_connected = true
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
@@ -241,6 +249,9 @@ class Connection extends client.Connection
             log("closed")
             @_connected = false
             @emit("disconnected", "close")
+
+        conn.on 'end', =>
+            @_connection_is_totally_dead = true
 
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
