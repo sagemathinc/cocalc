@@ -1164,7 +1164,7 @@ exports.parse_mathjax = (t) ->
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
-                at_end_of_string = j >= t.length
+                at_end_of_string = j > t.length
                 if !(d[0] == "$" and (contains_linebreak or at_end_of_string))
                     v.push([i,j])
                 i = j
