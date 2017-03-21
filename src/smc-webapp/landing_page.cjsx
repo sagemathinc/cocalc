@@ -482,7 +482,7 @@ SMC_Quote = ->
         <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to {DOMAIN_NAME} and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
-        The <a href=''https://mikecroucher.github.io/SMC_tutorial/' target='_blank'>course
+        The <a href='https://mikecroucher.github.io/SMC_tutorial/' target='_blank'>course
         management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
         </p>
         <p style={marginBottom:0} >
