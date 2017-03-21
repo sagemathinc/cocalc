@@ -25,6 +25,7 @@
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
 {Loading, Icon, Tip}   = require('./r_misc')
+{COLORS} = require('smc-util/theme')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -124,12 +125,14 @@ Page = rclass
 
     render_sign_in_tab: ->
         <NavTab
-            name           = 'account'
-            label          = 'Sign in'
-            icon           = 'sign-in'
-            on_click       = {@sign_in_tab_clicked}
-            actions        = {@actions('page')}
-            active_top_tab = {@props.active_top_tab}
+            name            = 'account'
+            label           = 'Sign in'
+            icon            = 'sign-in'
+            on_click        = {@sign_in_tab_clicked}
+            actions         = {@actions('page')}
+            active_top_tab  = {@props.active_top_tab}
+            style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
+            add_inner_style = {color: 'black'}
         />
 
     render_right_nav: ->
@@ -139,7 +142,12 @@ Page = rclass
             {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            {<NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} /> if require('./customize').commercial}
+            {<NavTab
+                label='Help' icon='medkit'
+                actions={@actions('page')}
+                active_top_tab={@props.active_top_tab}
+                on_click={=>redux.getActions('support').show(true)}
+            /> if require('./customize').commercial}
             {<NotificationBell count={@props.get_notify_count()} active={@props.show_file_use} /> if @props.is_logged_in()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>

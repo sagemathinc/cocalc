@@ -24,6 +24,7 @@
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 {salvus_client} = require('./salvus_client')
+misc = require('smc-util/misc')
 
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
@@ -55,14 +56,15 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label          : rtypes.string
-        icon           : rtypes.oneOfType([rtypes.string, rtypes.object])
-        close          : rtypes.bool
-        on_click       : rtypes.func
-        active_top_tab : rtypes.string
-        actions        : rtypes.object
-        style          : rtypes.object
-        inner_style    : rtypes.object
+        label           : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
+        close           : rtypes.bool
+        on_click        : rtypes.func
+        active_top_tab  : rtypes.string
+        actions         : rtypes.object
+        style           : rtypes.object
+        inner_style     : rtypes.object
+        add_inner_style : rtypes.object
 
     make_icon: ->
         if typeof(@props.icon) == 'string'
@@ -99,6 +101,8 @@ exports.NavTab = rclass
         else
             inner_style =
                 padding : '10px'
+        if @props.add_inner_style
+            misc.merge(inner_style, @props.add_inner_style)
 
         <NavItem
             active = {is_active}
