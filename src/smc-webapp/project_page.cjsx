@@ -208,7 +208,7 @@ FreeProjectWarning = rclass ({name}) ->
             paddingRight : 7
             cursor       : 'pointer'
             marginBottom : 0
-            fontSize     : 12
+            fontSize     : '13pt'
         dismiss_styles =
             display    : 'inline-block'
             float      : 'right'
