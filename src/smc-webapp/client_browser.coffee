@@ -175,7 +175,7 @@ class Connection extends client.Connection
     # considered idle, and also emit event indicator using is currently active.
     _idle_reset: =>
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
-        console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
+        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
     # Change the standby timeout to a particular time in minutes.
