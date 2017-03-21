@@ -1118,6 +1118,13 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm().should.eql []
     it "correctly for $", ->
         pm("foo $bar$ batz").should.eql [[4, 9]]
+    it "works regarding issue #1795", ->
+        pm("$x_{x} x_{x}$").should.eql [[0, 13]]
+    it "ignores single $", ->
+        pm("$").should.eql []
+        pm("the amount is $100").should.eql []
+        pm("a $b$ and $").should.eql [[2, 5]]
+        pm("a $b$ and $ ignored").should.eql [[2, 5]]
     it "correctly works for multiline strings", ->
         s = """
             This is a $formula$ or a huge $$formula$$
