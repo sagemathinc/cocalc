@@ -23,6 +23,8 @@ describe 'tests the zoom -- ', ->
     before(setup)
     after(teardown)
 
+    global.localStorage={}
+
     it 'verifies the default zoom of 14', ->
         expect(store.get_font_size()).toBe(14)
 

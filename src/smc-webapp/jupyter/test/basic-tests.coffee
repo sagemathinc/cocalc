@@ -17,7 +17,7 @@ describe 'tests the setup code -- ', ->
 describe 'tests basic use of store -- ', ->
     before(setup)
     after(teardown)
-    
+
     it 'sets something in the store', ->
         actions.setState(test:'value')
         expect(store.get('test')).toBe('value')
@@ -60,4 +60,16 @@ describe 'test cursors positions -- ', ->
         actions.syncdb._doc._users.push(actions.syncdb._doc._users[0])
         actions.syncdb._doc._users.push(actions.syncdb._doc._users[0])
         actions.set_cursor_locs([{id:list[0], x:0, y:0}, {id:list[0], x:2, y:1}])
+
+describe 'test saving scroll position -- ', ->
+    before(setup)
+    after(teardown)
+
+    global.localStorage = {}
+
+    it 'sets the scroll pos', ->
+        actions.set_scroll_state(389.31415)
+
+    it 'gets the scroll pos', ->
+        expect(store.get_scroll_state()).toBe(389.31415)
 
