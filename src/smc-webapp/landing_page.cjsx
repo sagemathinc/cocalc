@@ -26,7 +26,7 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-{HelpPageUsageSection} = require('./r_help')
+{HelpPageUsageSection, ThirdPartySoftware} = require('./r_help')
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
@@ -697,13 +697,10 @@ exports.LandingPage = rclass
                         </Well>
                     </Col>
                 </Row>
-                <Well>
-                    <Row>
-                        <Col sm=12 className='hidden-xs'>
-                            <HelpPageUsageSection />
-                        </Col>
-                    </Row>
-                </Well>
+                <Row className='hidden-xs' style={marginBottom: 20}>
+                    <ThirdPartySoftware />
+                    <HelpPageUsageSection />
+                </Row>
                 <Row>
                     <Col sm=12 className='hidden-xs'>
                         <LandingPageContent />

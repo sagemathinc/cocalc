@@ -209,11 +209,12 @@ CONNECT_LINKS =
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
-        text : 'source code, bug tracker and issue database'
-    github_issue_tracker :
-        icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
-        link : 'Bugs'
+        text : <span>
+                 <a href='https://github.com/sagemathinc/cocalc/src' target='_blank'>source code</a>,{' '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank'>bugs</a>
+                 {' and '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank'>issues</a>
+               </span>
 
 THIRD_PARTY =
     sagemath :
@@ -320,6 +321,11 @@ LinkList = rclass
             <h3> <Icon name={@props.icon} /> {@props.title}</h3>
             {@render_links()}
         </Col>
+
+exports.ThirdPartySoftware = ThirdPartySoftware = rclass
+    displayName : 'Help-ThirdPartySoftware'
+    render: ->
+        <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
 
 HelpPageGettingStartedSection = rclass
     displayName : 'Help-HelpPageGettingStartedSection'
@@ -527,7 +533,7 @@ exports.HelpPage = HelpPage = rclass
                     <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
                 </Row>
                 <Row style={marginTop:'20px'}>
-                    <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+                    <ThirdPartySoftware />
                     <HelpPageUsageSection />
                 </Row>
                 <Row>
