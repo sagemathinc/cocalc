@@ -2270,7 +2270,7 @@ init_primus_server = (http_server) ->
     primus_server.on "connection", (conn) ->
 
         # Small anti DOS measure -- allow at most one connection from a given
-        # ip address every 1s.
+        # ip address every second.
         ip = conn.address.ip
         if recent_clients[ip]
             winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id} -- DENIED due to anti DOS measures")
