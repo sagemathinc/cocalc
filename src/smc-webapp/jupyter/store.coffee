@@ -1,3 +1,5 @@
+misc       = require('smc-util/misc')
+
 {Store}  = require('../smc-react')
 
 # Used for copy/paste.  We make a single global clipboard, so that
@@ -60,7 +62,10 @@ class exports.JupyterStore extends Store
         return @get('cell_list')?.get(i)
 
     get_font_size: =>
-        return @get('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
+        return @get_local_storage('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
+
+    get_scroll_state: =>
+        return @get_local_storage('scroll')
 
     get_cursors: =>
         return @syncdb.get_cursors()
@@ -73,3 +78,9 @@ class exports.JupyterStore extends Store
 
     has_uncommitted_changes: =>
         return @syncdb.has_uncommitted_changes()
+
+    get_local_storage: (key) =>
+        value = localStorage?[@name]
+        if value?
+            return misc.from_json(value)?[key]
+

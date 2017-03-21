@@ -12,20 +12,19 @@ immutable = require('immutable')
 
 exports.CellList = rclass ({name}) ->
     propTypes:
-        actions    : rtypes.object.isRequired
-
-    reduxProps:
-        "#{name}" :
-            cell_list : rtypes.immutable.List  # list of ids of cells in order
-            font_size : rtypes.number
+        actions   : rtypes.object.isRequired
+        cell_list : rtypes.immutable.List.isRequired  # list of ids of cells in order
+        font_size : rtypes.number.isRequired
 
     componentWillUnmount: ->
         # save scroll state
-        @props.actions.setState(scroll_state: ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop)
+        state = ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop
+        if state?
+            @props.actions.set_scroll_state(state)
 
     componentDidMount: ->
         # restore scroll state
-        scrollTop = @props.actions.store.get('scroll_state')
+        scrollTop = @props.actions.store.get_scroll_state()
         if scrollTop?
             ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = scrollTop
 

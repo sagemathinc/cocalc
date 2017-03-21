@@ -25,6 +25,8 @@ exports.JupyterEditor = rclass ({name}) ->
             error               : rtypes.string
             toolbar             : rtypes.bool
             has_unsaved_changes : rtypes.bool
+            cell_list           : rtypes.immutable.List  # list of ids of cells in order
+            font_size           : rtypes.number
 
     render_error: ->
         if @props.error
@@ -53,9 +55,13 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render_cells: ->
+        if not @props.cell_list? or not @props.font_size?
+            return
         <CellList
-            name    = {name}
-            actions = {@props.actions}
+            name      = {name}
+            actions   = {@props.actions}
+            cell_list = {@props.cell_list}
+            font_size = {@props.font_size}
             />
 
     render: ->

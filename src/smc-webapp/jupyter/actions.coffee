@@ -65,7 +65,7 @@ class exports.JupyterActions extends Actions
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
             cm_options          : immutable.fromJS(cm_options)
-            font_size           : @redux?.getStore('account')?.get('font_size') ? 14  # TODO: or local storage...
+            font_size           : store.get_font_size()
 
     dbg: (f) =>
         return @_client.dbg("JupyterActions.#{f}")
@@ -632,13 +632,27 @@ class exports.JupyterActions extends Actions
     set_font_size: (pixels) =>
         @setState
             font_size : pixels
+        # store in localStorage
+        @set_local_storage('font_size', pixels)
+
+    set_local_storage: (key, value) =>
+        if localStorage?
+            current = localStorage[@name]
+            if current?
+                current = misc.from_json(current)
+            else
+                current = {}
+            if value == null
+                delete current[key]
+            else
+                current[key] = value
+            localStorage[@name] = misc.to_json(current)
 
     zoom: (delta) =>
         @set_font_size(@store.get_font_size() + delta)
 
-    save_scroll_state: (state) =>
-        @setState
-            scroll_state : state
+    set_scroll_state: (state) =>
+        @set_local_storage('scroll', state)
 
     # File --> Open: just show the file listing page.
     file_open: =>
