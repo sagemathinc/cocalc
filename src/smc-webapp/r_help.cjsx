@@ -238,10 +238,15 @@ THIRD_PARTY =
                     <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a> and many more
                </span>
     julia :
-        icon : 'building-o'
+        icon : 'cc-icon-julia'
         href : 'http://docs.julialang.org/en/stable/manual/introduction/'
         link : 'Julia'
         text : 'programming language for numerical computing'
+    octave :
+        icon : 'cc-icon-octave'
+        href : 'https://www.gnu.org/software/octave/'
+        link : 'GNU Octave'
+        text : 'scientific programming language, largely compatible with MATLAB'
     tensorflow :
         icon : 'lightbulb-o'
         href : 'https://www.tensorflow.org/get_started/get_started'

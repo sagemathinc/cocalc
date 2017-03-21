@@ -24,6 +24,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.cc-icon-julia:before {
+  content: "\e909";
+}
+.cc-icon-octave:before {
+  content: "\e908";
+}
 .cc-icon-r:before {
   content: "\e906";
 }

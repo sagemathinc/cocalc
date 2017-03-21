@@ -482,7 +482,7 @@ SMC_Quote = ->
         <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
         They just open up a web browser and go to {DOMAIN_NAME} and that’s it. They just type code directly
         in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
-        The <a href='https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md' target='_blank'>course
+        The <a href=''https://mikecroucher.github.io/SMC_tutorial/' target='_blank'>course
         management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
         </p>
         <p style={marginBottom:0} >
@@ -521,7 +521,7 @@ SagePreview = rclass
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
                             Conveniently handout assignments, collect them, grade them, and finally return them.
-                            (<a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank"><SiteName /> used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
+                            (<a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank"><SiteName /> used for Teaching</a> and <a href="https://mikecroucher.github.io/SMC_tutorial/" target="_blank">learn more about courses</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
