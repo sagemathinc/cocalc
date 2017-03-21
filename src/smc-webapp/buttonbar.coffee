@@ -1473,9 +1473,6 @@ initialize_sagews_editor = () ->
 Normal</a></li>")
     elt.prepend(item)
 
-initialize_sagews_editor()
-
-
 
 # Initialize fonts for the editor
 initialize_md_html_editor = () ->
@@ -1498,9 +1495,6 @@ initialize_md_html_editor = () ->
         elt.append($("<li><a href='#format_heading_#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>"))
     elt.append('<li role="presentation" class="divider"></li>')
     elt.append($("<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>"))
-
-
-initialize_md_html_editor()
 
 # adding Python & Sage menu entries programmatically (editing HTML directly is too painful)
 # FUTURE: make a general class for menu entries and hence use these functions for all menu entries?
@@ -1906,8 +1900,6 @@ initialize_sage_python_r_toolbar = () ->
     sh_bar.append(sh_git)
 
 
-initialize_sage_python_r_toolbar()
-
 initialize_latex_buttonbar = () ->
     latexbar = make_bar()
     add_icon(latexbar, "<i class='fa fa-comment'></i>", "#comment", "Comment selected text")
@@ -1953,3 +1945,9 @@ initialize_latex_buttonbar = () ->
 
 # NOT READY YET.
 #initialize_latex_buttonbar()
+
+# used in entry-point
+exports.init_buttonbars = ->
+    initialize_sagews_editor()
+    initialize_md_html_editor()
+    initialize_sage_python_r_toolbar()
