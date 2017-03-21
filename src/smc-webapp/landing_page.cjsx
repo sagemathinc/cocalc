@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculations in the Cloud
 #
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#    Copyright (C) 2015 -- 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+
 ###
 The Landing Page
 ###
@@ -620,7 +621,8 @@ exports.LandingPage = rclass
                 <Row style={backgroundColor : COLORS.LANDING.LOGIN_BAR_BG,\
                             padding         : 5,\
                             margin          : 0,\
-                            borderRadius    : 4,\
+                            marginBottom    : 20,\
+                            borderRadius    : 5,\
                             position        : 'relative',\
                             whiteSpace      : 'nowrap'}
                      className="hidden-xs">
@@ -660,20 +662,17 @@ exports.LandingPage = rclass
                                   backgroundSize   : 'contain',\
                                   backgroundRepeat : 'no-repeat'}>
                       </div>
-                      <div className="hidden-sm"
-                          style={ fontWeight   : "700",\
+                      <div className="hidden-sm">
+                          <SiteDescription
+                              style={ fontWeight   : "700",\
                                   fontSize     : "15px",\
                                   fontFamily   : "sans-serif",\
                                   bottom       : 10,\
                                   left         : UNIT * 7,\
                                   display      : 'inline-block',\
                                   position     : "absolute",\
-                                  color        : "white"}>{APP_TAGLINE}</div>
-                </Row>
-                <Row>
-                    <div className="hidden-xs" style={padding: "#{UNIT}px"}>
-                        <SiteDescription style={color:'#666', fontSize:"#{UNIT}px"} />
-                    </div>
+                                  color        : "white"} />
+                      </div>
                 </Row>
                 <Row>
                     <Col sm=5>
