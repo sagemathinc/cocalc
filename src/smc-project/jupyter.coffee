@@ -9,6 +9,8 @@ fs = require('fs')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
+{blob_store} = require('./jupyter-blobs')
+
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
@@ -97,7 +99,11 @@ class Kernel extends EventEmitter
             if mesg.parent_header.msg_id == message.header.msg_id
                 if mesg.content?.execution_state == 'idle'
                     @removeListener('iopub', f)
-                opts.cb(undefined, misc.copy_with(mesg,['metadata', 'content', 'buffers']))
+                mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
+                # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
+                # is pretty annoying for our use. Investigate.  For now, we just copy it, which is a waste.
+                mesg = misc.deep_copy(mesg)
+                opts.cb(undefined, mesg)
         @on('iopub', f)
 
         dbg("send the message")
@@ -114,8 +120,7 @@ class Kernel extends EventEmitter
             return
         if content.data['image/png']?
             dbg("there is an image/png")
-            image = content.data['image/png']
-            content.data['image/png'] = 'removed!'
+            content.data['image/png'] = blob_store.save(content.data['image/png'])
             dbg("removed img/png -- new content: #{JSON.stringify(content)}")
         else
             dbg("no image/png")
