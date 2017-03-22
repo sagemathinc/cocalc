@@ -813,7 +813,7 @@ exports.ActivityDisplay = rclass
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
             <div key={i} style={activity_item_style} >
-                <Icon name='circle-o-notch' spin /> {trunc(desc)}
+                <Icon style={padding:'2px 1px 1px 2px'} name='circle-o-notch' spin /> {trunc(desc)}
             </div>
 
     render: ->
