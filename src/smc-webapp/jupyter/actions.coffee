@@ -37,6 +37,10 @@ class exports.JupyterActions extends Actions
         @_path       = @store._path = path
         @_directory  = @store._directory = misc.path_split(path)?.head
 
+        if not client.is_project() and window?.$?
+            # frontend browser client with jQuery
+            @set_jupyter_kernels()
+
         #dbg = @dbg("JupyterActions._init")
 
         f = () =>
@@ -77,7 +81,30 @@ class exports.JupyterActions extends Actions
         @_closed = true
         delete @syncdb
 
+    set_jupyter_kernels: =>
+        if jupyter_kernels?
+            @setState(kernels: jupyter_kernels)
+        else
+            $.ajax(
+                url     : @store.get_server_url() + '/kernels.json'
+                timeout : 30000
+                success : (data) =>
+                    try
+                        jupyter_kernels = JSON.parse(data)
+                        @setState(kernels: jupyter_kernels)
+                    catch e
+                        @set_error("Error setting Jupyter kernels -- #{data} #{e}")
+            ).fail () =>
+                console.warn("WARNING: setting Jupyter kernels timed out; trying again in 15s")
+                setTimeout(@set_jupyter_kernels, 15000)
+
     set_error: (err) =>
+        if not err?
+            @setState(err: undefined)
+            return
+        cur = @store.get('error')
+        if cur
+            err = err + '\n\n' + cur
         @setState
             error : err
 
@@ -273,9 +300,6 @@ class exports.JupyterActions extends Actions
                 when 'settings'
                     @setState
                         kernel : record?.get('kernel')
-                when 'config'
-                    @setState
-                        kernels : record?.get('kernels')
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -680,26 +704,6 @@ class exports.JupyterActions extends Actions
             type   : 'settings'
             kernel : kernel
 
-    # Run by the manager to set the available kernels
-    init_kernels: =>
-        if not jupyter_kernels?
-            @_client.shell
-                command : 'jupyter'
-                args    : ['kernelspec', 'list']
-                cb      : (err, output) =>
-                    if err
-                        return
-                    jupyter_kernels = (misc.split(x)[0].trim() for x in output.stdout.trim().split('\n').slice(1))
-                    @init_kernels()
-        else
-            @_set
-                type    : 'config'
-                id      : 'kernels'
-                kernels : jupyter_kernels
-            if not @store.get('kernel')
-                @set_kernel('python2')  # TODO -- need a meaningful default.
-
-
     ###
     MANAGE:
 
@@ -714,8 +718,6 @@ class exports.JupyterActions extends Actions
     initialize_manager: =>
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
-
-        @init_kernels()
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.

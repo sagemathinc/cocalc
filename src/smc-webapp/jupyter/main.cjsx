@@ -16,8 +16,8 @@ Top-level react component, which ties everything together
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
-        error      : rtypes.string
-        actions    : rtypes.object.isRequired
+        error   : rtypes.string
+        actions : rtypes.object.isRequired
 
     reduxProps :
         "#{name}" :
@@ -37,7 +37,7 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_kernel: ->
         <span>
-            <Kernel name={@props.name} />
+            <Kernel name={@props.name} actions={@props.actions} />
             <Mode   name={@props.name} />
         </span>
 

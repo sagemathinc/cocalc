@@ -98,3 +98,6 @@ class exports.JupyterStore extends Store
 
     get_blob_url: (extension, sha1) =>
         return "#{@get_server_url()}/blobs/a.#{extension}?sha1=#{sha1}"
+
+    get_logo_url: (kernel) =>
+        return "#{@get_server_url()}/kernelspecs/#{kernel}/logo-64x64.png"

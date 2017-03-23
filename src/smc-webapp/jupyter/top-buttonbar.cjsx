@@ -129,7 +129,7 @@ exports.TopButtonbar = rclass ({name}) ->
         </ButtonGroup>
 
     render: ->
-        <div style={margin: '5px', backgroundColor:'#fff'}>
+        <div style={margin: '1px 1px 0px 0px', backgroundColor:'#fff'}>
             <Form inline>
                 {@render_add_cell()}
                 {@render_group_edit()}

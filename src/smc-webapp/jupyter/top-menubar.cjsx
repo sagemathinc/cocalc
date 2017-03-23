@@ -153,18 +153,18 @@ exports.TopMenubar = rclass ({name}) ->
             </Dropdown.Menu>
         </Dropdown>
 
-    # TODO: upper case kernel names, descriptions... ?
+    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
     render_kernel_item: (kernel) ->
         style = {marginLeft:'4ex'}
-        if kernel == @props.kernel
+        if kernel.name == @props.kernel
             style.color = '#2196F3'
             style.fontWeight = 'bold'
         <MenuItem
-            key      = {kernel}
-            eventKey = "kernel-change-#{kernel}"
-            onSelect = {=>@props.actions.set_kernel(kernel)}
+            key      = {kernel.name}
+            eventKey = "kernel-change-#{kernel.name}"
+            onSelect = {=>@props.actions.set_kernel(kernel.name)}
             >
-            <span style={style}> {kernel} </span>
+            <span style={style}> {kernel.display_name} </span>
         </MenuItem>
 
     render_kernel_items: ->
@@ -212,24 +212,24 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-notebook-help"><Icon name='external-link'/> Notebook Help</MenuItem>
-                <MenuItem eventKey="help-markdown"><Icon name='external-link'/> Markdown</MenuItem>
+                <MenuItem eventKey="help-notebook-help"> <Icon name='external-link'/> Notebook Help</MenuItem>
+                <MenuItem eventKey="help-markdown">      <Icon name='external-link'/> Markdown</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-python"><Icon name='external-link'/> Python</MenuItem>
-                <MenuItem eventKey="help-ipython"><Icon name='external-link'/> IPython</MenuItem>
-                <MenuItem eventKey="help-numpy"><Icon name='external-link'/> NumPy</MenuItem>
-                <MenuItem eventKey="help-scipy"><Icon name='external-link'/> SciPy</MenuItem>
-                <MenuItem eventKey="help-matplotlib"><Icon name='external-link'/> Matplotlib</MenuItem>
-                <MenuItem eventKey="help-sympy"><Icon name='external-link'/> SymPy</MenuItem>
-                <MenuItem eventKey="help-pandas"><Icon name='external-link'/> Pandas</MenuItem>
-                <MenuItem eventKey="help-sagemath"><Icon name='external-link'/> SageMath</MenuItem>
+                <MenuItem eventKey="help-python">        <Icon name='external-link'/> Python</MenuItem>
+                <MenuItem eventKey="help-ipython">       <Icon name='external-link'/> IPython</MenuItem>
+                <MenuItem eventKey="help-numpy">         <Icon name='external-link'/> NumPy</MenuItem>
+                <MenuItem eventKey="help-scipy">         <Icon name='external-link'/> SciPy</MenuItem>
+                <MenuItem eventKey="help-matplotlib">    <Icon name='external-link'/> Matplotlib</MenuItem>
+                <MenuItem eventKey="help-sympy">         <Icon name='external-link'/> SymPy</MenuItem>
+                <MenuItem eventKey="help-pandas">        <Icon name='external-link'/> Pandas</MenuItem>
+                <MenuItem eventKey="help-sagemath">      <Icon name='external-link'/> SageMath</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="help-about">About</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
     render: ->
-        <div style={backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7'}>
+        <div style={backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7', height:'32px'}>
             <ButtonGroup>
                 {@render_file()}
                 {@render_edit()}

@@ -12,7 +12,7 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-{blob_store} = require('./jupyter-blobs')
+{jupyter_router} = require('./jupyter')
 
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
@@ -70,8 +70,8 @@ exports.start_raw_server = (opts) ->
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
-            # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs.
-            raw_server.use(base, blob_store.express_router(express))
+            # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
+            raw_server.use(base, jupyter_router(express))
 
             # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
             # on the same VM could listen in.   We also firewall connections from the other VM hosts above

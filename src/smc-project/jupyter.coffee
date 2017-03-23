@@ -9,6 +9,8 @@ fs = require('fs')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
+misc_node = require('smc-util-node/misc_node')
+
 {blob_store} = require('./jupyter-blobs')
 
 exports.jupyter_backend = (syncdb, client) ->
@@ -172,3 +174,76 @@ class Kernel extends EventEmitter
             path : required   # path ending in .py
             cb   : required
         opts.cb('todo')
+
+
+
+jupyter_kernel_handler = (base, router) ->
+    jupyter_kernels_json = kernelspecs = undefined
+
+    init = (cb) ->
+        if jupyter_kernels_json?
+            cb()
+            return
+        misc_node.execute_code
+            command : 'jupyter'
+            args    : ['kernelspec', 'list', '--json']
+            cb      : (err, output) =>
+                if err
+                    cb(err)
+                    return
+                try
+                    kernelspecs = JSON.parse(output.stdout).kernelspecs
+                    v = []
+                    for kernel, value of kernelspecs
+                        v.push
+                            name         : kernel
+                            display_name : value.spec.display_name
+                            language     : value.spec.language
+                    v.sort (a,b) -> misc.cmp(a.name, b.name)
+                    jupyter_kernels_json = JSON.stringify(v)
+                    cb()
+                catch err
+                    cb(err)
+
+    router.get base + 'kernels.json', (req, res) ->
+        init (err) ->
+            if err
+                res.send(err)  # TODO: set some code
+            else
+                res.send(jupyter_kernels_json)
+
+    router.get base + 'kernelspecs/*', (req, res) ->
+        init (err) ->
+            if err
+                res.send(err)   # TODO: set some code
+            else
+                path = req.path.slice((base + 'kernelspecs/').length).trim()
+                if path.length == 0
+                    res.send(jupyter_kernels_json)
+                    return
+                segments = path.split('/')
+                name = segments[0]
+                kernel = kernelspecs[name]
+                if not kernel?
+                    res.send("no such kernel '#{name}'")  # todo: error?
+                    return
+                res.sendFile(require('path').join(kernel.resource_dir, segments.slice(1).join('/')))
+                
+    return router
+
+
+
+exports.jupyter_router = (express) ->
+    base = '/.smc/jupyter/'
+
+    # Install handling for the blob store
+    router = blob_store.express_router(base, express)
+
+    # Handler for Jupyter kernels
+    router = jupyter_kernel_handler(base, router)
+
+    return router
+
+
+
+

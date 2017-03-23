@@ -2,8 +2,8 @@
 Jupyter in-memory blob store, which hooks into the raw http server.
 ###
 
-misc      = require('../smc-util/misc')
-misc_node = require('../smc-util-node/misc_node')
+misc      = require('smc-util/misc')
+misc_node = require('smc-util-node/misc_node')
 
 class BlobStore
     constructor: ->
@@ -30,9 +30,10 @@ class BlobStore
     get: (sha1) =>
         return @_blobs[sha1]?.data
 
-    express_router: (express) =>
+    express_router: (base, express) =>
         router = express.Router()
-        base = '/.smc/jupyter/blobs/'
+        base += 'blobs/'
+
         router.get base, (req, res) =>
             sha1s = misc.to_json(misc.keys(@_blobs))
             res.send(sha1s)
