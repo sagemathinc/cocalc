@@ -112,31 +112,36 @@ class Kernel extends EventEmitter
     process_output: (content) ->
         if @_state == 'closed'
             return
-        dbg = @dbg("process_large_output")
+        dbg = @dbg("process_output")
         dbg(JSON.stringify(content))
         if not content.data?
             # todo: FOR now -- later may remove large stdout, stderr, etc...
             dbg("no data, so nothing to do")
             return
-        if content.data['image/png']?
-            dbg("there is an image/png")
-            content.data['image/png'] = blob_store.save(content.data['image/png'])
-            dbg("removed img/png -- new content: #{JSON.stringify(content)}")
-        else
-            dbg("no image/png")
-        # TODO: actually store images and make available via raw http server
-        # TODO: remove other types of output, e.g., big text.  Have UI make
-        # it selectively available.
-        # imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
 
-        # We only keep the *left-most* text type, since it provides the richest
+        # We only keep the *left-most* representation, since it provides the richest
         # representation in the client; there is no need for the others.
-        text_modes = ['text/markdown', 'text/html', 'text/plain', 'text/latex']
-        for i, mode of text_modes
-            if content.data[mode]?
-                for mode2 in text_modes.slice(i+1)
-                    delete content.data[mode2]
+        # 1. We could make this rendering preferences table configurable.
+        # 2. TODO: we will still have to store all of these somewhere (in the backend only) for the .ipynb export!
+        # NOTES:
+        #   - html produced by kernels tends to be of much better quality than markdown.
+        #     E.g., the R markdown output is crap but the HTML is great.
+        types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
+        blob = false
+        keep = undefined
+        for i, type of types
+            if content.data[type]?
+                if type.split('/')[0] == 'image'
+                    blob = true
+                keep = type
                 break
+        if keep?
+            for type,_ of content.data
+                if type != keep
+                    delete content.data[type]
+        if blob
+            content.data[keep] = blob_store.save(content.data[keep], keep)
+        dbg("keep='#{keep}'; blob='#{blob}'")
 
     close: =>
         @dbg("close")()

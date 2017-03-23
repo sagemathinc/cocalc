@@ -7,6 +7,15 @@ misc       = require('smc-util/misc')
 global_clipboard = undefined
 
 class exports.JupyterStore extends Store
+    get_project_id: =>
+        return @_project_id
+
+    get_path: =>
+        return @_path
+
+    get_directory: =>
+        return @_directory
+
     # Return map from selected cell ids to true, in no particular order
     get_selected_cell_ids: =>
         selected = {}
@@ -84,5 +93,8 @@ class exports.JupyterStore extends Store
         if value?
             return misc.from_json(value)?[key]
 
+    get_server_url: =>
+        return "#{window?.smc_base_url ? ''}/#{@_project_id}/raw/.smc/jupyter"
+
     get_blob_url: (extension, sha1) =>
-        return "/#{@_project_id}/raw/.smc/jupyter/a.#{extension}?sha1=#{sha1}"
+        return "#{@get_server_url()}/blobs/a.#{extension}?sha1=#{sha1}"

@@ -11,10 +11,11 @@ class BlobStore
 
     # data is a uuencoded image
     # we return the sha1 hash of it, and store it, along with a reference count.
-    save: (base64_data) =>
-        data = new Buffer.from(base64_data, 'base64')
+    save: (data, type) =>
+        if type in ['image/png', 'image/jpeg']  # TODO: are these the only base64 encoded types that jupyter kernels return?
+            data = new Buffer.from(data, 'base64')
         sha1 = misc_node.sha1(data)
-        x = @_blobs[sha1] ?= {ref:0, data:data}
+        x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
         x.ref += 1
         return sha1
 
@@ -31,7 +32,7 @@ class BlobStore
 
     express_router: (express) =>
         router = express.Router()
-        base = '/.smc/jupyter/'
+        base = '/.smc/jupyter/blobs/'
         router.get base, (req, res) =>
             sha1s = misc.to_json(misc.keys(@_blobs))
             res.send(sha1s)

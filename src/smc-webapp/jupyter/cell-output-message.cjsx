@@ -1,7 +1,7 @@
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{ImmutablePureRenderMixin} = require('../r_misc')
+{ImmutablePureRenderMixin, Markdown} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
 
 LEFT='17px'
@@ -62,8 +62,11 @@ HTML = rclass
         return {__html: html_sane}
 
     render: ->
-        <span dangerouslySetInnerHTML = {@to_html()}>
-        </span>
+        <div
+            style                   = {marginTop : '5px'}
+            dangerouslySetInnerHTML = {@to_html()}
+            >
+        </div>
 
 Data = rclass
     propTypes :
@@ -88,8 +91,15 @@ Data = rclass
                         return <div style={STDOUT_STYLE}>{value}</div>
                     when 'html'
                         return <HTML value={value}/>
+                    when 'markdown'
+                        s = @props.actions.store
+                        return <Markdown
+                                value      = {value}
+                                project_id = {s.get_project_id()}
+                                file_path  = {s.get_directory()}
+                            />
             when 'image'
-                return <Image actions={@props.actions} extension={type.split('/')[1]} sha1={value}/>
+                return <Image actions={@props.actions} extension={type.split('/')[1].split('+')[0]} sha1={value}/>
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 

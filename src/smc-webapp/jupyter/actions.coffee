@@ -34,8 +34,8 @@ class exports.JupyterActions extends Actions
         @_client     = client
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         @_project_id = @store._project_id = project_id
-        @_path       = path
-        @_directory  = misc.path_split(path)?.head
+        @_path       = @store._path = path
+        @_directory  = @store._directory = misc.path_split(path)?.head
 
         #dbg = @dbg("JupyterActions._init")
 
@@ -123,9 +123,9 @@ class exports.JupyterActions extends Actions
     set_cell_pos: (id, pos, save=true) =>
         @_set({type: 'cell', id: id, pos: pos}, save)
 
-    set_cell_type : (id, cell_type='code') =>
+    set_cell_type: (id, cell_type='code') =>
         if cell_type != 'markdown' and cell_type != 'raw' and cell_type != 'code'
-            throw Error("cell type must be 'markdown', 'raw', or 'code'")
+            throw Error("cell type (='#{cell_type}') must be 'markdown', 'raw', or 'code'")
         obj =
             type      : 'cell'
             id        : id
