@@ -494,8 +494,9 @@ exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
     propTypes :
-        popover     : rtypes.bool
-        placement   : rtypes.string
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
 
     getDefaultProps: ->
         popover   : true
@@ -515,7 +516,7 @@ exports.TimeAgo = rclass
             return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
-            <Tip title={s} id={s} placement={@props.placement}>
+            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
                 {@render_timeago(d)}
             </Tip>
         else

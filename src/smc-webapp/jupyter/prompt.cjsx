@@ -40,6 +40,8 @@ exports.OutputPrompt = rclass
     propTypes:
         state      : rtypes.string
         exec_count : rtypes.number
+        start : rtypes.number
+        end   : rtypes.number
 
     render: ->
         n = prompt(@props.state, @props.exec_count)

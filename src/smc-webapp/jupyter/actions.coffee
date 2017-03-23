@@ -86,6 +86,8 @@ class exports.JupyterActions extends Actions
             type  : 'cell'
             id    : id
             input : input
+            start : null
+            end   : null
 
     set_cell_output: (id, output) =>
         @_set
@@ -131,8 +133,8 @@ class exports.JupyterActions extends Actions
             id        : id
             cell_type : cell_type
         if cell_type != 'code'
-            # delete output when switching to non-code cell_type
-            obj.output = null
+            # delete output and exec time info when switching to non-code cell_type
+            obj.output = obj.start = obj.end = null
         @_set(obj)
 
     set_selected_cell_type: (cell_type) =>
@@ -448,6 +450,8 @@ class exports.JupyterActions extends Actions
             type         : 'cell'
             id           : id
             state        : 'start'
+            start        : null
+            end          : null
             output       : null
             exec_count   : null
 
@@ -754,7 +758,8 @@ class exports.JupyterActions extends Actions
         exec_count = null
         state      = 'run'
         n          = 0
-
+        start      = new Date() - 0
+        end        = null
         set_cell = =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
             @_set
@@ -764,6 +769,8 @@ class exports.JupyterActions extends Actions
                 kernel     : kernel
                 output     : outputs
                 exec_count : exec_count
+                start      : start
+                end        : end
 
         report_started = =>
             if n > 0
@@ -783,9 +790,11 @@ class exports.JupyterActions extends Actions
                 if err
                     mesg = {error:err}
                     state = 'done'
+                    end   = new Date() - 0
                     set_cell()
                 else if mesg.content.execution_state == 'idle'
                     state = 'done'
+                    end   = new Date() - 0
                     set_cell()
                 if not err
                     if mesg.content.execution_count?

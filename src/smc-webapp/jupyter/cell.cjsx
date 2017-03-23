@@ -11,6 +11,8 @@ misc_page = require('../misc_page')
 {CellInput}  = require('./cell-input')
 {CellOutput} = require('./cell-output')
 
+{CellTiming} = require('./cell-output-time')
+
 exports.Cell = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
@@ -55,6 +57,17 @@ exports.Cell = rclass ({name}) ->
             actions = {@props.actions}
             />
 
+    render_time: (cell) ->
+        if cell.get('start')?
+            <div style={position:'relative', zIndex: 1, right: 0, width: '8em', paddingLeft:'5px'}, className='pull-right'>
+                <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
+                    <CellTiming
+                        start = {cell.get('start')}
+                        end   = {cell.get('end')}
+                     />
+                </div>
+            </div>
+
     click_on_cell: (event) ->
         if event.shiftKey
             setTimeout((->misc_page.clear_selection()), 50)
@@ -90,6 +103,7 @@ exports.Cell = rclass ({name}) ->
         cell = @props.cells.get(@props.id)
 
         <div style={style} onClick={@click_on_cell}>
+            {@render_time(cell)}
             {@render_cell_input(cell)}
             {@render_cell_output(cell)}
         </div>
