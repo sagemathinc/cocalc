@@ -90,8 +90,8 @@ class Connection extends client.Connection
         # The following two lines disable the idle timeout functionality.
         # This is disabled since it may be causing a DOS attack
         # by users... not 100% sure yet.
-        @set_standby_timeout_m = ->   # make this a no-op
-        #setTimeout(@_init_idle, 15 * 1000)  # don't setup.
+        #@set_standby_timeout_m = ->   # make this a no-op
+        setTimeout(@_init_idle, 15 * 1000) 
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
