@@ -1,7 +1,9 @@
+###
+Jupyter in-memory blob store, which hooks into the raw http server.
+###
 
-
+misc      = require('../smc-util/misc')
 misc_node = require('../smc-util-node/misc_node')
-
 
 class BlobStore
     constructor: ->
@@ -9,10 +11,10 @@ class BlobStore
 
     # data is a uuencoded image
     # we return the sha1 hash of it, and store it, along with a reference count.
-    save: (data) =>
-        buf = new Buffer.from(data, 'base64')
-        sha1 = misc_node.sha1(buf)
-        x = @_blobs[sha1] ?= {ref:0, buf:buf}
+    save: (base64_data) =>
+        data = new Buffer.from(base64_data, 'base64')
+        sha1 = misc_node.sha1(data)
+        x = @_blobs[sha1] ?= {ref:0, data:data}
         x.ref += 1
         return sha1
 
@@ -25,16 +27,21 @@ class BlobStore
         return
 
     get: (sha1) =>
-        return @_blobs[sha1]?.buf
+        return @_blobs[sha1]?.data
 
     express_router: (express) =>
         router = express.Router()
-        router.get '/foo.txt', (req, res) ->
-            res.send('this is a foo')
-        router.get '/.smc/jupyter/', (req, res) ->
-            res.send('this is a foo')
-        router.get '/.smc/jupyter/*', (req, res) ->
-            res.send('this is a foo')
+        base = '/.smc/jupyter/'
+        router.get base, (req, res) =>
+            sha1s = misc.to_json(misc.keys(@_blobs))
+            res.send(sha1s)
+        router.get base + '*', (req, res) =>
+            filename = req.path.slice(base.length)
+            sha1 = req.query.sha1
+            res.type(filename)
+            res.send(@get(sha1))
         return router
 
+
 exports.blob_store = new BlobStore()
+

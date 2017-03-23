@@ -33,7 +33,7 @@ class exports.JupyterActions extends Actions
         @syncdb      = syncdb
         @_client     = client
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
-        @_project_id = project_id
+        @_project_id = @store._project_id = project_id
         @_path       = path
         @_directory  = misc.path_split(path)?.head
 

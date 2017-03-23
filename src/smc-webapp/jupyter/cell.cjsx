@@ -50,8 +50,9 @@ exports.Cell = rclass ({name}) ->
 
     render_cell_output: (cell) ->
         <CellOutput
-            key        = 'out'
-            cell       = {cell}
+            key     = 'out'
+            cell    = {cell}
+            actions = {@props.actions}
             />
 
     click_on_cell: (event) ->

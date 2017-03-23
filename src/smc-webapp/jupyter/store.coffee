@@ -84,3 +84,5 @@ class exports.JupyterStore extends Store
         if value?
             return misc.from_json(value)?[key]
 
+    get_blob_url: (extension, sha1) =>
+        return "/#{@_project_id}/raw/.smc/jupyter/a.#{extension}?sha1=#{sha1}"

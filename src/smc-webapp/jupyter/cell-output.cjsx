@@ -10,7 +10,8 @@ React component that describes the output of a cell
 
 exports.CellOutput = rclass
     propTypes :
-        cell : rtypes.immutable.Map.isRequired
+        cell    : rtypes.immutable.Map.isRequired
+        actions : rtypes.object.isRequired
 
     shouldComponentUpdate: (next) ->
         if next.cell.get('collapsed') != @props.cell.get('collapsed')
@@ -45,7 +46,7 @@ exports.CellOutput = rclass
             output = @props.cell.get('output')
             if not output?
                 return
-            return <CellOutputMessages output={output} />
+            return <CellOutputMessages output={output} actions={@props.actions} />
 
     render: ->
         if not @props.cell.get('output')?

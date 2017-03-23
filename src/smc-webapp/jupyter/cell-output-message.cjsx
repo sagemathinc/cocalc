@@ -2,6 +2,7 @@ misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {ImmutablePureRenderMixin} = require('../r_misc')
+{sanitize_html} = require('../misc_page')
 
 LEFT='17px'
 
@@ -36,20 +37,61 @@ Stderr = rclass
             {@props.message.get('text')}
         </div>
 
+Image = rclass
+    propTypes:
+        extension : rtypes.string.isRequired
+        sha1      : rtypes.string.isRequired
+        actions   : rtypes.object.isRequired
+
+    render: ->
+        src = @props.actions.store.get_blob_url(@props.extension, @props.sha1)
+        <img src={src} />
+
+# This doesn't work at all yet for mathjax, etc.
+HTML = rclass
+    propTypes :
+        value : rtypes.string.isRequired
+
+    componentDidMount: ->
+        $(ReactDOM.findDOMNode(@)).mathjax()
+
+    to_html: ->
+        # TODO -- much more sophisticated... see r_misc Markdown, etc.
+        # e.g., also need to eval javascript when trusted but not otherwise.
+        html_sane = sanitize_html(@props.value)
+        return {__html: html_sane}
+
+    render: ->
+        <span dangerouslySetInnerHTML = {@to_html()}>
+        </span>
+
 Data = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
+        actions : rtypes.object.isRequired
 
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
-        text = @props.message.getIn(['data', 'text/plain'])
-        if text?
-            <div style={STDOUT_STYLE}>
-                {text}
-            </div>
-        else
-            <pre>Unsupported message: {text}</pre>
+        type  = undefined
+        value = undefined
+        @props.message.get('data').forEach (v, k) ->
+            type  = k
+            value = v
+            return false
+
+        [a, b] = type.split('/')
+        switch a
+            when 'text'
+                switch b
+                    when 'plain'
+                        return <div style={STDOUT_STYLE}>{value}</div>
+                    when 'html'
+                        return <HTML value={value}/>
+            when 'image'
+                return <Image actions={@props.actions} extension={type.split('/')[1]} sha1={value}/>
+
+        return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 
 Ansi = require('ansi-to-react')
 
@@ -98,16 +140,18 @@ message_component = (message) ->
 CellOutputMessage = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
+        actions   : rtypes.object.isRequired
 
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
         C = message_component(@props.message)
-        <C message={@props.message} />
+        <C message={@props.message} actions={@props.actions} />
 
 exports.CellOutputMessages = rclass
     propTypes :
-        output : rtypes.immutable.Map.isRequired  # the actual messages
+        output  : rtypes.immutable.Map.isRequired  # the actual messages
+        actions : rtypes.object.isRequired
 
     shouldComponentUpdate: (next) ->
         return next.output != @props.output
@@ -118,6 +162,7 @@ exports.CellOutputMessages = rclass
         <CellOutputMessage
             key     = {n}
             message = {mesg}
+            actions   = {@props.actions}
         />
 
     message_list: ->
