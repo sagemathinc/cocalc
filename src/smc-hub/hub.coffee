@@ -2265,9 +2265,25 @@ init_primus_server = (http_server) ->
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
+
+    recent_clients = {}
     primus_server.on "connection", (conn) ->
+
+        # Very minimal anti DOS measure -- allow at most one connection from a given
+        # ip address every 500ms.
+        ip = conn.address.ip
+        if recent_clients[ip]
+            winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id} -- DENIED due to anti DOS measures")
+            conn.end()
+            return
+        recent_clients[ip] = true
+        setTimeout((->delete recent_clients[ip]), 500)
+
+        # Now handle the connection
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
+        primus_conn_sent_data = false
         f = (data) ->
+            primus_conn_sent_data = true
             id = data.toString()
             winston.debug("primus_server: got id='#{id}'")
             conn.removeListener('data',f)
@@ -2290,6 +2306,7 @@ init_primus_server = (http_server) ->
                     if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
                         old_id = C.conn.id
                         C.conn.removeAllListeners()
+                        C.conn.end()
                         C.conn = conn
                         conn.id = id
                         conn.write(conn.id)
@@ -2303,6 +2320,15 @@ init_primus_server = (http_server) ->
                 clients[conn.id] = new Client(conn)
 
         conn.on("data",f)
+
+        # Given the client up to 15s to send info about itself.  If get nothing, just
+        # end the connection.
+        no_data = ->
+            if conn? and not primus_conn_sent_data
+                winston.debug("primus_server: #{conn.id} sent no data after 15s, so closing")
+                conn.end()
+        setTimeout(no_data, 15000)
+
 
 #######################################################
 # Pushing a message to clients; querying for clients.

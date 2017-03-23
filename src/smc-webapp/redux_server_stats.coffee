@@ -17,8 +17,9 @@ class StatsTable extends Table
         for obj in table.get(keys).toArray()
             if obj? and (not newest? or obj.get('time') > newest.get('time'))
                 newest = obj
-        if newest
+        if newest?
             newest = newest.toJS()
+            newest.time = new Date(newest.time)
             newest.loading = false
             actions.setState(newest)
 
