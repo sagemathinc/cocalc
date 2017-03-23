@@ -227,8 +227,15 @@ jupyter_kernel_handler = (base, router) ->
                 if not kernel?
                     res.send("no such kernel '#{name}'")  # todo: error?
                     return
-                res.sendFile(require('path').join(kernel.resource_dir, segments.slice(1).join('/')))
-                
+                path = require('path').join(kernel.resource_dir, segments.slice(1).join('/'))
+                path = require('path').resolve(path)
+                if not misc.startswith(path, kernel.resource_dir)
+                    # don't let user use .. or something to get any file on the server...!
+                    # (this really can't happen due to url rules already; just being super paranoid.)
+                    res.send("suspicious path '#{path}'")
+                else
+                    res.sendFile(path)
+
     return router
 
 
