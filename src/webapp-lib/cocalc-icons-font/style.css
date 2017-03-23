@@ -24,6 +24,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.cc-icon-cocalc-ring:before {
+  content: "\e90a";
+}
 .cc-icon-julia:before {
   content: "\e909";
 }

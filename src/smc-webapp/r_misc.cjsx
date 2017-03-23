@@ -174,13 +174,13 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     render: ->
-        <span><Icon name='circle-o-notch' spin /> Loading...</span>
+        <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
 
     render: ->
-        <span><Icon name='circle-o-notch' spin /> Saving...</span>
+        <span><Icon name='cc-icon-cocalc-ring' spin /> Saving...</span>
 
 closex_style =
     float      : 'right'
@@ -819,7 +819,7 @@ exports.ActivityDisplay = rclass
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
             <div key={i} style={activity_item_style} >
-                <Icon style={padding:'2px 1px 1px 2px'} name='circle-o-notch' spin /> {trunc(desc)}
+                <Icon style={padding:'2px 1px 1px 2px'} name='cc-icon-cocalc-ring' spin /> {trunc(desc)}
             </div>
 
     render: ->
@@ -912,7 +912,7 @@ exports.SaveButton = rclass
 
     render: ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
+            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}
         </Button>
 
 # Compnent to attempt opening an smc path in a project
@@ -1202,7 +1202,7 @@ exports.ProjectState = rclass
         state : 'unknown'
 
     render_spinner:  ->
-        <span>... <Icon name='circle-o-notch' spin /></span>
+        <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
 
     render: ->
         s = COMPUTE_STATES[@props.state]

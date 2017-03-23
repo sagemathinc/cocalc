@@ -1615,7 +1615,7 @@ exports.PayCourseFee = PayCourseFee = rclass
     render_buy_button: ->
         if @props.redux.getStore('billing').get(@key())
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="circle-o-notch" spin /> Paying the one-time $9 fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time $9 fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>

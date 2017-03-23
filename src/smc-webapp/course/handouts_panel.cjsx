@@ -531,7 +531,7 @@ StudentHandoutInfo = rclass
     render_open_copying: (name, open, stop) ->
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> Working...
+                <Icon name="cc-icon-cocalc-ring" spin /> Working...
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />

@@ -740,7 +740,7 @@ NewProjectCreator = rclass
     render_info_alert: ->
         if @state.state == 'saving'
             <div style={marginTop:'30px'}>
-                <Alert bsStyle='info'>Creating project... <Icon name='circle-o-notch' spin /></Alert>
+                <Alert bsStyle='info'>Creating project... <Icon name='cc-icon-cocalc-ring' spin /></Alert>
             </div>
 
     render_error: ->

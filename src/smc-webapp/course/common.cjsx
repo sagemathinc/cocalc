@@ -1,3 +1,23 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculations in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 underscore = require('underscore')
 
 # SMC libraries
@@ -270,7 +290,7 @@ exports.StudentAssignmentInfo = rclass
             placement = 'left'
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> {name}ing
+                <Icon name="cc-icon-cocalc-ring" spin /> {name}ing
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />
@@ -401,7 +421,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         if @props.is_searching
             # Currently doing a search, so show a spinner
             <Button>
-                <Icon name="circle-o-notch" spin />
+                <Icon name="cc-icon-cocalc-ring" spin />
             </Button>
         else if @state.show_selector
             # There is something in the selection box -- so only action is to clear the search box.

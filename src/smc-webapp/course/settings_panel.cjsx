@@ -49,7 +49,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 bsStyle = 'info'
 
         <Alert bsStyle=bsStyle>
-            {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
+            {misc.capitalize(state_name)} all projects... <Icon name='cc-icon-cocalc-ring' spin />
         </Alert>
 
     render_confirm_stop_all_projects: ->

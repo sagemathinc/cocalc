@@ -575,7 +575,7 @@ ExampleBox = rclass
 
 Connecting = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
-        <Icon name="spinner" spin /> Connecting...
+        <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
     </div>
 
 

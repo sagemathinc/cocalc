@@ -111,7 +111,7 @@ exports.StudentsPanel = rclass ({name}) ->
 
     student_add_button: ->
         <Button onClick={@do_add_search}>
-            {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
+            {if @props.add_searching then <Icon name="cc-icon-cocalc-ring" spin /> else <Icon name="search" />}
         </Button>
 
     add_selector_clicked: ->
@@ -509,7 +509,7 @@ Student = rclass
             # if so, how long ago did it start
             how_long = (salvus_client.server_time() - create)/1000
             if how_long < 120 # less than 2 minutes -- still hope, so render that creating
-                return <div><Icon name="circle-o-notch" spin /> Creating project... (started <TimeAgo date={create} />)</div>
+                return <div><Icon name="cc-icon-cocalc-ring" spin /> Creating project... (started <TimeAgo date={create} />)</div>
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
             # to attempt creation again by clicking the create button.
 

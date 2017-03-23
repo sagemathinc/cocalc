@@ -215,7 +215,7 @@ Archive = rclass ({name}) ->
 
     render_button_icon: ->
         if @props.loading
-            <Icon name='circle-o-notch' spin={true} />
+            <Icon name='cc-icon-cocalc-ring' spin={true} />
         else
             <Icon name='folder'/>
 

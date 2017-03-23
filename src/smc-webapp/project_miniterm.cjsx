@@ -141,7 +141,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                 </Button>
             when 'run'
                 <Button onClick={@execute_command}>
-                    <Icon name='circle-o-notch' spin  />
+                    <Icon name='cc-icon-cocalc-ring' spin  />
                 </Button>
 
     render_output: (x, style) ->
