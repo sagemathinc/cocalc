@@ -290,9 +290,9 @@ def _jkmagic(kernel_name, **kwargs):
                 # the following is a cheat to avoid forking a separate thread to listen on stdin channel
                 # most of the time, ignore "execute_input" message type
                 # but if code calls python3 input(), wait for message on stdin channel
-                if 'code' in content and kernel_name in ['python3','anaconda3']:
+                if 'code' in content:
                     ccode = content['code']
-                    if (re.match('^[^#]*\W?input\(', ccode)):
+                    if kernel_name in ['python3','anaconda3','octave'] and re.match('^[^#]*\W?input\(', ccode):
                         # FIXME input() will be ignored if it's aliased to another name
                         p('iopub input call: ',ccode)
                         try:
@@ -311,7 +311,24 @@ def _jkmagic(kernel_name, **kwargs):
                                 stdinj.send(xmsg)
                         except:
                             pass
-
+                    elif kernel_name == 'octave' and re.match('^[^#]*\W?pause', ccode):
+                        p('iopub octave pause: ',ccode)
+                        try:
+                            # do nothing if no messsage on stdin channel within 0.5 sec
+                            imsg = stdinj.get_msg(timeout = 0.5)
+                            imsg_type = imsg['msg_type']
+                            icontent = imsg['content']
+                            p('stdin', imsg_type, str(icontent)[:300])
+                            # kernel is now blocked waiting for input
+                            if imsg_type == 'input_request':
+                                prompt = "Paused, enter any value to continue"
+                                value = salvus.raw_input(prompt = prompt)
+                                xcontent = dict(value=value)
+                                xmsg = kc.session.msg('input_reply', xcontent)
+                                p('sending input_reply',xcontent)
+                                stdinj.send(xmsg)
+                        except:
+                            pass
             elif msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
