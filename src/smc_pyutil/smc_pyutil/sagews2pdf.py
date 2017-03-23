@@ -224,7 +224,7 @@ FOOTER = """
 """
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
-site = 'https://cloud.sagemath.com'
+BASE_URL = 'https://cocalc.com'
 
 import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
@@ -515,6 +515,7 @@ class Cell(object):
             return ""
 
     def latex_output(self):
+        print "BASE_URL", BASE_URL
         s = ''
         if 'o' in self.input_codes:  # hide output
             return s
@@ -545,7 +546,7 @@ class Cell(object):
                     filename = os.path.split(target)[-1]
                 else:
                     filename = os.path.split(val['filename'])[-1]
-                    target = "%s/blobs/%s?uuid=%s"%(site, escape_path(filename), val['uuid'])
+                    target = "%s/blobs/%s?uuid=%s"%(BASE_URL, escape_path(filename), val['uuid'])
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
@@ -718,20 +719,24 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             print "Leaving latex files in '%s'"%work_dir
 
 def main():
-    global extra_data
+    global extra_data, BASE_URL
 
-    parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
+    parser = argparse.ArgumentParser(
+        description="convert a sagews worksheet to a pdf file via latex",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument("filename", nargs='+', help="name of sagews file (required)", type=str)
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
     parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
     parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
+    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false'", type=str, default='true')
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
-    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
+    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory", type=str, default='true')
     parser.add_argument("--work_dir", dest="work_dir", help="if set, then this is used as the working directory where the tex files are generated and it won't be deleted like the temp dir.")
     parser.add_argument('--subdir', dest="subdir", help="if set, the work_dir will be set (or overwritten) to be pointing to a subdirectory named after the file to be converted.", default='false')
     parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
     parser.add_argument("--style", dest="style", help="Styling of the LaTeX document", type=str, choices=['classic', 'modern'], default="modern")
+    parser.add_argument("--base_url", dest="base_url", help="The 'BASE_URL' from where blobs and other files are being downloaded from", default=BASE_URL)
 
     args = parser.parse_args()
     args.contents = args.contents == 'true'
@@ -743,6 +748,8 @@ def main():
         extra_data = json.loads(open(args.extra_data_file).read())
     else:
         extra_data = {}
+
+    BASE_URL = args.base_url
 
     remove_tmpdir=args.remove_tmpdir
 

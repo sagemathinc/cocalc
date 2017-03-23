@@ -27,8 +27,6 @@ exports.COPYRIGHT_AGENT_HTML = '''
                                1212 East Barclay Court<br>
                                Seattle, WA 98122<br>
                                <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>
-                               <br>
-                               206-419-0925 (telephone)
                                '''
 
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid

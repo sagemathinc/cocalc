@@ -122,7 +122,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     render_historical_metrics: ->
         return  # disabled, due to being broken...
         <li key='usage_metrics' style={li_style}>
-            <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
+            <a target='_blank' href='https://cocalc.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
                 <Icon name='area-chart' fixedWidth />Historical system metrics
             </a> &mdash; CPU usage, running projects and software instances, etc
         </li>
@@ -147,7 +147,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
                 </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
-                <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                 More data...
                 </a>
                 <br/>

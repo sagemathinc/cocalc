@@ -79,12 +79,17 @@ class Connection extends client.Connection
         # you have to change the context to *top*!   See
         # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
         #
-        setTimeout(@_init_idle, 15 * 1000)
         super(opts)
         @_setup_window_smc()
 
         # This is used by the base class for marking file use notifications.
         @_redux = require('./smc-react').redux
+
+        # The following two lines disable the idle timeout functionality.
+        # This is disabled since it may be causing a DOS attack
+        # by users... not 100% sure yet.
+        @set_standby_timeout_m = ->   # make this a no-op
+        #setTimeout(@_init_idle, 15 * 1000)  # don't setup.
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
