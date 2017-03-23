@@ -311,7 +311,9 @@ def _jkmagic(kernel_name, **kwargs):
                                 stdinj.send(xmsg)
                         except:
                             pass
-                    elif kernel_name == 'octave' and re.match('^[^#]*\W?pause', ccode):
+                    elif kernel_name == 'octave' and re.search(r"\s*pause\s*([#;\n].*)?$", ccode, re.M):
+                        # FIXME "1+2\npause\n3+4" pauses before executing any code
+                        # would need block parser here
                         p('iopub octave pause: ',ccode)
                         try:
                             # do nothing if no messsage on stdin channel within 0.5 sec
