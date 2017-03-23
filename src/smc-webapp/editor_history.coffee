@@ -346,7 +346,7 @@ class exports.HistoryEditor extends FileEditor
             num = @revision_num
         if not num?
             return
-        versions = @syncstring.all_versions()
+        versions = @syncstring?.all_versions()
         if not versions?
             # not yet initialized
             return
@@ -389,9 +389,9 @@ class exports.HistoryEditor extends FileEditor
             return
         if not num1?
             num1 = @revision_num1 ? Math.max(0, Math.floor(num2/2))
-        versions = @syncstring.all_versions()
+        versions = @syncstring?.all_versions()
         if not versions?
-            # not yet initialized
+            # not yet initialized or closing
             return
         time1 = versions[num1]
         if not time1?
@@ -419,6 +419,8 @@ class exports.HistoryEditor extends FileEditor
         if @revision_num == @length-1 then @forward_button.addClass("disabled") else @forward_button.removeClass("disabled")
 
     render_slider: =>
+        if not @syncstring?
+            return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
@@ -438,6 +440,8 @@ class exports.HistoryEditor extends FileEditor
         @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>
+        if not @syncstring?
+            return
         new_len = @syncstring.all_versions().length
         if new_len == @length
             return
@@ -448,6 +452,8 @@ class exports.HistoryEditor extends FileEditor
         @goto_revision()
 
     render_diff_slider: =>
+        if not @syncstring?
+            return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
         # debounce actually setting the document content just a little
@@ -467,6 +473,8 @@ class exports.HistoryEditor extends FileEditor
                     set_doc(@goto_diff(ui.values[0], ui.values[1]))
 
     resize_diff_slider: =>
+        if not @syncstring?
+            return
         new_len = @syncstring.all_versions().length
         if new_len == @length
             return
@@ -497,6 +505,8 @@ class exports.HistoryEditor extends FileEditor
         @view_doc?.hide()
 
     load_full_history: (cb) =>
+        if not @syncstring?
+            return
         n = @syncstring.all_versions().length
         @syncstring.load_full_history (err) =>
             if err
