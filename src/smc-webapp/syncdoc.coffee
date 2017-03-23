@@ -372,7 +372,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         if not @_syncstring.in_undo_mode()
             return
-        value = @_syncstring.redo().to_str()
+        value = @_syncstring.redo()?.to_str()
+        if not value?  # can't redo if version not defined/not available.
+            return
         @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
