@@ -24,6 +24,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.cc-icon-tex-file:before {
+  content: "\e90e";
+}
+.cc-icon-markdown:before {
+  content: "\e900";
+}
+.cc-icon-sagemath-file:before {
+  content: "\e902";
+}
+.cc-icon-file-o:before {
+  content: "\e907";
+}
+.cc-icon-sagemath-bold:before {
+  content: "\e90b";
+}
+.cc-icon-sagemath:before {
+  content: "\e90c";
+}
 .cc-icon-cocalc-ring:before {
   content: "\e90a";
 }
@@ -36,20 +54,11 @@
 .cc-icon-r:before {
   content: "\e906";
 }
-.cc-icon-markdown:before {
-  content: "\e907";
-}
 .cc-icon-python:before {
   content: "\e905";
 }
-.cc-icon-sagemath-file:before {
-  content: "\e900";
-}
 .cc-icon-cocalc:before {
   content: "\e901";
-}
-.cc-icon-sagemath:before {
-  content: "\e902";
 }
 .cc-icon-ipynb:before {
   content: "\e903";

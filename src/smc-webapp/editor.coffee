@@ -175,7 +175,7 @@ file_associations['noext-Dockerfile'] =
 
 file_associations['tex'] =
     editor : 'latex'
-    icon   : 'fa-file-excel-o'
+    icon   : 'cc-icon-tex-file'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
     name   : "LaTeX"
 #file_associations['tex'] =  # WARNING: only for TESTING!!!
@@ -185,7 +185,7 @@ file_associations['tex'] =
 
 file_associations['rnw'] =
     editor : 'latex'
-    icon   : 'fa-file-excel-o'
+    icon   : 'cc-icon-tex-file'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
     name   : "R/knitr LaTeX"
 
@@ -331,7 +331,7 @@ for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(
     file_associations[ext] = archive_association
 
 file_associations['sage'].name = "sage code"
-file_associations['sage'].icon = 'cc-icon-sagemath'
+file_associations['sage'].icon = 'cc-icon-sagemath-bold'
 
 file_associations['sagews'].name = "sage worksheet"
 file_associations['sagews'].exclude_from_menu = true
