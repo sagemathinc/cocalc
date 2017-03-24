@@ -90,8 +90,8 @@ class Connection extends client.Connection
         # The following two lines disable the idle timeout functionality.
         # This is disabled since it may be causing a DOS attack
         # by users... not 100% sure yet.
-        @set_standby_timeout_m = ->   # make this a no-op
-        #setTimeout(@_init_idle, 15 * 1000)  # don't setup.
+        #@set_standby_timeout_m = ->   # make this a no-op
+        setTimeout(@_init_idle, 15 * 1000)
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
@@ -201,8 +201,9 @@ class Connection extends client.Connection
 
         @ondata = ondata
 
+        ###
         opts =
-            ping      : 25000   # used for maintaining the connection and deciding when to reconnect.
+            ping      : 25000  # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
@@ -210,8 +211,11 @@ class Connection extends client.Connection
                 min      : 1000
                 factor   : 1.25
                 retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
-
         conn = new Primus(url, opts)
+        ###
+
+        conn = new Primus(url)
+
         @_conn = conn
         conn.on 'open', () =>
             @_connected = true
