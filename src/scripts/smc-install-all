@@ -18,6 +18,9 @@ npm install
 cd $SMC_ROOT/smc-project
 npm install
 
+cd $SMC_ROOT/smc-project/jupyter
+npm install
+
 cd $SMC_ROOT/smc-webapp
 npm install
 

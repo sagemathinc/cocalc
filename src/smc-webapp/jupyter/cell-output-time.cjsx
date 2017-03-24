@@ -11,8 +11,6 @@ exports.CellTiming = rclass
             return <span/>
         if @props.end?
             tip = "#{(@props.end - @props.start)/1000} seconds"
-        else
-            tip = ''
         <div>
             <TimeAgo date = {new Date(@props.start)} />
             <br/>

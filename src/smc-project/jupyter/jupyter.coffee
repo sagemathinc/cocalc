@@ -2,6 +2,8 @@
 Jupyter Backend
 ###
 
+require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
+
 {EventEmitter} = require('events')
 
 fs = require('fs')
@@ -38,11 +40,12 @@ class Client
 
 exports.kernel = (opts) ->
     opts = defaults opts,
-        name   : required   # name of the kernel as a string
-        client : undefined
+        name    : required   # name of the kernel as a string
+        client  : undefined
+        verbose : true
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, opts.client?.dbg)
+    return new Kernel(opts.name, if opts.verbose then opts.client?.dbg)
 
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
@@ -71,7 +74,8 @@ class Kernel extends EventEmitter
     execute_code: (opts) =>
         opts = defaults opts,
             code : required
-            cb   : required    # this happens **repeatedly**:  cb(undefined, output message)
+            all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
+            cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("execute_code")
         dbg("code='#{opts.code}'")
         if not @_channels?
@@ -96,16 +100,25 @@ class Kernel extends EventEmitter
                 allow_stdin      : false
 
         # setup handling of the results
+        if opts.all
+            all_mesgs = []
+
         f = (mesg) =>
             dbg("got message -- #{JSON.stringify(mesg)}")
             if mesg.parent_header.msg_id == message.header.msg_id
-                if mesg.content?.execution_state == 'idle'
-                    @removeListener('iopub', f)
                 mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
                 # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
                 # is pretty annoying for our use. Investigate.  For now, we just copy it, which is a waste.
                 mesg = misc.deep_copy(mesg)
-                opts.cb(undefined, mesg)
+                if opts.all
+                    all_mesgs.push(mesg)
+                else
+                    opts.cb(undefined, mesg)
+                if mesg.content?.execution_state == 'idle'
+                    @removeListener('iopub', f)
+                    if opts.all
+                        opts.cb(undefined, all_mesgs)
+
         @on('iopub', f)
 
         dbg("send the message")
@@ -149,11 +162,13 @@ class Kernel extends EventEmitter
         @dbg("close")()
         if @_state == 'closed'
             return
+        @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
             @_kernel.spawn.kill()
             fs.unlink(@_kernel.connectionFile)
             delete @_kernel
+            delete @_channels
         # TODO -- clean up channels?
         @_state = 'closed'
 
@@ -180,7 +195,7 @@ class Kernel extends EventEmitter
 jupyter_kernel_handler = (base, router) ->
     jupyter_kernels_json = kernelspecs = undefined
 
-    init = (cb) ->
+    init = (cb) -> # TODO: move out and unit test...
         if jupyter_kernels_json?
             cb()
             return

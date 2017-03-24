@@ -30,12 +30,15 @@ class BlobStore
     get: (sha1) =>
         return @_blobs[sha1]?.data
 
+    keys: =>
+        return misc.keys(@_blobs)
+
     express_router: (base, express) =>
         router = express.Router()
         base += 'blobs/'
 
         router.get base, (req, res) =>
-            sha1s = misc.to_json(misc.keys(@_blobs))
+            sha1s = misc.to_json(@keys())
             res.send(sha1s)
         router.get base + '*', (req, res) =>
             filename = req.path.slice(base.length)
