@@ -7,7 +7,6 @@ BASE_URL = if fs.existsSync(path_to_base_url) then fs.readFileSync(path_to_base_
 
 update = (base_url) ->
     opts =
-        transformer : 'engine.io'
         pathname    : path.join(BASE_URL, '/hub')
 
     console.log(opts)

@@ -2261,7 +2261,6 @@ init_primus_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
-        transformer : 'engine.io'    # 'websockets', 'engine.io','sockjs'
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")

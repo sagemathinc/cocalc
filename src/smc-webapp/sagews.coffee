@@ -1417,9 +1417,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         value  = raw_input.value
         if not value?
             value = ''
-        submitted = raw_input.submitted
-        if not submitted?
-            submitted = false
+        submitted = !!raw_input.submitted
         elt = templates.find(".sagews-output-raw_input").clone()
         label = elt.find(".sagews-output-raw_input-prompt")
         label.text(prompt)
@@ -1693,7 +1691,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.empty()
 
         if mesg.delete_last
-            output.find(":last").remove()
+            output.find(":last-child").remove()
 
         if mesg.done
             output.removeClass('sagews-output-running')
