@@ -52,7 +52,7 @@ db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
 
-jupyter = require('./jupyter')
+jupyter = require('./jupyter/jupyter')
 
 {json} = require('./common')
 

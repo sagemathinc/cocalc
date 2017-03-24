@@ -40,7 +40,7 @@ describe 'test setting cell type -- ', ->
             actions.set_cell_type(id, 'nonsense')
             expect(true).toEqual(false)
         catch e
-            expect("#{e}").toEqual("Error: cell type must be 'markdown', 'raw', or 'code'")
+            expect("#{e}").toEqual("Error: cell type (='nonsense') must be 'markdown', 'raw', or 'code'")
 
 describe 'test setting cell type for multiple selected cells -- ', ->
     before(setup)

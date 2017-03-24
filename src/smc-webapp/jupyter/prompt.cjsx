@@ -2,7 +2,7 @@
 
 prompt = (state, exec_count) ->
     if state == 'start'
-        n = '-'
+        n = '⋯'
     else if state == 'run'
         n = '*'
     else

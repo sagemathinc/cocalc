@@ -12,7 +12,7 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-{jupyter_router} = require('./jupyter')
+{jupyter_router} = require('./jupyter/jupyter')
 
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
