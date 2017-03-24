@@ -51,7 +51,7 @@ exports.CellOutput = rclass
     render: ->
         if not @props.cell.get('output')?
             return <div></div>
-        <div key='out'  style={display: 'flex', flexDirection: 'row', alignItems: 'stretch', overflowX: 'scroll'}>
+        <div key='out'  style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_output_prompt()}
             {@render_output_value()}
             {<div>scrolled</div> if @props.cell.get('scrolled')}

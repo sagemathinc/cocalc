@@ -8,6 +8,7 @@ LEFT='17px'
 
 STDOUT_STYLE =
     whiteSpace    : 'pre-wrap'
+    wordWrap      : 'break-word'
     fontFamily    : 'monospace'
     paddingTop    : '5px'
     paddingBottom : '5px'
@@ -194,6 +195,6 @@ exports.CellOutputMessages = rclass
 
     render: ->
         v = (@render_output_message(n, mesg) for n, mesg of @message_list())
-        <div style={width:'100%', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
+        <div style={flex:1, overflowX:'auto', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
             {v}
         </div>
