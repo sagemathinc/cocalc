@@ -16,6 +16,8 @@ STDOUT_STYLE =
 
 STDERR_STYLE = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 
+TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, STDOUT_STYLE)
+
 Stdout = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
@@ -119,7 +121,7 @@ Traceback = rclass
             v.push(<Ansi key={n}>{x}</Ansi>)
             n += 1
             return
-        <div style={STDOUT_STYLE}>
+        <div style={TRACEBACK_STYLE}>
             {v}
         </div>
 

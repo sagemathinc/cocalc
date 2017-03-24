@@ -1,12 +1,15 @@
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 prompt = (state, exec_count) ->
-    if state == 'start'
-        n = '⋯'
-    else if state == 'run'
-        n = '*'
-    else
-        n = exec_count
+    switch state
+        when 'start'
+            n = '⇐'
+        when 'run'
+            n = '⋯'
+        when 'busy'
+            n = '*'
+        else  # done
+            n = exec_count ? '?'
 
 INPUT_STYLE =
     color        : '#303F9F'

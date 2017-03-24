@@ -760,7 +760,7 @@ class exports.JupyterActions extends Actions
         exec_count = null
         state      = 'run'
         n          = 0
-        start      = new Date() - 0
+        start      = null
         end        = null
         set_cell = =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
@@ -773,16 +773,11 @@ class exports.JupyterActions extends Actions
                 exec_count : exec_count
                 start      : start
                 end        : end
-
         report_started = =>
             if n > 0
                 # do nothing -- already getting output
                 return
             set_cell()
-
-        # If there was no output during the first few ms, we set the start to running
-        # and start reporting output.  We don't just do this immediately, since that's
-        # a waste of time, as very often the whole computation takes little time.
         setTimeout(report_started, 250)
 
         jupyter_kernel.execute_code
@@ -798,6 +793,13 @@ class exports.JupyterActions extends Actions
                     state = 'done'
                     end   = new Date() - 0
                     set_cell()
+                else if mesg.content.execution_state == 'busy'
+                    start = new Date() - 0
+                    state = 'busy'
+                    # If there was no output during the first few ms, we set the start to running
+                    # and start reporting output.  We don't just do this immediately, since that's
+                    # a waste of time, as very often the whole computation takes little time.
+                    setTimeout(report_started, 250)
                 if not err
                     if mesg.content.execution_count?
                         exec_count = mesg.content.execution_count
