@@ -17,12 +17,15 @@ MD_OPTIONS = immutable.fromJS
 
 exports.CellInput = rclass
     propTypes:
-        actions          : rtypes.object.isRequired
+        actions          : rtypes.object   # not defined = read only
         cm_options       : rtypes.immutable.Map.isRequired
         cell             : rtypes.immutable.Map.isRequired
         is_markdown_edit : rtypes.bool.isRequired
         is_focused       : rtypes.bool.isRequired
+
         font_size        : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
+        project_id       : rtypes.string
+        directory        : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return \
@@ -44,6 +47,8 @@ exports.CellInput = rclass
         />
 
     handle_md_double_click: ->
+        if not @props.actions?
+            return
         id = @props.cell.get('id')
         @props.actions.set_md_cell_editing(id)
         @props.actions.set_cur_id(id)
@@ -80,8 +85,8 @@ exports.CellInput = rclass
                     <div onDoubleClick={@handle_md_double_click} style={width:'100%'}>
                         <Markdown
                             value      = {value}
-                            project_id = {@props.actions._project_id}
-                            file_path  = {@props.actions._directory}
+                            project_id = {@props.project_id}
+                            file_path  = {@props.directory}
                         />
                     </div>
             else

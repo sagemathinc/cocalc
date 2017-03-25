@@ -34,6 +34,8 @@ exports.JupyterEditor = rclass ({name}) ->
             font_size           : rtypes.number
             md_edit_ids         : rtypes.immutable.Set.isRequired   # ids of markdown cells in edit mode
             cm_options          : rtypes.immutable.Map              # settings for all the codemirror editors
+            project_id          : rtypes.string
+            directory           : rtypes.string
 
     render_error: ->
         if @props.error
@@ -74,6 +76,9 @@ exports.JupyterEditor = rclass ({name}) ->
             cur_id      = {@props.cur_id}
             mode        = {@props.mode}
             cm_options  = {@props.cm_options}
+            project_id  = {@props.project_id}
+            directory   = {@props.directory}
+            scrollTop   = {@props.actions.store.get_scroll_state()}
             />
 
     render: ->

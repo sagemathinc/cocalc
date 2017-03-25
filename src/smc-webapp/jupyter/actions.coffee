@@ -11,11 +11,12 @@ Jupyter notebooks.  The goals are:
 
 immutable  = require('immutable')
 underscore = require('underscore')
-#async      = require('async')
 
 misc       = require('smc-util/misc')
 
 {Actions}  = require('../smc-react')
+
+util       = require('./util')
 
 jupyter_kernels = undefined
 
@@ -34,9 +35,6 @@ class exports.JupyterActions extends Actions
         @_client     = client
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         @_account_id = client.client_id()   # project or account's id
-        @_project_id = @store._project_id = project_id
-        @_path       = @store._path = path
-        @_directory  = @store._directory = misc.path_split(path)?.head
 
         if not client.is_project() and window?.$?
             # frontend browser client with jQuery
@@ -73,7 +71,10 @@ class exports.JupyterActions extends Actions
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
             cm_options          : immutable.fromJS(cm_options)
-            font_size           : store.get_font_size()
+            font_size           : @store.get_local_storage('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
+            project_id          : project_id
+            directory           : misc.path_split(path)?.head
+            path                : path
 
     dbg: (f) =>
         return @_client.dbg("JupyterActions.#{f}")
@@ -90,7 +91,7 @@ class exports.JupyterActions extends Actions
             @setState(kernels: jupyter_kernels)
         else
             $.ajax(
-                url     : @store.get_server_url() + '/kernels.json'
+                url     : util.get_server_url(@store.get('project_id')) + '/kernels.json'
                 timeout : 30000
                 success : (data) =>
                     try
@@ -740,7 +741,7 @@ class exports.JupyterActions extends Actions
 
     # File --> Open: just show the file listing page.
     file_open: =>
-        @redux?.getProjectActions(@_project_id).set_active_tab('files')
+        @redux?.getProjectActions(@store.get('project_id')).set_active_tab('files')
         return
 
     open_timetravel: =>

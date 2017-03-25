@@ -32,10 +32,10 @@ enable_folding = (options) ->
 
 exports.CodeMirrorEditor = rclass
     propTypes :
-        actions    : rtypes.object.isRequired
+        actions    : rtypes.object
+        id         : rtypes.string.isRequired
         options    : rtypes.immutable.Map.isRequired
         value      : rtypes.string.isRequired
-        id         : rtypes.string.isRequired
         font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
         is_focused : rtypes.bool.isRequired
         cursors    : rtypes.immutable.Map
@@ -62,25 +62,31 @@ exports.CodeMirrorEditor = rclass
                 delete @_cm_change
             delete @_cm_last_remote
             delete @cm
-            @props.actions.unregister_input_editor(@props.id)
+            @props.actions?.unregister_input_editor(@props.id)
 
     _cm_focus: ->
+        if not @props.actions?
+            return
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
         @_cm_cursor()
 
     _cm_blur: ->
+        if not @props.actions?
+            return
         @props.actions.set_mode('escape')
 
     _cm_cursor: ->
+        if not @props.actions?
+            return
         if @cm._setValueNoJump   # if true, cursor move is being caused by external setValueNoJump
             return
         locs = ({x:c.anchor.ch, y:c.anchor.line, id:@props.id} for c in @cm.listSelections())
         @props.actions.set_cursor_locs(locs)
 
     _cm_save: ->
-        if not @cm?
+        if not @cm? or not @props.actions?
             return
         value = @cm.getValue()
         if value != @_cm_last_remote
@@ -105,26 +111,30 @@ exports.CodeMirrorEditor = rclass
         @cm.setValueNoJump(new_val)
 
     _cm_update_cursors: (cursors) ->
-        console.log 'update cursors:', @props.id, JSON.stringify(cursors)
         now = misc.server_time()
         cursors?.forEach (locs, account_id) =>
             v = []
             locs.forEach (loc) =>
-                console.log loc, now, now - loc.get('time')
                 if now - loc.get('time') <= 15000
                     v.push({x:loc.get('x'), y:loc.get('y')})
                 return
             @draw_other_cursors(@cm, account_id, v)
 
     _cm_undo: ->
+        if not @props.actions?
+            return
         if not @props.actions.syncdb.in_undo_mode() or @cm.getValue() != @_cm_last_remote
             @_cm_save()
         @props.actions.undo()
 
     _cm_redo: ->
+        if not @props.actions?
+            return
         @props.actions.redo()
 
     run_cell: ->
+        if not @props.actions?
+            return
         @props.actions.run_cell(@props.id)
         @props.actions.move_cursor(1)
         @props.actions.set_mode('escape')
@@ -136,6 +146,9 @@ exports.CodeMirrorEditor = rclass
         options.extraKeys ?= {}
         enable_folding(options)
         options.extraKeys["Shift-Enter"] = @run_cell
+
+        options.readOnly = not @props.actions?
+
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
@@ -149,7 +162,8 @@ exports.CodeMirrorEditor = rclass
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
-        @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
+        if @props.actions?
+            @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
 
         if @props.is_focused
             @cm.focus()
@@ -187,11 +201,9 @@ exports.CodeMirrorEditor = rclass
             <textarea />
         </div>
 
-    # TODO: this is very ugly (basically just copied from editor_jupyter)
+    # TODO: this is very ugly -- must rewrite below using React.
     draw_other_cursors: (cm, account_id, locs) ->
-        console.log 'draw_other_cursors', account_id, locs
         if not cm?
-            console.log 'no cm'
             return
         @_cursors ?= {}
         users = @props.actions.redux.getStore('users')
@@ -222,7 +234,6 @@ exports.CodeMirrorEditor = rclass
                 data.color = color
 
             # Place cursor in the editor in the right spot
-            #console.log("put cursor into cell #{index} at pos #{misc.to_json(pos)}", data.cursor)
             cm.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
@@ -234,7 +245,6 @@ exports.CodeMirrorEditor = rclass
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
             for i in [locs.length...x.length]
-                #console.log('removing cursor ', i)
                 x[i].cursor.remove()
             @_cursors[account_id] = x.slice(0, locs.length)
 

@@ -13,9 +13,9 @@ misc_page = require('../misc_page')
 
 {CellTiming} = require('./cell-output-time')
 
-exports.Cell = rclass ({name}) ->
+exports.Cell = rclass
     propTypes :
-        actions          : rtypes.object.isRequired
+        actions          : rtypes.object   # not defined = read only
         id               : rtypes.string.isRequired
         cm_options       : rtypes.object.isRequired
         cell             : rtypes.immutable.Map.isRequired
@@ -24,8 +24,10 @@ exports.Cell = rclass ({name}) ->
         is_markdown_edit : rtypes.bool.isRequired
         mode             : rtypes.string.isRequired    # the mode -- 'edit' or 'escape'
         font_size        : rtypes.number
+        project_id       : rtypes.string
+        directory        : rtypes.string
 
-    shouldComponentUpdate: (next) ->
+    shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
                next.cm_options       != @props.cm_options or \
                next.cell             != @props.cell or \
@@ -45,13 +47,16 @@ exports.Cell = rclass ({name}) ->
             is_focused       = {@props.is_current and @props.mode == 'edit'}
             id               = {@props.id}
             font_size        = {@props.font_size}
+            project_id       = {@props.project_id}
+            directory        = {@props.directory}
             />
 
     render_cell_output: (cell) ->
         <CellOutput
-            key     = 'out'
-            cell    = {cell}
-            actions = {@props.actions}
+            key        = 'out'
+            cell       = {cell}
+            project_id = {@props.project_id}
+            directory  = {@props.directory}
             />
 
     render_time: (cell) ->
@@ -66,6 +71,8 @@ exports.Cell = rclass ({name}) ->
             </div>
 
     click_on_cell: (event) ->
+        if not @props.actions?
+            return
         if event.shiftKey
             setTimeout((->misc_page.clear_selection()), 50)
             @props.actions.select_cell_range(@props.id)

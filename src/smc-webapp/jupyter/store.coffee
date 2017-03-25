@@ -7,15 +7,6 @@ misc       = require('smc-util/misc')
 global_clipboard = undefined
 
 class exports.JupyterStore extends Store
-    get_project_id: =>
-        return @_project_id
-
-    get_path: =>
-        return @_path
-
-    get_directory: =>
-        return @_directory
-
     # Return map from selected cell ids to true, in no particular order
     get_selected_cell_ids: =>
         selected = {}
@@ -70,14 +61,8 @@ class exports.JupyterStore extends Store
             return   # .get negative for List in immutable wraps around rather than undefined (like Python)
         return @get('cell_list')?.get(i)
 
-    get_font_size: =>
-        return @get_local_storage('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
-
     get_scroll_state: =>
         return @get_local_storage('scroll')
-
-    get_cursors: =>
-        return @syncdb.get_cursors()
 
     set_global_clipboard: (clipboard) =>
         global_clipboard = clipboard
@@ -93,11 +78,3 @@ class exports.JupyterStore extends Store
         if value?
             return misc.from_json(value)?[key]
 
-    get_server_url: =>
-        return "#{window?.smc_base_url ? ''}/#{@_project_id}/raw/.smc/jupyter"
-
-    get_blob_url: (extension, sha1) =>
-        return "#{@get_server_url()}/blobs/a.#{extension}?sha1=#{sha1}"
-
-    get_logo_url: (kernel) =>
-        return "#{@get_server_url()}/kernelspecs/#{kernel}/logo-64x64.png"

@@ -10,9 +10,9 @@ immutable = require('immutable')
 
 {Cell} = require('./cell')
 
-exports.CellList = rclass ({name}) ->
+exports.CellList = rclass
     propTypes:
-        actions     : rtypes.object.isRequired
+        actions     : rtypes.object   # if not defined, then everything read only
         cell_list   : rtypes.immutable.List.isRequired  # list of ids of cells in order
         cells       : rtypes.immutable.Map.isRequired
         font_size   : rtypes.number.isRequired
@@ -21,18 +21,20 @@ exports.CellList = rclass ({name}) ->
         cur_id      : rtypes.string                     # cell with the green cursor around it; i.e., the cursor cell
         mode        : rtypes.string.isRequired
         cm_options  : rtypes.immutable.Map
+        project_id  : rtypes.string
+        directory   : rtypes.string
+        scrollTop   : rtypes.number
 
     componentWillUnmount: ->
         # save scroll state
         state = ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop
-        if state?
+        if state? and @props.actions?
             @props.actions.set_scroll_state(state)
 
     componentDidMount: ->
         # restore scroll state
-        scrollTop = @props.actions.store.get_scroll_state()
-        if scrollTop?
-            ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = scrollTop
+        if @props.scrollTop?
+            ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = @props.scrollTop
 
     render_loading: ->
         <div style={fontSize: '32pt', color: '#888', textAlign: 'center', marginTop: '15px'}>
@@ -56,6 +58,8 @@ exports.CellList = rclass ({name}) ->
                     is_markdown_edit = {@props.md_edit_ids.contains(id)}
                     mode             = {@props.mode}
                     font_size        = {@props.font_size}
+                    project_id       = {@props.project_id}
+                    directory        = {@props.directory}
                     />
             v.push(cell)
             return

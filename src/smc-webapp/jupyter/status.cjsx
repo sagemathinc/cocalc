@@ -6,6 +6,8 @@ Kernel display
 {ImmutablePureRenderMixin} = require('../r_misc')
 {Icon} = require('../r_misc')
 
+util = require('./util')
+
 exports.Mode = rclass ({name}) ->
     reduxProps :
         "#{name}" :
@@ -20,7 +22,6 @@ exports.Mode = rclass ({name}) ->
             <Icon name='pencil' />
         </div>
 
-
 exports.Kernel = rclass ({name}) ->
     propTypes:
         actions : rtypes.object.isRequired
@@ -29,19 +30,20 @@ exports.Kernel = rclass ({name}) ->
 
     reduxProps:
         "#{name}" :
-            kernel  : rtypes.string
-            kernels : rtypes.immutable.List
+            kernel     : rtypes.string
+            kernels    : rtypes.immutable.List
+            project_id : rtypes.string
 
     getInitialState: ->
         logo_failed : ''
 
     render_logo: ->
         kernel = @props.kernel
-        if @state.logo_failed == kernel
+        if @state.logo_failed == kernel or not @props.project_id?
             <img style   = {width:'0px', height:'32px'} />
         else
             <img
-                src     = {@props.actions.store.get_logo_url(kernel)}
+                src     = {util.get_logo_url(@props.project_id, kernel)}
                 style   = {width:'32px', height:'32px'}
                 onError = {=> @setState(logo_failed: kernel)}
             />

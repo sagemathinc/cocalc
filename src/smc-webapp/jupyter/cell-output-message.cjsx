@@ -4,6 +4,8 @@ misc = require('smc-util/misc')
 {ImmutablePureRenderMixin, Markdown} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
 
+util = require('./util')
+
 LEFT='17px'
 
 STDOUT_STYLE =
@@ -42,12 +44,14 @@ Stderr = rclass
 
 Image = rclass
     propTypes:
-        extension : rtypes.string.isRequired
-        sha1      : rtypes.string.isRequired
-        actions   : rtypes.object.isRequired
+        extension  : rtypes.string.isRequired
+        sha1       : rtypes.string.isRequired
+        project_id : rtypes.string
 
     render: ->
-        src = @props.actions.store.get_blob_url(@props.extension, @props.sha1)
+        if not @props.project_id?   # not enough info to render
+            return <span/>
+        src = util.get_blob_url(@props.project_id, @props.extension, @props.sha1)
         <img src={src} />
 
 # This doesn't work at all yet for mathjax, etc.
@@ -73,8 +77,9 @@ HTML = rclass
 
 Data = rclass
     propTypes :
-        message : rtypes.immutable.Map.isRequired
-        actions : rtypes.object.isRequired
+        message    : rtypes.immutable.Map.isRequired
+        project_id : rtypes.string
+        directory  : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
 
@@ -95,14 +100,17 @@ Data = rclass
                     when 'html'
                         return <HTML value={value}/>
                     when 'markdown'
-                        s = @props.actions.store
                         return <Markdown
                                 value      = {value}
-                                project_id = {s.get_project_id()}
-                                file_path  = {s.get_directory()}
+                                project_id = {@props.project_id}
+                                file_path  = {@props.directory}
                             />
             when 'image'
-                return <Image actions={@props.actions} extension={type.split('/')[1].split('+')[0]} sha1={value}/>
+                return <Image
+                    project_id = {@props.project_id}
+                    extension  = {type.split('/')[1].split('+')[0]}
+                    sha1       = {value}
+                    />
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 
@@ -152,19 +160,25 @@ message_component = (message) ->
 
 CellOutputMessage = rclass
     propTypes :
-        message : rtypes.immutable.Map.isRequired
-        actions   : rtypes.object.isRequired
+        message    : rtypes.immutable.Map.isRequired
+        project_id : rtypes.string
+        directory  : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
         C = message_component(@props.message)
-        <C message={@props.message} actions={@props.actions} />
+        <C
+            message    = {@props.message}
+            project_id = {@props.project_id}
+            directory  = {@props.directory}
+            />
 
 exports.CellOutputMessages = rclass
     propTypes :
-        output  : rtypes.immutable.Map.isRequired  # the actual messages
-        actions : rtypes.object.isRequired
+        output     : rtypes.immutable.Map.isRequired  # the actual messages
+        project_id : rtypes.string
+        directory  : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.output != @props.output
@@ -173,9 +187,10 @@ exports.CellOutputMessages = rclass
         if not mesg?
             return
         <CellOutputMessage
-            key     = {n}
-            message = {mesg}
-            actions   = {@props.actions}
+            key        = {n}
+            message    = {mesg}
+            project_id = {@props.project_id}
+            directory  = {@props.directory}
         />
 
     message_list: ->

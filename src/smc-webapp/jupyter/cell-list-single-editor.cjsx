@@ -17,7 +17,7 @@ syncstring = require('smc-util/syncstring')
 
 underscore = require('underscore')
 
-exports.CellList = rclass ({name}) ->
+exports.CellList = rclass
     propTypes:
         actions     : rtypes.object.isRequired
         cell_list   : rtypes.immutable.List.isRequired  # list of ids of cells in order
