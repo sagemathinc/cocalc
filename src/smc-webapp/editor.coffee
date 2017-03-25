@@ -254,7 +254,7 @@ file_associations['ipynb'] =
     editor : 'ipynb'
     icon   : 'cc-icon-ipynb'
     opts   : {}
-    name   : "jupyter notebook"
+    name   : "Jupyter Notebook"
 
 for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
     file_associations[ext] =

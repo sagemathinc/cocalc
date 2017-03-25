@@ -24,6 +24,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.cc-icon-ipynb-file:before {
+  content: "\e90f";
+}
+.cc-icon-jupyter-file:before {
+  content: "\e910";
+}
 .cc-icon-tex-file:before {
   content: "\e90e";
 }
