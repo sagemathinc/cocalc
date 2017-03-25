@@ -15,6 +15,8 @@ syncstring = require('smc-util/syncstring')
 
 underscore = require('underscore')
 
+misc = require('smc-util/misc')
+
 EDITOR_STYLE =
     width        : '100%'
     overflowX    : 'hidden'
@@ -34,8 +36,9 @@ exports.CodeMirrorEditor = rclass
         options    : rtypes.immutable.Map.isRequired
         value      : rtypes.string.isRequired
         id         : rtypes.string.isRequired
-        font_size  : rtypes.number    # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
+        font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
         is_focused : rtypes.bool.isRequired
+        cursors    : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return \
@@ -43,10 +46,11 @@ exports.CodeMirrorEditor = rclass
             next.options    != @props.options or \
             next.value      != @props.value or \
             next.font_size  != @props.font_size or\
-            next.is_focused != @props.is_focused
+            next.is_focused != @props.is_focused or\
+            next.cursors    != @props.cursors
 
     componentDidMount: ->
-        @init_codemirror(@props.options, @props.value)
+        @init_codemirror(@props.options, @props.value, @props.cursors)
 
     _cm_destroy: ->
         if @cm?
@@ -64,6 +68,7 @@ exports.CodeMirrorEditor = rclass
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
+        @_cm_cursor()
 
     _cm_blur: ->
         @props.actions.set_mode('escape')
@@ -99,6 +104,18 @@ exports.CodeMirrorEditor = rclass
         @_cm_last_remote = new_val
         @cm.setValueNoJump(new_val)
 
+    _cm_update_cursors: (cursors) ->
+        console.log 'update cursors:', @props.id, JSON.stringify(cursors)
+        now = misc.server_time()
+        cursors?.forEach (locs, account_id) =>
+            v = []
+            locs.forEach (loc) =>
+                console.log loc, now, now - loc.get('time')
+                if now - loc.get('time') <= 15000
+                    v.push({x:loc.get('x'), y:loc.get('y')})
+                return
+            @draw_other_cursors(@cm, account_id, v)
+
     _cm_undo: ->
         if not @props.actions.syncdb.in_undo_mode() or @cm.getValue() != @_cm_last_remote
             @_cm_save()
@@ -112,7 +129,7 @@ exports.CodeMirrorEditor = rclass
         @props.actions.move_cursor(1)
         @props.actions.set_mode('escape')
 
-    init_codemirror: (options, value) ->
+    init_codemirror: (options, value, cursors) ->
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         options = options.toJS()
@@ -137,15 +154,19 @@ exports.CodeMirrorEditor = rclass
         if @props.is_focused
             @cm.focus()
 
+        @_cm_update_cursors(cursors)
+
     componentDidMount: ->
-        @init_codemirror(@props.options, @props.value)
+        @init_codemirror(@props.options, @props.value, @props.cursors)
 
     componentWillReceiveProps: (next) ->
         if not @cm? or not @props.options.equals(next.options) or @props.font_size != next.font_size
-            @init_codemirror(next.options, next.value)
+            @init_codemirror(next.options, next.value, next.cursors)
             return
         if next.value != @props.value
             @_cm_merge_remote(next.value)
+        if next.cursors != @props.cursors
+            @_cm_update_cursors(next.cursors)
         if @props.is_focused and not next.is_focused
             # This blur must be done in the next render loop; I don't understand exactly why.
             # Also, it is critical to check that is_focused still has the same state, or we
@@ -165,3 +186,55 @@ exports.CodeMirrorEditor = rclass
         <div style={EDITOR_STYLE}>
             <textarea />
         </div>
+
+    # TODO: this is very ugly (basically just copied from editor_jupyter)
+    draw_other_cursors: (cm, account_id, locs) ->
+        console.log 'draw_other_cursors', account_id, locs
+        if not cm?
+            console.log 'no cm'
+            return
+        @_cursors ?= {}
+        users = @props.actions.redux.getStore('users')
+        x = @_cursors[account_id]
+        if not x?
+            x = @_cursors[account_id] = []
+
+        # First draw/update all current cursors
+        templates = $(".smc-jupyter-templates")
+        for [i, loc] in misc.enumerate(locs)
+            pos   = {line:loc.y, ch:loc.x}
+            index = loc.i # cell index
+            data  = x[i]
+            name  = misc.trunc(users.get_first_name(account_id), 10)
+            color = users.get_color(account_id)
+            if not data?
+                cursor = templates.find(".smc-jupyter-cursor").clone().show()
+                cursor.css({opacity:.7})
+                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', 'padding-top':'.6ex', position:'absolute', width:'16ex')
+                cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', position:'absolute')
+                data = x[i] = {cursor: cursor}
+            if name != data.name
+                data.cursor.find(".smc-jupyter-cursor-label").text(name)
+                data.name = name
+            if color != data.color
+                data.cursor.find(".smc-jupyter-cursor-inside").css('border-left': "1px solid #{color}")
+                data.cursor.find(".smc-jupyter-cursor-label" ).css(background: color)
+                data.color = color
+
+            # Place cursor in the editor in the right spot
+            #console.log("put cursor into cell #{index} at pos #{misc.to_json(pos)}", data.cursor)
+            cm.addWidget(pos, data.cursor[0], false)
+
+            # Update cursor fade-out
+            # LABEL: first fade the label out over 6s
+            data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
+            data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+
+        if x.length > locs.length
+            # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
+            for i in [locs.length...x.length]
+                #console.log('removing cursor ', i)
+                x[i].cursor.remove()
+            @_cursors[account_id] = x.slice(0, locs.length)
+

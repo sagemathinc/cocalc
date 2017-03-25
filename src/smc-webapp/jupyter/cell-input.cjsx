@@ -30,6 +30,7 @@ exports.CellInput = rclass
             next.cell.get('exec_count') != @props.cell.get('exec_count') or \
             next.cell.get('cell_type')  != @props.cell.get('cell_type') or \
             next.cell.get('state')      != @props.cell.get('state') or \
+            next.cell.get('cursors')    != @props.cell.get('cursors') or \
             next.cm_options             != @props.cm_options or \
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused             != @props.is_focused or \
@@ -59,6 +60,7 @@ exports.CellInput = rclass
                     id         = {id}
                     is_focused = {@props.is_focused}
                     font_size  = {@props.font_size}
+                    cursors    = {@props.cell.get('cursors')}
                 />
             when 'markdown'
                 if @props.is_markdown_edit
@@ -69,6 +71,7 @@ exports.CellInput = rclass
                         id         = {id}
                         is_focused = {@props.is_focused}
                         font_size  = {@props.font_size}
+                        cursors    = {@props.cell.get('cursors')}
                     />
                 else
                     value = @props.cell.get('input')?.trim()

@@ -33,6 +33,7 @@ class exports.JupyterActions extends Actions
         @syncdb      = syncdb
         @_client     = client
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
+        @_account_id = client.client_id()   # project or account's id
         @_project_id = @store._project_id = project_id
         @_path       = @store._path = path
         @_directory  = @store._directory = misc.path_split(path)?.head
@@ -50,6 +51,9 @@ class exports.JupyterActions extends Actions
 
         @syncdb.on('metadata-change', @set_has_unsaved_changes)
         @syncdb.on('change', @_syncdb_change)
+
+        if not client.is_project() # project doesn't care about cursors
+            @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
 
         cm_options =
             indentUnit        : 4
@@ -312,6 +316,47 @@ class exports.JupyterActions extends Actions
         if do_init
             @initialize_manager()
 
+    _syncdb_cursor_activity: =>
+        cells = cells_before = @store.get('cells')
+        next_cursors = @syncdb.get_cursors()
+        next_cursors.forEach (info, account_id) =>
+            if account_id == @_account_id  # don't process information about ourselves
+                return
+            last_info = @_last_cursors?.get(account_id)
+            if last_info?.equals(info)
+                # no change for this particular users, so nothing further to do
+                return
+            # delete old cursor locations
+            last_info?.get('locs').forEach (loc) =>
+                id = loc.get('id')
+                cell = cells.get(id)
+                if not cell?
+                    return
+                cursors = cell.get('cursors') ? immutable.Map()
+                if cursors.has(account_id)
+                    cells = cells.set(id, cell.set('cursors', cursors.delete(account_id)))
+                    return false  # nothing further to do
+                return
+
+            # set new cursors
+            info.get('locs').forEach (loc) =>
+                id = loc.get('id')
+                cell = cells.get(id)
+                if not cell?
+                    return
+                cursors = cell.get('cursors') ? immutable.Map()
+                loc = loc.set('time', info.get('time')).delete('id')
+                locs = (cursors.get(account_id) ? immutable.List()).push(loc)
+                cursors = cursors.set(account_id, locs)
+                cell = cell.set('cursors', cursors)
+                cells = cells.set(id, cell)
+                return
+
+        @_last_cursors = next_cursors
+
+        if cells != cells_before
+            @setState(cells : cells)
+
     ensure_there_is_a_cell: =>
         cells = @store.get('cells')
         if not cells? or cells.size == 0
@@ -521,6 +566,9 @@ class exports.JupyterActions extends Actions
         return
 
     set_cursor_locs: (locs=[]) =>
+        if locs.length == 0
+            # don't remove on blur -- cursor will fade out just fine
+            return
         @_cursor_locs = locs  # remember our own cursors for splitting cell
         @syncdb.set_cursor_locs(locs)
 
