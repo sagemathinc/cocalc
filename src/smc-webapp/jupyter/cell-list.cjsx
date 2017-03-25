@@ -12,9 +12,15 @@ immutable = require('immutable')
 
 exports.CellList = rclass ({name}) ->
     propTypes:
-        actions   : rtypes.object.isRequired
-        cell_list : rtypes.immutable.List.isRequired  # list of ids of cells in order
-        font_size : rtypes.number.isRequired
+        actions     : rtypes.object.isRequired
+        cell_list   : rtypes.immutable.List.isRequired  # list of ids of cells in order
+        cells       : rtypes.immutable.Map.isRequired
+        font_size   : rtypes.number.isRequired
+        sel_ids     : rtypes.immutable.Set.isRequired   # set of selected cells
+        md_edit_ids : rtypes.immutable.Set.isRequired
+        cur_id      : rtypes.string                     # cell with the green cursor around it; i.e., the cursor cell
+        mode        : rtypes.string.isRequired
+        cm_options  : rtypes.immutable.Map
 
     componentWillUnmount: ->
         # save scroll state
@@ -39,7 +45,19 @@ exports.CellList = rclass ({name}) ->
 
         v = []
         @props.cell_list.map (id) =>
-            v.push <Cell key={id} name={name} id={id} actions={@props.actions} />
+            cell = <Cell
+                    key              = {id}
+                    actions          = {@props.actions}
+                    id               = {id}
+                    cm_options       = {@props.cm_options}
+                    cell             = {@props.cells.get(id)}
+                    is_current       = {id == @props.cur_id}
+                    is_selected      = {@props.sel_ids.contains(id)}
+                    is_markdown_edit = {@props.md_edit_ids.contains(id)}
+                    mode             = {@props.mode}
+                    font_size        = {@props.font_size}
+                    />
+            v.push(cell)
             return
         style =
             fontSize        : "#{@props.font_size}px"

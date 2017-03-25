@@ -9,7 +9,8 @@ prompt = (state, exec_count) ->
         when 'busy'
             n = '*'
         else  # done
-            n = exec_count ? '?'
+            n = exec_count ? ' '
+    return n
 
 INPUT_STYLE =
     color        : '#303F9F'

@@ -30,10 +30,10 @@ enable_folding = (options) ->
 
 exports.CodeMirrorEditor = rclass
     propTypes :
-        actions  : rtypes.object.isRequired
-        options  : rtypes.immutable.Map.isRequired
-        value    : rtypes.string.isRequired
-        id       : rtypes.string.isRequired
+        actions   : rtypes.object.isRequired
+        options   : rtypes.immutable.Map.isRequired
+        value     : rtypes.string.isRequired
+        id        : rtypes.string.isRequired
         font_size : rtypes.number # not used, but critical to re-render on change!
 
     shouldComponentUpdate: (next) ->
@@ -56,6 +56,8 @@ exports.CodeMirrorEditor = rclass
 
     _cm_focus: ->
         @props.actions.set_mode('edit')
+        @props.actions.unselect_all_cells()
+        @props.actions.set_cur_id(@props.id)
 
     _cm_blur: ->
         @props.actions.set_mode('escape')

@@ -15,39 +15,35 @@ misc_page = require('../misc_page')
 
 exports.Cell = rclass ({name}) ->
     propTypes :
-        actions    : rtypes.object.isRequired
-        id         : rtypes.string.isRequired
-        cm_options : rtypes.object.isRequired
-
-    reduxProps :
-        "#{name}" :
-            cells       : rtypes.immutable.Map   # map from id to cells
-            cur_id      : rtypes.string          # id of currently selected cell
-            sel_ids     : rtypes.immutable.Set   # set of selected cells
-            mode        : rtypes.string          # 'edit' or 'escape'
-            cm_options  : rtypes.immutable.Map
-            md_edit_ids : rtypes.immutable.Set.isRequired
-            font_size   : rtypes.number
+        actions          : rtypes.object.isRequired
+        id               : rtypes.string.isRequired
+        cm_options       : rtypes.object.isRequired
+        cell             : rtypes.immutable.Map.isRequired
+        is_current       : rtypes.bool.isRequired
+        is_selected      : rtypes.bool.isRequired
+        is_markdown_edit : rtypes.bool.isRequired
+        mode             : rtypes.string.isRequired    # the mode -- 'edit' or 'escape'
+        font_size        : rtypes.number
 
     shouldComponentUpdate: (next) ->
-        return next.cm_options != @props.cm_options or \
-            next.id != @props.id or \
-            next.cells.get(@props.id) != @props.cells.get(@props.id) or \
-            next.cur_id != @props.cur_id or\
-            next.sel_ids != @props.sel_ids or \
-            next.mode != @props.mode or \
-            next.md_edit_ids != @props.md_edit_ids or \
-            next.font_size != @props.font_size
+        return next.id               != @props.id or \
+               next.cm_options       != @props.cm_options or \
+               next.cell             != @props.cell or \
+               next.is_current       != @props.is_current or\
+               next.is_selected      != @props.is_selected or \
+               next.is_markdown_edit != @props.is_markdown_edit or \
+               next.mode             != @props.mode or \
+               next.font_size        != @props.font_size
 
     render_cell_input: (cell) ->
         <CellInput
             key         = 'in'
-            cell        = {cell}
-            actions     = {@props.actions}
-            cm_options  = {@props.cm_options}
-            md_edit_ids = {@props.md_edit_ids}
-            id          = {@props.id}
-            font_size   = {@props.font_size}
+            cell             = {cell}
+            actions          = {@props.actions}
+            cm_options       = {@props.cm_options}
+            is_markdown_edit = {@props.is_markdown_edit}
+            id               = {@props.id}
+            font_size        = {@props.font_size}
             />
 
     render_cell_output: (cell) ->
@@ -59,7 +55,7 @@ exports.Cell = rclass ({name}) ->
 
     render_time: (cell) ->
         if cell.get('start')?
-            <div style={position:'relative', zIndex: 1, right: 0, width: '8em', paddingLeft:'5px'}, className='pull-right'>
+            <div style={position:'relative', zIndex: 1, right: 0, width: '100%', paddingLeft:'5px'}, className='pull-right'>
                 <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
                     <CellTiming
                         start = {cell.get('start')}
@@ -77,9 +73,8 @@ exports.Cell = rclass ({name}) ->
             @props.actions.unselect_all_cells()
 
     render: ->
-        selected = @props.sel_ids?.contains(@props.id)
-        if @props.cur_id == @props.id
-            # currently selected cell
+        if @props.is_current
+            # is the current cell
             if @props.mode == 'edit'
                 # edit mode
                 color1 = color2 = '#66bb6a'
@@ -88,7 +83,7 @@ exports.Cell = rclass ({name}) ->
                 color1 = '#ababab'
                 color2 = '#42a5f5'
         else
-            if selected
+            if @props.is_selected
                 color1 = color2 = '#e3f2fd'
             else
                 color1 = color2 = 'white'
@@ -97,13 +92,11 @@ exports.Cell = rclass ({name}) ->
             borderLeft      : "5px solid #{color2}"
             padding         : '5px'
 
-        if selected
+        if @props.is_selected
             style.background = '#e3f2fd'
 
-        cell = @props.cells.get(@props.id)
-
         <div style={style} onClick={@click_on_cell}>
-            {@render_time(cell)}
-            {@render_cell_input(cell)}
-            {@render_cell_output(cell)}
+            {@render_time(@props.cell)}
+            {@render_cell_input(@props.cell)}
+            {@render_cell_output(@props.cell)}
         </div>

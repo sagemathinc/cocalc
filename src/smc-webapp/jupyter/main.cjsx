@@ -21,12 +21,18 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            kernel              : rtypes.string          # string name of the kernel
+            kernel              : rtypes.string                     # string name of the kernel
             error               : rtypes.string
             toolbar             : rtypes.bool
             has_unsaved_changes : rtypes.bool
-            cell_list           : rtypes.immutable.List  # list of ids of cells in order
+            cell_list           : rtypes.immutable.List             # list of ids of cells in order
+            cells               : rtypes.immutable.Map              # map from ids to cells
+            cur_id              : rtypes.string
+            sel_ids             : rtypes.immutable.Set.isRequired   # set of selected cells
+            mode                : rtypes.string.isRequired          # 'edit' or 'escape'
             font_size           : rtypes.number
+            md_edit_ids         : rtypes.immutable.Set.isRequired   # ids of markdown cells in edit mode
+            cm_options          : rtypes.immutable.Map              # settings for all the codemirror editors
 
     render_error: ->
         if @props.error
@@ -58,10 +64,15 @@ exports.JupyterEditor = rclass ({name}) ->
         if not @props.cell_list? or not @props.font_size?
             return
         <CellList
-            name      = {name}
-            actions   = {@props.actions}
-            cell_list = {@props.cell_list}
-            font_size = {@props.font_size}
+            actions     = {@props.actions}
+            cell_list   = {@props.cell_list}
+            cells       = {@props.cells}
+            font_size   = {@props.font_size}
+            sel_ids     = {@props.sel_ids}
+            md_edit_ids = {@props.md_edit_ids}
+            cur_id      = {@props.cur_id}
+            mode        = {@props.mode}
+            cm_options  = {@props.cm_options}
             />
 
     render: ->

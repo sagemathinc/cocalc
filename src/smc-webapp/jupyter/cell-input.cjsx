@@ -17,20 +17,21 @@ MD_OPTIONS = immutable.fromJS
 
 exports.CellInput = rclass
     propTypes:
-        actions     : rtypes.object.isRequired
-        cm_options  : rtypes.immutable.Map.isRequired
-        cell        : rtypes.immutable.Map.isRequired
-        md_edit_ids : rtypes.immutable.Set.isRequired
-        font_size   : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
+        actions          : rtypes.object.isRequired
+        cm_options       : rtypes.immutable.Map.isRequired
+        cell             : rtypes.immutable.Map.isRequired
+        is_markdown_edit : rtypes.bool.isRequired
+        font_size        : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
 
     shouldComponentUpdate: (next) ->
-        return next.cell.get('input') != @props.cell.get('input') or \
+        return \
+            next.cell.get('input')      != @props.cell.get('input') or \
             next.cell.get('exec_count') != @props.cell.get('exec_count') or \
-            next.cell.get('cell_type') != @props.cell.get('cell_type') or \
-            next.cell.get('state') != @props.cell.get('state') or \
-            next.cm_options != @props.cm_options or \
-            (next.md_edit_ids != @props.md_edit_ids and next.cell.get('cell_type') == 'markdown') or \
-            next.font_size != @props.font_size
+            next.cell.get('cell_type')  != @props.cell.get('cell_type') or \
+            next.cell.get('state')      != @props.cell.get('state') or \
+            next.cm_options             != @props.cm_options or \
+            (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
+            next.font_size              != @props.font_size
 
     render_input_prompt: (type) ->
         <InputPrompt
@@ -51,7 +52,7 @@ exports.CellInput = rclass
                     font_size = {@props.font_size}
                 />
             when 'markdown'
-                if @props.md_edit_ids.contains(id)
+                if @props.is_markdown_edit
                     <CodeMirrorEditor
                         value     = {@props.cell.get('input') ? ''}
                         options   = {MD_OPTIONS}
