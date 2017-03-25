@@ -559,7 +559,10 @@ exports.SearchInput = rclass
 
     componentDidMount: ->
         if @props.autoSelect
-            ReactDOM.findDOMNode(@refs.input).select()
+            try
+                ReactDOM.findDOMNode(@refs.input).select()
+            catch e
+                # Edge sometimes complains about 'Could not complete the operation due to error 800a025e'
 
     clear_and_focus_search_input: ->
         @set_value('')
