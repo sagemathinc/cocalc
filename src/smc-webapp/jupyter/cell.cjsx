@@ -37,11 +37,12 @@ exports.Cell = rclass ({name}) ->
 
     render_cell_input: (cell) ->
         <CellInput
-            key         = 'in'
+            key              = 'in'
             cell             = {cell}
             actions          = {@props.actions}
             cm_options       = {@props.cm_options}
             is_markdown_edit = {@props.is_markdown_edit}
+            is_focused       = {@props.is_current and @props.mode == 'edit'}
             id               = {@props.id}
             font_size        = {@props.font_size}
             />

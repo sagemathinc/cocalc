@@ -30,14 +30,20 @@ enable_folding = (options) ->
 
 exports.CodeMirrorEditor = rclass
     propTypes :
-        actions   : rtypes.object.isRequired
-        options   : rtypes.immutable.Map.isRequired
-        value     : rtypes.string.isRequired
-        id        : rtypes.string.isRequired
-        font_size : rtypes.number # not used, but critical to re-render on change!
+        actions    : rtypes.object.isRequired
+        options    : rtypes.immutable.Map.isRequired
+        value      : rtypes.string.isRequired
+        id         : rtypes.string.isRequired
+        font_size  : rtypes.number    # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
+        is_focused : rtypes.bool.isRequired
 
     shouldComponentUpdate: (next) ->
-        return next.options != @props.options or next.value != @props.value or next.font_size != @props.font_size
+        return \
+            next.id         != @props.id or \
+            next.options    != @props.options or \
+            next.value      != @props.value or \
+            next.font_size  != @props.font_size or\
+            next.is_focused != @props.is_focused
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
@@ -47,8 +53,8 @@ exports.CodeMirrorEditor = rclass
             @cm.toTextArea()
             if @_cm_change?
                 @cm.off('change', @_cm_change)
-                @cm.off('focus', @_cm_focus)
-                @cm.off('blur', @_cm_blur)
+                @cm.off('focus',  @_cm_focus)
+                @cm.off('blur',   @_cm_blur)
                 delete @_cm_change
             delete @_cm_last_remote
             delete @cm
@@ -103,6 +109,8 @@ exports.CodeMirrorEditor = rclass
 
     run_cell: ->
         @props.actions.run_cell(@props.id)
+        @props.actions.move_cursor(1)
+        @props.actions.set_mode('escape')
 
     init_codemirror: (options, value) ->
         @_cm_destroy()
@@ -126,14 +134,25 @@ exports.CodeMirrorEditor = rclass
 
         @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
 
+        if @props.is_focused
+            @cm.focus()
+
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
 
     componentWillReceiveProps: (next) ->
         if not @cm? or not @props.options.equals(next.options) or @props.font_size != next.font_size
             @init_codemirror(next.options, next.value)
-        else if next.value != @props.value
+            return
+        if next.value != @props.value
             @_cm_merge_remote(next.value)
+        if @props.is_focused and not next.is_focused
+            # This blur must be done in the next render loop; I don't understand exactly why.
+            # Also, it is critical to check that is_focused still has the same state, or we
+            # get into an infinite bouncing loop.
+            setTimeout((=>if not @props?.is_focused then @cm?.getInputField().blur()), 0)
+        else if not @props.is_focused and next.is_focused
+            setTimeout((=>if @props?.is_focused then @cm?.focus()), 0)
 
     componentWillUnmount: ->
         if @cm?

@@ -21,6 +21,7 @@ exports.CellInput = rclass
         cm_options       : rtypes.immutable.Map.isRequired
         cell             : rtypes.immutable.Map.isRequired
         is_markdown_edit : rtypes.bool.isRequired
+        is_focused       : rtypes.bool.isRequired
         font_size        : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
 
     shouldComponentUpdate: (next) ->
@@ -31,6 +32,7 @@ exports.CellInput = rclass
             next.cell.get('state')      != @props.cell.get('state') or \
             next.cm_options             != @props.cm_options or \
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
+            next.is_focused             != @props.is_focused or \
             next.font_size              != @props.font_size
 
     render_input_prompt: (type) ->
@@ -40,31 +42,39 @@ exports.CellInput = rclass
             exec_count = {@props.cell.get('exec_count')}
         />
 
+    handle_md_double_click: ->
+        id = @props.cell.get('id')
+        @props.actions.set_md_cell_editing(id)
+        @props.actions.set_cur_id(id)
+        @props.actions.set_mode('edit')
+
     render_input_value: (type) ->
         id = @props.cell.get('id')
         switch type
             when 'code'
                 <CodeMirrorEditor
-                    value     = {@props.cell.get('input') ? ''}
-                    options   = {@props.cm_options}
-                    actions   = {@props.actions}
-                    id        = {id}
-                    font_size = {@props.font_size}
+                    value      = {@props.cell.get('input') ? ''}
+                    options    = {@props.cm_options}
+                    actions    = {@props.actions}
+                    id         = {id}
+                    is_focused = {@props.is_focused}
+                    font_size  = {@props.font_size}
                 />
             when 'markdown'
                 if @props.is_markdown_edit
                     <CodeMirrorEditor
-                        value     = {@props.cell.get('input') ? ''}
-                        options   = {MD_OPTIONS}
-                        actions   = {@props.actions}
-                        id        = {id}
-                        font_size = {@props.font_size}
+                        value      = {@props.cell.get('input') ? ''}
+                        options    = {MD_OPTIONS}
+                        actions    = {@props.actions}
+                        id         = {id}
+                        is_focused = {@props.is_focused}
+                        font_size  = {@props.font_size}
                     />
                 else
                     value = @props.cell.get('input')?.trim()
                     if not value
                         value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
-                    <div onDoubleClick={=>@props.actions.set_md_cell_editing(id)} style={width:'100%'}>
+                    <div onDoubleClick={@handle_md_double_click} style={width:'100%'}>
                         <Markdown
                             value      = {value}
                             project_id = {@props.actions._project_id}
