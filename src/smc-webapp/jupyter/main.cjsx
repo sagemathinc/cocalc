@@ -12,6 +12,7 @@ Top-level react component, which ties everything together
 {TopMenubar}   = require('./top-menubar')
 {TopButtonbar} = require('./top-buttonbar')
 {CellList}     = require('./cell-list')
+#{CellList}     = require('./cell-list-single-editor')
 {Kernel, Mode} = require('./status')
 
 exports.JupyterEditor = rclass ({name}) ->
