@@ -129,9 +129,33 @@ exports.TopMenubar = rclass ({name}) ->
                 Cell
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="run-cells" onSelect={=>@props.actions.run_selected_cells()}>Run Cells</MenuItem>
-                <MenuItem eventKey="run-cells-select-below">Run Cells and Select Below</MenuItem>
-                <MenuItem eventKey="run-cells-insert-below">Run Cells and Insert Below</MenuItem>
+                <MenuItem
+                    eventKey = "run-cells"
+                    onSelect = { =>
+                        @props.actions.run_selected_cells()
+                        @props.actions.move_cursor_to_last_selected_cell()
+                        @props.actions.unselect_all_cells()
+                        } >
+                            Run Cells
+                </MenuItem>
+                <MenuItem eventKey="run-cells-select-below"
+                    onSelect = { =>
+                        @props.actions.run_selected_cells()
+                        @props.actions.move_cursor_after_selected_cells()
+                        @props.actions.unselect_all_cells()
+                        } >
+                            Run Cells and Select Below
+                </MenuItem>
+                <MenuItem eventKey="run-cells-insert-below"
+                    onSelect = { =>
+                        @props.actions.run_selected_cells()
+                        @props.actions.move_cursor_to_last_selected_cell()
+                        @props.actions.unselect_all_cells()
+                        @props.actions.insert_cell(1)
+                        setTimeout((()=>@props.actions.set_mode('edit')),0)
+                        } >
+                            Run Cells and Insert Below
+                </MenuItem>
                 <MenuItem eventKey="run-all" onSelect={=>@props.actions.run_all_cells()}>Run All</MenuItem>
                 <MenuItem eventKey="run-all-below">Run All Above</MenuItem>
                 <MenuItem eventKey="run-all-below">Run All Below</MenuItem>

@@ -483,8 +483,6 @@ class exports.JupyterActions extends Actions
         v = @store.get_selected_cell_ids_list()
         for id in v
             @run_cell(id)
-        if v.length > 0
-            @move_cursor_after(v[v.length-1])
         @save_asap()
 
     run_all_cells: =>
@@ -492,6 +490,16 @@ class exports.JupyterActions extends Actions
             @run_cell(id)
             return
         @save_asap()
+
+    move_cursor_after_selected_cells: =>
+        v = @store.get_selected_cell_ids_list()
+        if v.length > 0
+            @move_cursor_after(v[v.length-1])
+
+    move_cursor_to_last_selected_cell: =>
+        v = @store.get_selected_cell_ids_list()
+        if v.length > 0
+            @set_cur_id(v[v.length-1])
 
     # move cursor delta positions from current position
     move_cursor: (delta) =>
