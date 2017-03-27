@@ -203,7 +203,7 @@ exports.CodeMirrorEditor = rclass
 
     # TODO: this is very ugly -- must rewrite below using React.
     draw_other_cursors: (cm, account_id, locs) ->
-        if not cm?
+        if not cm? or not @props.actions?
             return
         @_cursors ?= {}
         users = @props.actions.redux.getStore('users')
