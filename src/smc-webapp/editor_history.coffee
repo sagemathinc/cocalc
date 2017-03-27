@@ -23,6 +23,9 @@
 
 $ = window.$
 
+underscore = require('underscore')
+async = require('async')
+
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -35,20 +38,24 @@ tasks   = require('./tasks')
 
 templates = $("#salvus-editor-templates")
 
-underscore = require('underscore')
-
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         # window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
-        @init_view_doc opts, (err) =>
+        @element  = templates.find(".salvus-editor-history").clone()
+        async.series([
+            (cb) =>
+                @init_syncstring(cb)
+            (cb) =>
+                @init_view_doc(opts, cb)
+        ], (err) =>
             if not err
-                @init_syncstring()
                 @init_slider()
+                @init_ui()
             else
-                # FUTURE: need a better way to report this
-                console.warn("FAILED to configure view_doc")
+                alert_message(type:'error', message:"Failed to open history document -- #{err}")
+        )
 
     init_paths: =>
         #   @filename = "path/to/.file.sage-history"
@@ -62,36 +69,40 @@ class exports.HistoryEditor extends FileEditor
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
             @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
+        if @ext == 'ipynb2'
+            @_path = '.' + @_path.slice(0, @_path.length-7) + '.sage-ipython'
         if s.head
             @_path = s.head + '/' + @_path
 
-    init_syncstring: =>
+    init_syncstring: (cb) =>
         salvus_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
             cb         : (err, syncstring) =>
                 if err
-                    alert_message(type:'error', message:"Failed to open document -- #{err}")
-                    return
-                @syncstring = syncstring
-                @syncstring.once 'connected', =>
-                    @render_slider()
-                    @render_diff_slider()
-                    @syncstring.on 'change', =>
-                        if @_diff_mode
-                            @resize_diff_slider()
-                        else
-                            @resize_slider()
+                    cb?(err)
+                else
+                    @syncstring = syncstring
+                    @syncstring.once('connected', cb)
 
-                    if @syncstring.has_full_history()
-                        @load_all.hide()
-                    else
-                        @load_all.show()
+    init_ui: =>
+        @render_slider()
+        @render_diff_slider()
+        @syncstring.on 'change', =>
+            if @_diff_mode
+                @resize_diff_slider()
+            else
+                @resize_slider()
 
-                    # only show button for reverting if not read only
-                    @syncstring.wait_until_read_only_known (err) =>
-                        if not @syncstring.get_read_only()
-                            @element.find("a[href=\"#revert\"]").show()
+        if @syncstring.has_full_history()
+            @load_all.hide()
+        else
+            @load_all.show()
+
+        # only show button for reverting if not read only
+        @syncstring.wait_until_read_only_known (err) =>
+            if not @syncstring.get_read_only()
+                @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -106,11 +117,12 @@ class exports.HistoryEditor extends FileEditor
     init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
-        @element  = templates.find(".salvus-editor-history").clone()
         switch @ext
             when 'ipynb'
                 @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                 @element.find("a[href=\"#show-diff\"]").hide()
+            when 'ipynb2'
+                @view_doc = jupyter_history_viewer.jquery_shim()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
                 @element.find("a[href=\"#show-diff\"]").hide()
@@ -139,6 +151,7 @@ class exports.HistoryEditor extends FileEditor
                 cb()
             @view_doc.once('failed', => cb('failed'))
         else
+            @show()
             cb()
 
     init_slider: =>

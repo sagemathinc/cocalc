@@ -863,3 +863,7 @@ class exports.JupyterActions extends Actions
                 n += 1
                 set_cell()
 
+    show_history_viewer: () =>
+        @redux.getProjectActions(@store.get('project_id'))?.open_file
+            path       : misc.history_path(@store.get('path'))
+            foreground : true
