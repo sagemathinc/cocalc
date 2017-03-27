@@ -234,8 +234,8 @@ FreeProjectWarning = rclass ({name}) ->
             display    : 'inline-block'
             float      : 'right'
             fontWeight : 700
-            top        : -5
-            fontSize   : 18
+            top        : -4
+            fontSize   : '18pt'
             color      : 'grey'
             position   : 'relative'
             height     : 0
