@@ -129,7 +129,7 @@ NewFileDropdown = rclass
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
         <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
     render: ->
