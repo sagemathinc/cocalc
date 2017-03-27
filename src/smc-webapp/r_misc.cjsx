@@ -709,15 +709,19 @@ exports.MarkdownInput = rclass
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
-exports.Markdown = rclass
-    displayName : 'Misc-Markdown'
+exports.HTML = rclass
+    displayName : 'Misc-HTML'
 
     propTypes :
-        value      : rtypes.string
-        style      : rtypes.object
-        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path  : rtypes.string   # optional -- ...
-        className  : rtypes.string   # optional class
+        value       : rtypes.string
+        style       : rtypes.object
+        has_mathjax : rtypes.bool
+        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path   : rtypes.string   # optional -- ...
+        className   : rtypes.string   # optional class
+
+    getDefaultProps: ->
+        has_mathjax : true
 
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
@@ -731,8 +735,7 @@ exports.Markdown = rclass
     _update_mathjax: (cb) ->
         if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
             return
-        #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
-        if @_x?.has_mathjax
+        if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 cb : () =>
                     # Awkward code, since cb may be called more than once.
@@ -768,23 +771,49 @@ exports.Markdown = rclass
         # and https://github.com/sagemathinc/smc/issues/1689
         @_isMounted = false
 
-    to_html: ->
+    render_html: ->
         if @props.value
-            # change escaped characters back for markdown processing
-            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            @_x = markdown.markdown_to_html(v)
-            html_sane = require('./misc_page').sanitize_html(@_x.s)
-            #if DEBUG then console.log('Markdown.to_html @_x', @_x)
-            {__html: html_sane}
+            {__html: require('./misc_page').sanitize_html(@props.value)}
         else
             {__html: ''}
 
     render: ->
         <span
             className               = {@props.className}
-            dangerouslySetInnerHTML = {@to_html()}
+            dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
         </span>
+
+exports.Markdown = rclass
+    displayName : 'Misc-Markdown'
+
+    propTypes :
+        value      : rtypes.string
+        style      : rtypes.object
+        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path  : rtypes.string   # optional -- ...
+        className  : rtypes.string   # optional class
+
+    to_html: ->
+        if @props.value
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            return markdown.markdown_to_html(v)
+        else
+            ''
+
+    render: ->
+        HTML = exports.HTML
+        value = @to_html()
+        #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
+        <HTML
+            value        = {value.s}
+            has_mathjax  = {value.has_mathjax}
+            style        = {@props.style}
+            project_id   = {@props.project_id}
+            file_path    = {@props.file_path}
+            className    = {@props.className}>
+        </HTML>
 
 activity_style =
     float           : 'right'
