@@ -877,7 +877,7 @@ ProjectsSearch = rclass
             value        = {@props.search}
             placeholder  = 'Search for projects...'
             on_change    = {(value)=>@actions('projects').setState(search: value)}
-            on_submit    = {@props.open_first_project}
+            on_submit    = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
             button_after = {@delete_search_button()}
         />
 
@@ -1337,11 +1337,11 @@ exports.ProjectsPage = ProjectsPage = rclass
             marginBottom : '1ex'
         <div style={projects_title_styles}><Icon name='thumb-tack' /> Projects </div>
 
-    open_first_project: ->
+    open_first_project: (switch_to=true) ->
         project = @visible_projects()[0]
         if project?
             @actions('projects').setState(search : '')
-            @actions('projects').open_project(project_id: project.project_id, switch_to: true)
+            @actions('projects').open_project(project_id: project.project_id, switch_to: switch_to)
     ###
     # Consolidate the next two functions.
     ###
