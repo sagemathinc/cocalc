@@ -830,7 +830,7 @@ ProjectsFilterButtons = rclass
     render_deleted_button: ->
         style = if @props.deleted then 'warning' else "default"
         if @props.show_deleted_button
-            <Button onClick={=>redux.getActions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
+            <Button onClick={=>@actions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
                 <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
         else
@@ -839,7 +839,7 @@ ProjectsFilterButtons = rclass
     render_hidden_button: ->
         style = if @props.hidden then 'warning' else "default"
         if @props.show_hidden_button
-            <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
+            <Button onClick = {=>@actions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
 
@@ -860,7 +860,7 @@ ProjectsSearch = rclass
         open_first_project : undefined
 
     clear_and_focus_input: ->
-        redux.getActions('projects').setState(search: '')
+        @actions('projects').setState(search: '')
         @refs.projects_search.clear_and_focus_search_input()
 
     delete_search_button: ->
@@ -876,7 +876,7 @@ ProjectsSearch = rclass
             type         = 'search'
             value        = {@props.search}
             placeholder  = 'Search for projects...'
-            on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
+            on_change    = {(value)=>@actions('projects').setState(search: value)}
             on_submit    = {@props.open_first_project}
             button_after = {@delete_search_button()}
         />
@@ -1122,7 +1122,7 @@ ProjectList = rclass
         user_map : undefined
 
     show_all_projects: ->
-        redux.getActions('projects').setState(show_all : not @props.show_all)
+        @actions('projects').setState(show_all : not @props.show_all)
 
     render_show_all: ->
         if @props.projects.length > MAX_DEFAULT_PROJECTS
@@ -1340,6 +1340,7 @@ exports.ProjectsPage = ProjectsPage = rclass
     open_first_project: ->
         project = @visible_projects()[0]
         if project?
+            @actions('projects').setState(search : '')
             @actions('projects').open_project(project_id: project.project_id, switch_to: true)
     ###
     # Consolidate the next two functions.
