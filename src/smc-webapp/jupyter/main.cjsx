@@ -82,18 +82,18 @@ exports.JupyterEditor = rclass ({name}) ->
             scrollTop   = {@props.actions.store.get_scroll_state()}
             />
 
-    render0: ->
+    render: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_heading()}
             {@render_cells()}
         </div>
 
+    ###
     render: ->
         {HistoryViewer} = require('./history-viewer')
         <HistoryViewer
             syncdb     = {@props.actions.syncdb}
             version    = {@props.version}
-            project_id = {@props.project_id}
-            directory  = {@props.directory}
             />
+    ###

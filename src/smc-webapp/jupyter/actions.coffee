@@ -40,10 +40,6 @@ class exports.JupyterActions extends Actions
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         @_account_id = client.client_id()   # project or account's id
 
-        if not client.is_project() and window?.$?
-            # frontend browser client with jQuery
-            @set_jupyter_kernels()
-
         #dbg = @dbg("JupyterActions._init")
 
         f = () =>
@@ -71,6 +67,12 @@ class exports.JupyterActions extends Actions
             directory           : misc.path_split(path)?.head
             path                : path
 
+        if not client.is_project() and window?.$?
+            # frontend browser client with jQuery
+            @set_jupyter_kernels()  # must be after setting project_id above.
+
+
+
     dbg: (f) =>
         return @_client.dbg("JupyterActions.#{f}")
 
@@ -85,18 +87,24 @@ class exports.JupyterActions extends Actions
         if jupyter_kernels?
             @setState(kernels: jupyter_kernels)
         else
-            $.ajax(
-                url     : util.get_server_url(@store.get('project_id')) + '/kernels.json'
-                timeout : 30000
-                success : (data) =>
-                    try
-                        jupyter_kernels = JSON.parse(data)
-                        @setState(kernels: jupyter_kernels)
-                    catch e
-                        @set_error("Error setting Jupyter kernels -- #{data} #{e}")
-            ).fail () =>
-                console.warn("WARNING: setting Jupyter kernels timed out; trying again in 15s")
-                setTimeout(@set_jupyter_kernels, 15000)
+            f = (cb) =>
+                $.ajax(
+                    url     : util.get_server_url(@store.get('project_id')) + '/kernels.json'
+                    timeout : 3000
+                    success : (data) =>
+                        try
+                            jupyter_kernels = JSON.parse(data)
+                            @setState(kernels: jupyter_kernels)
+                            cb()
+                        catch e
+                            @set_error("Error setting Jupyter kernels -- #{data} #{e}")
+                ).fail () =>
+                    console.warn("WARNING: setting Jupyter kernels failed...")
+                    cb(true)
+            misc.retry_until_success
+                f           : f
+                start_delay : 1500
+                max_delay   : 15000
 
     set_error: (err) =>
         if not err?
@@ -721,7 +729,7 @@ class exports.JupyterActions extends Actions
             localStorage[@name] = misc.to_json(current)
 
     zoom: (delta) =>
-        @set_font_size(@store.get_font_size() + delta)
+        @set_font_size(@store.get('font_size') + delta)
 
     set_scroll_state: (state) =>
         @set_local_storage('scroll', state)
@@ -729,10 +737,6 @@ class exports.JupyterActions extends Actions
     # File --> Open: just show the file listing page.
     file_open: =>
         @redux?.getProjectActions(@store.get('project_id')).set_active_tab('files')
-        return
-
-    open_timetravel: =>
-        console.warn 'not implemented'
         return
 
     register_input_editor: (id, save_value) =>

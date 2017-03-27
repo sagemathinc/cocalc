@@ -34,6 +34,7 @@ misc = require('smc-util/misc')
 
 sagews  = require('./sagews')
 jupyter = require('./editor_jupyter')
+{jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
 
 templates = $("#salvus-editor-templates")
@@ -122,7 +123,8 @@ class exports.HistoryEditor extends FileEditor
                 @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                 @element.find("a[href=\"#show-diff\"]").hide()
             when 'ipynb2'
-                @view_doc = jupyter_history_viewer.jquery_shim()
+                @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
+                @element.find("a[href=\"#show-diff\"]").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
                 @element.find("a[href=\"#show-diff\"]").hide()
@@ -252,14 +254,18 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        val = @syncstring.version(time).to_str()
-        switch @ext
-            when 'ipynb'
-                @view_doc.dom.set(val)
-            when 'tasks'
-                @view_doc.set_value(val)
-            else
-                @view_doc.codemirror.setValueNoJump(val)
+        if @ext == 'ipynb2'
+            @view_doc.set_version(time)
+        else
+            val = @syncstring.version(time).to_str()
+            switch @ext
+                when 'ipynb'
+                    @view_doc.dom.set(val)
+                when 'tasks'
+                    @view_doc.set_value(val)
+                else
+                    @view_doc.codemirror.setValueNoJump(val)
+
         @process_view()
 
     set_doc_diff: (time0, time1) =>

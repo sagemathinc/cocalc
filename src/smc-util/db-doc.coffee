@@ -606,6 +606,13 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.get_doc()
 
+    get_path: =>
+        @_check()
+        return @_doc.get_path()
+
+    get_project_id: =>
+        return @_doc.get_project_id()
+
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj, save=true) =>

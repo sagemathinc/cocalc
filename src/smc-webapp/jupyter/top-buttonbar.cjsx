@@ -123,7 +123,7 @@ exports.TopButtonbar = rclass ({name}) ->
             </Button>
             <Button
                 bsStyle = "info"
-                onClick = {=>@props.actions.open_timetravel()}>
+                onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> TimeTravel
             </Button>
         </ButtonGroup>
