@@ -1434,3 +1434,9 @@ describe 'test ISO_to_Date -- ', ->
 
     it 'a non-date does NaN', ->
         expect(isNaN(misc.ISO_to_Date("cocalc"))).toEqual(true)
+
+
+describe 'test converting to and from JSON for sending over a socket -- ', ->
+    it 'converts object involving various timestamps', ->
+        obj = {first:{now:new Date()}, second:{a:new Date(0), b:'2016-12-12T02:12:03.239'}}
+        expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)

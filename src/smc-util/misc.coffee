@@ -312,7 +312,7 @@ exports.to_json_socket = (x) ->
     JSON.stringify(x, socket_date_replacer)
 
 socket_date_parser = (key, value) ->
-    if value?[SOCKET_DATE_KEY]
+    if value?[SOCKET_DATE_KEY]?
         return new Date(value[SOCKET_DATE_KEY])
     else
         return value

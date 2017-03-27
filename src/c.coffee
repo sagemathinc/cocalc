@@ -93,7 +93,7 @@ global.delete_account = (email) ->
 
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
 
-DEFAULT_CLOSE_DAYS = 45
+DEFAULT_CLOSE_DAYS = 35
 
 global.close_unused_projects = (host, cb) ->
     cb ?= done()
