@@ -483,6 +483,12 @@ class Doc
         @_db.reset_changes()
         return
 
+    get: (where) =>
+        return @_db?.get(where)
+
+    get_one: (where) =>
+        return @_db?.get_one(where)
+
 class SyncDoc extends syncstring.SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
@@ -618,6 +624,8 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
+        if not d?
+            return
         return d._db.get(where)
 
     get_one: (where, time) =>
@@ -627,13 +635,18 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
+        if not d?
+            return
         return d._db.get_one(where)
 
     # delete everything that matches the given criterion; returns number of deleted items
     delete: (where, save=true) =>
         if not @_doc?
             return
-        @_doc.set_doc(new Doc(@_doc.get_doc()._db.delete(where)))
+        d = @_doc.get_doc()
+        if not d?
+            return
+        @_doc.set_doc(new Doc(d._db.delete(where)))
         if save
             @_doc.save()
         @_on_change()

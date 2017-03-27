@@ -10,18 +10,15 @@ immutable = require('immutable')
 
 {InputPrompt} = require('./prompt')
 
-MD_OPTIONS = immutable.fromJS
-    indentUnit : 4
-    tabSize    : 4
-    mode       : {name: "gfm2"}
+{cm_options} = require('./cm_options')
 
 exports.CellInput = rclass
     propTypes:
         actions          : rtypes.object   # not defined = read only
         cm_options       : rtypes.immutable.Map.isRequired
         cell             : rtypes.immutable.Map.isRequired
-        is_markdown_edit : rtypes.bool.isRequired
-        is_focused       : rtypes.bool.isRequired
+        is_markdown_edit : rtypes.bool
+        is_focused       : rtypes.bool
 
         font_size        : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
         project_id       : rtypes.string
@@ -71,7 +68,7 @@ exports.CellInput = rclass
                 if @props.is_markdown_edit
                     <CodeMirrorEditor
                         value      = {@props.cell.get('input') ? ''}
-                        options    = {MD_OPTIONS}
+                        options    = {cm_options('markdown')}
                         actions    = {@props.actions}
                         id         = {id}
                         is_focused = {@props.is_focused}

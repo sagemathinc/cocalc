@@ -1,6 +1,5 @@
 ###
 Top-level react component, which ties everything together
-
 ###
 
 {ErrorDisplay, Icon} = require('../r_misc')
@@ -36,6 +35,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cm_options          : rtypes.immutable.Map              # settings for all the codemirror editors
             project_id          : rtypes.string
             directory           : rtypes.string
+            version             : rtypes.object
 
     render_error: ->
         if @props.error
@@ -68,6 +68,7 @@ exports.JupyterEditor = rclass ({name}) ->
             return
         <CellList
             actions     = {@props.actions}
+
             cell_list   = {@props.cell_list}
             cells       = {@props.cells}
             font_size   = {@props.font_size}
@@ -81,10 +82,18 @@ exports.JupyterEditor = rclass ({name}) ->
             scrollTop   = {@props.actions.store.get_scroll_state()}
             />
 
-    render: ->
+    render0: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_heading()}
             {@render_cells()}
         </div>
 
+    render: ->
+        {HistoryViewer} = require('./history-viewer')
+        <HistoryViewer
+            syncdb     = {@props.actions.syncdb}
+            version    = {@props.version}
+            project_id = {@props.project_id}
+            directory  = {@props.directory}
+            />

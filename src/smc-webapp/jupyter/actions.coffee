@@ -18,7 +18,11 @@ misc       = require('smc-util/misc')
 
 util       = require('./util')
 
+{cm_options} = require('./cm_options')
+
 jupyter_kernels = undefined
+
+
 
 ###
 The actions -- what you can do with a jupyter notebook, and also the
@@ -53,15 +57,6 @@ class exports.JupyterActions extends Actions
         if not client.is_project() # project doesn't care about cursors
             @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
 
-        cm_options =
-            indentUnit        : 4
-            matchBrackets     : true
-            autoCloseBrackets : true
-            mode              :
-                name                   : "python"
-                version                : 3
-                singleLineStringErrors : false
-
         @setState
             error               : undefined
             cur_id              : undefined
@@ -70,7 +65,7 @@ class exports.JupyterActions extends Actions
             sel_ids             : immutable.Set()  # immutable set of selected cells
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
-            cm_options          : immutable.fromJS(cm_options)
+            cm_options          : cm_options()
             font_size           : @store.get_local_storage('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
             project_id          : project_id
             directory           : misc.path_split(path)?.head
@@ -248,15 +243,7 @@ class exports.JupyterActions extends Actions
         cells = @store.get('cells')
         if not cells?
             return
-        # TODO (j3?): rewrite staying immutable
-        v = []
-        cells.forEach (record, id) ->
-            v.push({id:id, pos:record.get('pos')})
-            return
-        v.sort (a,b) ->
-            misc.cmp(a.pos, b.pos)
-        v = (x.id for x in v)
-        cell_list = immutable.List(v)
+        cell_list = util.sorted_cell_list(cells)
         if not cell_list.equals(@store.get('cell_list'))
             @setState(cell_list : cell_list)
         return

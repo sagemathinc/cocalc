@@ -19,9 +19,9 @@ exports.Cell = rclass
         id               : rtypes.string.isRequired
         cm_options       : rtypes.object.isRequired
         cell             : rtypes.immutable.Map.isRequired
-        is_current       : rtypes.bool.isRequired
-        is_selected      : rtypes.bool.isRequired
-        is_markdown_edit : rtypes.bool.isRequired
+        is_current       : rtypes.bool
+        is_selected      : rtypes.bool
+        is_markdown_edit : rtypes.bool
         mode             : rtypes.string.isRequired    # the mode -- 'edit' or 'escape'
         font_size        : rtypes.number
         project_id       : rtypes.string
