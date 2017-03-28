@@ -5,14 +5,20 @@ This module will handle setting the codemirror options for various kernels.
 immutable = require('immutable')
 
 MD_OPTIONS = immutable.fromJS
-    indentUnit : 4
-    tabSize    : 4
-    mode       : {name: "gfm2"}
+    indentUnit      : 4
+    tabSize         : 4
+    mode            : {name: "gfm2"}
+    lineWrapping    : true
+    styleActiveLine : true
+    indentWithTabs  : true
 
 DEFAULT_OPTIONS = immutable.fromJS
     indentUnit        : 4
     matchBrackets     : true
     autoCloseBrackets : true
+    lineWrapping      : true
+    styleActiveLine   : true
+    indentWithTabs    : true
     mode              :
         name                   : "python"
         version                : 3

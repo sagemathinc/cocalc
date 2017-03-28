@@ -733,50 +733,55 @@ exports.HTML = rclass
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
     _update_escaped_chars: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     _update_mathjax: (cb) ->
-        if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
+        if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
             cb()
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 cb : () =>
-                    # Awkward code, since cb may be called more than once.
+                    # Awkward code, since cb may be called more than once if there
+                    # where more than one node.
                     cb?()
                     cb = undefined
         else
             cb()
 
     _update_links: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
+    _update_tables: ->
+        if not @_is_mounted
+            return
+        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
+
     update_content: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         # orchestrates the _update_* methods
         @_update_mathjax =>
-            if not @_isMounted
+            if not @_is_mounted
                 return
             @_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+            @_update_tables()
 
     componentDidUpdate: ->
         @update_content()
 
     componentDidMount: ->
-        @_isMounted = true
+        @_is_mounted = true
         @update_content()
 
     componentWillUnmount: ->
-        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
-        # and https://github.com/sagemathinc/smc/issues/1689
-        @_isMounted = false
+        @_is_mounted = false
 
     render_html: ->
         if @props.value
@@ -807,7 +812,7 @@ exports.Markdown = rclass
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             return markdown.markdown_to_html(v)
         else
-            ''
+            return ''
 
     render: ->
         HTML = exports.HTML

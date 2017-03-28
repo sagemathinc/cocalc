@@ -48,14 +48,39 @@ Image = rclass
         sha1       : rtypes.string.isRequired
         project_id : rtypes.string
 
+    getInitialState: ->
+        attempts : 0
+
+    load_error: ->
+        if @state.attempts < 5 and @_is_mounted
+            f = =>
+                if @_is_mounted
+                    @setState(attempts : @state.attempts + 1)
+            setTimeout(f, 500)
+
+    componentDidMount: ->
+        @_is_mounted = true
+
+    componentWillUnmount: ->
+        @_is_mounted = false
+
     render: ->
         if not @props.project_id?   # not enough info to render
             return <span/>
-        src = util.get_blob_url(@props.project_id, @props.extension, @props.sha1)
-        <img src={src} />
+        src = util.get_blob_url(@props.project_id, @props.extension, @props.sha1) + "&attempts=#{@state.attempts}"
+        <img src={src} onError={@load_error}/>
+
+TextPlain = rclass
+    propTypes:
+        value : rtypes.string.isRequired
+
+    render: ->
+        <div style={STDOUT_STYLE}>
+            {@props.value}
+        </div>
 
 Data = rclass
-    propTypes :
+    propTypes:
         message    : rtypes.immutable.Map.isRequired
         project_id : rtypes.string
         directory  : rtypes.string
@@ -75,7 +100,7 @@ Data = rclass
             when 'text'
                 switch b
                     when 'plain'
-                        return <div style={STDOUT_STYLE}>{value}</div>
+                        return <TextPlain value={value}/>
                     when 'html'
                         return <HTML
                                 value      = {value}

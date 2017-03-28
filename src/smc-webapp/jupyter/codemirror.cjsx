@@ -73,6 +73,8 @@ BLURRED_STYLE =
     paddingTop    : '4px'
     paddingBottom : '4px'
     paddingLeft   : '4px'
+    whiteSpace    : 'pre-wrap'
+    wordWrap      : 'break-word'
 
 CodeMirrorEditorBlurred = rclass
     propTypes :

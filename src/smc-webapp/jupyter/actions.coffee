@@ -22,7 +22,7 @@ util       = require('./util')
 
 jupyter_kernels = undefined
 
-
+DEFAULT_KERNEL = 'python2'
 
 ###
 The actions -- what you can do with a jupyter notebook, and also the
@@ -309,8 +309,6 @@ class exports.JupyterActions extends Actions
 
         if do_init
             @initialize_manager()
-            @_state = 'ready'
-            @ensure_there_is_a_cell()
         else if @_state == 'init'
             @_state = 'ready'
 
@@ -752,6 +750,9 @@ class exports.JupyterActions extends Actions
 
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel
+            if @_jupyter_kernel?
+                @_jupyter_kernel?.close()
+                delete @_jupyter_kernel
             @_set
                 type   : 'settings'
                 kernel : kernel
@@ -777,7 +778,11 @@ class exports.JupyterActions extends Actions
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
         @init_file_watcher()
-        @load_from_disk_if_newer()
+        @_load_from_disk_if_newer () =>
+            @_state = 'ready'
+            @ensure_there_is_a_cell()
+            if not @store.get('kernel')?
+                @set_kernel(DEFAULT_KERNEL)
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
@@ -888,12 +893,13 @@ class exports.JupyterActions extends Actions
 
         @_file_watcher.on 'change', =>
             dbg("change")
+            # TODO: have to guard against saving file to disk.
             @load_ipynb_file()
 
         @_file_watcher.on 'delete', =>
             dbg('delete')
 
-    load_from_disk_if_newer: =>
+    _load_from_disk_if_newer: (cb) =>
         dbg = @dbg("load_from_disk_if_newer")
         last_changed = @syncdb.last_changed()
         dbg("syncdb last_changed=#{last_changed}")
@@ -902,13 +908,14 @@ class exports.JupyterActions extends Actions
             cb   : (err, stats) =>
                 dbg("stats.ctime = #{stats?.ctime}")
                 if err
-                    dbg("err stating file: #{err}")
+                    dbg("err stat'ing file: #{err}")
                     # TODO
                 else if not last_changed? or stats.ctime > last_changed
                     dbg("disk file changed more recently than edits, so loading")
                     @load_ipynb_file()
                 else
                     dbg("stick with database version")
+                cb?(err)
 
     load_ipynb_file: =>
         dbg = @dbg("load_ipynb_file")
@@ -940,13 +947,20 @@ class exports.JupyterActions extends Actions
 
         @syncdb.exit_undo_mode()
 
-        # We will re-use any existing ids to make the patch that defines changing
+        # We re-use any existing ids to make the patch that defines changing
         # to the contents of ipynb more efficient.   In case of a very slight change
         # on disk, this can be massively more efficient.
-        existing_ids = @store.get('cell_list').toJS()
+        existing_ids = @store.get('cell_list')?.toJS() ? []
 
         # delete everything
         @syncdb.delete(undefined, false)
+
+        # Set the kernel and other settings
+        kernel = ipynb.metadata?.kernelspec?.name ? 'python2'  # TODO - need defaults
+        if kernel != @store.get('kernel')
+            @_jupyter_kernel?.close()
+            delete @_jupyter_kernel
+        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
 
         set = (obj) =>
             @syncdb.set(obj, false)
@@ -982,23 +996,51 @@ class exports.JupyterActions extends Actions
 
                 cell_type = cell.cell_type ? 'code'
 
+                types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
+                if cell.outputs?.length > 0
+                    output = {}
+                    for k, content of cell.outputs
+
+                        if ipynb.nbformat <= 3
+                            # fix old deprecated fields
+                            if content.output_type == 'stream'
+                                if misc.is_array(content.text)
+                                    content.text = content.text.join('')
+                                content = {name:content.stream, text:content.text}
+                            else
+                                for i, t of types
+                                    [a,b] = t.split('/')
+                                    if content[b]?
+                                        content = {data:{"#{t}": content[b]}}
+                                        break  # at most one data per message.
+                                if content.text?
+                                    content = {data:{'text/plain':content.text}}
+
+                        if content.data?
+                            for key, val of content.data
+                                if misc.is_array(val)
+                                    content.data[key] = val.join('')
+
+                        delete content.prompt_number  # in some files
+                        @_jupyter_kernel.process_output(content)
+                        output[k] = content
+                else
+                    output = null
+
                 set
                     type       : 'cell'
                     id         : existing_ids[n] ? @_new_id()
                     pos        : n
                     input      : input
+                    output     : output
                     cell_type  : cell_type
                     exec_count : exec_count
 
                 n += 1
 
-        # Set the kernel and other settings
-        kernel = ipynb.metadata?.kernelspec?.name
-        if kernel?
-            @set_kernel(kernel)
-
         @syncdb.sync () =>
-            # Wait for the store to get fully updated in response to the save.
+            @set_kernel(kernel)
+            # Wait for the store to get fully updated in response to the sync.
             @_state = 'ready'
             if not ipynb.cells? or ipynb.cells.length == 0
                 @ensure_there_is_a_cell()  # the ipynb file had no cells (?)

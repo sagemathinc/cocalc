@@ -51,10 +51,31 @@ exports.kernel = (opts) ->
         opts.client = new Client()
     return new Kernel(opts.name, if opts.verbose then opts.client?.dbg)
 
+###
+Jupyter Kernel interface.
+
+The kernel does *NOT* start up until either spawn is explicitly called, or
+code execution is explicitly requested.  This makes it possible to
+call process_output without spawning an actual kernel.
+###
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
         dbg = @dbg('constructor')
-        @_state = 'init'
+        @_state = 'init'    # 'init', 'spawning', 'running', 'closed'
+
+    spawn: (cb) =>
+        dbg = @dbg('spawn')
+        if @_state == 'close'
+            cb?('closed')
+            return
+        if @_state == 'running'
+            cb?()
+            return
+        if @_state == 'spawning'
+            @_spawn_cbs.push(cb)
+            return
+        @_spawn_cbs = [cb]
+        @_state = 'spawning'
         @_identity = misc.uuid()
         dbg('spawning kernel')
         require('spawnteract').launch(@name).then (kernel) =>
@@ -64,10 +85,25 @@ class Kernel extends EventEmitter
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
             @_channels.iopub.subscribe((mesg) => @emit('iopub', mesg))
             @_state = 'running'
-            @emit('init')
-
             # kill this kernel no matter what if process exits.
             process.on('exit', @close)
+            @emit('init')
+            for cb in @_spawn_cbs
+                cb?()
+
+    close: =>
+        @dbg("close")()
+        if @_state == 'closed'
+            return
+        @removeAllListeners()
+        process.removeListener('exit', @close)
+        if @_kernel?
+            @_kernel.spawn.kill()
+            fs.unlink(@_kernel.connectionFile)
+            delete @_kernel
+            delete @_channels
+        # TODO -- clean up channels?
+        @_state = 'closed'
 
     dbg: (f) =>
         if not @_dbg?
@@ -80,15 +116,24 @@ class Kernel extends EventEmitter
             code : required
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
-        dbg = @dbg("execute_code")
-        dbg("code='#{opts.code}'")
-        if not @_channels?
-            if @_state == 'closed'
-                opts.cb("closed")
-            else
-                dbg("wait until kernel/channels are setup, then try again.")
-                @once('init', => @execute_code(opts))
-            return
+
+        if @_state != 'running'
+            @spawn (err) =>
+                if err
+                    opts.cb(err)
+                else
+                    @_execute_code(opts)
+        else
+            @_execute_code(opts)
+
+    _execute_code: (opts) =>
+        opts = defaults opts,
+            code : required
+            all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
+            cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+        dbg = @dbg("_execute_code")
+        dbg("code='#{opts.code}', all={#opts.all}")
+
         message =
             header:
                 msg_id   : "execute_#{misc.uuid()}"
@@ -161,20 +206,6 @@ class Kernel extends EventEmitter
         if blob
             content.data[keep] = blob_store.save(content.data[keep], keep)
         dbg("keep='#{keep}'; blob='#{blob}'")
-
-    close: =>
-        @dbg("close")()
-        if @_state == 'closed'
-            return
-        @removeAllListeners()
-        process.removeListener('exit', @close)
-        if @_kernel?
-            @_kernel.spawn.kill()
-            fs.unlink(@_kernel.connectionFile)
-            delete @_kernel
-            delete @_channels
-        # TODO -- clean up channels?
-        @_state = 'closed'
 
     export_ipynb: (opts) =>
         opts = defaults opts,
