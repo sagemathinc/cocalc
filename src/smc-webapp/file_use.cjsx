@@ -120,11 +120,7 @@ class FileUseActions extends Actions
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
             obj.last_edited = timestamp
-        table.set obj, (err)=>
-            if err
-                if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
-                    err += " (project_id=#{project_id}, path=#{path})"
-                    console.warn("FileUseActions.mark_file error: ", err)
+        table.set(obj)
 
 class FileUseStore extends Store
     get_errors: =>
