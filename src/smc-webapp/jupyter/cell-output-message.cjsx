@@ -1,7 +1,7 @@
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{ImmutablePureRenderMixin, Markdown} = require('../r_misc')
+{ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
 
 util = require('./util')
@@ -54,27 +54,6 @@ Image = rclass
         src = util.get_blob_url(@props.project_id, @props.extension, @props.sha1)
         <img src={src} />
 
-# This doesn't work at all yet for mathjax, etc.
-HTML = rclass
-    propTypes :
-        value : rtypes.string.isRequired
-
-    componentDidMount: ->
-        $(ReactDOM.findDOMNode(@)).mathjax()
-
-    to_html: ->
-        # TODO -- much more sophisticated... see r_misc Markdown, etc.
-        # e.g., also need to eval javascript when trusted but not otherwise.
-        html_sane = sanitize_html(@props.value)
-        return {__html: html_sane}
-
-    render: ->
-        <div
-            style                   = {marginTop : '5px'}
-            dangerouslySetInnerHTML = {@to_html()}
-            >
-        </div>
-
 Data = rclass
     propTypes :
         message    : rtypes.immutable.Map.isRequired
@@ -98,7 +77,11 @@ Data = rclass
                     when 'plain'
                         return <div style={STDOUT_STYLE}>{value}</div>
                     when 'html'
-                        return <HTML value={value}/>
+                        return <HTML
+                                value      = {value}
+                                project_id = {@props.project_id}
+                                file_path  = {@props.directory}
+                               />
                     when 'markdown'
                         return <Markdown
                                 value      = {value}

@@ -735,6 +735,7 @@ exports.HTML = rclass
 
     _update_mathjax: (cb) ->
         if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
+            cb()
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
