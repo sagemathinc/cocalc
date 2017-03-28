@@ -40,19 +40,6 @@ class exports.JupyterActions extends Actions
         @_is_manager = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         @_account_id = client.client_id()   # project or account's id
 
-        #dbg = @dbg("JupyterActions._init")
-
-        f = () =>
-            @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
-            setTimeout((=>@setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())), 3000)
-        @set_has_unsaved_changes = underscore.debounce(f, 1500)
-
-        @syncdb.on('metadata-change', @set_has_unsaved_changes)
-        @syncdb.on('change', @_syncdb_change)
-
-        if not client.is_project() # project doesn't care about cursors
-            @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
-
         @setState
             error               : undefined
             cur_id              : undefined
@@ -67,21 +54,33 @@ class exports.JupyterActions extends Actions
             directory           : misc.path_split(path)?.head
             path                : path
 
+        f = () =>
+            @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
+            setTimeout((=>@setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())), 3000)
+        @set_has_unsaved_changes = underscore.debounce(f, 1500)
+
+        @syncdb.on('metadata-change', @set_has_unsaved_changes)
+        @syncdb.on('change', @_syncdb_change)
+
+        if not client.is_project() # project doesn't care about cursors
+            @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
+
         if not client.is_project() and window?.$?
             # frontend browser client with jQuery
             @set_jupyter_kernels()  # must be after setting project_id above.
 
-
-
     dbg: (f) =>
-        return @_client.dbg("JupyterActions.#{f}")
+        return @_client.dbg("Jupyter('#{@store.get('path')}').#{f}")
 
     close: =>
         if @_closed
             return
-        @syncdb.close()
         @_closed = true
+        @syncdb.close()
         delete @syncdb
+        if @_file_watcher?
+            @_file_watcher.close()
+            delete @_file_watcher
 
     set_jupyter_kernels: =>
         if jupyter_kernels?
@@ -286,7 +285,7 @@ class exports.JupyterActions extends Actions
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
-        do_init = @_is_manager and not @store.get('cells')?
+        do_init = @_is_manager and not @_init_is_done
         #console.log 'changes', changes, changes?.toJS()
         #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
         @set_has_unsaved_changes()
@@ -310,6 +309,7 @@ class exports.JupyterActions extends Actions
             @set_cur_id(@store.get('cell_list')?.get(0))
 
         if do_init
+            @_init_is_done = true
             @initialize_manager()
 
     _syncdb_cursor_activity: =>
@@ -354,6 +354,8 @@ class exports.JupyterActions extends Actions
             @setState(cells : cells)
 
     ensure_there_is_a_cell: =>
+        if @_do_not_ensure_there_is_a_cell
+            return
         cells = @store.get('cells')
         if not cells? or cells.size == 0
             @_set
@@ -746,11 +748,17 @@ class exports.JupyterActions extends Actions
     unregister_input_editor: (id) =>
         delete @_input_editors?[id]
 
-
     set_kernel: (kernel) =>
-        @_set
-            type   : 'settings'
-            kernel : kernel
+        if @store.get('kernel') != kernel
+            @_set
+                type   : 'settings'
+                kernel : kernel
+            @setState(cm_options : cm_options(kernel))
+
+    show_history_viewer: () =>
+        @redux.getProjectActions(@store.get('project_id'))?.open_file
+            path       : misc.history_path(@store.get('path'))
+            foreground : true
 
     ###
     MANAGE:
@@ -760,12 +768,14 @@ class exports.JupyterActions extends Actions
     will be the project itself.
     ###
 
-    # Called when the manager first starts up after the store is initialized.
+    # Called exactly once when the manager first starts up after the store is initialized.
     # Here we ensure everything is in a consistent state so that we can react
     # to changes later.
     initialize_manager: =>
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
+        @init_file_watcher()
+        @load_from_disk_if_newer()
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
@@ -867,7 +877,95 @@ class exports.JupyterActions extends Actions
                 n += 1
                 set_cell()
 
-    show_history_viewer: () =>
-        @redux.getProjectActions(@store.get('project_id'))?.open_file
-            path       : misc.history_path(@store.get('path'))
-            foreground : true
+    init_file_watcher: =>
+        dbg = @dbg("file_watcher")
+        dbg()
+        @_file_watcher = @_client.watch_file
+            path     : @store.get('path')
+            interval : 3000
+
+        @_file_watcher.on 'change', =>
+            dbg("change")
+            @load_ipynb_file()
+
+        @_file_watcher.on 'delete', =>
+            dbg('delete')
+
+    load_from_disk_if_newer: =>
+        dbg = @dbg("load_from_disk_if_newer")
+        last_changed = @syncdb.last_changed()
+        dbg("syncdb last_changed=#{last_changed}")
+        @_client.path_stat
+            path : @store.get('path')
+            cb   : (err, stats) =>
+                if err
+                    dbg("err stating file: #{err}")
+                    # TODO
+                else if stats.ctime > last_changed
+                    dbg("disk file changed more recently than edits, so loading")
+                    @load_ipynb_file()
+                else
+                    dbg("stick with database version")
+
+    load_ipynb_file: =>
+        dbg = @dbg("load_ipynb_file")
+        dbg("reading file")
+        @_client.path_read
+            path       : @store.get('path')
+            maxsize_MB : 10   # TODO: increase -- will eventually be able to handle a pretty big file!
+            cb         : (err, content) =>
+                if err
+                    # TODO: need way to report this to frontend
+                    dbg("error reading file: #{err}")
+                    return
+                try
+                    content = JSON.parse(content)
+                catch err
+                    dbg("error parsing ipynb file: #{err}")
+                    return
+                @set_to_ipynb(content)
+
+    # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
+    # the notebook defined by that object.
+    set_to_ipynb: (ipynb) =>
+        if not ipynb?
+            @syncdb.delete()
+            return
+
+        @syncdb.exit_undo_mode()
+
+        # delete everything
+        @_do_not_ensure_there_is_a_cell = true
+        @syncdb.delete(undefined, false)
+        delete @_do_not_ensure_there_is_a_cell
+
+        set = (obj) =>
+            @syncdb.set(obj, false)
+
+        # Read in the cells
+        if ipynb.cells?
+            pos = 0
+            for cell in ipynb.cells
+                if cell.source?
+                    # "If you intend to work with notebook files directly, you must allow multi-line
+                    # string fields to be either a string or list of strings."
+                    # https://nbformat.readthedocs.io/en/latest/format_description.html#top-level-structure
+                    if misc.is_array(cell.source)
+                        input = cell.source.join('\n')
+                    else
+                        input = cell.source
+                set
+                    type  : 'cell'
+                    id    : @_new_id()
+                    pos   : pos
+                    input : input
+                pos += 1
+
+        # Set the kernel and other settings
+        kernel = ipynb.metadata?.kernelspec?.name
+        if kernel?
+            @set_kernel(kernel)
+
+        @syncdb.save()
+
+

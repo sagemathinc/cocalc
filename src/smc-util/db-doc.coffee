@@ -663,6 +663,10 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.versions()
 
+    last_changed: =>
+        @_check()
+        return @_doc.last_changed()
+
     all_versions: =>
         @_check()
         return @_doc.all_versions()

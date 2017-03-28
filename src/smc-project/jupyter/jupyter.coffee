@@ -23,7 +23,11 @@ exports.jupyter_backend = (syncdb, client) ->
     smc_react        = require('smc-webapp/smc-react')
 
     project_id = client.client_id()
-    path       = syncdb._path
+
+    # This path is the file we will watch for chnages and save to, which is in the original
+    # official ipynb format:
+    path = misc.original_path(syncdb._path) + '.ipynb2' # TODO: change to ipynb when done
+
     redux_name = smc_react.redux_name(project_id, path)
     actions    = new JupyterActions(redux_name, smc_react.redux)
     store      = new JupyterStore(redux_name, smc_react.redux)

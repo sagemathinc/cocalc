@@ -559,7 +559,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path       : required
             maxsize_MB : undefined   # in megabytes; if given and file would be larger than this, then cb(err)
-            cb         : required
+            cb         : required    # cb(err, file content as string (not Buffer!))
         content = undefined
         path    = join(process.env.HOME, opts.path)
         dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
