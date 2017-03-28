@@ -940,6 +940,11 @@ class exports.JupyterActions extends Actions
 
         @syncdb.exit_undo_mode()
 
+        # We will re-use any existing ids to make the patch that defines changing
+        # to the contents of ipynb more efficient.   In case of a very slight change
+        # on disk, this can be massively more efficient.
+        existing_ids = @store.get('cell_list').toJS()
+
         # delete everything
         @syncdb.delete(undefined, false)
 
@@ -948,7 +953,7 @@ class exports.JupyterActions extends Actions
 
         # Read in the cells
         if ipynb.cells?
-            pos = 0
+            n = 0
             for cell in ipynb.cells
                 if cell.source?
                     # "If you intend to work with notebook files directly, you must allow multi-line
@@ -960,10 +965,10 @@ class exports.JupyterActions extends Actions
                         input = cell.source
                 set
                     type  : 'cell'
-                    id    : @_new_id()
-                    pos   : pos
+                    id    : existing_ids[n] ? @_new_id()
+                    pos   : n
                     input : input
-                pos += 1
+                n += 1
 
         # Set the kernel and other settings
         kernel = ipynb.metadata?.kernelspec?.name
