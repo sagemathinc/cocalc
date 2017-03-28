@@ -346,9 +346,9 @@ class SagewsPrinter extends Printer
             if mesg.file.show ? true
                 ext = misc.filename_extension(mesg.file.filename).toLowerCase()
                 if ext == 'sage3d'
-                    for el in $(mark.replacedWith).find(".salvus-3d-container")
+                    for el in $(mark.replacedWith).find(".webapp-3d-container")
                         $3d = $(el)
-                        scene = $3d.data('salvus-threejs')
+                        scene = $3d.data('webapp-threejs')
                         if not scene?
                             # when the document isn't fully processed, there is no scene data
                             continue

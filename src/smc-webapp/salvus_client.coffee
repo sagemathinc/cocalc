@@ -21,7 +21,7 @@
 
 
 ############################################
-# connection to Salvus hub
+# connection to back-end hub
 ############################################
 
 if not window.app_base_url?

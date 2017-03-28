@@ -65,7 +65,7 @@ underscore = require('underscore')
 # SMC libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
-message = require('smc-util/message')     # salvus message protocol
+message = require('smc-util/message')     # message protocol between front-end and back-end
 client_lib = require('smc-util/client')
 
 sage    = require('./sage')               # sage server
@@ -2931,7 +2931,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 # Send an email message to the given email address with a code that
 # can be used to reset the password for a certain account.
 #
-# Anti-use-salvus-to-spam/DOS throttling policies:
+# Anti-spam/DOS throttling policies:
 #   * a given email address can be sent at most 30 password resets per hour
 #   * a given ip address can send at most 100 password reset request per minute
 #   * a given ip can send at most 250 per hour

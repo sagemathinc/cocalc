@@ -12,7 +12,7 @@ winston = require('winston')
 passport= require('passport')
 
 misc    = require('smc-util/misc')
-message = require('smc-util/message')     # salvus message protocol
+message = require('smc-util/message')     # message protocol between front-end and back-end
 
 Cookies = require('cookies')
 

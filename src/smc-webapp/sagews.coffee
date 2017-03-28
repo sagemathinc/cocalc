@@ -1569,7 +1569,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append(video)
 
                     when 'sage3d'
-                        elt = $("<div class='salvus-3d-container'></div>")
+                        elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
                         require.ensure [], () =>   # only load 3d library if needed
@@ -2295,9 +2295,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # Useful extra data about 3d plots (a png data url)
         for elt in @output_elements()
-            for e in elt.find(".salvus-3d-container")
+            for e in elt.find(".webapp-3d-container")
                 f = $(e)
-                scene = f.data('salvus-threejs')
+                scene = f.data('webapp-threejs')
                 if not scene?
                     continue
                 scene.set_static_renderer()

@@ -74,7 +74,7 @@ get_renderer = (scene, type) ->
 
 MIN_WIDTH = MIN_HEIGHT = 16
 
-class SalvusThreeJS
+class WebappThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
             element         : required
@@ -913,7 +913,7 @@ exports.render_3d_scene = (opts) ->
                     cb()
             # create the 3d renderer
             opts.scene.opts.cb = init
-            opts.element.salvus_threejs(opts.scene.opts)
+            opts.element.webapp_threejs(opts.scene.opts)
     ], (err) ->
         opts.cb?(err, scene_obj)
     )
@@ -922,9 +922,9 @@ exports.render_3d_scene = (opts) ->
 
 # jQuery plugin for making a DOM object into a 3d renderer
 
-$.fn.salvus_threejs = (opts={}) ->
+$.fn.webapp_threejs = (opts={}) ->
     @each () ->
-        # console.log("applying official .salvus_threejs plugin")
+        # console.log("applying official .webapp_threejs plugin")
         elt = $(this)
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
@@ -936,7 +936,7 @@ $.fn.salvus_threejs = (opts={}) ->
         opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
 
         f = () ->
-            obj = new SalvusThreeJS(opts)
+            obj = new WebappThreeJS(opts)
             elt.data('salvus-threejs', obj)
         if not THREE?
             load_threejs (err) =>
