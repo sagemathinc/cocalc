@@ -12,6 +12,11 @@ File, Edit, etc....
 
 OPACITY='.9'
 
+TITLE_STYLE =
+    color           : '#666'
+    border          : 0
+    backgroundColor : 'rgb(247,247,247)'
+
 exports.TopMenubar = rclass ({name}) ->
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
@@ -29,7 +34,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_file: ->
         <Dropdown key='file' id='menu-file'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 File
             </Dropdown.Toggle>
             <Dropdown.Menu >
@@ -65,7 +70,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_edit: ->
         <Dropdown key='edit' id='menu-edit'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 Edit
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
@@ -95,7 +100,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_view: ->
         <Dropdown key='view'  id='menu-view'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 View
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
@@ -114,7 +119,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_insert: ->
         <Dropdown key='insert'  id='menu-insert'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                  Insert
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
@@ -125,7 +130,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_cell: ->
         <Dropdown key='cell'  id='menu-cell'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 Cell
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
@@ -200,7 +205,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_kernel: ->
         <Dropdown key='kernel'  id='menu-kernel'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 Kernel
             </Dropdown.Toggle>
             <Dropdown.Menu>
@@ -217,7 +222,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_widgets: ->
         <Dropdown key='widgets' id='menu-widgets'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                  Widgets
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
@@ -229,7 +234,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_help: ->
         <Dropdown key='help'  id='menu-help'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={border:0, backgroundColor: 'rgb(247,247,247)'}>
+            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 Help
             </Dropdown.Toggle>
             <Dropdown.Menu>

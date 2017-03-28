@@ -167,8 +167,13 @@ exports.Octicon = rclass
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
+    propTypes :
+        style : rtypes.object
+
     render: ->
-        <span><Icon name='circle-o-notch' spin /> Loading...</span>
+        <span style={@props.style}>
+            <Icon name='circle-o-notch' spin /> Loading...
+        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'

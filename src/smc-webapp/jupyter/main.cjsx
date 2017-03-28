@@ -2,7 +2,7 @@
 Top-level react component, which ties everything together
 ###
 
-{ErrorDisplay, Icon} = require('../r_misc')
+{ErrorDisplay, Icon, Loading} = require('../r_misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
@@ -65,7 +65,7 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_cells: ->
         if not @props.cell_list? or not @props.font_size?
-            return
+            return <Loading style={fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888'} />
         <CellList
             actions     = {@props.actions}
 
