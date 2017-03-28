@@ -800,7 +800,7 @@ exports.Markdown = rclass
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             return markdown.markdown_to_html(v)
         else
-            ''
+            {s: '', has_mathjax: false}
 
     render: ->
         HTML = exports.HTML
