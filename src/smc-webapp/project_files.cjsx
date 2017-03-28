@@ -224,10 +224,12 @@ FileRow = rclass
 
     handle_click: (e) ->
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
+            foreground = misc.should_open_in_foreground(e)
             @props.actions.open_file
                 path       : @fullpath()
-                foreground : misc.should_open_in_foreground(e)
-            @props.actions.set_file_search('')
+                foreground : foreground
+            if foreground
+                @props.actions.set_file_search('')
 
     handle_download_click: (e) ->
         e.preventDefault()
