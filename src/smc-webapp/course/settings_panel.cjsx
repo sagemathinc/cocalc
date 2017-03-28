@@ -4,7 +4,7 @@ immutable = require('immutable')
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 schema = require('smc-util/schema')
 
 # React libraries and Components
@@ -195,7 +195,7 @@ exports.SettingsPanel = rclass
     write_file: (path, content) ->
         actions = @actions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
-        salvus_client.write_text_file_to_project
+        webapp_client.write_text_file_to_project
             project_id : @props.project_id
             path       : path
             content    : content
@@ -212,7 +212,7 @@ exports.SettingsPanel = rclass
         students = store.get_sorted_students()
         # CSV definition: http://edoceo.com/utilitas/csv-file-format
         # i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
-        timestamp  = (salvus_client.server_time()).toISOString()
+        timestamp  = (webapp_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
         content += "Name,Email,"
@@ -236,7 +236,7 @@ exports.SettingsPanel = rclass
             {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
         ]
         ###
-        timestamp = (salvus_client.server_time()).toISOString()
+        timestamp = (webapp_client.server_time()).toISOString()
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -664,7 +664,7 @@ exports.SettingsPanel = rclass
 
     render_require_students_pay_desc: ->
         date = @props.settings.get('pay')
-        if date > salvus_client.server_time()
+        if date > webapp_client.server_time()
             <span>
                 Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
             </span>
@@ -699,7 +699,7 @@ exports.SettingsPanel = rclass
 
     render_students_pay_checkbox_label: ->
         if @props.settings.get('pay')
-            if salvus_client.server_time() >= @props.settings.get('pay')
+            if webapp_client.server_time() >= @props.settings.get('pay')
                 <span>Require that students upgrade immediately:</span>
             else
                 <span>Require that students upgrade by <TimeAgo date={@props.settings.get('pay')} />: </span>

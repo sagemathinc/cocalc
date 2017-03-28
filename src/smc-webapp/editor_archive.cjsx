@@ -6,7 +6,7 @@ AGPLv3
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {filename_extension} = require('smc-util/misc')
 async = require('async')
 misc = require('smc-util/misc')
@@ -107,7 +107,7 @@ class ArchiveActions extends Actions
 
         {command, args} = COMMANDS[ext].list
 
-        salvus_client.exec
+        webapp_client.exec
             project_id : project_id
             command    : command
             args       : args.concat([path])
@@ -145,7 +145,7 @@ class ArchiveActions extends Actions
                     base = path_parts.tail.slice(0, i)
                     if contents.indexOf(base+'/') == -1
                         post_args = ['-C', base]
-                        salvus_client.exec
+                        webapp_client.exec
                             project_id    : project_id
                             path          : path_parts.head
                             command       : "mkdir"
@@ -161,7 +161,7 @@ class ArchiveActions extends Actions
                 args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
                 cmd = "cd \"#{path_parts.head}\" ; #{command} #{args_str}"  # ONLY for info purposes -- not actually run!
                 @setState(command: cmd)
-                salvus_client.exec
+                webapp_client.exec
                     project_id : project_id
                     path       : path_parts.head
                     command    : command

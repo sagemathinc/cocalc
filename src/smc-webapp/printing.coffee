@@ -25,7 +25,7 @@
 _               = require('underscore')
 async           = require('async')
 misc            = require('smc-util/misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux}         = require('./smc-react')
 {project_tasks} = require('./project_tasks')
 markdown        = require('./markdown')
@@ -87,7 +87,7 @@ class PandocPrinter extends Printer
             (cb) =>
                 editor.save(cb)
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id  : editor.project_id
                     command     : command
                     args        : args
@@ -123,7 +123,7 @@ class SagewsPrinter extends Printer
         try
             switch target_ext
                 when 'pdf'
-                    salvus_client.print_to_pdf(cb)
+                    webapp_client.print_to_pdf(cb)
                 when 'html'
                     @html(cb, progress)
         catch e
@@ -537,7 +537,7 @@ class SagewsPrinter extends Printer
             cb()
 
         sagews_data = (cb) =>
-            dl_url = salvus_client.read_file_from_project
+            dl_url = webapp_client.read_file_from_project
                 project_id  : @editor.project_id
                 path        : @editor.filename
 
@@ -611,7 +611,7 @@ class SagewsPrinter extends Printer
                 sagews_data : data
 
             progress(.95, "Saving to #{@output_file} ...")
-            salvus_client.write_text_file_to_project
+            webapp_client.write_text_file_to_project
                 project_id : @editor.project_id
                 path       : @output_file
                 content    : content

@@ -22,7 +22,7 @@
 $                   = window.$
 misc                = require('misc')
 {defaults, to_json} = misc
-{salvus_client}     = require('./salvus_client')
+{webapp_client}     = require('./webapp_client')
 
 types = ['error', 'default', 'success', 'info']
 default_timeout =
@@ -81,7 +81,7 @@ exports.alert_message = (opts={}) ->
         # that us developers know what errors people are hitting.
         # There really should be no situation where users *regularly*
         # get error alert messages.
-        salvus_client.log_error(opts.message)
+        webapp_client.log_error(opts.message)
 
     return
 
@@ -97,7 +97,7 @@ exports.alert_message = (opts={}) ->
 
 check_for_clock_skew = () ->
     local_time = new Date()
-    s = Math.ceil(Math.abs(salvus_client.server_time() - local_time)/1000)
+    s = Math.ceil(Math.abs(webapp_client.server_time() - local_time)/1000)
     if s > 30
         exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.")
 

@@ -23,7 +23,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{salvus_client}      = require('./salvus_client')
+{webapp_client}      = require('./webapp_client')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text}       = require('./misc_page')
@@ -162,7 +162,7 @@ QuotaConsole = rclass
         @setState(editing: true)
 
     save_admin_editing: ->
-        salvus_client.project_set_quotas
+        webapp_client.project_set_quotas
             project_id  : @props.project_id
             cores       : @state.cores
             cpu_shares  : Math.round(@state.cpu_shares * 256)
@@ -418,7 +418,7 @@ HideDeletePanel = rclass
             <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message: ->
-        user = @props.project.getIn(['users', salvus_client.account_id])
+        user = @props.project.getIn(['users', webapp_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         if user.get('hide')
@@ -447,7 +447,7 @@ HideDeletePanel = rclass
         </Button>
 
     render_expanded_delete_info: ->
-        has_upgrades = @user_has_applied_upgrades(salvus_client.account_id, @props.project)
+        has_upgrades = @user_has_applied_upgrades(webapp_client.account_id, @props.project)
         <Well style={textAlign:'center'} >
             {<Alert bsStyle="info" style={padding:'8px'} >
                 All of your upgrades from this project will be removed automatically.
@@ -468,7 +468,7 @@ HideDeletePanel = rclass
         </Well>
 
     render: ->
-        user = @props.project.getIn(['users', salvus_client.account_id])
+        user = @props.project.getIn(['users', webapp_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         hidden = user.get('hide')
@@ -517,7 +517,7 @@ SageWorksheetPanel = rclass
 
     restart_worksheet: ->
         @setState(loading : true)
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project.get('project_id')
             command    : 'smc-sage-server stop; smc-sage-server start'
             timeout    : 30
@@ -729,7 +729,7 @@ CollaboratorsSearch = rclass
              @setState(err:undefined, select:undefined)
              return
         @setState(searching:true)
-        salvus_client.user_search
+        webapp_client.user_search
             query : search
             limit : 50
             cb    : (err, select) =>
@@ -1022,7 +1022,7 @@ ProjectSettingsBody = rclass ({name}) ->
         {commercial} = require('./customize')
 
         <div>
-            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address}/>}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
@@ -1089,7 +1089,7 @@ exports.ProjectSettings = rclass ({name}) ->
         query = {}
         for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        @_table = salvus_client.sync_table({projects_admin : query})
+        @_table = webapp_client.sync_table({projects_admin : query})
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 

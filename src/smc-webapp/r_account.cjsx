@@ -34,7 +34,7 @@ md5 = require('md5')
 
 misc       = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -96,7 +96,7 @@ EmailAddressSetting = rclass
     save_editing: ->
         @setState
             state : 'saving'
-        salvus_client.change_email
+        webapp_client.change_email
             old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
@@ -206,7 +206,7 @@ PasswordSetting = rclass
     save_new_password: ->
         @setState
             state : 'saving'
-        salvus_client.change_password
+        webapp_client.change_password
             email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
@@ -360,7 +360,7 @@ AccountSettings = rclass
                 break
         if not id
             return
-        salvus_client.unlink_passport
+        webapp_client.unlink_passport
             strategy : strategy
             id       : id
             cb       : (err) ->
@@ -1037,7 +1037,7 @@ AccountCreationToken = rclass
     save: ->
         @setState(state:'save')
         token = @state.token
-        salvus_client.query
+        webapp_client.query
             query :
                 server_settings : {name:'account_creation_token',value:token}
             cb : (err) =>
@@ -1112,7 +1112,7 @@ StripeKeys = rclass
         @setState(state:'save')
         f = (name, cb) =>
         query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        salvus_client.query
+        webapp_client.query
             query : query
             cb    : (err) =>
                 if err
@@ -1183,7 +1183,7 @@ SiteSettings = rclass
 
     load: ->
         @setState(state:'load')
-        salvus_client.query
+        webapp_client.query
             query :
                 site_settings : [{name:null, value:null}]
             cb : (err, result) =>
@@ -1205,7 +1205,7 @@ SiteSettings = rclass
     save: ->
         @setState(state:'save')
         f = (x, cb) =>
-            salvus_client.query
+            webapp_client.query
                 query :
                     site_settings : {name: x.name, value: x.value}
                 cb : cb
@@ -1330,7 +1330,7 @@ AddStripeUser = rclass
 
         @status_mesg("Adding #{email}...")
         @setState(email: '')
-        salvus_client.stripe_admin_create_customer
+        webapp_client.stripe_admin_create_customer
             email_address : email
             cb            : (err, mesg) =>
                 if err

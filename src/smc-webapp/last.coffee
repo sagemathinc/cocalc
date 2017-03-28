@@ -27,7 +27,7 @@
 ###############################################################################
 
 $               = window.$
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux}         = require('./smc-react')
 misc            = require('smc-util/misc')
 
@@ -41,14 +41,14 @@ $(document).on "click", (e) ->
     if $(e.target).data('toggle') != 'popover' and $(e.target).parents('.popover.in').length == 0
         $('[data-toggle="popover"]').popover('hide')
 
-remember_me = salvus_client.remember_me_key()
+remember_me = webapp_client.remember_me_key()
 if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
     redux.getActions('page').set_active_tab('account')
 
 
-client = salvus_client
+client = webapp_client
 if client._connected
     # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.

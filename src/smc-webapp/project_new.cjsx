@@ -28,7 +28,7 @@ underscore = require('underscore')
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {file_associations} = require('./editor')
 {special_filenames_with_no_extension} = require('./project_file')
 

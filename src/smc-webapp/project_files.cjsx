@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
-{salvus_client}       = require('./salvus_client')
+{webapp_client}       = require('./webapp_client')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
@@ -1665,7 +1665,7 @@ ProjectFilesSearch = rclass
 
         @_id = (@_id ? 0) + 1
         id = @_id
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
             timeout    : 10
@@ -2174,7 +2174,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <Loading />
 
         pay = @props.date_when_course_payment_required(@props.project_id)
-        if pay? and pay <= salvus_client.server_time()
+        if pay? and pay <= webapp_client.server_time()
             return @render_course_payment_required()
 
         public_view = @props.get_my_group(@props.project_id) == 'public'

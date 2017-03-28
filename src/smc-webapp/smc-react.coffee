@@ -51,7 +51,7 @@ class Table
     constructor: (@name, @redux) ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
-        @_table = require('./salvus_client').salvus_client.sync_table(@query(), @options())
+        @_table = require('./webapp_client').webapp_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)

@@ -52,10 +52,10 @@ class BillingActions extends Actions
         @_update_customer_lock=true
         @setState(action:"Updating billing information")
         customer_is_defined = false
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         async.series([
             (cb) =>
-                salvus_client.stripe_get_customer
+                webapp_client.stripe_get_customer
                     cb : (err, resp) =>
                         @_update_customer_lock = false
                         if not err and not resp?.stripe_publishable_key?
@@ -73,7 +73,7 @@ class BillingActions extends Actions
                     cb()
                 else
                     # only call get_invoices if the customer already exists in the system!
-                    salvus_client.stripe_get_invoices
+                    webapp_client.stripe_get_invoices
                         limit : 100  # FUTURE: -- this will change when we use webhooks and our own database of info.
                         cb: (err, invoices) =>
                             if not err
@@ -95,8 +95,8 @@ class BillingActions extends Actions
                 cb?(err)
             else
                 @update_customer(cb)
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
-        salvus_client["stripe_#{action}"](opts)
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
+        webapp_client["stripe_#{action}"](opts)
 
     clear_action: =>
         @setState(action:"", error:"")
@@ -137,7 +137,7 @@ class BillingActions extends Actions
         @_action('cancel_subscription', 'Cancel a subscription', {subscription_id : id, cb : cb})
 
     create_subscription: (plan='standard') =>
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
         if lsa? and lsa > misc.server_minutes_ago(2)
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')

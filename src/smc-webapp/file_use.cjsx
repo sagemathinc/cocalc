@@ -52,7 +52,7 @@ immutable = require('immutable')
 # smc-specific modules
 misc = require('smc-util/misc')
 {required, defaults} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 editor = require('./editor')
 
 sha1 = require('smc-util/schema').client_db.sha1
@@ -69,7 +69,7 @@ class FileUseActions extends Actions
         # This should get displayed to the user...
         if not typeof(err) == 'string'
             err = misc.to_json(err)
-        @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:salvus_client.server_time(), err:err})))
+        @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:webapp_client.server_time(), err:err})))
 
     # OPTIMIZATION: This updates and rerenders for each item. Change to doing it in a batch.
     mark_all: (action) =>
@@ -110,7 +110,7 @@ class FileUseActions extends Actions
             setTimeout((()=>delete @_mark_file_lock[key]), ttl)
 
         table = @redux.getTable('file_use')
-        timestamp ?= salvus_client.server_time()
+        timestamp ?= webapp_client.server_time()
         timestamp = new Date(timestamp)
         obj   =
             project_id : project_id
@@ -310,7 +310,7 @@ class FileUseStore extends Store
         if not files?                 # no data yet -- undefined signifies this.
             return
         users  = {}
-        now    = salvus_client.server_time() - 0
+        now    = webapp_client.server_time() - 0
         cutoff = now - opts.max_age_s*1000
         for _, info of files
             for user in info.users
@@ -329,7 +329,7 @@ class FileUseStore extends Store
             path       : required
             ttl        : 120000    # time in ms; if timestamp of video chat is older than this, ignore
         users = {}
-        cutoff = salvus_client.server_time() - opts.ttl
+        cutoff = webapp_client.server_time() - opts.ttl
         @getIn(['file_use', sha1(opts.project_id, opts.path), 'users'])?.map (info, account_id) ->
             timestamp = info.get('video')
             if timestamp? and timestamp - 0 >= cutoff

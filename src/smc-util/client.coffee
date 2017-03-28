@@ -333,7 +333,7 @@ class exports.Connection extends EventEmitter
         Use like this in a Sage Worksheet:
 
             %coffeescript
-            s = require('salvus_client').salvus_client
+            s = require('webapp_client').webapp_client
             s.ping_test(delay_ms:100, packets:40, log:print)
         ###
         ping_times = []

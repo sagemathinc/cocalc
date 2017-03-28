@@ -6,7 +6,7 @@ underscore = require('underscore')
 
 # SMC libraries
 {defaults, path_split, required} = require('smc-util/misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {synchronized_string} = require('./syncdoc')
 
@@ -80,7 +80,7 @@ class DevTerminalActions extends Actions
         session_uuid = store.get('session_uuid')
         filename = store.get('filename')
 
-        salvus_client.read_text_file_from_project
+        webapp_client.read_text_file_from_project
             project_id : project_id
             path       : filename
             cb         : (err, result) =>
@@ -125,9 +125,9 @@ class DevTerminalActions extends Actions
 
         if session_uuid?
             mesg.session_uuid = session_uuid
-            salvus_client.connect_to_session(mesg)
+            webapp_client.connect_to_session(mesg)
         else
-            salvus_client.new_session(mesg)
+            webapp_client.new_session(mesg)
 
     report_error: (err) ->
         console.log("Error in DevTerminalActions: ", err)

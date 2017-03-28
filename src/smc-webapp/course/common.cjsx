@@ -23,7 +23,7 @@ underscore = require('underscore')
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
@@ -515,7 +515,7 @@ exports.FoldersToolbar = rclass
         if @state.add_is_searching
             return
         @setState(add_is_searching:true)
-        salvus_client.find_directories
+        webapp_client.find_directories
             project_id : @props.project_id
             query      : "*#{search.trim()}*"
             cb         : (err, resp) =>

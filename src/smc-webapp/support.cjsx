@@ -25,7 +25,7 @@ underscore = _ = require('underscore')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
@@ -89,7 +89,7 @@ class SupportActions extends Actions
                 ]
                 support_ticket_error : null
         else
-            salvus_client.get_support_tickets (err, tickets) =>
+            webapp_client.get_support_tickets (err, tickets) =>
                 # console.log("tickets: #{misc.to_json(tickets)}")
                 # sort by .updated_at
                 if err?
@@ -210,7 +210,7 @@ class SupportActions extends Actions
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        salvus_client.create_support_ticket
+        webapp_client.create_support_ticket
             opts:
                 username     : name
                 email_address: @get('email')

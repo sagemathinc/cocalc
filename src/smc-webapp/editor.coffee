@@ -40,7 +40,7 @@ message = require('smc-util/message')
 
 _ = underscore = require('underscore')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
 {project_tasks} = require('./project_tasks')
@@ -1463,7 +1463,7 @@ class CodeMirrorEditor extends FileEditor
                     if is_subdir or not pdf?
                         cb(); return
                     # pdf file exists -- show it in the UI
-                    url = salvus_client.read_file_from_project
+                    url = webapp_client.read_file_from_project
                         project_id  : @project_id
                         path        : pdf
                     dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
@@ -1945,7 +1945,7 @@ tmp_dir = (opts) ->
         path       : opts.path
         tmp_dir    : path_name
         ttl        : opts.ttl
-    salvus_client.exec
+    webapp_client.exec
         project_id : opts.project_id
         path       : opts.path
         command    : "mkdir"
@@ -1963,7 +1963,7 @@ remove_tmp_dir = (opts) ->
         tmp_dir    : required
         ttl        : 120            # run in this many seconds (even if client disconnects)
         cb         : undefined
-    salvus_client.exec
+    webapp_client.exec
         project_id : opts.project_id
         command    : "sleep #{opts.ttl} && rm -rf '#{opts.path}/#{opts.tmp_dir}'"
         timeout    : 10 + opts.ttl
@@ -2019,7 +2019,7 @@ class PDFLatexDocument
             cb          : required
         #console.log(opts.path)
         #console.log(opts.command + ' ' + opts.args.join(' '))
-        salvus_client.exec(opts)
+        webapp_client.exec(opts)
 
     spell_check: (opts) =>
         opts = defaults opts,
@@ -2552,7 +2552,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                 #console.log("sha1_changed = ", sha1_changed)
                 update = (obj, cb) =>
                     n = obj.page_number
-                    salvus_client.read_file_from_project
+                    webapp_client.read_file_from_project
                         project_id : @project_id
                         path       : "#{tmp}/#{obj.filename}"
                         timeout    : 10  # a single page shouldn't take long
@@ -2960,7 +2960,7 @@ class PDF_PreviewEmbed extends FileEditor
         button.icon_spin(true)
 
         @spinner.show().spin(true)
-        salvus_client.read_file_from_project
+        webapp_client.read_file_from_project
             project_id : @project_id
             path       : @filename
             timeout    : 20
@@ -2999,7 +2999,7 @@ class Terminal extends FileEditor
             editor     : @
         @console = elt.data("console")
         @element = @console.element
-        salvus_client.read_text_file_from_project
+        webapp_client.read_text_file_from_project
             project_id : @project_id
             path       : @filename
             cb         : (err, result) =>
@@ -3028,7 +3028,7 @@ class Terminal extends FileEditor
                         @show()
                     @console.set_session(session)
                     @opts.session_uuid = session.session_uuid
-                    salvus_client.write_text_file_to_project
+                    webapp_client.write_text_file_to_project
                         project_id : @project_id
                         path       : @filename
                         content    : session.session_uuid
@@ -3038,9 +3038,9 @@ class Terminal extends FileEditor
         mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
         if @opts.session_uuid?
             mesg.session_uuid = @opts.session_uuid
-            salvus_client.connect_to_session(mesg)
+            webapp_client.connect_to_session(mesg)
         else
-            salvus_client.new_session(mesg)
+            webapp_client.new_session(mesg)
 
 
     _get: =>  # FUTURE ??
@@ -3105,7 +3105,7 @@ class Media extends FileEditor
 
     update: (cb) =>
         @element.find('a[href="#refresh"]').icon_spin(start:true)
-        salvus_client.read_file_from_project
+        webapp_client.read_file_from_project
             project_id : @project_id
             timeout    : 30
             path       : @filename
@@ -3137,7 +3137,7 @@ class PublicHTML extends FileEditor
         if not @content?
             @content = 'Loading...'
             # Now load the content from the backend...
-            salvus_client.public_get_text_file
+            webapp_client.public_get_text_file
                 project_id : @project_id
                 path       : @filename
                 timeout    : 60
@@ -3184,7 +3184,7 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
         super(@project_id, @filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
-        salvus_client.public_get_text_file
+        webapp_client.public_get_text_file
             project_id : @project_id
             path       : @filename
             timeout    : 60

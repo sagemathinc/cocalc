@@ -32,7 +32,7 @@ misc_page       = require('../misc_page')
 editor          = require('../editor')
 
 {alert_message} = require('../alerts')
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 {IS_MOBILE}     = require('../feature')
 
 {redux}         = require('../smc-react')
@@ -315,7 +315,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         else
             mode = 'none'
         #t0 = misc.mswalltime()
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
             bash        : true
@@ -478,14 +478,14 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             (cb) =>
                 @save(cb)
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id  : @project_id
                     command     : opts.command
                     args        : opts.args
                     path        : opts.path
                     err_on_exit : false
                     cb          : (err, output) =>
-                        #console.log("salvus_client.exec ", err, output)
+                        #console.log("webapp_client.exec ", err, output)
                         if err
                             cb(err)
                         else

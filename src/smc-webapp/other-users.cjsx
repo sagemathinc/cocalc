@@ -23,7 +23,7 @@ onecolor = require('onecolor')
 
 misc = require('smc-util/misc')
 
-{server_time} = require('./salvus_client').salvus_client
+{server_time} = require('./webapp_client').webapp_client
 
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')

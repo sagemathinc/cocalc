@@ -25,7 +25,7 @@ $ = window.$
 
 misc = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
@@ -66,7 +66,7 @@ class exports.HistoryEditor extends FileEditor
             @_path = s.head + '/' + @_path
 
     init_syncstring: =>
-        salvus_client.open_existing_sync_document
+        webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
             cb         : (err, syncstring) =>

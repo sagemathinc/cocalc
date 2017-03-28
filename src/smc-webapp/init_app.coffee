@@ -1,5 +1,5 @@
 {Actions, Store, redux, rtypes, computed} = require('./smc-react')
-{salvus_client}         = require('./salvus_client')
+{webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
 {set_url}               = require('./history')
@@ -225,7 +225,7 @@ if DEBUG
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
 
-salvus_client.on "ping", (ping_time) ->
+webapp_client.on "ping", (ping_time) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
     if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
@@ -235,20 +235,20 @@ salvus_client.on "ping", (ping_time) ->
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
     redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
 
-salvus_client.on "connected", () ->
+webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
 
-salvus_client.on "disconnected", (state) ->
+webapp_client.on "disconnected", (state) ->
     record_disconnect()
     redux.getActions('page').set_connection_status('disconnected', new Date())
     redux.getActions('page').set_ping(undefined, undefined)
 
-salvus_client.on "connecting", () ->
+webapp_client.on "connecting", () ->
     date = new Date()
     f = ->
         redux.getActions('page').set_connection_status('connecting', date)
     window.setTimeout(f, 2000)
-    attempt = salvus_client._num_attempts ? 1
+    attempt = webapp_client._num_attempts ? 1
     reconnect = (msg) ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
@@ -256,7 +256,7 @@ salvus_client.on "connecting", () ->
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
-        salvus_client._fix_connection(true)
+        webapp_client._fix_connection(true)
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 
@@ -277,5 +277,5 @@ salvus_client.on "connecting", () ->
     else
         reconnection_warning = null
 
-salvus_client.on 'new_version', (ver) ->
+webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)

@@ -38,7 +38,7 @@ misc   = require('smc-util/misc')
 {defaults, required, to_json, uuid} = misc
 
 {redux} = require('./smc-react')
-{salvus_client}   = require('./salvus_client')
+{webapp_client}   = require('./webapp_client')
 {alert_message}   = require('./alerts')
 markdown          = require('./markdown')
 
@@ -124,7 +124,7 @@ class TaskList
         @element.find(".salvus-tasks-hashtags-row").remove()  # TODO: only because they don't work in viewer mode; for later.
 
     init_syncdb: (cb) =>
-        @db = salvus_client.sync_db
+        @db = webapp_client.sync_db
             project_id      : @project_id
             path            : @filename
             primary_keys    : ['task_id']

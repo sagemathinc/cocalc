@@ -27,7 +27,7 @@ underscore = require('underscore')
 {Icon, Loading, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {PathLink} = require('./project_new')
 
 

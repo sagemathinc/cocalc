@@ -65,7 +65,7 @@ stringify            = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
-{salvus_client}      = require('./salvus_client')
+{webapp_client}      = require('./webapp_client')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
@@ -232,7 +232,7 @@ class JupyterWrapper extends EventEmitter
         f()
 
     dbg: (f) =>
-        return (m) -> salvus_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
+        return (m) -> webapp_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
     # Position the iframe to exactly match the underlying element; I'm calling this
     # "refresh" since that's the name of the similar method for CodeMirror.
@@ -288,7 +288,7 @@ class JupyterWrapper extends EventEmitter
         @frame.window.onbeforeunload = null
         # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
-        @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+        @iframe.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset)
 
     remove_modal_backdrop: =>
         # For mysterious reasons, this modal-backdrop div
@@ -738,7 +738,7 @@ class JupyterWrapper extends EventEmitter
                     blob       : blob
                     project_id : @project_id
             #console.log("saving blob with id #{id} to database")
-            salvus_client.query
+            webapp_client.query
                 query : query
                 cb : (err, resp) =>
                     #console.log("saving blob got response: #{err}, #{misc.to_json(resp)}")
@@ -755,7 +755,7 @@ class JupyterWrapper extends EventEmitter
         else
             # Async fetch blob from the database.
             @blobs_pending[id] = true
-            salvus_client.query
+            webapp_client.query
                 query :
                     blobs :
                         id   : id
@@ -847,7 +847,7 @@ class JupyterNotebook extends EventEmitter
         @load(opts.cb)
 
     dbg: (f) =>
-        return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
+        return (m) -> webapp_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
 
     destroy: () =>
         @close()
@@ -1014,11 +1014,11 @@ class JupyterNotebook extends EventEmitter
     render_cursor: (account_id) =>
         if @state != 'ready'
             return
-        if account_id == salvus_client.account_id
+        if account_id == webapp_client.account_id
             return
         x = @syncstring._syncstring.get_cursors()?.get(account_id)
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
                 try
@@ -1217,7 +1217,7 @@ class JupyterNotebook extends EventEmitter
         if @state != 'ready'
             opts.cb?('not ready')
             return
-        salvus_client.exec
+        webapp_client.exec
             path        : @path
             project_id  : @project_id
             command     : 'sage'
@@ -1356,7 +1356,7 @@ get_timestamp = (opts) ->
         project_id : required
         path       : required
         cb         : required
-    salvus_client.exec
+    webapp_client.exec
         project_id : opts.project_id
         command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
         args       : ['--printf', '%Z ', opts.path]
@@ -1410,7 +1410,7 @@ class JupyterNBViewer
             # callback, run after "load" event below this line
             @iframe.load ->
                 # could become undefined due to other things happening...
-                @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+                @iframe?.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
     init_buttons: () =>

@@ -1109,8 +1109,8 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    {salvus_client} = require('./salvus_client')
-    return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+    {webapp_client} = require('./webapp_client')
+    return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
     {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
@@ -1144,8 +1144,8 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    {salvus_client} = require('./salvus_client')
-    if pay > salvus_client.server_time()  # in the future
+    {webapp_client} = require('./webapp_client')
+    if pay > webapp_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else

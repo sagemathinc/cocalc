@@ -25,7 +25,7 @@
 # Account Settings
 ############################################################
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
 
@@ -70,19 +70,19 @@ signed_in = (mesg) ->
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
-salvus_client.on("signed_in", signed_in)
+webapp_client.on("signed_in", signed_in)
 
 ################################################
 # Automatically log in
 ################################################
-remember_me = salvus_client.remember_me_key()
+remember_me = webapp_client.remember_me_key()
 if misc.get_local_storage(remember_me)
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
         redux.getActions('account').setState(remember_me: false)
     ), 45000
-salvus_client.on "remember_me_failed", () ->
+webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
     if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->

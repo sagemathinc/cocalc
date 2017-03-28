@@ -24,7 +24,7 @@
 
 {ErrorDisplay, Loading, Markdown} = require('../r_misc')
 
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
@@ -50,7 +50,7 @@ PublicMarkdown = rclass ({name}) ->
 class MDActions extends Actions
     load_content: (project_id, path) =>
         @setState(project_id:project_id, path:path)
-        salvus_client.public_get_text_file
+        webapp_client.public_get_text_file
             project_id : project_id
             path       : path
             timeout    : 60

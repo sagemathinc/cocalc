@@ -23,7 +23,7 @@
 misc          = require('smc-util/misc')
 {Button}      = require('react-bootstrap')
 {sha1}        = require('smc-util/schema').client_db
-{server_time} = require('./salvus_client').salvus_client
+{server_time} = require('./webapp_client').webapp_client
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')

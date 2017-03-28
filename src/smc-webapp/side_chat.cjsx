@@ -28,7 +28,7 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {alert_message} = require('./alerts')
 

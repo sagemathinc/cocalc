@@ -120,7 +120,7 @@ class Connection extends client.Connection
         It is pushed forward each time @_idle_reset is called.
         The setInterval timer checks every minute, if the current time is past this @_init_time.
         If so, the user is 'idle'.
-        To keep 'active', call salvus_client.idle_reset as often as you like:
+        To keep 'active', call webapp_client.idle_reset as often as you like:
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 

@@ -24,7 +24,7 @@
 # do not modify the state in the project store.
 ###############################################################################
 
-{salvus_client}      = require('./salvus_client')
+{webapp_client}      = require('./webapp_client')
 {alert_message}      = require('./alerts')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -41,7 +41,7 @@ class ProjectTasks
             path : required
             cb   : undefined
         f = misc.path_split(opts.path)
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : 'test'
             args        : ['-s', f.tail]
@@ -56,7 +56,7 @@ class ProjectTasks
             path  : required
             cb    : undefined  # cb(true or false)
             alert : true
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : "mkdir"
             timeout    : 15

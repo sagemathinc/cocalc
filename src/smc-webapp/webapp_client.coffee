@@ -31,4 +31,4 @@ if window.location.hash.length > 1
     window.smc_target = decodeURIComponent(window.location.hash.slice(1))
 
 client_browser = require('client_browser')
-exports.salvus_client = client_browser.connect()
+exports.webapp_client = client_browser.connect()

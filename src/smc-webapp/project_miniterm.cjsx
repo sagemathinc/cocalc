@@ -35,7 +35,7 @@ IDEAS FOR LATER:
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
-{salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
+{webapp_client} = require('./webapp_client')  # used to run the command -- could change to use an action and the store.
 
 output_style =
     position  : 'absolute'
@@ -88,7 +88,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         @_id = (@_id ? 0) + 1
         id = @_id
         start_time = new Date()
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
             timeout    : EXEC_TIMEOUT

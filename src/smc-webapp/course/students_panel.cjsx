@@ -1,7 +1,7 @@
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries and components
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
@@ -70,7 +70,7 @@ exports.StudentsPanel = rclass ({name}) ->
             return
         @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
         add_search = @state.add_search
-        salvus_client.user_search
+        webapp_client.user_search
             query : add_search
             limit : 50
             cb    : (err, select) =>
@@ -507,7 +507,7 @@ Student = rclass
         create = @props.student.get("create_project")
         if create?
             # if so, how long ago did it start
-            how_long = (salvus_client.server_time() - create)/1000
+            how_long = (webapp_client.server_time() - create)/1000
             if how_long < 120 # less than 2 minutes -- still hope, so render that creating
                 return <div><Icon name="cc-icon-cocalc-ring" spin /> Creating project... (started <TimeAgo date={create} />)</div>
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance

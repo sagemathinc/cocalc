@@ -1,7 +1,7 @@
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
@@ -144,7 +144,7 @@ Assignment = rclass
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string
         if not due_date?
-            return salvus_client.server_time()
+            return webapp_client.server_time()
         else
             return new Date(due_date)
 

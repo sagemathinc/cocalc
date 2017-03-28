@@ -23,7 +23,7 @@
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
 
 {HelpPage} = require('./r_help')
@@ -268,7 +268,7 @@ exports.ConnectionInfo = rclass
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
                 <Col sm=3 smOffset=1>
-                    <Button bsStyle='warning' onClick={=>salvus_client._fix_connection(true)}>
+                    <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>
@@ -341,7 +341,7 @@ exports.VersionWarning = rclass
         new_version : rtypes.object
 
     render_critical: ->
-        if @props.new_version.min_version > salvus_client.version()
+        if @props.new_version.min_version > webapp_client.version()
             <div>
                 <br />
                 THIS IS A CRITICAL UPDATE. YOU MUST <Space/>
@@ -352,7 +352,7 @@ exports.VersionWarning = rclass
             </div>
 
     render_close: ->
-        if not (@props.new_version.min_version > salvus_client.version())
+        if not (@props.new_version.min_version > webapp_client.version())
             <Icon
                 name = 'times'
                 className = 'pull-right'

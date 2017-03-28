@@ -37,7 +37,7 @@ misc_page       = require('./misc_page')
 editor          = require('./editor')
 printing        = require('./printing')
 {project_tasks} = require('./project_tasks')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 templates       = $("#salvus-editor-templates")
 
@@ -905,7 +905,7 @@ class exports.LatexEditor extends editor.FileEditor
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
             if @_path # make relative to home directory of project
                 conc_fn = @_path + '/' + conc_fn
-            salvus_client.read_text_file_from_project
+            webapp_client.read_text_file_from_project
                 project_id : @project_id
                 path       : conc_fn
                 cb         : (err, res) =>

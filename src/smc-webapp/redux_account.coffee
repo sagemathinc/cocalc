@@ -11,8 +11,8 @@ misc = require('smc-util/misc')
 help = ->
     return redux.getStore('customize').get('help_email')
 
-{salvus_client} = require('./salvus_client')
-remember_me = salvus_client.remember_me_key()
+{webapp_client} = require('./webapp_client')
+remember_me = webapp_client.remember_me_key()
 
 # Define account actions
 class AccountActions extends Actions
@@ -21,7 +21,7 @@ class AccountActions extends Actions
 
     sign_in: (email, password) =>
         @setState(signing_in: true)
-        salvus_client.sign_in
+        webapp_client.sign_in
             email_address : email
             password      : password
             remember_me   : true
@@ -52,7 +52,7 @@ class AccountActions extends Actions
             first_name = name.slice(0,i).trim()
             last_name = name.slice(i).trim()
         @setState(signing_up: true)
-        salvus_client.create_account
+        webapp_client.create_account
             first_name      : first_name
             last_name       : last_name
             email_address   : email
@@ -83,7 +83,7 @@ class AccountActions extends Actions
                 redux.getActions('billing').cancel_everything(cb)
             (cb) =>
                 # actually request to delete the account
-                salvus_client.delete_account
+                webapp_client.delete_account
                     account_id : @redux.getStore('account').get_account_id()
                     timeout       : 40
                     cb            : cb
@@ -96,7 +96,7 @@ class AccountActions extends Actions
         )
 
     forgot_password: (email) ->
-        salvus_client.forgot_password
+        webapp_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
                 if mesg?.error
@@ -111,7 +111,7 @@ class AccountActions extends Actions
                         forgot_password_error   : ''
 
     reset_password: (code, new_password) ->
-        salvus_client.reset_forgot_password
+        webapp_client.reset_forgot_password
             reset_code   : code
             new_password : new_password
             cb : (error, mesg) =>
@@ -137,7 +137,7 @@ class AccountActions extends Actions
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server must clean up resources
         # and *invalidate* the remember_me cookie for this client.
-        salvus_client.sign_out
+        webapp_client.sign_out
             everywhere : everywhere
             cb         : (error) ->
                 if error
@@ -237,11 +237,11 @@ class AccountTable extends Table
 redux.createTable('account', AccountTable)
 
 # Login status
-salvus_client.on 'signed_in', ->
+webapp_client.on 'signed_in', ->
     redux.getActions('account').set_user_type('signed_in')
-salvus_client.on 'signed_out', ->
+webapp_client.on 'signed_out', ->
     redux.getActions('account').set_user_type('public')
-salvus_client.on 'remember_me_failed', ->
+webapp_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
 # Autosave interval
@@ -256,7 +256,7 @@ init_autosave = (autosave) ->
     # Use the most recent autosave value.
     if autosave
         save_all_files = () ->
-            if salvus_client.is_connected()
+            if webapp_client.is_connected()
                 redux.getActions('projects').save_all_files()
         _autosave_interval = setInterval(save_all_files, autosave * 1000)
 
@@ -276,7 +276,7 @@ account_store.on 'change', ->
     x = account_store.getIn(['other_settings', 'standby_timeout_m'])
     if last_set_standby_timeout_m != x
         last_set_standby_timeout_m = x
-        salvus_client.set_standby_timeout_m(x)
+        webapp_client.set_standby_timeout_m(x)
 
 
 

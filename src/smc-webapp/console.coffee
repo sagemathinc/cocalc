@@ -254,8 +254,8 @@ class Console extends EventEmitter
             # In case nothing comes back soon, we reconnect -- maybe the session is dead?
             # We wait 20x the ping time (or 10s), so if connection is slow, this won't
             # constantly reconnect, but it is very fast in case the connection is fast.
-            {salvus_client} = require('./salvus_client')
-            latency = salvus_client.latency()
+            {webapp_client} = require('./webapp_client')
+            latency = webapp_client.latency()
             if latency?
                 delay = Math.min(10000, latency*20)
                 setTimeout(@reconnect_if_no_recent_data, delay)
@@ -607,8 +607,8 @@ class Console extends EventEmitter
         @element.find("a[href=\"#initfile\"]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
             content = initfile_content(@opts.filename)
-            {salvus_client} = require('./salvus_client')
-            salvus_client.exec
+            {webapp_client} = require('./webapp_client')
+            webapp_client.exec
                 project_id  : @project_id
                 command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
                 bash        : true
@@ -629,8 +629,8 @@ class Console extends EventEmitter
     open_init_file: ()  =>
         initfn = misc.console_init_filename(@opts.filename)
         content = initfile_content(@opts.filename)
-        {salvus_client} = require('./salvus_client')
-        salvus_client.exec
+        {webapp_client} = require('./webapp_client')
+        webapp_client.exec
             project_id  : @project_id
             command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
             bash        : true

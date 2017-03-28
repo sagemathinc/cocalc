@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 
 {TimeAgo, Tip} = require('./r_misc')
 
-{salvus_client} = require('./salvus_client')   # needed for getting non-collaborator user names
+{webapp_client} = require('./webapp_client')   # needed for getting non-collaborator user names
 
 immutable = require('immutable')
 
@@ -34,7 +34,7 @@ class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
         if not account_id
             return
-        salvus_client.get_usernames
+        webapp_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
             cb          : (err, x) =>

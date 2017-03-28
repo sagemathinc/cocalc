@@ -28,7 +28,7 @@ underscore = require('underscore')
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {synchronized_string} = require('./syncdoc')
 
