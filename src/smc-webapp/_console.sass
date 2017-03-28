@@ -1,26 +1,26 @@
 .special
   color : #f00
 
-.salvus-console
+.webapp-console
   background-color : #eaeaea
   padding          : 0px
   margin           : 0px
   border           : 0px solid black
 
-.salvus-console-topbar
+.webapp-console-topbar
   padding  : 0px
   margin   : 0px
   overflow : hidden
   border   : 1px solid lightgrey
 
-.salvus-console-filename
+.webapp-console-filename
   padding        : 10px
   font-weight    : bold
   color          : #555
   padding-top    : 4px
   padding-bottom : 0
 
-.salvus-console-title
+.webapp-console-title
   padding        : 10px
   font-weight    : bold
   overflow       : hidden
@@ -31,15 +31,15 @@
   padding-bottom : 0
   padding-right  : 50px
 
-.salvus-console-description
+.webapp-console-description
   color : #888
 
-.salvus-console-for-mobile
+.webapp-console-for-mobile
   position : absolute
   opacity  : 0
   color    : #fff
 
-.salvus-console-terminal
+.webapp-console-terminal
   height      : 100%
   width       : 100%
   position    : absolute
@@ -50,24 +50,24 @@
   white-space : nowrap
   flex        : 1
 
-.salvus-console-scrollbar
+.webapp-console-scrollbar
   height     : 99.5%
   overflow-x : hidden
   overflow-y : scroll
   z-index    : 1          /* so terminal text doesn't appear visible when horizontally resizing */
 
-.salvus-console-cursor-blur
+.webapp-console-cursor-blur
   border        : 1px solid grey
   border-radius : 3px
 
-.salvus-console-cursor-focus
-  animation      : salvus-cursor-blink 1.3s linear 0s infinite
+.webapp-console-cursor-focus
+  animation      : webapp-cursor-blink 1.3s linear 0s infinite
   background     : #fff
   color          : #555
   border         : 1px solid #555
   margin         : -1px
 
-@keyframes salvus-cursor-blink
+@keyframes webapp-cursor-blink
   0%, 40%
     -webkit-filter: invert(1.0)
     filter: invert(1.0)
@@ -75,18 +75,18 @@
     -webkit-filter: invert(0.0)
     filter: invert(0.0)
 
-.salvus-console-textarea
+.webapp-console-textarea
   height   : 0px
   width    : 0px
   border   : 0px solid white
   opacity  : 0
   position : fixed
 
-.salvus-console-focus
+.webapp-console-focus
   border        : 1px solid #77b6e8
   border-radius : 4px
   box-shadow    : inset 0 0 4px #77b6e8
 
-.salvus-console-blur
+.webapp-console-blur
   border        : 1px solid lightgrey
   border-radius : 4px

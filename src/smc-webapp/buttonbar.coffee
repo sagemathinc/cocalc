@@ -1444,7 +1444,7 @@ add_icon = (bar, inner, href, comment) ->
 
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->
-    bar = $(".salvus-editor-codemirror-worksheet-editable-buttons")
+    bar = $(".webapp-editor-codemirror-worksheet-editable-buttons")
     elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu")
     for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
         item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
@@ -1476,7 +1476,7 @@ Normal</a></li>")
 
 # Initialize fonts for the editor
 initialize_md_html_editor = () ->
-    bar = $(".salvus-editor-textedit-buttonbar")
+    bar = $(".webapp-editor-textedit-buttonbar")
     elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu")
     for font in FONT_FACES
         item = $("<li><a href='#font_face' data-args='#{font}'>#{font}</a></li>")
@@ -1523,10 +1523,10 @@ initialize_sage_python_r_toolbar = () ->
         </span>
     """
 
-    codebar  = $(".salvus-editor-codeedit-buttonbar")
+    codebar  = $(".webapp-editor-codeedit-buttonbar")
 
     # -- modes (this isn't really code so weird to put here)
-    system_bar = make_bar("salvus-editor-codeedit-buttonbar-system")
+    system_bar = make_bar("webapp-editor-codeedit-buttonbar-system")
 
     mode_list = ["Modes", "Sage Worksheet Modes",
         [
@@ -1610,7 +1610,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(system_bar)
 
     # -- python specific --
-    pybar    = make_bar("salvus-editor-codeedit-buttonbar-python")
+    pybar    = make_bar("webapp-editor-codeedit-buttonbar-python")
     add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
@@ -1658,7 +1658,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(pybar)
 
     # -- Cython specific
-    cythonbar  = make_bar("salvus-editor-codeedit-buttonbar-cython")
+    cythonbar  = make_bar("webapp-editor-codeedit-buttonbar-cython")
     cython_classes = ["Cython Classes", "Define cdef'd Classes",
            [
             ["cdef Class", "#cython_class", "Define a Cython class"],
@@ -1668,7 +1668,7 @@ initialize_sage_python_r_toolbar = () ->
     cythonbar.append(cythonbar)
 
     # -- sage specific --
-    sagebar  = make_bar("salvus-editor-codeedit-buttonbar-sage")
+    sagebar  = make_bar("webapp-editor-codeedit-buttonbar-sage")
 
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
@@ -1772,7 +1772,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(sagebar)
 
     # -- r specific --
-    rbar = $(".salvus-editor-redit-buttonbar")
+    rbar = $(".webapp-editor-redit-buttonbar")
 
     r_basic = make_bar()
     add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
@@ -1845,7 +1845,7 @@ initialize_sage_python_r_toolbar = () ->
     rbar.append(r_plot)
 
     # -- Julia specific --
-    julia_bar = $(".salvus-editor-julia-edit-buttonbar")
+    julia_bar = $(".webapp-editor-julia-edit-buttonbar")
 
     julia_basic = make_bar()
     add_icon(julia_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
@@ -1863,7 +1863,7 @@ initialize_sage_python_r_toolbar = () ->
     julia_bar.append(julia_control)
 
     # -- sh specific --
-    sh_bar = $(".salvus-editor-sh-edit-buttonbar")
+    sh_bar = $(".webapp-editor-sh-edit-buttonbar")
 
     sh_git = make_bar()
     sh_git_entries = ["Git", "Basic Git commands",
@@ -1923,7 +1923,7 @@ initialize_latex_buttonbar = () ->
      <i class="fa">Format</i> <b class="caret"></b>
     </span>
     """))
-    format_buttons = $(".salvus-editor-codemirror-worksheet-editable-buttons").clone()
+    format_buttons = $(".webapp-editor-codemirror-worksheet-editable-buttons").clone()
     format_buttons.addClass("dropdown-menu")
     format_buttons.removeClass("hide")
     format_buttons.css("min-width", 300)
@@ -1940,7 +1940,7 @@ initialize_latex_buttonbar = () ->
                ]]
     add_menu(latexbar, formulas)
 
-    bb = $(".salvus-editor-latex-buttonbar")
+    bb = $(".webapp-editor-latex-buttonbar")
     bb.append(latexbar)
 
 # NOT READY YET.

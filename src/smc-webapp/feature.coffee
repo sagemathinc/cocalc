@@ -61,7 +61,7 @@ exports.IS_MOBILE = exports.isMobile.any()
 # exports.IS_MOBILE = true
 
 if $.browser.chrome
-    $(".salvus-chrome-only").show()
+    $(".webapp-chrome-only").show()
 
 $.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator?.userAgent.indexOf(' OPR/') >= 0
 $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
@@ -86,7 +86,7 @@ exports.get_mobile = () ->
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar
 exports.is_responsive_mode = () ->
-    return $(".salvus-responsive-mode-test").width() < 768
+    return $(".webapp-responsive-mode-test").width() < 768
 
 # DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
 # You can use DEBUG anywhere in the webapp code!

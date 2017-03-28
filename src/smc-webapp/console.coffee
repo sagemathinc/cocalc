@@ -39,8 +39,8 @@ misc             = require('smc-util/misc')
 
 misc_page        = require('./misc_page')
 
-templates        = $("#salvus-console-templates")
-console_template = templates.find(".salvus-console")
+templates        = $("#webapp-console-templates")
+console_template = templates.find(".webapp-console")
 
 feature = require('./feature')
 
@@ -121,7 +121,7 @@ class Console extends EventEmitter
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
-        @textarea = @element.find(".salvus-console-textarea")
+        @textarea = @element.find(".webapp-console-textarea")
 
         # Record on the DOM element a reference to the console
         # instance, which is useful for client code.
@@ -151,7 +151,7 @@ class Console extends EventEmitter
         # only has to be done once -- any further times are ignored.
         Terminal.bindKeys(client_keydown)
 
-        @scrollbar = @element.find(".salvus-console-scrollbar")
+        @scrollbar = @element.find(".webapp-console-scrollbar")
 
         @scrollbar.scroll () =>
             if @ignore_scroll
@@ -183,8 +183,8 @@ class Console extends EventEmitter
 
         # delete scroll buttons except on mobile
         if not IS_MOBILE
-            @element.find(".salvus-console-up").hide()
-            @element.find(".salvus-console-down").hide()
+            @element.find(".webapp-console-up").hide()
+            @element.find(".webapp-console-down").hide()
 
         if opts.session?
             @set_session(opts.session)
@@ -286,7 +286,7 @@ class Console extends EventEmitter
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
             @_reconnecting = new Date()
-            @element.find(".salvus-console-terminal").css('opacity':'.5')
+            @element.find(".webapp-console-terminal").css('opacity':'.5')
             @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
         @session.on 'reconnect', () =>
@@ -295,7 +295,7 @@ class Console extends EventEmitter
             @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
-            @element.find(".salvus-console-terminal").css('opacity':'1')
+            @element.find(".webapp-console-terminal").css('opacity':'1')
             @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
             @_ignore_mesg = true
             @reset()
@@ -414,7 +414,7 @@ class Console extends EventEmitter
                 @pause_rendering(true)
             return false
 
-        e = @element.find(".salvus-console-terminal")
+        e = @element.find(".webapp-console-terminal")
 
         e.mousedown () =>
             @pause_rendering(false)
@@ -488,8 +488,8 @@ class Console extends EventEmitter
     _font_size_changed: () =>
         @opts.editor?.local_storage("font-size",@opts.font.size)
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
-        @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
-        @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
+        @element.find(".webapp-console-font-indicator-size").text(@opts.font.size)
+        @element.find(".webapp-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
         @resize()
 
     _init_font_make_default: () =>
@@ -510,9 +510,9 @@ class Console extends EventEmitter
         # Create the terminal DOM objects
         @terminal.open()
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
-        @terminal.element.className = "salvus-console-terminal"
+        @terminal.element.className = "webapp-console-terminal"
         ter = $(@terminal.element)
-        @element.find(".salvus-console-terminal").replaceWith(ter)
+        @element.find(".webapp-console-terminal").replaceWith(ter)
 
         ter.css
             'font-family' : @opts.font.family + ", monospace"  # monospace fallback
@@ -521,7 +521,7 @@ class Console extends EventEmitter
 
         # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
-            @mobile_target = @element.find(".salvus-console-for-mobile").show()
+            @mobile_target = @element.find(".webapp-console-for-mobile").show()
             @mobile_target.css('width', ter.css('width'))
             @mobile_target.css('height', ter.css('height'))
             @_click = (e) =>
@@ -643,13 +643,13 @@ class Console extends EventEmitter
 
     _init_input_line: () =>
         #if not IS_MOBILE
-        #    @element.find(".salvus-console-mobile-input").hide()
+        #    @element.find(".webapp-console-mobile-input").hide()
         #    return
 
         if not IS_MOBILE
-            @element.find(".salvus-console-mobile-input").hide()
+            @element.find(".webapp-console-mobile-input").hide()
 
-        input_line = @element.find('.salvus-console-input-line')
+        input_line = @element.find('.webapp-console-input-line')
 
         submit_line = () =>
             @session?.write_data(input_line.val())
@@ -665,70 +665,70 @@ class Console extends EventEmitter
                 submit_line()
                 @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
 
-        @element.find(".salvus-console-submit-line").click () =>
+        @element.find(".webapp-console-submit-line").click () =>
             #@focus()
             submit_line()
             @session?.write_data("\n")
             return false
 
-        @element.find(".salvus-console-submit-tab").click () =>
+        @element.find(".webapp-console-submit-tab").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:9, shiftKey:false)
 
-        @element.find(".salvus-console-submit-esc").click () =>
+        @element.find(".webapp-console-submit-esc").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
-        @element.find(".salvus-console-submit-up").click () =>
+        @element.find(".webapp-console-submit-up").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:38, shiftKey:false, ctrlKey:false)
 
-        @element.find(".salvus-console-submit-down").click () =>
+        @element.find(".webapp-console-submit-down").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:40, shiftKey:false, ctrlKey:false)
 
-        @element.find(".salvus-console-submit-left").click () =>
+        @element.find(".webapp-console-submit-left").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:37, shiftKey:false, ctrlKey:false)
 
-        @element.find(".salvus-console-submit-right").click () =>
+        @element.find(".webapp-console-submit-right").click () =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:39, shiftKey:false, ctrlKey:false)
 
-        @element.find(".salvus-console-submit-ctrl-c").show().click (e) =>
+        @element.find(".webapp-console-submit-ctrl-c").show().click (e) =>
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
 
         ###
-        @element.find(".salvus-console-up").click () ->
+        @element.find(".webapp-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
             return false
 
-        @element.find(".salvus-console-down").click () ->
+        @element.find(".webapp-console-down").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.to, ch:0})
             return false
 
         if IS_MOBILE
-            @element.find(".salvus-console-tab").show().click (e) =>
+            @element.find(".webapp-console-tab").show().click (e) =>
                 @focus()
                 @terminal.keyDown(keyCode:9, shiftKey:false)
 
             @_next_ctrl = false
-            @element.find(".salvus-console-control").show().click (e) =>
+            @element.find(".webapp-console-control").show().click (e) =>
                 @focus()
                 @_next_ctrl = true
                 $(e.target).removeClass('btn-info').addClass('btn-warning')
 
-            @element.find(".salvus-console-esc").show().click (e) =>
+            @element.find(".webapp-console-esc").show().click (e) =>
                 @focus()
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
         ###
@@ -910,7 +910,7 @@ class Console extends EventEmitter
             # WARNING: probably should investigate term.js issues further(?)
             # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
             # This would totally break the client, which is bad, so we catch is.
-        $(@terminal.element).addClass('salvus-console-blur').removeClass('salvus-console-focus')
+        $(@terminal.element).addClass('webapp-console-blur').removeClass('webapp-console-focus')
 
     focus: (force) =>
         if @_reconnecting? and new Date() - @_reconnecting > 10000
@@ -933,23 +933,23 @@ class Console extends EventEmitter
         $(@terminal.element).focus()
 
         if IS_MOBILE
-            @element.find(".salvus-console-input-line").focus()
+            @element.find(".webapp-console-input-line").focus()
         else
             @_focus_hidden_textarea()
             @terminal.focus()
 
-        $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
+        $(@terminal.element).addClass('webapp-console-focus').removeClass('webapp-console-blur')
         setTimeout((()=>delete @_focusing), 0)   # critical!
 
     set_title: (title) ->
         @opts.set_title?(title)
-        @element.find(".salvus-console-title").text(title)
+        @element.find(".webapp-console-title").text(title)
 
 
 exports.Console = Console
 
 $.fn.extend
-    salvus_console: (opts={}) ->
+    webapp_console: (opts={}) ->
         @each () ->
             t = $(this)
             if opts == false

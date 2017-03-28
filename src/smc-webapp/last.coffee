@@ -34,7 +34,7 @@ misc            = require('smc-util/misc')
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
 $(document).on "click", (e) ->
-    if e.button == 1 and $(e.target).hasClass("salvus-no-middle-click")
+    if e.button == 1 and $(e.target).hasClass("webapp-no-middle-click")
         e.preventDefault()
         e.stopPropagation() # ?
     # hide popover on click

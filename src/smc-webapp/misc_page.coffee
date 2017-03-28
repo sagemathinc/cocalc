@@ -30,7 +30,7 @@ theme       = require('smc-util/theme')
 
 {redux} = require('./smc-react')
 
-templates = $("#salvus-misc-templates")
+templates = $("#webapp-misc-templates")
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
@@ -818,7 +818,7 @@ exports.define_codemirror_extensions = () ->
             return
 
         sel = $("<select>").css('width','auto')
-        complete = $("<div>").addClass("salvus-completions").append(sel)
+        complete = $("<div>").addClass("webapp-completions").append(sel)
         for c in completions
             # do not include target in appended completion if it has a '*'
             if target.indexOf('*') == -1
@@ -888,16 +888,16 @@ exports.define_codemirror_extensions = () ->
             # If for some reason the content isn't a string (e.g., undefined or an object or something else),
             # convert it a string, which will display fine.
             opts.content = "#{JSON.stringify(opts.content)}"
-        element = templates.find(".salvus-codemirror-introspect")
-        element.find(".salvus-codemirror-introspect-title").text(opts.target)
+        element = templates.find(".webapp-codemirror-introspect")
+        element.find(".webapp-codemirror-introspect-title").text(opts.target)
         element.modal()
-        element.find(".salvus-codemirror-introspect-content-docstring").text('')
-        element.find(".salvus-codemirror-introspect-content-source-code").text('')
+        element.find(".webapp-codemirror-introspect-content-docstring").text('')
+        element.find(".webapp-codemirror-introspect-content-source-code").text('')
         element.data('editor', @)
         if opts.type == 'source-code'
-            CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
+            CodeMirror.runMode(opts.content, 'python', element.find(".webapp-codemirror-introspect-content-source-code")[0])
         else
-            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
+            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".webapp-codemirror-introspect-content-docstring")[0])
 
     # Codemirror extension that takes as input an arrow of words (or undefined)
     # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
@@ -1225,17 +1225,17 @@ exports.define_codemirror_extensions = () ->
         opts = defaults opts,
             cb : undefined
         cm = @
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         selected_text = cm.getSelection()
         display.val(selected_text)
@@ -1243,7 +1243,7 @@ exports.define_codemirror_extensions = () ->
         mode = cm.get_edit_mode()
 
         if mode in ['md', 'rst', 'tex']
-            dialog.find(".salvus-html-editor-target-row").hide()
+            dialog.find(".webapp-html-editor-target-row").hide()
 
         submit = () =>
             dialog.modal('hide')
@@ -1344,31 +1344,31 @@ exports.define_codemirror_extensions = () ->
             cb : undefined
         cm = @
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         mode = cm.get_edit_mode()
 
         if mode == "tex"
             # different units and don't let user specify the height
-            dialog.find(".salvus-html-editor-height-row").hide()
-            dialog.find(".salvus-html-editor-image-width-header-tex").show()
-            dialog.find(".salvus-html-editor-image-width-header-default").hide()
-            dialog.find(".salvus-html-editor-width").val('80')
+            dialog.find(".webapp-html-editor-height-row").hide()
+            dialog.find(".webapp-html-editor-image-width-header-tex").show()
+            dialog.find(".webapp-html-editor-image-width-header-default").hide()
+            dialog.find(".webapp-html-editor-width").val('80')
 
         submit = () =>
             dialog.modal('hide')
-            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            title  = dialog.find(".webapp-html-editor-title").val().trim()
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
 
@@ -1379,10 +1379,10 @@ exports.define_codemirror_extensions = () ->
                 #    :alt: alternate text
                 #    :align: right
                 s = "\n.. image:: #{url.val()}\n"
-                height = dialog.find(".salvus-html-editor-height").val().trim()
+                height = dialog.find(".webapp-html-editor-height").val().trim()
                 if height.length > 0
                     s += "   :height: #{height}px\n"
-                width = dialog.find(".salvus-html-editor-width").val().trim()
+                width = dialog.find(".webapp-html-editor-width").val().trim()
                 if width.length > 0
                     s += "   :width: #{width}px\n"
                 if title.length > 0
@@ -1396,7 +1396,7 @@ exports.define_codemirror_extensions = () ->
 
             else if mode == "tex"
                 cm.tex_ensure_preamble("\\usepackage{graphicx}")
-                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                width = parseInt(dialog.find(".webapp-html-editor-width").val(), 10)
                 if "#{width}" == "NaN"
                     width = "0.8"
                 else
@@ -1453,7 +1453,7 @@ exports.define_codemirror_extensions = () ->
             bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
             return
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-symbols-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
@@ -1476,7 +1476,7 @@ exports.define_codemirror_extensions = () ->
                 cm.replaceRange(s, sel.head)
             opts.cb?()
 
-        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.find(".webapp-html-editor-symbols-dialog-table").off("click").click(selected)
         dialog.keydown (evt) =>
             if evt.which == 13 # enter
                 submit()
@@ -1585,7 +1585,7 @@ cm_start_end = (selection) ->
         end_line = start_line
     return {start_line:start_line, end_line:end_line}
 
-codemirror_introspect_modal = templates.find(".salvus-codemirror-introspect")
+codemirror_introspect_modal = templates.find(".webapp-codemirror-introspect")
 
 codemirror_introspect_modal.find("button").click () ->
     codemirror_introspect_modal.modal('hide')

@@ -41,7 +41,7 @@ markdown          = require('./markdown')
 
 {IS_MOBILE}       = require('./feature')
 
-templates           = $("#salvus-editor-templates")
+templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
@@ -292,7 +292,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @_update_queue_stop  = undefined
 
     init_worksheet_buttons: () =>
-        buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
+        buttons = @element.find(".webapp-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=\"#execute\"]").click () =>
@@ -384,17 +384,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         selection = document.getSelection()
         displayed_text = selection+""
 
-        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         display.val(displayed_text)
 
@@ -439,22 +439,22 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     html_editor_image: () =>
         @html_editor_restore_selection()
 
-        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         submit = () =>
             dialog.modal('hide')
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
             s = "<img src='#{url.val()}'#{width}#{height}>"
@@ -494,7 +494,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @html_editor_div?.data('onchange')?()
 
     init_html_editor_buttons: () =>
-        @html_editor_bar = button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        @html_editor_bar = button_bar = @element.find(".webapp-editor-codemirror-worksheet-editable-buttons")
         @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
 
@@ -1607,12 +1607,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             mark    : opts.mark
 
                             for event, function_name of mesg.events
-                                img.data("salvus-events-#{event}", function_name)
+                                img.data("webapp-events-#{event}", function_name)
                                 switch event
                                     when 'click'
                                         img.click (e) =>
                                             p = location(e)
-                                            exec("#{img.data('salvus-events-click')}('click',(#{p}))")
+                                            exec("#{img.data('webapp-events-click')}('click',(#{p}))")
                                     when 'mousemove'
                                         ignore_mouse_move = undefined
                                         last_pos = undefined
@@ -1625,7 +1625,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             if last_pos? and p[0] == last_pos[0] and p[1] == last_pos[1]
                                                 return
                                             last_pos = p
-                                            exec("#{img.data('salvus-events-mousemove')}('mousemove',(#{p}))")
+                                            exec("#{img.data('webapp-events-mousemove')}('mousemove',(#{p}))")
                                     else
                                         console.log("unknown or unimplemented event -- #{event}")
 

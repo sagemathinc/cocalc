@@ -71,7 +71,7 @@ syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")
-editor_templates     = $("#salvus-editor-templates")
+editor_templates     = $("#webapp-editor-templates")
 
 exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".sage-jupyter"
 

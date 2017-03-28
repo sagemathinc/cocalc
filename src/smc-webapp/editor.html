@@ -22,14 +22,14 @@
 Editor for files in a project
 -->
 
-<div id="salvus-editor-templates" class="hide">
+<div id="webapp-editor-templates" class="hide">
 
     <!-- Template for the entire editor, both tabs and the actual content -->
-    <div class="salvus-editor">
+    <div class="webapp-editor">
         <div class="row">
             <div class="col-xs-12">
                 <!-- The editor content gets displayed here -->
-                <div class="salvus-editor-content">
+                <div class="webapp-editor-content">
                 </div>
             </div>
         </div>
@@ -37,22 +37,22 @@ Editor for files in a project
 
     <!-- Template for the tab at the top of the editor with filename and an x -->
     <ul> <!-- ul so is valid html -->
-        <li class="super-menu salvus-editor-filename-pill">
-            <div class="salvus-editor-close-button-x pull-right lighten"><i class="fa fa-times"></i></div>
+        <li class="super-menu webapp-editor-filename-pill">
+            <div class="webapp-editor-close-button-x pull-right lighten"><i class="fa fa-times"></i></div>
             <a>
-                <span class="salvus-editor-tab-filename"></span>
+                <span class="webapp-editor-tab-filename"></span>
             </a>
         </li>
     </ul>
 
     <!-- Template for the codemirror text editor -->
-    <div class="salvus-editor-codemirror smc-vfill">
-        <textarea class="salvus-editor-textarea-0 hide"></textarea>
-        <textarea class="salvus-editor-textarea-1 hide"></textarea>
-        <div class="salvus-editor-codemirror-content  smc-vfill">
-            <div class="salvus-editor-codemirror-button-row">
-                <div class="salvus-editor-codemirror-button-container">
-                    <div class="hidden-xs salvus-editor-chat-title salvus-editor-write-only pull-right">
+    <div class="webapp-editor-codemirror smc-vfill">
+        <textarea class="webapp-editor-textarea-0 hide"></textarea>
+        <textarea class="webapp-editor-textarea-1 hide"></textarea>
+        <div class="webapp-editor-codemirror-content  smc-vfill">
+            <div class="webapp-editor-codemirror-button-row">
+                <div class="webapp-editor-codemirror-button-container">
+                    <div class="hidden-xs webapp-editor-chat-title webapp-editor-write-only pull-right">
                         <div class="smc-users-viewing-document">
                             <!--to be filled with react component for users viewing the document-->
                         </div>
@@ -68,7 +68,7 @@ Editor for files in a project
                         </span>
 
 
-                        <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
+                        <span class="btn-group webapp-editor-codemirror-worksheet-buttons hide">
                             <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i></a>
                             <a href="#interrupt" class="btn btn-warning btn-lg"> <i class="fa fa-stop"></i></a>
                             <a href="#kill" class="btn btn-warning btn-lg"><i class="fa fa-refresh"></i></a>
@@ -87,8 +87,8 @@ Editor for files in a project
 
                     </span>
                     <span class="hidden-xs">
-                        <span class="salvus-editor-codemirror-worksheet-buttons hide">
-                            <span class="btn-group salvus-editor-write-only">
+                        <span class="webapp-editor-codemirror-worksheet-buttons hide">
+                            <span class="btn-group webapp-editor-write-only">
                                 <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
                                 <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                                 <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
@@ -97,7 +97,7 @@ Editor for files in a project
 
 
                             </span>
-                            <span class="btn-group salvus-editor-write-only">
+                            <span class="btn-group webapp-editor-write-only">
                                 <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of input of selected cells."><i class="fa fa-toggle-on"></i> in</a>
                                 <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of output of selected cells."><i class="fa fa-toggle-on"></i> out</a>
                                 <a href="#delete-output" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete output of selected cells (unless input hidden)."><i class="fa fa-times-circle"></i></a>
@@ -105,43 +105,43 @@ Editor for files in a project
                         </span>
                     </span>
                     <span class="hidden-xs btn-group editor-btn-group">
-                        <a href="#autoindent" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
-                        <a href="#undo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
-                        <a href="#redo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
+                        <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
+                        <a href="#undo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
+                        <a href="#redo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                         <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
                         <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                         <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
-                        <a href="#replace" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
+                        <a href="#replace" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                         <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
-                            <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0 hide"></i>
-                            <i class="fa fa-columns salvus-editor-layout-1 hide"></i>
-                            <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2 hide" style="font-size: 12pt;"></i>
+                            <i class="fa fa-columns fa-rotate-270 webapp-editor-layout-0 hide"></i>
+                            <i class="fa fa-columns webapp-editor-layout-1 hide"></i>
+                            <i class="fa fa-tablet fa-rotate-90 webapp-editor-layout-2 hide" style="font-size: 12pt;"></i>
                         </a>
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
                         <a href="#goto-line" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
-                        <a href="#sagews2pdf" class="btn btn-default salvus-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
-                        <a href="#print" class="btn btn-default salvus-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                        <a href="#sagews2pdf" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
+                        <a href="#print" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                     </span>
 
-                    <span class="btn-group salvus-editor-read-only hide">
-                        <a href="#readonly" class="hidden-xs btn btn-success salvus-editor-save-group disabled" data-toggle="tooltip" data-placement="bottom" title="File is read only.">
+                    <span class="btn-group webapp-editor-read-only hide">
+                        <a href="#readonly" class="hidden-xs btn btn-success webapp-editor-save-group disabled" data-toggle="tooltip" data-placement="bottom" title="File is read only.">
                             <i class="fa fa-save"></i>
                             <span class="hidden-sm">Readonly</span>
                         </a>
-                        <a href="#history" class="hidden-xs btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <a href="#history" class="hidden-xs btn btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                             <i class="fa fa-history"></i>
                             <span class="hidden-sm">TimeTravel</span>
                         </a>
                     </span>
 
-                    <span class="btn-group salvus-editor-write-only">
-                        <a href="#save" class="hidden-xs btn btn-success salvus-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk.">
+                    <span class="btn-group webapp-editor-write-only">
+                        <a href="#save" class="hidden-xs btn btn-success webapp-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk.">
                             <i class="fa fa-save"></i>
                             Save
                             <span class="smc-uncommitted hide" data-toggle="tooltip" data-placement="bottom" title="DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file."> NOT saved!</span>
                         </a>
-                        <a href="#history" class="hidden-xs btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <a href="#history" class="hidden-xs btn btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                             <i class="fa fa-history"></i>
                             <span class="hidden-sm">TimeTravel</span>
                         </a>
@@ -152,35 +152,35 @@ Editor for files in a project
                         <!--<a class="btn btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> <span class="hidden-sm">Download</span></a>-->
                     </span>
 
-                    <span class="salvus-editor-codemirror-loading hide">
+                    <span class="webapp-editor-codemirror-loading hide">
                         <i class="fa fa-spinner"></i> load…
                     </span>
 
-                    <span class="salvus-editor-latex-buttons hide">
+                    <span class="webapp-editor-latex-buttons hide">
                         <span class="btn-group">
                            <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
                            <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
                         </span>
                     </span>
 
-                    <span class="salvus-editor-codemirror-sync">
-                        <span class="salvus-editor-codemirror-not-synced hide"><i class="fa fa-spinner"></i> sync…</span>
-                        <span class="salvus-editor-codemirror-synced hide"><i class="fa fa-ok"></i></span>
+                    <span class="webapp-editor-codemirror-sync">
+                        <span class="webapp-editor-codemirror-not-synced hide"><i class="fa fa-spinner"></i> sync…</span>
+                        <span class="webapp-editor-codemirror-synced hide"><i class="fa fa-ok"></i></span>
                     </span>
 
 
-                    <span class="salvus-editor-codemirror-filename pull-right">
+                    <span class="webapp-editor-codemirror-filename pull-right">
                     </span>
 
                 </div>
 
-                <div class="salvus-editor-buttonbars salvus-editor-write-only">
-                    <div class="salvus-editor-latex-buttonbar hide"></div>
-                    <div class="salvus-editor-codemirror-textedit-buttons hide  visible-md-block visible-lg-block">
-                        <code class="salvus-editor-codeedit-buttonbar-mode pull-right hide"></code>
+                <div class="webapp-editor-buttonbars webapp-editor-write-only">
+                    <div class="webapp-editor-latex-buttonbar hide"></div>
+                    <div class="webapp-editor-codemirror-textedit-buttons hide  visible-md-block visible-lg-block">
+                        <code class="webapp-editor-codeedit-buttonbar-mode pull-right hide"></code>
                         <span class="react-target"></span>
                     </div>
-                    <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
+                    <div class="webapp-editor-codemirror-worksheet-editable-buttons hide">
                         <span class="btn-group">
                             <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Bold"><i class="fa fa-bold"></i></a>
                             <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Italic"><i class="fa fa-italic"></i></a>
@@ -249,66 +249,66 @@ Editor for files in a project
                 </div>
             </div>
 
-            <div class="salvus-editor-codemirror-input-container-layout-0 hide"
+            <div class="webapp-editor-codemirror-input-container-layout-0 hide"
                  style="flex: 1; display: flex; flex-direction: column;">
                   <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
-                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                <div class="webapp-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
-                <div class="salvus-editor-codemirror-input-box-1 hide">
+                <div class="webapp-editor-codemirror-input-box-1 hide">
                     <div>
                     </div>
                 </div>
             </div>
 
-            <div class="salvus-editor-codemirror-input-container-layout-1 hide"
+            <div class="webapp-editor-codemirror-input-container-layout-1 hide"
                  style="flex: 1; display: flex; flex-direction: column;">
                   <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
-                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                <div class="webapp-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
-                <div class="salvus-editor-resize-bar-layout-1">
+                <div class="webapp-editor-resize-bar-layout-1">
                 </div>
                 <!-- flex: 1 so expands to what is left after editor above is placed. -->
-                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                <div class="webapp-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
             </div>
 
-            <div class="salvus-editor-codemirror-input-container-layout-2 hide"
+            <div class="webapp-editor-codemirror-input-container-layout-2 hide"
                  style="flex: 1; display: flex; flex-direction: row;">
                   <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
-                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                <div class="webapp-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
-                <div class="salvus-editor-resize-bar-layout-2">
+                <div class="webapp-editor-resize-bar-layout-2">
                 </div>
                 <!-- flex: 1 so expands to what is left after editor above is placed. -->
-                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                <div class="webapp-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
                     </div>
                 </div>
             </div>
 
         </div>
-        <div class="salvus-editor-codemirror-startup-message alert alert-warning hide" role='alert'>
+        <div class="webapp-editor-codemirror-startup-message alert alert-warning hide" role='alert'>
         </div>
     </div>
 
     <!-- Template for the codemirror text editor other user cursors -->
-    <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
+    <div class="webapp-editor-codemirror-cursor"><span class="webapp-editor-codemirror-cursor-label"></span><div class="webapp-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
     <div class="smc-editor-codemirror-cursor"><span class="smc-editor-codemirror-cursor-label"></span><div class="smc-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
     <!-- Image viewer -->
-    <div class="salvus-editor-image" style="margin-left: 1ex;">
+    <div class="webapp-editor-image" style="margin-left: 1ex;">
         <span class="visible-xs">
             <span class="btn-group">
                 <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
@@ -318,23 +318,23 @@ Editor for files in a project
         <span class="hidden-xs">
             <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
         </span>
-        <div class="hidden-xs salvus-editor-image-title pull-right"> The title </div>
-        <div class="salvus-editor-image-container"><img style="max-width:100%"><video controls autoplay loop></video><span>Loading...</span></div>
+        <div class="hidden-xs webapp-editor-image-title pull-right"> The title </div>
+        <div class="webapp-editor-image-container"><img style="max-width:100%"><video controls autoplay loop></video><span>Loading...</span></div>
     </div>
 
     <!-- Static HTML viewer -->
-    <div class="salvus-editor-static-html">
-        <div class="salvus-editor-static-html-content">
+    <div class="webapp-editor-static-html">
+        <div class="webapp-editor-static-html-content">
             <iframe style="width:100%;border:0px;">
             </iframe>
         </div>
     </div>
 
     <!-- Templates for the png-based PDF previewer; this is designed for the pdf changes in little ways locally.  -->
-    <div class="salvus-editor-pdf-preview smc-vfill">
-        <div class="salvus-editor-pdf-preview-spinner hide"></div>
-        <div class="salvus-editor-pdf-preview-highlight hide"></div>
-        <div class="salvus-editor-pdf-preview-buttons">
+    <div class="webapp-editor-pdf-preview smc-vfill">
+        <div class="webapp-editor-pdf-preview-spinner hide"></div>
+        <div class="webapp-editor-pdf-preview-highlight hide"></div>
+        <div class="webapp-editor-pdf-preview-buttons">
             <span class="btn-group">
                 <a href="#zoom-preview-out" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom out some"><i class="fa fa-search-minus"></i></a>
                 <a href="#zoom-preview-in" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Zoom in some"><i class="fa fa-search-plus"></i></a>
@@ -349,10 +349,10 @@ Editor for files in a project
                 </a>
             </span>
         </div>
-        <div style="flex:1;overflow-y:auto;overflow-x:auto" class="salvus-editor-pdf-preview-output">
-            <div class="salvus-editor-pdf-preview-page">
+        <div style="flex:1;overflow-y:auto;overflow-x:auto" class="webapp-editor-pdf-preview-output">
+            <div class="webapp-editor-pdf-preview-page">
             </div>
-            <div class="salvus-editor-pdf-preview-message hide">
+            <div class="webapp-editor-pdf-preview-message hide">
             </div>
         </div>
     </div>
@@ -360,22 +360,22 @@ Editor for files in a project
 
 
     <!-- Templates for the embedded PDF previewer: just uses the built-in renderer; can't cope with file updates, inverse search, etc. -->
-    <div class="salvus-editor-pdf-preview-embed smc-vfill">
-        <div class="salvus-editor-codemirror-button-row">
-            <span class="salvus-editor-pdf-preview-embed-spinner hide"></span>
+    <div class="webapp-editor-pdf-preview-embed smc-vfill">
+        <div class="webapp-editor-codemirror-button-row">
+            <span class="webapp-editor-pdf-preview-embed-spinner hide"></span>
             <span class="btn-group">
                 <a class="btn btn-default btn-lg visible-xs" href="#close" ><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
                 <a class="btn btn-default btn-lg visible-xs" href="#refresh"><i class="fa fa-refresh"></i> <span class="hidden-xs"> Refresh</span></a>
                 <a class="btn btn-default hidden-xs" href="#refresh"><i class="fa fa-refresh"></i> <span class="hidden-xs"> Refresh</span></a>
             </span>
             <span class="btn-group pull-right">
-            <a class="btn btn-default salvus-editor-pdf-title hidden-xs">
+            <a class="btn btn-default webapp-editor-pdf-title hidden-xs">
                 <i class="fa fa-external-link"></i>
                 <span></span>
             </a>
             </span>
         </div>
-        <div class="salvus-editor-pdf-preview-embed-page smc-vfill">
+        <div class="webapp-editor-pdf-preview-embed-page smc-vfill">
             <iframe frameborder="0" scrolling="no" style="width:100%;height:100%">
                 <br>
                 <br>
@@ -385,62 +385,62 @@ Editor for files in a project
     </div>
 
     <!-- Template for the LaTeX editor -->
-    <div class="salvus-editor-latex smc-vfill">
-        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-latex-content">
-            <div class="salvus-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+    <div class="webapp-editor-latex smc-vfill">
+        <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-latex-content">
+            <div class="webapp-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
             </div>
-            <div class="salvus-editor-latex-resize-bar">
+            <div class="webapp-editor-latex-resize-bar">
             </div>
-            <div class="salvus-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto; background: #efefef;">
+            <div class="webapp-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto; background: #efefef;">
                 <ul class="nav nav-tabs" role="tablist">
                     <li role="presentation" class="active">
                         <a href="#png-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
                     </li>
                     <li role="presentation">
-                        <a href="#errors" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                        <a href="#errors" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="webapp-latex-errors-counter"></span> <span class="webapp-latex-warnings-counter"></span></a>
                     </li>
                     <li role="presentation">
                         <a href="#pdf-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
                     </li>
                     <li role="presentation">
                         <a href="#log" role="tab" data-toggle="tooltip" data-placement="bottom" title="Build control and compilation log"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
-                        <span class="salvus-latex-build-status"></span>
+                        <span class="webapp-latex-build-status"></span>
                         </a>
                     </li>
                 </ul>
-                <div class="salvus-editor-latex-pdf-preview smc-vfill hide">
+                <div class="webapp-editor-latex-pdf-preview smc-vfill hide">
                 </div>
-                <div class="salvus-editor-latex-png-preview smc-vfill hide">
+                <div class="webapp-editor-latex-png-preview smc-vfill hide">
                 </div>
-                <div class="salvus-editor-latex-errors hide" style="overflow-y: auto; border: 1px solid lightgrey;">
+                <div class="webapp-editor-latex-errors hide" style="overflow-y: auto; border: 1px solid lightgrey;">
                     <div style="margin-left:2em">
                         <h3>Errors</h3>
-                        <div class="salvus-latex-errors">
+                        <div class="webapp-latex-errors">
                         </div>
                         <h3>Typesetting Issues</h3>
-                        <div class="salvus-latex-typesetting">
+                        <div class="webapp-latex-typesetting">
                         </div>
                         <h3>Other Warnings</h3>
-                        <div class="salvus-latex-warnings">
+                        <div class="webapp-latex-warnings">
                         </div>
                         <div style="height:10em"></div>
                     </div>
                 </div>
                 <!-- error/warning message templates -->
-                <div class="salvus-editor-latex-mesg-template well hide">
+                <div class="webapp-editor-latex-mesg-template well hide">
                     <a class="btn btn-default" style="max-width:80%">
                         <i class="fa fa-mail-reply"></i>
-                        <span class="salvus-latex-mesg-line"></span>
-                        <span class="salvus-latex-mesg-page"></span>
-                        <span class="salvus-latex-mesg-file"></span>
-                        <span class="salvus-latex-mesg-message"></span>
+                        <span class="webapp-latex-mesg-line"></span>
+                        <span class="webapp-latex-mesg-page"></span>
+                        <span class="webapp-latex-mesg-file"></span>
+                        <span class="webapp-latex-mesg-message"></span>
                     </a>
                     <a class="btn pull-right btn-default">
                         <i class="fa fa-mail-forward"></i>
                     </a>
-                    <pre class="salvus-latex-mesg-content lighten hide"></pre>
+                    <pre class="webapp-latex-mesg-content lighten hide"></pre>
                 </div>
-                <div class="salvus-editor-latex-log smc-vfill hide">
+                <div class="webapp-editor-latex-log smc-vfill hide">
                     <span class="btn-group">
                         <a href="#latex-recompile" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Recompile everything"><i class="fa fa-bolt"></i> Recompile</a>
                         <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
@@ -464,7 +464,7 @@ Editor for files in a project
                     </div>
                     <textarea  readonly="" style="padding:15px; flex:1; width:100%; color:#666; background: #f8f8f0;">You have not run LaTeX yet.</textarea>
                 </div>
-                <div class="salvus-editor-latex-settings hide">
+                <div class="webapp-editor-latex-settings hide">
                     <h1>Settings</h1>
                 </div>
             </div>
@@ -472,28 +472,28 @@ Editor for files in a project
     </div>
 
     <!-- Template for the HTML-MD editor -->
-    <div class="salvus-editor-html-md smc-vfill">
-        <div class="salvus-editor-html-md-editor-buttonbar">
+    <div class="webapp-editor-html-md smc-vfill">
+        <div class="webapp-editor-html-md-editor-buttonbar">
         </div>
-        <div class="salvus-editor-html-md-textedit-buttonbar">
+        <div class="webapp-editor-html-md-textedit-buttonbar">
         </div>
-        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-html-md-content">
-            <div class="salvus-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+        <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-html-md-content">
+            <div class="webapp-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
             </div>
-            <div class="salvus-editor-html-md-resize-bar">
+            <div class="webapp-editor-html-md-resize-bar">
             </div>
-            <div class="salvus-editor-html-md-preview" style="flex:1">
+            <div class="webapp-editor-html-md-preview" style="flex:1">
                 <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
                 <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
-                <div class="salvus-editor-html-md-preview-content">
+                <div class="webapp-editor-html-md-preview-content">
                 </div>
             </div>
         </div>
     </div>
 
 
-    <div class="salvus-editor-history smc-vfill">
-        <div class="salvus-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; border-radius: 4px; background-color:#efefef">
+    <div class="webapp-editor-history smc-vfill">
+        <div class="webapp-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; border-radius: 4px; background-color:#efefef">
             <span style="color:#666; font-size:14pt; font-weight: bold; margin-right:1em">
                 <i class="fa fa-history"></i>
                 TimeTravel
@@ -502,7 +502,7 @@ Editor for files in a project
                 <a href="#show-diff" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show changes"><i class="fa fa-square-o"></i> Changes</a>
                 <a href="#hide-diff" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Show what changed"><i class="fa fa-check-square-o"></i> Changes</a>
             </span>
-            <span class="salvus-editor-history-control-button-container btn-group  smc-btn-group-nobreak" style="margin-left:1em">
+            <span class="webapp-editor-history-control-button-container btn-group  smc-btn-group-nobreak" style="margin-left:1em">
                 <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
                 <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
             </span>
@@ -512,25 +512,25 @@ Editor for files in a project
                 <a href="#revert" class="btn btn-warning hide" style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
             </span>
             <span style="color:#666; margin-left: 1em">
-                <span class="salvus-editor-history-revision-time" style="font-weight: bold; font-size:12pt"></span><span class="salvus-editor-history-diff-mode hide">&nbsp;&nbsp; to&nbsp;&nbsp; </span><span class="hide salvus-editor-history-diff-mode salvus-editor-history-revision-time2" style="font-weight: bold; font-size:12pt"></span><span class="salvus-editor-history-revision-number"></span>
+                <span class="webapp-editor-history-revision-time" style="font-weight: bold; font-size:12pt"></span><span class="webapp-editor-history-diff-mode hide">&nbsp;&nbsp; to&nbsp;&nbsp; </span><span class="hide webapp-editor-history-diff-mode webapp-editor-history-revision-time2" style="font-weight: bold; font-size:12pt"></span><span class="webapp-editor-history-revision-number"></span>
             </span>
         </div>
         <div style="margin-top:7px; margin-right:15px;">
             &nbsp;
-            <span class="salvus-editor-history-revision-user lighten pull-right"></span>
+            <span class="webapp-editor-history-revision-user lighten pull-right"></span>
         </div>
-        <div class="salvus-editor-history-sliders" style="border-bottom: 1px solid lightgrey;">
-            <div class="salvus-editor-history-slider  salvus-editor-history-slider-style">
+        <div class="webapp-editor-history-sliders" style="border-bottom: 1px solid lightgrey;">
+            <div class="webapp-editor-history-slider  webapp-editor-history-slider-style">
             </div>
-            <div class="salvus-editor-history-diff-slider hide  salvus-editor-history-slider-style">
+            <div class="webapp-editor-history-diff-slider hide  webapp-editor-history-slider-style">
             </div>
         </div>
 
-        <div class="salvus-editor-history-no-viewer hide" style="margin-left:15px">
+        <div class="webapp-editor-history-no-viewer hide" style="margin-left:15px">
             <b>WARNING: </b> History viewer for this file type not implemented, so showing underlying raw file instead.
         </div>
 
-        <div class="salvus-editor-history-history_editor smc-vfill"></div>
+        <div class="webapp-editor-history-history_editor smc-vfill"></div>
     </div>
 
     <span class="sagews-input">
@@ -545,14 +545,14 @@ Editor for files in a project
         </span>
     </span>
 
-    <div class="salvus-ipython-notebook">
-        <!--<h3 style="margin-left:1em">IPython Notebook: <span class="salvus-ipython-filename"></span></h3>-->
-        <div class="salvus-ipython-notebook-buttons hidden-xs">
-            <span class="salvus-ipython-notebook-status-messages lighten"> </span>
-            <span class="hide salvus-ipython-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
+    <div class="webapp-ipython-notebook">
+        <!--<h3 style="margin-left:1em">IPython Notebook: <span class="webapp-ipython-filename"></span></h3>-->
+        <div class="webapp-ipython-notebook-buttons hidden-xs">
+            <span class="webapp-ipython-notebook-status-messages lighten"> </span>
+            <span class="hide webapp-ipython-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
             <span class="btn-group">
                 <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
-                <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                <a href="#history" class="btn btn-sm btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
                         <span class="hidden-sm">TimeTravel</span>
                 </a>
@@ -565,7 +565,7 @@ Editor for files in a project
             <span class="btn-group">
                 <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> Save</a>
             </span>
-            <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
+            <span class="btn-group webapp-editor-codemirror-worksheet-buttons hide">
                 <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i>
                     <span>Run</span>
                 </a>
@@ -581,37 +581,37 @@ Editor for files in a project
                 <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
             </span>
         </div>
-        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
-        <div class="salvus-ipython-notebook-notebook"></div>
+        <h3 class="webapp-ipython-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
+        <div class="webapp-ipython-notebook-notebook"></div>
     </div>
 
-    <div class="modal salvus-file-print-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-file-print-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close btn-close" aria-hidden="true">
                         <span style="font-size:20pt;">×</span>
                     </button>
-                    <h3><i class="fa fa-print"> </i>  Printable PDF version of <span class="salvus-file-print-filename"></span></h3>
+                    <h3><i class="fa fa-print"> </i>  Printable PDF version of <span class="webapp-file-print-filename"></span></h3>
                 </div>
                 <div class="well">
                     <h4>Heading<span class="lighten"> (click to edit)</span></h4>
                     <div class="well" style="background-color:white; text-align:center">
-                        <h4 class="salvus-file-print-title" contenteditable="true"></h4>
-                        <h5 class="salvus-file-print-author" contenteditable="true"></h5>
-                        <h5 class="salvus-file-print-date" contenteditable="true"></h5>
+                        <h4 class="webapp-file-print-title" contenteditable="true"></h4>
+                        <h5 class="webapp-file-print-author" contenteditable="true"></h5>
+                        <h5 class="webapp-file-print-date" contenteditable="true"></h5>
                     </div>
-                    <div class="salvus-file-options-sagews hide">
+                    <div class="webapp-file-options-sagews hide">
                         <h4>Worksheet Options</h4>
                         <div class="well" style="background-color:white">
                             <div class="checkbox">
                                 <label class="" rel="tooltip" title="Table of contents">
-                                    <input type="checkbox" class="salvus-file-print-contents" rel="tooltip">Table of contents
+                                    <input type="checkbox" class="webapp-file-print-contents" rel="tooltip">Table of contents
                                 </label>
                             </div>
                             <div class="checkbox">
                                 <label class="" rel="tooltip" title="Keep generated files">
-                                    <input type="checkbox" class="salvus-file-print-keepfiles" rel="tooltip">Keep generated files in a sub-directory. This is useful for debugging printing issues or additional editing.
+                                    <input type="checkbox" class="webapp-file-print-keepfiles" rel="tooltip">Keep generated files in a sub-directory. This is useful for debugging printing issues or additional editing.
                                     <div class="smc-file-printing-tempdir hide"></div>
                                 </label>
                             </div>
@@ -621,13 +621,13 @@ Editor for files in a project
                 <div class="modal-footer">
                     <button class="btn btn-close pull-left btn-default btn-lg">Close</button>
                     <button class="btn btn-primary btn-submit pull-left btn-lg"><i class="fa fa-bolt"> </i> Generate PDF</button>
-                    <span class="salvus-file-printing-progress hide">Preparing PDF version...</span>
-                    <a class="salvus-file-printing-link hide" target="_blank">link to PDF version</a>
+                    <span class="webapp-file-printing-progress hide">Preparing PDF version...</span>
+                    <a class="webapp-file-printing-link hide" target="_blank">link to PDF version</a>
                 </div>
             </div>
         </div>
     </div>
-    <div class="modal salvus-goto-line-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-goto-line-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -637,8 +637,8 @@ Editor for files in a project
                     <h3><i class="fa fa-bolt"> </i>  Goto Line</h3>
                 </div>
                 <div class="well" style="margin:1em">
-                    <div class="lighten">Enter <span class="salvus-goto-line-range"></span></div>
-                    <input class="salvus-goto-line-input form-control" style="width:95%; margin-top: 1ex;" type="text" placeholder="">
+                    <div class="lighten">Enter <span class="webapp-goto-line-range"></span></div>
+                    <input class="webapp-goto-line-input form-control" style="width:95%; margin-top: 1ex;" type="text" placeholder="">
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-close btn-default">Cancel</button>
@@ -648,7 +648,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <div class="modal salvus-html-editor-link-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-html-editor-link-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -663,7 +663,7 @@ Editor for files in a project
                             URL (required)
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-url" type="text" placeholder="URL">
+                            <input class="form-control webapp-html-editor-url" type="text" placeholder="URL">
                         </div>
                     </div>
                     <div class="row">
@@ -671,7 +671,7 @@ Editor for files in a project
                             Displayed Text (optional)
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-display" type="text"  placeholder="Displayed Text">
+                            <input class="form-control webapp-html-editor-display" type="text"  placeholder="Displayed Text">
                         </div>
                     </div>
                     <div class="row">
@@ -679,15 +679,15 @@ Editor for files in a project
                             Title (optional)
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-title" type="text" placeholder="Title">
+                            <input class="form-control webapp-html-editor-title" type="text" placeholder="Title">
                         </div>
                     </div>
-                    <div class="row salvus-html-editor-target-row">
+                    <div class="row webapp-html-editor-target-row">
                         <div class="col-sm-4 lighten">
                             Target
                         </div>
                         <div class="col-sm-8">
-                            <select class="form-control salvus-html-editor-target">
+                            <select class="form-control webapp-html-editor-target">
                                 <option value="">None</option>
                                 <option value="_blank">New Window</option>
                             </select>
@@ -702,7 +702,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <div class="modal salvus-html-editor-image-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-html-editor-image-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -717,24 +717,24 @@ Editor for files in a project
                             URL or Filename
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-url" type="text" placeholder="URL">
+                            <input class="form-control webapp-html-editor-url" type="text" placeholder="URL">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-4 lighten">
-                            <span class="salvus-html-editor-image-width-header-default">Width (optional)</span>
-                            <span class="salvus-html-editor-image-width-header-tex hide">Width in percent (0-100)</span>
+                            <span class="webapp-html-editor-image-width-header-default">Width (optional)</span>
+                            <span class="webapp-html-editor-image-width-header-tex hide">Width in percent (0-100)</span>
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-width" type="text"  placeholder="Width">
+                            <input class="form-control webapp-html-editor-width" type="text"  placeholder="Width">
                         </div>
                     </div>
-                    <div class="row salvus-html-editor-height-row">
+                    <div class="row webapp-html-editor-height-row">
                         <div class="col-sm-4 lighten">
                             Height (optional)
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-height" type="text" placeholder="Height">
+                            <input class="form-control webapp-html-editor-height" type="text" placeholder="Height">
                         </div>
                     </div>
                     <div class="row">
@@ -742,7 +742,7 @@ Editor for files in a project
                             Title (optional)
                         </div>
                         <div class="col-sm-8">
-                            <input class="form-control salvus-html-editor-title" type="text" placeholder="Title">
+                            <input class="form-control webapp-html-editor-title" type="text" placeholder="Title">
                         </div>
                     </div>
 
@@ -756,7 +756,7 @@ Editor for files in a project
     </div>
 
     <!-- HTML symbol table: a single click inserts the character, pressing "close" closes the dialog -->
-    <div class="modal salvus-html-editor-symbols-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-html-editor-symbols-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -766,7 +766,7 @@ Editor for files in a project
                     <h3><i class="fa">&Omega;</i> Insert Symbol</h3>
                 </div>
                 <div class="well" style="margin:1em;font-size:12pt;cursor:pointer">
-                    <table class="salvus-html-editor-symbols-dialog-table" width="100%" align="center">
+                    <table class="webapp-html-editor-symbols-dialog-table" width="100%" align="center">
                     <tbody>
                     <!-- the title attribute translation to HTML is "&#{title};" (e.g. "&beta;") -->
                     <tr align="center">
@@ -1046,7 +1046,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <div class="salvus-editor-textedit-buttonbar">
+    <div class="webapp-editor-textedit-buttonbar">
         <span class="btn-group">
             <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
             <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
@@ -1114,23 +1114,23 @@ Editor for files in a project
         </span>
     </div>
 
-    <div class="salvus-editor-codeedit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-codeedit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates all entries -->
     </div>
 
-    <div class="salvus-editor-redit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-redit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates the entries -->
     </div>
-    <div class="salvus-editor-julia-edit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-julia-edit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates the entries -->
     </div>
-    <div class="salvus-editor-sh-edit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-sh-edit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates the entries -->
     </div>
-    <div class="salvus-editor-fricas-edit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-fricas-edit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates the entries -->
     </div>
-    <div class="salvus-editor-fallback-edit-buttonbar hide" style="margin: 2px">
+    <div class="webapp-editor-fallback-edit-buttonbar hide" style="margin: 2px">
         <a class="btn btn-default" href="#todo">&hellip;</a>
     </div>
 

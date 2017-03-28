@@ -586,7 +586,7 @@ else
     console.warn("cursor saving won't work due to lack of localStorage")
     local_storage_delete = local_storage = () ->
 
-templates = $("#salvus-editor-templates")
+templates = $("#webapp-editor-templates")
 
 ###############################################
 # Abstract base class for editors (not exports.Editor)
@@ -761,7 +761,7 @@ class CodeMirrorEditor extends FileEditor
 
         #console.log("mode =", opts.mode)
 
-        @element = templates.find(".salvus-editor-codemirror").clone()
+        @element = templates.find(".webapp-editor-codemirror").clone()
 
         @element.data('editor', @)
 
@@ -777,7 +777,7 @@ class CodeMirrorEditor extends FileEditor
             filename = "…" + filename.slice(filename.length-30)
 
         # not really needed due to highlighted tab; annoying.
-        #@element.find(".salvus-editor-codemirror-filename").text(filename)
+        #@element.find(".webapp-editor-codemirror-filename").text(filename)
 
         @_video_is_on = @local_storage("video_is_on")
         if not @_video_is_on?
@@ -921,12 +921,12 @@ class CodeMirrorEditor extends FileEditor
 
             return cm
 
-        elt = @element.find(".salvus-editor-textarea-0"); elt.text(content)
+        elt = @element.find(".webapp-editor-textarea-0"); elt.text(content)
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        elt1 = @element.find(".salvus-editor-textarea-1")
+        elt1 = @element.find(".webapp-editor-textarea-1")
 
         @codemirror1 = make_editor(elt1[0])
         @codemirror1.name = '1'
@@ -973,7 +973,7 @@ class CodeMirrorEditor extends FileEditor
         @_layout1_split_pos = @local_storage("layout1_split_pos")
         @_layout2_split_pos = @local_storage("layout2_split_pos")
 
-        layout1_bar = @element.find(".salvus-editor-resize-bar-layout-1")
+        layout1_bar = @element.find(".webapp-editor-resize-bar-layout-1")
         layout1_bar.draggable
             axis        : 'y'
             containment : @element
@@ -983,7 +983,7 @@ class CodeMirrorEditor extends FileEditor
                 misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
-                e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
+                e   = @element.find(".webapp-editor-codemirror-input-container-layout-1")
                 top = e.offset().top
                 ht  = e.height()
                 p   = layout1_bar.offset().top + layout1_bar.height()/2
@@ -992,7 +992,7 @@ class CodeMirrorEditor extends FileEditor
                 # redraw, which uses split info
                 @show()
 
-        layout2_bar = @element.find(".salvus-editor-resize-bar-layout-2")
+        layout2_bar = @element.find(".webapp-editor-resize-bar-layout-2")
         layout2_bar.draggable
             axis        : 'x'
             containment : @element
@@ -1002,7 +1002,7 @@ class CodeMirrorEditor extends FileEditor
                 misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
-                e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")
+                e     = @element.find(".webapp-editor-codemirror-input-container-layout-2")
                 left  = e.offset().left
                 width = e.width()
                 p     = layout2_bar.offset().left
@@ -1012,22 +1012,22 @@ class CodeMirrorEditor extends FileEditor
                 @show()
 
     hide_content: () =>
-        @element.find(".salvus-editor-codemirror-content").hide()
+        @element.find(".webapp-editor-codemirror-content").hide()
 
     show_content: () =>
         @hide_startup_message()
-        @element.find(".salvus-editor-codemirror-content").show()
+        @element.find(".webapp-editor-codemirror-content").show()
         for cm in @codemirrors()
             cm?.refresh()
 
     hide_startup_message: () =>
-        @element.find(".salvus-editor-codemirror-startup-message").hide()
+        @element.find(".webapp-editor-codemirror-startup-message").hide()
 
     show_startup_message: (mesg, type='info') =>
         @hide_content()
         if typeof(mesg) != 'string'
             mesg = JSON.stringify(mesg)
-        e = @element.find(".salvus-editor-codemirror-startup-message").show().text(mesg)
+        e = @element.find(".webapp-editor-codemirror-startup-message").show().text(mesg)
         for t in ['success', 'info', 'warning', 'danger']
             e.removeClass("alert-#{t}")
         e.addClass("alert-#{type}")
@@ -1045,13 +1045,13 @@ class CodeMirrorEditor extends FileEditor
     set_readonly_ui: (readonly=true) =>
         @opts.read_only = readonly
         if readonly
-            @element.find(".salvus-editor-write-only").hide()
-            @element.find(".salvus-editor-read-only").show()
+            @element.find(".webapp-editor-write-only").hide()
+            @element.find(".webapp-editor-read-only").show()
             @codemirror.setOption('readOnly', true)
             @codemirror1.setOption('readOnly', true)
         else
-            @element.find(".salvus-editor-write-only").show()
-            @element.find(".salvus-editor-read-only").hide()
+            @element.find(".webapp-editor-write-only").show()
+            @element.find(".webapp-editor-read-only").hide()
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)
 
@@ -1244,16 +1244,16 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        dialog = templates.find(".salvus-goto-line-dialog").clone()
+        dialog = templates.find(".webapp-goto-line-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        input = dialog.find(".salvus-goto-line-input")
+        input = dialog.find(".webapp-goto-line-input")
         input.val(cm.getCursor().line+1)  # +1 since line is 0-based
-        dialog.find(".salvus-goto-line-range").text("1-#{cm.lineCount()} or n%")
-        dialog.find(".salvus-goto-line-input").focus().select()
+        dialog.find(".webapp-goto-line-range").text("1-#{cm.lineCount()} or n%")
+        dialog.find(".webapp-goto-line-input").focus().select()
         submit = () =>
             dialog.modal('hide')
             result = input.val().trim()
@@ -1398,7 +1398,7 @@ class CodeMirrorEditor extends FileEditor
 
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
-        dialog = templates.find(".salvus-file-print-dialog").clone()
+        dialog = templates.find(".webapp-file-print-dialog").clone()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
         if v.length <= 1
@@ -1414,11 +1414,11 @@ class CodeMirrorEditor extends FileEditor
             return
 
         submit = () =>
-            dialog.find(".salvus-file-printing-progress").show()
-            dialog.find(".salvus-file-printing-link").hide()
+            dialog.find(".webapp-file-printing-progress").show()
+            dialog.find(".webapp-file-printing-link").hide()
             $print_tempdir = dialog.find(".smc-file-printing-tempdir")
             $print_tempdir.hide()
-            is_subdir = dialog.find(".salvus-file-print-keepfiles").is(":checked")
+            is_subdir = dialog.find(".webapp-file-print-keepfiles").is(":checked")
             dialog.find(".btn-submit").icon_spin(start:true)
             pdf = undefined
             async.series([
@@ -1427,10 +1427,10 @@ class CodeMirrorEditor extends FileEditor
                 (cb) =>
                     # get info from the UI and attempt to convert the sagews to pdf
                     options =
-                        title      : dialog.find(".salvus-file-print-title").text()
-                        author     : dialog.find(".salvus-file-print-author").text()
-                        date       : dialog.find(".salvus-file-print-date").text()
-                        contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                        title      : dialog.find(".webapp-file-print-title").text()
+                        author     : dialog.find(".webapp-file-print-author").text()
+                        date       : dialog.find(".webapp-file-print-date").text()
+                        contents   : dialog.find(".webapp-file-print-contents").is(":checked")
                         subdir     : is_subdir
                         base_url   : require('./misc_page').BASE_URL
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
@@ -1466,7 +1466,7 @@ class CodeMirrorEditor extends FileEditor
                     url = webapp_client.read_file_from_project
                         project_id  : @project_id
                         path        : pdf
-                    dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                    dialog.find(".webapp-file-printing-link").attr('href', url).text(pdf).show()
                     cb()
                 (cb) =>
                     if not is_subdir
@@ -1497,20 +1497,20 @@ class CodeMirrorEditor extends FileEditor
                     cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
-                dialog.find(".salvus-file-printing-progress").hide()
+                dialog.find(".webapp-file-printing-progress").hide()
                 if err
                     alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{misc.to_json(err)}")
             )
             return false
 
-        dialog.find(".salvus-file-print-filename").text(@filename)
-        dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(redux.getStore('account').get_fullname())
-        dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
+        dialog.find(".webapp-file-print-filename").text(@filename)
+        dialog.find(".webapp-file-print-title").text(base)
+        dialog.find(".webapp-file-print-author").text(redux.getStore('account').get_fullname())
+        dialog.find(".webapp-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
         if ext == "sagews"
-            dialog.find(".salvus-file-options-sagews").show()
+            dialog.find(".webapp-file-options-sagews").show()
         dialog.modal('show')
 
     init_save_button: () =>
@@ -1522,7 +1522,7 @@ class CodeMirrorEditor extends FileEditor
 
     init_history_button: () =>
         if not @opts.public_access and @filename.slice(@filename.length-13) != '.sage-history'
-            @history_button = @element.find(".salvus-editor-history-button")
+            @history_button = @element.find(".webapp-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
             @history_button.css
@@ -1619,8 +1619,8 @@ class CodeMirrorEditor extends FileEditor
                 v[i] -= amount
             else
                 v[i] += amount
-        $("body").remove("#salvus-cm-activeline")
-        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+        $("body").remove("#webapp-cm-activeline")
+        $("body").append("<style id='webapp-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
 
 
@@ -1640,14 +1640,14 @@ class CodeMirrorEditor extends FileEditor
             p = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, p))
 
         # We set only the default size of the *first* div -- everything else expands accordingly.
-        elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+        elt = @element.find(".webapp-editor-codemirror-input-container-layout-#{@_layout}").show()
 
         if @_layout == 1
-            @element.find(".salvus-editor-resize-bar-layout-1").css(top:0)
+            @element.find(".webapp-editor-resize-bar-layout-1").css(top:0)
         else if @_layout == 2
-            @element.find(".salvus-editor-resize-bar-layout-2").css(left:0)
+            @element.find(".webapp-editor-resize-bar-layout-2").css(left:0)
 
-        c = elt.find(".salvus-editor-codemirror-input-box")
+        c = elt.find(".webapp-editor-codemirror-input-box")
         if @_layout == 0
             c.css('flex', 1)   # use the full vertical height
         else
@@ -1659,15 +1659,15 @@ class CodeMirrorEditor extends FileEditor
 
             if @_last_layout?
                 # Hide previous
-                btn.find(".salvus-editor-layout-#{@_last_layout}").hide()
-                @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
+                btn.find(".webapp-editor-layout-#{@_last_layout}").hide()
+                @element.find(".webapp-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
 
             # Show current
-            btn.find(".salvus-editor-layout-#{@_layout}").show()
+            btn.find(".webapp-editor-layout-#{@_layout}").show()
 
             # Put editors in their place -- in the div inside of each box
-            elt.find(".salvus-editor-codemirror-input-box div").empty().append($(@codemirror.getWrapperElement()))
-            elt.find(".salvus-editor-codemirror-input-box-1 div").empty().append($(@codemirror1.getWrapperElement()))
+            elt.find(".webapp-editor-codemirror-input-box div").empty().append($(@codemirror.getWrapperElement()))
+            elt.find(".webapp-editor-codemirror-input-box-1 div").empty().append($(@codemirror1.getWrapperElement()))
 
             # Save for next time
             @_last_layout = @_layout
@@ -1677,7 +1677,7 @@ class CodeMirrorEditor extends FileEditor
         if $.browser.safari and @_layout == 1
             # This is only needed for the "split via a horizontal line" layout, since
             # the flex layout with column direction is broken on Safari.
-            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
+            @element.find(".webapp-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
 
         refresh = (cm) =>
             return if not cm?
@@ -1782,30 +1782,30 @@ class CodeMirrorEditor extends FileEditor
                 return "#{name}"
 
         # add the text editing button bar
-        e = @element.find(".salvus-editor-codemirror-textedit-buttons")
-        @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
+        e = @element.find(".webapp-editor-codemirror-textedit-buttons")
+        @textedit_buttons = templates.find(".webapp-editor-textedit-buttonbar").clone().hide()
         e.append(@textedit_buttons).show()
 
         # add the code editing button bar
-        @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
+        @codeedit_buttons = templates.find(".webapp-editor-codeedit-buttonbar").clone()
         e.append(@codeedit_buttons)
 
         # the r-editing button bar
-        @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
+        @redit_buttons =  templates.find(".webapp-editor-redit-buttonbar").clone()
         e.append(@redit_buttons)
 
         # the Julia-editing button bar
-        @julia_edit_buttons =  templates.find(".salvus-editor-julia-edit-buttonbar").clone()
+        @julia_edit_buttons =  templates.find(".webapp-editor-julia-edit-buttonbar").clone()
         e.append(@julia_edit_buttons)
 
         # the sh-editing button bar
-        @sh_edit_buttons =  templates.find(".salvus-editor-sh-edit-buttonbar").clone()
+        @sh_edit_buttons =  templates.find(".webapp-editor-sh-edit-buttonbar").clone()
         e.append(@sh_edit_buttons)
 
-        @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
+        @cython_buttons =  templates.find(".webapp-editor-cython-buttonbar").clone()
         e.append(@cython_buttons)
 
-        @fallback_buttons = templates.find(".salvus-editor-fallback-edit-buttonbar").clone()
+        @fallback_buttons = templates.find(".webapp-editor-fallback-edit-buttonbar").clone()
         e.append(@fallback_buttons)
 
         all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons,
@@ -1837,7 +1837,7 @@ class CodeMirrorEditor extends FileEditor
             edit_buttons.find("a").click(edit_button_click)
             edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
 
-        @mode_display = mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
+        @mode_display = mode_display = @element.find(".webapp-editor-codeedit-buttonbar-mode")
         @_current_mode = "sage"
         @mode_display.show()
 
@@ -1893,7 +1893,7 @@ class CodeMirrorEditor extends FileEditor
             cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
-        @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
+        @element.find(".webapp-editor-codemirror-textedit-buttons").mathjax()
 
 
 codemirror_session_editor = exports.codemirror_session_editor = (project_id, filename, extra_opts) ->
@@ -2583,18 +2583,18 @@ class PDF_Preview extends FileEditor
         @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
-        @element = templates.find(".salvus-editor-pdf-preview").clone()
-        @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
+        @element = templates.find(".webapp-editor-pdf-preview").clone()
+        @spinner = @element.find(".webapp-editor-pdf-preview-spinner")
         s = path_split(@filename)
         @path = s.head
         if @path == ''
             @path = './'
         @file = s.tail
         @last_page = 0
-        @output    = @element.find(".salvus-editor-pdf-preview-output")
-        @page      = @element.find(".salvus-editor-pdf-preview-page")
-        @message   = @element.find(".salvus-editor-pdf-preview-message")
-        @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
+        @output    = @element.find(".webapp-editor-pdf-preview-output")
+        @page      = @element.find(".webapp-editor-pdf-preview-page")
+        @message   = @element.find(".webapp-editor-pdf-preview-message")
+        @highlight = @element.find(".webapp-editor-pdf-preview-highlight").hide()
         @page.text('Loading preview...')
         @_first_output = true
         @_needs_update = true
@@ -2658,7 +2658,7 @@ class PDF_Preview extends FileEditor
 
         if opts.delta?
             if not @zoom_width?
-                @zoom_width = 160   # NOTE: hardcoded also in editor.css class .salvus-editor-pdf-preview-image
+                @zoom_width = 160   # NOTE: hardcoded also in editor.css class .webapp-editor-pdf-preview-image
             max_width = @zoom_width
             max_width += opts.delta
         else if opts.width?
@@ -2668,7 +2668,7 @@ class PDF_Preview extends FileEditor
             @zoom_width = max_width
             n = @current_page().number
             max_width = "#{max_width}%"
-            @page.find(".salvus-editor-pdf-preview-page-single").css
+            @page.find(".webapp-editor-pdf-preview-page-single").css
                 'max-width'   : max_width
                 width         : max_width
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
@@ -2716,7 +2716,7 @@ class PDF_Preview extends FileEditor
             y              : 0          # y-coordinate on page
             highlight_line : true
         pg = @pdflatex.page(opts.n)
-        elt = @element.find(".salvus-editor-pdf-preview-output")
+        elt = @element.find(".webapp-editor-pdf-preview-output")
         if not pg?.element? or not elt?
             # the page has vanished in the meantime...
             return
@@ -2838,7 +2838,7 @@ class PDF_Preview extends FileEditor
         if not url?
             # delete page and all following it from DOM
             for m in [n .. @last_page]
-                @page.remove(".salvus-editor-pdf-preview-page-#{m}")
+                @page.remove(".webapp-editor-pdf-preview-page-#{m}")
             if @last_page >= n
                 @last_page = n-1
         else
@@ -2846,7 +2846,7 @@ class PDF_Preview extends FileEditor
             # update page
             recenter = (@last_page == 0)
             that = @
-            page = @page.find(".salvus-editor-pdf-preview-page-#{n}")
+            page = @page.find(".webapp-editor-pdf-preview-page-#{n}")
 
             set_zoom_width = (page) =>
                 if @zoom_width?
@@ -2858,7 +2858,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'>Page #{m}<br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'></div>")
+                    page = $("<div class='webapp-editor-pdf-preview-page-single webapp-editor-pdf-preview-page-#{m}'>Page #{m}<br><img alt='Page #{m}' class='webapp-editor-pdf-preview-image'></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2920,7 +2920,7 @@ class PDF_Preview extends FileEditor
 
             set_zoom_width(page)
 
-            #page.find(".salvus-editor-pdf-preview-text").text(p.text)
+            #page.find(".webapp-editor-pdf-preview-text").text(p.text)
         cb()
 
     show: =>
@@ -2935,11 +2935,11 @@ exports.PDF_Preview = PDF_Preview
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@project_id, @filename, contents, @opts) ->
         super(@project_id, @filename)
-        @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
-        @pdf_title = @element.find(".salvus-editor-pdf-title")
+        @element = templates.find(".webapp-editor-pdf-preview-embed").clone()
+        @pdf_title = @element.find(".webapp-editor-pdf-title")
         @pdf_title.find("span").text("loading ...")
 
-        @spinner = @element.find(".salvus-editor-pdf-preview-embed-spinner")
+        @spinner = @element.find(".webapp-editor-pdf-preview-embed-spinner")
 
         s = path_split(@filename)
         @path = s.head
@@ -2947,7 +2947,7 @@ class PDF_PreviewEmbed extends FileEditor
             @path = './'
         @file = s.tail
 
-        @output = @element.find(".salvus-editor-pdf-preview-embed-page")
+        @output = @element.find(".webapp-editor-pdf-preview-embed-page")
 
         @element.find('a[href="#refresh"]').click () =>
             @update()
@@ -2979,7 +2979,7 @@ class PDF_PreviewEmbed extends FileEditor
     show: =>
          # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
         if $.browser.safari
-            @element.find(".salvus-editor-pdf-preview-embed-page").make_height_defined()
+            @element.find(".webapp-editor-pdf-preview-embed-page").make_height_defined()
 
     focus:=>
 
@@ -2991,7 +2991,7 @@ class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         super(@project_id, @filename)
         @element = $("<div>").hide()
-        elt = @element.salvus_console
+        elt = @element.webapp_console
             title      : "Terminal"
             filename   : @filename
             project_id : @project_id
@@ -3062,7 +3062,7 @@ class Terminal extends FileEditor
     terminate_session: () =>
 
     remove: =>
-        @element.salvus_console(false)
+        @element.webapp_console(false)
         super()
 
     hide: =>
@@ -3075,8 +3075,8 @@ class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
         super(@project_id, @filename)
         @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
-        @element = templates.find(".salvus-editor-image").clone()
-        @element.find(".salvus-editor-image-title").text(@filename)
+        @element = templates.find(".webapp-editor-image").clone()
+        @element.find(".webapp-editor-image-title").text(@filename)
 
         refresh = @element.find('a[href="#refresh"]')
         refresh.click () =>
@@ -3089,7 +3089,7 @@ class Media extends FileEditor
             return false
 
         if url?
-            @element.find(".salvus-editor-image-container").find("span").hide()
+            @element.find(".webapp-editor-image-container").find("span").hide()
             @set_src(url)
         else
             @update()
@@ -3111,7 +3111,7 @@ class Media extends FileEditor
             path       : @filename
             cb         : (err, mesg) =>
                 @element.find('a[href="#refresh"]').icon_spin(false)
-                @element.find(".salvus-editor-image-container").find("span").hide()
+                @element.find(".webapp-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
                     cb?(err)
@@ -3131,7 +3131,7 @@ class Media extends FileEditor
 class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         super(@project_id, @filename)
-        @element = templates.find(".salvus-editor-static-html").clone()
+        @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
         if not @content?
@@ -3163,7 +3163,7 @@ class PublicHTML extends FileEditor
         @element.show()
 
     set_iframe: () =>
-        @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+        @iframe = @element.find(".webapp-editor-static-html-content").find('iframe')
         # We do this, since otherwise just loading the iframe using
         #      @iframe.contents().find('html').html(@content)
         # messes up the parent html page...

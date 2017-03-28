@@ -36,7 +36,7 @@ require('./interact')
 
 async = require('async')
 
-templates = $("#salvus-editor-templates")
+templates = $("#webapp-editor-templates")
 
 account = require('./account')
 

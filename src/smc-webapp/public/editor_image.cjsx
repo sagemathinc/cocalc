@@ -11,7 +11,7 @@ PublicImage = rclass
 
     render: ->
         src = webapp_client.read_file_from_project({project_id:@props.project_id, path:@props.path})
-        <div className="salvus-editor-static-html-content">
+        <div className="webapp-editor-static-html-content">
             <img src={src} />
         </div>
 
