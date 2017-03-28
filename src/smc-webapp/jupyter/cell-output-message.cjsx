@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 
 util = require('./util')
 
-LEFT='17px'
+LEFT='5px'
 
 STDOUT_STYLE =
     whiteSpace    : 'pre-wrap'

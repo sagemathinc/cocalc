@@ -951,6 +951,16 @@ class exports.JupyterActions extends Actions
         set = (obj) =>
             @syncdb.set(obj, false)
 
+        if ipynb.nbformat <= 3
+            # Handle older format.
+            ipynb.cells ?= []
+            for worksheet in ipynb.worksheets
+                for cell in worksheet.cells
+                    if cell.input?
+                        cell.source = cell.input
+                        delete cell.input
+                    ipynb.cells.push(cell)
+
         # Read in the cells
         if ipynb.cells?
             n = 0
@@ -960,14 +970,26 @@ class exports.JupyterActions extends Actions
                     # string fields to be either a string or list of strings."
                     # https://nbformat.readthedocs.io/en/latest/format_description.html#top-level-structure
                     if misc.is_array(cell.source)
-                        input = cell.source.join('\n')
+                        input = cell.source.join('')
                     else
                         input = cell.source
+                if cell.execution_count?
+                    exec_count = cell.execution_count
+                else if cell.prompt_number?
+                    exec_count = cell.prompt_number
+                else
+                    exec_count = null
+
+                cell_type = cell.cell_type ? 'code'
+
                 set
-                    type  : 'cell'
-                    id    : existing_ids[n] ? @_new_id()
-                    pos   : n
-                    input : input
+                    type       : 'cell'
+                    id         : existing_ids[n] ? @_new_id()
+                    pos        : n
+                    input      : input
+                    cell_type  : cell_type
+                    exec_count : exec_count
+
                 n += 1
 
         # Set the kernel and other settings

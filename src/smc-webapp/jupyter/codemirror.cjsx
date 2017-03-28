@@ -17,13 +17,6 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
-EDITOR_STYLE =
-    width        : '100%'
-    overflowX    : 'hidden'
-    border       : '1px solid #cfcfcf'
-    borderRadius : '2px'
-    background   : '#f7f7f7'
-    lineHeight   : '1.21429em'
 
 enable_folding = (options) ->
     options.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
@@ -48,6 +41,88 @@ exports.CodeMirrorEditor = rclass
             next.font_size  != @props.font_size or\
             next.is_focused != @props.is_focused or\
             next.cursors    != @props.cursors
+
+    render: ->
+        if @props.is_focused
+            <CodeMirrorEditorFocused
+                actions   = {@props.actions}
+                id        = {@props.id}
+                options   = {@props.options}
+                value     = {@props.value}
+                font_size = {@props.font_size}
+                cursors   = {@props.cursors} />
+        else
+            <CodeMirrorEditorBlurred
+                actions   = {@props.actions}
+                id        = {@props.id}
+                options   = {@props.options}
+                value     = {@props.value}
+                font_size = {@props.font_size}
+                cursors   = {@props.cursors} />
+
+BLURRED_STYLE =
+    width         : '100%'
+    overflowX     : 'hidden'
+    border        : '1px solid #cfcfcf'
+    borderRadius  : '2px'
+    background    : '#f7f7f7'
+    lineHeight    : 'normal'
+    height        : 'auto'
+    fontSize      : 'inherit'
+    marginBottom  : 0
+    paddingTop    : '4px'
+    paddingBottom : '4px'
+    paddingLeft   : '4px'
+
+CodeMirrorEditorBlurred = rclass
+    propTypes :
+        actions    : rtypes.object
+        id         : rtypes.string.isRequired
+        options    : rtypes.immutable.Map.isRequired
+        value      : rtypes.string.isRequired
+        font_size  : rtypes.number
+        cursors    : rtypes.immutable.Map
+
+    render_html: ->
+        if @props.value
+            elt = document.createElement('pre')
+            CodeMirror.runMode(@props.value, 'python', elt)
+            {__html: elt.innerHTML}
+        else
+            {__html: ' '}   # blank space needed for empty cell to get the right height!
+
+    focus: ->
+        if not @props.actions?  # read only
+            return
+        @props.actions.set_mode('edit')
+        @props.actions.unselect_all_cells()
+        @props.actions.set_cur_id(@props.id)
+
+    render: ->
+        <pre
+            className               = "CodeMirror cm-s-default"
+            style                   = {BLURRED_STYLE}
+            onClick                 = {@focus}
+            dangerouslySetInnerHTML = {@render_html()} >
+        </pre>
+
+FOCUSED_STYLE =
+    width        : '100%'
+    overflowX    : 'hidden'
+    border       : '1px solid #cfcfcf'
+    borderRadius : '2px'
+    background   : '#f7f7f7'
+    lineHeight   : '1.21429em'
+
+
+CodeMirrorEditorFocused = rclass
+    propTypes :
+        actions    : rtypes.object
+        id         : rtypes.string.isRequired
+        options    : rtypes.immutable.Map.isRequired
+        value      : rtypes.string.isRequired
+        font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
+        cursors    : rtypes.immutable.Map
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
@@ -144,7 +219,7 @@ exports.CodeMirrorEditor = rclass
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         options = options.toJS()
         options.extraKeys ?= {}
-        enable_folding(options)
+        #enable_folding(options)  # too hard to get margins right, save state; unify with blurred... for now; maybe enable per cell optionally...
         options.extraKeys["Shift-Enter"] = @run_cell
 
         options.readOnly = not @props.actions?
@@ -165,9 +240,7 @@ exports.CodeMirrorEditor = rclass
         if @props.actions?
             @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
 
-        if @props.is_focused
-            @cm.focus()
-
+        @cm.focus()
         @_cm_update_cursors(cursors)
 
     componentDidMount: ->
@@ -181,6 +254,7 @@ exports.CodeMirrorEditor = rclass
             @_cm_merge_remote(next.value)
         if next.cursors != @props.cursors
             @_cm_update_cursors(next.cursors)
+        ###
         if @props.is_focused and not next.is_focused
             # This blur must be done in the next render loop; I don't understand exactly why.
             # Also, it is critical to check that is_focused still has the same state, or we
@@ -188,6 +262,7 @@ exports.CodeMirrorEditor = rclass
             setTimeout((=>if not @props?.is_focused then @cm?.getInputField().blur()), 0)
         else if not @props.is_focused and next.is_focused
             setTimeout((=>if @props?.is_focused then @cm?.focus()), 0)
+        ###
 
     componentWillUnmount: ->
         if @cm?
@@ -195,11 +270,6 @@ exports.CodeMirrorEditor = rclass
             doc = @cm.getDoc()
             delete doc.cm  # so @cm gets freed from memory when destroyed and doc is not attached to it.
             @_cm_destroy()
-
-    render : ->
-        <div style={EDITOR_STYLE}>
-            <textarea />
-        </div>
 
     # TODO: this is very ugly -- must rewrite below using React.
     draw_other_cursors: (cm, account_id, locs) ->
@@ -247,4 +317,9 @@ exports.CodeMirrorEditor = rclass
             for i in [locs.length...x.length]
                 x[i].cursor.remove()
             @_cursors[account_id] = x.slice(0, locs.length)
+
+    render : ->
+        <div style={FOCUSED_STYLE}>
+            <textarea />
+        </div>
 

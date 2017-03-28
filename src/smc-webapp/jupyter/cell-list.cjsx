@@ -70,6 +70,7 @@ exports.CellList = rclass
             backgroundColor : '#eee'
             height          : '100%'
             overflowY       : 'auto'
+            overflowX       : 'hidden'
 
         <div key='cells' style={style} ref='cell_list'>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
