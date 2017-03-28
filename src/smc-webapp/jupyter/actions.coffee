@@ -32,7 +32,7 @@ underlying synchronized state.
 class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
-        # ugly and obviously shouldn't be done here...
+        @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
         store.syncdb = syncdb
         @syncdb      = syncdb
@@ -73,9 +73,9 @@ class exports.JupyterActions extends Actions
         return @_client.dbg("Jupyter('#{@store.get('path')}').#{f}")
 
     close: =>
-        if @_closed
+        if @_state == 'closed'
             return
-        @_closed = true
+        @_state = 'closed'
         @syncdb.close()
         delete @syncdb
         if @_file_watcher?
@@ -98,7 +98,6 @@ class exports.JupyterActions extends Actions
                         catch e
                             @set_error("Error setting Jupyter kernels -- #{data} #{e}")
                 ).fail () =>
-                    console.warn("WARNING: setting Jupyter kernels failed...")
                     cb(true)
             misc.retry_until_success
                 f           : f
@@ -285,7 +284,7 @@ class exports.JupyterActions extends Actions
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
-        do_init = @_is_manager and not @_init_is_done
+        do_init = @_is_manager and @_state == 'init'
         #console.log 'changes', changes, changes?.toJS()
         #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
         @set_has_unsaved_changes()
@@ -309,8 +308,11 @@ class exports.JupyterActions extends Actions
             @set_cur_id(@store.get('cell_list')?.get(0))
 
         if do_init
-            @_init_is_done = true
             @initialize_manager()
+            @_state = 'ready'
+            @ensure_there_is_a_cell()
+        else if @_state == 'init'
+            @_state = 'ready'
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
@@ -354,7 +356,7 @@ class exports.JupyterActions extends Actions
             @setState(cells : cells)
 
     ensure_there_is_a_cell: =>
-        if @_do_not_ensure_there_is_a_cell
+        if @_state != 'ready' or not @_is_manager
             return
         cells = @store.get('cells')
         if not cells? or cells.size == 0
@@ -365,7 +367,7 @@ class exports.JupyterActions extends Actions
                 input : ''
 
     _set: (obj, save=true) =>
-        if @_closed
+        if @_state == 'closed'
             return
         @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
@@ -373,14 +375,14 @@ class exports.JupyterActions extends Actions
         @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
 
     _delete: (obj, save=true) =>
-        if @_closed
+        if @_state == 'closed'
             return
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
     _sync: =>
-        if @_closed
+        if @_state == 'closed'
             return
         @syncdb.sync()
 
@@ -898,10 +900,11 @@ class exports.JupyterActions extends Actions
         @_client.path_stat
             path : @store.get('path')
             cb   : (err, stats) =>
+                dbg("stats.ctime = #{stats?.ctime}")
                 if err
                     dbg("err stating file: #{err}")
                     # TODO
-                else if stats.ctime > last_changed
+                else if not last_changed? or stats.ctime > last_changed
                     dbg("disk file changed more recently than edits, so loading")
                     @load_ipynb_file()
                 else
@@ -928,16 +931,17 @@ class exports.JupyterActions extends Actions
     # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
     # the notebook defined by that object.
     set_to_ipynb: (ipynb) =>
+        @_state = 'load'
         if not ipynb?
             @syncdb.delete()
+            @_state = 'ready'
+            @ensure_there_is_a_cell()  # just in case the ipynb file had no cells (?)
             return
 
         @syncdb.exit_undo_mode()
 
         # delete everything
-        @_do_not_ensure_there_is_a_cell = true
         @syncdb.delete(undefined, false)
-        delete @_do_not_ensure_there_is_a_cell
 
         set = (obj) =>
             @syncdb.set(obj, false)
@@ -966,6 +970,10 @@ class exports.JupyterActions extends Actions
         if kernel?
             @set_kernel(kernel)
 
-        @syncdb.save()
+        @syncdb.sync () =>
+            # Wait for the store to get fully updated in response to the save.
+            @_state = 'ready'
+            if not ipynb.cells? or ipynb.cells.length == 0
+                @ensure_there_is_a_cell()  # the ipynb file had no cells (?)
 
 
