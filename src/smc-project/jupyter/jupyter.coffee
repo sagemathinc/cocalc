@@ -65,7 +65,7 @@ class Kernel extends EventEmitter
 
     spawn: (cb) =>
         dbg = @dbg('spawn')
-        if @_state == 'close'
+        if @_state == 'closed'
             cb?('closed')
             return
         if @_state == 'running'
@@ -77,9 +77,9 @@ class Kernel extends EventEmitter
         @_spawn_cbs = [cb]
         @_state = 'spawning'
         @_identity = misc.uuid()
-        dbg('spawning kernel')
+        dbg('spawning kernel...')
         require('spawnteract').launch(@name).then (kernel) =>
-            dbg("got kernel; creating channels")
+            dbg("spawend kernel; now creating comm channels...")
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
@@ -90,6 +90,7 @@ class Kernel extends EventEmitter
             @emit('init')
             for cb in @_spawn_cbs
                 cb?()
+        return
 
     close: =>
         @dbg("close")()
@@ -111,20 +112,24 @@ class Kernel extends EventEmitter
         else
             return @_dbg("jupyter.Kernel('#{@name}').#{f}")
 
+    _ensure_running: (cb) =>
+        if @_state != 'running'
+            @spawn(cb)
+        else
+            cb()
+        return
+
     execute_code: (opts) =>
         opts = defaults opts,
             code : required
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
-
-        if @_state != 'running'
-            @spawn (err) =>
-                if err
-                    opts.cb(err)
-                else
-                    @_execute_code(opts)
-        else
-            @_execute_code(opts)
+        @_ensure_running (err) =>
+            if err
+                opts.cb(err)
+            else
+                @_execute_code(opts)
+        return
 
     _execute_code: (opts) =>
         opts = defaults opts,
@@ -215,6 +220,47 @@ class Kernel extends EventEmitter
     get_kernel_data: (cb) =>   # cb(err, kernel_data)  # see below.
         get_kernel_data(cb)
 
+    complete: (opts) =>
+        opts = defaults opts,
+            code       : required
+            cursor_pos : required
+            cb         : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+        dbg = @dbg("complete")
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+        @_ensure_running (err) =>
+            if err
+                opts.cb(err)
+            else
+                @_complete(opts)
+
+    _complete: (opts) =>
+        dbg = @dbg("_complete")
+        message =
+            header:
+                msg_id   : "complete_#{misc.uuid()}"
+                username : ''
+                session  : ''
+                msg_type : 'complete_request'
+                version  : '5.0'
+            content:
+                code       : opts.code
+                cursor_pos : opts.cursor_pos
+
+        # setup handling of the results
+        if opts.all
+            all_mesgs = []
+
+        f = (mesg) =>
+            if mesg.parent_header.msg_id == message.header.msg_id
+                @removeListener('shell', f)
+                mesg = misc.deep_copy(mesg.content)
+                if misc.len(mesg.metadata) == 0
+                    delete mesg.metadata
+                opts.cb(undefined, mesg)
+        @on('shell', f)
+
+        dbg("send the message")
+        @_channels.shell.next(message)
 
 _kernel_data =
     kernelspecs          : undefined
@@ -249,7 +295,7 @@ get_kernel_data = (cb) -> # TODO: move out and unit test...
                 cb(err)
 
 
-jupyter_kernel_handler = (base, router) ->
+jupyter_kernel_info_handler = (base, router) ->
 
 
     router.get base + 'kernels.json', (req, res) ->
@@ -294,7 +340,7 @@ exports.jupyter_router = (express) ->
     router = blob_store.express_router(base, express)
 
     # Handler for Jupyter kernels
-    router = jupyter_kernel_handler(base, router)
+    router = jupyter_kernel_info_handler(base, router)
 
     return router
 

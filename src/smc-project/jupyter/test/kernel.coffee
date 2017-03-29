@@ -7,10 +7,8 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
     @timeout(20000)
     kernel = undefined
 
-    it 'creates a python2 kernel', (done) ->
+    it 'creates a python2 kernel', ->
         kernel = common.kernel('python2')
-        kernel.once 'init', ->
-            done()
 
     it 'evaluate 2+2', (done) ->
         v = []
@@ -41,10 +39,8 @@ describe 'compute 2/3 using the python3 kernel -- ', ->
     @timeout(20000)
     kernel = undefined
 
-    it 'creates a python3 kernel', (done) ->
+    it 'creates a python3 kernel', ->
         kernel = common.kernel('python3')
-        kernel.once 'init', ->
-            done()
 
     it 'evaluate 2/3', (done) ->
         v = []
