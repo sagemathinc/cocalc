@@ -207,73 +207,70 @@ class Kernel extends EventEmitter
             content.data[keep] = blob_store.save(content.data[keep], keep)
         dbg("keep='#{keep}'; blob='#{blob}'")
 
-    export_ipynb: (opts) =>
-        opts = defaults opts,
-            path : required   # path ending in .ipynb
-            cb   : required
-        opts.cb('todo')
+    # Returns a reference to the blob store.
+    get_blob_store: =>
+        return blob_store
 
-    export_pdf: (opts) =>
-        opts = defaults opts,
-            path : required   # path ending in .pdf
-            cb   : required
-        opts.cb('todo')
+    # Returns information about all available kernels
+    get_kernel_data: (cb) =>   # cb(err, kernel_data)  # see below.
+        get_kernel_data(cb)
 
-    export_py: (opts) =>
-        opts = defaults opts,
-            path : required   # path ending in .py
-            cb   : required
-        opts.cb('todo')
 
+_kernel_data =
+    kernelspecs          : undefined
+    jupyter_kernels      : undefined
+    jupyter_kernels_json : undefined
+
+get_kernel_data = (cb) -> # TODO: move out and unit test...
+    if _kernel_data.jupyter_kernels_json?
+        cb(undefined, _kernel_data)
+        return
+
+    misc_node.execute_code
+        command : 'jupyter'
+        args    : ['kernelspec', 'list', '--json']
+        cb      : (err, output) =>
+            if err
+                cb(err)
+                return
+            try
+                _kernel_data.kernelspecs = JSON.parse(output.stdout).kernelspecs
+                v = []
+                for kernel, value of _kernel_data.kernelspecs
+                    v.push
+                        name         : kernel
+                        display_name : value.spec.display_name
+                        language     : value.spec.language
+                v.sort (a,b) -> misc.cmp(a.name, b.name)
+                _kernel_data.jupyter_kernels = v
+                _kernel_data.jupyter_kernels_json = JSON.stringify(_kernel_data.jupyter_kernels)
+                cb(undefined, _kernel_data)
+            catch err
+                cb(err)
 
 
 jupyter_kernel_handler = (base, router) ->
-    jupyter_kernels_json = kernelspecs = undefined
 
-    init = (cb) -> # TODO: move out and unit test...
-        if jupyter_kernels_json?
-            cb()
-            return
-        misc_node.execute_code
-            command : 'jupyter'
-            args    : ['kernelspec', 'list', '--json']
-            cb      : (err, output) =>
-                if err
-                    cb(err)
-                    return
-                try
-                    kernelspecs = JSON.parse(output.stdout).kernelspecs
-                    v = []
-                    for kernel, value of kernelspecs
-                        v.push
-                            name         : kernel
-                            display_name : value.spec.display_name
-                            language     : value.spec.language
-                    v.sort (a,b) -> misc.cmp(a.name, b.name)
-                    jupyter_kernels_json = JSON.stringify(v)
-                    cb()
-                catch err
-                    cb(err)
 
     router.get base + 'kernels.json', (req, res) ->
-        init (err) ->
+        get_kernel_data (err, kernel_data) ->
             if err
                 res.send(err)  # TODO: set some code
             else
-                res.send(jupyter_kernels_json)
+                res.send(kernel_data.jupyter_kernels_json)
 
     router.get base + 'kernelspecs/*', (req, res) ->
-        init (err) ->
+        get_kernel_data (err, kernel_data) ->
             if err
                 res.send(err)   # TODO: set some code
             else
                 path = req.path.slice((base + 'kernelspecs/').length).trim()
                 if path.length == 0
-                    res.send(jupyter_kernels_json)
+                    res.send(kernel_data.jupyter_kernels_json)
                     return
                 segments = path.split('/')
                 name = segments[0]
-                kernel = kernelspecs[name]
+                kernel = kernel_data.kernelspecs[name]
                 if not kernel?
                     res.send("no such kernel '#{name}'")  # todo: error?
                     return

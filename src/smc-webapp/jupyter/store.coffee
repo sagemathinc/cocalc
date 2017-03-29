@@ -78,3 +78,73 @@ class exports.JupyterStore extends Store
         if value?
             return misc.from_json(value)?[key]
 
+    get_kernel_info: (kernel) =>
+        # slow/inefficient, but ok since this is rarely called
+        info = undefined
+        @get('kernels')?.forEach (x) =>
+            if x.get('name') == kernel
+                info = x.toJS()
+                return false
+        return info
+
+    ###
+    Export the Jupyer notebook to an ipynb object.
+
+    NOTE: this is of course completely different than saving the syncdb
+    synchronized document to disk.
+    ###
+    get_ipynb: (blob_store) =>
+        if not @get('kernels')?
+            # kernels must be known before we can save, since the stupid ipynb file format
+            # requires several pointless extra pieces of information about the kernel...
+            return
+        ipynb =
+            cells : (@get_ipynb_cell(id, blob_store) for id in @get('cell_list').toJS())
+            metadata :
+                kernelspec: @get_kernel_info(@get('kernel'))
+            nbformat : 4
+            nbformat_minor : 0
+        return ipynb
+
+    # Return ipynb version of the given cell as Python object
+    get_ipynb_cell: (id, blob_store) =>
+        cell = @getIn(['cells', id])
+        output = cell.get('output')
+        obj =
+            cell_type       : cell.get('cell_type') ? 'code'
+            source          : cell.get('input')
+            metadata        : {}
+        if output?.size > 0
+            v = (@get_ipynb_cell_output(id, n, blob_store) for n in [0...output.size])
+            obj.outputs = (x for x in v when x?)
+        if not obj.outputs? and obj.cell_type == 'code'
+            obj.outputs = [] # annoying requirement of ipynb file format.
+        if obj.cell_type == 'code'
+            obj.execution_count = cell.get('exec_count') ? 0
+        return obj
+
+    get_ipynb_cell_output: (id, n, blob_store) =>
+        output = @getIn(['cells', id, 'output', "#{n}"]).toJS()
+        if output.data?
+            for k, v of output.data
+                if misc.startswith(k, 'image/')
+                    if blob_store?
+                        value = blob_store.get_ipynb(v)
+                        if not value?
+                            # The image is no longer known; this could happen if the user reverts in the history
+                            # browser and there is an image in the output that was not saved in the latest version.
+                            return
+                        output.data[k] = value
+                    else
+                        return  # impossible to include in the output without blob_store
+            output.output_type = "execute_result"
+            output.metadata = {}
+            output.execution_count = @getIn(['cells', id, 'exec_count'])
+        else if output.name?
+            output.output_type = 'stream'
+        else if output.ename?
+            output.output_type = 'error'
+        return output
+
+
+

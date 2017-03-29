@@ -92,7 +92,7 @@ class exports.JupyterActions extends Actions
                     timeout : 3000
                     success : (data) =>
                         try
-                            jupyter_kernels = JSON.parse(data)
+                            jupyter_kernels = immutable.fromJS(JSON.parse(data))
                             @setState(kernels: jupyter_kernels)
                             cb()
                         catch e
@@ -777,7 +777,20 @@ class exports.JupyterActions extends Actions
     initialize_manager: =>
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
+
+        kernel = @store.get('kernel') ? 'python2'  # TODO...
+        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
+        if not @store.get('kernels')?
+            @_jupyter_kernel.get_kernel_data (err, kernels) =>
+                if not err
+                    @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
+
         @init_file_watcher()
+
+        @syncdb.on 'save_to_disk_project', (err) =>
+            if not err
+                @save_ipynb_file()
+
         @_load_from_disk_if_newer () =>
             @_state = 'ready'
             @ensure_there_is_a_cell()
@@ -810,12 +823,12 @@ class exports.JupyterActions extends Actions
         input  = (cell.get('input') ? '').trim()
         kernel = @store.get('kernel') ? 'python2'  # TODO...
 
+        # TODO: move this to change handler for manager.
         @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
         if @_jupyter_kernel.name != kernel
             # user has since changed the kernel, so close this one and make a new one
             @_jupyter_kernel.close()
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
-
         jupyter_kernel = @_jupyter_kernel
 
         # For efficiency reasons (involving syncdb patch sizes),
@@ -935,6 +948,28 @@ class exports.JupyterActions extends Actions
                     return
                 @set_to_ipynb(content)
 
+    save_ipynb_file: =>
+        dbg = @dbg("save_ipynb_file")
+        dbg('saving it file')
+        if not @_jupyter_kernel?
+            dbg('no kernel so cannot save')
+            return
+        dbg("going to try to save")
+        ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())
+        data = JSON.stringify(ipynb, null, 2)
+        dbg("got string version '#{data}'")
+        @_client.write_file
+            path : @store.get('path')
+            data : data
+            cb   : (err) =>
+                if err
+                    # TODO: need way to report this to frontend
+                    dbg("error writing file: #{err}")
+                    return
+                else
+                    dbg("succeeded at saving")
+                    @_last_save_ipynb_file = new Date()
+
     # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
     # the notebook defined by that object.
     set_to_ipynb: (ipynb) =>
@@ -973,6 +1008,11 @@ class exports.JupyterActions extends Actions
                     if cell.input?
                         cell.source = cell.input
                         delete cell.input
+                    if cell.cell_type == 'heading'
+                        cell.cell_type = 'markdown'
+                        if misc.is_array(cell.source)
+                            cell.source = cell.source.join('')
+                        cell.source = '# ' + "#{cell.source}"
                     ipynb.cells.push(cell)
 
         # Read in the cells
@@ -1044,5 +1084,4 @@ class exports.JupyterActions extends Actions
             @_state = 'ready'
             if not ipynb.cells? or ipynb.cells.length == 0
                 @ensure_there_is_a_cell()  # the ipynb file had no cells (?)
-
 

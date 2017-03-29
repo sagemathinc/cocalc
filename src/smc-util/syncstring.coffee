@@ -1699,7 +1699,7 @@ class SyncDoc extends EventEmitter
                     return
                 @_syncstring_table.wait
                     until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
-                    timeout : 5
+                    timeout : 10
                     cb      : (err) =>
                         #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")
                         if err
@@ -1737,6 +1737,7 @@ class SyncDoc extends EventEmitter
             delete @_saving_to_disk_cbs
             for cb in v
                 cb?(err)
+            @emit("save_to_disk_project", err)
 
     __save_to_disk_user: =>
         if @_closed # nothing to do

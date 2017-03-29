@@ -5,6 +5,9 @@ Jupyter in-memory blob store, which hooks into the raw http server.
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
+# TODO: are these the only base64 encoded types that jupyter kernels return?
+BASE64_TYPES = ['image/png', 'image/jpeg']
+
 class BlobStore
     constructor: ->
         @_blobs = {}
@@ -12,8 +15,10 @@ class BlobStore
     # data is a uuencoded image
     # we return the sha1 hash of it, and store it, along with a reference count.
     save: (data, type) =>
-        if type in ['image/png', 'image/jpeg']  # TODO: are these the only base64 encoded types that jupyter kernels return?
+        if type in BASE64_TYPES
             data = new Buffer.from(data, 'base64')
+        else
+            data = new Buffer.from(data)
         sha1 = misc_node.sha1(data)
         x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
         x.ref += 1
@@ -29,6 +34,15 @@ class BlobStore
 
     get: (sha1) =>
         return @_blobs[sha1]?.data
+
+    get_ipynb: (sha1) =>
+        x = @_blobs[sha1]
+        if not x?
+            return
+        if x.type in ['image/png', 'image/jpeg']
+            return x.data.toString('base64')
+        else
+            return x.data
 
     keys: =>
         return misc.keys(@_blobs)

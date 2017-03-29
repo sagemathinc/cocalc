@@ -31,7 +31,7 @@ exports.Kernel = rclass ({name}) ->
     reduxProps:
         "#{name}" :
             kernel     : rtypes.string
-            kernels    : rtypes.immutable.List
+            kernels    : rtypes.immutable.List  # call to get_kernel_info depends on this...
             project_id : rtypes.string
 
     getInitialState: ->
@@ -49,11 +49,7 @@ exports.Kernel = rclass ({name}) ->
             />
 
     render_name: ->
-        display_name = @props.kernel
-        for x in @props.kernels?.toJS() ? []  # slow/inefficient, but ok since this is rarely called
-            if x.name == @props.kernel
-                display_name = x.display_name
-                break
+        display_name = @props.actions.store.get_kernel_info(@props.kernel)?.display_name ? @props.kernel
         <span style={paddingLeft:'5px', paddingRight:'5px', color:'rgb(33, 150, 243)'}>
             {display_name ? "No Kernel"}
         </span>

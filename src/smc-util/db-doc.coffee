@@ -526,6 +526,8 @@ class SyncDoc extends syncstring.SyncDoc
                     primary_keys : opts.primary_keys
                     string_cols  : opts.string_cols
 
+# TODO: obviously I should rewrite this so SyncDB just derives from SyncDoc.  I didn't realize
+# otherwise I would have to proxy all the methods.
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
         @_path = opts.path
@@ -545,6 +547,7 @@ class exports.SyncDB extends EventEmitter
             @_doc.on('cursor_activity', (args...) => @emit('cursor_activity', args...))
         @_doc.on('connected', => @emit('connected'))
         @_doc.on('init', (err) => @emit('init', err))
+        @_doc.on('save_to_disk_project', (err) => @emit('save_to_disk_project', err))  # only emitted on the backend/project!
         @setMaxListeners(100)
 
     _check: =>
