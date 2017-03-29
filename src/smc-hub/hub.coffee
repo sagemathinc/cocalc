@@ -1230,7 +1230,7 @@ class Client extends EventEmitter
                             if mesg.link2proj? # make sure invitees know where to go
                                 base_url = mesg.link2proj.split("/")
                                 base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then go to <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
+                                direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
                             else # fallback for outdated clients
                                 base_url = 'https://cloud.sagemath.com/'
                                 direct_link = ''
