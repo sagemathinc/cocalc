@@ -1536,9 +1536,8 @@ ProjectFilesActionBox = rclass
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
-                # don't do encodeURIComponent -- strangely messes up everything for email
                 url = """mailto:?to=&subject=#{filename} on SageMathCloud&
-                body=A file is shared with you: #{file_url}"""
+                body=A file is shared with you: #{public_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
             open_popup_window(url)
