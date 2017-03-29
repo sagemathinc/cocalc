@@ -1653,12 +1653,10 @@ exports.load_coffeescript_compiler = (cb) ->
         cb?()
     else
         require.ensure [], =>
+            # this should define window.CoffeeScript as the compiler instance.
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
-            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            #    console.log("loaded CoffeeScript -- #{status}")
-            #    cb()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
