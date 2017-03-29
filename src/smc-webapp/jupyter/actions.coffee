@@ -32,6 +32,7 @@ underlying synchronized state.
 class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
+        @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
         store.syncdb = syncdb
@@ -299,7 +300,8 @@ class exports.JupyterActions extends Actions
                         cell_list_needs_recompute = true
                 when 'settings'
                     @setState
-                        kernel : record?.get('kernel')
+                        kernel   : record?.get('kernel')
+                        identity : record?.get('identity')
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -752,9 +754,8 @@ class exports.JupyterActions extends Actions
 
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel
-            if @_jupyter_kernel?
-                @_jupyter_kernel?.close()
-                delete @_jupyter_kernel
+            if @_is_manager and @_jupyter_kernel?
+                @ensure_backend_kernel_setup()
             @_set
                 type   : 'settings'
                 kernel : kernel
@@ -777,15 +778,14 @@ class exports.JupyterActions extends Actions
     # Here we ensure everything is in a consistent state so that we can react
     # to changes later.
     initialize_manager: =>
+        if @_initialize_manager_already_done
+            return
+        @_initialize_manager_already_done = true
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
-        kernel = @store.get('kernel') ? 'python2'  # TODO...
-        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
-        if not @store.get('kernels')?
-            @_jupyter_kernel.get_kernel_data (err, kernels) =>
-                if not err
-                    @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
+        @ensure_backend_kernel_setup()
+        @init_kernel_info()
 
         @init_file_watcher()
 
@@ -798,6 +798,23 @@ class exports.JupyterActions extends Actions
             @ensure_there_is_a_cell()
             if not @store.get('kernel')?
                 @set_kernel(DEFAULT_KERNEL)
+
+    ensure_backend_kernel_setup: =>
+        kernel = @store.get('kernel') ? 'python2'  # TODO...
+        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
+        if @_jupyter_kernel.name != kernel
+            # user has since changed the kernel, so close this one and make a new one
+            @_jupyter_kernel.close()
+            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
+        @_set
+            type     : 'settings'
+            identity : @_jupyter_kernel.get_identity()
+
+    init_kernel_info: =>
+        if not @store.get('kernels')?
+            @_jupyter_kernel.get_kernel_data (err, kernels) =>
+                if not err
+                    @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
@@ -825,13 +842,7 @@ class exports.JupyterActions extends Actions
         input  = (cell.get('input') ? '').trim()
         kernel = @store.get('kernel') ? 'python2'  # TODO...
 
-        # TODO: move this to change handler for manager.
-        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
-        if @_jupyter_kernel.name != kernel
-            # user has since changed the kernel, so close this one and make a new one
-            @_jupyter_kernel.close()
-            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
-        jupyter_kernel = @_jupyter_kernel
+        @ensure_backend_kernel_setup()
 
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
@@ -860,7 +871,7 @@ class exports.JupyterActions extends Actions
             set_cell()
         setTimeout(report_started, 250)
 
-        jupyter_kernel.execute_code
+        @_jupyter_kernel.execute_code
             code : input
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
@@ -894,7 +905,7 @@ class exports.JupyterActions extends Actions
                     if misc.len(mesg.content) == 0
                         # nothing to send.
                         return
-                    jupyter_kernel.process_output(mesg.content)
+                    @_jupyter_kernel.process_output(mesg.content)
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()

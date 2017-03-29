@@ -21,6 +21,12 @@ exports.get_blob_url = (project_id, extension, sha1) ->
 exports.get_logo_url = (project_id, kernel) ->
     return "#{exports.get_server_url(project_id)}/kernelspecs/#{kernel}/logo-64x64.png"
 
+exports.get_complete_url = (project_id, identity, code, cursor_pos) ->
+    s = "#{exports.get_server_url(project_id)}/kernels/#{identity}/complete?code=#{encodeURIComponent(code)}"
+    if cursor_pos?
+        s += "&cursor_pos=#{encodeURIComponent(cursor_pos)}"
+    return s
+
 # Given an immutable Map from id's to cells, returns an immutable List whose
 # entries are the id's in the correct order, as defined by the pos field (a float).
 exports.sorted_cell_list = (cells) ->

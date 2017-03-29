@@ -58,10 +58,15 @@ The kernel does *NOT* start up until either spawn is explicitly called, or
 code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 ###
+_jupyter_kernels = {}
+
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
-        dbg = @dbg('constructor')
+        @_identity = misc.uuid()
+        _jupyter_kernels[@_identity] = @
         @_state = 'init'    # 'init', 'spawning', 'running', 'closed'
+        dbg = @dbg('constructor')
+        dbg()
 
     spawn: (cb) =>
         dbg = @dbg('spawn')
@@ -76,7 +81,6 @@ class Kernel extends EventEmitter
             return
         @_spawn_cbs = [cb]
         @_state = 'spawning'
-        @_identity = misc.uuid()
         dbg('spawning kernel...')
         require('spawnteract').launch(@name).then (kernel) =>
             dbg("spawend kernel; now creating comm channels...")
@@ -96,6 +100,7 @@ class Kernel extends EventEmitter
         @dbg("close")()
         if @_state == 'closed'
             return
+        delete _jupyter_kernels[@_identity]
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
@@ -110,7 +115,7 @@ class Kernel extends EventEmitter
         if not @_dbg?
             return ->
         else
-            return @_dbg("jupyter.Kernel('#{@name}').#{f}")
+            return @_dbg("jupyter.Kernel('#{@name}',identity='#{@_identity}').#{f}")
 
     _ensure_running: (cb) =>
         if @_state != 'running'
@@ -212,6 +217,9 @@ class Kernel extends EventEmitter
             content.data[keep] = blob_store.save(content.data[keep], keep)
         dbg("keep='#{keep}'; blob='#{blob}'")
 
+    get_identity: =>
+        return @_identity
+
     # Returns a reference to the blob store.
     get_blob_store: =>
         return blob_store
@@ -262,6 +270,33 @@ class Kernel extends EventEmitter
         dbg("send the message")
         @_channels.shell.next(message)
 
+
+    http_server: (opts) =>
+        opts = defaults opts,
+            segments : required
+            query    : required
+            cb       : required
+        switch opts.segments[0]
+            when 'complete'
+                code = opts.query.code
+                if not code
+                    opts.cb('must specify code to complete')
+                    return
+                if opts.query.cursor_pos?
+                    try
+                        cursor_pos = parseInt(opts.query.cursor_pos)
+                    catch
+                        cursor_pos = code.length
+                else
+                    cursor_pos = code.length
+                @complete
+                    code       : opts.query.code
+                    cursor_pos : cursor_pos
+                    cb         : opts.cb
+            else
+                opts.cb("no route '#{opts.segments.join('/')}'")
+
+
 _kernel_data =
     kernelspecs          : undefined
     jupyter_kernels      : undefined
@@ -297,7 +332,6 @@ get_kernel_data = (cb) -> # TODO: move out and unit test...
 
 jupyter_kernel_info_handler = (base, router) ->
 
-
     router.get base + 'kernels.json', (req, res) ->
         get_kernel_data (err, kernel_data) ->
             if err
@@ -332,6 +366,30 @@ jupyter_kernel_info_handler = (base, router) ->
     return router
 
 
+jupyter_kernel_http_server = (base, router) ->
+
+    router.get base + 'kernels/*', (req, res) ->
+        path = req.path.slice((base + 'kernels/').length).trim()
+        if path.length == 0
+            res.send(kernel_data.jupyter_kernels_json)
+            return
+        segments = path.split('/')
+        identity = segments[0]
+        kernel = _jupyter_kernels[identity]
+        if not kernel?
+            res.send(JSON.stringify({error:"no kernel with identity '#{identity}'"}))
+            return
+        kernel.http_server
+            segments : segments.slice(1)
+            query    : req.query
+            cb       : (err, resp) ->
+                if err
+                    res.send(JSON.stringify({error:err}))
+                else
+                    res.send(JSON.stringify(resp))
+
+    return router
+
 
 exports.jupyter_router = (express) ->
     base = '/.smc/jupyter/'
@@ -339,8 +397,11 @@ exports.jupyter_router = (express) ->
     # Install handling for the blob store
     router = blob_store.express_router(base, express)
 
-    # Handler for Jupyter kernels
+    # Handler for Jupyter kernel info
     router = jupyter_kernel_info_handler(base, router)
+
+    # Handler for http messages for **specific kernels**
+    router = jupyter_kernel_http_server(base, router)
 
     return router
 
