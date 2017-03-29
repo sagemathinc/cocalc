@@ -615,7 +615,7 @@ exports.SearchInput = rclass
 
     escape: ->
         @props.on_escape?(@state.value)
-        @set_value('')
+        @clear_value()
 
     render: ->
         <FormGroup>

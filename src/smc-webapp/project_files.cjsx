@@ -1774,6 +1774,7 @@ ProjectFilesSearch = rclass
         @props.actions.set_file_search(search)
 
     on_clear: ->
+        @props.actions.clear_selected_file_index()
         @setState(input: '', stdout:'', error:'')
 
     render: ->
