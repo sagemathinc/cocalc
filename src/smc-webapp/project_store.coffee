@@ -647,20 +647,22 @@ class ProjectActions extends Actions
         )
 
     # Increases the selected file index by 1
-    # Assumes undefined state to be identical to 0
+    # undefined increments to 0
     increment_selected_file_index: ->
-        current_index = @get_store().selected_file_index ? 0
+        current_index = @get_store().selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
+    # Does nothing when selected_file_index is undefined
     decrement_selected_file_index: ->
         current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
+    # Sets to undefined meaning there is none
     reset_selected_file_index: ->
-        @setState(selected_file_index : 0)
+        @setState(selected_file_index : undefined)
 
     # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click: (file) =>

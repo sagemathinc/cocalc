@@ -574,7 +574,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
-        apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
+        apply_border = index == @props.selected_file_index and @props.file_search[0] isnt TERM_MODE_CHAR
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -1898,7 +1898,6 @@ exports.ProjectFiles = rclass ({name}) ->
         page_number : 0
         file_search : ''
         new_name : ''
-        selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
 
@@ -2199,7 +2198,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         file_search         = {@props.file_search}
                         actions             = {@props.actions}
                         current_path        = {@props.current_path}
-                        selected_file       = {visible_listing?[@props.selected_file_index]}
+                        selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
                         selected_file_index = {@props.selected_file_index}
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}
