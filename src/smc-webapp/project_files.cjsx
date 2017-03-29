@@ -1753,13 +1753,13 @@ ProjectFilesSearch = rclass
                     foreground : not opts.ctrl_down
             if opening_a_dir or not opts.ctrl_down
                 @props.actions.set_file_search('')
-                @props.actions.reset_selected_file_index()
+                @props.actions.clear_selected_file_index()
         else if @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
                 @props.create_folder(not opts.ctrl_down)
             else
                 @props.create_file(null, not opts.ctrl_down)
-            @props.actions.reset_selected_file_index()
+            @props.actions.clear_selected_file_index()
 
     on_up_press: ->
         if @props.selected_file_index > 0
@@ -1770,7 +1770,7 @@ ProjectFilesSearch = rclass
             @props.actions.increment_selected_file_index()
 
     on_change: (search, opts) ->
-        @props.actions.reset_selected_file_index()
+        @props.actions.zero_selected_file_index()
         @props.actions.set_file_search(search)
 
     on_clear: ->
