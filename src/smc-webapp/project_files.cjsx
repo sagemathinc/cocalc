@@ -1743,14 +1743,15 @@ ProjectFilesSearch = rclass
             @execute_command(command)
         else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
-            if @props.selected_file.isdir
+            opening_a_dir = @props.selected_file.isdir
+            if opening_a_dir
                 @props.actions.open_directory(new_path)
                 @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file
                     path: new_path
                     foreground : not opts.ctrl_down
-            if not opts.ctrl_down
+            if opening_a_dir or not opts.ctrl_down
                 @props.actions.set_file_search('')
                 @props.actions.reset_selected_file_index()
         else if @props.file_search.length > 0
@@ -1760,11 +1761,11 @@ ProjectFilesSearch = rclass
                 @props.create_file(null, not opts.ctrl_down)
             @props.actions.reset_selected_file_index()
 
-    on_up_press: () ->
+    on_up_press: ->
         if @props.selected_file_index > 0
             @props.actions.decrement_selected_file_index()
 
-    on_down_press: () ->
+    on_down_press: ->
         if @props.selected_file_index < @props.num_files_displayed - 1
             @props.actions.increment_selected_file_index()
 
