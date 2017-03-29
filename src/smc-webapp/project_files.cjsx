@@ -1769,11 +1769,10 @@ ProjectFilesSearch = rclass
             @props.actions.increment_selected_file_index()
 
     on_change: (search, opts) ->
-        if not opts.ctrl_down
-            @props.actions.reset_selected_file_index()
+        @props.actions.reset_selected_file_index()
         @props.actions.set_file_search(search)
 
-    on_escape: () ->
+    on_clear: ->
         @setState(input: '', stdout:'', error:'')
 
     render: ->
@@ -1787,7 +1786,7 @@ ProjectFilesSearch = rclass
                 on_submit   = {@search_submit}
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
-                on_escape   = {@on_escape}
+                on_clear    = {@on_clear}
             />
             {@render_file_creation_error()}
             {@render_help_info()}

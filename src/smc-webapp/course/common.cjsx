@@ -369,7 +369,7 @@ exports.StudentAssignmentInfo = rclass
 exports.MultipleAddSearch = MultipleAddSearch = rclass
     propTypes :
         add_selected     : rtypes.func.isRequired   # Submit user selected results add_selected(['paths', 'of', 'folders'])
-        do_search        : rtypes.func.isRequired   # Submit search query
+        do_search        : rtypes.func.isRequired   # Submit search query, invoked as do_search(value)
         clear_search     : rtypes.func.isRequired
         is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
         search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
@@ -463,7 +463,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 default_value = ''
                 placeholder   = "Add #{@props.item_name} by folder name (enter to see available folders)..."
                 on_submit     = {@props.do_search}
-                on_escape     = {@clear_and_focus_search_input}
+                on_clear      = {@clear_and_focus_search_input}
                 buttonAfter   = {@search_button()}
             />
             {@render_add_selector() if @state.show_selector}

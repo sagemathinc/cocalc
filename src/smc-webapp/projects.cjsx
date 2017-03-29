@@ -859,26 +859,14 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
-    clear_and_focus_input: ->
-        @actions('projects').setState(search: '')
-        @refs.projects_search.clear_and_focus_search_input()
-
-    delete_search_button: ->
-        s = if @props.search?.length > 0 then 'warning' else "default"
-        <Button onClick={@clear_and_focus_input} bsStyle={s}>
-            <Icon name='times-circle' />
-        </Button>
-
     render: ->
         <SearchInput
-            ref          = 'projects_search'
-            autoFocus    = {true}
-            type         = 'search'
-            value        = {@props.search}
-            placeholder  = 'Search for projects...'
-            on_change    = {(value)=>@actions('projects').setState(search: value)}
-            on_submit    = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
-            button_after = {@delete_search_button()}
+            ref         = 'projects_search'
+            autoFocus   = {true}
+            value       = {@props.search}
+            placeholder = 'Search for projects...'
+            on_change   = {(value)=>@actions('projects').setState(search: value)}
+            on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
         />
 
 HashtagGroup = rclass
