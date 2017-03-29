@@ -74,7 +74,7 @@ exports.Cell = rclass
         if not @props.actions?
             return
         if event.shiftKey
-            setTimeout((->misc_page.clear_selection()), 50)
+            misc_page.clear_selection()
             @props.actions.select_cell_range(@props.id)
         else
             @props.actions.set_cur_id(@props.id)

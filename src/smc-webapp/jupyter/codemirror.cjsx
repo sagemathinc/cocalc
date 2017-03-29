@@ -7,16 +7,14 @@ TODO:
 
 ###
 
-{FormControl} = require('react-bootstrap')
-
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-syncstring = require('smc-util/syncstring')
+{FormControl} = require('react-bootstrap')
 
-underscore = require('underscore')
-
-misc = require('smc-util/misc')
-
+syncstring    = require('smc-util/syncstring')
+underscore    = require('underscore')
+misc          = require('smc-util/misc')
+misc_page     = require('../misc_page')
 
 enable_folding = (options) ->
     options.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
@@ -93,8 +91,13 @@ CodeMirrorEditorBlurred = rclass
         else
             {__html: ' '}   # blank space needed for empty cell to get the right height!
 
-    focus: ->
+    focus: (event) ->
         if not @props.actions?  # read only
+            return
+        if event.shiftKey
+            misc_page.clear_selection()
+            @props.actions.select_cell_range(@props.id)
+            event.stopPropagation()
             return
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()

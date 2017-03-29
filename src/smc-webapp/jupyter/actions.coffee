@@ -222,22 +222,25 @@ class exports.JupyterActions extends Actions
     # to the cell with the given id, then set the cursor to be at id.
     select_cell_range: (id) =>
         cur_id = @store.get('cur_id')
-        if not cur_id?  # must be selected
+        console.log 'select_cell_range', cur_id, id
+        if not cur_id?
+            # no range -- just select the new id
+            @set_cur_id(id)
             return
         sel_ids = @store.get('sel_ids')
-        if cur_id == id # nothing to do
+        if cur_id == id # little to do...
             if sel_ids.size > 0
                 @setState(sel_ids : immutable.Set())  # empty (cur_id always included)
             return
-        i = 0
         v = @store.get('cell_list').toJS()
-        for i, x of v
+        for [i, x] in misc.enumerate(v)
             if x == id
                 endpoint0 = i
             if x == cur_id
                 endpoint1 = i
+        sel_ids = immutable.Set( (v[i] for i in [endpoint0..endpoint1]) )
         @setState
-            sel_ids : immutable.Set( (v[i] for i in [endpoint0..endpoint1]) )
+            sel_ids : sel_ids
             cur_id  : id
 
     set_mode: (mode) =>
