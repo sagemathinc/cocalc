@@ -219,7 +219,9 @@ exports.CellOutputMessages = rclass
         return v
 
     render: ->
+        # (yes, I know n is a string in the next line, but that's fine since it is used only as a key)
         v = (@render_output_message(n, mesg) for n, mesg of @message_list())
+
         <div style={flex:1, overflowX:'auto', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
             {v}
         </div>

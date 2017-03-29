@@ -193,7 +193,7 @@ class Kernel extends EventEmitter
         types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
         blob = false
         keep = undefined
-        for i, type of types
+        for type in types
             if content.data[type]?
                 if type.split('/')[0] == 'image'
                     blob = true

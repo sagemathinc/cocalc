@@ -222,7 +222,6 @@ class exports.JupyterActions extends Actions
     # to the cell with the given id, then set the cursor to be at id.
     select_cell_range: (id) =>
         cur_id = @store.get('cur_id')
-        console.log 'select_cell_range', cur_id, id
         if not cur_id?
             # no range -- just select the new id
             @set_cur_id(id)
@@ -1042,8 +1041,7 @@ class exports.JupyterActions extends Actions
                 types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
                 if cell.outputs?.length > 0
                     output = {}
-                    for k, content of cell.outputs
-
+                    for k, content of cell.outputs  # it's fine that k is a string here.
                         if ipynb.nbformat <= 3
                             # fix old deprecated fields
                             if content.output_type == 'stream'
@@ -1051,7 +1049,7 @@ class exports.JupyterActions extends Actions
                                     content.text = content.text.join('')
                                 content = {name:content.stream, text:content.text}
                             else
-                                for i, t of types
+                                for t in types
                                     [a,b] = t.split('/')
                                     if content[b]?
                                         content = {data:{"#{t}": content[b]}}
