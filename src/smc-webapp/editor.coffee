@@ -1007,7 +1007,7 @@ class CodeMirrorEditor extends FileEditor
         @hide_startup_message()
         @element.find(".salvus-editor-codemirror-content").show()
         for cm in @codemirrors()
-            cm?.refresh()
+            cm.refresh()
 
     hide_startup_message: () =>
         @element.find(".salvus-editor-codemirror-startup-message").hide()
@@ -1026,23 +1026,17 @@ class CodeMirrorEditor extends FileEditor
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
-        @codemirror.setOption('theme', theme)
-        @codemirror1.setOption('theme', theme)
+        for cm in @codemirrors()
+            cm.setOption('theme', theme)
         @opts.theme = theme
 
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: (readonly=true) =>
         @opts.read_only = readonly
-        if readonly
-            @element.find(".salvus-editor-write-only").hide()
-            @element.find(".salvus-editor-read-only").show()
-            @codemirror.setOption('readOnly', true)
-            @codemirror1.setOption('readOnly', true)
-        else
-            @element.find(".salvus-editor-write-only").show()
-            @element.find(".salvus-editor-read-only").hide()
-            @codemirror.setOption('readOnly', false)
-            @codemirror1.setOption('readOnly', false)
+        @element.find(".salvus-editor-write-only").toggle(!readonly)
+        @element.find(".salvus-editor-read-only").toggle(readonly)
+        for cm in @codemirrors()
+            cm.setOption('readOnly', readonly)
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -1067,7 +1061,8 @@ class CodeMirrorEditor extends FileEditor
         cb?()
 
     codemirrors: () =>
-        return [@codemirror, @codemirror1]
+        c = [@codemirror, @codemirror1]
+        return underscore.filter(c, ((x) -> x?))
 
     focused_codemirror: () =>
         if @codemirror_with_last_focus?
@@ -1172,7 +1167,7 @@ class CodeMirrorEditor extends FileEditor
     restore_font_size: () =>
         # we set the font_size from local storage
         # or fall back to the default from the account settings
-        for i, cm of [@codemirror, @codemirror1]
+        for i, cm of @codemirrors()
             size = @local_storage("font_size#{i}")
             if size?
                 @set_font_size(cm, size)
@@ -1557,7 +1552,7 @@ class CodeMirrorEditor extends FileEditor
     # save/restore view state -- hooks used by React editor wrapper.
     save_view_state: =>
         state =
-            scroll : (cm?.getScrollInfo() for cm in @codemirrors())
+            scroll : (cm.getScrollInfo() for cm in @codemirrors())
         @_view_state = state
         return state
 
@@ -1582,7 +1577,7 @@ class CodeMirrorEditor extends FileEditor
             i += 1
 
     restore_cursor_position: () =>
-        for i, cm of [@codemirror, @codemirror1]
+        for i, cm of @codemirrors()
             if cm?
                 pos = @local_storage("cursor#{cm.name}")
                 if pos?
@@ -1877,7 +1872,7 @@ class CodeMirrorEditor extends FileEditor
             else
                 show_edit_buttons(@fallback_buttons, name)
 
-        for cm in [@codemirror, @codemirror1]
+        for cm in @codemirrors()
             cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
