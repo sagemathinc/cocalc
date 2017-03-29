@@ -519,6 +519,11 @@ class exports.LatexEditor extends editor.FileEditor
             return
 
         content = @_get()
+        # issue #1814
+        if not content?
+            cb?()
+            return
+
         if not force and content == @_last_update_preview
             cb?()
             return
