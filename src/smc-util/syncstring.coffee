@@ -1047,15 +1047,24 @@ class SyncDoc extends EventEmitter
         return query
 
     _init_patch_list: (cb) =>
-        @_patch_list = new SortedPatchList(@_from_str)
+        # CRITICAL: note that _handle_syncstring_update checks whether
+        # init_patch_list is done by testing whether @_patch_list is defined!
+        # That is why we first define "patch_list" below, then set @_patch_list
+        # to it only after we're done.
+        delete @_patch_list
+
+        patch_list = new SortedPatchList(@_from_str)
+
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
                                               undefined, @_patch_interval, @_patch_interval)
+
         @_patches_table.once 'connected', =>
-            @_patch_list.add(@_get_patches())
-            doc = @_patch_list.value()
+            patch_list.add(@_get_patches())
+            doc = patch_list.value()
             @_last = @_doc = doc
             @_patches_table.on('change', @_handle_patch_update)
             @_patches_table.on('before-change', => @emit('before-change'))
+            @_patch_list = patch_list
             cb()
 
         ###
@@ -1431,7 +1440,7 @@ class SyncDoc extends EventEmitter
     _handle_syncstring_update: () =>
         #dbg = @dbg("_handle_syncstring_update")
         #dbg()
-        if not @_syncstring_table? # nothing more to do
+        if not @_syncstring_table? # not initialized; nothing to do
             #dbg("nothing to do")
             return
         x = @_syncstring_table.get_one()?.toJS()
@@ -1474,7 +1483,6 @@ class SyncDoc extends EventEmitter
                 @_user_id = @_users.length
                 @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, users:@_users})
-
 
             if not @_client.is_project()
                 @emit('metadata-change')
