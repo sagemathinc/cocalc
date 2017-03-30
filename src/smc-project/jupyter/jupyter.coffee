@@ -18,7 +18,7 @@ misc_node = require('smc-util-node/misc_node')
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
-    {JupyterActions} = require('smc-webapp/jupyter/actions')
+    {JupyterActions} = require('smc-webapp/jupyter/project-actions')
     {JupyterStore}   = require('smc-webapp/jupyter/store')
     smc_react        = require('smc-webapp/smc-react')
 
