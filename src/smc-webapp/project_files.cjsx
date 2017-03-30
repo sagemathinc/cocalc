@@ -680,7 +680,7 @@ FileListing = rclass
 
         dropzone_handler =
             dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.fetch_directory_listing(@props.current_path)
+            complete  : => @props.actions.fetch_directory_listing(path: @props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
