@@ -24,7 +24,7 @@ underscore = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
 
 {Col, Row, Button, FormControl, FormGroup, Well, InputGroup, Alert, Checkbox} = require('react-bootstrap')
-{Icon, Loading, Space, ImmutablePureRenderMixin} = require('./r_misc')
+{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
@@ -40,47 +40,28 @@ ProjectSearchInput = rclass
         user_input : rtypes.string.isRequired
         actions    : rtypes.object.isRequired
 
-    clear_and_focus_input: ->
+    clear_output: ->
         @props.actions.setState
-            user_input         : ''
             most_recent_path   : undefined
             command            : undefined
             most_recent_search : undefined
             search_results     : undefined
             search_error       : undefined
 
-        ReactDOM.findDOMNode(@refs.project_search_input).focus()
-
-    clear_button: ->
-        <Button onClick={@clear_and_focus_input}>
-            <Icon name='times-circle' />
-        </Button>
-
-    handle_change: ->
-        user_input = ReactDOM.findDOMNode(@refs.project_search_input).value
-        @props.actions.setState(user_input : user_input)
-
-    submit: (event) ->
-        event.preventDefault()
-        @props.actions.search()
+    handle_change: (value) ->
+        @props.actions.setState(user_input : value)
 
     render: ->
-        <form onSubmit={@submit}>
-            <FormGroup>
-                <InputGroup>
-                    <FormControl
-                        ref         = 'project_search_input'
-                        autoFocus
-                        type        = 'text'
-                        placeholder = 'Enter search (supports regular expressions!)'
-                        value       = {@props.user_input}
-                        onChange    = {@handle_change} />
-                    <InputGroup.Button>
-                        {@clear_button()}
-                    </InputGroup.Button>
-                </InputGroup>
-            </FormGroup>
-        </form>
+        <SearchInput
+            ref         = 'project_search_input'
+            autoFocus   = {true}
+            type        = 'search'
+            value       = {@props.user_input}
+            placeholder = 'Enter search (supports regular expressions!)'
+            on_change   = {@handle_change}
+            on_submit   = {@props.actions.search}
+            on_clear    = {@clear_output}
+        />
 
 ProjectSearchOutput = rclass
     displayName : 'ProjectSearch-ProjectSearchOutput'

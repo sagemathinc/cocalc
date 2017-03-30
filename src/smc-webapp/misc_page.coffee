@@ -125,6 +125,7 @@ $.fn.exactly_cover = (other) ->
 $.fn.process_smc_links = (opts={}) ->
     @each ->
         e = $(this)
+        # part #1: process <a> tags
         a = e.find('a')
         for x in a
             y = $(x)
@@ -141,6 +142,7 @@ $.fn.process_smc_links = (opts={}) ->
                         target = url.slice(i + '/projects/'.length)
                         redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
+
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
                     # internal link
                     y.click (e) ->
@@ -164,6 +166,7 @@ $.fn.process_smc_links = (opts={}) ->
                     # make links open in a new tab by default
                     a.attr("target","_blank")
 
+        # part #2: process <img> and <object> tags
         # make relative links to images use the raw server
         if opts.project_id and opts.file_path?
             for [tag, attr] in [['img', 'src'], ['object', 'data']]
@@ -172,10 +175,25 @@ $.fn.process_smc_links = (opts={}) ->
                     src = y.attr(attr)
                     if not src?
                         continue
-                    if src.indexOf('://') != -1
-                        continue
                     {join} = require('path')
-                    new_src = join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
+
+                    i = src.indexOf('/projects/')
+                    j = src.indexOf('/files/')
+                    if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
+                        # the href is inside the app, points to the current project or another one
+                        # j-i should be 36, unless we ever start to have different (vanity) project_ids
+                        path = src.slice(j + '/files/'.length)
+                        project_id = src.slice(i + '/projects/'.length, j)
+                        new_src = join('/', window.smc_base_url, project_id, 'raw', path)
+                        y.attr(attr, new_src)
+                        continue
+
+                    if src.indexOf('://') != -1
+                        # link points somewhere else
+                        continue
+
+                    # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
+                    new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e
@@ -1663,12 +1681,10 @@ exports.load_coffeescript_compiler = (cb) ->
         cb?()
     else
         require.ensure [], =>
+            # this should define window.CoffeeScript as the compiler instance.
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
-            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            #    console.log("loaded CoffeeScript -- #{status}")
-            #    cb()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 

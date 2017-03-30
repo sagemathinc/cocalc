@@ -1720,22 +1720,21 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             when 'execute_javascript'
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
-                    (() =>
-                         code = mesg.code
-                         async.series([
-                             (cb) =>
-                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
-                                     misc_page.load_coffeescript_compiler(cb)
-                                 else
-                                     cb()
-                             (cb) =>
-                                 if mesg.coffeescript
-                                     code = CoffeeScript.compile(code)
-                                 obj = JSON.parse(mesg.obj)
-                                 sagews_eval(code, @, undefined, mesg.cell_id, obj)
-                                 cb()
-                         ])
-                    )()
+                    do () =>
+                        code = mesg.code
+                        async.series([
+                            (cb) =>
+                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
+                                    misc_page.load_coffeescript_compiler(cb)
+                                else
+                                    cb()
+                            (cb) =>
+                                if mesg.coffeescript
+                                    code = CoffeeScript.compile(code)
+                                obj = JSON.parse(mesg.obj)
+                                sagews_eval(code, @, undefined, mesg.cell_id, obj)
+                                cb()
+                        ])
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,

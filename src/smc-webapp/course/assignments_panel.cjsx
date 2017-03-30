@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 # SMC and course components
 course_funcs = require('./course_funcs')
 styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, SearchInput, Tip, NumberInput} = require('../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready,
     BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 

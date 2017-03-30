@@ -870,8 +870,7 @@ CollaboratorsSearch = rclass
                     default_value   = {@state.search}
                     placeholder     = 'Search by name or email address...'
                     on_change       = {(value) => @setState(select:undefined)}
-                    on_escape       = {@reset}
-                    clear_on_submit = {true}
+                    on_clear        = {@reset}
                 />
             </LabeledRow>
             {@render_search()}
