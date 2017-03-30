@@ -440,7 +440,7 @@ exports.GlobalInformationMessage = rclass
             height          : '40px'
 
         <Row style={style}>
-            <Col sm={9}>
+            <Col sm={9} style={paddingTop: 3}>
                 <p>Welcome to <strong>CoCalc</strong>! SageMathCloud outgrew itself and changed its name.
                 {' '}<a target='_blank' href={more_url}>Read more...</a></p>
             </Col>
