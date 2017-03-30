@@ -218,6 +218,7 @@ init_redux = (course_filename, redux, course_project_id) ->
         set_title: (title) =>
             @_set(title:title, table:'settings')
             @set_all_student_project_titles(title)
+            @set_shared_project_title(title)
 
         set_description: (description) =>
             @_set(description:description, table:'settings')
@@ -230,13 +231,21 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_set(email_invite:body, table:'settings')
 
         # return the default title and description of the shared project.
-        shared_project_settings: () =>
+        shared_project_settings: (title) =>
             store = get_store()
             return if not store?
             x =
-                title       : "Shared Project -- #{store.getIn(['settings', 'title'])}"
+                title       : "Shared Project -- #{title ? store.getIn(['settings', 'title'])}"
                 description : store.getIn(['settings', 'description']) + "\n---\n This project is shared with all students."
             return x
+
+        set_shared_project_title: (title) =>
+            store = get_store()
+            shared_id = store?.get_shared_project_id()
+            return if not store? or not shared_id
+
+            title = @shared_project_settings(title).title
+            redux.getActions('projects').set_project_title(shared_id, title)
 
         # start the shared project running (if it is defined)
         action_shared_project: (action) =>
@@ -256,6 +265,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             shared_project_id = store.get_shared_project_id()
             if not shared_project_id
                 return  # no shared project
+            @set_shared_project_title()
             # add collabs -- all collaborators on course project and all students
             projects = redux.getStore('projects')
             shared_project_users = projects.get_users(shared_project_id)
