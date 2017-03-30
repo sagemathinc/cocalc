@@ -15,6 +15,6 @@ args = ' '.join(sys.argv[1:])
 if id != '':
     cmd="cp run/hub.js run/hub%s.js && node run/hub%s.js %s"%(id, id, args)
 else:
-    cmd = "node --max-old-space-size=3000 run/hub.js " + args
+    cmd = "node --expose-gc --max-old-space-size=3000 run/hub.js " + args
 print cmd
 os.system(cmd)

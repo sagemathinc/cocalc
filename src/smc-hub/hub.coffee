@@ -117,6 +117,12 @@ winston.remove(winston.transports.Console)
 if not process.env.SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
+
+memwatch = require('memwatch-next')
+memwatch.on('leak', (info) -> winston.debug("memwatch.info #{JSON.stringify(info)}"))
+memwatch.on('stats', (info) -> winston.debug("memwatch.stats #{JSON.stringify(info)}"))
+
+
 # module scope variables:
 database           = null
 
@@ -128,8 +134,11 @@ clients = require('./clients').get_clients()
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
+        @_heapdiff = new memwatch.HeapDiff()
+        @install_conn_handlers()
         @_when_connected = new Date()
         @_data_handlers = {}
+
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
         @_messages =
@@ -151,7 +160,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        @install_conn_handlers()
 
         # Setup remember-me related cookie handling
         @cookies = {}
@@ -194,27 +202,12 @@ class Client extends EventEmitter
 
     install_conn_handlers: () =>
         #winston.debug("install_conn_handlers")
-        if @_destroy_timer?
-            clearTimeout(@_destroy_timer)
-            delete @_destroy_timer
-
         @conn.on "data", (data) =>
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
             @destroy()
-            #winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
-            # even temporarily, since messages could be dropped otherwise. (The alternative is to
-            # cache all messages in the hub, which has serious memory implications.)
-            #@query_cancel_all_changefeeds()
-            # Actually destroy Client in a few minutes, unless user reconnects
-            # to this session.  Often the user may have a temporary network drop,
-            # and we keep everything waiting for them for short time
-            # in case this happens.
-            #@_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
-            #
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -225,20 +218,47 @@ class Client extends EventEmitter
             return (m) =>
 
     destroy: () =>
-        winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
-        clearInterval(@_remember_me_interval)
-        @query_cancel_all_changefeeds()
+        if @closed
+            return
         @closed = true
+
+        winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+
         @emit('close')
-        @compute_session_uuids = []
-        c = clients[@conn.id]
+
         delete clients[@conn.id]
-        if c? and c.call_callbacks?
-            for id,f of c.call_callbacks
-                f("connection closed")
-            delete c.call_callbacks
+
+        @query_cancel_all_changefeeds()
+
+        clearInterval(@_remember_me_interval)
+        delete @_remember_me_interval
+
         for h in local_hub_connection.all_local_hubs()
             h.free_resources_for_client_id(@id)
+
+        if @call_callbacks?
+            for id,  f of @call_callbacks
+                f?("connection closed")
+            delete @call_callbacks
+
+        @conn.removeAllListeners()
+        delete @conn
+        delete @cookies
+        delete @_remember_me_value
+        delete @_when_connected
+        delete @_data_handlers
+        delete @_messages
+        delete @ip_address
+        delete @ip
+        delete @account_id
+        delete @compute_session_uuids
+        delete @_touch_lock
+
+        memwatch.gc()
+        winston.debug("memwatch.diff #{JSON.stringify(@_heapdiff.end())}")
+        delete @_heapdiff
+
+
 
     remember_me_failed: (reason) =>
         #winston.debug("client(id=#{@id}): remember_me_failed(#{reason})")
@@ -2268,53 +2288,29 @@ init_primus_server = (http_server) ->
     primus_server.on "connection", (conn) ->
         # Now handle the connection
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
+
+        winston.debug("process.memoryUsage() = #{JSON.stringify(process.memoryUsage())}")
+
         primus_conn_sent_data = false
         f = (data) ->
+            conn.removeListener('data', f)
             primus_conn_sent_data = true
             id = data.toString()
-            winston.debug("primus_server: got id='#{id}'")
-            conn.removeListener('data',f)
-            C = clients[id]
-            #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
-            if C?
-                if C.closed
-                    winston.debug("primus_server: '#{id}' matches expired Client -- deleting")
-                    delete clients[id]
-                    C = undefined
-                else
-                    winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
-
-                    # In case the connection hadn't been officially ended yet the changefeeds might
-                    # have been left open sending messages that won't get through. So ensure the client
-                    # must recreate them all before continuing.
-                    C.query_cancel_all_changefeeds()
-
-                    cookies = new Cookies(conn.request)
-                    if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
-                        old_id = C.conn.id
-                        C.conn.removeAllListeners()
-                        C.conn.end()
-                        C.conn = conn
-                        conn.id = id
-                        conn.write(conn.id)
-                        C.install_conn_handlers()
-                    else
-                        winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
-                        C = undefined
-            if not C?
-                winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
-                conn.write(conn.id)
-                clients[conn.id] = new Client(conn)
-
-        conn.on("data",f)
+            winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
+            conn.write(conn.id)
+            clients[conn.id] = new Client(conn)
+        conn.on("data", f)
 
         # Given the client up to 15s to send info about itself.  If get nothing, just
         # end the connection.
         no_data = ->
             if conn? and not primus_conn_sent_data
                 winston.debug("primus_server: #{conn.id} sent no data after 15s, so closing")
+                conn.removeAllListeners()
                 conn.end()
-        setTimeout(no_data, 15000)
+        no_data_timer = setTimeout(no_data, 15000)
+        conn.on 'end', ->
+            clearTimeout(no_data_timer)
 
 
 #######################################################
