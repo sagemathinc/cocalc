@@ -527,23 +527,26 @@ exports.TimeAgo = rclass
 # with callbacks, and value for a controlled one!
 #    See http://facebook.github.io/react/docs/forms.html#controlled-components
 
-# Search input box with a clear button (that focuses!), enter to submit,
-# escape to also clear.
+# Search input box with the following capabilities
+# a clear button (that focuses the input)
+# `enter` to submit
+# `esc` to clear
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
     propTypes :
+        autoFocus       : rtypes.bool
+        autoSelect      : rtypes.bool
         placeholder     : rtypes.string
         default_value   : rtypes.string
         value           : rtypes.string
-        on_change       : rtypes.func    # called on_change(value, get_opts()) each time the search input changes
-        on_submit       : rtypes.func    # called on_submit(value, get_opts()) when the search input is submitted (by hitting enter)
-        on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
-        autoFocus       : rtypes.bool
-        autoSelect      : rtypes.bool
+        on_change       : rtypes.func    # invoked as on_change(value, get_opts()) each time the search input changes
+        on_submit       : rtypes.func    # invoked as on_submit(value, get_opts()) when the search input is submitted (by hitting enter)
+        on_escape       : rtypes.func    # invoked when user presses escape key; on_escape(value *before* hitting escape)
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
-        clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
+        on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
+        clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
 
     getInitialState: ->
@@ -564,8 +567,12 @@ exports.SearchInput = rclass
             catch e
                 # Edge sometimes complains about 'Could not complete the operation due to error 800a025e'
 
-    clear_and_focus_search_input: ->
+    clear_value: ->
         @set_value('')
+        @props.on_clear?()
+
+    clear_and_focus_search_input: ->
+        @clear_value()
         ReactDOM.findDOMNode(@refs.input).focus()
 
     search_button: ->
@@ -583,10 +590,10 @@ exports.SearchInput = rclass
 
     submit: (e) ->
         e?.preventDefault()
-        @props.on_change?(@state.value, @get_opts())
         @props.on_submit?(@state.value, @get_opts())
         if @props.clear_on_submit
-            @setState(value:'')
+            @clear_value()
+            @props.on_change?(@state.value, @get_opts())
 
     key_down: (e) ->
         switch e.keyCode
@@ -608,7 +615,7 @@ exports.SearchInput = rclass
 
     escape: ->
         @props.on_escape?(@state.value)
-        @set_value('')
+        @clear_value()
 
     render: ->
         <FormGroup>
