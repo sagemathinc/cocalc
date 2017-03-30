@@ -371,17 +371,6 @@ class exports.JupyterActions extends Actions
         if cells != cells_before
             @setState(cells : cells)
 
-    ensure_there_is_a_cell: =>
-        if @_state != 'ready' or not @_is_project
-            return
-        cells = @store.get('cells')
-        if not cells? or cells.size == 0
-            @_set
-                type  : 'cell'
-                id    : @_new_id()
-                pos   : 0
-                input : ''
-
     _set: (obj, save=true) =>
         if @_state == 'closed'
             return

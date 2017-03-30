@@ -27,16 +27,20 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
-        @ensure_backend_kernel_setup()
-        @init_kernel_info()
-
-        @init_file_watcher()
-
-        @syncdb.on 'save_to_disk_project', (err) =>
-            if not err
-                @save_ipynb_file()
+        # @_load_from_disk_if_newer must happen before anything that might touch
+        # the syncdb state.  Otherwise, the syncdb state will automatically be
+        # newer than what is on disk, and we'll never load anything from disk.
 
         @_load_from_disk_if_newer () =>
+            @ensure_backend_kernel_setup()  # this sets the kernel identity, hence changes the syncdb.
+            @init_kernel_info()             # need to have for saving.
+
+            @init_file_watcher()
+
+            @syncdb.on 'save_to_disk_project', (err) =>
+                if not err
+                    @save_ipynb_file()
+
             @_state = 'ready'
             @ensure_there_is_a_cell()
             if not @store.get('kernel')?
@@ -346,3 +350,13 @@ class exports.JupyterActions extends actions.JupyterActions
             if not ipynb.cells? or ipynb.cells.length == 0
                 @ensure_there_is_a_cell()  # the ipynb file had no cells (?)
 
+    ensure_there_is_a_cell: =>
+        if @_state != 'ready'
+            return
+        cells = @store.get('cells')
+        if not cells? or cells.size == 0
+            @_set
+                type  : 'cell'
+                id    : @_new_id()
+                pos   : 0
+                input : ''
