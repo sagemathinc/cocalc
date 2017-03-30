@@ -1,5 +1,5 @@
 {
-  "name": "sagemathcloud",
+  "name": "cocalc",
   "version": "1.0.0",
   "description": "Collaborative Calculations in the Cloud",
   "main": "index.js",

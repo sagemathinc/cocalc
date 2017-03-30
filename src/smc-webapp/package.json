@@ -1,5 +1,5 @@
 {
-  "name": "cocalc",
+  "name": "cocalc-webapp",
   "version": "1.0.0",
   "description": "CoCalc: collaborative computations online",
   "main": "index.js",
