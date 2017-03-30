@@ -13,6 +13,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 misc       = require('smc-util/misc')
+{required, defaults} = misc
 
 {Actions}  = require('../smc-react')
 
@@ -83,23 +84,38 @@ class exports.JupyterActions extends Actions
             @_file_watcher.close()
             delete @_file_watcher
 
+    _ajax: (opts) =>
+        opts = defaults opts,
+            url     : required
+            timeout : 15000
+            cb      : required     # (err, data)
+        $.ajax(
+            url     : opts.url
+            timeout : opts.timeout
+            success : (data) => opts.cb(undefined, data)
+        ).fail (err) => opts.cb(err.statusText ? 'error')
+
     set_jupyter_kernels: =>
         if jupyter_kernels?
             @setState(kernels: jupyter_kernels)
         else
             f = (cb) =>
-                $.ajax(
+                if @_state == 'closed'
+                    cb(); return
+                @_ajax
                     url     : util.get_server_url(@store.get('project_id')) + '/kernels.json'
                     timeout : 3000
-                    success : (data) =>
+                    cb      : (err, data) =>
+                        if err
+                            cb(err)
+                            return
                         try
                             jupyter_kernels = immutable.fromJS(JSON.parse(data))
                             @setState(kernels: jupyter_kernels)
                             cb()
                         catch e
                             @set_error("Error setting Jupyter kernels -- #{data} #{e}")
-                ).fail () =>
-                    cb(true)
+
             misc.retry_until_success
                 f           : f
                 start_delay : 1500
@@ -766,6 +782,59 @@ class exports.JupyterActions extends Actions
             path       : misc.history_path(@store.get('path'))
             foreground : true
 
+    # Attempt to fetch completions for give code and cursor_pos
+    # If successful, the completions are put in store.get('completions') and looks like
+    # this (as an immutable map):
+    #    cursor_end   : 2
+    #    cursor_start : 0
+    #    matches      : ['the', 'completions', ...]
+    #    status       : "ok"
+    #    code         : code
+    #    cursor_pos   : cursor_pos
+    #
+    # If not successful, result is:
+    #    status       : "error"
+    #    code         : code
+    #    cursor_pos   : cursor_pos
+    #    error        : 'an error message'
+    #
+    # Only the most recent fetch has any impact, and calling
+    # clear_complete() ensures any fetch made before that
+    # is ignored.
+    complete: (code, cursor_pos) =>
+        req = @_complete_request = (@_complete_request ? 0) + 1
+
+        identity = @store.get('identity')
+        if not identity?
+            # TODO: need to initialize kernel... or something
+            return
+        @setState(complete: undefined)
+        @_ajax
+            url     : util.get_complete_url(@store.get('project_id'), identity, code, cursor_pos)
+            timeout : 5000
+            cb      : (err, data) =>
+                if @_complete_request > req
+                    # future completion or clear happened; so ignore this result.
+                    return
+                if data?.error
+                    err = data.err
+                if err
+                    complete =
+                        status       : "error"
+                        code         : code
+                        cursor_pos   : cursor_pos
+                        error        : err
+                else
+                    complete = JSON.parse(data)
+                    complete.code = code
+                    complete.cursor_pos = cursor_pos
+                @setState(complete: immutable.fromJS(complete))
+        return
+
+    clear_complete: =>
+        @_complete_request = (@_complete_request ? 0) + 1
+        @setState(complete: undefined)
+
     ###
     MANAGE:
 
@@ -919,7 +988,10 @@ class exports.JupyterActions extends Actions
 
         @_file_watcher.on 'change', =>
             dbg("change")
-            # TODO: have to guard against saving file to disk.
+            if new Date() - @_last_save_ipynb_file <= 10000
+                # Guard against reacting to saving file to disk, which would
+                # be inefficient and could lead to corruption.
+                return
             @load_ipynb_file()
 
         @_file_watcher.on 'delete', =>
@@ -970,7 +1042,7 @@ class exports.JupyterActions extends Actions
         dbg("going to try to save")
         ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())
         data = JSON.stringify(ipynb, null, 2)
-        dbg("got string version '#{data}'")
+        #dbg("got string version '#{data}'")
         @_client.write_file
             path : @store.get('path')
             data : data
