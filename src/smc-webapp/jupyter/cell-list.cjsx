@@ -24,6 +24,7 @@ exports.CellList = rclass
         project_id  : rtypes.string
         directory   : rtypes.string
         scrollTop   : rtypes.number
+        complete    : rtypes.immutable.Map            # status of tab completion
 
     componentWillUnmount: ->
         # save scroll state
@@ -60,6 +61,7 @@ exports.CellList = rclass
                     font_size        = {@props.font_size}
                     project_id       = {@props.project_id}
                     directory        = {@props.directory}
+                    complete         = {@props.complete}
                     />
             v.push(cell)
             return

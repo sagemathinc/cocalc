@@ -36,6 +36,7 @@ exports.JupyterEditor = rclass ({name}) ->
             project_id          : rtypes.string
             directory           : rtypes.string
             version             : rtypes.object
+            complete            : rtypes.immutable.Map              # status of tab completion
 
     render_error: ->
         if @props.error
@@ -80,6 +81,7 @@ exports.JupyterEditor = rclass ({name}) ->
             project_id  = {@props.project_id}
             directory   = {@props.directory}
             scrollTop   = {@props.actions.store.get_scroll_state()}
+            complete    = {@props.complete}
             />
 
     render: ->

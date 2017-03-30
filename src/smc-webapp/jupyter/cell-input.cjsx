@@ -23,6 +23,8 @@ exports.CellInput = rclass
         font_size        : rtypes.number  # Not actually used, but it is CRITICAL that we re-render when this changes!
         project_id       : rtypes.string
         directory        : rtypes.string
+        complete         : rtypes.immutable.Map              # status of tab completion
+
 
     shouldComponentUpdate: (next) ->
         return \
@@ -34,7 +36,8 @@ exports.CellInput = rclass
             next.cm_options             != @props.cm_options or \
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused             != @props.is_focused or \
-            next.font_size              != @props.font_size
+            next.font_size              != @props.font_size or \
+            (next.complete != @props.complete and next.is_focused and next.cell.get('cell_type')!= 'markdown')
 
     render_input_prompt: (type) ->
         <InputPrompt
@@ -63,6 +66,7 @@ exports.CellInput = rclass
                     is_focused = {@props.is_focused}
                     font_size  = {@props.font_size}
                     cursors    = {@props.cell.get('cursors')}
+                    complete   = {@props.complete}
                 />
             when 'markdown'
                 if @props.is_markdown_edit

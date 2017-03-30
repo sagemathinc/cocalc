@@ -26,6 +26,8 @@ exports.Cell = rclass
         font_size        : rtypes.number
         project_id       : rtypes.string
         directory        : rtypes.string
+        complete         : rtypes.immutable.Map
+
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -35,7 +37,8 @@ exports.Cell = rclass
                next.is_selected      != @props.is_selected or \
                next.is_markdown_edit != @props.is_markdown_edit or \
                next.mode             != @props.mode or \
-               next.font_size        != @props.font_size
+               next.font_size        != @props.font_size or \
+               (next.complete != @props.complete and (next.mode == 'edit' and next.is_current))  # only worry about complete when editing this cell!
 
     render_cell_input: (cell) ->
         <CellInput
@@ -49,6 +52,7 @@ exports.Cell = rclass
             font_size        = {@props.font_size}
             project_id       = {@props.project_id}
             directory        = {@props.directory}
+            complete         = {@props.complete}
             />
 
     render_cell_output: (cell) ->

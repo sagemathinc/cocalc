@@ -30,6 +30,7 @@ exports.CodeMirrorEditor = rclass
         font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
         is_focused : rtypes.bool.isRequired
         cursors    : rtypes.immutable.Map
+        complete   : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return \
@@ -38,7 +39,8 @@ exports.CodeMirrorEditor = rclass
             next.value      != @props.value or \
             next.font_size  != @props.font_size or\
             next.is_focused != @props.is_focused or\
-            next.cursors    != @props.cursors
+            next.cursors    != @props.cursors or \
+            (next.complete != @props.complete and next.is_focused)
 
     render: ->
         if @props.is_focused
@@ -48,7 +50,8 @@ exports.CodeMirrorEditor = rclass
                 options   = {@props.options}
                 value     = {@props.value}
                 font_size = {@props.font_size}
-                cursors   = {@props.cursors} />
+                cursors   = {@props.cursors}
+                complete  = {@props.complete} />
         else
             <CodeMirrorEditorBlurred
                 actions   = {@props.actions}
@@ -128,6 +131,7 @@ CodeMirrorEditorFocused = rclass
         value      : rtypes.string.isRequired
         font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
         cursors    : rtypes.immutable.Map
+        complete   : rtypes.immutable.Map
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
@@ -153,6 +157,7 @@ CodeMirrorEditorFocused = rclass
         @_cm_cursor()
 
     _cm_blur: ->
+        return
         if not @props.actions?
             return
         @props.actions.set_mode('escape')
@@ -200,6 +205,22 @@ CodeMirrorEditorFocused = rclass
                 return
             @draw_other_cursors(@cm, account_id, v)
 
+    _cm_update_complete: (complete) ->
+        console.log 'complete', complete?.toJS()
+        if not complete? or not @cm?
+            return
+        if complete.get('error')?
+            # TODO: show an error?
+            return
+        completions = complete.get('matches')?.toJS() ? []
+        console.log 'completions', completions
+        window.completions = completions
+        @cm.showCompletions
+            from        : @_complete_from ? {ch:0, line:0}
+            to          : @_complete_pos  ? @cm.getCursor()
+            completions : completions
+            target      : '*'
+
     _cm_undo: ->
         if not @props.actions?
             return
@@ -219,17 +240,40 @@ CodeMirrorEditorFocused = rclass
         @props.actions.move_cursor(1)
         @props.actions.set_mode('escape')
 
+    tab_key: ->
+        if not @props.actions? or not @cm?
+            return
+        console.log 'tab_key'
+        if @cm.somethingSelected()
+            CodeMirror.commands.defaultTab(@cm)
+        else
+            @tab_nothing_selected()
+
+    tab_nothing_selected: ->
+        code  = @cm.getValue()
+        pos   = @cm.getCursor()
+        lines = code.split('\n')
+        cursor_pos = misc.sum(lines[i].length+1 for i in [0...pos.line]) + pos.ch
+        @_complete_from = {line:0, ch:0}
+        @_complete_to   = pos
+        @props.actions.complete(code, cursor_pos)
+
     init_codemirror: (options, value, cursors) ->
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         options = options.toJS()
-        options.extraKeys ?= {}
-        #enable_folding(options)  # too hard to get margins right, save state; unify with blurred... for now; maybe enable per cell optionally...
-        options.extraKeys["Shift-Enter"] = @run_cell
+        if @props.actions?
+            options.extraKeys ?= {}
 
-        options.readOnly = not @props.actions?
+            #enable_folding(options)  # too hard to get margins right, save state; unify with blurred...
+                                      # for now; maybe enable per cell optionally...
+            options.extraKeys["Shift-Enter"] = @run_cell
+            options.extraKeys["Tab"] = @tab_key
+        else
+            options.readOnly = true
 
         @cm = CodeMirror.fromTextArea(node, options)
+        window.cm = @cm
         $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)
@@ -259,6 +303,8 @@ CodeMirrorEditorFocused = rclass
             @_cm_merge_remote(next.value)
         if next.cursors != @props.cursors
             @_cm_update_cursors(next.cursors)
+        if next.complete != @props.complete
+            @_cm_update_complete(next.complete)
         ###
         if @props.is_focused and not next.is_focused
             # This blur must be done in the next render loop; I don't understand exactly why.
