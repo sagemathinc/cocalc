@@ -218,11 +218,12 @@ init_redux = (course_filename, redux, course_project_id) ->
         set_title: (title) =>
             @_set(title:title, table:'settings')
             @set_all_student_project_titles(title)
-            @set_shared_project_title(title)
+            @set_shared_project_title()
 
         set_description: (description) =>
             @_set(description:description, table:'settings')
             @set_all_student_project_descriptions(description)
+            @set_shared_project_description()
 
         set_allow_collabs: (allow_collabs) =>
             @_set(allow_collabs:allow_collabs, table:'settings')
@@ -239,13 +240,21 @@ init_redux = (course_filename, redux, course_project_id) ->
                 description : store.getIn(['settings', 'description']) + "\n---\n This project is shared with all students."
             return x
 
-        set_shared_project_title: (title) =>
+        set_shared_project_title: =>
             store = get_store()
             shared_id = store?.get_shared_project_id()
             return if not store? or not shared_id
 
-            title = @shared_project_settings(title).title
+            title = @shared_project_settings().title
             redux.getActions('projects').set_project_title(shared_id, title)
+
+        set_shared_project_description: =>
+            store = get_store()
+            shared_id = store?.get_shared_project_id()
+            return if not store? or not shared_id
+
+            description = @shared_project_settings().description
+            redux.getActions('projects').set_project_description(shared_id, description)
 
         # start the shared project running (if it is defined)
         action_shared_project: (action) =>
