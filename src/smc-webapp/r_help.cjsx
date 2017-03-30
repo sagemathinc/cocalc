@@ -253,7 +253,7 @@ THIRD_PARTY =
         link : 'Tensorflow'
         text : 'open-source software library for machine intelligence'
     latex :
-        icon : 'sticky-note-o'
+        icon : 'cc-icon-tex-file'
         href : 'https://en.wikibooks.org/wiki/LaTeX'
         link : 'LaTeX introduction'
     linux :
@@ -332,176 +332,6 @@ exports.ThirdPartySoftware = ThirdPartySoftware = rclass
     render: ->
         <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
 
-HelpPageGettingStartedSection = rclass
-    displayName : 'Help-HelpPageGettingStartedSection'
-
-    get_panel_header: (icon, header) ->
-        <div><Icon name={icon} fixedWidth /> {header}</div>
-
-    insert_sample_function: ->
-        '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
-
-    componentDidMount: ->
-        @update_mathjax()
-
-    componentDidUpdate: ->
-        @update_mathjax()
-
-    update_mathjax: ->
-        $(ReactDOM.findDOMNode(@)).mathjax()
-
-    render: ->
-        BASE_URL = require('./misc_page').BASE_URL
-        <div>
-            <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
-
-            <Accordion>
-                <Panel header={@get_panel_header('user', 'Change your name, email address, or password')} eventKey='2'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=A9zltIsU2cM'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        Log into <a target='_blank' href={BASE_URL}>{BASE_URL}</a>,
-                        then click in the upper right corner on your email address by
-                        the <Icon name='cog' /> icon.
-                        Change your first or last name in the settings tab that appears, then click save.
-                    </p>
-                    <p>
-                        To change your password, click the "Change password" link, enter your old password,
-                        then enter a new password.
-                    </p>
-
-                    <p>
-                        To change the email account that is linked to your <SiteName/> account, click
-                        on the "change" link next to your email address, type in the password (to your <SiteName/>
-                        account), then enter a new email address.
-                    </p>
-
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li>Changing your first or last name at any time is pretty harmless, since it
-                                only changes the name other people see when collaborating with
-                                you on projects.
-                            </li>
-                            <li>The primary purpose of providing an email address is that you
-                                can use it to reset your password when you forget it.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
-
-                <Panel header={@get_panel_header('line-chart', <span>Watch a March 2015 talk about all of the main features of <SiteName/></span>)} eventKey='4'>
-                    William Stein (lead developer of <SiteName/>) gave the following one-hour talk in March 2015 at
-                    the <a target='_blank' href='http://escience.washington.edu/'>UW eScience Institute</a>:
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=_ff2HdME8MI'><Icon name='youtube-play' /> video</a>
-                    </p>
-                </Panel>
-
-                <Panel header={@get_panel_header('pencil-square-o', <span>How to work with LaTeX</span>)} eventKey='5'>
-                    <ul>
-                        <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
-                        <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
-                        <li><a target='_blank' href='https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0'>
-                        <Icon name='youtube-play' /> Introduction to LaTeX by Vincent Knight </a></li>
-                    </ul>
-
-                    <p>
-                        <a target='_blank' href='http://www.latex-project.org/'>LaTeX</a> is a system for creating
-                        professional quality documents, with excellent support for typesetting mathematical formulas
-                        like {@insert_sample_function()}.
-                        There are two main ways to use LaTeX in <SiteName/>:
-                    </p>
-
-                    <ol>
-                        <li> In chats or in worksheet cells that start with %html or %md,
-                            enclose mathematical formulas in single or double
-                            dollar signs and they will be typeset
-                            (using <a target='_blank' href='http://www.mathjax.org/'>MathJax</a>) when
-                            you submit them.  In addition to dollar
-                            signs, you can use the other standard latex equation wrappers
-                            \­[ \] and \­(  \).
-                            In worksheets, if f is some object, you can type <span style={fontFamily:'monospace'}>show(f)</span>
-                            to see f nicely typeset using the latex generated by <span style={fontFamily:'monospace'}>latex(f)</span>.
-                            In a worksheet, type <span style={fontFamily:'monospace'}>typeset_mode(True)</span> to show the nicely
-                            typeset version of objects by default. You may also use MathJax in
-                            Markdown cells in Jupyter notebooks.
-                        </li>
-                        <li> You can edit a full LaTeX document by creating or uploading
-                            a file with an extension of .tex, then opening it.
-                            The tex file appears on the left, and there is a preview of
-                            the compiled version on the right,
-                            which is updated whenever you save the file (ctrl+s).
-                            By clicking <Icon name='film' />, you can split the tex
-                            editor so that you can see two parts of the file at once.
-                            You can also use inverse and forward search to easily move back
-                            and forth between the tex file and the preview. In addition to
-                            the preview, there is an error and warning log with buttons
-                            to jump to the corresponding issue in the tex file or preview.
-                            There is also a button to show or download the final high-quality PDF.
-                            In addition, you can see the output of running pdflatex, bibtex, and
-                            <a target='_blank' href='http://doc.sagemath.org/html/en/tutorial/sagetex.html'> use
-                            SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
-                            latex build command (e.g. using <a href="https://www.ctan.org/pkg/latexmk/" target="_blank">latexmk</a> with some extras:
-                            <code>latexmk -pdf -bibtex -pdflatex='pdflatex --interact=nonstopmode --synctex=1 %O %S' '&lt;filename.tex&gt;'</code>).
-                            If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<Icon name='plus-circle' /> New &rarr; Terminal), too.
-                        </li>
-                    </ol>
-
-                </Panel>
-
-                <Panel header={@get_panel_header('area-chart', 'Use R in SageMath worksheets')} eventKey='6'>
-                    <div>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=JtVuX4yb70A'><Icon name='youtube-play' /> video</a>
-                    </div>
-                    <div>
-                        In a project, click "<Icon name='plus-circle' /> New" then the
-                        "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
-                        then press shift+enter to evaluate it.
-                        For the rest of the worksheet, type normal R commands, followed by shift+enter.
-                        Plotting should just work as usual in R.
-                        See <a target='_blank' href='https://github.com/sagemath/cloud-examples/tree/master/r'>these
-                        example worksheets</a>.
-                    </div>
-                </Panel>
-
-
-                <Panel header={@get_panel_header('bar-chart', 'Use Jupyter notebooks')} eventKey='7'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=sDBbt8U4aJw'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        In a project, click <span style={color:'#08c'}><Icon name='plus-circle' /> New</span> then the
-                        "Jupyter" button, or just open an ipynb file.
-                        The notebook will be opened using Jupyter's html-based client,
-                        with support for embedded graphics.
-                        To support the collaborative nature of <SiteName/>,
-                        we've enhanced the Jupyter notebook with realtime sync,
-                        so if you open the same notebook on multiple computers (or if multiple
-                        people open the same notebook), they will stay in sync.
-                        Also, if you want to use the Sage preparser, type
-                        <span style={fontFamily:'monospace'}> %load_ext sage</span> into a notebook cell.
-                    </p>
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li>
-                                You can also run a normal version of the Jupyter notebook server
-                                (no sync, not integrated into cloud) by (1) finding your project id in project settings, then (2) visiting
-                                <span style={fontFamily:'monospace'}> {BASE_URL}/[project_id]/port/jupyter</span> (you
-                                will possibly have to refresh your browser if this takes too long the first time).
-                                Any collaborator on your project can securely use the Jupyter notebook server by visiting
-                                this link, but nobody else can.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
-
-            </Accordion>
-        </div>
-
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
@@ -543,7 +373,6 @@ exports.HelpPage = HelpPage = rclass
                 </Row>
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
-                    {# <HelpPageGettingStartedSection /> }
                 </Row>
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
