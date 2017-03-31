@@ -330,7 +330,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 else
                     output = null
 
-                set
+                obj =
                     type       : 'cell'
                     id         : existing_ids[n] ? @_new_id()
                     pos        : n
@@ -338,6 +338,11 @@ class exports.JupyterActions extends actions.JupyterActions
                     output     : output
                     cell_type  : cell_type
                     exec_count : exec_count
+                if cell.metadata.collapsed
+                    obj.collapsed = cell.metadata.collapsed
+                if cell.metadata.scrolled
+                    obj.scrolled = cell.metadata.scrolled
+                set(obj)
 
                 n += 1
 

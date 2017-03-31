@@ -114,6 +114,11 @@ class exports.JupyterStore extends Store
             cell_type       : cell.get('cell_type') ? 'code'
             source          : cell.get('input')
             metadata        : {}
+        if cell.get('collapsed')
+            obj.metadata.collapsed = true
+        if cell.get('scrolled')
+            obj.metadata.scrolled = true
+
         if output?.size > 0
             v = (@get_ipynb_cell_output(id, n, blob_store) for n in [0...output.size])
             obj.outputs = (x for x in v when x?)
