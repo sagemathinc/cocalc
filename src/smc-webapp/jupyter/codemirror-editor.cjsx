@@ -21,12 +21,17 @@ FOCUSED_STYLE =
 
 exports.CodeMirrorEditor = rclass
     propTypes :
-        actions    : rtypes.object
-        id         : rtypes.string.isRequired
-        options    : rtypes.immutable.Map.isRequired
-        value      : rtypes.string.isRequired
-        font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
-        cursors    : rtypes.immutable.Map
+        actions          : rtypes.object
+        id               : rtypes.string.isRequired
+        options          : rtypes.immutable.Map.isRequired
+        value            : rtypes.string.isRequired
+        font_size        : rtypes.number   # font_size not explicitly used, but it is critical
+                                       # to re-render on change so Codemirror recomputes itself!
+        cursors          : rtypes.immutable.Map
+        set_click_coords : rtypes.func.isRequired
+        click_coords     : rtypes.object  # coordinates if cell was just clicked on
+        set_last_cursor  : rtypes.func.isRequired
+        last_cursor      : rtypes.object
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
@@ -54,6 +59,7 @@ exports.CodeMirrorEditor = rclass
     _cm_blur: ->
         if not @props.actions?
             return
+        @props.set_last_cursor(@cm.getCursor())
         @props.actions.set_mode('escape')
 
     _cm_cursor: ->
@@ -168,6 +174,14 @@ exports.CodeMirrorEditor = rclass
 
         @cm.focus()
         @_cm_update_cursors(cursors)
+
+        if @props.click_coords?
+            # editor clicked on, so restore cursor to that position
+            @cm.setCursor(@cm.coordsChar(@props.click_coords, 'window'))
+            @props.set_click_coords()  # clear them
+        else if @props.last_cursor?
+            @cm.setCursor(@props.last_cursor)
+            @props.set_last_cursor()
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)

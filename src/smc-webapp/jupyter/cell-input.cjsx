@@ -36,7 +36,7 @@ exports.CellInput = rclass
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused             != @props.is_focused or \
             next.font_size              != @props.font_size or \
-            next.complete != @props.complete
+            next.complete               != @props.complete
 
     render_input_prompt: (type) ->
         <InputPrompt
@@ -58,14 +58,14 @@ exports.CellInput = rclass
         switch type
             when 'code'
                 <CodeMirror
-                    value      = {@props.cell.get('input') ? ''}
-                    options    = {@props.cm_options}
-                    actions    = {@props.actions}
-                    id         = {id}
-                    is_focused = {@props.is_focused}
-                    font_size  = {@props.font_size}
-                    cursors    = {@props.cell.get('cursors')}
-                    complete   = {@props.complete}
+                    value        = {@props.cell.get('input') ? ''}
+                    options      = {@props.cm_options}
+                    actions      = {@props.actions}
+                    id           = {id}
+                    is_focused   = {@props.is_focused}
+                    font_size    = {@props.font_size}
+                    cursors      = {@props.cell.get('cursors')}
+                    complete     = {@props.complete}
                 />
             when 'markdown'
                 if @props.is_markdown_edit

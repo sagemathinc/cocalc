@@ -32,7 +32,7 @@ BLURRED_STYLE =
 Complete = rclass
     propTypes:
         actions  : rtypes.object.isRequired
-        id        : rtypes.string.isRequired
+        id       : rtypes.string.isRequired
         complete : rtypes.immutable.Map.isRequired
 
     select: (item) ->
@@ -72,13 +72,14 @@ Complete = rclass
 
 exports.CodeMirrorStatic = rclass
     propTypes:
-        actions   : rtypes.object
-        id        : rtypes.string.isRequired
-        options   : rtypes.immutable.Map.isRequired
-        value     : rtypes.string.isRequired
-        font_size : rtypes.number
-        cursors   : rtypes.immutable.Map
-        complete  : rtypes.immutable.Map
+        actions          : rtypes.object
+        id               : rtypes.string.isRequired
+        options          : rtypes.immutable.Map.isRequired
+        value            : rtypes.string.isRequired
+        font_size        : rtypes.number
+        cursors          : rtypes.immutable.Map
+        complete         : rtypes.immutable.Map
+        set_click_coords : rtypes.func.isRequired
 
     render_html: ->
         if @props.value
@@ -99,6 +100,7 @@ exports.CodeMirrorStatic = rclass
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
+        @props.set_click_coords({left:event.clientX, top:event.clientY})
 
     render_code: ->
         <pre

@@ -215,9 +215,9 @@ class exports.JupyterActions extends Actions
             return
         @setState(md_edit_ids : md_edit_ids.delete(id))
 
+    # Set which cell is currently the cursor.
     set_cur_id: (id) =>
         @setState(cur_id : id)
-        return
 
     set_cur_id_from_index: (i) =>
         if not i?
@@ -846,11 +846,14 @@ class exports.JupyterActions extends Actions
     select_complete: (id, item) =>
         complete = @store.get('complete')
         input    = @store.getIn(['cells', id, 'input'])
-        if complete? and input? and not complete.get('error')?
-            new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
-            @set_cell_input(id, new_input)
         @clear_complete()
         @set_mode('edit')
+        if complete? and input? and not complete.get('error')?
+            new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
+            # We don't actually make the completion until the next render loop,
+            # so that the editor is already in edit mode.  This way the cursor is
+            # in the right position after making the change.
+            setTimeout((=> @set_cell_input(id, new_input)), 0)
 
 
 
