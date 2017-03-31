@@ -37,8 +37,8 @@ OUTPUT_STYLE =
     minWidth      : '14ex'
     fontFamily    : 'monospace'
     textAlign     : 'right'
-    padding       : '.4em'
-    paddingBottom : 0
+    paddingRight  : '.4em'
+    paddingBottom : '2px'
 
 exports.OutputPrompt = rclass
     propTypes:

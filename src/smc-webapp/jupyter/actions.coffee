@@ -536,7 +536,6 @@ class exports.JupyterActions extends Actions
             output       : null
             exec_count   : null
             collapsed    : null
-            scrolled     : null
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()

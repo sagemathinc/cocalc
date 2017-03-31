@@ -10,8 +10,10 @@ Components related to toggling the way output is displayed.
 misc = require('smc-util/misc')
 
 SCROLLED_STYLE =
-    fontSize : 'inherit'
-    padding  : 0
+    fontSize      : 'inherit'
+    padding       : 0
+    display       : 'flex'   # flex used to move output prompt to bottom.
+    flexDirection : 'column'
 
 NORMAL_STYLE = misc.merge({borderColor:'transparent'}, SCROLLED_STYLE)
 
@@ -36,6 +38,7 @@ exports.OutputToggle = rclass
             onClick       = {@toggle_scrolled}
             onDoubleClick = {@collapse_output}
             >
+            <div style={flex:1}></div>     {# use up all space}
             {@props.children}
         </div>
 
