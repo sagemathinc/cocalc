@@ -44,11 +44,13 @@ exports.OutputPrompt = rclass
     propTypes:
         state      : rtypes.string
         exec_count : rtypes.number
-        start : rtypes.number
-        end   : rtypes.number
+        collapsed  : rtypes.bool
 
     render: ->
-        n = prompt(@props.state, @props.exec_count)
+        if @props.collapsed
+            n = undefined
+        else
+            n = prompt(@props.state, @props.exec_count)
         if not n?
             return <div style={OUTPUT_STYLE}> </div>
         else

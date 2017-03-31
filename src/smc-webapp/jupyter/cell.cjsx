@@ -60,6 +60,8 @@ exports.Cell = rclass
         <CellOutput
             key        = 'out'
             cell       = {cell}
+            actions    = {@props.actions}
+            id         = {@props.id}
             project_id = {@props.project_id}
             directory  = {@props.directory}
             />

@@ -63,7 +63,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 <Icon name='stop'/>
             </Button>
             <Button>
-                <Icon name='repeat'/>
+                <Icon name='refresh'/>
             </Button>
         </ButtonGroup>
 

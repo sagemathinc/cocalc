@@ -6,15 +6,12 @@ misc = require('smc-util/misc')
 
 util = require('./util')
 
-LEFT='5px'
-
 STDOUT_STYLE =
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
     fontFamily    : 'monospace'
     paddingTop    : '5px'
     paddingBottom : '5px'
-    paddingLeft   : LEFT
 
 STDERR_STYLE = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 
@@ -182,14 +179,28 @@ CellOutputMessage = rclass
             directory  = {@props.directory}
             />
 
+OUTPUT_STYLE =
+    flex            : 1
+    overflowX       : 'auto'
+    lineHeight      : 'normal'
+    backgroundColor : '#fff'
+    border          : 0
+    marginBottom    : 0
+    marginLeft      : '1px'
+
+OUTPUT_STYLE_SCROLLED = misc.merge({maxHeight:'40vh'}, OUTPUT_STYLE)
+
 exports.CellOutputMessages = rclass
     propTypes :
         output     : rtypes.immutable.Map.isRequired  # the actual messages
         project_id : rtypes.string
         directory  : rtypes.string
+        scrolled   : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return next.output != @props.output
+        return \
+            next.output   != @props.output or \
+            next.scrolled != @props.scrolled
 
     render_output_message: (n, mesg) ->
         if not mesg?
@@ -214,6 +225,7 @@ exports.CellOutputMessages = rclass
             if k > 0 and (name == 'stdout' or name == 'stderr') and v[k-1].get('name') == name
                 v[k-1] = v[k-1].set('text', v[k-1].get('text') + mesg.get('text'))
             else
+
                 v[k] = mesg
                 k += 1
         return v
@@ -221,7 +233,8 @@ exports.CellOutputMessages = rclass
     render: ->
         # (yes, I know n is a string in the next line, but that's fine since it is used only as a key)
         v = (@render_output_message(n, mesg) for n, mesg of @message_list())
-
-        <div style={flex:1, overflowX:'auto', lineHeight:'normal', backgroundColor: '#fff', border: 0, marginBottom:0}>
+        <div
+            style = {if @props.scrolled then OUTPUT_STYLE_SCROLLED else OUTPUT_STYLE}
+            >
             {v}
         </div>

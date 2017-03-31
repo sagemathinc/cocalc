@@ -158,15 +158,22 @@ class exports.JupyterActions extends Actions
         @_sync()
 
     # prop can be: 'collapsed', 'scrolled'
+    toggle_output: (id, prop) =>
+        if @store.getIn(['cells', id, 'cell_type']) ? 'code' == 'code'
+            @_set(type:'cell', id:id, "#{prop}": not @store.getIn(['cells', id, prop]))
+
     toggle_selected_outputs: (prop) =>
         cells = @store.get('cells')
         for id in @store.get_selected_cell_ids_list()
-            @_set({type:'cell', id:id, "#{prop}": not cells.get(id).get(prop)}, false)
+            cell = cells.get(id)
+            if cell.get('cell_type') ? 'code' == 'code'
+                @_set({type:'cell', id:id, "#{prop}": not cell.get(prop)}, false)
         @_sync()
 
     toggle_all_outputs: (prop) =>
         @store.get('cells').forEach (cell, id) =>
-            @_set({type:'cell', id:id, "#{prop}": not cell.get(prop)}, false)
+            if cell.get('cell_type') ? 'code' == 'code'
+                @_set({type:'cell', id:id, "#{prop}": not cell.get(prop)}, false)
             return
         @_sync()
 
@@ -182,7 +189,7 @@ class exports.JupyterActions extends Actions
             cell_type : cell_type
         if cell_type != 'code'
             # delete output and exec time info when switching to non-code cell_type
-            obj.output = obj.start = obj.end = null
+            obj.output = obj.start = obj.end = obj.collapsed = obj.scrolled = null
         @_set(obj)
 
     set_selected_cell_type: (cell_type) =>
@@ -528,6 +535,8 @@ class exports.JupyterActions extends Actions
             end          : null
             output       : null
             exec_count   : null
+            collapsed    : null
+            scrolled     : null
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
