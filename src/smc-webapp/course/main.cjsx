@@ -56,7 +56,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, NumberInput} = require('../r_misc')
+    SaveButton, SelectorInput, Space, TextInput, TimeAgo, NumberInput} = require('../r_misc')
 
 # Course components
 #{CourseActions} = require('./course_editor_components/actions')
@@ -218,10 +218,12 @@ init_redux = (course_filename, redux, course_project_id) ->
         set_title: (title) =>
             @_set(title:title, table:'settings')
             @set_all_student_project_titles(title)
+            @set_shared_project_title()
 
         set_description: (description) =>
             @_set(description:description, table:'settings')
             @set_all_student_project_descriptions(description)
+            @set_shared_project_description()
 
         set_allow_collabs: (allow_collabs) =>
             @_set(allow_collabs:allow_collabs, table:'settings')
@@ -230,13 +232,29 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_set(email_invite:body, table:'settings')
 
         # return the default title and description of the shared project.
-        shared_project_settings: () =>
+        shared_project_settings: (title) =>
             store = get_store()
             return if not store?
             x =
-                title       : "Shared Project -- #{store.getIn(['settings', 'title'])}"
+                title       : "Shared Project -- #{title ? store.getIn(['settings', 'title'])}"
                 description : store.getIn(['settings', 'description']) + "\n---\n This project is shared with all students."
             return x
+
+        set_shared_project_title: =>
+            store = get_store()
+            shared_id = store?.get_shared_project_id()
+            return if not store? or not shared_id
+
+            title = @shared_project_settings().title
+            redux.getActions('projects').set_project_title(shared_id, title)
+
+        set_shared_project_description: =>
+            store = get_store()
+            shared_id = store?.get_shared_project_id()
+            return if not store? or not shared_id
+
+            description = @shared_project_settings().description
+            redux.getActions('projects').set_project_description(shared_id, description)
 
         # start the shared project running (if it is defined)
         action_shared_project: (action) =>
@@ -256,6 +274,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             shared_project_id = store.get_shared_project_id()
             if not shared_project_id
                 return  # no shared project
+            @set_shared_project_title()
             # add collabs -- all collaborators on course project and all students
             projects = redux.getStore('projects')
             shared_project_users = projects.get_users(shared_project_id)

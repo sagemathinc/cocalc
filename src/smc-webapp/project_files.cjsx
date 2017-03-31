@@ -574,7 +574,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
-        apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
+        apply_border = index == @props.selected_file_index and @props.file_search[0] isnt TERM_MODE_CHAR
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -680,7 +680,7 @@ FileListing = rclass
 
         dropzone_handler =
             dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.fetch_directory_listing(@props.current_path)
+            complete  : => @props.actions.fetch_directory_listing(path: @props.current_path)
 
         <div>
             {<Col sm=12 key='upload'>
@@ -1536,9 +1536,8 @@ ProjectFilesActionBox = rclass
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
-                # don't do encodeURIComponent -- strangely messes up everything for email
                 url = """mailto:?to=&subject=#{filename} on SageMathCloud&
-                body=A file is shared with you: #{file_url}"""
+                body=A file is shared with you: #{public_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
             open_popup_window(url)
@@ -1744,37 +1743,38 @@ ProjectFilesSearch = rclass
             @execute_command(command)
         else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
-            if @props.selected_file.isdir
+            opening_a_dir = @props.selected_file.isdir
+            if opening_a_dir
                 @props.actions.open_directory(new_path)
                 @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file
                     path: new_path
                     foreground : not opts.ctrl_down
-            if not opts.ctrl_down
+            if opening_a_dir or not opts.ctrl_down
                 @props.actions.set_file_search('')
-                @props.actions.reset_selected_file_index()
+                @props.actions.clear_selected_file_index()
         else if @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
                 @props.create_folder(not opts.ctrl_down)
             else
                 @props.create_file(null, not opts.ctrl_down)
-            @props.actions.reset_selected_file_index()
+            @props.actions.clear_selected_file_index()
 
-    on_up_press: () ->
+    on_up_press: ->
         if @props.selected_file_index > 0
             @props.actions.decrement_selected_file_index()
 
-    on_down_press: () ->
+    on_down_press: ->
         if @props.selected_file_index < @props.num_files_displayed - 1
             @props.actions.increment_selected_file_index()
 
     on_change: (search, opts) ->
-        if not opts.ctrl_down
-            @props.actions.reset_selected_file_index()
+        @props.actions.zero_selected_file_index()
         @props.actions.set_file_search(search)
 
-    on_escape: () ->
+    on_clear: ->
+        @props.actions.clear_selected_file_index()
         @setState(input: '', stdout:'', error:'')
 
     render: ->
@@ -1788,7 +1788,7 @@ ProjectFilesSearch = rclass
                 on_submit   = {@search_submit}
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
-                on_escape   = {@on_escape}
+                on_clear    = {@on_clear}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1899,7 +1899,6 @@ exports.ProjectFiles = rclass ({name}) ->
         page_number : 0
         file_search : ''
         new_name : ''
-        selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
 
@@ -2200,7 +2199,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         file_search         = {@props.file_search}
                         actions             = {@props.actions}
                         current_path        = {@props.current_path}
-                        selected_file       = {visible_listing?[@props.selected_file_index]}
+                        selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
                         selected_file_index = {@props.selected_file_index}
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}

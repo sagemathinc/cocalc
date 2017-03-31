@@ -1132,6 +1132,7 @@ mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
                  ['\\begin{align*}', '\\end{align*}'],
                  ['\\begin{eqnarray}', '\\end{eqnarray}'],
                  ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
+                 ['\\begin{bmatrix}', '\\end{bmatrix}']
                  ['$', '$']  # must be after $$
                 ]
 

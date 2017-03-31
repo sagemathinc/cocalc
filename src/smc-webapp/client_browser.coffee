@@ -254,7 +254,9 @@ class Connection extends client.Connection
 
         conn.on 'error', (err) =>
             log("error: ", err)
-            @emit("error", err)
+            # NOTE: we do NOT emit an error event in this case!  See
+            # https://github.com/sagemathinc/smc/issues/1819
+            # for extensive discussion.
 
         conn.on 'close', () =>
             log("closed")

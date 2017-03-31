@@ -162,9 +162,21 @@ $.fn.process_smc_links = (opts={}) ->
                     src = y.attr(attr)
                     if not src?
                         continue
-                    if src.indexOf('://') != -1
-                        continue
                     {join} = require('path')
+                    i = src.indexOf('/projects/')
+                    j = src.indexOf('/files/')
+                    if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
+                        # the href is inside the app, points to the current project or another one
+                        # j-i should be 36, unless we ever start to have different (vanity) project_ids
+                        path = src.slice(j + '/files/'.length)
+                        project_id = src.slice(i + '/projects/'.length, j)
+                        new_src = join('/', window.smc_base_url, project_id, 'raw', path)
+                        y.attr(attr, new_src)
+                        continue
+                    if src.indexOf('://') != -1
+                        # link points somewhere else
+                        continue
+                    # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
                     new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
@@ -1659,12 +1671,10 @@ exports.load_coffeescript_compiler = (cb) ->
         cb?()
     else
         require.ensure [], =>
+            # this should define window.CoffeeScript as the compiler instance.
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
-            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            #    console.log("loaded CoffeeScript -- #{status}")
-            #    cb()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
