@@ -6,7 +6,7 @@ immutable = require('immutable')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Markdown} = require('../r_misc')
 
-{CodeMirrorEditor}  = require('./codemirror')
+{CodeMirror} = require('./codemirror')
 
 {InputPrompt} = require('./prompt')
 
@@ -57,7 +57,7 @@ exports.CellInput = rclass
         id = @props.cell.get('id')
         switch type
             when 'code'
-                <CodeMirrorEditor
+                <CodeMirror
                     value      = {@props.cell.get('input') ? ''}
                     options    = {@props.cm_options}
                     actions    = {@props.actions}
@@ -69,7 +69,7 @@ exports.CellInput = rclass
                 />
             when 'markdown'
                 if @props.is_markdown_edit
-                    <CodeMirrorEditor
+                    <CodeMirror
                         value      = {@props.cell.get('input') ? ''}
                         options    = {cm_options('markdown')}
                         actions    = {@props.actions}
