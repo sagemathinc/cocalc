@@ -36,7 +36,7 @@ exports.CellInput = rclass
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused             != @props.is_focused or \
             next.font_size              != @props.font_size or \
-            (next.complete != @props.complete and next.is_current and next.cell.get('cell_type')!= 'markdown')
+            next.complete != @props.complete
 
     render_input_prompt: (type) ->
         <InputPrompt

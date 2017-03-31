@@ -9,6 +9,8 @@ of these on the page at once.
 
 misc_page     = require('../misc_page')
 
+#{FormGroup, ControlLabel, FormControl, } = require('react-bootstrap')
+{Dropdown, MenuItem} = require('react-bootstrap')
 
 BLURRED_STYLE =
     width         : '100%'
@@ -20,14 +22,53 @@ BLURRED_STYLE =
     height        : 'auto'
     fontSize      : 'inherit'
     marginBottom  : 0
-    paddingTop    : '4px'
-    paddingBottom : '4px'
-    paddingLeft   : '4px'
+    padding       : '4px'
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
 
+Completions = rclass
+    propTypes:
+        complete : rtypes.immutable.Map.isRequired
+        actions  : rtypes.object.isRequired
+
+    select: (item) ->
+        console.log("select '#{item}'")
+        @close()
+
+    close: ->
+        @props.actions.clear_complete()
+        @props.actions.set_mode('edit')
+
+    render_item: (item) ->
+        <li key={item}>
+            <a role="menuitem" tabIndex="-1" onClick={=>@select(item)} >
+                {item}
+            </a>
+        </li>
+
+    componentDidMount: ->
+        $(ReactDOM.findDOMNode(@)).find("a:first").focus()
+
+    key_up: (e) ->
+        switch e.keyCode
+            when 27 # escape
+                @close()
+            when 13 # enter
+                item = $(ReactDOM.findDOMNode(@)).find("a:focus").text()
+                @select(item)
+        return
+
+    render: ->
+        items = (@render_item(item) for item in @props.complete.get('matches')?.toJS())
+        <div className = "dropdown open" style = {cursor:'pointer'}>
+            <ul className="dropdown-menu xyz" style = {maxHeight:'50vh'} onKeyUp={@key_up}>
+                {items}
+            </ul>
+        </div>
+
+
 exports.CodeMirrorStatic = rclass
-    propTypes :
+    propTypes:
         actions   : rtypes.object
         id        : rtypes.string.isRequired
         options   : rtypes.immutable.Map.isRequired
@@ -56,11 +97,32 @@ exports.CodeMirrorStatic = rclass
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
 
-    render: ->
-        # console.log JSON.stringify(@props.complete?.get('matches')?.toJS())
+    render_code: ->
         <pre
             className               = "CodeMirror cm-s-default"
             style                   = {BLURRED_STYLE}
             onClick                 = {@focus}
             dangerouslySetInnerHTML = {@render_html()} >
         </pre>
+
+    render_complete: ->
+        if @props.complete?
+            if @props.complete.get('matches')?.size > 0
+                <Completions
+                    complete = {@props.complete}
+                    actions  = {@props.actions}
+                    id       = {@props.id}
+                />
+            # TODO: error info...?
+
+    render: ->
+        <div style={width: '100%'}>
+            {@render_code()}
+            {@render_complete()}
+        </div>
+
+
+
+
+
+

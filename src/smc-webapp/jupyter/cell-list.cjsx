@@ -74,7 +74,7 @@ exports.CellList = rclass
             overflowY       : 'auto'
             overflowX       : 'hidden'
 
-        <div key='cells' style={style} ref='cell_list'>
+        <div key='cells' style={style} ref='cell_list' onClick={=>@props.actions?.clear_complete()}>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
                 {v}
             </div>

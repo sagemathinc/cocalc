@@ -38,7 +38,7 @@ exports.Cell = rclass
                next.is_markdown_edit != @props.is_markdown_edit or \
                next.mode             != @props.mode or \
                next.font_size        != @props.font_size or \
-               (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell!
+               (next.complete        != @props.complete)  # only worry about complete when editing this cell!
 
     render_cell_input: (cell) ->
         <CellInput
