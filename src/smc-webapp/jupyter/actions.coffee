@@ -786,7 +786,7 @@ class exports.JupyterActions extends Actions
     # Only the most recent fetch has any impact, and calling
     # clear_complete() ensures any fetch made before that
     # is ignored.
-    complete: (code, pos, id) =>
+    complete: (code, pos, id, offset) =>
         req = @_complete_request = (@_complete_request ? 0) + 1
 
         identity = @store.get('identity')
@@ -822,6 +822,8 @@ class exports.JupyterActions extends Actions
                 if complete?.matches?.length == 0
                     # do nothing -- no completions at all
                     return
+                if offset?
+                    complete.offset = offset
                 @setState(complete: immutable.fromJS(complete))
                 if complete?.matches?.length == 1 and id?
                     # special case -- a unique completion and we know id of cell in which completing is given
