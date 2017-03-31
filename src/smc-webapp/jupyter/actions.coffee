@@ -786,7 +786,7 @@ class exports.JupyterActions extends Actions
     # Only the most recent fetch has any impact, and calling
     # clear_complete() ensures any fetch made before that
     # is ignored.
-    complete: (code, cursor_pos) =>
+    complete: (code, pos) =>
         req = @_complete_request = (@_complete_request ? 0) + 1
 
         identity = @store.get('identity')
@@ -794,6 +794,15 @@ class exports.JupyterActions extends Actions
             # TODO: need to initialize kernel... or something
             return
         @setState(complete: undefined)
+
+        # pos can be either a {line:?, ch:?} object as in codemirror,
+        # or a number.
+        if misc.is_object(pos)
+            lines = code.split('\n')
+            cursor_pos = misc.sum(lines[i].length+1 for i in [0...pos.line]) + pos.ch
+        else
+            cursor_pos = pos
+
         @_ajax
             url     : util.get_complete_url(@store.get('project_id'), identity, code, cursor_pos)
             timeout : 5000
@@ -805,14 +814,16 @@ class exports.JupyterActions extends Actions
                     err = data.err
                 if err
                     complete =
-                        status       : "error"
-                        code         : code
-                        cursor_pos   : cursor_pos
-                        error        : err
+                        status     : "error"
+                        code       : code
+                        pos        : pos
+                        cursor_pos : cursor_pos
+                        error      : err
                 else
-                    complete = JSON.parse(data)
-                    complete.code = code
+                    complete            = JSON.parse(data)
+                    complete.code       = code
                     complete.cursor_pos = cursor_pos
+                    complete.pos        = pos
                 @setState(complete: immutable.fromJS(complete))
         return
 

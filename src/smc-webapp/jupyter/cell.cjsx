@@ -38,7 +38,7 @@ exports.Cell = rclass
                next.is_markdown_edit != @props.is_markdown_edit or \
                next.mode             != @props.mode or \
                next.font_size        != @props.font_size or \
-               (next.complete != @props.complete and (next.mode == 'edit' and next.is_current))  # only worry about complete when editing this cell!
+               (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell!
 
     render_cell_input: (cell) ->
         <CellInput
@@ -48,11 +48,12 @@ exports.Cell = rclass
             cm_options       = {@props.cm_options}
             is_markdown_edit = {@props.is_markdown_edit}
             is_focused       = {@props.is_current and @props.mode == 'edit'}
+            is_current       = {@props.is_current}
             id               = {@props.id}
             font_size        = {@props.font_size}
             project_id       = {@props.project_id}
             directory        = {@props.directory}
-            complete         = {@props.complete}
+            complete         = {@props.complete if @props.is_current}
             />
 
     render_cell_output: (cell) ->

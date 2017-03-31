@@ -40,18 +40,17 @@ exports.CodeMirrorEditor = rclass
             next.font_size  != @props.font_size or\
             next.is_focused != @props.is_focused or\
             next.cursors    != @props.cursors or \
-            (next.complete != @props.complete and next.is_focused)
+            next.complete   != @props.complete
 
     render: ->
-        if @props.is_focused
+        if @props.is_focused and not @props.complete?
             <CodeMirrorEditorFocused
                 actions   = {@props.actions}
                 id        = {@props.id}
                 options   = {@props.options}
                 value     = {@props.value}
                 font_size = {@props.font_size}
-                cursors   = {@props.cursors}
-                complete  = {@props.complete} />
+                cursors   = {@props.cursors}  />
         else
             <CodeMirrorEditorBlurred
                 actions   = {@props.actions}
@@ -59,7 +58,8 @@ exports.CodeMirrorEditor = rclass
                 options   = {@props.options}
                 value     = {@props.value}
                 font_size = {@props.font_size}
-                cursors   = {@props.cursors} />
+                cursors   = {@props.cursors}
+                complete  = {@props.complete} />
 
 BLURRED_STYLE =
     width         : '100%'
@@ -79,12 +79,13 @@ BLURRED_STYLE =
 
 CodeMirrorEditorBlurred = rclass
     propTypes :
-        actions    : rtypes.object
-        id         : rtypes.string.isRequired
-        options    : rtypes.immutable.Map.isRequired
-        value      : rtypes.string.isRequired
-        font_size  : rtypes.number
-        cursors    : rtypes.immutable.Map
+        actions   : rtypes.object
+        id        : rtypes.string.isRequired
+        options   : rtypes.immutable.Map.isRequired
+        value     : rtypes.string.isRequired
+        font_size : rtypes.number
+        cursors   : rtypes.immutable.Map
+        complete  : rtypes.immutable.Map
 
     render_html: ->
         if @props.value
@@ -107,12 +108,15 @@ CodeMirrorEditorBlurred = rclass
         @props.actions.set_cur_id(@props.id)
 
     render: ->
-        <pre
-            className               = "CodeMirror cm-s-default"
-            style                   = {BLURRED_STYLE}
-            onClick                 = {@focus}
-            dangerouslySetInnerHTML = {@render_html()} >
-        </pre>
+        <div>
+            <pre>{JSON.stringify(@props.complete?.get('matches')?.toJS())}</pre>
+            <pre
+                className               = "CodeMirror cm-s-default"
+                style                   = {BLURRED_STYLE}
+                onClick                 = {@focus}
+                dangerouslySetInnerHTML = {@render_html()} >
+            </pre>
+        </div>
 
 FOCUSED_STYLE =
     width        : '100%'
@@ -131,7 +135,6 @@ CodeMirrorEditorFocused = rclass
         value      : rtypes.string.isRequired
         font_size  : rtypes.number  # not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
         cursors    : rtypes.immutable.Map
-        complete   : rtypes.immutable.Map
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
@@ -157,7 +160,6 @@ CodeMirrorEditorFocused = rclass
         @_cm_cursor()
 
     _cm_blur: ->
-        return
         if not @props.actions?
             return
         @props.actions.set_mode('escape')
@@ -205,22 +207,6 @@ CodeMirrorEditorFocused = rclass
                 return
             @draw_other_cursors(@cm, account_id, v)
 
-    _cm_update_complete: (complete) ->
-        console.log 'complete', complete?.toJS()
-        if not complete? or not @cm?
-            return
-        if complete.get('error')?
-            # TODO: show an error?
-            return
-        completions = complete.get('matches')?.toJS() ? []
-        console.log 'completions', completions
-        window.completions = completions
-        @cm.showCompletions
-            from        : @_complete_from ? {ch:0, line:0}
-            to          : @_complete_pos  ? @cm.getCursor()
-            completions : completions
-            target      : '*'
-
     _cm_undo: ->
         if not @props.actions?
             return
@@ -243,20 +229,13 @@ CodeMirrorEditorFocused = rclass
     tab_key: ->
         if not @props.actions? or not @cm?
             return
-        console.log 'tab_key'
         if @cm.somethingSelected()
             CodeMirror.commands.defaultTab(@cm)
         else
             @tab_nothing_selected()
 
     tab_nothing_selected: ->
-        code  = @cm.getValue()
-        pos   = @cm.getCursor()
-        lines = code.split('\n')
-        cursor_pos = misc.sum(lines[i].length+1 for i in [0...pos.line]) + pos.ch
-        @_complete_from = {line:0, ch:0}
-        @_complete_to   = pos
-        @props.actions.complete(code, cursor_pos)
+        @props.actions.complete(@cm.getValue(), @cm.getCursor())
 
     init_codemirror: (options, value, cursors) ->
         @_cm_destroy()
@@ -273,7 +252,6 @@ CodeMirrorEditorFocused = rclass
             options.readOnly = true
 
         @cm = CodeMirror.fromTextArea(node, options)
-        window.cm = @cm
         $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)
@@ -303,17 +281,6 @@ CodeMirrorEditorFocused = rclass
             @_cm_merge_remote(next.value)
         if next.cursors != @props.cursors
             @_cm_update_cursors(next.cursors)
-        if next.complete != @props.complete
-            @_cm_update_complete(next.complete)
-        ###
-        if @props.is_focused and not next.is_focused
-            # This blur must be done in the next render loop; I don't understand exactly why.
-            # Also, it is critical to check that is_focused still has the same state, or we
-            # get into an infinite bouncing loop.
-            setTimeout((=>if not @props?.is_focused then @cm?.getInputField().blur()), 0)
-        else if not @props.is_focused and next.is_focused
-            setTimeout((=>if @props?.is_focused then @cm?.focus()), 0)
-        ###
 
     componentWillUnmount: ->
         if @cm?
