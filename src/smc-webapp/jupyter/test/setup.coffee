@@ -28,7 +28,7 @@ exports.setup = (cb) ->
     salvus_client.reset()
 
     # initialize actions/store
-    actions = new (require('../actions').JupyterActions)(redux_name, smc_react.redux)
+    actions = new (require('../project-actions').JupyterActions)(redux_name, smc_react.redux)
     store   = new (require('../store').JupyterStore)(redux_name, smc_react.redux)
 
     base = misc.separate_file_extension(path).name

@@ -127,7 +127,7 @@ exports.CodeMirrorEditor = rclass
             @tab_nothing_selected()
 
     tab_nothing_selected: ->
-        @props.actions.complete(@cm.getValue(), @cm.getCursor())
+        @props.actions.complete(@cm.getValue(), @cm.getCursor(), @props.id)
 
     init_codemirror: (options, value, cursors) ->
         @_cm_destroy()

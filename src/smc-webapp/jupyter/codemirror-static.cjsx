@@ -26,14 +26,17 @@ BLURRED_STYLE =
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
 
-Completions = rclass
+# WARNING: Complete closing when clicking outside the complete box
+# is handled in cell-list on_click.  This is ugly code (since not localized),
+# but seems to work well for now.  Could move.
+Complete = rclass
     propTypes:
-        complete : rtypes.immutable.Map.isRequired
         actions  : rtypes.object.isRequired
+        id        : rtypes.string.isRequired
+        complete : rtypes.immutable.Map.isRequired
 
     select: (item) ->
-        console.log("select '#{item}'")
-        @close()
+        @props.actions.select_complete(@props.id, item)
 
     close: ->
         @props.actions.clear_complete()
@@ -50,18 +53,16 @@ Completions = rclass
         $(ReactDOM.findDOMNode(@)).find("a:first").focus()
 
     key_up: (e) ->
-        switch e.keyCode
-            when 27 # escape
-                @close()
-            when 13 # enter
-                item = $(ReactDOM.findDOMNode(@)).find("a:focus").text()
-                @select(item)
-        return
+        if e.keyCode == 13
+            item = $(ReactDOM.findDOMNode(@)).find("a:focus").text()
+            @select(item)
+        else
+            return
 
     render: ->
         items = (@render_item(item) for item in @props.complete.get('matches')?.toJS())
         <div className = "dropdown open" style = {cursor:'pointer'}>
-            <ul className="dropdown-menu xyz" style = {maxHeight:'50vh'} onKeyUp={@key_up}>
+            <ul className="dropdown-menu cocalc-complete" style = {maxHeight:'50vh'} onKeyUp={@key_up}>
                 {items}
             </ul>
         </div>
@@ -108,7 +109,7 @@ exports.CodeMirrorStatic = rclass
     render_complete: ->
         if @props.complete?
             if @props.complete.get('matches')?.size > 0
-                <Completions
+                <Complete
                     complete = {@props.complete}
                     actions  = {@props.actions}
                     id       = {@props.id}

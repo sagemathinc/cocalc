@@ -42,6 +42,13 @@ exports.CellList = rclass
             <Loading/>
         </div>
 
+    on_click: (e) ->
+        @props.actions.clear_complete()
+        if $(e.target).hasClass('cocalc-complete')
+            # Bootstrap simulates a click even when user presses escape; can't catch there.
+            # See the complete component in codemirror-static.
+            @props.actions.set_mode('edit')
+
     render: ->
         if not @props.cell_list?
             return @render_loading()
@@ -74,7 +81,7 @@ exports.CellList = rclass
             overflowY       : 'auto'
             overflowX       : 'hidden'
 
-        <div key='cells' style={style} ref='cell_list' onClick={=>@props.actions?.clear_complete()}>
+        <div key='cells' style={style} ref='cell_list' onClick={@on_click if @props.actions? and @props.complete?}>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
                 {v}
             </div>

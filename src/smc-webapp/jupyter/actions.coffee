@@ -786,7 +786,7 @@ class exports.JupyterActions extends Actions
     # Only the most recent fetch has any impact, and calling
     # clear_complete() ensures any fetch made before that
     # is ignored.
-    complete: (code, pos) =>
+    complete: (code, pos, id) =>
         req = @_complete_request = (@_complete_request ? 0) + 1
 
         identity = @store.get('identity')
@@ -810,25 +810,39 @@ class exports.JupyterActions extends Actions
                 if @_complete_request > req
                     # future completion or clear happened; so ignore this result.
                     return
-                if data?.error
-                    err = data.err
                 if err
-                    complete =
-                        status     : "error"
-                        code       : code
-                        pos        : pos
-                        cursor_pos : cursor_pos
-                        error      : err
+                    complete = {error  : err}
                 else
-                    complete            = JSON.parse(data)
-                    complete.code       = code
-                    complete.cursor_pos = cursor_pos
-                    complete.pos        = pos
+                    complete = JSON.parse(data)
+                    if complete.status != 'ok'
+                        complete = {error:'completion failed'}
+                    delete complete.status
+
+                # Set the result so the UI can then react to the change.
+                if complete?.matches?.length == 0
+                    # do nothing -- no completions at all
+                    return
                 @setState(complete: immutable.fromJS(complete))
+                if complete?.matches?.length == 1 and id?
+                    # special case -- a unique completion and we know id of cell in which completing is given
+                    @select_complete(id, complete.matches[0])
+                    return
         return
 
     clear_complete: =>
         @_complete_request = (@_complete_request ? 0) + 1
         @setState(complete: undefined)
+
+    select_complete: (id, item) =>
+        complete = @store.get('complete')
+        input    = @store.getIn(['cells', id, 'input'])
+        if complete? and input? and not complete.get('error')?
+            new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
+            @set_cell_input(id, new_input)
+        @clear_complete()
+        @set_mode('edit')
+
+
+
 
 
