@@ -26,22 +26,22 @@ describe 'tests the zoom -- ', ->
     global.localStorage={}
 
     it 'verifies the default zoom of 14', ->
-        expect(store.get_font_size()).toBe(14)
+        expect(store.get('font_size')).toBe(14)
 
     it 'zooms in', ->
         actions.zoom(1)
-        expect(store.get_font_size()).toBe(15)
+        expect(store.get('font_size')).toBe(15)
 
     it 'zooms in more', ->
         actions.zoom(2)
-        expect(store.get_font_size()).toBe(17)
+        expect(store.get('font_size')).toBe(17)
 
     it 'zooms out', ->
         actions.zoom(-1)
-        expect(store.get_font_size()).toBe(16)
+        expect(store.get('font_size')).toBe(16)
 
     it 'zooms out more', ->
         actions.zoom(-2)
-        expect(store.get_font_size()).toBe(14)
+        expect(store.get('font_size')).toBe(14)
 
 

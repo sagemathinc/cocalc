@@ -38,7 +38,7 @@ describe 'tests basic use of store -- ', ->
         actions.insert_cell(1)
         expect(store.get('cells').size).toBe(2)
 
-describe 'test cursors positions -- ', ->
+describe 'test cursors positions (a minimal not very good test) -- ', ->
     before(setup)
     after(teardown)
 
@@ -52,9 +52,8 @@ describe 'test cursors positions -- ', ->
         actions.set_cur_id(list[0])
         actions.set_mode('edit')
         actions.syncdb.once 'cursor_activity', ->
-            c = store.get_cursors().toJS()
-            client_id = global.salvus_client._client_id
-            expect(c[client_id].locs).toEqual([ { id: list[0], x: 0, y: 0 }, { id: list[0], x: 2, y: 1 } ])
+            cursors = actions.syncdb.get_cursors().toJS()
+            expect(cursors[actions._account_id].locs).toEqual([ { id: list[0], x: 0, y: 0 }, { id: list[0], x: 2, y: 1 } ])
             done()
         # hack so cursor saving enabled (add two fake users...)
         actions.syncdb._doc._users.push(actions.syncdb._doc._users[0])
