@@ -142,7 +142,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 if not err
                     if mesg.content.execution_count?
                         exec_count = mesg.content.execution_count
-                    mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code', 'execution_count'])
+                    mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code'])
                     for k, v of mesg.content
                         if misc.is_object(v) and misc.len(v) == 0
                             delete mesg.content[k]
@@ -150,8 +150,9 @@ class exports.JupyterActions extends actions.JupyterActions
                         mesg.content.metadata = mesg.metadata
                     if misc.len(mesg.buffers) > 0
                         mesg.content.buffers = mesg.buffers
-                    if misc.len(mesg.content) == 0
-                        # nothing to send.
+                    k = misc.keys(mesg.content)
+                    if k.length == 0 or (k.length == 1 and k[0] == 'execution_count')
+                        # nothing interesting to send.
                         return
                     @_jupyter_kernel.process_output(mesg.content)
                 outputs[n] = mesg.content
@@ -309,7 +310,7 @@ class exports.JupyterActions extends actions.JupyterActions
                             if content.output_type == 'stream'
                                 if misc.is_array(content.text)
                                     content.text = content.text.join('')
-                                content = {name:content.stream, text:content.text}
+                                content.name = content.stream
                             else
                                 for t in types
                                     [a,b] = t.split('/')
@@ -317,7 +318,7 @@ class exports.JupyterActions extends actions.JupyterActions
                                         content = {data:{"#{t}": content[b]}}
                                         break  # at most one data per message.
                                 if content.text?
-                                    content = {data:{'text/plain':content.text}}
+                                    content = {data:{'text/plain':content.text}, output_type:'stream'}
 
                         if content.data?
                             for key, val of content.data

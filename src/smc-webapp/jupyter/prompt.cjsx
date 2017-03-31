@@ -47,7 +47,7 @@ exports.OutputPrompt = rclass
         collapsed  : rtypes.bool
 
     render: ->
-        if @props.collapsed
+        if @props.collapsed or not @props.exec_count
             n = undefined
         else
             n = prompt(@props.state, @props.exec_count)

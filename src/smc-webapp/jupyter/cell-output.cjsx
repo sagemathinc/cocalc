@@ -33,9 +33,14 @@ exports.CellOutput = rclass
 
     render_output_prompt: ->
         collapsed = @props.cell.get('collapsed')
+        exec_count = undefined
+        @props.cell.get('output')?.forEach (x) ->
+            if x.has('execution_count')?
+                exec_count = x.get('execution_count')
+                return false
         prompt = <OutputPrompt
                     state      = {@props.cell.get('state')}
-                    exec_count = {@props.cell.get('exec_count')}
+                    exec_count = {exec_count}
                     collapsed  = {collapsed}
                     />
         if not @props.actions? or collapsed
