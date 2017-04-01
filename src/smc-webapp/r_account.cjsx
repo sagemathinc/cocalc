@@ -409,36 +409,6 @@ AccountSettings = rclass
     render_sign_out_error: ->
         <ErrorDisplay error={@props.sign_out_error} onClose={=>@actions('account').setState(sign_out_error : '')} />
 
-    render_sign_out_confirm: ->
-        if @props.everywhere
-            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
-        else
-            text = "Are you sure you want to sign out of your account on this web browser?"
-        <Well style={marginTop: '15px'}>
-            {text}
-            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
-                    <Icon name="external-link" /> Sign out
-                </Button>
-                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-            {render_sign_out_error() if @props.sign_out_error}
-        </Well>
-
-    render_sign_out_buttons: ->
-        <ButtonToolbar className='pull-right'>
-            <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false)}>
-                <Icon name='sign-out'/> Sign out...
-            </Button>
-            <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true)}>
-                <Icon name='sign-out'/> Sign out everywhere...
-            </Button>
-        </ButtonToolbar>
-
     render_sign_in_strategies: ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
@@ -482,12 +452,6 @@ AccountSettings = rclass
                 ref   = 'password'
                 maxLength = 64
                 />
-            <Row style={marginTop: '1ex'}>
-                <Col xs=12>
-                    {@render_sign_out_buttons()}
-                </Col>
-            </Row>
-            {@render_sign_out_confirm() if @props.show_sign_out}
             <Row>
                 <Col xs=12>
                     <DeleteAccount
@@ -1394,6 +1358,49 @@ AdminSettings = rclass
             </LabeledRow>
         </Panel>
 
+SignOut = rclass
+    propTypes :
+        show_sign_out   : rtypes.bool
+        sign_out_error  : rtypes.string
+        everywhere      : rtypes.bool
+
+    render_sign_out_buttons: ->
+        <ButtonToolbar className='pull-right'>
+            <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false)}>
+                <Icon name='sign-out'/> Sign out...
+            </Button>
+            <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true)}>
+                <Icon name='sign-out'/> Sign out everywhere...
+            </Button>
+        </ButtonToolbar>
+
+    render_sign_out_confirm: ->
+        if @props.everywhere
+            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
+        else
+            text = "Are you sure you want to sign out of your account on this web browser?"
+        <Well style={marginBottom: '15px'}>
+            {text}
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
+                    <Icon name="external-link" /> Sign out
+                </Button>
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+            {render_sign_out_error() if @props.sign_out_error}
+        </Well>
+
+    render: ->
+        <div style={textAlign: 'right'}>
+            {@render_sign_out_buttons()}
+            <div style={clear: 'right', paddingTop: '15px'}></div>
+            {@render_sign_out_confirm() if @props.show_sign_out}
+        </div>
+
 # Render the entire settings component
 exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
@@ -1404,8 +1411,6 @@ exports.AccountSettingsTop = rclass
         last_name       : rtypes.string
         email_address   : rtypes.string
         passports       : rtypes.object
-        show_sign_out   : rtypes.bool
-        sign_out_error  : rtypes.string
         everywhere      : rtypes.bool
         terminal        : rtypes.object
         evaluate_key    : rtypes.string
@@ -1424,9 +1429,6 @@ exports.AccountSettingsTop = rclass
                         last_name      = {@props.last_name}
                         email_address  = {@props.email_address}
                         passports      = {@props.passports}
-                        show_sign_out  = {@props.show_sign_out}
-                        sign_out_error = {@props.sign_out_error}
-                        everywhere     = {@props.everywhere}
                         redux          = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
@@ -1436,6 +1438,10 @@ exports.AccountSettingsTop = rclass
                         redux        = {@props.redux} />
                 </Col>
                 <Col xs=12 md=6>
+                    <SignOut
+                        show_sign_out  = {@props.show_sign_out}
+                        sign_out_error = {@props.sign_out_error}
+                        everywhere     = {@props.everywhere} />
                     <EditorSettings
                         autosave        = {@props.autosave}
                         font_size       = {@props.font_size}

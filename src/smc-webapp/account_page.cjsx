@@ -3,15 +3,15 @@ misc = require('smc-util/misc')
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
 
-{React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
-{Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
-{LandingPage}                            = require('./landing_page')
-{AccountSettingsTop}                     = require('./r_account')
-{BillingPageRedux}                       = require('./billing')
-{UpgradesPage}                           = require('./r_upgrades')
-{SupportPage}                            = require('./support')
-{Icon}                                   = require('./r_misc')
-{set_url}                                = require('./history')
+{React, ReactDOM, rclass, rtypes, redux}           = require('./smc-react')
+{Tab, Tabs, Grid, Col, Row, Button, ButtonToolbar, Well} = require('react-bootstrap')
+{LandingPage}                                      = require('./landing_page')
+{AccountSettingsTop}                               = require('./r_account')
+{BillingPageRedux}                                 = require('./billing')
+{UpgradesPage}                                     = require('./r_upgrades')
+{SupportPage}                                      = require('./support')
+{Icon}                                             = require('./r_misc')
+{set_url}                                          = require('./history')
 
 exports.AccountPage = rclass
     displayName : 'AccountPage'
@@ -126,18 +126,30 @@ exports.AccountPage = rclass
         </Tab>
         return v
 
+    render_landing_page_logged_in: ->
+        <Row>
+            <Col md={12}>
+                <Tabs
+                    activeKey={@props.active_page}
+                    onSelect={@handle_select}
+                    animation={false}
+                    style={paddingTop: "1em"}
+                    id="account-page-tabs">
+                    <Tab
+                        key='account'
+                        eventKey="account"
+                        title={<span><Icon name='wrench'/> Account Settings</span>}
+                    >
+                        {@render_account_settings() if not @props.active_page? or @props.active_page == 'account'}
+                    </Tab>
+                    {@render_commercial_tabs()}
+                </Tabs>
+            </Col>
+        </Row>
+
     render: ->
         logged_in = @props.redux.getStore('account')?.is_logged_in()
         <Grid className='constrained'>
-            {@render_landing_page() if not logged_in}
-            {<Row>
-                <Col md={12}>
-                    <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                        <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
-                            {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
-                        </Tab>
-                        {@render_commercial_tabs()}
-                    </Tabs>
-                </Col>
-            </Row> if logged_in}
+            {@render_landing_page()           if not logged_in}
+            {@render_landing_page_logged_in() if logged_in}
         </Grid>
