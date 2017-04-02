@@ -10,6 +10,8 @@ File, Edit, etc....
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+misc_page = require('../misc_page')
+
 OPACITY='.9'
 
 TITLE_STYLE =
@@ -177,7 +179,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>All Output...</MenuItem>
                 <MenuItem eventKey="all-outputs-toggle"     onSelect={=>@props.actions.toggle_all_outputs('collapsed')}><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle-scrolling"onSelect={=>@props.actions.toggle_all_outputs('scrolled')} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
+                <MenuItem eventKey="all-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_all_outputs('scrolled')} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
                 <MenuItem eventKey="all-outputs-clear"      onSelect={=>@props.actions.clear_all_outputs()}  ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
@@ -241,17 +243,19 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-notebook-help"> <Icon name='external-link'/> Notebook Help</MenuItem>
-                <MenuItem eventKey="help-markdown">      <Icon name='external-link'/> Markdown</MenuItem>
+                {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
+                {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
-                <MenuItem eventKey="help-python">        <Icon name='external-link'/> Python</MenuItem>
-                <MenuItem eventKey="help-ipython">       <Icon name='external-link'/> IPython</MenuItem>
-                <MenuItem eventKey="help-numpy">         <Icon name='external-link'/> NumPy</MenuItem>
-                <MenuItem eventKey="help-scipy">         <Icon name='external-link'/> SciPy</MenuItem>
-                <MenuItem eventKey="help-matplotlib">    <Icon name='external-link'/> Matplotlib</MenuItem>
-                <MenuItem eventKey="help-sympy">         <Icon name='external-link'/> SymPy</MenuItem>
-                <MenuItem eventKey="help-pandas">        <Icon name='external-link'/> Pandas</MenuItem>
-                <MenuItem eventKey="help-sagemath">      <Icon name='external-link'/> SageMath</MenuItem>
+                {external_link('Python',  'https://docs.python.org/2.7/')}
+                {external_link('IPython', 'http://ipython.org/documentation.html')}
+
+                {external_link('Numpy', 'https://docs.scipy.org/doc/numpy/reference/')}
+                {external_link('SciPy', 'https://docs.scipy.org/doc/scipy/reference/')}
+                {external_link('Matplotlib', 'http://matplotlib.org/contents.html')}
+                {external_link('Sympy', 'http://docs.sympy.org/latest/index.html')}
+                {external_link('Pandas', 'http://pandas.pydata.org/pandas-docs/stable/')}
+                {external_link('SageMath', 'http://doc.sagemath.org/')}
+
                 <MenuItem divider />
                 <MenuItem eventKey="help-about">About</MenuItem>
             </Dropdown.Menu>
@@ -270,3 +274,14 @@ exports.TopMenubar = rclass ({name}) ->
                 {@render_help()}
             </ButtonGroup>
         </div>
+
+external_link = (name, url) ->
+    <MenuItem
+        onSelect = {=>misc_page.open_new_tab(url)}
+        >
+        <Icon name='external-link'/> {name}
+    </MenuItem>
+
+
+
+
