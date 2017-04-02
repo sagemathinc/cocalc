@@ -96,14 +96,7 @@ class Kernel extends EventEmitter
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
             @_channels.iopub.subscribe((mesg) => @emit('iopub', mesg))
 
-            kernel.spawn.on 'close', =>
-                kernel.spawn.kill()
-                # kernel process died for some reason; clean up and set the state properly.
-                fs.unlink(@_kernel.connectionFile)
-                delete @_kernel
-                delete @_channels
-                @_state = 'off'
-                # TODO: we need to emit kernel status changes, and project-actions need to listen and respect
+            kernel.spawn.on('close', @close)
 
             @_state = 'running'
             @emit('init')
@@ -116,6 +109,7 @@ class Kernel extends EventEmitter
         if @_state == 'closed'
             return
         delete _jupyter_kernels[@_identity]
+        @emit('close')
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?

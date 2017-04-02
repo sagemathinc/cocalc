@@ -47,16 +47,20 @@ class exports.JupyterActions extends actions.JupyterActions
                 @set_kernel(DEFAULT_KERNEL)
                 @ensure_backend_kernel_setup()
 
-    ensure_backend_kernel_setup: =>
-        kernel = @store.get('kernel') ? 'python2'  # TODO...
-        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
-        if @_jupyter_kernel.name != kernel
+    ensure_backend_kernel_setup: (kernel) =>
+        if not kernel?
+            kernel = @store.get('kernel') ? 'python2'  # TODO...
+        if not @_jupyter_kernel? or @_jupyter_kernel.name != kernel
             # user has since changed the kernel, so close this one and make a new one
-            @_jupyter_kernel.close()
+            @_jupyter_kernel?.close()
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
+            @_jupyter_kernel.on 'close', =>
+                delete @_jupyter_kernel
+                @ensure_backend_kernel_setup()
         @_set
             type     : 'settings'
             identity : @_jupyter_kernel.get_identity()
+            kernel   : kernel
 
     init_kernel_info: =>
         if not @store.get('kernels')?
@@ -257,10 +261,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
         # Set the kernel and other settings
         kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL  # TODO - need defaults
-        if kernel != @store.get('kernel')
-            @_jupyter_kernel?.close()
-            delete @_jupyter_kernel
-        @_jupyter_kernel ?= @_client.jupyter_kernel(name: kernel)
+        @ensure_backend_kernel_setup(kernel)
 
         set = (obj) =>
             @syncdb.set(obj, false)
