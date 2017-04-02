@@ -9,6 +9,7 @@ fully unit test it via mocking of components.
 ###
 
 immutable      = require('immutable')
+underscore     = require('underscore')
 
 misc           = require('smc-util/misc')
 actions        = require('./actions')
@@ -36,9 +37,14 @@ class exports.JupyterActions extends actions.JupyterActions
         ###
         if state not in ['init', 'ready', 'spawning', 'starting', 'running']
             throw Error("invalid backend state '#{state}'")
+        @_backend_state = state
         @_set
             type          : 'settings'
             backend_state : state
+
+    set_kernel_state: (state, save=false) =>
+        @_kernel_state = state
+        @_set({type:'settings', kernel_state: state}, save)
 
     # Called exactly once when the manager first starts up after the store is initialized.
     # Here we ensure everything is in a consistent state so that we can react
@@ -51,6 +57,7 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
+        @sync_exec_state = underscore.debounce(@sync_exec_state, 2000)
         @set_backend_state('init')
 
         # @_load_from_disk_if_newer must happen before anything that might touch
@@ -81,10 +88,18 @@ class exports.JupyterActions extends actions.JupyterActions
             if key.get('type') != 'settings'
                 return
             record = @syncdb.get_one(key)
-            # ensure kernel is properly configured
-            @ensure_backend_kernel_setup(record?.get('kernel'))
+            if record?
+                # ensure kernel is properly configured
+                @ensure_backend_kernel_setup(record.get('kernel'))
+                # only the backend should change kernel and backend state;
+                # however, our security model allows otherwise (e.g., via TimeTravel).
+                if record.get('kernel_state') != @_kernel_state
+                    @set_kernel_state(@_kernel_state, true)
+                if record.get('backend_state') != @_backend_state
+                    @set_backend_state(@_backend_state)
             return
         @ensure_there_is_a_cell()
+        @sync_exec_state()
 
     ensure_backend_kernel_setup: (kernel) =>
         dbg = @dbg("ensure_backend_kernel_setup")
@@ -108,6 +123,7 @@ class exports.JupyterActions extends actions.JupyterActions
             dbg("no kernel; make one")
             # No kernel wrapper object setup at all. Make one.
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
+            delete @_running_cells
 
             @_jupyter_kernel.once 'close', =>
                 # kernel closed -- clean up then make new one.
@@ -115,6 +131,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 @ensure_backend_kernel_setup()
 
             # Ready to run code, etc.
+            @sync_exec_state()
             @set_backend_state('ready')
 
             # Track backend state changes.
@@ -127,8 +144,7 @@ class exports.JupyterActions extends actions.JupyterActions
                         @set_backend_state('init')
                         @ensure_backend_kernel_setup()
 
-            @_jupyter_kernel.on 'execution_state', (state) =>
-                @_set({type:'settings', kernel_state: state}, false)
+            @_jupyter_kernel.on('execution_state', @set_kernel_state)
 
             # Record info about our kernel.
             @_set
@@ -159,6 +175,19 @@ class exports.JupyterActions extends actions.JupyterActions
             @manager_run_cell(id)
             return
 
+    # Ensure that the cells listed as running *are* exactly the
+    # ones actually running or queued up to run.
+    sync_exec_state: =>
+        change = false
+        @store.get('cells').forEach (cell, id) =>
+            state = cell.get('state')
+            if state? and state != 'done' and not @_running_cells?[id]
+                @_set({type:'cell', id:id, state:'done'}, false)
+                change = true
+            return
+        if change
+            @_sync()
+
     # Runs only on the backend
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell(id='#{id}')")
@@ -169,6 +198,9 @@ class exports.JupyterActions extends actions.JupyterActions
         kernel = @store.get('kernel') ? 'python2'  # TODO...
 
         @ensure_backend_kernel_setup()
+
+        @_running_cells ?= {}
+        @_running_cells[id] = true
 
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
@@ -181,6 +213,8 @@ class exports.JupyterActions extends actions.JupyterActions
         end        = null
         set_cell = =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
+            if state == 'done'
+                delete @_running_cells?[id]
             @_set
                 type       : 'cell'
                 id         : id

@@ -73,6 +73,7 @@ exports.Cell = rclass
                     <CellTiming
                         start = {cell.get('start')}
                         end   = {cell.get('end')}
+                        state = {cell.get('state')}
                      />
                 </div>
             </div>
