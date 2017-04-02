@@ -33,6 +33,7 @@ exports.TopMenubar = rclass ({name}) ->
             kernels             : rtypes.immutable.List
             kernel              : rtypes.string
             has_unsaved_changes : rtypes.bool
+            kernel_info         : rtypes.immutable.Map
 
     render_file: ->
         <Dropdown key='file' id='menu-file'>
@@ -234,6 +235,56 @@ exports.TopMenubar = rclass ({name}) ->
             </Dropdown.Menu>
         </Dropdown>
 
+    links_python: ->
+        'Python'     : 'https://docs.python.org/2.7/'
+        'IPython'    : 'http://ipython.org/documentation.html'
+        'Numpy'      : 'https://docs.scipy.org/doc/numpy/reference/'
+        'SciPy'      : 'https://docs.scipy.org/doc/scipy/reference/'
+        'Matplotlib' : 'http://matplotlib.org/contents.html'
+        'Sympy'      : 'http://docs.sympy.org/latest/index.html'
+        'Pandas'     : 'http://pandas.pydata.org/pandas-docs/stable/'
+        'SageMath'   : 'http://doc.sagemath.org/'
+
+    links_r: ->
+        'R'                : 'https://www.r-project.org/'
+        'R Jupyter Kernel' : 'https://irkernel.github.io/faq/'
+        'Bioconductor'     : 'https://www.bioconductor.org/'
+        'ggplot2'          : 'http://ggplot2.org/'
+
+    links_bash: ->
+        'Bash'     : 'https://tiswww.case.edu/php/chet/bash/bashtop.html'
+        'Tutorial' : 'http://ryanstutorials.net/linuxtutorial/'
+
+    links_julia: ->
+        'Julia Documentation' : 'http://docs.julialang.org/en/stable/'
+        'Gadly Plotting'      : 'http://gadflyjl.org/stable/'
+
+    links_octave: ->
+        'Octave'               : 'https://www.gnu.org/software/octave/'
+        'Octave Documentation' : 'https://www.gnu.org/software/octave/doc/interpreter/'
+        'Octave Tutorial'      : 'https://en.wikibooks.org/wiki/Octave_Programming_Tutorial'
+        'Octave FAQ'           : 'http://wiki.octave.org/FAQ'
+
+    links_postgresql: ->
+        'PostgreSQL'                : 'https://www.postgresql.org/docs/'
+        'PostgreSQL Jupyter Kernel' : 'https://github.com/bgschiller/postgres_kernel'
+
+    links_scala211: ->
+        'Scala Documentation' : 'https://www.scala-lang.org/documentation/'
+
+    links_singular: ->
+        'Singular Manual' : 'http://www.singular.uni-kl.de/Manual/latest/index.htm'
+
+    render_links: ->
+        v = []
+        lang = @props.kernel_info?.get('language')
+        f = @["links_#{lang}"]
+        if f?
+            for name, url of f()
+                v.push(external_link(name, url))
+            v.push <MenuItem key='sep' divider />
+        return v
+
     render_help: ->
         <Dropdown key='help'  id='menu-help'>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
@@ -246,17 +297,8 @@ exports.TopMenubar = rclass ({name}) ->
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
-                {external_link('Python',  'https://docs.python.org/2.7/')}
-                {external_link('IPython', 'http://ipython.org/documentation.html')}
+                {@render_links()}
 
-                {external_link('Numpy', 'https://docs.scipy.org/doc/numpy/reference/')}
-                {external_link('SciPy', 'https://docs.scipy.org/doc/scipy/reference/')}
-                {external_link('Matplotlib', 'http://matplotlib.org/contents.html')}
-                {external_link('Sympy', 'http://docs.sympy.org/latest/index.html')}
-                {external_link('Pandas', 'http://pandas.pydata.org/pandas-docs/stable/')}
-                {external_link('SageMath', 'http://doc.sagemath.org/')}
-
-                <MenuItem divider />
                 <MenuItem eventKey="help-about">About</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
@@ -277,6 +319,7 @@ exports.TopMenubar = rclass ({name}) ->
 
 external_link = (name, url) ->
     <MenuItem
+        key = {name}
         onSelect = {=>misc_page.open_new_tab(url)}
         >
         <Icon name='external-link'/> {name}

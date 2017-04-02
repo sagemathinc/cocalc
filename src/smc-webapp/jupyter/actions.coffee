@@ -320,9 +320,12 @@ class exports.JupyterActions extends Actions
                     if @_syncdb_cell_change(key.get('id'), record)
                         cell_list_needs_recompute = true
                 when 'settings'
+                    kernel = record?.get('kernel')
                     @setState
-                        kernel   : record?.get('kernel')
-                        identity : record?.get('identity')
+                        kernel      : kernel
+                        identity    : record?.get('identity')
+                        kernel_info : @store.get_kernel_info(kernel)
+                        cm_options  : cm_options(kernel)
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -768,7 +771,6 @@ class exports.JupyterActions extends Actions
             @_set
                 type   : 'settings'
                 kernel : kernel
-            @setState(cm_options : cm_options(kernel))
 
     show_history_viewer: () =>
         @redux.getProjectActions(@store.get('project_id'))?.open_file
