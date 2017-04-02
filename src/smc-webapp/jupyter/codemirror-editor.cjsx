@@ -33,6 +33,10 @@ exports.CodeMirrorEditor = rclass
         set_last_cursor  : rtypes.func.isRequired
         last_cursor      : rtypes.object
 
+    reduxProps:
+        account :
+            editor_settings : rtypes.immutable.Map
+
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
 
@@ -156,6 +160,8 @@ exports.CodeMirrorEditor = rclass
         else
             options.readOnly = true
 
+        options.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
+
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
@@ -187,7 +193,9 @@ exports.CodeMirrorEditor = rclass
         @init_codemirror(@props.options, @props.value, @props.cursors)
 
     componentWillReceiveProps: (next) ->
-        if not @cm? or not @props.options.equals(next.options) or @props.font_size != next.font_size
+        if not @cm? or not @props.options.equals(next.options) or \
+                @props.font_size != next.font_size or \
+                not @props.editor_settings?.equals(next.editor_settings)
             @init_codemirror(next.options, next.value, next.cursors)
             return
         if next.value != @props.value
