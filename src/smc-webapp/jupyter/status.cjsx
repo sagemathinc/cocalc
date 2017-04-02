@@ -4,7 +4,7 @@ Kernel display
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {ImmutablePureRenderMixin} = require('../r_misc')
-{Icon} = require('../r_misc')
+{Icon, Loading, Tip} = require('../r_misc')
 
 util = require('./util')
 
@@ -22,6 +22,15 @@ exports.Mode = rclass ({name}) ->
             <Icon name='pencil' />
         </div>
 
+KERNEL_NAME_STYLE =
+    marginLeft  : '5px'
+    marginRight : '5px'
+    color        : 'rgb(33, 150, 243)'
+
+BACKEND_STATE_STYLE =
+    marginRight : '5px'
+    color       : KERNEL_NAME_STYLE.color
+
 exports.Kernel = rclass ({name}) ->
     propTypes:
         actions : rtypes.object.isRequired
@@ -30,10 +39,12 @@ exports.Kernel = rclass ({name}) ->
 
     reduxProps:
         "#{name}" :
-            kernel      : rtypes.string
-            kernels     : rtypes.immutable.List  # call to get_kernel_info depends on this...
-            project_id  : rtypes.string
-            kernel_info : rtypes.immutable.Map
+            kernel        : rtypes.string
+            kernels       : rtypes.immutable.List  # call to get_kernel_info depends on this...
+            project_id    : rtypes.string
+            kernel_info   : rtypes.immutable.Map
+            backend_state : rtypes.string
+            kernel_state  : rtypes.string
 
     getInitialState: ->
         logo_failed : ''
@@ -51,15 +62,64 @@ exports.Kernel = rclass ({name}) ->
 
     render_name: ->
         display_name = @props.kernel_info?.get('display_name') ? @props.kernel
-        <span style={paddingLeft:'5px', paddingRight:'5px', color:'rgb(33, 150, 243)'}>
+        <span style={KERNEL_NAME_STYLE}>
             {display_name ? "No Kernel"}
         </span>
+
+    render_backend_state: ->
+        backend_state = @props.backend_state
+        if not backend_state?
+            return <Loading />
+        ###
+        The backend_states are:
+           'init' --> 'ready'  --> 'spawning' --> 'starting' --> 'running'
+
+        When the backend_state is 'running', then the kernel_state is either
+            'idle' or 'running'
+        ###
+        spin = false
+        tip = "Backend state is '#{backend_state}'."
+        switch backend_state
+            when 'init'
+                name = 'unlink'
+            when 'ready'
+                name = 'circle-o-notch'
+            when 'spawning'
+                name = 'circle-o-notch'
+                spin = true
+            when 'starting'
+                name = 'circle-o-notch'
+                spin = true
+            when 'running'
+                switch @props.kernel_state
+                    when 'busy'
+                        name = 'circle'
+                        tip += ' Kernel is busy.'
+                    when 'idle'
+                        name = 'circle-o'
+                        tip += ' Kernel is idle.'
+                    else
+                        name = 'circle-o'
+                        tip += ' Kernel will start when you run code.'
+
+        icon  = <Icon name={name} spin={spin} />
+        title = <span>{icon} Jupyter State</span>
+        <Tip
+            title     = {title}
+            tip       = {tip}
+            placement = 'left' >
+            <span style={BACKEND_STATE_STYLE}>
+                {icon}
+            </span>
+        </Tip>
+
 
     render : ->
         if not @props.kernel?
             return <span/>
         <div className='pull-right' style={color:'#666', borderLeft:'1px solid #666'}>
             {@render_name()}
+            {@render_backend_state()}
             {@render_logo()}
         </div>
 

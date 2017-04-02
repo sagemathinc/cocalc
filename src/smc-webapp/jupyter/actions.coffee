@@ -326,6 +326,7 @@ class exports.JupyterActions extends Actions
                         identity      : record?.get('identity')
                         kernel_info   : @store.get_kernel_info(kernel)
                         backend_state : record?.get('backend_state')
+                        kernel_state  : record?.get('kernel_state')
                         cm_options    : cm_options(kernel)
             return
         if cell_list_needs_recompute

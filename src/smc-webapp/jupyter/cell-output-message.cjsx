@@ -4,18 +4,21 @@ misc = require('smc-util/misc')
 {ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
 
+Ansi = require('ansi-to-react')
+
 util = require('./util')
 
-STDOUT_STYLE =
+OUT_STYLE =
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
     fontFamily    : 'monospace'
     paddingTop    : '5px'
     paddingBottom : '5px'
 
-STDERR_STYLE = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
-
-TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, STDOUT_STYLE)
+ANSI_STYLE      = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
+STDOUT_STYLE    = misc.merge({marginLeft:'4px'}, OUT_STYLE)
+STDERR_STYLE    = misc.merge({backgroundColor:'#fdd', marginLeft:'4px'}, STDOUT_STYLE)
+TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
 
 Stdout = rclass
     propTypes :
@@ -72,9 +75,15 @@ TextPlain = rclass
         value : rtypes.string.isRequired
 
     render: ->
-        <div style={STDOUT_STYLE}>
-            {@props.value}
-        </div>
+        if @props.value.indexOf("\u001b") != -1
+            # useful heuristic.
+            <div style={ANSI_STYLE}>
+                <Ansi>{@props.value}</Ansi>
+            </div>
+        else
+            <div style={STDOUT_STYLE}>
+                {@props.value}
+            </div>
 
 Data = rclass
     propTypes:
@@ -118,8 +127,6 @@ Data = rclass
                     />
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
-
-Ansi = require('ansi-to-react')
 
 Traceback = rclass
     propTypes :

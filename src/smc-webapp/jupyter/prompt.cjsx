@@ -18,6 +18,7 @@ INPUT_STYLE =
     fontFamily   : 'monospace'
     textAlign    : 'right'
     paddingRight : '.4em'
+    marginRight  : '3px'
 
 exports.InputPrompt = rclass
     propTypes:

@@ -127,6 +127,9 @@ class exports.JupyterActions extends actions.JupyterActions
                         @set_backend_state('init')
                         @ensure_backend_kernel_setup()
 
+            @_jupyter_kernel.on 'execution_state', (state) =>
+                @_set({type:'settings', kernel_state: state}, false)
+
             # Record info about our kernel.
             @_set
                 type     : 'settings'

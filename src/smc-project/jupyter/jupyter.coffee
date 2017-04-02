@@ -99,7 +99,11 @@ class Kernel extends EventEmitter
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
-            @_channels.iopub.subscribe((mesg) => @emit('iopub', mesg))
+
+            @_channels.iopub.subscribe (mesg) =>
+                if mesg.content?.execution_state?
+                    @emit('execution_state', mesg.content?.execution_state)
+                @emit('iopub', mesg)
 
             @once 'iopub', =>
                 # first iopub message from the kernel means it has start running
