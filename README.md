@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/sagemathinc/smc.png?label=ready&title=Ready)](https://waffle.io/sagemathinc/smc)
 # ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-48.png) SageMathCloud (SMC)
 
 #### _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
