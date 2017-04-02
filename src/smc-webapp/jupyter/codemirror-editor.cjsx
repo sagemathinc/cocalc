@@ -53,7 +53,7 @@ exports.CodeMirrorEditor = rclass
             @props.actions?.unregister_input_editor(@props.id)
 
     _cm_focus: ->
-        if not @props.actions?
+        if not @cm? or not @props.actions?
             return
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
@@ -61,13 +61,13 @@ exports.CodeMirrorEditor = rclass
         @_cm_cursor()
 
     _cm_blur: ->
-        if not @props.actions?
+        if not @cm? or not @props.actions?
             return
         @props.set_last_cursor(@cm.getCursor())
         @props.actions.set_mode('escape')
 
     _cm_cursor: ->
-        if not @props.actions?
+        if not @cm? or not @props.actions?
             return
         if @cm._setValueNoJump   # if true, cursor move is being caused by external setValueNoJump
             return
@@ -100,6 +100,8 @@ exports.CodeMirrorEditor = rclass
         @cm.setValueNoJump(new_val)
 
     _cm_update_cursors: (cursors) ->
+        if not @cm?
+            return
         now = misc.server_time()
         cursors?.forEach (locs, account_id) =>
             v = []
@@ -110,14 +112,14 @@ exports.CodeMirrorEditor = rclass
             @draw_other_cursors(@cm, account_id, v)
 
     _cm_undo: ->
-        if not @props.actions?
+        if not @cm? or not @props.actions?
             return
         if not @props.actions.syncdb.in_undo_mode() or @cm.getValue() != @_cm_last_remote
             @_cm_save()
         @props.actions.undo()
 
     _cm_redo: ->
-        if not @props.actions?
+        if not @cm? or not @props.actions?
             return
         @props.actions.redo()
 
@@ -137,6 +139,8 @@ exports.CodeMirrorEditor = rclass
             @tab_nothing_selected()
 
     tab_nothing_selected: ->
+        if not @cm?
+            return
         cur  = @cm.getCursor()
         if cur.ch == 0 or /\s/.test(@cm.getLine(cur.line)[cur.ch - 1])  # whitespace before cursor
             CodeMirror.commands.defaultTab(@cm)

@@ -29,7 +29,8 @@ SYNCSTRING_MAX_AGE_M = 20
 # syncstring, etc.  It's critical that those only close when the user explicitly
 # kills them, or the project is closed.
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
-    sagews : true   # only sagews for now.
+    sagews : true
+    'sage-ipython' : true
 
 fs     = require('fs')
 {join} = require('path')
