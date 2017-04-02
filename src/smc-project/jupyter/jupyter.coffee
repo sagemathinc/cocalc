@@ -15,6 +15,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {blob_store} = require('./jupyter-blobs')
 
+node_cleanup = require('node-cleanup')
+
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
@@ -60,13 +62,18 @@ call process_output without spawning an actual kernel.
 ###
 _jupyter_kernels = {}
 
+node_cleanup =>
+    for id, kernel of _jupyter_kernels
+        kernel.close()
+
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
         @_identity = misc.uuid()
         _jupyter_kernels[@_identity] = @
-        @_state = 'init'    # 'init', 'spawning', 'running', 'closed'
+        @_state = 'off'    # 'off', 'spawning', 'running', 'closed'
         dbg = @dbg('constructor')
         dbg()
+        process.on('exit',=>console.log("exiting"))
 
     spawn: (cb) =>
         dbg = @dbg('spawn')
@@ -83,14 +90,22 @@ class Kernel extends EventEmitter
         @_state = 'spawning'
         dbg('spawning kernel...')
         require('spawnteract').launch(@name).then (kernel) =>
-            dbg("spawend kernel; now creating comm channels...")
+            dbg("spawned kernel; now creating comm channels...")
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
             @_channels.iopub.subscribe((mesg) => @emit('iopub', mesg))
+
+            kernel.spawn.on 'close', =>
+                kernel.spawn.kill()
+                # kernel process died for some reason; clean up and set the state properly.
+                fs.unlink(@_kernel.connectionFile)
+                delete @_kernel
+                delete @_channels
+                @_state = 'off'
+                # TODO: we need to emit kernel status changes, and project-actions need to listen and respect
+
             @_state = 'running'
-            # kill this kernel no matter what if process exits.
-            process.on('exit', @close)
             @emit('init')
             for cb in @_spawn_cbs
                 cb?()
@@ -104,7 +119,8 @@ class Kernel extends EventEmitter
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
-            @_kernel.spawn.kill()
+            @_kernel.spawn?.removeAllListeners()
+            @_kernel.spawn?.kill()
             fs.unlink(@_kernel.connectionFile)
             delete @_kernel
             delete @_channels
@@ -142,7 +158,7 @@ class Kernel extends EventEmitter
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("_execute_code")
-        dbg("code='#{opts.code}', all={#opts.all}")
+        dbg("code='#{opts.code}', all=#{opts.all}")
 
         message =
             header:

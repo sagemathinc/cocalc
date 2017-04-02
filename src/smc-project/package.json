@@ -13,6 +13,7 @@
     "express": "^4.13.3",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
+    "node-cleanup": "^2.1.2",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",
     "serve-index": "^1.7.2",
