@@ -68,26 +68,31 @@ node_cleanup =>
 
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg) ->
+        @_set_state('off')
         @_identity = misc.uuid()
         _jupyter_kernels[@_identity] = @
-        @_state = 'off'    # 'off', 'spawning', 'running', 'closed'
         dbg = @dbg('constructor')
         dbg()
         process.on('exit',=>console.log("exiting"))
+
+    _set_state: (state) =>
+        # state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
+        @_state = state
+        @emit('state', @_state)
 
     spawn: (cb) =>
         dbg = @dbg('spawn')
         if @_state == 'closed'
             cb?('closed')
             return
-        if @_state == 'running'
+        if @_state in ['running', 'starting']
             cb?()
             return
         if @_state == 'spawning'
             @_spawn_cbs.push(cb)
             return
         @_spawn_cbs = [cb]
-        @_state = 'spawning'
+        @_set_state('spawning')
         dbg('spawning kernel...')
         require('spawnteract').launch(@name).then (kernel) =>
             dbg("spawned kernel; now creating comm channels...")
@@ -96,10 +101,14 @@ class Kernel extends EventEmitter
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
             @_channels.iopub.subscribe((mesg) => @emit('iopub', mesg))
 
+            @once 'iopub', =>
+                # first iopub message from the kernel means it has start running
+                @_set_state('running')
+
             kernel.spawn.on('close', @close)
 
-            @_state = 'running'
-            @emit('init')
+            @_set_state('starting') # so we can send code execution to the kernel, etc.
+
             for cb in @_spawn_cbs
                 cb?()
         return
@@ -108,8 +117,8 @@ class Kernel extends EventEmitter
         @dbg("close")()
         if @_state == 'closed'
             return
+        @_set_state('closed')
         delete _jupyter_kernels[@_identity]
-        @emit('close')
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
@@ -118,8 +127,6 @@ class Kernel extends EventEmitter
             fs.unlink(@_kernel.connectionFile)
             delete @_kernel
             delete @_channels
-        # TODO -- clean up channels?
-        @_state = 'closed'
 
     dbg: (f) =>
         if not @_dbg?
@@ -128,6 +135,9 @@ class Kernel extends EventEmitter
             return @_dbg("jupyter.Kernel('#{@name}',identity='#{@_identity}').#{f}")
 
     _ensure_running: (cb) =>
+        if @_state == 'closed'
+            cb("closed")
+            return
         if @_state != 'running'
             @spawn(cb)
         else

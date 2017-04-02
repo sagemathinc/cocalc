@@ -17,6 +17,29 @@ DEFAULT_KERNEL = 'python2'  #TODO
 
 class exports.JupyterActions extends actions.JupyterActions
 
+    set_backend_state: (state) =>
+        ###
+        The backend states, which are put in the syncdb so clients
+        can display this:
+
+         - 'init' -- the backend is checking the file on disk, etc.
+         - 'ready' -- the backend is setup and ready to use; kernel isn't running though
+         - 'starting' -- the kernel itself is actived and currently starting up (e.g., Sage is starting up)
+         - 'running' -- the kernel is running and ready to evaluate code
+
+
+         'init' --> 'ready'  --> 'spawning' --> 'starting' --> 'running'
+                     /|\                                        |
+                      |-----------------------------------------|
+
+        Going from ready to starting happens when a code execution is requested.
+        ###
+        if state not in ['init', 'ready', 'spawning', 'starting', 'running']
+            throw Error("invalid backend state '#{state}'")
+        @_set
+            type          : 'settings'
+            backend_state : state
+
     # Called exactly once when the manager first starts up after the store is initialized.
     # Here we ensure everything is in a consistent state so that we can react
     # to changes later.
@@ -24,8 +47,11 @@ class exports.JupyterActions extends actions.JupyterActions
         if @_initialize_manager_already_done
             return
         @_initialize_manager_already_done = true
+
         dbg = @dbg("initialize_manager")
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
+
+        @set_backend_state('init')
 
         # @_load_from_disk_if_newer must happen before anything that might touch
         # the syncdb state.  Otherwise, the syncdb state will automatically be
@@ -46,21 +72,66 @@ class exports.JupyterActions extends actions.JupyterActions
             if not @store.get('kernel')?
                 @set_kernel(DEFAULT_KERNEL)
                 @ensure_backend_kernel_setup()
+            @set_backend_state('ready')
+
+            @syncdb.on('change', @_backend_syncdb_change)
+
+    _backend_syncdb_change: (changes) =>
+        changes?.forEach (key) =>
+            if key.get('type') != 'settings'
+                return
+            record = @syncdb.get_one(key)
+            # ensure kernel is properly configured
+            @ensure_backend_kernel_setup(record?.get('kernel'))
+            return
+        @ensure_there_is_a_cell()
 
     ensure_backend_kernel_setup: (kernel) =>
-        if not kernel?
-            kernel = @store.get('kernel') ? 'python2'  # TODO...
-        if not @_jupyter_kernel? or @_jupyter_kernel.name != kernel
-            # user has since changed the kernel, so close this one and make a new one
+        dbg = @dbg("ensure_backend_kernel_setup")
+        kernel ?= @store.get('kernel') ? 'python2'  # TODO...
+        current = @_jupyter_kernel?.name
+
+        dbg("kernel='#{kernel}'; current='#{current}'")
+
+        if current == kernel
+            # everything is properly setup
+            return
+
+        if current? and current != kernel
+            dbg("kernel changed")
+            # kernel changed -- close it; this will trigger 'close' event, which
+            # runs code below that deletes attribute and creates new kernel wrapper.
             @_jupyter_kernel?.close()
+            return
+
+        if not @_jupyter_kernel?
+            dbg("no kernel; make one")
+            # No kernel wrapper object setup at all. Make one.
             @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
-            @_jupyter_kernel.on 'close', =>
+
+            @_jupyter_kernel.once 'close', =>
+                # kernel closed -- clean up then make new one.
                 delete @_jupyter_kernel
                 @ensure_backend_kernel_setup()
-        @_set
-            type     : 'settings'
-            identity : @_jupyter_kernel.get_identity()
-            kernel   : kernel
+
+            # Ready to run code, etc.
+            @set_backend_state('ready')
+
+            # Track backend state changes.
+            @_jupyter_kernel.on 'state', (state) =>
+                switch state
+                    when 'spawning', 'starting', 'running'
+                        @set_backend_state(state)
+                    when 'closed'
+                        delete @_jupyter_kernel
+                        @set_backend_state('init')
+                        @ensure_backend_kernel_setup()
+
+            # Record info about our kernel.
+            @_set
+                type     : 'settings'
+                identity : @_jupyter_kernel.get_identity()
+                kernel   : kernel
 
     init_kernel_info: =>
         if not @store.get('kernels')?

@@ -322,15 +322,14 @@ class exports.JupyterActions extends Actions
                 when 'settings'
                     kernel = record?.get('kernel')
                     @setState
-                        kernel      : kernel
-                        identity    : record?.get('identity')
-                        kernel_info : @store.get_kernel_info(kernel)
-                        cm_options  : cm_options(kernel)
+                        kernel        : kernel
+                        identity      : record?.get('identity')
+                        kernel_info   : @store.get_kernel_info(kernel)
+                        backend_state : record?.get('backend_state')
+                        cm_options    : cm_options(kernel)
             return
         if cell_list_needs_recompute
             @set_cell_list()
-        else if @_is_project
-            @ensure_there_is_a_cell()
         cur_id = @store.get('cur_id')
         if not cur_id? or not @store.getIn(['cells', cur_id])?
             @set_cur_id(@store.get('cell_list')?.get(0))
