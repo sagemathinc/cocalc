@@ -56,7 +56,7 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_group_run: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.run_selected_cells()} >
+            <Button onClick={=>@props.actions.shift_enter_run_selected_cells()} >
                 <Icon name='step-forward'/>
             </Button>
             <Button onClick={=>@props.actions.signal('SIGINT')} >

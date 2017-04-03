@@ -22,9 +22,7 @@ key_handler = (evt) ->
                 actions.set_mode('escape')
                 return false
             else if evt.shiftKey
-                actions.run_selected_cells()
-                actions.move_cursor(1)
-                actions.set_mode('escape')
+                actions.shift_enter_run_selected_cells()
                 return false
             else if evt.altKey or evt.metaKey
                 v = store.get_selected_cell_ids_list()

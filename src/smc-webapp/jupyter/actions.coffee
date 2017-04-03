@@ -549,6 +549,31 @@ class exports.JupyterActions extends Actions
             @run_cell(id)
         @save_asap()
 
+    # Run the selected cells, by either clicking the play button or
+    # press shift+enter.  Note that this has somewhat weird/inconsitent
+    # behavior in official Jupyter for usability reasons and due to
+    # their "modal" approach.
+    # In paricular, if the selections goes to the end of the document, we
+    # create a new cell and set it the mode to edit; otherwise, we advance
+    # the cursor and switch to escape mode.
+    shift_enter_run_selected_cells: =>
+        v = @store.get_selected_cell_ids_list()
+        if v.length == 0
+            return
+        last_id = v[v.length-1]
+
+        @run_selected_cells()
+
+        cell_list = @store.get('cell_list')
+        if cell_list?.get(cell_list.size-1) == last_id
+            @set_cur_id(last_id)
+            @insert_cell(1)
+            @set_mode('edit')
+        else
+            @move_cursor(1)
+            @set_mode('escape')
+
+
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
             @run_cell(id)
