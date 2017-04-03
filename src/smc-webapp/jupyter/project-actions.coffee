@@ -179,14 +179,31 @@ class exports.JupyterActions extends actions.JupyterActions
     # ones actually running or queued up to run.
     sync_exec_state: =>
         change = false
+        # First verify that all actual cells that are said to be running
+        # (according to the store) are in fact running.
         @store.get('cells').forEach (cell, id) =>
             state = cell.get('state')
             if state? and state != 'done' and not @_running_cells?[id]
                 @_set({type:'cell', id:id, state:'done'}, false)
                 change = true
             return
+        if @_running_cells?
+            cells = @store.get('cells')
+            # Next verify that every cell actually running is still in the document
+            # and listed as running.  TimeTravel, deleting cells, etc., can
+            # certainly lead to this being necessary.
+            for id of @_running_cells
+                state = cells.get(id)?.get('state')
+                if not state? or state == 'done'
+                    # cell no longer exists or isn't in a running state
+                    @_cancel_run(id)
         if change
             @_sync()
+
+    _cancel_run: (id) =>
+        if @_running_cells?[id]
+            @_jupyter_kernel?.cancel_execute(id: id)
+            delete @_running_cells[id]
 
     # Runs only on the backend
     manager_run_cell: (id) =>
@@ -233,6 +250,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @_jupyter_kernel.execute_code
             code : input
+            id   : id
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
                 if err

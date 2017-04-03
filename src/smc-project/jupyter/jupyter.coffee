@@ -166,6 +166,7 @@ class Kernel extends EventEmitter
     execute_code: (opts) =>
         opts = defaults opts,
             code : required
+            id   : undefined   # optional tag to be used by cancel_execute
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
 
@@ -173,6 +174,27 @@ class Kernel extends EventEmitter
         @_execute_code_queue.push(opts)
         if @_execute_code_queue.length == 1
             @_process_execute_code_queue()
+
+    cancel_execute: (opts) =>
+        opts = defaults opts,
+            id : required
+        dbg = @dbg("cancel_execute(id='#{opts.id}')")
+        if not @_execute_code_queue? or @_execute_code_queue.length == 0
+            dbg("nothing to do")
+            return
+        if @_execute_code_queue.length > 1
+            dbg("mutate @_execute_code_queue removing everything with the given id")
+            for i in [@_execute_code_queue.length - 1 .. 1]
+                o = @_execute_code_queue[i]
+                if o.id == opts.id
+                    dbg("removing entry #{i} from queue")
+                    @_execute_code_queue.splice(i, 1)
+                    o.cb("cancelled")
+        # if the currently running computation involves this id, send an
+        # interrupt signal (that's the best we can do)
+        if @_execute_code_queue[0].id == opts.id
+            dbg("interrupting running computation")
+            @signal("SIGINT")
 
     _process_execute_code_queue: =>
         dbg = @dbg("_process_execute_code_queue")
@@ -205,6 +227,7 @@ class Kernel extends EventEmitter
     _execute_code: (opts) =>
         opts = defaults opts,
             code : required
+            id   : undefined   # optional tag that can be used as input to cancel_execute.
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
