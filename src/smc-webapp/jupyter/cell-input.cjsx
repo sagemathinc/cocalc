@@ -35,8 +35,16 @@ exports.CellInput = rclass
             next.cm_options             != @props.cm_options or \
             (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused             != @props.is_focused or \
+            next.is_current             != @props.is_current or \
             next.font_size              != @props.font_size or \
             next.complete               != @props.complete
+
+    componentDidUpdate: ->
+        if @props.is_current
+            elt = $(ReactDOM.findDOMNode(@))
+            elt.scrollintoview
+                direction: "vertical"
+                viewPadding: { y: 50 }
 
     render_input_prompt: (type) ->
         <InputPrompt

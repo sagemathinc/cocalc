@@ -13,11 +13,18 @@ Top-level react component, which ties everything together
 {CellList}     = require('./cell-list')
 #{CellList}     = require('./cell-list-single-editor')
 {Kernel, Mode} = require('./status')
+keyboard = require('./keyboard')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
         error   : rtypes.string
         actions : rtypes.object.isRequired
+
+    componentDidMount: ->
+        keyboard.enable_handler(@props.actions)
+
+    componentWillUnmount: ->
+        keyboard.disable_handler(@props.actions)
 
     reduxProps :
         "#{name}" :

@@ -123,13 +123,6 @@ exports.CodeMirrorEditor = rclass
             return
         @props.actions.redo()
 
-    run_cell: ->
-        if not @props.actions?
-            return
-        @props.actions.run_cell(@props.id)
-        @props.actions.move_cursor(1)
-        @props.actions.set_mode('escape')
-
     tab_key: ->
         if not @props.actions? or not @cm?
             return
@@ -159,7 +152,6 @@ exports.CodeMirrorEditor = rclass
 
             #enable_folding(options)  # too hard to get margins right, save state; unify with blurred...
                                       # for now; maybe enable per cell optionally...
-            options.extraKeys["Shift-Enter"] = @run_cell
             options.extraKeys["Tab"] = @tab_key
         else
             options.readOnly = true

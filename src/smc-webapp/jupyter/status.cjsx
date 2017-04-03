@@ -18,7 +18,7 @@ exports.Mode = rclass ({name}) ->
     render : ->
         if @props.mode != 'edit'
             return <span />
-        <div className='pull-right' style={color:'#666', margin:'5px', padding:'5px'}>
+        <div className='pull-right' style={color:'#666', margin:'5px', paddingRight:'5px'}>
             <Icon name='pencil' />
         </div>
 
