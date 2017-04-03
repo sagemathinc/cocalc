@@ -245,7 +245,7 @@ exports.TopMenubar = rclass ({name}) ->
             </Dropdown.Menu>
         </Dropdown>
 
-    render_widgets: ->
+    render_widgets: -> # TODO: not supported in v1
         <Dropdown key='widgets' id='menu-widgets'>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                  Widgets
@@ -334,7 +334,7 @@ exports.TopMenubar = rclass ({name}) ->
                 {@render_insert()}
                 {@render_cell()}
                 {@render_kernel()}
-                {@render_widgets()}
+                {# @render_widgets()}
                 {@render_help()}
             </ButtonGroup>
         </div>
