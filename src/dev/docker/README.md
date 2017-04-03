@@ -1,12 +1,12 @@
-# SageMathCloud Docker image
+# CoCalc Docker image
 
-This is a self-contained single-image multi-user SageMathCloud server.
+This is a self-contained single-image multi-user CoCalc server.
 
 **STATUS:**
   - This is _**not blatantly insecure**_: the database has a long random password, user accounts are separate, ssl communication is supported by default, etc.
   - That said, **a determined user with an account can very likely access or change files of other users in the same container!** Use this for personal use, behind a firewall, or with an account creation token, so that only other people you trust create accounts.  Don't make one of these publicly available with important data in it and no account creation token!
   - There are no quotas except idle timeout.
-  - See the [open docker-related SageMathCloud issues](https://github.com/sagemathinc/cocalc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues.
+  - See the [open docker-related CoCalc issues](https://github.com/sagemathinc/cocalc/issues?q=is%3Aopen+is%3Aissue+label%3AA-docker), which may include several issues.
 
 ## Instructions
 
@@ -18,7 +18,7 @@ Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).  
 
 (If you get an error about the Docker daemon, instead run `sudo docker ...`.)
 
-The above command will first download the image, then start SageMathCloud, storing your data in the directory `~/smc` on your computer. (If you want to store your worksheets and edit history elsewhere, change ~/smc to something else.)  Once your local SageMathCloud is running, open your web browser to http://localhost (or https://localhost).
+The above command will first download the image, then start CoCalc, storing your data in the directory `~/smc` on your computer. (If you want to store your worksheets and edit history elsewhere, change ~/smc to something else.)  Once your local CoCalc is running, open your web browser to http://localhost (or https://localhost).
 
 The docker container is called `smc` and you can refer to the container and use commands like:
 
@@ -31,7 +31,7 @@ You can watch the logs:
 
 ### Clock skew on OS X
 
-It is **critical** that the Docker container have the correct time, since SMC assumes that the server has the correct time.
+It is **critical** that the Docker container have the correct time, since CoCalc assumes that the server has the correct time.
 On a laptop running Docker under OS X, the clock will get messed up any time you suspend/resume your laptop.  A very easy to install workaround is at https://github.com/arunvelsriram/docker-time-sync-agent/.
 
 
@@ -96,7 +96,7 @@ Once done, you can delete and recreate your smc container.  This will not delete
 
 ## Build
 
-This section is for SageMathCloud developers.
+This section is for CoCalc developers.
 
 Build the image
 
