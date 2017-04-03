@@ -123,7 +123,8 @@ class Kernel extends EventEmitter
         dbg("pid=#{pid}, signal=#{signal}")
         if pid
             try
-                process.kill(-pid, signal)
+                @_clear_execute_code_queue()
+                process.kill(-pid, signal)   # negative to kill the process group
             catch err
                 dbg("error: #{err}")
 
@@ -141,6 +142,10 @@ class Kernel extends EventEmitter
             fs.unlink(@_kernel.connectionFile)
             delete @_kernel
             delete @_channels
+        if @_execute_code_queue?
+            for opts in @_execute_code_queue
+                opts.cb('closed')
+            delete @_execute_code_queue
 
     dbg: (f) =>
         if not @_dbg?
@@ -163,12 +168,39 @@ class Kernel extends EventEmitter
             code : required
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+
+        @_execute_code_queue ?= []
+        @_execute_code_queue.push(opts)
+        if @_execute_code_queue.length == 1
+            @_process_execute_code_queue()
+
+    _process_execute_code_queue: =>
+        dbg = @dbg("_process_execute_code_queue")
+        if not @_execute_code_queue?
+            dbg("no queue")
+            return
+        n = @_execute_code_queue.length
+        if n == 0
+            dbg("queue is empty")
+            return
+        dbg("queue has #{n} items; ensure kernel running")
         @_ensure_running (err) =>
             if err
+                dbg("error running kernel -- #{err}")
                 opts.cb(err)
             else
-                @_execute_code(opts)
+                dbg("now executing oldest item in queue")
+                @_execute_code(@_execute_code_queue[0])
         return
+
+    _clear_execute_code_queue: =>
+        # ensure no future queued up evaluation occurs (currently running
+        # one will complete and new executions could happen)
+        if not @_execute_code_queue?
+            return
+        for opts in @_execute_code_queue.slice(1)
+            opts.cb('interrupt')
+        @_execute_code_queue = []
 
     _execute_code: (opts) =>
         opts = defaults opts,
@@ -199,16 +231,20 @@ class Kernel extends EventEmitter
         f = (mesg) =>
             if mesg.parent_header.msg_id == message.header.msg_id
                 dbg("got message -- #{JSON.stringify(mesg)}")
-                mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
+                done = mesg.content?.execution_state == 'idle'  # check this before giving opts.cb the chance to mutate.
+
                 # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
-                # is pretty annoying for our use. Investigate.  For now, we just copy it, which is a waste.
+                # is pretty annoying for our use. For now, we just copy it, which is a waste.
+                mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
                 mesg = misc.deep_copy(mesg)
                 if opts.all
                     all_mesgs.push(mesg)
                 else
                     opts.cb(undefined, mesg)
-                if mesg.content?.execution_state == 'idle'
+                if done
                     @removeListener('iopub', f)
+                    @_execute_code_queue.shift()   # finished
+                    @_process_execute_code_queue()
                     if opts.all
                         opts.cb(undefined, all_mesgs)
             else
@@ -305,7 +341,6 @@ class Kernel extends EventEmitter
 
         dbg("send the message")
         @_channels.shell.next(message)
-
 
     http_server: (opts) =>
         opts = defaults opts,
