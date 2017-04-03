@@ -32,6 +32,7 @@ exports.CodeMirrorEditor = rclass
         click_coords     : rtypes.object  # coordinates if cell was just clicked on
         set_last_cursor  : rtypes.func.isRequired
         last_cursor      : rtypes.object
+        is_focused       : rtypes.bool
 
     reduxProps:
         account :
@@ -174,7 +175,9 @@ exports.CodeMirrorEditor = rclass
         if @props.actions?
             @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
 
-        @cm.focus()
+        if @props.is_focused
+            @cm.focus()
+
         @_cm_update_cursors(cursors)
 
         if @props.click_coords?
@@ -242,8 +245,8 @@ exports.CodeMirrorEditor = rclass
             cm.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
-            # LABEL: first fade the label out over 6s
-            data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+            # LABEL: first fade the label out over 10s
+            data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:10000)
             # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
             data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
 

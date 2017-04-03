@@ -86,7 +86,8 @@ exports.CodeMirrorStatic = rclass
             elt = document.createElement('pre')
             # The newline at the end is needed so that if the cell
             # ends in a blank line, it is properly rendered.
-            CodeMirror.runMode(@props.value+'\n', 'python', elt)
+            mode = @props.options.getIn(['mode', 'name']) ? 'python'
+            CodeMirror.runMode(@props.value+'\n', mode, elt)
             {__html: elt.innerHTML}
         else
             {__html: ' '}   # blank space needed for empty cell to get the right height!

@@ -45,7 +45,7 @@ exports.CodeMirror = rclass
             next.complete     != @props.complete
 
     render: ->
-        if @props.is_focused and not @props.complete?
+        if (@props.is_focused and not @props.complete?) or @props.cursors?.size > 0
             <CodeMirrorEditor
                 actions          = {@props.actions}
                 id               = {@props.id}
@@ -57,6 +57,7 @@ exports.CodeMirror = rclass
                 set_click_coords = {@set_click_coords}
                 set_last_cursor  = {@set_last_cursor}
                 last_cursor      = {@state.last_cursor}
+                is_focused       = {@props.is_focused}
                 />
         else
             <CodeMirrorStatic
