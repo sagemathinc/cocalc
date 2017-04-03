@@ -2,6 +2,8 @@
 React component that describes the output of a cell
 ###
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {CellOutputMessages} = require('./cell-output-message')
@@ -34,7 +36,8 @@ exports.CellOutput = rclass
     render_output_prompt: ->
         collapsed = @props.cell.get('collapsed')
         exec_count = undefined
-        @props.cell.get('output')?.forEach (x) ->
+        output = @props.cell.get('output')
+        output?.forEach (x) ->
             if x.has('execution_count')?
                 exec_count = x.get('execution_count')
                 return false
@@ -43,7 +46,7 @@ exports.CellOutput = rclass
                     exec_count = {exec_count}
                     collapsed  = {collapsed}
                     />
-        if not @props.actions? or collapsed
+        if not @props.actions? or collapsed or not output? or output.size == 0
             return prompt
         if @props.actions?
             <OutputToggle
