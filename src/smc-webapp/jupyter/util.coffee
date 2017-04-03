@@ -27,6 +27,10 @@ exports.get_complete_url = (project_id, identity, code, cursor_pos) ->
         s += "&cursor_pos=#{encodeURIComponent(cursor_pos)}"
     return s
 
+# signal should be SIGINT or SIGKILL (see https://nodejs.org/api/process.html#process_process_kill_pid_signal)
+exports.get_signal_url = (project_id, identity, signal) ->
+    return "#{exports.get_server_url(project_id)}/kernels/#{identity}/signal/#{signal}"
+
 # Given an immutable Map from id's to cells, returns an immutable List whose
 # entries are the id's in the correct order, as defined by the pos field (a float).
 exports.sorted_cell_list = (cells) ->

@@ -86,12 +86,12 @@ class exports.JupyterActions extends Actions
         opts = defaults opts,
             url     : required
             timeout : 15000
-            cb      : required     # (err, data)
+            cb      : undefined    # (err, data)
         $.ajax(
             url     : opts.url
             timeout : opts.timeout
-            success : (data) => opts.cb(undefined, data)
-        ).fail (err) => opts.cb(err.statusText ? 'error')
+            success : (data) => opts.cb?(undefined, data)
+        ).fail (err) => opts.cb?(err.statusText ? 'error')
 
     set_jupyter_kernels: =>
         if jupyter_kernels?
@@ -857,6 +857,13 @@ class exports.JupyterActions extends Actions
             # in the right position after making the change.
             setTimeout((=> @set_cell_input(id, new_input)), 0)
 
+    signal: (signal='SIGINT') =>
+        identity = @store.get('identity')
+        if not identity?
+            return
+        @_ajax
+            url     : util.get_signal_url(@store.get('project_id'), identity, signal)
+            timeout : 5000
 
 
 

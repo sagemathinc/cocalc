@@ -94,7 +94,7 @@ class Kernel extends EventEmitter
         @_spawn_cbs = [cb]
         @_set_state('spawning')
         dbg('spawning kernel...')
-        require('spawnteract').launch(@name).then (kernel) =>
+        require('spawnteract').launch(@name, {detached: true}).then (kernel) =>
             dbg("spawned kernel; now creating comm channels...")
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
@@ -117,6 +117,16 @@ class Kernel extends EventEmitter
                 cb?()
         return
 
+    signal: (signal) =>
+        dbg = @dbg("signal")
+        pid = @_kernel?.spawn?.pid
+        dbg("pid=#{pid}, signal=#{signal}")
+        if pid
+            try
+                process.kill(-pid, signal)
+            catch err
+                dbg("error: #{err}")
+
     close: =>
         @dbg("close")()
         if @_state == 'closed'
@@ -127,7 +137,7 @@ class Kernel extends EventEmitter
         process.removeListener('exit', @close)
         if @_kernel?
             @_kernel.spawn?.removeAllListeners()
-            @_kernel.spawn?.kill()
+            @signal('SIGKILL')  # kill the process group
             fs.unlink(@_kernel.connectionFile)
             delete @_kernel
             delete @_channels
@@ -165,7 +175,7 @@ class Kernel extends EventEmitter
             code : required
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
-        dbg = @dbg("_execute_code")
+        dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
         dbg("code='#{opts.code}', all=#{opts.all}")
 
         message =
@@ -187,8 +197,8 @@ class Kernel extends EventEmitter
             all_mesgs = []
 
         f = (mesg) =>
-            dbg("got message -- #{JSON.stringify(mesg)}")
             if mesg.parent_header.msg_id == message.header.msg_id
+                dbg("got message -- #{JSON.stringify(mesg)}")
                 mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
                 # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
                 # is pretty annoying for our use. Investigate.  For now, we just copy it, which is a waste.
@@ -201,6 +211,8 @@ class Kernel extends EventEmitter
                     @removeListener('iopub', f)
                     if opts.all
                         opts.cb(undefined, all_mesgs)
+            else
+                dbg("IGNORE message -- #{JSON.stringify(mesg)}")
 
         @on('iopub', f)
 
@@ -301,6 +313,9 @@ class Kernel extends EventEmitter
             query    : required
             cb       : required
         switch opts.segments[0]
+            when 'signal'
+                @signal(opts.segments[1])
+                opts.cb(undefined, {})
             when 'complete'
                 code = opts.query.code
                 if not code

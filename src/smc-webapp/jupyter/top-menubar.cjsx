@@ -212,11 +212,29 @@ exports.TopMenubar = rclass ({name}) ->
                 Kernel
             </Dropdown.Toggle>
             <Dropdown.Menu>
-                <MenuItem eventKey="kernel-interrupt">Inerrrupt</MenuItem>
-                <MenuItem eventKey="kernel-restart">Restart</MenuItem>
-                <MenuItem eventKey="kernel-restart-clear">Restart & Clear Output</MenuItem>
-                <MenuItem eventKey="kernel-run-all">Restart & Run All</MenuItem>
-                <MenuItem eventKey="kernel-reconnect">Reconnect</MenuItem>
+                <MenuItem
+                    eventKey = "kernel-interrupt"
+                    onSelect = {=>@props.actions.signal('SIGINT')}>
+                    Interrrupt
+                </MenuItem>
+                <MenuItem
+                    eventKey = "kernel-restart"
+                    onSelect = {=>@props.actions.signal('SIGKILL')}
+                    >
+                    Restart
+                </MenuItem>
+                <MenuItem
+                    eventKey="kernel-restart-clear"
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.clear_all_outputs()}
+                    >
+                    Restart & Clear Output
+                </MenuItem>
+                <MenuItem
+                    eventKey="kernel-run-all"
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.run_all_cells()}
+                    >
+                    Restart & Run All
+                </MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Change kernel...</MenuItem>
                 {@render_kernel_items()}

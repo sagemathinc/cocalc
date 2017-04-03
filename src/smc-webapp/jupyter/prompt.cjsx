@@ -1,16 +1,21 @@
+{Icon, Tip} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 prompt = (state, exec_count) ->
     switch state
         when 'start'
-            n = '⇐'
+            n = <Icon name='arrow-circle-o-left' style={fontSize:'80%'} />
+            tip = "Sending to be computed"
         when 'run'
-            n = '⋯'
+            n = <Icon name='circle-o'  style={fontSize:'80%'} />
+            tip = "Waiting for another computation to finish first"
         when 'busy'
-            n = '*'
+            n = <Icon name='circle'  style={fontSize:'80%'}/>
+            tip = "Running right now"
         else  # done
             n = exec_count ? ' '
-    return n
+            tip = "Done"
+    return {n: n, tip:tip}
 
 INPUT_STYLE =
     color        : '#303F9F'
@@ -29,9 +34,12 @@ exports.InputPrompt = rclass
     render: ->
         if @props.type != 'code'
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
-        <div style={INPUT_STYLE}>
-            In [{prompt(@props.state, @props.exec_count)}]:
-        </div>
+        {n, tip} = prompt(@props.state, @props.exec_count)
+        <Tip title={tip}>
+            <div style={INPUT_STYLE}>
+                In [{n}]:
+            </div>
+        </Tip>
 
 OUTPUT_STYLE =
     color         : '#D84315'
@@ -51,7 +59,7 @@ exports.OutputPrompt = rclass
         if @props.collapsed or not @props.exec_count
             n = undefined
         else
-            n = prompt(@props.state, @props.exec_count)
+            n = @props.exec_count ? ' '
         if not n?
             return <div style={OUTPUT_STYLE}> </div>
         else

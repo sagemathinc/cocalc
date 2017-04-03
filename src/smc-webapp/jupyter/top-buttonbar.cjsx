@@ -59,11 +59,8 @@ exports.TopButtonbar = rclass ({name}) ->
             <Button onClick={=>@props.actions.run_selected_cells()} >
                 <Icon name='step-forward'/>
             </Button>
-            <Button>
+            <Button onClick={=>@props.actions.signal('SIGINT')} >
                 <Icon name='stop'/>
-            </Button>
-            <Button>
-                <Icon name='refresh'/>
             </Button>
         </ButtonGroup>
 

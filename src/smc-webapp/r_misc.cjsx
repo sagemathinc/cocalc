@@ -104,6 +104,7 @@ exports.Icon = Icon = rclass
         rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
         flip       : rtypes.oneOf(['horizontal', 'vertical'])
         spin       : rtypes.bool
+        pulse      : rtypes.bool
         fixedWidth : rtypes.bool
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
@@ -118,7 +119,7 @@ exports.Icon = Icon = rclass
         onClick : ->
 
     render: ->
-        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
         if name.slice(0, 3) == 'fa-'
             classNames = "fa #{name}"
@@ -134,6 +135,8 @@ exports.Icon = Icon = rclass
             classNames += ' fa-fw'
         if spin
             classNames += ' fa-spin'
+        if pulse
+            classNames += ' fa-pulse'
         if stack
             classNames += " fa-stack-#{stack}"
         if inverse
