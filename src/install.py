@@ -57,6 +57,8 @@ def install_webapp(*args):
         cmd("cd wizard && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm install"%path)
+        # updating color schme must come first and before webpack.
+        cmd("./scripts/update_color_scheme.coffee")
         # react static step must come *before* webpack step
         cmd("update_react_static")
         # update primus - so client has it.
