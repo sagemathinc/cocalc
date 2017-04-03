@@ -20,7 +20,7 @@
 
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {webapp_client} = require('../webapp_client')

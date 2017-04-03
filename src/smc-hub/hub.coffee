@@ -1,10 +1,29 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculations in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
-This is the SMC Global HUB.  It runs as a daemon, sitting in the
+This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
 middle of the action, connected to potentially thousands of clients,
 many Sage sessions, and PostgreSQL database.  There are
 many HUBs running.
-
-AGPLv3
 ###
 
 require('coffee-cache')
@@ -52,7 +71,7 @@ mime           = require('mime')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
-# smc path configurations (shared with webpack)
+# CoCalc path configurations (shared with webpack)
 misc_node      = require('smc-util-node/misc_node')
 SMC_ROOT       = misc_node.SMC_ROOT
 SALVUS_HOME    = misc_node.SALVUS_HOME
@@ -62,7 +81,7 @@ WEBAPP_LIB     = misc_node.WEBAPP_LIB
 
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 message = require('smc-util/message')     # message protocol between front-end and back-end

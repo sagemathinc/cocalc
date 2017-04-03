@@ -1,9 +1,5 @@
 ###
 Passport Authentication (oauth, etc.)
-
-LICENSE: AGPLv3
-
-(c) 2015-2017 SageMath, Inc.
 ###
 
 async   = require('async')
@@ -435,7 +431,7 @@ exports.init_passport = (opts) ->
                 cb(err)
                 return
             # Get these by going to https://developers.facebook.com/ and creating a new application.
-            # For that application, set the url to the site SMC will be served from.
+            # For that application, set the url to the site CoCalc will be served from.
             # The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
             # for oauth2, as I discovered by a lucky guess... (sigh).
             #
@@ -526,7 +522,7 @@ exports.init_passport = (opts) ->
             # Get these by:
             #      (1) make a bitbucket account
             #      (2) Go to https://bitbucket.org/account/user/[your username]/api
-            #      (3) Click add consumer and enter the URL of your SMC instance.
+            #      (3) Click add consumer and enter the URL of your CoCalc instance.
             #
             # You must then put them in the database, via
             #   db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)

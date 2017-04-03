@@ -38,12 +38,12 @@ IDEAS FOR NEXT VERSION (after a release):
 
 ###
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable = require('immutable')
 async     = require('async')
 markdownlib = require('../markdown')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {webapp_client} = require('../webapp_client')
