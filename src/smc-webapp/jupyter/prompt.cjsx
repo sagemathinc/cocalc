@@ -1,21 +1,11 @@
-{Icon, Tip} = require('../r_misc')
+"""
+Components for rendering input and output prompts.
+"""
+
+{Icon, TimeAgo, Tip} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-prompt = (state, exec_count) ->
-    switch state
-        when 'start'
-            n = <Icon name='arrow-circle-o-left' style={fontSize:'80%'} />
-            tip = "Sending to be computed"
-        when 'run'
-            n = <Icon name='circle-o'  style={fontSize:'80%'} />
-            tip = "Waiting for another computation to finish first"
-        when 'busy'
-            n = <Icon name='circle'  style={fontSize:'80%'}/>
-            tip = "Running right now"
-        else  # done
-            n = exec_count ? ' '
-            tip = "Done"
-    return {n: n, tip:tip}
+misc = require('smc-util/misc')
 
 INPUT_STYLE =
     color        : '#303F9F'
@@ -24,21 +14,53 @@ INPUT_STYLE =
     textAlign    : 'right'
     paddingRight : '.4em'
     marginRight  : '3px'
+    cursor       : 'pointer'
 
 exports.InputPrompt = rclass
     propTypes:
         type       : rtypes.string
         state      : rtypes.string
         exec_count : rtypes.number
+        kernel     : rtypes.string
+        start      : rtypes.number
+        end        : rtypes.number
 
     render: ->
         if @props.type != 'code'
             return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
-        {n, tip} = prompt(@props.state, @props.exec_count)
-        <Tip title={tip}>
-            <div style={INPUT_STYLE}>
-                In [{n}]:
-            </div>
+
+        kernel = misc.capitalize(@props.kernel ? '')
+
+        switch @props.state
+            when 'start'
+                n = <Icon name='arrow-circle-o-left' style={fontSize:'80%'} />
+                tip = "Sending to be evaluated using #{kernel}."
+            when 'run'
+                n = <Icon name='circle-o'  style={fontSize:'80%'} />
+                tip = "Waiting for another computation to finish first. Will evaluate using #{kernel}."
+            when 'busy'
+                n = <Icon name='circle'  style={fontSize:'80%'}/>
+                if @props.start?
+                    tip = <span>Running since <TimeAgo date = {new Date(@props.start)} /> using {kernel}.</span>
+                else
+                    tip = "Running using #{kernel}."
+            else  # done (or never run)
+                if @props.exec_count
+                    n = @props.exec_count
+                    if @props.end?
+                        tip = <span>Evaluated <TimeAgo date = {new Date(@props.end)} /> using {kernel}.</span>
+                    else
+                        tip = "Last evaluated using #{kernel}."
+                else
+                    n = ' '
+                    tip = "Enter code to be evaluated."
+
+        x = <div style={INPUT_STYLE}>In [{n}]:</div>
+        <Tip
+            title     = {'Code Cell'}
+            tip       = {tip}
+            placement = 'right'>
+            {x}
         </Tip>
 
 OUTPUT_STYLE =

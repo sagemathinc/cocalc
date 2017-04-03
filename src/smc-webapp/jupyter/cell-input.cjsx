@@ -43,6 +43,9 @@ exports.CellInput = rclass
             type       = {type}
             state      = {@props.cell.get('state')}
             exec_count = {@props.cell.get('exec_count')}
+            kernel     = {@props.cell.get('kernel')}
+            start      = {@props.cell.get('start')}
+            end        = {@props.cell.get('end')}
         />
 
     handle_md_double_click: ->

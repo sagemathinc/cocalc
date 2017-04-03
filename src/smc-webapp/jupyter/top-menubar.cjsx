@@ -54,7 +54,11 @@ exports.TopMenubar = rclass ({name}) ->
                 </MenuItem>
                 <MenuItem eventKey="timetravel">Publish...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="timetravel">TimeTravel...</MenuItem>
+                <MenuItem
+                    eventKey="timetravel"
+                    onSelect={=>@props.actions.show_history_viewer()}>
+                        TimeTravel...
+                </MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="print">Print Preview</MenuItem>
                 <MenuItem eventKey="download" disabled>Download As...</MenuItem>
