@@ -44,7 +44,7 @@ exports.CellInput = rclass
             elt = $(ReactDOM.findDOMNode(@))
             elt.scrollintoview
                 direction: "vertical"
-                viewPadding: { y: 50 }
+                viewPadding: { y: 150 }
 
     render_input_prompt: (type) ->
         <InputPrompt

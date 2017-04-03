@@ -42,7 +42,7 @@ class exports.JupyterActions extends Actions
 
         @setState
             error               : undefined
-            cur_id              : undefined
+            cur_id              : @store.get_local_storage('cur_id')
             toolbar             : true
             has_unsaved_changes : true
             sel_ids             : immutable.Set()  # immutable set of selected cells
@@ -75,6 +75,7 @@ class exports.JupyterActions extends Actions
     close: =>
         if @_state == 'closed'
             return
+        @set_local_storage('cur_id', @store.get('cur_id'))
         @_state = 'closed'
         @syncdb.close()
         delete @syncdb
