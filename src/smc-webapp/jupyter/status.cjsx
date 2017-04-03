@@ -78,7 +78,8 @@ exports.Kernel = rclass ({name}) ->
             'idle' or 'running'
         ###
         spin = false
-        tip = "Backend state is '#{backend_state}'."
+        backend_tip = "Backend is #{backend_state}."
+        kernel_tip = ''
         switch backend_state
             when 'init'
                 name = 'unlink'
@@ -94,16 +95,17 @@ exports.Kernel = rclass ({name}) ->
                 switch @props.kernel_state
                     when 'busy'
                         name = 'circle'
-                        tip += ' Kernel is busy.'
+                        kernel_tip = ' Kernel is busy.'
                     when 'idle'
                         name = 'circle-o'
-                        tip += ' Kernel is idle.'
+                        kernel_tip = ' Kernel is idle.'
                     else
                         name = 'circle-o'
-                        tip += ' Kernel will start when you run code.'
+                        kernel_tip = ' Kernel will start when you run code.'
 
         icon  = <Icon name={name} spin={spin} />
         title = <span>{icon} Jupyter State</span>
+        tip = <span>{backend_tip}{<br/> if kernel_tip}{kernel_tip}</span>
         <Tip
             title     = {title}
             tip       = {tip}
