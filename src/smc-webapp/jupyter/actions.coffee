@@ -519,6 +519,9 @@ class exports.JupyterActions extends Actions
         cell = @store.getIn(['cells', id])
         if not cell?
             return
+
+        @unselect_all_cells()  # for whatever reason, any running of a cell deselects in official jupyter
+
         @_input_editors?[id]?()
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
