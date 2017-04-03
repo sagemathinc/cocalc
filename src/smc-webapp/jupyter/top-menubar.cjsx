@@ -169,8 +169,8 @@ exports.TopMenubar = rclass ({name}) ->
                             Run Cells and Insert Below
                 </MenuItem>
                 <MenuItem eventKey="run-all" onSelect={=>@props.actions.run_all_cells()}>Run All</MenuItem>
-                <MenuItem eventKey="run-all-below">Run All Above</MenuItem>
-                <MenuItem eventKey="run-all-below">Run All Below</MenuItem>
+                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_above()}>Run All Above</MenuItem>
+                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_below()}>Run All Below</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Cell Type...</MenuItem>
                 <MenuItem eventKey="cell-type-code"      onSelect={=>@props.actions.set_selected_cell_type('code')} ><span style={marginLeft:'4ex'}/> Code</MenuItem>

@@ -412,6 +412,7 @@ class exports.JupyterActions extends Actions
         @syncdb.save_asap (err) =>
             if err
                 setTimeout((()=>@syncdb.save_asap()), 50)
+        return
 
     _new_id: =>
         return misc.uuid().slice(0,8)  # TODO: choose something...; ensure is unique, etc.
@@ -579,6 +580,24 @@ class exports.JupyterActions extends Actions
             @run_cell(id)
             return
         @save_asap()
+
+    # Run all cells strictly above the current cursor position.
+    run_all_above: =>
+        i = @store.get_cur_cell_index()
+        if not i?
+            return
+        for id in @store.get('cell_list')?.toJS().slice(0, i)
+            @run_cell(id)
+        return
+
+    # Run all cells below (and *including*) the current cursor position.
+    run_all_below: =>
+        i = @store.get_cur_cell_index()
+        if not i?
+            return
+        for id in @store.get('cell_list')?.toJS().slice(i)
+            @run_cell(id)
+        return
 
     move_cursor_after_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
