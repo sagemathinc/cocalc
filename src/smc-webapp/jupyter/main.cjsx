@@ -11,6 +11,7 @@ Top-level react component, which ties everything together
 {TopMenubar}   = require('./top-menubar')
 {TopButtonbar} = require('./top-buttonbar')
 {CellList}     = require('./cell-list')
+{Introspect}   = require('./introspect')
 #{CellList}     = require('./cell-list-single-editor')
 {Kernel, Mode} = require('./status')
 keyboard = require('./keyboard')
@@ -44,6 +45,7 @@ exports.JupyterEditor = rclass ({name}) ->
             directory           : rtypes.string
             version             : rtypes.object
             complete            : rtypes.immutable.Map              # status of tab completion
+            introspect          : rtypes.immutable.Map              # status of introspection
 
     render_error: ->
         if @props.error
@@ -76,7 +78,6 @@ exports.JupyterEditor = rclass ({name}) ->
             return <Loading style={fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888'} />
         <CellList
             actions     = {@props.actions}
-
             cell_list   = {@props.cell_list}
             cells       = {@props.cells}
             font_size   = {@props.font_size}
@@ -91,11 +92,21 @@ exports.JupyterEditor = rclass ({name}) ->
             complete    = {@props.complete}
             />
 
+    render_introspect: ->
+        if not @props.introspect?
+            return
+        <Introspect
+            actions    = {@props.actions}
+            introspect = {@props.introspect}
+            font_size  = {@props.font_size}
+            />
+
     render: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_heading()}
             {@render_cells()}
+            {@render_introspect()}
         </div>
 
     ###

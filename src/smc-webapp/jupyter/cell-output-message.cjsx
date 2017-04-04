@@ -15,7 +15,8 @@ OUT_STYLE =
     paddingTop    : '5px'
     paddingBottom : '5px'
 
-ANSI_STYLE      = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
+#ANSI_STYLE      = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
+ANSI_STYLE = OUT_STYLE
 STDOUT_STYLE    = misc.merge({marginLeft:'4px'}, OUT_STYLE)
 STDERR_STYLE    = misc.merge({backgroundColor:'#fdd', marginLeft:'4px'}, STDOUT_STYLE)
 TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
@@ -170,7 +171,7 @@ message_component = (message) ->
         return Traceback
     return NotImplemented
 
-CellOutputMessage = rclass
+exports.CellOutputMessage = CellOutputMessage = rclass
     propTypes :
         message    : rtypes.immutable.Map.isRequired
         project_id : rtypes.string
