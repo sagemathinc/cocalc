@@ -42,6 +42,8 @@ key_handler = (evt) ->
                 return false
 
         when 27  # escape key
+            if store.get('mode') == 'escape' and store.get('introspect')?
+                actions.clear_introspect()
             actions.set_mode('escape')
 
         when 83  # s for save

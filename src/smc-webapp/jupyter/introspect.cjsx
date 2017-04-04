@@ -14,6 +14,7 @@ STYLE =
     padding   : '10px 20px 5px'
     overflowY : 'auto'
     border    : '1px solid #888'
+    maxHeight : '100vh'
 
 INNER_STYLE =
     border       : '1px solid rgb(207, 207, 207)'

@@ -528,7 +528,13 @@ class exports.JupyterActions extends Actions
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
-                @run_code_cell(id)
+                code = cell.get('input').trim()
+                if misc.endswith(code, '??')
+                    @introspect(code.slice(0,code.length-2), 1)
+                else if misc.endswith(code, '?')
+                    @introspect(code.slice(0,code.length-1), 0)
+                else
+                    @run_code_cell(id)
             when 'markdown'
                 @set_md_cell_not_editing(id)
         @save_asap()
@@ -905,7 +911,7 @@ class exports.JupyterActions extends Actions
             # in the right position after making the change.
             setTimeout((=> @set_cell_input(id, new_input)), 0)
 
-    introspect: (code, pos, level) =>
+    introspect: (code, level, cursor_pos) =>
         req = @_introspect_request = (@_introspect_request ? 0) + 1
 
         identity = @store.get('identity')
@@ -914,16 +920,11 @@ class exports.JupyterActions extends Actions
             return
         @setState(introspect: undefined)
 
-        # pos can be either a {line:?, ch:?} object as in codemirror, or a number.
-        if misc.is_object(pos)
-            lines = code.split('\n')
-            cursor_pos = misc.sum(lines[i].length+1 for i in [0...pos.line]) + pos.ch
-        else
-            cursor_pos = pos
+        cursor_pos ?= code.length
 
         @_ajax
             url     : util.get_introspect_url(@store.get('project_id'), identity, code, cursor_pos, level)
-            timeout : 5000
+            timeout : 15000
             cb      : (err, data) =>
                 if @_introspect_request > req
                     # future completion or clear happened; so ignore this result.
