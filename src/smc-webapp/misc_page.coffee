@@ -44,7 +44,7 @@ exports.APP_LOGO_WHITE         = require('webapp-lib/cocalc-icon-white-transpare
 exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
 
 {join} = require('path')
-exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.smc_base_url ? '')}" else theme.DOMAIN_NAME
+exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -184,7 +184,7 @@ $.fn.process_smc_links = (opts={}) ->
                         # j-i should be 36, unless we ever start to have different (vanity) project_ids
                         path = src.slice(j + '/files/'.length)
                         project_id = src.slice(i + '/projects/'.length, j)
-                        new_src = join('/', window.smc_base_url, project_id, 'raw', path)
+                        new_src = join('/', window.app_base_url, project_id, 'raw', path)
                         y.attr(attr, new_src)
                         continue
 
@@ -193,7 +193,7 @@ $.fn.process_smc_links = (opts={}) ->
                         continue
 
                     # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
-                    new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
+                    new_src = join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e
