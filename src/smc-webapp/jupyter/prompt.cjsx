@@ -55,13 +55,14 @@ exports.InputPrompt = rclass
                     n = ' '
                     tip = "Enter code to be evaluated."
 
-        x = <div style={INPUT_STYLE}>In [{n}]:</div>
-        <Tip
-            title     = {'Code Cell'}
-            tip       = {tip}
-            placement = 'right'>
-            {x}
-        </Tip>
+        <div style={INPUT_STYLE}>
+            <Tip
+                title     = {'Code Cell'}
+                tip       = {tip}
+                placement = 'right'>
+                In [{n}]:
+            </Tip>
+        </div>
 
 OUTPUT_STYLE =
     color         : '#D84315'

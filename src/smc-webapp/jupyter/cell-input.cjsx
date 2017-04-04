@@ -40,7 +40,7 @@ exports.CellInput = rclass
             next.complete               != @props.complete
 
     componentDidUpdate: ->
-        if @props.is_current
+        if @props.is_current and not @props.is_focused
             elt = $(ReactDOM.findDOMNode(@))
             elt.scrollintoview
                 direction: "vertical"
