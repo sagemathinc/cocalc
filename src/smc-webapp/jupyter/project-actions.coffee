@@ -58,13 +58,16 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
         @sync_exec_state = underscore.debounce(@sync_exec_state, 2000)
-        @set_backend_state('init')
 
-        # @_load_from_disk_if_newer must happen before anything that might touch
+        # WARNING: @_load_from_disk_if_newer must happen before anything that might touch
         # the syncdb state.  Otherwise, the syncdb state will automatically be
         # newer than what is on disk, and we'll never load anything from disk.
 
+        #dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
+
         @_load_from_disk_if_newer () =>
+            @set_backend_state('init')
+
             @ensure_backend_kernel_setup()  # this sets the kernel identity, hence changes the syncdb.
             @init_kernel_info()             # need to have for saving.
 
@@ -103,7 +106,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
     ensure_backend_kernel_setup: (kernel) =>
         dbg = @dbg("ensure_backend_kernel_setup")
-        kernel ?= @store.get('kernel') ? 'python2'  # TODO...
+        kernel ?= @store.get('kernel') ? DEFAULT_KERNEL
         current = @_jupyter_kernel?.name
 
         dbg("kernel='#{kernel}'; current='#{current}'")
@@ -253,15 +256,18 @@ class exports.JupyterActions extends actions.JupyterActions
             id   : id
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
+
                 if err
-                    mesg = {error:err}
+                    mesg  = {content:{text:"#{err}", name:"stderr"}}
                     state = 'done'
                     end   = new Date() - 0
                     set_cell()
+
                 else if mesg.content.execution_state == 'idle'
                     state = 'done'
                     end   = new Date() - 0
                     set_cell()
+
                 else if mesg.content.execution_state == 'busy'
                     start = new Date() - 0
                     state = 'busy'
@@ -269,6 +275,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     # and start reporting output.  We don't just do this immediately, since that's
                     # a waste of time, as very often the whole computation takes little time.
                     setTimeout(report_started, 250)
+
                 if not err
                     if mesg.content.execution_count?
                         exec_count = mesg.content.execution_count
@@ -285,6 +292,7 @@ class exports.JupyterActions extends actions.JupyterActions
                         # nothing interesting to send.
                         return
                     @_jupyter_kernel.process_output(mesg.content)
+
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()
@@ -368,13 +376,16 @@ class exports.JupyterActions extends actions.JupyterActions
     # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
     # the notebook defined by that object.
     set_to_ipynb: (ipynb) =>
+        dbg = @dbg("set_to_ipynb")
         @_state = 'load'
         if not ipynb?
+            dbg("undefined ipynb so make blank")
             @syncdb.delete()
             @_state = 'ready'
             @ensure_there_is_a_cell()  # just in case the ipynb file had no cells (?)
             return
 
+        #dbg("importing '#{JSON.stringify(ipynb)}'")
         @syncdb.exit_undo_mode()
 
         # We re-use any existing ids to make the patch that defines changing
@@ -385,15 +396,20 @@ class exports.JupyterActions extends actions.JupyterActions
         # delete everything
         @syncdb.delete(undefined, false)
 
-        # Set the kernel and other settings
-        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL  # TODO - need defaults
-        @ensure_backend_kernel_setup(kernel)
-
         set = (obj) =>
             @syncdb.set(obj, false)
 
+        # Set the kernel and other settings
+        kernel = ipynb.metadata?.kernelspec?.name
+        dbg("kernel in ipynb: name='#{kernel}'")
+        if not kernel?
+            dbg("not defined, so using default")
+            kernel = DEFAULT_KERNEL
+        set(type: 'settings', kernel: kernel)
+        @ensure_backend_kernel_setup()
+
         if ipynb.nbformat <= 3
-            # Handle older format.
+            dbg("handle older kernel format")
             ipynb.cells ?= []
             for worksheet in ipynb.worksheets
                 for cell in worksheet.cells
@@ -407,7 +423,7 @@ class exports.JupyterActions extends actions.JupyterActions
                         cell.source = '# ' + "#{cell.source}"
                     ipynb.cells.push(cell)
 
-        # Read in the cells
+        dbg("Read in the cells")
         if ipynb.cells?
             n = 0
             for cell in ipynb.cells

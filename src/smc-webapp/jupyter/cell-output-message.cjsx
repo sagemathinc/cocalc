@@ -14,11 +14,11 @@ OUT_STYLE =
     fontFamily    : 'monospace'
     paddingTop    : '5px'
     paddingBottom : '5px'
+    paddingLeft   : '5px'
 
-#ANSI_STYLE      = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
-ANSI_STYLE = OUT_STYLE
-STDOUT_STYLE    = misc.merge({marginLeft:'4px'}, OUT_STYLE)
-STDERR_STYLE    = misc.merge({backgroundColor:'#fdd', marginLeft:'4px'}, STDOUT_STYLE)
+ANSI_STYLE      = OUT_STYLE
+STDOUT_STYLE    = OUT_STYLE
+STDERR_STYLE    = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
 
 Stdout = rclass

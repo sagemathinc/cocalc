@@ -3,10 +3,11 @@ Kernel display
 ###
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{ImmutablePureRenderMixin} = require('../r_misc')
-{Icon, Loading, Tip} = require('../r_misc')
+{Icon, ImmutablePureRenderMixin, Loading, Tip} = require('../r_misc')
 
 util = require('./util')
+
+misc = require('smc-util/misc')
 
 exports.Mode = rclass ({name}) ->
     reduxProps :
@@ -23,9 +24,14 @@ exports.Mode = rclass ({name}) ->
         </div>
 
 KERNEL_NAME_STYLE =
-    marginLeft  : '5px'
-    marginRight : '5px'
-    color        : 'rgb(33, 150, 243)'
+    margin : '5px'
+    color  : 'rgb(33, 150, 243)'
+
+KERNEL_ERROR_STYLE =
+    margin          : '5px'
+    color           : '#fff'
+    padding         : '5px'
+    backgroundColor : 'red'
 
 BACKEND_STATE_STYLE =
     marginRight : '5px'
@@ -40,7 +46,7 @@ exports.Kernel = rclass ({name}) ->
     reduxProps:
         "#{name}" :
             kernel        : rtypes.string
-            kernels       : rtypes.immutable.List  # call to get_kernel_info depends on this...
+            kernels       : rtypes.immutable.List
             project_id    : rtypes.string
             kernel_info   : rtypes.immutable.Map
             backend_state : rtypes.string
@@ -61,10 +67,18 @@ exports.Kernel = rclass ({name}) ->
             />
 
     render_name: ->
-        display_name = @props.kernel_info?.get('display_name') ? @props.kernel
-        <span style={KERNEL_NAME_STYLE}>
-            {display_name ? "No Kernel"}
-        </span>
+        display_name = @props.kernel_info?.get('display_name')
+        if not display_name? and @props.kernels?
+            # Definitely an unknown kernel
+            <span style={KERNEL_ERROR_STYLE}>
+                Unknown kernel <span style={fontWeight:'bold'}>{@props.kernel}</span> (select a valid kernel from the Kernel menu)
+            </span>
+        else
+            # List of known kernels just not loaded yet.
+            display_name ?= @props.kernel
+            <span style={KERNEL_NAME_STYLE}>
+                {display_name ? "No Kernel"}
+            </span>
 
     render_backend_state: ->
         backend_state = @props.backend_state
