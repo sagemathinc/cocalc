@@ -113,6 +113,7 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Menu style={opacity:OPACITY}>
                 <MenuItem eventKey="toggle-header"  onSelect={=>@props.actions.toggle_header()}>Toggle Header</MenuItem>
                 <MenuItem eventKey="toggle-toolbar" onSelect={=>@props.actions.toggle_toolbar()}>Toggle Toolbar</MenuItem>
+                <MenuItem eventKey="toggle-line-numbers" onSelect={=>@props.actions.toggle_line_numbers()}>Toggle Line Numbers</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Cell Toolbar...</MenuItem>
                 <MenuItem eventKey="cell-toolbar-none"     ><span style={marginLeft:'4ex'}/> None</MenuItem>

@@ -782,6 +782,10 @@ class exports.JupyterActions extends Actions
     toggle_header: =>
         @redux?.getActions('page').toggle_fullscreen()
 
+    toggle_line_numbers: =>
+        x = @store.get('cm_options') ? immutable.Map()
+        @setState(cm_options: x.set('lineNumbers', not x.get('lineNumbers')))
+
     # zoom in or out delta font sizes
     set_font_size: (pixels) =>
         @setState

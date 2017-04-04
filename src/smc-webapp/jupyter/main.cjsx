@@ -77,19 +77,19 @@ exports.JupyterEditor = rclass ({name}) ->
         if not @props.cell_list? or not @props.font_size?
             return <Loading style={fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888'} />
         <CellList
-            actions     = {@props.actions}
-            cell_list   = {@props.cell_list}
-            cells       = {@props.cells}
-            font_size   = {@props.font_size}
-            sel_ids     = {@props.sel_ids}
-            md_edit_ids = {@props.md_edit_ids}
-            cur_id      = {@props.cur_id}
-            mode        = {@props.mode}
-            cm_options  = {@props.cm_options}
-            project_id  = {@props.project_id}
-            directory   = {@props.directory}
-            scrollTop   = {@props.actions.store.get_scroll_state()}
-            complete    = {@props.complete}
+            actions      = {@props.actions}
+            cell_list    = {@props.cell_list}
+            cells        = {@props.cells}
+            font_size    = {@props.font_size}
+            sel_ids      = {@props.sel_ids}
+            md_edit_ids  = {@props.md_edit_ids}
+            cur_id       = {@props.cur_id}
+            mode         = {@props.mode}
+            cm_options   = {@props.cm_options}
+            project_id   = {@props.project_id}
+            directory    = {@props.directory}
+            scrollTop    = {@props.actions.store.get_scroll_state()}
+            complete     = {@props.complete}
             />
 
     render_introspect: ->

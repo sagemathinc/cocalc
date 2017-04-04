@@ -45,7 +45,16 @@ exports.CodeMirror = rclass
             next.complete     != @props.complete
 
     render: ->
-        if (@props.is_focused and not @props.complete?) or @props.cursors?.size > 0
+        full_codemirror = false
+        if @props.is_focused and not @props.complete?
+            full_codemirror = true
+        else if @props.cursors?.size > 0
+            # TODO: it is possible to render cursors with the static viewer -- **it's just more work**
+            full_codemirror = true
+        else if @props.options.get('lineNumbers')
+            # TODO: it is possible to render line numbers with the static viewer -- **it's just more work**
+            full_codemirror = true
+        if full_codemirror
             <CodeMirrorEditor
                 actions          = {@props.actions}
                 id               = {@props.id}

@@ -12,19 +12,19 @@ immutable = require('immutable')
 
 exports.CellList = rclass
     propTypes:
-        actions     : rtypes.object   # if not defined, then everything read only
-        cell_list   : rtypes.immutable.List.isRequired  # list of ids of cells in order
-        cells       : rtypes.immutable.Map.isRequired
-        font_size   : rtypes.number.isRequired
-        sel_ids     : rtypes.immutable.Set            # set of selected cells
-        md_edit_ids : rtypes.immutable.Set
-        cur_id      : rtypes.string                   # cell with the green cursor around it; i.e., the cursor cell
-        mode        : rtypes.string.isRequired
-        cm_options  : rtypes.immutable.Map.isRequired
-        project_id  : rtypes.string
-        directory   : rtypes.string
-        scrollTop   : rtypes.number
-        complete    : rtypes.immutable.Map            # status of tab completion
+        actions      : rtypes.object   # if not defined, then everything read only
+        cell_list    : rtypes.immutable.List.isRequired  # list of ids of cells in order
+        cells        : rtypes.immutable.Map.isRequired
+        font_size    : rtypes.number.isRequired
+        sel_ids      : rtypes.immutable.Set            # set of selected cells
+        md_edit_ids  : rtypes.immutable.Set
+        cur_id       : rtypes.string               # cell with the green cursor around it; i.e., the cursor cell
+        mode         : rtypes.string.isRequired
+        cm_options   : rtypes.immutable.Map.isRequired
+        project_id   : rtypes.string
+        directory    : rtypes.string
+        scrollTop    : rtypes.number
+        complete     : rtypes.immutable.Map            # status of tab completion
 
     componentWillUnmount: ->
         # save scroll state
