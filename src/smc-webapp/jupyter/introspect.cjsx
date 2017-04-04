@@ -22,6 +22,7 @@ INNER_STYLE =
     background   : 'rgb(247, 247, 247)'
     padding      : '5px 25px'
 
+
 CLOSE_STYLE =
     cursor    : 'pointer'
     position  : 'absolute'
@@ -39,6 +40,15 @@ exports.Introspect = rclass
     close: ->
         @props.actions.clear_introspect()
 
+    render_content: ->
+        found = @props.introspect.get('found')
+        if found? and not found
+            <div>Nothing found</div>
+        else
+            <CellOutputMessage
+                message = {@props.introspect}
+            />
+
     render: ->
         if @props.font_size?
             inner_style = misc.merge({fontSize: @props.font_size}, INNER_STYLE)
@@ -47,8 +57,6 @@ exports.Introspect = rclass
         <div style={STYLE}>
             <Icon name='times' onClick={@close} style={CLOSE_STYLE} />
             <div style={inner_style}>
-                <CellOutputMessage
-                    message = {@props.introspect}
-                />
+                {@render_content()}
             </div>
         </div>

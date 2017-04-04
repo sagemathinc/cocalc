@@ -101,31 +101,31 @@ Data = rclass
             type  = k
             value = v
             return false
-
-        [a, b] = type.split('/')
-        switch a
-            when 'text'
-                switch b
-                    when 'plain'
-                        return <TextPlain value={value}/>
-                    when 'html'
-                        return <HTML
-                                value      = {value}
-                                project_id = {@props.project_id}
-                                file_path  = {@props.directory}
-                               />
-                    when 'markdown'
-                        return <Markdown
-                                value      = {value}
-                                project_id = {@props.project_id}
-                                file_path  = {@props.directory}
-                            />
-            when 'image'
-                return <Image
-                    project_id = {@props.project_id}
-                    extension  = {type.split('/')[1].split('+')[0]}
-                    sha1       = {value}
-                    />
+        if type
+            [a, b] = type.split('/')
+            switch a
+                when 'text'
+                    switch b
+                        when 'plain'
+                            return <TextPlain value={value}/>
+                        when 'html'
+                            return <HTML
+                                    value      = {value}
+                                    project_id = {@props.project_id}
+                                    file_path  = {@props.directory}
+                                   />
+                        when 'markdown'
+                            return <Markdown
+                                    value      = {value}
+                                    project_id = {@props.project_id}
+                                    file_path  = {@props.directory}
+                                />
+                when 'image'
+                    return <Image
+                        project_id = {@props.project_id}
+                        extension  = {type.split('/')[1].split('+')[0]}
+                        sha1       = {value}
+                        />
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 
