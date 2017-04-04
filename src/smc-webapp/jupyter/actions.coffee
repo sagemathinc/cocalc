@@ -905,6 +905,44 @@ class exports.JupyterActions extends Actions
             # in the right position after making the change.
             setTimeout((=> @set_cell_input(id, new_input)), 0)
 
+    introspect: (code, pos, level) =>
+        req = @_introspect_request = (@_introspect_request ? 0) + 1
+
+        identity = @store.get('identity')
+        if not identity?
+            # TODO: need to initialize kernel... or something
+            return
+        @setState(introspect: undefined)
+
+        # pos can be either a {line:?, ch:?} object as in codemirror, or a number.
+        if misc.is_object(pos)
+            lines = code.split('\n')
+            cursor_pos = misc.sum(lines[i].length+1 for i in [0...pos.line]) + pos.ch
+        else
+            cursor_pos = pos
+
+        @_ajax
+            url     : util.get_introspect_url(@store.get('project_id'), identity, code, cursor_pos, level)
+            timeout : 5000
+            cb      : (err, data) =>
+                if @_introspect_request > req
+                    # future completion or clear happened; so ignore this result.
+                    return
+                if err
+                    introspect = {error  : err}
+                else
+                    introspect = JSON.parse(data)
+                    if introspect.status != 'ok'
+                        introspect = {error:'completion failed'}
+                    delete introspect.status
+
+                @setState(introspect: immutable.fromJS(introspect))
+        return
+
+    clear_introspect: =>
+        @_introspect_request = (@_introspect_request ? 0) + 1
+        @setState(introspect: undefined)
+
     signal: (signal='SIGINT') =>
         identity = @store.get('identity')
         if not identity?

@@ -27,6 +27,15 @@ exports.get_complete_url = (project_id, identity, code, cursor_pos) ->
         s += "&cursor_pos=#{encodeURIComponent(cursor_pos)}"
     return s
 
+exports.get_introspect_url = (project_id, identity, code, cursor_pos, level) ->
+    s = "#{exports.get_server_url(project_id)}/kernels/#{identity}/introspect?code=#{encodeURIComponent(code)}"
+    if cursor_pos?
+        s += "&cursor_pos=#{encodeURIComponent(cursor_pos)}"
+    if level?
+        s += "&level=#{encodeURIComponent(level)}"
+    return s
+
+
 # signal should be SIGINT or SIGKILL (see https://nodejs.org/api/process.html#process_process_kill_pid_signal)
 exports.get_signal_url = (project_id, identity, signal) ->
     return "#{exports.get_server_url(project_id)}/kernels/#{identity}/signal/#{signal}"

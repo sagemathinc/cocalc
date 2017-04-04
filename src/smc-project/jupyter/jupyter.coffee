@@ -327,7 +327,7 @@ class Kernel extends EventEmitter
         opts = defaults opts,
             code       : required
             cursor_pos : required
-            cb         : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+            cb         : required
         dbg = @dbg("complete")
         dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
         @_ensure_running (err) =>
@@ -365,15 +365,61 @@ class Kernel extends EventEmitter
         dbg("send the message")
         @_channels.shell.next(message)
 
+    introspect: (opts) =>
+        opts = defaults opts,
+            code         : required
+            cursor_pos   : required
+            detail_level : required
+            cb           : required
+        dbg = @dbg("introspect")
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+        @_ensure_running (err) =>
+            if err
+                opts.cb(err)
+            else
+                @_introspect(opts)
+
+    _introspect: (opts) =>
+        dbg = @dbg("_introspect")
+        message =
+            header:
+                msg_id   : "introspect_#{misc.uuid()}"
+                username : ''
+                session  : ''
+                msg_type : 'inspect_request'
+                version  : '5.0'
+            content:
+                code         : opts.code
+                cursor_pos   : opts.cursor_pos
+                detail_level : opts.detail_level
+
+        # setup handling of the results
+        if opts.all
+            all_mesgs = []
+
+        f = (mesg) =>
+            if mesg.parent_header.msg_id == message.header.msg_id
+                @removeListener('shell', f)
+                mesg = misc.deep_copy(mesg.content)
+                if misc.len(mesg.metadata) == 0
+                    delete mesg.metadata
+                opts.cb(undefined, mesg)
+        @on('shell', f)
+
+        dbg("send the message")
+        @_channels.shell.next(message)
+
     http_server: (opts) =>
         opts = defaults opts,
             segments : required
             query    : required
             cb       : required
         switch opts.segments[0]
+
             when 'signal'
                 @signal(opts.segments[1])
                 opts.cb(undefined, {})
+
             when 'complete'
                 code = opts.query.code
                 if not code
@@ -390,6 +436,34 @@ class Kernel extends EventEmitter
                     code       : opts.query.code
                     cursor_pos : cursor_pos
                     cb         : opts.cb
+
+            when 'introspect'
+                code = opts.query.code
+                if not code?
+                    opts.cb('must specify code to introspect')
+                    return
+                if opts.query.cursor_pos?
+                    try
+                        cursor_pos = parseInt(opts.query.cursor_pos)
+                    catch
+                        cursor_pos = code.length
+                else
+                    cursor_pos = code.length
+                if opts.query.level?
+                    try
+                        level = parseInt(opts.query.level)
+                        if level < 0 or level > 1
+                            level = 0
+                    catch
+                        level = 0
+                else
+                    level = 0
+                @introspect
+                    code         : opts.query.code
+                    cursor_pos   : cursor_pos
+                    detail_level : level
+                    cb           : opts.cb
+
             else
                 opts.cb("no route '#{opts.segments.join('/')}'")
 
