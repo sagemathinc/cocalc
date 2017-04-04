@@ -2,6 +2,7 @@
 Jupyter Backend
 ###
 
+async = require('async')
 require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
 {EventEmitter} = require('events')
@@ -94,7 +95,7 @@ class Kernel extends EventEmitter
         @_spawn_cbs = [cb]
         @_set_state('spawning')
         dbg('spawning kernel...')
-        require('spawnteract').launch(@name, {detached: true}).then (kernel) =>
+        success = (kernel) =>
             dbg("spawned kernel; now creating comm channels...")
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
@@ -112,9 +113,16 @@ class Kernel extends EventEmitter
             kernel.spawn.on('close', @close)
 
             @_set_state('starting') # so we can send code execution to the kernel, etc.
-
             for cb in @_spawn_cbs
                 cb?()
+
+        fail = (err) =>
+            @_set_state('off')
+            err = "#{err}"
+            for cb in @_spawn_cbs
+                cb?(err)
+
+        require('spawnteract').launch(@name, {detached: true}).then(success, fail)
         return
 
     signal: (signal) =>
@@ -169,7 +177,9 @@ class Kernel extends EventEmitter
             id   : undefined   # optional tag to be used by cancel_execute
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
-
+        if @_state == 'closed'
+            opts.cb("closed")
+            return
         @_execute_code_queue ?= []
         @_execute_code_queue.push(opts)
         if @_execute_code_queue.length == 1
@@ -178,6 +188,8 @@ class Kernel extends EventEmitter
     cancel_execute: (opts) =>
         opts = defaults opts,
             id : required
+        if @_state == 'closed'
+            return
         dbg = @dbg("cancel_execute(id='#{opts.id}')")
         if not @_execute_code_queue? or @_execute_code_queue.length == 0
             dbg("nothing to do")
@@ -198,6 +210,9 @@ class Kernel extends EventEmitter
 
     _process_execute_code_queue: =>
         dbg = @dbg("_process_execute_code_queue")
+        if @_state == 'closed'
+            dbg("closed")
+            return
         if not @_execute_code_queue?
             dbg("no queue")
             return
@@ -209,7 +224,9 @@ class Kernel extends EventEmitter
         @_ensure_running (err) =>
             if err
                 dbg("error running kernel -- #{err}")
-                opts.cb(err)
+                for opts in @_execute_code_queue
+                    opts.cb(err)
+                @_execute_code_queue = []
             else
                 dbg("now executing oldest item in queue")
                 @_execute_code(@_execute_code_queue[0])
@@ -218,6 +235,8 @@ class Kernel extends EventEmitter
     _clear_execute_code_queue: =>
         # ensure no future queued up evaluation occurs (currently running
         # one will complete and new executions could happen)
+        if @_state == 'closed'
+            return
         if not @_execute_code_queue?
             return
         for opts in @_execute_code_queue.slice(1)
@@ -232,6 +251,9 @@ class Kernel extends EventEmitter
             cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
         dbg("code='#{opts.code}', all=#{opts.all}")
+        if @_state == 'closed'
+            opts.cb("closed")
+            return
 
         message =
             header:
@@ -337,6 +359,9 @@ class Kernel extends EventEmitter
                 @_complete(opts)
 
     _complete: (opts) =>
+        if @_state == 'closed'
+            opts.cb('closed')
+            return
         dbg = @dbg("_complete")
         message =
             header:
@@ -473,7 +498,8 @@ _kernel_data =
     jupyter_kernels      : undefined
     jupyter_kernels_json : undefined
 
-get_kernel_data = (cb) -> # TODO: move out and unit test...
+get_kernel_data = (cb) ->
+    # TODO: move out and unit test... or switch to using https://github.com/nteract/kernelspecs
     if _kernel_data.jupyter_kernels_json?
         cb(undefined, _kernel_data)
         return

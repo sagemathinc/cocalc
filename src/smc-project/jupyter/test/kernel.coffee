@@ -58,3 +58,71 @@ describe 'compute 2/3 using the python3 kernel -- ', ->
         kernel.close()
         expect(kernel._state).toBe('closed')
         expect(kernel._kernel).toBe(undefined)
+
+describe 'it tries to start a kernel that does not exist -- ', ->
+    kernel = undefined
+
+    it 'creates a foobar kernel', ->
+        kernel = common.kernel('foobar')
+        expect(kernel._state).toBe('off')
+
+    it 'then tries to use it, which will fail', (done) ->
+        kernel.execute_code
+            code : '2/3'
+            all  : true
+            cb   : (err, mesg) ->
+                expect(mesg).toBe(undefined)
+                expect(err).toBe('Error: No spec available for foobar')
+                done()
+
+describe 'calling the spawn method -- ', ->
+    kernel = undefined
+    @timeout(5000)
+
+    it 'creates a python2 kernel', ->
+        kernel = common.kernel('python2')
+        expect(kernel._state).toBe('off')
+
+    it 'calls the spawn method directly', (done) ->
+        state = kernel._state
+        kernel.on 'state', (new_state) ->
+            switch state
+                when 'off'
+                    expect(new_state).toBe('spawning')
+                when 'spawning'
+                    expect(new_state).toBe('starting')
+                when 'starting'
+                    expect(new_state).toBe('running')
+                    kernel.removeAllListeners()
+                    kernel.close()
+                    done()
+            state = new_state
+        kernel.spawn (err) ->
+            expect(kernel._state).toBe('starting')
+            expect(err).toBe(undefined)
+
+describe 'send signals to a kernel -- ', ->
+    kernel = undefined
+    @timeout(5000)
+
+    it 'creates a python2 kernel', ->
+        kernel = common.kernel('python2')
+
+    it 'compute 2+2 to get things going', (done) ->
+        kernel.execute_code(code:'2+2', all:true, cb:done)
+
+    it 'start a long sleep running... and interrupt it', (done) ->
+        kernel.execute_code
+            code : 'import time; time.sleep(1000)'
+            all  : true
+            cb   : (err, data) ->
+                expect(data?[2]?.content?.ename).toBe('KeyboardInterrupt')
+                done(err)
+        # send an interrupt signal to stop the above...
+        setTimeout((->kernel.signal('SIGINT')), 250)
+
+    it 'send a kill signal', (done) ->
+        kernel.on 'state', (state) ->
+            expect(state).toBe('closed')
+            done()
+        kernel.signal('SIGKILL')
