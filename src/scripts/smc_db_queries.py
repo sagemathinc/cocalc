@@ -85,6 +85,7 @@ import psycopg2.extras
 psycopg2.extras.register_uuid()
 USER = os.environ['PGUSER']
 DB = os.environ.get('SMC_DB', 'smc')
+HOST = os.environ.get('PGHOST', 'localhost')
 PORT = 5432
 
 if 'PGPASSWORD' in os.environ:
@@ -98,7 +99,7 @@ else:
     PW = open(join(SMC_ROOT, 'data/secrets/postgres')).read().strip()
     # r.connect(host="db0", db="smc", auth_key=AUTH, timeout=20).repl()
 
-conn = pg.connect("dbname={DB} user={USER} host=localhost port={PORT} password={PW}".format(**locals()))
+conn = pg.connect("dbname={DB} user={USER} host={HOST} port={PORT} password={PW}".format(**locals()))
 # or proxy on localhost:
 # r.connect(db = "smc", auth_key=AUTH, timeout=20).repl()
 

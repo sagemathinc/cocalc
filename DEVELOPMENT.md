@@ -2,6 +2,10 @@
 
 Source code is in the `src/` subdirectory.
 
+## Activity
+
+[![Throughput Graph](https://graphs.waffle.io/sagemathinc/smc/throughput.svg)](https://waffle.io/sagemathinc/smc/metrics/throughput)
+
 ## Development environments
 
 Nothing is fully supported yet, but this is the goal.
