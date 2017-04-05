@@ -225,17 +225,18 @@ class exports.JupyterActions extends actions.JupyterActions
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
         # from 0 to n-1, where there are n messages.
-        outputs    = {}
+        outputs    = null
         exec_count = null
         state      = 'run'
         n          = 0
         start      = null
         end        = null
-        set_cell = =>
+        clear_before_next_output = false
+        set_cell = (save=true) =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
             if state == 'done'
                 delete @_running_cells?[id]
-            @_set
+            obj =
                 type       : 'cell'
                 id         : id
                 state      : state
@@ -244,11 +245,25 @@ class exports.JupyterActions extends actions.JupyterActions
                 exec_count : exec_count
                 start      : start
                 end        : end
+            @_set(obj, save)
+
+        clear_output = (save) =>
+            clear_before_next_output = false
+            # clear output message -- we delete all the outputs
+            # reset the counter n, save, and are done.
+            # IMPORTANT: In Jupyter the clear_output message and everything
+            # before it is NOT saved in the notebook output itself
+            # (like in Sage worksheets).
+            outputs = null
+            n = 0
+            set_cell(save)
+
         report_started = =>
             if n > 0
                 # do nothing -- already getting output
                 return
             set_cell()
+
         setTimeout(report_started, 250)
 
         @_jupyter_kernel.execute_code
@@ -279,6 +294,15 @@ class exports.JupyterActions extends actions.JupyterActions
                 if not err
                     if mesg.content.execution_count?
                         exec_count = mesg.content.execution_count
+
+                    if mesg.msg_type == 'clear_output'
+                        if mesg.content.wait
+                            # wait until next output before clearing.
+                            clear_before_next_output = true
+                        else
+                            clear_output()
+                        return
+
                     mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code'])
                     for k, v of mesg.content
                         if misc.is_object(v) and misc.len(v) == 0
@@ -293,6 +317,10 @@ class exports.JupyterActions extends actions.JupyterActions
                         return
                     @_jupyter_kernel.process_output(mesg.content)
 
+                if clear_before_next_output
+                    clear_output(false)
+                if outputs == null
+                    outputs = {}
                 outputs[n] = mesg.content
                 n += 1
                 set_cell()

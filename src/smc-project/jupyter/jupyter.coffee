@@ -283,8 +283,10 @@ class Kernel extends EventEmitter
 
                 # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
                 # is pretty annoying for our use. For now, we just copy it, which is a waste.
+                msg_type = mesg.header?.msg_type
                 mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
                 mesg = misc.deep_copy(mesg)
+                mesg.msg_type = msg_type
                 if opts.all
                     all_mesgs.push(mesg)
                 else
