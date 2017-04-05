@@ -46,8 +46,7 @@ require("./webapp-lib/jquery/plugins/bootstrap_hide_show.js")
 require('timeago')
 
 # Scroll into view plugin
-# require("script!jquery/plugins/jquery.scrollintoview.min.js")
-require("jquery-scrollintoview/jquery.scrollintoview.js")
+require("jquery.scrollintoview/jquery.scrollintoview.js")
 
 #  Highlight jQuery plugin: http://bartaz.github.io/sandbox.js/jquery.highlight.html
 # require("script!jquery/plugins/jquery.highlight.min.js")

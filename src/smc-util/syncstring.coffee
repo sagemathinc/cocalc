@@ -108,6 +108,18 @@ patch_cmp = (a, b) ->
 time_cmp = (a,b) ->
     return a - b   # sorting Date objects doesn't work perfectly!
 
+# Do a 3-way **string** merge by computing patch that transforms
+# base to remote, then applying that patch to local.
+exports.three_way_merge = (opts) ->
+    opts = defaults opts,
+        base   : required
+        local  : required
+        remote : required
+    if opts.base == opts.remote # trivial special case...
+        return opts.local
+    return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0]
+
+
 ###
 The PatchValueCache is used to cache values returned
 by SortedPatchList.value.  Caching is critical, since otherwise
@@ -224,6 +236,7 @@ class SortedPatchList extends EventEmitter
             t = time - 0
         else
             t = time
+
         if n <= 0
             n = 1
         a = m - (t%n)
@@ -547,6 +560,8 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         @_opts = opts = defaults opts,
             save_interval     : 1500
+            cursor_interval   : 2000
+            patch_interval    : 1000       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
@@ -559,16 +574,18 @@ class SyncDoc extends EventEmitter
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
-        @_closed        = true
-        @_string_id     = opts.string_id
-        @_project_id    = opts.project_id
-        @_path          = opts.path
-        @_client        = opts.client
-        @_from_str      = opts.from_str
-        @_from_patch_str= opts.from_patch_str
-        @_doctype       = opts.doctype
-        @_patch_format  = opts.doctype.patch_format
-        @_save_interval = opts.save_interval
+        @_closed         = true
+        @_string_id      = opts.string_id
+        @_project_id     = opts.project_id
+        @_path           = opts.path
+        @_client         = opts.client
+        @_from_str       = opts.from_str
+        @_from_patch_str = opts.from_patch_str
+        @_doctype        = opts.doctype
+        @_patch_format   = opts.doctype.patch_format
+        @_save_interval  = opts.save_interval
+        @_patch_interval = opts.patch_interval
+
         @_my_patches    = {}  # patches that this client made during this editing session.
 
         # For debugging -- this is a (slight) security risk in production.
@@ -615,7 +632,7 @@ class SyncDoc extends EventEmitter
                     locs      : locs
                     time      : @_client.server_time()
                 @_cursors?.set(x, 'none')
-            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
+            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
 
     set_doc: (value) =>
         @_doc = value
@@ -1038,7 +1055,9 @@ class SyncDoc extends EventEmitter
 
         patch_list = new SortedPatchList(@_from_str)
 
-        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
+        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
+                                              undefined, @_patch_interval, @_patch_interval)
+
         @_patches_table.once 'connected', =>
             patch_list.add(@_get_patches())
             doc = patch_list.value()
@@ -1116,7 +1135,7 @@ class SyncDoc extends EventEmitter
                 if not t?
                     f = () =>
                         @emit('cursor_activity', account_id)
-                    t = @_cursor_throttled[account_id] = underscore.throttle(f, 2000)
+                    t = @_cursor_throttled[account_id] = underscore.throttle(f, @_opts.cursor_interval)
                 t()
 
             @_cursors.on 'change', (keys) =>
@@ -1147,6 +1166,9 @@ class SyncDoc extends EventEmitter
     get_cursors: =>
         return @_cursor_map
 
+    save_asap: (cb) =>
+        @_save(cb)
+
     # save any changes we have as a new patch
     _save: (cb) =>
         #dbg = @dbg('_save'); dbg('saving changes to db')
@@ -1165,10 +1187,17 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
+        if @_saving  # this makes it at least safe to call @_save() directly...
+            cb?("saving")
+            return
+
+        @_saving = true
+
         # compute transformation from _last to live -- exactly what we did
         patch = @_last.make_patch(@_doc)
         if not patch?
             # document not initialized (or closed) so nothing to save
+            @_saving = false
             cb?()
             return
         @_last = @_doc
@@ -1195,6 +1224,7 @@ class SyncDoc extends EventEmitter
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
+        @_saving = false
 
     _undelete: () =>
         if @_closed
@@ -1519,10 +1549,11 @@ class SyncDoc extends EventEmitter
                         if err
                             cb(err)
                         else if not exists
-                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get_doc().slice(0,80)}...'")
+                            dbg("write '#{path}' to disk from syncstring in-memory database version")
+                            data = @to_str() ? ''  # maybe in case of no patches yet (?).
                             @_client.write_file
                                 path : path
-                                data : @to_str()
+                                data : data
                                 cb   : (err) =>
                                     dbg("wrote '#{path}' to disk -- now calling cb")
                                     cb(err)
@@ -1676,7 +1707,7 @@ class SyncDoc extends EventEmitter
                     return
                 @_syncstring_table.wait
                     until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
-                    timeout : 5
+                    timeout : 10
                     cb      : (err) =>
                         #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")
                         if err
@@ -1714,6 +1745,7 @@ class SyncDoc extends EventEmitter
             delete @_saving_to_disk_cbs
             for cb in v
                 cb?(err)
+            @emit("save_to_disk_project", err)
 
     __save_to_disk_user: =>
         if @_closed # nothing to do
@@ -1838,6 +1870,7 @@ class exports.SyncString extends SyncDoc
             project_id        : undefined
             path              : undefined
             save_interval     : undefined
+            patch_interval    : undefined
             file_use_interval : undefined
             cursors           : false      # if true, also provide cursor tracking ability
 
@@ -1851,6 +1884,7 @@ class exports.SyncString extends SyncDoc
             project_id        : opts.project_id
             path              : opts.path
             save_interval     : opts.save_interval
+            patch_interval    : opts.patch_interval
             file_use_interval : opts.file_use_interval
             cursors           : opts.cursors
             from_str          : from_str
@@ -1888,4 +1922,3 @@ class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
 
     client_id: =>
         return @_client_id
-

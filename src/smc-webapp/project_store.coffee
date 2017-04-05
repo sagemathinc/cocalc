@@ -38,8 +38,10 @@ misc      = require('smc-util/misc')
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
 
-project_file = require('project_file')
-wrapped_editors = require('editor_react_wrapper')
+if window?
+    # don't import in case not in browser (for testing)
+    project_file = require('./project_file')
+    wrapped_editors = require('./editor_react_wrapper')
 
 MASKED_FILE_EXTENSIONS =
     'py'   : ['pyc']
@@ -1292,12 +1294,12 @@ create_project_store_def = (name, project_id) ->
         # watch for this to change, and if it does, close the project.
         # This avoids leaving it open after we are removed, which is confusing,
         # given that all permissions have vanished.
-        projects = @redux.getStore('projects')
-        if projects.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
+        projects = @redux.getStore('projects')  # may not be available; for example when testing
+        if projects?.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
             projects.on('change', @_projects_store_collab_check)
 
     destroy: ->
-        @redux.getStore('projects').removeListener('change', @_projects_store_collab_check)
+        @redux.getStore('projects')?.removeListener('change', @_projects_store_collab_check)
 
     _projects_store_collab_check: (state) ->
         if not state.getIn(['project_map', @project_id])?

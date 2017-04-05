@@ -9,12 +9,15 @@
     "coffee-loader": "^0.7.2",
     "coffee-script": "^1.10.0",
     "commander": "^2.9.0",
+    "enchannel-zmq-backend": "^2.6.1",
     "express": "^4.13.3",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
+    "node-cleanup": "^2.1.2",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",
     "serve-index": "^1.7.2",
+    "spawnteract": "^2.2.1",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
     "underscore": "^1.8.3",
@@ -23,7 +26,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd jupyter && npm run test"
   },
   "author": "SageMath, Inc.",
   "contributors": [

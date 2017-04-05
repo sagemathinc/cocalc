@@ -269,8 +269,9 @@ $.fn.extend
             if not opts.tex? and not opts.display and not opts.inline
                 # Doing this test is still much better than calling mathjax below, since I guess
                 # it doesn't do a simple test first... and mathjax is painful.
-                html = t.html()
-                if html.indexOf('$') == -1 and html.indexOf('\\') == -1
+                html = t.html().toLowerCase()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1 and html.indexOf('math/tex') == -1
+                    opts.cb?()
                     return t
                 # this is a common special case - the code below would work, but would be
                 # stupid, since it involves converting back and forth between html
@@ -767,6 +768,11 @@ exports.define_codemirror_extensions = () ->
             # there is no meaningful thing to do but "do nothing".  We detected this periodically
             # by catching user stacktraces in production...  See https://github.com/sagemathinc/smc/issues/1768
             return
+        current_value = @getValue()
+        if value == current_value
+            # Nothing to do
+            return
+
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -779,7 +785,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(current_value, value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -1806,3 +1812,11 @@ exports.open_new_tab = (url, popup=false) ->
         return null
     return tab
 
+# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
+exports.clear_selection = ->
+    if window.getSelection?().empty?
+        window.getSelection().empty() # chrome
+    else if window.getSelection?().removeAllRanges?
+        window.getSelection().removeAllRanges() # firefox
+    else
+        document.selection?.empty?()

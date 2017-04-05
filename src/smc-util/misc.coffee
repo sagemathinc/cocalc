@@ -197,7 +197,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -205,7 +205,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -215,7 +215,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -923,6 +923,9 @@ exports.eval_until_defined = (opts) ->
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
+
+# TODO: this is actually throttle, not debounce...
+
 exports.async_debounce = (opts) ->
     opts = defaults opts,
         f        : required   # async function f whose *only* argument is a callback
@@ -2044,3 +2047,20 @@ exports.op_to_function = (op) ->
             return (a,b) -> a > b
         else
             throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
+
+
+
+
+# modify obj in place substituting keys as given.
+exports.obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            exports.obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s

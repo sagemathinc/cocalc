@@ -926,12 +926,12 @@ class SyncTable extends EventEmitter
         return
 
 synctables = {}
+
 # for debugging; in particular, verify that synctables are freed.
 # Do not leave in production; could be slight security risk.
 ## window?.synctables = synctables
 
 exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined, use_cache=true) ->
-
     cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval, throttle_changes:throttle_changes)
     if not use_cache
         return new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)

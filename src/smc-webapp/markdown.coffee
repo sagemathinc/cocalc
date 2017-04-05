@@ -16,8 +16,8 @@ exports.markdown_to_html = markdown_to_html = (s) ->
 
     # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
     v = misc.parse_mathjax(s)
+    w = []
     if v.length > 0
-        w = []
         has_mathjax = true
         x0 = [0,0]
         s0 = ''
@@ -29,7 +29,9 @@ exports.markdown_to_html = markdown_to_html = (s) ->
             i += 1
         s = s0 + s.slice(x0[1])
     else
-        has_mathjax = false
+        # no $ or $$ or \[ notation... but could still have something like
+        # <script type="math/tex">x^4</script>...
+        has_mathjax = s.toLowerCase().indexOf('math/tex') != -1
 
     #console.log "markdown_to_html: before marked s:", s
     # render s to html (from markdown)
@@ -43,7 +45,7 @@ exports.markdown_to_html = markdown_to_html = (s) ->
     else if '\$' in s
         has_mathjax = true # still need to parse it to turn \$'s to $'s.
 
-    ret = {s:s, has_mathjax:has_mathjax}
+    ret = {s:s, has_mathjax:has_mathjax}  # this "has_mathjax" is really "probably has mathjax".
     #console.log "markdown_to_html.ret: ", ret
     return ret
 

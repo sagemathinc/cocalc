@@ -314,7 +314,9 @@ exports.FullscreenButton = rclass
             borderRadius: '3px'
 
         if @props.fullscreen
-            styles.background   = '#fff'
+            styles.background = '#fff'
+            styles.opacity    = .7
+            styles.border     = '1px solid grey'
 
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 

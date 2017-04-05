@@ -106,6 +106,7 @@ exports.Icon = Icon = rclass
         rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
         flip       : rtypes.oneOf(['horizontal', 'vertical'])
         spin       : rtypes.bool
+        pulse      : rtypes.bool
         fixedWidth : rtypes.bool
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
@@ -120,10 +121,10 @@ exports.Icon = Icon = rclass
         onClick : ->
 
     render: ->
-        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         if name.slice(0, 3) == 'cc-'
             classNames = "fa #{name}"
-            # the cocalc icon font can't do any extra tricks
+            # the cocalc icon font can't do any extra tricks, but the fa-ones are compatible
         else
             # temporary until file_associations can be changed
             if name.slice(0, 3) == 'fa-'
@@ -140,6 +141,8 @@ exports.Icon = Icon = rclass
             classNames += ' fa-fw'
         if spin
             classNames += ' fa-spin'
+        if pulse
+            classNames += ' fa-pulse'
         if stack
             classNames += " fa-stack-#{stack}"
         if inverse
@@ -173,8 +176,13 @@ exports.Octicon = rclass
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
+    propTypes :
+        style : rtypes.object
+
     render: ->
-        <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
+        <span style={@props.style}>
+            <Icon name='cc-icon-cocalc-ring' spin /> Loading...
+        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
@@ -500,8 +508,9 @@ exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
     propTypes :
-        popover     : rtypes.bool
-        placement   : rtypes.string
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
 
     getDefaultProps: ->
         popover   : true
@@ -521,7 +530,7 @@ exports.TimeAgo = rclass
             return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
-            <Tip title={s} id={s} placement={@props.placement}>
+            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
                 {@render_timeago(d)}
             </Tip>
         else
@@ -740,49 +749,57 @@ exports.HTML = rclass
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
 
     _update_escaped_chars: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     _update_mathjax: (cb) ->
-        if not @_isMounted  # see https://github.com/sagemathinc/cocalc/issues/1689
+        if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
+            cb()
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 cb : () =>
-                    # Awkward code, since cb may be called more than once.
+                    # Awkward code, since cb may be called more than once if there
+                    # where more than one node.
                     cb?()
                     cb = undefined
         else
             cb()
 
     _update_links: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
+    _update_tables: ->
+        if not @_is_mounted
+            return
+        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
+
     update_content: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         # orchestrates the _update_* methods
         @_update_mathjax =>
-            if not @_isMounted
+            if not @_is_mounted
                 return
             @_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+            @_update_tables()
 
     componentDidUpdate: ->
         @update_content()
 
     componentDidMount: ->
-        @_isMounted = true
+        @_is_mounted = true
         @update_content()
 
     componentWillUnmount: ->
         # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
         # and https://github.com/sagemathinc/cocalc/issues/1689
-        @_isMounted = false
+        @_is_mounted = false
 
     render_html: ->
         if @props.value

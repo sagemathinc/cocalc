@@ -143,6 +143,9 @@ class PageActions extends Actions
     set_fullscreen: (val) =>
         @setState(fullscreen : val)
 
+    toggle_fullscreen: =>
+        @setState(fullscreen : not redux.getStore('page').get('fullscreen'))
+
     show_cookie_warning: =>
         @setState(cookie_warning : true)
 
