@@ -108,6 +108,9 @@ class exports.JupyterActions extends Actions
                         try
                             jupyter_kernels = immutable.fromJS(JSON.parse(data))
                             @setState(kernels: jupyter_kernels)
+                            # We must also update the kernel info (e.g., display name), now that we
+                            # know the kernels (e.g., maybe it changed or is now known but wasn't before).
+                            @setState(kernel_info: @store.get_kernel_info(@store.get('kernel')))
                             cb()
                         catch e
                             @set_error("Error setting Jupyter kernels -- #{data} #{e}")
