@@ -152,11 +152,12 @@ Page = rclass
             console.log "react desktop_app.drop", e
         e.preventDefault()
         e.stopPropagation()
-        {alert_message} = require('./alerts')
-        alert_message
-            type     : 'info'
-            title    : 'File drop disabled'
-            message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
+        if e.dataTransfer.files.length > 0
+            {alert_message} = require('./alerts')
+            alert_message
+                type     : 'info'
+                title    : 'File Drop Rejected'
+                message  : 'To upload a file, drop it onto the files listing'
 
     render: ->
         style =
