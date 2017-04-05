@@ -154,7 +154,8 @@ class exports.JupyterStore extends Store
         return output
 
     get_cm_options: (kernel) =>
+        # TODO: this is temporary until implementing "editor options" from account settings...
         options = cm_options(kernel)
-        if @get_local_storage('line_numbers')
-            options = options.set('lineNumbers', true)
+        if @get_local_storage('line_numbers')?
+            options = options.set('lineNumbers', @get_local_storage('line_numbers'))
         return options

@@ -40,11 +40,11 @@ exports.CellInput = rclass
             next.complete               != @props.complete
 
     componentWillReceiveProps: (next) ->
-        if next.is_current and not next.is_focused and not @props.is_focused
+        if next.is_current and not next.is_focused and not @props.is_focused and not next.complete?
             elt = $(ReactDOM.findDOMNode(@))
             elt.scrollintoview
                 direction: "vertical"
-                viewPadding: { y: 150 }
+                viewPadding: { y: 20 }
 
     render_input_prompt: (type) ->
         <InputPrompt

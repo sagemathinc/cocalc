@@ -144,10 +144,11 @@ exports.CodeMirrorEditor = rclass
         if cur.ch == 0 or /\s/.test(@cm.getLine(cur.line)[cur.ch - 1])  # whitespace before cursor
             CodeMirror.commands.defaultTab(@cm)
             return
-        pos  = @cm.cursorCoords(cur, 'local')
-        top  = pos.bottom - @cm.getScrollInfo().height
-        left = pos.left + $(@cm.getGutterElement()).width()
-        @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left})
+        pos    = @cm.cursorCoords(cur, 'local')
+        top    = pos.bottom - @cm.getScrollInfo().height
+        left   = pos.left
+        gutter = $(@cm.getGutterElement()).width()
+        @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left, gutter:gutter})
 
     init_codemirror: (options, value, cursors) ->
         @_cm_destroy()

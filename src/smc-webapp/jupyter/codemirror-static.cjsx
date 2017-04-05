@@ -9,10 +9,14 @@ of these on the page at once.
 
 misc_page     = require('../misc_page')
 
+misc = require('smc-util/misc')
+
 #{FormGroup, ControlLabel, FormControl, } = require('react-bootstrap')
 {Dropdown, MenuItem} = require('react-bootstrap')
 
 {Complete} = require('./complete')
+
+{LineNumbers} = require('./line-numbers')
 
 BLURRED_STYLE =
     width         : '100%'
@@ -27,7 +31,6 @@ BLURRED_STYLE =
     padding       : '4px'
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
-
 
 exports.CodeMirrorStatic = rclass
     propTypes:
@@ -64,6 +67,19 @@ exports.CodeMirrorStatic = rclass
         @props.actions.set_cur_id(@props.id)
         @props.set_click_coords({left:event.clientX, top:event.clientY})
 
+    render_line_numbers: ->
+        if @props.options.get('lineNumbers')
+            style = background: '#f7f7f7'
+            if @props.complete?.get('matches')?.size > 0
+                width = @props.complete.getIn(['offset', 'gutter'])
+                if width?
+                    style.width = "#{width}px"
+
+            <LineNumbers
+                num_lines = {@props.value.split('\n').length}
+                style     = {style}
+            />
+
     render_code: ->
         <pre
             className               = "CodeMirror cm-s-default"
@@ -82,9 +98,12 @@ exports.CodeMirrorStatic = rclass
                 />
 
     render: ->
-        <div style={width: '100%'}>
-            {@render_code()}
-            {@render_complete()}
+        <div style={width: '100%', display:'flex'}>
+            {@render_line_numbers()}
+            <div style={width: '100%'}>
+                {@render_code()}
+                {@render_complete()}
+            </div>
         </div>
 
 
