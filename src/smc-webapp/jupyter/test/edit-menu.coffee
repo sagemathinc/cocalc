@@ -43,7 +43,7 @@ describe 'tests inserting and deleting a cell -- ', ->
         new_cell_list = store.get('cell_list')
         expect(new_cell_list.size).toBe(0)
         actions.ensure_there_is_a_cell()
-        
+
         new_cell_list = store.get('cell_list')
         expect(new_cell_list.size).toBe(1)
         expect(store.getIn(['cells', new_cell_list.get(0), 'input'])).toBe('')
@@ -146,9 +146,10 @@ describe 'creates and splits cells in various ways', ->
     before(setup)
     after(teardown)
 
-    it 'puts some input in a code cell then splits it', ->
+    it 'puts some input and output in a code cell then splits it', ->
         id = store.get('cur_id')
         actions.set_cell_input(id, 'abc123')
+        actions.set_cell_output(id, [{foo:'bar'}])
         actions.set_cursor_locs([{id:id, x:3, y:0}])
         actions.split_current_cell()
 
@@ -156,7 +157,9 @@ describe 'creates and splits cells in various ways', ->
         list = store.get('cell_list')
         expect(list.size).toBe(2)
         expect(store.getIn(['cells', list.get(0), 'input'])).toBe('abc')
+        expect(store.getIn(['cells', list.get(0), 'output'])).toBe(undefined)
         expect(store.getIn(['cells', list.get(1), 'input'])).toBe('123')
+        expect(store.getIn(['cells', list.get(1), 'output']).toJS()).toEqual([{foo:'bar'}])
 
     it 'verifies that cursor is now in the second cell', ->
         expect(store.get('cur_id')).toBe(store.get('cell_list').get(1))

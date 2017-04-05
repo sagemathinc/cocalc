@@ -11,6 +11,8 @@ misc          = require('smc-util/misc')
 
 {Complete} = require('./complete')
 
+{Cursors} = require('./cursors')
+
 FOCUSED_STYLE =
     width        : '100%'
     overflowX    : 'hidden'
@@ -105,18 +107,6 @@ exports.CodeMirrorEditor = rclass
         @_cm_last_remote = new_val
         @cm.setValueNoJump(new_val)
 
-    _cm_update_cursors: (cursors) ->
-        if not @cm?
-            return
-        now = misc.server_time()
-        cursors?.forEach (locs, account_id) =>
-            v = []
-            locs.forEach (loc) =>
-                if now - loc.get('time') <= 15000
-                    v.push({x:loc.get('x'), y:loc.get('y')})
-                return
-            @draw_other_cursors(@cm, account_id, v)
-
     _cm_undo: ->
         if not @cm? or not @props.actions?
             return
@@ -183,8 +173,6 @@ exports.CodeMirrorEditor = rclass
         if @props.is_focused
             @cm.focus()
 
-        @_cm_update_cursors(cursors)
-
         if @props.click_coords?
             # editor clicked on, so restore cursor to that position
             @cm.setCursor(@cm.coordsChar(@props.click_coords, 'window'))
@@ -204,8 +192,6 @@ exports.CodeMirrorEditor = rclass
             return
         if next.value != @props.value
             @_cm_merge_remote(next.value)
-        if next.cursors != @props.cursors
-            @_cm_update_cursors(next.cursors)
         if next.is_focused and not @props.is_focused
             # gain focus
             @cm?.focus()
@@ -220,53 +206,6 @@ exports.CodeMirrorEditor = rclass
             @_cm_save()
             @_cm_destroy()
 
-    # TODO: this is very ugly -- must rewrite below using React.
-    draw_other_cursors: (cm, account_id, locs) ->
-        if not cm? or not @props.actions?
-            return
-        @_cursors ?= {}
-        users = @props.actions.redux.getStore('users')
-        x = @_cursors[account_id]
-        if not x?
-            x = @_cursors[account_id] = []
-
-        # First draw/update all current cursors
-        templates = $(".smc-jupyter-templates")
-        for [i, loc] in misc.enumerate(locs)
-            pos   = {line:loc.y, ch:loc.x}
-            index = loc.i # cell index
-            data  = x[i]
-            name  = misc.trunc(users.get_first_name(account_id), 10)
-            color = users.get_color(account_id)
-            if not data?
-                cursor = templates.find(".smc-jupyter-cursor").clone().show()
-                cursor.css({opacity:.7})
-                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', 'padding-top':'.6ex', position:'absolute', width:'16ex')
-                cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', position:'absolute')
-                data = x[i] = {cursor: cursor}
-            if name != data.name
-                data.cursor.find(".smc-jupyter-cursor-label").text(name)
-                data.name = name
-            if color != data.color
-                data.cursor.find(".smc-jupyter-cursor-inside").css('border-left': "1px solid #{color}")
-                data.cursor.find(".smc-jupyter-cursor-label" ).css(background: color)
-                data.color = color
-
-            # Place cursor in the editor in the right spot
-            cm.addWidget(pos, data.cursor[0], false)
-
-            # Update cursor fade-out
-            # LABEL: first fade the label out over 10s
-            data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:10000)
-            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-            data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
-
-        if x.length > locs.length
-            # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
-            for i in [locs.length...x.length]
-                x[i].cursor.remove()
-            @_cursors[account_id] = x.slice(0, locs.length)
-
     render_complete: ->
         if @props.complete?
             if @props.complete.get('matches')?.size > 0
@@ -276,8 +215,15 @@ exports.CodeMirrorEditor = rclass
                     id       = {@props.id}
                 />
 
+    render_cursors: ->
+        if @props.cursors?
+            <Cursors
+                cursors    = {@props.cursors}
+                codemirror = {@cm} />
+
     render : ->
         <div style={width:'100%'}>
+            {@render_cursors()}
             <div style={FOCUSED_STYLE}>
                 <textarea />
             </div>

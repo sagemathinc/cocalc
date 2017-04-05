@@ -97,7 +97,7 @@ describe 'edge cases completion tests -- ', ->
         # it just stays undefined doing nothing
         expect(store.get('complete')?.toJS()).toEqual({ cursor_end: 2, cursor_start: 0, matches: [ 'foo' ]})
 
-    it 'does a completion with 1 result with a cell id set, and verifies that it modifies that cell', ->
+    it 'does a completion with 1 result with a cell id set, and verifies that it modifies that cell', (done) ->
         id = store.get('cell_list').get(0)
         actions.set_cell_input(id, 'a = fo')
         resp = {"matches":['foo'],"status":"ok","cursor_start":4,"cursor_end":6}
@@ -106,9 +106,15 @@ describe 'edge cases completion tests -- ', ->
             data = JSON.stringify(resp)
             opts.cb(undefined, data)
         actions.complete('fo', 6, id)
-        # Result is to modify the cell, but not open completions info
+        # Result should be to modify the cell, but not open completions info
         expect(store.get('complete')?.toJS()).toBe(undefined)
-        expect(store.getIn(['cells', id, 'input'])).toBe('a = foo')
+        # but this happens in the next time slice to avoid subtle cursor issues, so:
+        expect(store.getIn(['cells', id, 'input'])).toBe('a = fo')
+        f = ->
+            expect(store.getIn(['cells', id, 'input'])).toBe('a = foo')
+            done()
+        setTimeout(f, 1)
+
 
 
 

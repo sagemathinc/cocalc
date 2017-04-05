@@ -342,8 +342,6 @@ class exports.JupyterActions extends Actions
         cells = cells_before = @store.get('cells')
         next_cursors = @syncdb.get_cursors()
         next_cursors.forEach (info, account_id) =>
-            if account_id == @_account_id  # don't process information about ourselves
-                return
             last_info = @_last_cursors?.get(account_id)
             if last_info?.equals(info)
                 # no change for this particular users, so nothing further to do
@@ -646,8 +644,9 @@ class exports.JupyterActions extends Actions
         if cursor.id != @store.get('cur_id')
             # cursor isn't in currently selected cell, so don't know how to split
             return
-        # insert a new cell after the currently selected one
-        new_id = @insert_cell(1)
+        # insert a new cell before the currently selected one
+        new_id = @insert_cell(-1)
+
         # split the cell content at the cursor loc
         cell = @store.get('cells').get(cursor.id)
         if not cell?
@@ -659,6 +658,7 @@ class exports.JupyterActions extends Actions
         input = cell.get('input')
         if not input?
             return
+
         lines  = input.split('\n')
         v      = lines.slice(0, cursor.y)
         line   = lines[cursor.y]
@@ -672,8 +672,9 @@ class exports.JupyterActions extends Actions
         if right
             v = [right].concat(v)
         bottom = v.join('\n')
-        @set_cell_input(cursor.id, top)
-        @set_cell_input(new_id, bottom)
+        @set_cell_input(new_id, top)
+        @set_cell_input(cursor.id, bottom)
+        @set_cur_id(cursor.id)
 
     # Copy content from the cell below the current cell into the currently
     # selected cell, then delete the cell below the current cell.s
@@ -887,7 +888,6 @@ class exports.JupyterActions extends Actions
                     if complete.status != 'ok'
                         complete = {error:'completion failed'}
                     delete complete.status
-
                 # Set the result so the UI can then react to the change.
                 if complete?.matches?.length == 0
                     # do nothing -- no completions at all
