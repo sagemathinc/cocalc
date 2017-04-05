@@ -125,7 +125,7 @@ class exports.JupyterActions extends actions.JupyterActions
         if not @_jupyter_kernel?
             dbg("no kernel; make one")
             # No kernel wrapper object setup at all. Make one.
-            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel)
+            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel, directory:@store.get('directory'))
             delete @_running_cells
 
             @_jupyter_kernel.once 'close', =>

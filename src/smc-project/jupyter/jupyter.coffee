@@ -47,12 +47,13 @@ class Client
 
 exports.kernel = (opts) ->
     opts = defaults opts,
-        name    : required   # name of the kernel as a string
-        client  : undefined
-        verbose : true
+        name      : required   # name of the kernel as a string
+        client    : undefined
+        verbose   : true
+        directory : ''       # directory in which to start kernel
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, if opts.verbose then opts.client?.dbg)
+    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.directory)
 
 ###
 Jupyter Kernel interface.
@@ -68,7 +69,7 @@ node_cleanup =>
         kernel.close()
 
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg) ->
+    constructor : (@name, @_dbg, @_directory) ->
         @_set_state('off')
         @_identity = misc.uuid()
         _jupyter_kernels[@_identity] = @
@@ -121,8 +122,10 @@ class Kernel extends EventEmitter
             err = "#{err}"
             for cb in @_spawn_cbs
                 cb?(err)
-
-        require('spawnteract').launch(@name, {detached: true}).then(success, fail)
+        opts = {detached: true}
+        if @_directory != ''
+            opts.cwd = @_directory
+        require('spawnteract').launch(@name, opts).then(success, fail)
         return
 
     signal: (signal) =>
