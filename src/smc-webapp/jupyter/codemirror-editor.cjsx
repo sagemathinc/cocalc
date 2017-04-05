@@ -9,6 +9,7 @@ underscore    = require('underscore')
 syncstring    = require('smc-util/syncstring')
 misc          = require('smc-util/misc')
 
+{Complete} = require('./complete')
 
 FOCUSED_STYLE =
     width        : '100%'
@@ -33,6 +34,7 @@ exports.CodeMirrorEditor = rclass
         set_last_cursor  : rtypes.func.isRequired
         last_cursor      : rtypes.object
         is_focused       : rtypes.bool
+        complete         : rtypes.immutable.Map
 
     reduxProps:
         account :
@@ -43,17 +45,19 @@ exports.CodeMirrorEditor = rclass
 
     _cm_destroy: ->
         if @cm?
-            @cm.toTextArea()
+            @props.actions?.unregister_input_editor(@props.id)
+            delete @_cm_last_remote
             if @_cm_change?
                 @cm.off('change', @_cm_change)
                 @cm.off('focus',  @_cm_focus)
                 @cm.off('blur',   @_cm_blur)
                 delete @_cm_change
-            delete @_cm_last_remote
+            $(@cm.getWrapperElement()).remove()  # remove from DOM
+            @cm.getOption('extraKeys').Tab = undefined  # no need to point at method of this react class
             delete @cm
-            @props.actions?.unregister_input_editor(@props.id)
 
     _cm_focus: ->
+        @_cm_is_focused = true
         if not @cm? or not @props.actions?
             return
         @props.actions.set_mode('edit')
@@ -62,6 +66,7 @@ exports.CodeMirrorEditor = rclass
         @_cm_cursor()
 
     _cm_blur: ->
+        @_cm_is_focused = false
         if not @cm? or not @props.actions?
             return
         @props.set_last_cursor(@cm.getCursor())
@@ -141,26 +146,36 @@ exports.CodeMirrorEditor = rclass
             return
         pos  = @cm.cursorCoords(cur, 'local')
         top  = pos.bottom - @cm.getScrollInfo().height
-        left = pos.left
+        left = pos.left + $(@cm.getGutterElement()).width()
         @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left})
 
     init_codemirror: (options, value, cursors) ->
-        @_cm_destroy()
-        node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
-        options = options.toJS()
-        if @props.actions?
-            options.extraKeys ?= {}
+        cache = @props.actions?.store.get_cm_cache(@props.id)
+        if cache? and options.equals(cache.cocalc_options)
+            @cm = cache
+            node = $(@cm.getWrapperElement())
+            $(ReactDOM.findDOMNode(@)).find("textarea").replaceWith(node)
+            @cm.getOption('extraKeys').Tab = @tab_key
+            @cm.refresh() # makes this almost pointless.
 
-            #enable_folding(options)  # too hard to get margins right, save state; unify with blurred...
-                                      # for now; maybe enable per cell optionally...
-            options.extraKeys["Tab"] = @tab_key
         else
-            options.readOnly = true
+            @_cm_destroy()
+            node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
+            if not node?
+                return
+            options0 = options.toJS()
+            if @props.actions?
+                options0.extraKeys ?= {}
+                options0.extraKeys["Tab"] = @tab_key
+            else
+                options0.readOnly = true
+            options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
 
-        options.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
+            @cm = CodeMirror.fromTextArea(node, options0)
+            @cm.cocalc_options = options
+            $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
+            @props.actions?.set_cm_cache(@props.id, @cm)
 
-        @cm = CodeMirror.fromTextArea(node, options)
-        $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
@@ -201,12 +216,18 @@ exports.CodeMirrorEditor = rclass
             @_cm_merge_remote(next.value)
         if next.cursors != @props.cursors
             @_cm_update_cursors(next.cursors)
+        if next.is_focused and not @props.is_focused
+            # gain focus
+            @cm?.focus()
+        if not next.is_focused and @_cm_is_focused
+            # controlled loss of focus from store; we have to force
+            # this somehow.  Note that codemirror has no .blur().
+            # See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
+            setTimeout((=>@cm?.getInputField().blur()), 1)
 
     componentWillUnmount: ->
         if @cm?
             @_cm_save()
-            doc = @cm.getDoc()
-            delete doc.cm  # so @cm gets freed from memory when destroyed and doc is not attached to it.
             @_cm_destroy()
 
     # TODO: this is very ugly -- must rewrite below using React.
@@ -256,9 +277,21 @@ exports.CodeMirrorEditor = rclass
                 x[i].cursor.remove()
             @_cursors[account_id] = x.slice(0, locs.length)
 
+    render_complete: ->
+        if @props.complete?
+            if @props.complete.get('matches')?.size > 0
+                <Complete
+                    complete = {@props.complete}
+                    actions  = {@props.actions}
+                    id       = {@props.id}
+                />
+
     render : ->
-        <div style={FOCUSED_STYLE}>
-            <textarea />
+        <div style={width:'100%'}>
+            <div style={FOCUSED_STYLE}>
+                <textarea />
+            </div>
+            {@render_complete()}
         </div>
 
 ###

@@ -32,7 +32,14 @@ exports.CodeMirror = rclass
         @setState(click_coords: coords)
 
     set_last_cursor: (pos) ->
-        @setState(last_cursor: pos)
+        if @_is_mounted  # ignore unless mounted -- can still get called due to caching of cm editor
+            @setState(last_cursor: pos)
+
+    componentDidMount: ->
+        @_is_mounted = true
+
+    componentWillUnmount: ->
+        @_is_mounted = false
 
     shouldComponentUpdate: (next) ->
         return \
@@ -46,7 +53,7 @@ exports.CodeMirror = rclass
 
     render: ->
         full_codemirror = false
-        if @props.is_focused and not @props.complete?
+        if @props.is_focused
             full_codemirror = true
         else if @props.cursors?.size > 0
             # TODO: it is possible to render cursors with the static viewer -- **it's just more work**
@@ -67,6 +74,7 @@ exports.CodeMirror = rclass
                 set_last_cursor  = {@set_last_cursor}
                 last_cursor      = {@state.last_cursor}
                 is_focused       = {@props.is_focused}
+                complete         = {@props.complete}
                 />
         else
             <CodeMirrorStatic

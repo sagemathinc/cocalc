@@ -19,8 +19,6 @@ misc       = require('smc-util/misc')
 
 util       = require('./util')
 
-{cm_options} = require('./cm_options')
-
 jupyter_kernels = undefined
 
 ###
@@ -43,12 +41,11 @@ class exports.JupyterActions extends Actions
         @setState
             error               : undefined
             cur_id              : @store.get_local_storage('cur_id')
-            toolbar             : true
+            toolbar             : not @store.get_local_storage('hide_toolbar')
             has_unsaved_changes : true
             sel_ids             : immutable.Set()  # immutable set of selected cells
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
-            cm_options          : cm_options()
             font_size           : @store.get_local_storage('font_size') ? @redux.getStore('account')?.get('font_size') ? 14
             project_id          : project_id
             directory           : misc.path_split(path)?.head
@@ -295,6 +292,7 @@ class exports.JupyterActions extends Actions
                 if cell_list?
                     obj.cell_list = cell_list.filter((x) -> x != id)
                 @setState(obj)
+                @delete_cm_cache(id)
         else
             # change or add cell
             old_cell = cells.get(id)
@@ -328,7 +326,7 @@ class exports.JupyterActions extends Actions
                         kernel_info   : @store.get_kernel_info(kernel)
                         backend_state : record?.get('backend_state')
                         kernel_state  : record?.get('kernel_state')
-                        cm_options    : cm_options(kernel)
+                        cm_options    : @store.get_cm_options(kernel)
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -777,14 +775,19 @@ class exports.JupyterActions extends Actions
         @_sync()
 
     toggle_toolbar: =>
-        @setState(toolbar: not @store.get('toolbar'))
+        val = not @store.get('toolbar')
+        @setState(toolbar: val)
+        @set_local_storage('hide_toolbar', not val)
 
     toggle_header: =>
         @redux?.getActions('page').toggle_fullscreen()
 
     toggle_line_numbers: =>
         x = @store.get('cm_options') ? immutable.Map()
-        @setState(cm_options: x.set('lineNumbers', not x.get('lineNumbers')))
+        val = not x.get('lineNumbers')
+        @setState(cm_options: x.set('lineNumbers', val))
+        @set_local_storage('line_numbers', val)
+        return
 
     # zoom in or out delta font sizes
     set_font_size: (pixels) =>
@@ -956,6 +959,19 @@ class exports.JupyterActions extends Actions
             url     : util.get_signal_url(@store.get('project_id'), identity, signal)
             timeout : 5000
 
+    set_cm_cache: (id, cm) =>
+        @store._cm_cache ?= {}
+        if @store._cm_cache[id]?
+            @delete_cm_cache(id)
+        @store._cm_cache[id] = cm
+
+    delete_cm_cache: (id) =>
+        @store._cm_cache ?= {}
+        cm = @store._cm_cache[id]
+        if cm?
+            doc = cm.getDoc()
+            delete doc.cm  # so cm gets freed from memory when destroyed and doc is not attached to it.
+            delete @store._cm_cache[id]
 
 
 

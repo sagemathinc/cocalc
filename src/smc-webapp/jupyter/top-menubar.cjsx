@@ -327,7 +327,7 @@ exports.TopMenubar = rclass ({name}) ->
         </Dropdown>
 
     render: ->
-        <div style={backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7', height:'32px'}>
+        <div style={backgroundColor:'rgb(247,247,247)', border:'1px solid #e7e7e7', height:'34px'}>
             <ButtonGroup>
                 {@render_file()}
                 {@render_edit()}

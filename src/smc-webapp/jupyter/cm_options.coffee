@@ -9,7 +9,6 @@ MD_OPTIONS = immutable.fromJS
     tabSize         : 4
     mode            : {name: "gfm2"}
     lineWrapping    : true
-    styleActiveLine : true
     indentWithTabs  : true
 
 DEFAULT_OPTIONS = immutable.fromJS
@@ -17,7 +16,6 @@ DEFAULT_OPTIONS = immutable.fromJS
     matchBrackets     : true
     autoCloseBrackets : true
     lineWrapping      : true
-    styleActiveLine   : true
     indentWithTabs    : true
     mode              :
         name                   : "python"

@@ -39,8 +39,8 @@ exports.CellInput = rclass
             next.font_size              != @props.font_size or \
             next.complete               != @props.complete
 
-    componentDidUpdate: ->
-        if @props.is_current and not @props.is_focused
+    componentWillReceiveProps: (next) ->
+        if next.is_current and not next.is_focused and not @props.is_focused
             elt = $(ReactDOM.findDOMNode(@))
             elt.scrollintoview
                 direction: "vertical"

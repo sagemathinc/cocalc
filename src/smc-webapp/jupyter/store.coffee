@@ -2,6 +2,8 @@ misc       = require('smc-util/misc')
 
 {Store}  = require('../smc-react')
 
+{cm_options} = require('./cm_options')
+
 # Used for copy/paste.  We make a single global clipboard, so that
 # copy/paste between different notebooks works.
 global_clipboard = undefined
@@ -151,5 +153,11 @@ class exports.JupyterStore extends Store
             output.output_type = 'error'
         return output
 
+    get_cm_cache: (id) =>
+        return @_cm_cache?[id]
 
-
+    get_cm_options: (kernel) =>
+        options = cm_options(kernel)
+        if @get_local_storage('line_numbers')
+            options = options.set('lineNumbers', true)
+        return options
