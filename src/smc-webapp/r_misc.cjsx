@@ -37,6 +37,8 @@ underscore  = require('underscore')
 
 markdown    = require('./markdown')
 
+{defaults, required} = misc
+
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
 
@@ -1646,54 +1648,145 @@ exports.UpgradeAdjustor = rclass
                 </ButtonToolbar>
             </Alert>
 
-
 ###
 Drag'n'Drop dropzone area
 ###
 ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone       = require('react-dropzone-component')
+Dropzone       = require('dropzone')
 
-exports.SMC_Dropzone = rclass
-    displayName: 'SMC_Dropzone'
+# Returns a component which files can be dragged onto
+# config is a placeholder for any configuration details that can't be passed as a prop to the returned component
+exports.AllowFileDropping = (ComposedComponent) =>
+    Dropzone = require('dropzone')
+    Dropzone.autoDiscover = false
+    return rclass
+        displayName: 'dropzone-wrapper'
 
-    propTypes:
-        project_id           : rtypes.string.isRequired
-        current_path         : rtypes.string.isRequired
-        dropzone_handler     : rtypes.object.isRequired
+        propTypes:
+            project_id           : rtypes.string.isRequired    # The project to upload files to
+            current_path         : rtypes.string.isRequired    # The path for files to be sent
+            config               : rtypes.object               # All supported dropzone.js config options
+            disabled             : rtypes.bool                 # Will reject file drops if true. Default false
 
-    dropzone_template : ->
-        <div className='dz-preview dz-file-preview'>
-            <div className='dz-details'>
-                <div className='dz-filename'><span data-dz-name></span></div>
-                <img data-dz-thumbnail />
+        getDefaultProps: ->
+            config : {}
+
+        getInitialState: ->
+            files : []
+
+        get_djs_config: ->
+            defaults @props.config,
+                url : @postUrl()
+                previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
+                previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
+            , true
+
+        postUrl: ->
+            dest_dir = misc.encode_path(@props.current_path)
+            postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+            return postUrl
+
+        componentDidMount: ->
+            @_create_dropzone()
+            @_set_up_events()
+
+        componentWillUnmount: ->
+            console.log "Component unmounting"
+            if @dropzone
+                files = @dropzone.getActiveFiles()
+
+                if files.length > 0
+                    # Stuff is still uploading...
+                    # Awkward...
+                    @queueDestroy = true
+
+                    destroyInterval = window.setInterval =>
+                        if @queueDestroy == false
+                            return window.clearInterval(destroyInterval)
+
+                        if @dropzone.getActiveFiles().length == 0
+                            @dropzone = @_destroy(@dropzone)
+                            return window.clearInterval(destroyInterval)
+                    , 500
+
+        componentDidUpdate: ->
+            @queueDestroy = false
+            if not @dropzone?
+                @_create_dropzone()
+
+        # Update Dropzone options each time the component updates.
+        componentWillUpdate: ->
+            @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
+
+        preview_template: ->
+            <div className='dz-preview dz-file-preview'>
+                <div className='dz-details'>
+                    <div className='dz-filename'><span data-dz-name></span></div>
+                    <img data-dz-thumbnail />
+                </div>
+                <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
+                <div className='dz-success-mark'><span><Icon name='check'></span></div>
+                <div className='dz-error-mark'><span><Icon name='times'></span></div>
+                <div className='dz-error-message'><span data-dz-errormessage></span></div>
             </div>
-            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
-            <div className='dz-error-message'><span data-dz-errormessage></span></div>
-        </div>
 
-    postUrl : ->
-        dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
-        return postUrl
+        close_preview: ->
+            @dropzone?.removeAllFiles()
 
-    render: ->
-        <div>
-            {<div className='close-button pull-right'>
-                <span
-                    onClick={@props.close_button_onclick}
-                    className='close-button-x'
-                    style={cursor: 'pointer', fontSize: '18px', color:'gray'}><i className="fa fa-times"></i></span>
-            </div> if @props.close_button_onclick?}
-            <Tip icon='file' title='Drag and drop files' placement='top'
-                tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-            </Tip>
-            <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
-                <Dropzone
-                    config        = {postUrl: @postUrl()}
-                    eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
+        render_preview: ->
+            if @state.files.length == 0
+                style = display : 'none'
+
+            <div style={style}>
+                <div className='close-button pull-right'>
+                    <span
+                        onClick={@close_preview}
+                        className='close-button-x'
+                        style={cursor: 'pointer', fontSize: '18px', color:'gray'}
+                    >
+                        <i className="fa fa-times"></i>
+                    </span>
+                </div>
+                <Tip icon='file' title='Drag and drop files' placement='top'
+                    tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+                    <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
+                </Tip>
+                <div className='filepicker dropzone' style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'} >
+                    <div ref='preview_container'/>
+                </div>
             </div>
-        </div>
+
+        render: ->
+            <div>
+                {@render_preview()}
+                <ComposedComponent {...@props}/>
+            </div>
+
+        _create_dropzone: ->
+            dropzone_node = ReactDOM.findDOMNode(@)
+            @dropzone = new Dropzone(dropzone_node, @get_djs_config())
+
+        _set_up_events: ->
+            return unless @dropzone?
+
+            @dropzone.on 'addedfile', (file) =>
+                if file
+                    files = @state.files
+                    files.push(file)
+                    @setState(files : files)
+
+            @dropzone.on 'removedfile', (file) =>
+                files = @state.files
+                return unless file and files
+
+                for item, i in files
+                    if item.name == file.name and item.size == file.size
+                        files.splice(i, 1)
+
+                @setState(files : files)
+
+        # Removes ALL listeners and Destroys dropzone.
+        # see https://github.com/enyo/dropzone/issues/1175
+        _destroy: (dropzone) ->
+            dropzone.off()
+            return dropzone.destroy()

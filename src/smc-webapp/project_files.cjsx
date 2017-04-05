@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
+{ActivityDisplay, AllowFileDropping, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
@@ -535,7 +535,7 @@ pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
 
-FileListing = rclass
+FileListing = AllowFileDropping rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
@@ -558,9 +558,6 @@ FileListing = rclass
     getDefaultProps: ->
         file_search : ''
         show_upload : false
-
-    componentDidUpdate: ->
-        @_show_upload_last = +new Date()
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -655,48 +652,13 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
-    # upload area config and handling
-    show_upload : (e, enter) ->
-        #if DEBUG
-        #    if enter
-        #        console.log "project_files/dragarea entered", e
-        #    else
-        #        console.log "project_files/dragarea left", e
-        # limit changing events, to avoid flickering during UI update
-        change = @props.show_upload != enter
-        if change and @_show_upload_last > (+new Date()) - 100
-            return
-        if e?
-            e.stopPropagation()
-            e.preventDefault()
-            # The very first time the event fires, it has a target attached and then it fires again.
-            # This filteres the very first time it is triggered to avoid double-firing.
-            if target?
-                return
-        @props.actions.show_upload(enter)
-
     render : ->
-        {SMC_Dropzone} = require('./r_misc')
-
-        dropzone_handler =
-            dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.fetch_directory_listing(path: @props.current_path)
-
-        <div>
-            {<Col sm=12 key='upload'>
-                <SMC_Dropzone
-                    dropzone_handler     = dropzone_handler
-                    project_id           = @props.project_id
-                    current_path         = @props.current_path
-                    close_button_onclick = {=>@show_upload(null, false)} />
-            </Col> if @props.show_upload}
-            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)} onDragLeave={(e) => @show_upload(e, false)}>
-                {@render_terminal_mode()}
-                {@parent_directory()}
-                {@render_rows()}
-                {@render_no_files()}
-            </Col>
-        </div>
+        <Col sm=12>
+            {@render_terminal_mode()}
+            {@parent_directory()}
+            {@render_rows()}
+            {@render_no_files()}
+        </Col>
 
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
@@ -2186,6 +2148,7 @@ exports.ProjectFiles = rclass ({name}) ->
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
+
         <div style={padding:'15px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
