@@ -16,15 +16,27 @@ Cursor = rclass
 
     componentDidMount: ->
         @_mounted = true
+        @show(1500)
 
     componentWillUnmount: ->
         @_mounted = false
 
+    hide: ->
+        delete @_timer
+        if @_mounted
+            @setState(hover: false)
+
+    show: (n) ->
+        if @_mounted
+            if @_timer?
+                clearTimeout(@_timer)
+            @setState(hover: true)
+            @_timer = setTimeout((=>@hide()), n)
+
     render: ->
         <span
-            style        = {color:@props.color, position:'relative', cursor:'text'}
-            onMouseEnter = {=>@setState(hover: true)}
-            onMouseLeave = {=>setTimeout((=>if @_mounted then @setState(hover: false)), 1500)}
+            style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all'}
+            onMouseEnter = {=>@show(1500)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}
@@ -55,13 +67,14 @@ PositionedCursor = rclass
 
     render_static: ->
         style =
-            position   : 'relative'
-            height     : 0
-            lineHeight : 'normal'
-            fontFamily : 'monospace'
-            whiteSpace : 'pre'
-            top        : '4px'  # must match what is used in codemirror-static.
-            left       : '4px'
+            position      : 'relative'
+            height        : 0
+            lineHeight    : 'normal'
+            fontFamily    : 'monospace'
+            whiteSpace    : 'pre'
+            top           : '4px'  # must match what is used in codemirror-static.
+            left          : '4px'
+            pointerEvents : 'none' # so clicking in the spaces (the string position below) doesn't break click to focus cell.
 
         # we position using newlines and blank spaces, so no measurement is needed.
         position = ('\n' for _ in [0...@props.line]).join('') + (' ' for _ in [0...@props.ch]).join('')
@@ -102,8 +115,8 @@ exports.Cursors = rclass
             {color, name} = @profile(account_id)
             locs.forEach (pos) =>
                 if now - pos.get('time') <= 60000
-                    if account_id == @props.account_id and @props.codemirror?
-                        # don't show our own cursor in codemirror active editing cells.
+                    if account_id == @props.account_id
+                        # don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
                         return
                     v.push <PositionedCursor
                         key        = {v.length}
