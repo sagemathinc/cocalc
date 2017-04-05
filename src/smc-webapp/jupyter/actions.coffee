@@ -399,7 +399,7 @@ class exports.JupyterActions extends Actions
 
     save: =>
         # Saves our customer format sync doc-db to disk; the backend will
-        # (TODO) also save the normal ipynb file to disk right after.
+        # also save the normal ipynb file to disk right after.
         @syncdb.save () =>
             @set_has_unsaved_changes()
         @set_has_unsaved_changes()
@@ -958,4 +958,8 @@ class exports.JupyterActions extends Actions
             url     : util.get_signal_url(@store.get('project_id'), identity, signal)
             timeout : 5000
 
+    download_as_ipynb: =>
+        @redux.getProjectActions(@store.get('project_id'))?.download_file
+            path : @store.get('path')
+            log  : true
 
