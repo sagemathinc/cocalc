@@ -150,31 +150,20 @@ exports.CodeMirrorEditor = rclass
         @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left})
 
     init_codemirror: (options, value, cursors) ->
-        cache = @props.actions?.store.get_cm_cache(@props.id)
-        if cache? and options.equals(cache.cocalc_options)
-            @cm = cache
-            node = $(@cm.getWrapperElement())
-            $(ReactDOM.findDOMNode(@)).find("textarea").replaceWith(node)
-            @cm.getOption('extraKeys').Tab = @tab_key
-            @cm.refresh() # makes this almost pointless.
-
+        @_cm_destroy()
+        node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
+        if not node?
+            return
+        options0 = options.toJS()
+        if @props.actions?
+            options0.extraKeys ?= {}
+            options0.extraKeys["Tab"] = @tab_key
         else
-            @_cm_destroy()
-            node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
-            if not node?
-                return
-            options0 = options.toJS()
-            if @props.actions?
-                options0.extraKeys ?= {}
-                options0.extraKeys["Tab"] = @tab_key
-            else
-                options0.readOnly = true
-            options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
+            options0.readOnly = true
+        options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
 
-            @cm = CodeMirror.fromTextArea(node, options0)
-            @cm.cocalc_options = options
-            $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
-            @props.actions?.set_cm_cache(@props.id, @cm)
+        @cm = CodeMirror.fromTextArea(node, options0)
+        $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
 
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)

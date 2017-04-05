@@ -153,9 +153,6 @@ class exports.JupyterStore extends Store
             output.output_type = 'error'
         return output
 
-    get_cm_cache: (id) =>
-        return @_cm_cache?[id]
-
     get_cm_options: (kernel) =>
         options = cm_options(kernel)
         if @get_local_storage('line_numbers')

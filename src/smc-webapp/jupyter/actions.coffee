@@ -292,7 +292,6 @@ class exports.JupyterActions extends Actions
                 if cell_list?
                     obj.cell_list = cell_list.filter((x) -> x != id)
                 @setState(obj)
-                @delete_cm_cache(id)
         else
             # change or add cell
             old_cell = cells.get(id)
@@ -958,20 +957,5 @@ class exports.JupyterActions extends Actions
         @_ajax
             url     : util.get_signal_url(@store.get('project_id'), identity, signal)
             timeout : 5000
-
-    set_cm_cache: (id, cm) =>
-        @store._cm_cache ?= {}
-        if @store._cm_cache[id]?
-            @delete_cm_cache(id)
-        @store._cm_cache[id] = cm
-
-    delete_cm_cache: (id) =>
-        @store._cm_cache ?= {}
-        cm = @store._cm_cache[id]
-        if cm?
-            doc = cm.getDoc()
-            delete doc.cm  # so cm gets freed from memory when destroyed and doc is not attached to it.
-            delete @store._cm_cache[id]
-
 
 
