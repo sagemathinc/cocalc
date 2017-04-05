@@ -958,8 +958,13 @@ class exports.JupyterActions extends Actions
             url     : util.get_signal_url(@store.get('project_id'), identity, signal)
             timeout : 5000
 
-    download_as_ipynb: =>
-        @redux.getProjectActions(@store.get('project_id'))?.download_file
-            path : @store.get('path')
-            log  : true
-
+    # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
+    # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
+    # the file manager, so gives a step to confirm, etc.
+    file_action: (action_name) =>
+        a = @redux.getProjectActions(@store.get('project_id'))
+        {head, tail} = misc.path_split(@store.get('path'))
+        a.open_directory(head)
+        a.set_all_files_unchecked()
+        a.set_file_checked(@store.get('path'), true)
+        a.set_file_action(action_name, -> tail)
