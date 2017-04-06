@@ -2521,6 +2521,12 @@ def show(*objs, **kwds):
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
 
+       - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
+
+       - background: string, specifies background color for 3d images; ignored
+         if viewer is set to "tachyon" or if object type is Tachyon. May be any valid CSS color
+         string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
+
     ANIMATIONS:
 
        - animations are by default encoded and displayed using an efficiently web-friendly
