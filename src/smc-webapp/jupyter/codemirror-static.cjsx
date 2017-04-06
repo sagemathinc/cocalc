@@ -18,6 +18,8 @@ misc = require('smc-util/misc')
 
 {LineNumbers} = require('./line-numbers')
 
+{Cursors} = require('./cursors')
+
 BLURRED_STYLE =
     width         : '100%'
     overflowX     : 'hidden'
@@ -97,10 +99,15 @@ exports.CodeMirrorStatic = rclass
                     id       = {@props.id}
                 />
 
+    render_cursors: ->
+        if @props.cursors?
+            <Cursors cursors = {@props.cursors} />
+
     render: ->
         <div style={width: '100%', display:'flex'}>
             {@render_line_numbers()}
             <div style={width: '100%'}>
+                {@render_cursors()}
                 {@render_code()}
                 {@render_complete()}
             </div>

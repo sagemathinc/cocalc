@@ -864,12 +864,16 @@ class SyncTable extends EventEmitter
                 when 'none'
                     new_val = changes
                 else
-                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+                    cb?("merge must be one of 'deep', 'shallow', 'none'")
+                    return
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
             @emit_change([id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+        else
+            cb?()
+
         return new_val
 
     close: =>

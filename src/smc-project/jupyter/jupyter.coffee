@@ -47,12 +47,13 @@ class Client
 
 exports.kernel = (opts) ->
     opts = defaults opts,
-        name    : required   # name of the kernel as a string
-        client  : undefined
-        verbose : true
+        name      : required   # name of the kernel as a string
+        client    : undefined
+        verbose   : true
+        path      : required   # filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, if opts.verbose then opts.client?.dbg)
+    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path)
 
 ###
 Jupyter Kernel interface.
@@ -68,10 +69,11 @@ node_cleanup =>
         kernel.close()
 
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg) ->
+    constructor : (@name, @_dbg, @_path) ->
+        @_directory = misc.path_split(@_path)?.head
         @_set_state('off')
         @_identity = misc.uuid()
-        _jupyter_kernels[@_identity] = @
+        _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
         process.on('exit',=>console.log("exiting"))
@@ -121,8 +123,10 @@ class Kernel extends EventEmitter
             err = "#{err}"
             for cb in @_spawn_cbs
                 cb?(err)
-
-        require('spawnteract').launch(@name, {detached: true}).then(success, fail)
+        opts = {detached: true}
+        if @_directory != ''
+            opts.cwd = @_directory
+        require('spawnteract').launch(@name, opts).then(success, fail)
         return
 
     signal: (signal) =>
@@ -141,7 +145,8 @@ class Kernel extends EventEmitter
         if @_state == 'closed'
             return
         @_set_state('closed')
-        delete _jupyter_kernels[@_identity]
+        if _jupyter_kernels[@_path]?._identity == @_identity
+            delete _jupyter_kernels[@_path]
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
@@ -159,7 +164,7 @@ class Kernel extends EventEmitter
         if not @_dbg?
             return ->
         else
-            return @_dbg("jupyter.Kernel('#{@name}',identity='#{@_identity}').#{f}")
+            return @_dbg("jupyter.Kernel('#{@name}',path='#{@_path}').#{f}")
 
     _ensure_running: (cb) =>
         if @_state == 'closed'
@@ -280,8 +285,10 @@ class Kernel extends EventEmitter
 
                 # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
                 # is pretty annoying for our use. For now, we just copy it, which is a waste.
+                msg_type = mesg.header?.msg_type
                 mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
                 mesg = misc.deep_copy(mesg)
+                mesg.msg_type = msg_type
                 if opts.all
                     all_mesgs.push(mesg)
                 else
@@ -334,9 +341,6 @@ class Kernel extends EventEmitter
             content.data[keep] = blob_store.save(content.data[keep], keep)
         dbg("keep='#{keep}'; blob='#{blob}'")
 
-    get_identity: =>
-        return @_identity
-
     # Returns a reference to the blob store.
     get_blob_store: =>
         return blob_store
@@ -345,34 +349,26 @@ class Kernel extends EventEmitter
     get_kernel_data: (cb) =>   # cb(err, kernel_data)  # see below.
         get_kernel_data(cb)
 
-    complete: (opts) =>
+    call: (opts) =>
         opts = defaults opts,
-            code       : required
-            cursor_pos : required
-            cb         : required
-        dbg = @dbg("complete")
-        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+            msg_type : required
+            content  : {}
+            cb       : required
         @_ensure_running (err) =>
             if err
                 opts.cb(err)
             else
-                @_complete(opts)
+                @_call(opts)
 
-    _complete: (opts) =>
-        if @_state == 'closed'
-            opts.cb('closed')
-            return
-        dbg = @dbg("_complete")
+    _call: (opts) =>
         message =
             header:
-                msg_id   : "complete_#{misc.uuid()}"
+                msg_id   : misc.uuid()
                 username : ''
                 session  : ''
-                msg_type : 'complete_request'
+                msg_type : opts.msg_type
                 version  : '5.0'
-            content:
-                code       : opts.code
-                cursor_pos : opts.cursor_pos
+            content: opts.content
 
         # setup handling of the results
         if opts.all
@@ -386,9 +382,21 @@ class Kernel extends EventEmitter
                     delete mesg.metadata
                 opts.cb(undefined, mesg)
         @on('shell', f)
-
-        dbg("send the message")
         @_channels.shell.next(message)
+
+    complete: (opts) =>
+        opts = defaults opts,
+            code       : required
+            cursor_pos : required
+            cb         : required
+        dbg = @dbg("complete")
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+        @call
+            msg_type : 'complete_request'
+            content:
+                code       : opts.code
+                cursor_pos : opts.cursor_pos
+            cb : opts.cb
 
     introspect: (opts) =>
         opts = defaults opts,
@@ -397,42 +405,23 @@ class Kernel extends EventEmitter
             detail_level : required
             cb           : required
         dbg = @dbg("introspect")
-        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
-        @_ensure_running (err) =>
-            if err
-                opts.cb(err)
-            else
-                @_introspect(opts)
-
-    _introspect: (opts) =>
-        dbg = @dbg("_introspect")
-        message =
-            header:
-                msg_id   : "introspect_#{misc.uuid()}"
-                username : ''
-                session  : ''
-                msg_type : 'inspect_request'
-                version  : '5.0'
-            content:
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}', detail_level=#{opts.detail_level}")
+        @call
+            msg_type : 'inspect_request'
+            content :
                 code         : opts.code
                 cursor_pos   : opts.cursor_pos
                 detail_level : opts.detail_level
+            cb: opts.cb
 
-        # setup handling of the results
-        if opts.all
-            all_mesgs = []
-
-        f = (mesg) =>
-            if mesg.parent_header.msg_id == message.header.msg_id
-                @removeListener('shell', f)
-                mesg = misc.deep_copy(mesg.content)
-                if misc.len(mesg.metadata) == 0
-                    delete mesg.metadata
-                opts.cb(undefined, mesg)
-        @on('shell', f)
-
-        dbg("send the message")
-        @_channels.shell.next(message)
+    kernel_info: (opts) =>
+        opts = defaults opts,
+            cb         : required
+        @call
+            msg_type : 'kernel_info_request'
+            cb       : (err, info) ->
+                info?.nodejs_version = process.version
+                opts.cb(err, info)
 
     http_server: (opts) =>
         opts = defaults opts,
@@ -444,6 +433,9 @@ class Kernel extends EventEmitter
             when 'signal'
                 @signal(opts.segments[1])
                 opts.cb(undefined, {})
+
+            when 'kernel_info'
+                @kernel_info(cb: opts.cb)
 
             when 'complete'
                 code = opts.query.code
@@ -571,13 +563,13 @@ jupyter_kernel_http_server = (base, router) ->
             res.send(kernel_data.jupyter_kernels_json)
             return
         segments = path.split('/')
-        identity = segments[0]
-        kernel = _jupyter_kernels[identity]
+        path = req.query.path
+        kernel = _jupyter_kernels[path]
         if not kernel?
-            res.send(JSON.stringify({error:"no kernel with identity '#{identity}'"}))
+            res.send(JSON.stringify({error:"no kernel with path '#{path}'"}))
             return
         kernel.http_server
-            segments : segments.slice(1)
+            segments : segments
             query    : req.query
             cb       : (err, resp) ->
                 if err

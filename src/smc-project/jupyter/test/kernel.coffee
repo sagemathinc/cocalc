@@ -36,7 +36,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 done()
 
 describe 'compute 2/3 using the python3 kernel -- ', ->
-    @timeout(20000)
+    @timeout(30000)
     kernel = undefined
 
     it 'creates a python3 kernel', ->
@@ -126,3 +126,43 @@ describe 'send signals to a kernel -- ', ->
             expect(state).toBe('closed')
             done()
         kernel.signal('SIGKILL')
+
+describe 'start a kernel in a different directory -- ', ->
+    kernel = undefined
+    @timeout(5000)
+
+    it 'creates a python2 kernel', (done) ->
+        kernel = common.kernel('python2')
+        kernel.execute_code
+            code : 'import os; print(os.path.abspath("."))'
+            all  : true
+            cb   : (err, data) ->
+                if err
+                    done(err)
+                    return
+                path = data?[2]?.content?.text?.trim()
+                if not path?
+                    done("output failed")
+                    return
+                path = path.slice(path.length-7)
+                expect(path).toBe('jupyter')
+                done(err)
+
+    it 'creates a python2 kernel', (done) ->
+        kernel = common.kernel('python2', 'test')
+        kernel.execute_code
+            code      : 'import os; print(os.path.abspath("."))'
+            all       : true
+            cb        : (err, data) ->
+                if err
+                    done(err)
+                    return
+                path = data?[2]?.content?.text?.trim()
+                if not path?
+                    done("output failed")
+                    return
+                path = path.slice(path.length-12)
+                expect(path).toBe('jupyter/test')
+                done(err)
+
+

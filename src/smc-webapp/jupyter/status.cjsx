@@ -61,9 +61,9 @@ exports.Kernel = rclass ({name}) ->
             <img style   = {width:'0px', height:'32px'} />
         else
             <img
-                src     = {util.get_logo_url(@props.project_id, kernel)}
+                src     = {util.get_logo_url(@props.project_id, kernel) + "?n=#{Math.random()}"}
                 style   = {width:'32px', height:'32px'}
-                onError = {=> @setState(logo_failed: kernel)}
+                onError = {=> if @props.kernel_info? then @setState(logo_failed: kernel)}
             />
 
     render_name: ->

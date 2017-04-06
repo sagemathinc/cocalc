@@ -44,15 +44,15 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="new">New Notebook...</MenuItem>
                 <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="copy">Make a Copy...</MenuItem>
-                <MenuItem eventKey="rename">Rename...</MenuItem>
+                <MenuItem eventKey="copy"    onSelect={=>@props.actions.file_action('duplicate')}>Make a Copy...</MenuItem>
+                <MenuItem eventKey="rename"  onSelect={=>@props.actions.file_action('rename')}>Rename...</MenuItem>
                 <MenuItem
                     eventKey = "save"
                     onSelect = {=>@props.actions.save()}
                     disabled = {not @props.has_unsaved_changes} >
                     Save
                 </MenuItem>
-                <MenuItem eventKey="timetravel">Publish...</MenuItem>
+                <MenuItem eventKey="timetravel"  onSelect={=>@props.actions.file_action('share')}>Publish...</MenuItem>
                 <MenuItem divider />
                 <MenuItem
                     eventKey="timetravel"
@@ -62,7 +62,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem divider />
                 <MenuItem eventKey="print">Print Preview</MenuItem>
                 <MenuItem eventKey="download" disabled>Download As...</MenuItem>
-                <MenuItem eventKey="download-ipynb"   ><span style={marginLeft:'4ex'}/> Notebook (.ipynb)</MenuItem>
+                <MenuItem eventKey="download-ipynb"   onSelect={=>@props.actions.file_action('download')}><span style={marginLeft:'4ex'}/> Notebook (.ipynb)</MenuItem>
                 <MenuItem eventKey="download-python"  ><span style={marginLeft:'4ex'}/> Python (.py)</MenuItem>
                 <MenuItem eventKey="download-html"    ><span style={marginLeft:'4ex'}/> HTML (.html)</MenuItem>
                 <MenuItem eventKey="download-markdown"><span style={marginLeft:'4ex'}/> Markdown (.md)</MenuItem>
@@ -305,7 +305,6 @@ exports.TopMenubar = rclass ({name}) ->
         if f?
             for name, url of f()
                 v.push(external_link(name, url))
-            v.push <MenuItem key='sep' divider />
         return v
 
     render_help: ->
@@ -314,6 +313,8 @@ exports.TopMenubar = rclass ({name}) ->
                 Help
             </Dropdown.Toggle>
             <Dropdown.Menu>
+                <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
+                <MenuItem divider />
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />
@@ -321,8 +322,6 @@ exports.TopMenubar = rclass ({name}) ->
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}
-
-                <MenuItem eventKey="help-about">About</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
