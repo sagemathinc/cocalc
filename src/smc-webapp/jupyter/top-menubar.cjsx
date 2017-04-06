@@ -305,7 +305,6 @@ exports.TopMenubar = rclass ({name}) ->
         if f?
             for name, url of f()
                 v.push(external_link(name, url))
-            v.push <MenuItem key='sep' divider />
         return v
 
     render_help: ->
@@ -314,6 +313,8 @@ exports.TopMenubar = rclass ({name}) ->
                 Help
             </Dropdown.Toggle>
             <Dropdown.Menu>
+                <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
+                <MenuItem divider />
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />
@@ -321,8 +322,6 @@ exports.TopMenubar = rclass ({name}) ->
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}
-
-                <MenuItem eventKey="help-about">About</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 

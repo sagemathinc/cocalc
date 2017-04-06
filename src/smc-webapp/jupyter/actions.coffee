@@ -85,6 +85,9 @@ class exports.JupyterActions extends Actions
             url     : required
             timeout : 15000
             cb      : undefined    # (err, data)
+        if not $?
+            opts.cb?("_ajax only makes sense in browser")
+            return
         $.ajax(
             url     : opts.url
             timeout : opts.timeout
@@ -119,10 +122,11 @@ class exports.JupyterActions extends Actions
                 f           : f
                 start_delay : 1500
                 max_delay   : 15000
+                max_time    : 60000
 
     set_error: (err) =>
         if not err?
-            @setState(err: undefined)
+            @setState(error: undefined)
             return
         cur = @store.get('error')
         if cur
@@ -321,14 +325,22 @@ class exports.JupyterActions extends Actions
                     if @_syncdb_cell_change(key.get('id'), record)
                         cell_list_needs_recompute = true
                 when 'settings'
-                    kernel = record?.get('kernel')
-                    @setState
-                        kernel        : kernel
-                        identity      : record?.get('identity')
-                        kernel_info   : @store.get_kernel_info(kernel)
-                        backend_state : record?.get('backend_state')
-                        kernel_state  : record?.get('kernel_state')
-                        cm_options    : @store.get_cm_options(kernel)
+                    if not record?
+                        return
+                    orig_kernel = @store.get('kernel')
+                    kernel = record.get('kernel')
+                    obj =
+                        backend_state : record.get('backend_state')
+                        kernel_state  : record.get('kernel_state')
+                    if kernel != @store.get('kernel')
+                        # kernel changed
+                        obj.kernel              = kernel
+                        obj.cm_options          = @store.get_cm_options(kernel)
+                        obj.kernel_info         = @store.get_kernel_info(kernel)
+                        obj.backend_kernel_info = undefined
+                    @setState(obj)
+                    if not @_is_project and orig_kernel != kernel
+                        @set_backend_kernel_info()
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -383,6 +395,7 @@ class exports.JupyterActions extends Actions
     _set: (obj, save=true) =>
         if @_state == 'closed'
             return
+        #@dbg("_set")("obj=#{misc.to_json(obj)}")
         @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
@@ -833,8 +846,8 @@ class exports.JupyterActions extends Actions
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel
             @_set
-                type   : 'settings'
-                kernel : kernel
+                type     : 'settings'
+                kernel   : kernel
 
     show_history_viewer: () =>
         @redux.getProjectActions(@store.get('project_id'))?.open_file
@@ -863,10 +876,6 @@ class exports.JupyterActions extends Actions
     complete: (code, pos, id, offset) =>
         req = @_complete_request = (@_complete_request ? 0) + 1
 
-        identity = @store.get('identity')
-        if not identity?
-            # TODO: need to initialize kernel... or something
-            return
         @setState(complete: undefined)
 
         # pos can be either a {line:?, ch:?} object as in codemirror,
@@ -878,7 +887,7 @@ class exports.JupyterActions extends Actions
             cursor_pos = pos
 
         @_ajax
-            url     : util.get_complete_url(@store.get('project_id'), identity, code, cursor_pos)
+            url     : util.get_complete_url(@store.get('project_id'), @store.get('path'), code, cursor_pos)
             timeout : 5000
             cb      : (err, data) =>
                 if @_complete_request > req
@@ -923,16 +932,12 @@ class exports.JupyterActions extends Actions
     introspect: (code, level, cursor_pos) =>
         req = @_introspect_request = (@_introspect_request ? 0) + 1
 
-        identity = @store.get('identity')
-        if not identity?
-            # TODO: need to initialize kernel... or something
-            return
         @setState(introspect: undefined)
 
         cursor_pos ?= code.length
 
         @_ajax
-            url     : util.get_introspect_url(@store.get('project_id'), identity, code, cursor_pos, level)
+            url     : util.get_introspect_url(@store.get('project_id'), @store.get('path'), code, cursor_pos, level)
             timeout : 15000
             cb      : (err, data) =>
                 if @_introspect_request > req
@@ -954,12 +959,30 @@ class exports.JupyterActions extends Actions
         @setState(introspect: undefined)
 
     signal: (signal='SIGINT') =>
-        identity = @store.get('identity')
-        if not identity?
-            return
         @_ajax
-            url     : util.get_signal_url(@store.get('project_id'), identity, signal)
+            url     : util.get_signal_url(@store.get('project_id'), @store.get('path'), signal)
             timeout : 5000
+        return
+
+    set_backend_kernel_info: =>
+        if @_fetching_backend_kernel_info
+            return
+        if @store.get('backend_kernel_info')?
+            return
+        @_fetching_backend_kernel_info = true
+        @_ajax
+            url     : util.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
+            timeout : 15000
+            cb      : (err, data) =>
+                @_fetching_backend_kernel_info = false
+                if err
+                    console.log("Error setting backend kernel info -- #{err}")
+                else
+                    data = JSON.parse(data)
+                    if data.error?
+                        console.log("Error setting backend kernel info -- #{data.error}")
+                    else
+                        @setState(backend_kernel_info: immutable.fromJS(data))
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
     # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
@@ -971,3 +994,8 @@ class exports.JupyterActions extends Actions
         a.set_all_files_unchecked()
         a.set_file_checked(@store.get('path'), true)
         a.set_file_action(action_name, -> tail)
+
+    show_about: =>
+        @setState(about:true)
+        @set_backend_kernel_info()
+

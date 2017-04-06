@@ -50,10 +50,10 @@ exports.kernel = (opts) ->
         name      : required   # name of the kernel as a string
         client    : undefined
         verbose   : true
-        directory : ''       # directory in which to start kernel
+        path      : required   # filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.directory)
+    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path)
 
 ###
 Jupyter Kernel interface.
@@ -69,10 +69,11 @@ node_cleanup =>
         kernel.close()
 
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_directory) ->
+    constructor : (@name, @_dbg, @_path) ->
+        @_directory = misc.path_split(@_path)?.head
         @_set_state('off')
         @_identity = misc.uuid()
-        _jupyter_kernels[@_identity] = @
+        _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
         process.on('exit',=>console.log("exiting"))
@@ -144,7 +145,8 @@ class Kernel extends EventEmitter
         if @_state == 'closed'
             return
         @_set_state('closed')
-        delete _jupyter_kernels[@_identity]
+        if _jupyter_kernels[@_path]?._identity == @_identity
+            delete _jupyter_kernels[@_path]
         @removeAllListeners()
         process.removeListener('exit', @close)
         if @_kernel?
@@ -162,7 +164,7 @@ class Kernel extends EventEmitter
         if not @_dbg?
             return ->
         else
-            return @_dbg("jupyter.Kernel('#{@name}',identity='#{@_identity}').#{f}")
+            return @_dbg("jupyter.Kernel('#{@name}',path='#{@_path}').#{f}")
 
     _ensure_running: (cb) =>
         if @_state == 'closed'
@@ -338,9 +340,6 @@ class Kernel extends EventEmitter
         if blob
             content.data[keep] = blob_store.save(content.data[keep], keep)
         dbg("keep='#{keep}'; blob='#{blob}'")
-
-    get_identity: =>
-        return @_identity
 
     # Returns a reference to the blob store.
     get_blob_store: =>
@@ -564,13 +563,13 @@ jupyter_kernel_http_server = (base, router) ->
             res.send(kernel_data.jupyter_kernels_json)
             return
         segments = path.split('/')
-        identity = segments[0]
-        kernel = _jupyter_kernels[identity]
+        path = req.query.path
+        kernel = _jupyter_kernels[path]
         if not kernel?
-            res.send(JSON.stringify({error:"no kernel with identity '#{identity}'"}))
+            res.send(JSON.stringify({error:"no kernel with path '#{path}'"}))
             return
         kernel.http_server
-            segments : segments.slice(1)
+            segments : segments
             query    : req.query
             cb       : (err, resp) ->
                 if err

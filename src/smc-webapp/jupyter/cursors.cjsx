@@ -16,7 +16,6 @@ Cursor = rclass
 
     componentDidMount: ->
         @_mounted = true
-        @show(1500)
 
     componentWillUnmount: ->
         @_mounted = false
@@ -36,7 +35,7 @@ Cursor = rclass
     render: ->
         <span
             style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all'}
-            onMouseEnter = {=>@show(1500)}
+            onMouseEnter = {=>@show(2000)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}

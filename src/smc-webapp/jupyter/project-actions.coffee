@@ -68,7 +68,7 @@ class exports.JupyterActions extends actions.JupyterActions
         @_load_from_disk_if_newer () =>
             @set_backend_state('init')
 
-            @ensure_backend_kernel_setup()  # this sets the kernel identity, hence changes the syncdb.
+            @ensure_backend_kernel_setup()  # this may change the syncdb.
             @init_kernel_info()             # need to have for saving.
 
             @init_file_watcher()
@@ -90,10 +90,11 @@ class exports.JupyterActions extends actions.JupyterActions
         changes?.forEach (key) =>
             if key.get('type') != 'settings'
                 return
+            #@dbg("_backend_syncdb_change")("#{JSON.stringify(@syncdb.get({type:'settings'}).toJS())}")
             record = @syncdb.get_one(key)
             if record?
                 # ensure kernel is properly configured
-                @ensure_backend_kernel_setup(record.get('kernel'))
+                @ensure_backend_kernel_setup()
                 # only the backend should change kernel and backend state;
                 # however, our security model allows otherwise (e.g., via TimeTravel).
                 if record.get('kernel_state') != @_kernel_state
@@ -104,12 +105,18 @@ class exports.JupyterActions extends actions.JupyterActions
         @ensure_there_is_a_cell()
         @sync_exec_state()
 
-    ensure_backend_kernel_setup: (kernel) =>
+    # ensure_backend_kernel_setup ensures that we have a connection
+    # to the proper type of kernel.
+    ensure_backend_kernel_setup: =>
         dbg = @dbg("ensure_backend_kernel_setup")
-        kernel ?= @store.get('kernel') ? DEFAULT_KERNEL
+        kernel = @store.get('kernel')
+        if not kernel?
+            dbg("no kernel")
+            return
+
         current = @_jupyter_kernel?.name
 
-        dbg("kernel='#{kernel}'; current='#{current}'")
+        dbg("kernel='#{kernel}', current='#{current}'")
 
         if current == kernel
             # everything is properly setup
@@ -122,42 +129,42 @@ class exports.JupyterActions extends actions.JupyterActions
             @_jupyter_kernel?.close()
             return
 
-        if not @_jupyter_kernel?
-            dbg("no kernel; make one")
-            # No kernel wrapper object setup at all. Make one.
-            @_jupyter_kernel = @_client.jupyter_kernel(name: kernel, directory:@store.get('directory'))
-            delete @_running_cells
+        if @_jupyter_kernel?
+            throw Error("this case should be impossible")
 
-            @_jupyter_kernel.once 'close', =>
-                # kernel closed -- clean up then make new one.
-                delete @_jupyter_kernel
-                @ensure_backend_kernel_setup()
+        dbg("no kernel; make one")
+        # No kernel wrapper object setup at all. Make one.
+        @_jupyter_kernel = @_client.jupyter_kernel(name: kernel, path:@store.get('path'))
 
-            # Ready to run code, etc.
-            @sync_exec_state()
-            @set_backend_state('ready')
+        # Since we just made a new kernel connection, clearly no cells are running on the backend.
+        delete @_running_cells
 
-            # Track backend state changes.
-            @_jupyter_kernel.on 'state', (state) =>
-                switch state
-                    when 'spawning', 'starting', 'running'
-                        @set_backend_state(state)
-                    when 'closed'
-                        delete @_jupyter_kernel
-                        @set_backend_state('init')
-                        @ensure_backend_kernel_setup()
+        # When the kernel closes, we will forget about it, then
+        # make sure a new kernel gets setup.
+        @_jupyter_kernel.once 'close', =>
+            # kernel closed -- clean up then make new one.
+            delete @_jupyter_kernel
+            @ensure_backend_kernel_setup()
 
-            @_jupyter_kernel.on('execution_state', @set_kernel_state)
+        # Track backend state changes.
+        @_jupyter_kernel.on 'state', (state) =>
+            switch state
+                when 'spawning', 'starting', 'running'
+                    @set_backend_state(state)
+                when 'closed'
+                    delete @_jupyter_kernel
+                    @set_backend_state('init')
+                    @ensure_backend_kernel_setup()
 
-            # Record info about our kernel.
-            @_set
-                type     : 'settings'
-                identity : @_jupyter_kernel.get_identity()
-                kernel   : kernel
+        @_jupyter_kernel.on('execution_state', @set_kernel_state)
+
+        # Ready to run code, etc.
+        @sync_exec_state()
+        @set_backend_state('ready')
 
     init_kernel_info: =>
         if not @store.get('kernels')?
-            @_jupyter_kernel.get_kernel_data (err, kernels) =>
+            @_jupyter_kernel?.get_kernel_data (err, kernels) =>
                 if not err
                     @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
 
@@ -215,7 +222,10 @@ class exports.JupyterActions extends actions.JupyterActions
 
         cell   = @store.get('cells').get(id)
         input  = (cell.get('input') ? '').trim()
-        kernel = @store.get('kernel') ? 'python2'  # TODO...
+        kernel = @store.get('kernel')
+        if not kernel?
+            dbg("no kernel set, so can't run cells")
+            return
 
         @ensure_backend_kernel_setup()
 
@@ -388,6 +398,9 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg("going to try to save")
         ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())
         data = JSON.stringify(ipynb, null, 2)
+        if not data?
+            dbg("ipynb not defined yet; can't save")
+            return
         #dbg("got string version '#{data}'")
         @_client.write_file
             path : @store.get('path')

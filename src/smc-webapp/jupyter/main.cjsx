@@ -12,9 +12,10 @@ Top-level react component, which ties everything together
 {TopButtonbar} = require('./top-buttonbar')
 {CellList}     = require('./cell-list')
 {Introspect}   = require('./introspect')
-#{CellList}     = require('./cell-list-single-editor')
+#{CellList}    = require('./cell-list-single-editor')
 {Kernel, Mode} = require('./status')
-keyboard = require('./keyboard')
+keyboard       = require('./keyboard')
+{About}        = require('./about')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -101,9 +102,13 @@ exports.JupyterEditor = rclass ({name}) ->
             font_size  = {@props.font_size}
             />
 
+    render_about: ->
+        <About actions = {@props.actions} name={name} />
+
     render: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
+            {@render_about()}
             {@render_heading()}
             {@render_cells()}
             {@render_introspect()}
