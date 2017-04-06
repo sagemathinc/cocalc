@@ -150,13 +150,17 @@ Traceback = rclass
 MoreOutput = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
+        actions : rtypes.object  # if not set, then can't get more ouput
+        id      : rtypes.string.isRequired
 
-    mixins: [ImmutablePureRenderMixin]
+    shouldComponentUpdate: (next) ->
+        return next.message != @props.message
 
     show_more_output: ->
+        @props.actions?.fetch_more_output(@props.id)
 
     render: ->
-        if @props.message.get('expired')
+        if not @props.actions? or @props.message.get('expired')
             <Button bsStyle = "info" disabled>
                 <Icon name='eye-slash'/> Additional output is no longer available
             </Button>
@@ -177,7 +181,6 @@ NotImplemented = rclass
         </pre>
 
 
-
 message_component = (message) ->
     if message.get('more_output')?
         return MoreOutput
@@ -196,8 +199,8 @@ exports.CellOutputMessage = CellOutputMessage = rclass
         message    : rtypes.immutable.Map.isRequired
         project_id : rtypes.string
         directory  : rtypes.string
-
-    mixins: [ImmutablePureRenderMixin]
+        actions    : rtypes.object  # optional  - not needed by most messages
+        id         : rtypes.string  # optional, and not usually needed either
 
     render: ->
         C = message_component(@props.message)
@@ -205,6 +208,8 @@ exports.CellOutputMessage = CellOutputMessage = rclass
             message    = {@props.message}
             project_id = {@props.project_id}
             directory  = {@props.directory}
+            actions    = {@props.actions}
+            id         = {@props.id}
             />
 
 OUTPUT_STYLE =
@@ -220,10 +225,12 @@ OUTPUT_STYLE_SCROLLED = misc.merge({maxHeight:'40vh'}, OUTPUT_STYLE)
 
 exports.CellOutputMessages = rclass
     propTypes :
+        actions    : rtypes.object  # optional actions
         output     : rtypes.immutable.Map.isRequired  # the actual messages
         project_id : rtypes.string
         directory  : rtypes.string
         scrolled   : rtypes.bool
+        id         : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return \
@@ -238,6 +245,8 @@ exports.CellOutputMessages = rclass
             message    = {mesg}
             project_id = {@props.project_id}
             directory  = {@props.directory}
+            actions    = {@props.actions}
+            id         = {@props.id}
         />
 
     message_list: ->

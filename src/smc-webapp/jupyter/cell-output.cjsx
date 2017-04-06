@@ -74,7 +74,10 @@ exports.CellOutput = rclass
                 scrolled   = {@props.cell.get('scrolled')}
                 output     = {output}
                 project_id = {@props.project_id}
-                directory  = {@props.directory} />
+                directory  = {@props.directory}
+                actions    = {@props.actions}
+                id         = {@props.id}
+                />
 
     render: ->
         if not @props.cell.get('output')?
