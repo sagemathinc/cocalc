@@ -970,19 +970,29 @@ class exports.JupyterActions extends Actions
         if @store.get('backend_kernel_info')?
             return
         @_fetching_backend_kernel_info = true
-        @_ajax
-            url     : util.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
-            timeout : 15000
-            cb      : (err, data) =>
-                @_fetching_backend_kernel_info = false
-                if err
-                    console.log("Error setting backend kernel info -- #{err}")
-                else
-                    data = JSON.parse(data)
-                    if data.error?
-                        console.log("Error setting backend kernel info -- #{data.error}")
+        f = (cb) =>
+            @_ajax
+                url     : util.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
+                timeout : 15000
+                cb      : (err, data) =>
+                    if err
+                        console.log("Error setting backend kernel info -- #{err}")
+                        cb(true)
                     else
-                        @setState(backend_kernel_info: immutable.fromJS(data))
+                        data = JSON.parse(data)
+                        if data.error?
+                            console.log("Error setting backend kernel info -- #{data.error}")
+                            cb(true)
+                        else
+                            @_fetching_backend_kernel_info = false
+                            @setState(backend_kernel_info: immutable.fromJS(data))
+        misc.retry_until_success
+            f           : f
+            max_time    : 60000
+            start_delay : 3000
+            max_delay   : 10000
+
+
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
     # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
