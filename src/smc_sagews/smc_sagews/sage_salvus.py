@@ -2523,9 +2523,9 @@ def show(*objs, **kwds):
 
        - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
 
-       - background: string, specifies background color for 3d images; ignored
-         if viewer is set to "tachyon" or if object type is Tachyon. May be any valid CSS color
-         string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
+       - background: string (default: 'transparent'), specifies background color for 3d images.
+         Ignored if viewer is set to "tachyon" or if object type is Tachyon.
+         May be 'transparent' or any valid CSS color string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
 
     ANIMATIONS:
 
