@@ -556,6 +556,7 @@ ChatRoom = rclass ({name}) ->
                 s: value
                 wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
             value = misc_page.sanitize_html(value)
+            file_path = if @props.path? then misc.path_split(@props.path).head
 
             <Row ref="preview" style={position:'absolute', bottom:'0px', width:'100%'}>
                 <Col xs={0} sm={2}></Col>
@@ -565,9 +566,7 @@ ChatRoom = rclass ({name}) ->
                         <div className="pull-right lighten" style={marginRight: '-8px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                             <Icon name='times'/>
                         </div>
-                        <div style={marginBottom: '-10px', wordWrap:'break-word'}>
-                            <Markdown value={value}/>
-                        </div>
+                        {render_markdown(value, @props.project_id, file_path)}
                         <span className="pull-right small lighten">
                             Preview (press Shift+Enter to send)
                         </span>
