@@ -86,14 +86,18 @@ class exports.JupyterActions extends Actions
         opts = defaults opts,
             url     : required
             timeout : 15000
-            cb      : undefined    # (err, data)
+            cb      : undefined    # (err, data as Javascript object -- i.e., JSON is parsed)
         if not $?
             opts.cb?("_ajax only makes sense in browser")
             return
         $.ajax(
             url     : opts.url
             timeout : opts.timeout
-            success : (data) => opts.cb?(undefined, data)
+            success : (data) =>
+                try
+                    opts.cb?(undefined, JSON.parse(data))
+                catch err
+                    opts.cb?(err)
         ).fail (err) => opts.cb?(err.statusText ? 'error')
 
     set_jupyter_kernels: =>
@@ -111,7 +115,7 @@ class exports.JupyterActions extends Actions
                             cb(err)
                             return
                         try
-                            jupyter_kernels = immutable.fromJS(JSON.parse(data))
+                            jupyter_kernels = immutable.fromJS(data)
                             @setState(kernels: jupyter_kernels)
                             # We must also update the kernel info (e.g., display name), now that we
                             # know the kernels (e.g., maybe it changed or is now known but wasn't before).
@@ -917,7 +921,7 @@ class exports.JupyterActions extends Actions
                 if err
                     complete = {error  : err}
                 else
-                    complete = JSON.parse(data)
+                    complete = data
                     if complete.status != 'ok'
                         complete = {error:'completion failed'}
                     delete complete.status
@@ -967,7 +971,7 @@ class exports.JupyterActions extends Actions
                 if err
                     introspect = {error  : err}
                 else
-                    introspect = JSON.parse(data)
+                    introspect = data
                     if introspect.status != 'ok'
                         introspect = {error:'completion failed'}
                     delete introspect.status
@@ -1000,7 +1004,6 @@ class exports.JupyterActions extends Actions
                         console.log("Error setting backend kernel info -- #{err}")
                         cb(true)
                     else
-                        data = JSON.parse(data)
                         if data.error?
                             console.log("Error setting backend kernel info -- #{data.error}")
                             cb(true)

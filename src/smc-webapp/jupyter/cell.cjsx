@@ -28,6 +28,7 @@ exports.Cell = rclass
         directory        : rtypes.string
         complete         : rtypes.immutable.Map
         is_focused       : rtypes.bool
+        more_output      : rtypes.immutable.List   # if given, is the more output List for *this* cell
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -39,6 +40,7 @@ exports.Cell = rclass
                next.mode             != @props.mode or \
                next.font_size        != @props.font_size or \
                next.is_focused       != @props.is_focused or \
+               next.more_output      != @props.more_output or \
                (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell
 
     render_cell_input: (cell) ->
@@ -59,12 +61,13 @@ exports.Cell = rclass
 
     render_cell_output: (cell) ->
         <CellOutput
-            key        = 'out'
-            cell       = {cell}
-            actions    = {@props.actions}
-            id         = {@props.id}
-            project_id = {@props.project_id}
-            directory  = {@props.directory}
+            key         = 'out'
+            cell        = {cell}
+            actions     = {@props.actions}
+            id          = {@props.id}
+            project_id  = {@props.project_id}
+            directory   = {@props.directory}
+            more_output = {@props.more_output}
             />
 
     render_time: (cell) ->

@@ -40,7 +40,8 @@ exports.JupyterEditor = rclass ({name}) ->
             version             : rtypes.object
             complete            : rtypes.immutable.Map              # status of tab completion
             introspect          : rtypes.immutable.Map              # status of introspection
-            is_focused             : rtypes.bool
+            is_focused          : rtypes.bool
+            more_output         : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -86,6 +87,7 @@ exports.JupyterEditor = rclass ({name}) ->
             scrollTop    = {@props.actions.store.get_scroll_state()}
             complete     = {@props.complete}
             is_focused   = {@props.is_focused}
+            more_output  = {@props.more_output}
             />
 
     render_introspect: ->

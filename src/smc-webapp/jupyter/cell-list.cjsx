@@ -27,7 +27,8 @@ exports.CellList = rclass
         directory    : rtypes.string
         scrollTop    : rtypes.number
         complete     : rtypes.immutable.Map            # status of tab completion
-        is_focused      : rtypes.bool
+        is_focused   : rtypes.bool
+        more_output  : rtypes.immutable.Map
 
     componentWillUnmount: ->
         # save scroll state
@@ -111,6 +112,7 @@ exports.CellList = rclass
                     directory        = {@props.directory}
                     complete         = {@props.complete}
                     is_focused       = {@props.is_focused}
+                    more_output      = {@props.more_output?.get(id)}
                     />
             v.push(cell)
             return

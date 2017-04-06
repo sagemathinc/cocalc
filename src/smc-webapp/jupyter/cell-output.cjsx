@@ -14,16 +14,20 @@ misc = require('smc-util/misc')
 
 exports.CellOutput = rclass
     propTypes :
-        actions    : rtypes.object
-        id         : rtypes.string.isRequired
-        cell       : rtypes.immutable.Map.isRequired
-        project_id : rtypes.string
-        directory  : rtypes.string
+        actions     : rtypes.object
+        id          : rtypes.string.isRequired
+        cell        : rtypes.immutable.Map.isRequired
+        project_id  : rtypes.string
+        directory   : rtypes.string
+        more_output : rtypes.immutable.List
 
     shouldComponentUpdate: (next) ->
         for field in ['collapsed', 'scrolled', 'exec_count', 'state']
             if next.cell.get(field) != @props.cell.get(field)
                 return true
+
+        if @props.more_output != next.more_output
+            return true
 
         new_output = next.cell.get('output')
         cur_output = @props.cell.get('output')
@@ -70,6 +74,14 @@ exports.CellOutput = rclass
             output = @props.cell.get('output')
             if not output?
                 return
+            if @props.more_output?
+                # There's more output; remove the button to get more output, and
+                # include all the new more output messages.
+                n = output.size - 1
+                @props.more_output.forEach (mesg) =>
+                    output = output.set("#{n}", mesg)
+                    n += 1
+                    return
             <CellOutputMessages
                 scrolled   = {@props.cell.get('scrolled')}
                 output     = {output}

@@ -162,7 +162,7 @@ MoreOutput = rclass
     render: ->
         if not @props.actions? or @props.message.get('expired')
             <Button bsStyle = "info" disabled>
-                <Icon name='eye-slash'/> Additional output is no longer available
+                <Icon name='eye-slash'/> Additional output not available
             </Button>
         else
             <Button onClick={@show_more_output} bsStyle = "info">
