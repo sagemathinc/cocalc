@@ -1,8 +1,9 @@
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
+{Icon, ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
+{Button} = require('react-bootstrap')
 
 Ansi = require('ansi-to-react')
 
@@ -146,6 +147,23 @@ Traceback = rclass
             {v}
         </div>
 
+MoreOutput = rclass
+    propTypes :
+        message : rtypes.immutable.Map.isRequired
+
+    mixins: [ImmutablePureRenderMixin]
+
+    show_more_output: ->
+
+    render: ->
+        if @props.message.get('expired')
+            <Button bsStyle = "info" disabled>
+                <Icon name='eye-slash'/> Additional output is no longer available
+            </Button>
+        else
+            <Button onClick={@show_more_output} bsStyle = "info">
+                <Icon name='eye'/> Show additional output...
+            </Button>
 
 NotImplemented = rclass
     propTypes :
@@ -161,6 +179,8 @@ NotImplemented = rclass
 
 
 message_component = (message) ->
+    if message.get('more_output')?
+        return MoreOutput
     if message.get('name') == 'stdout'
         return Stdout
     if message.get('name') == 'stderr'
