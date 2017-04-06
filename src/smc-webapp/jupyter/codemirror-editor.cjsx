@@ -89,7 +89,13 @@ exports.CodeMirrorEditor = rclass
         if value != @_cm_last_remote
             # only save if we actually changed something
             @_cm_last_remote = value
+            # The true makes sure the Store has its state set immediately,
+            # with no debouncing/throttling, etc., which is important
+            # since some code, e.g., for introspection when doing evaluation,
+            # which runs immediately after this, assumes the Store state
+            # is set for the editor.
             @props.actions.set_cell_input(@props.id, value)
+        return value
 
     _cm_merge_remote: (remote) ->
         if not @cm?

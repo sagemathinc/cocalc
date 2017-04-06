@@ -101,7 +101,6 @@ exports.Cell = rclass
                     color1 = '#ababab'
                     color2 = '#42a5f5'
                 else
-                    console.log 'rendering cell in blurred escape mode'
                     color1 = '#eee'
                     color2 = '#42a5ff'
         else

@@ -72,8 +72,10 @@ class Actions
         if not @redux?
             throw Error("@redux must be defined")
 
-    setState: (obj) =>
-        @redux._set_state({"#{@name}":obj})
+    setState: (obj, nothing_else) =>
+        if nothing_else?
+            throw Error("setState takes exactly one argument, which must be an object")
+        @redux._set_state({"#{@name}": obj})
         return
 
     destroy: =>

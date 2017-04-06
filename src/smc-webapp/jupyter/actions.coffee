@@ -18,6 +18,7 @@ misc       = require('smc-util/misc')
 {Actions}  = require('../smc-react')
 
 util       = require('./util')
+parsing    = require('./parsing')
 
 jupyter_kernels = undefined
 
@@ -135,6 +136,8 @@ class exports.JupyterActions extends Actions
         @setState
             error : err
 
+    # Set the input of the given cell in the syncdb, which will also
+    # change the store.
     set_cell_input: (id, input) =>
         @_set
             type  : 'cell'
@@ -536,17 +539,19 @@ class exports.JupyterActions extends Actions
 
         @unselect_all_cells()  # for whatever reason, any running of a cell deselects in official jupyter
 
-        @_input_editors?[id]?()
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
-                code = cell.get('input').trim()
-                if misc.endswith(code, '??')
-                    @introspect(code.slice(0,code.length-2), 1)
-                else if misc.endswith(code, '?')
-                    @introspect(code.slice(0,code.length-1), 0)
-                else
-                    @run_code_cell(id)
+                code = (@_input_editors?[id]?() ? cell.get('input') ? '').trim()
+                switch parsing.run_mode(code)
+                    when 'show_source'
+                        @introspect(code.slice(0,code.length-2), 1)
+                    when 'show_doc'
+                        @introspect(code.slice(0,code.length-1), 0)
+                    when 'empty'
+                        @clear_cell(id)
+                    when 'execute'
+                        @run_code_cell(id)
             when 'markdown'
                 @set_md_cell_not_editing(id)
         @save_asap()
@@ -557,6 +562,17 @@ class exports.JupyterActions extends Actions
             type         : 'cell'
             id           : id
             state        : 'start'
+            start        : null
+            end          : null
+            output       : null
+            exec_count   : null
+            collapsed    : null
+
+    clear_cell: (id) =>
+        @_set
+            type         : 'cell'
+            id           : id
+            state        : null
             start        : null
             end          : null
             output       : null
@@ -939,7 +955,7 @@ class exports.JupyterActions extends Actions
 
         @_ajax
             url     : util.get_introspect_url(@store.get('project_id'), @store.get('path'), code, cursor_pos, level)
-            timeout : 15000
+            timeout : 30000
             cb      : (err, data) =>
                 if @_introspect_request > req
                     # future completion or clear happened; so ignore this result.
