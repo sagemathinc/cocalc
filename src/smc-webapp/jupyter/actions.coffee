@@ -308,6 +308,9 @@ class exports.JupyterActions extends Actions
             old_cell = cells.get(id)
             if new_cell.equals(old_cell)
                 return # nothing to do
+            if old_cell? and new_cell.get('start') != old_cell.get('start')
+                # cell re-evaluated so any more output is no longer valid.
+                @reset_more_output(id)
             obj = {cells: cells.set(id, new_cell)}
             if not old_cell? or old_cell.get('pos') != new_cell.get('pos')
                 cell_list_needs_recompute = true
@@ -1044,3 +1047,26 @@ class exports.JupyterActions extends Actions
         @_set
             type              : 'settings'
             max_output_length : n
+
+    fetch_more_output: (id) =>
+        @_ajax
+            url     : util.get_more_output_url(@store.get('project_id'), @store.get('path'), id)
+            timeout : 60000
+            cb      : (err, more_output) =>
+                if err
+                    @set_error(err)
+                else
+                    @set_more_output(id, more_output)
+
+    set_more_output: (id, more_output) =>
+        if not @store.getIn(['cells', id])?
+            return
+        x = @store.get('more_output') ? immutable.Map()
+        @setState(more_output : x.set(id, immutable.fromJS(more_output)))
+
+    reset_more_output: (id) =>
+        more_output = @store.get('more_output') ? immutable.Map()
+        if more_output.has(id)
+            @setState(more_output : more_output.delete(id))
+
+

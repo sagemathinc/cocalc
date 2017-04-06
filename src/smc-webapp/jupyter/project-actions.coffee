@@ -134,7 +134,10 @@ class exports.JupyterActions extends actions.JupyterActions
 
         dbg("no kernel; make one")
         # No kernel wrapper object setup at all. Make one.
-        @_jupyter_kernel = @_client.jupyter_kernel(name: kernel, path:@store.get('path'))
+        @_jupyter_kernel = @_client.jupyter_kernel
+            name    : kernel
+            path    : @store.get('path')
+            actions : @
 
         # Since we just made a new kernel connection, clearly no cells are running on the backend.
         delete @_running_cells
