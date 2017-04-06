@@ -9,11 +9,11 @@ part of CoCalc
 ###
 
 immutable = require('immutable')
-
 misc = require('smc-util/misc')
 
 exports.get_server_url = (project_id) ->
-    return "#{window?.smc_base_url ? ''}/#{project_id}/raw/.smc/jupyter"
+    {make_base_url_path} = require('../misc_page')
+    return make_base_url_path(project_id, 'raw', '.smc', 'jupyter')
 
 exports.get_blob_url = (project_id, extension, sha1) ->
     return "#{exports.get_server_url(project_id)}/blobs/a.#{extension}?sha1=#{sha1}"

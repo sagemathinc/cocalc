@@ -46,6 +46,10 @@ exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
 {join} = require('path')
 exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
 
+# this one is very helpful to get paths that are always "correct". i.e. make_base_url_path(project_id, '.smc', 'jupyter') → https://.../base_url/...
+exports.make_base_url_path = (paths...) ->
+    return exports.BASE_URL + join('/', paths...)
+
 local_diff = exports.local_diff = (before, after) ->
     # Return object
     #
