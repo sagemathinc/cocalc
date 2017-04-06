@@ -50,6 +50,7 @@ class exports.JupyterActions extends Actions
             project_id          : project_id
             directory           : misc.path_split(path)?.head
             path                : path
+            is_focused          : false            # whether or not the editor is focused.
 
         f = () =>
             @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
@@ -992,8 +993,6 @@ class exports.JupyterActions extends Actions
             start_delay : 3000
             max_delay   : 10000
 
-
-
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
     # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
     # the file manager, so gives a step to confirm, etc.
@@ -1009,3 +1008,17 @@ class exports.JupyterActions extends Actions
         @setState(about:true)
         @set_backend_kernel_info()
 
+    focus: (wait) =>
+        if @_state == 'closed'
+            return
+        if wait
+            setTimeout(@focus, 1)
+        else
+            @setState(is_focused: true)
+
+    blur: =>
+        if @_state == 'closed'
+            return
+        @setState
+            is_focused : false
+            mode       : 'escape'

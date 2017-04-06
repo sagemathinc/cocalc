@@ -14,6 +14,9 @@ exports.TopButtonbar = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
+    focus: ->
+        @props.actions.focus(true)
+
     reduxProps :
         "#{name}" :
             cells               : rtypes.immutable.Map   # map from id to cells
@@ -27,45 +30,46 @@ exports.TopButtonbar = rclass ({name}) ->
             next.has_unsaved_changes != @props.has_unsaved_changes
 
     render_add_cell: ->
-        <Button onClick={=>@props.actions.insert_cell(1)}>
+        <Button onClick={=>@props.actions.insert_cell(1); @focus()}>
             <Icon name='plus'/>
         </Button>
 
     render_group_edit: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.cut_selected_cells()}>
+            <Button onClick={=>@props.actions.cut_selected_cells(); @focus()}>
                 <Icon name='scissors'/>
             </Button>
-            <Button onClick={=>@props.actions.copy_selected_cells()}>
+            <Button onClick={=>@props.actions.copy_selected_cells(); @focus()}>
                 <Icon name='files-o'/>
             </Button>
-            <Button onClick={=>@props.actions.paste_cells(1)}>
+            <Button onClick={=>@props.actions.paste_cells(0); @focus()}>
                 <Icon name='clipboard'/>
             </Button>
         </ButtonGroup>
 
     render_group_move: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.move_selected_cells(-1)}>
+            <Button onClick={=>@props.actions.move_selected_cells(-1); @focus()}>
                 <Icon name='arrow-up'/>
             </Button>
-            <Button  onClick={=>@props.actions.move_selected_cells(1)}>
+            <Button  onClick={=>@props.actions.move_selected_cells(1); @focus()}>
                 <Icon name='arrow-down'/>
             </Button>
         </ButtonGroup>
 
     render_group_run: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.shift_enter_run_selected_cells()} >
+            <Button onClick={=>@props.actions.shift_enter_run_selected_cells(); @focus()} >
                 <Icon name='step-forward'/>
             </Button>
-            <Button onClick={=>@props.actions.signal('SIGINT')} >
+            <Button onClick={=>@props.actions.signal('SIGINT'); @focus()} >
                 <Icon name='stop'/>
             </Button>
         </ButtonGroup>
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
+        @focus()
 
     render_select_cell_type: ->
         if @props.sel_ids?.size > 1
@@ -91,20 +95,20 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_group_undo_redo: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.undo()}>
+            <Button onClick={=>@props.actions.undo(); @focus()}>
                 <Icon name='undo'/>
             </Button>
-            <Button onClick={=>@props.actions.redo()}>
+            <Button onClick={=>@props.actions.redo(); @focus()}>
                 <Icon name='repeat'/>
             </Button>
         </ButtonGroup>
 
     render_group_zoom: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.zoom(-1)}>
+            <Button onClick={=>@props.actions.zoom(-1); @focus()}>
                 <Icon name='font' style={fontSize:'7pt'}/>
             </Button>
-            <Button onClick={=>@props.actions.zoom(1)}>
+            <Button onClick={=>@props.actions.zoom(1); @focus()}>
                 <Icon name='font' style={fontSize:'11pt'}/>
             </Button>
         </ButtonGroup>
@@ -114,7 +118,7 @@ exports.TopButtonbar = rclass ({name}) ->
         <ButtonGroup  style={marginLeft:'5px'}>
             <Button
                 bsStyle  = "success"
-                onClick  = {=>@props.actions.save()}
+                onClick  = {=>@props.actions.save(); @focus()}
                 disabled = {not @props.has_unsaved_changes}>
                 <Icon name='save'/> Save
             </Button>
