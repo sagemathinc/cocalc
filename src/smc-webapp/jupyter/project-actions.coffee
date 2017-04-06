@@ -235,13 +235,19 @@ class exports.JupyterActions extends actions.JupyterActions
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
         # from 0 to n-1, where there are n messages.
-        outputs    = null
-        exec_count = null
-        state      = 'run'
-        n          = 0
-        start      = null
-        end        = null
+        outputs                  = null
+        exec_count               = null
+        state                    = 'run'
+        n                        = 0
+        start                    = null
+        end                      = null
         clear_before_next_output = false
+        output_length            = 0
+        max_output_length        = @store.get('max_output_length') ? 500 # for testing.
+        in_more_output_mode      = false
+
+        @reset_more_output(id)
+
         set_cell = (save=true) =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
             if state == 'done'
@@ -266,6 +272,7 @@ class exports.JupyterActions extends actions.JupyterActions
             # (like in Sage worksheets).
             outputs = null
             n = 0
+            output_length = 0
             set_cell(save)
 
         report_started = =>
@@ -331,9 +338,31 @@ class exports.JupyterActions extends actions.JupyterActions
                     clear_output(false)
                 if outputs == null
                     outputs = {}
-                outputs[n] = mesg.content
+                    output_length = 0
+                output_length += JSON.stringify(mesg.content)?.length ? 0
+                if output_length <= max_output_length
+                    outputs[n] = mesg.content
+                    set_cell()
+                else
+                    if not in_more_output_mode
+                        outputs[n] = {more_output:true, expired:false}
+                        set_cell()
+                        in_more_output_mode = true
+                    @set_more_output(id, mesg.content)
                 n += 1
-                set_cell()
+
+    reset_more_output: (id) =>
+        if @store._more_output?[id]?
+            delete @store._more_output[id]
+
+    set_more_output: (id, mesg) =>
+        @store._more_output ?= {}
+        v =   @store._more_output[id] ?= []
+        v.push(mesg)
+        # don't accumulate indefinitely!
+        while v.length > 500  # TODO - this should be good enough for now; later could make customizable or based on length
+            v.shift()
+        return
 
     init_file_watcher: =>
         dbg = @dbg("file_watcher")

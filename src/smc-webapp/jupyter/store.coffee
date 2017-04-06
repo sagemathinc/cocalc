@@ -159,3 +159,10 @@ class exports.JupyterStore extends Store
         if @get_local_storage('line_numbers')?
             options = options.set('lineNumbers', @get_local_storage('line_numbers'))
         return options
+
+    # used by the backend for storing extra output
+    get_more_output: (id) =>
+        @_more_output ?= {}
+        return @_more_output[id]
+
+

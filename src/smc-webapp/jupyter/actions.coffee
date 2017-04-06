@@ -334,8 +334,9 @@ class exports.JupyterActions extends Actions
                     orig_kernel = @store.get('kernel')
                     kernel = record.get('kernel')
                     obj =
-                        backend_state : record.get('backend_state')
-                        kernel_state  : record.get('kernel_state')
+                        backend_state     : record.get('backend_state')
+                        kernel_state      : record.get('kernel_state')
+                        max_output_length : record.get('max_output_length')
                     if kernel != @store.get('kernel')
                         # kernel changed
                         obj.kernel              = kernel
@@ -1038,3 +1039,8 @@ class exports.JupyterActions extends Actions
         @setState
             is_focused : false
             mode       : 'escape'
+
+    set_max_output_length: (n) =>
+        @_set
+            type              : 'settings'
+            max_output_length : n
