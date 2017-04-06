@@ -350,34 +350,26 @@ class Kernel extends EventEmitter
     get_kernel_data: (cb) =>   # cb(err, kernel_data)  # see below.
         get_kernel_data(cb)
 
-    complete: (opts) =>
+    call: (opts) =>
         opts = defaults opts,
-            code       : required
-            cursor_pos : required
-            cb         : required
-        dbg = @dbg("complete")
-        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+            msg_type : required
+            content  : {}
+            cb       : required
         @_ensure_running (err) =>
             if err
                 opts.cb(err)
             else
-                @_complete(opts)
+                @_call(opts)
 
-    _complete: (opts) =>
-        if @_state == 'closed'
-            opts.cb('closed')
-            return
-        dbg = @dbg("_complete")
+    _call: (opts) =>
         message =
             header:
-                msg_id   : "complete_#{misc.uuid()}"
+                msg_id   : misc.uuid()
                 username : ''
                 session  : ''
-                msg_type : 'complete_request'
+                msg_type : opts.msg_type
                 version  : '5.0'
-            content:
-                code       : opts.code
-                cursor_pos : opts.cursor_pos
+            content: opts.content
 
         # setup handling of the results
         if opts.all
@@ -391,9 +383,21 @@ class Kernel extends EventEmitter
                     delete mesg.metadata
                 opts.cb(undefined, mesg)
         @on('shell', f)
-
-        dbg("send the message")
         @_channels.shell.next(message)
+
+    complete: (opts) =>
+        opts = defaults opts,
+            code       : required
+            cursor_pos : required
+            cb         : required
+        dbg = @dbg("complete")
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
+        @call
+            msg_type : 'complete_request'
+            content:
+                code       : opts.code
+                cursor_pos : opts.cursor_pos
+            cb : opts.cb
 
     introspect: (opts) =>
         opts = defaults opts,
@@ -402,42 +406,23 @@ class Kernel extends EventEmitter
             detail_level : required
             cb           : required
         dbg = @dbg("introspect")
-        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}'")
-        @_ensure_running (err) =>
-            if err
-                opts.cb(err)
-            else
-                @_introspect(opts)
-
-    _introspect: (opts) =>
-        dbg = @dbg("_introspect")
-        message =
-            header:
-                msg_id   : "introspect_#{misc.uuid()}"
-                username : ''
-                session  : ''
-                msg_type : 'inspect_request'
-                version  : '5.0'
-            content:
+        dbg("code='#{opts.code}', cursor_pos='#{opts.cursor_pos}', detail_level=#{opts.detail_level}")
+        @call
+            msg_type : 'inspect_request'
+            content :
                 code         : opts.code
                 cursor_pos   : opts.cursor_pos
                 detail_level : opts.detail_level
+            cb: opts.cb
 
-        # setup handling of the results
-        if opts.all
-            all_mesgs = []
-
-        f = (mesg) =>
-            if mesg.parent_header.msg_id == message.header.msg_id
-                @removeListener('shell', f)
-                mesg = misc.deep_copy(mesg.content)
-                if misc.len(mesg.metadata) == 0
-                    delete mesg.metadata
-                opts.cb(undefined, mesg)
-        @on('shell', f)
-
-        dbg("send the message")
-        @_channels.shell.next(message)
+    kernel_info: (opts) =>
+        opts = defaults opts,
+            cb         : required
+        @call
+            msg_type : 'kernel_info_request'
+            cb       : (err, info) ->
+                info?.nodejs_version = process.version
+                opts.cb(err, info)
 
     http_server: (opts) =>
         opts = defaults opts,
@@ -449,6 +434,9 @@ class Kernel extends EventEmitter
             when 'signal'
                 @signal(opts.segments[1])
                 opts.cb(undefined, {})
+
+            when 'kernel_info'
+                @kernel_info(cb: opts.cb)
 
             when 'complete'
                 code = opts.query.code
