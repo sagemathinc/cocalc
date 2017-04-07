@@ -25,7 +25,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
         expect(ipynb).toEqual( { cells: [ { cell_type: 'code', execution_count: 0, metadata: {}, outputs: [ { data: {"text/plain": "5"}, execution_count: 0, metadata: {}, output_type: 'execute_result' } ], source: 'a=2\nb=3\na+b' } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 } )
 
-describe 'tests exporting the most basic ipynb file -- ', ->
+describe 'tests exporting a file with many cells -- ', ->
     before(setup)
     after(teardown)
 
@@ -41,6 +41,19 @@ describe 'tests exporting the most basic ipynb file -- ', ->
         inputs = (cell.source for cell in ipynb.cells)
         expect(inputs).toEqual(store.get('cell_list')?.toJS())
 
+describe 'tests simple use of more_output ', ->
+    before(setup)
+    after(teardown)
 
+    it 'sets a more_output message', ->
+        id = store.get('cur_id')
+        actions.set_cell_output(id, {0:{more_output:true}})
 
-        
+    it 'tests that export removes and replaces by error', ->
+        expect(store.get_ipynb().cells[0].outputs).toEqual([ { name: 'stderr', output_type: 'stream', text: 'WARNING: Some output was deleted.\n' } ])
+
+    it 'tests when there is more than one message', ->
+        id = store.get('cur_id')
+        actions.set_cell_output(id, {0:{data:{'text/plain':'5'}}, 1:{data:{'text/plain':'2'}}, 2:{more_output:true}})
+        expect(store.get_ipynb().cells[0].outputs[2]).toEqual({ name: 'stderr', output_type: 'stream', text: 'WARNING: Some output was deleted.\n' })
+

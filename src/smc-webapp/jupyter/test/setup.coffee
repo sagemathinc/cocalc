@@ -62,7 +62,7 @@ exports.setup = (cb) ->
                 init       : {time: new Date()}
 
     return actions  # useful for easy command line testing, e.g.,
-                    # coffee> actions = require('./test/setup').setup() 
+                    # coffee> actions = require('./test/setup').setup()
 
 exports.teardown = (cb) ->
     smc_react.redux.getActions(redux_name)?.close()

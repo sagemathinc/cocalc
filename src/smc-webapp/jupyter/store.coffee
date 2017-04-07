@@ -93,22 +93,20 @@ class exports.JupyterStore extends Store
                 return false
         return info
 
-    ###
-    Export the Jupyer notebook to an ipynb object.
-
-    ###
+    # Export the Jupyer notebook to an ipynb object.
     get_ipynb: (blob_store) =>
-        #if @_is_project
-        #    more_output = @_more_output
-        #else
-        #    more_output = @get('more_output')
+        more_output = {}
+        for id in @get('cell_list')?.toJS()
+            x = @get_more_output(id)
+            if x?
+                more_output[id] = x
 
         return export_to_ipynb
             cells       : @get('cells')
             cell_list   : @get('cell_list')
             kernelspec  : @get_kernel_info(@get('kernel'))
             blob_store  : blob_store
-            #more_output : more_output
+            more_output : more_output
 
     get_cm_options: (kernel) =>
         # TODO: this is temporary until implementing "editor options" from account settings...
@@ -117,24 +115,27 @@ class exports.JupyterStore extends Store
             options = options.set('lineNumbers', @get_local_storage('line_numbers'))
         return options
 
-    # used by the backend for storing extra output
     get_more_output: (id) =>
-        @_more_output ?= {}
-        output = @_more_output[id]
-        if not output?
-            return
-        messages = output.messages
+        if @_is_project
+            # This is ONLY used by the backend project for storing extra output.
+            @_more_output ?= {}
+            output = @_more_output[id]
+            if not output?
+                return
+            messages = output.messages
 
-        for x in ['discarded', 'truncated']
-            if output[x]
-                if x == 'truncated'
-                    text = "WARNING: some output was truncated.\n"
-                else
-                    text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
-                warn = [{"text":text, "name":"stderr"}]
-                if messages.length > 0
-                    messages = warn.concat(messages).concat(warn)
-                else
-                    messages = warn
-        return messages
-
+            for x in ['discarded', 'truncated']
+                if output[x]
+                    if x == 'truncated'
+                        text = "WARNING: some output was truncated.\n"
+                    else
+                        text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
+                    warn = [{"text":text, "name":"stderr"}]
+                    if messages.length > 0
+                        messages = warn.concat(messages).concat(warn)
+                    else
+                        messages = warn
+            return messages
+        else
+            # client  -- return what we know
+            return @getIn(['more_output', id, 'mesg_list'])?.toJS()
