@@ -3,7 +3,7 @@ Supplies the interface for creating file editors in the webapp
 
 ---
 
- CoCalc: Collaborative Calculations in the Cloud
+ CoCalc: Collaborative Calculation in the Cloud
 
     Copyright (C) 2016, SageMath, Inc.
 
