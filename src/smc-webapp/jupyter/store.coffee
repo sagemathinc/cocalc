@@ -167,12 +167,17 @@ class exports.JupyterStore extends Store
         if not output?
             return
         messages = output.messages
-        if output.discarded
-            warn = [{"text":"WARNING: #{output.discarded} #{if output.discarded>1 then 'messages were' else 'message was'}  discarded", "name":"stderr"}]
-            v = warn.concat(messages)
-            if output.discarded > 5
-                v.push(warn)
-            return v
-        else
-            return messages
+
+        for x in ['discarded', 'truncated']
+            if output[x]
+                if x == 'truncated'
+                    text = "WARNING: some output was truncated.\n"
+                else
+                    text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
+                warn = [{"text":text, "name":"stderr"}]
+                if messages.length > 0
+                    messages = warn.concat(messages).concat(warn)
+                else
+                    messages = warn
+        return messages
 

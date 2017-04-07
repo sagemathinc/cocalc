@@ -315,6 +315,7 @@ class exports.JupyterActions extends Actions
         old_cell = cells.get(id)
         if not new_cell?
             # delete cell
+            @reset_more_output(id)  # free up memory locally
             if old_cell?
                 obj = {cells: cells.delete(id)}
                 cell_list = @store.get('cell_list')

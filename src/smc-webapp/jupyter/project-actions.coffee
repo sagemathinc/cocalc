@@ -364,13 +364,46 @@ class exports.JupyterActions extends actions.JupyterActions
 
     set_more_output: (id, mesg, length) =>
         @store._more_output ?= {}
-        output = @store._more_output[id] ?= {length:0, messages:[], lengths:[], discarded:0}
+        output = @store._more_output[id] ?= {length:0, messages:[], lengths:[], discarded:0, truncated:0}
 
         output.length += length
         output.lengths.push(length)
         output.messages.push(mesg)
 
-        while output.length > 10*@store.get('max_output_length')
+        goal_length = 10*@store.get('max_output_length')
+        while output.length > goal_length
+            did_truncate = false
+
+            # check if there is a text field, which we can truncate
+            len = output.messages[0].text?.length
+            if len?
+                need = output.length - goal_length + 50
+                if len > need
+                    # Instead of throwing this message away, let's truncate its text part.  After
+                    # doing this, the message is at least need shorter than it was before.
+                    output.messages[0].text = misc.trunc(output.messages[0].text, len - need)
+                    did_truncate = true
+
+            # check if there is a text field, which we can truncate
+            if not did_truncate and output.messages[0].data?
+                for field, val of output.messages[0].data
+                    if field.slice(0,4) == 'text'
+                        len = val.length
+                        if len?
+                            need = output.length - goal_length + 50
+                            if len > need
+                                # Instead of throwing this message away, let's truncate its text part.  After
+                                # doing this, the message is at least need shorter than it was before.
+                                output.messages[0].data[field] = misc.trunc(val, len - need)
+                                did_truncate = true
+
+            if did_truncate
+                new_len = JSON.stringify(output.messages[0]).length
+                output.length -= output.lengths[0] - new_len  # how much we saved
+                output.lengths[0] = new_len
+                output.truncated += 1
+                break
+
             n = output.lengths.shift()
             output.messages.shift()
             output.length -= n
