@@ -43,6 +43,8 @@ bounded_integer = (n, min, max, def) ->
 class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
+        store.dbg = (f) => return client.dbg("JupyterStore('#{store.get('path')}').#{f}")
+
         @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
@@ -50,6 +52,7 @@ class exports.JupyterActions extends Actions
         @syncdb      = syncdb
         @_client     = client
         @_is_project = client.is_project()  # the project client is designated to manage execution/conflict, etc.
+        store._is_project = @_is_project
         @_account_id = client.client_id()   # project or account's id
 
         @setState
@@ -83,7 +86,7 @@ class exports.JupyterActions extends Actions
             @set_jupyter_kernels()  # must be after setting project_id above.
 
     dbg: (f) =>
-        return @_client.dbg("Jupyter('#{@store.get('path')}').#{f}")
+        return @_client.dbg("JupyterActions('#{@store.get('path')}').#{f}")
 
     close: =>
         if @_state == 'closed'
