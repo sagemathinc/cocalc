@@ -1463,6 +1463,7 @@ def latex0(s=None, **kwds):
         kwds['locals'] = salvus.namespace
     if 'globals' not in kwds:
         kwds['globals'] = salvus.namespace
+    sage.misc.latex.latex.add_package_to_preamble_if_available('soul')
     sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
     salvus.file(kwds['filename'], once=False)
     if delete_file:

@@ -250,6 +250,18 @@ exports.commands =
             wrap :
                 left  : '\\underline{'
                 right : '}'
+        strikethrough :       # requires the soul package
+            wrap :
+                left  : '\\st{'
+                right : '}'
+        equation :
+            wrap :
+                left  : "$"
+                right : "$"
+        display_equation :
+            wrap :
+                left  : "$$"
+                right : "$$"
         insertunorderedlist :
             wrap :
                 left  : "\\begin{itemize}\n    \\item\n"
@@ -478,12 +490,12 @@ exports.commands =
                 right : '</pre>'
         equation :
             wrap :
-                left  : "$ "
-                right : " $"
+                left  : "$"
+                right : "$"
         display_equation :
             wrap :
-                left  : "$$ "
-                right : " $$"
+                left  : "$$"
+                right : "$$"
         table:
             wrap:
                 left  : """
