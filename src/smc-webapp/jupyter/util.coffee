@@ -43,6 +43,10 @@ exports.get_signal_url = (project_id, path, signal) ->
 exports.get_kernel_info_url = (project_id, path) ->
     return "#{exports.get_server_url(project_id)}/kernels/kernel_info?path=#{encodeURIComponent(path)}"
 
+# get more output messages for the given id
+exports.get_more_output_url = (project_id, path, id) ->
+    return "#{exports.get_server_url(project_id)}/kernels/more_output?path=#{encodeURIComponent(path)}&id=#{encodeURIComponent(id)}"
+
 # Given an immutable Map from id's to cells, returns an immutable List whose
 # entries are the id's in the correct order, as defined by the pos field (a float).
 exports.sorted_cell_list = (cells) ->

@@ -159,3 +159,25 @@ class exports.JupyterStore extends Store
         if @get_local_storage('line_numbers')?
             options = options.set('lineNumbers', @get_local_storage('line_numbers'))
         return options
+
+    # used by the backend for storing extra output
+    get_more_output: (id) =>
+        @_more_output ?= {}
+        output = @_more_output[id]
+        if not output?
+            return
+        messages = output.messages
+
+        for x in ['discarded', 'truncated']
+            if output[x]
+                if x == 'truncated'
+                    text = "WARNING: some output was truncated.\n"
+                else
+                    text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
+                warn = [{"text":text, "name":"stderr"}]
+                if messages.length > 0
+                    messages = warn.concat(messages).concat(warn)
+                else
+                    messages = warn
+        return messages
+

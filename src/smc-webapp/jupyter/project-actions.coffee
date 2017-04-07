@@ -65,10 +65,14 @@ class exports.JupyterActions extends actions.JupyterActions
 
         #dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
+        @setState  # used by jupyter.coffee
+            start_time : @_client.server_time() - 0
+
         @_load_from_disk_if_newer () =>
             @set_backend_state('init')
 
             @ensure_backend_kernel_setup()  # this may change the syncdb.
+
             @init_kernel_info()             # need to have for saving.
 
             @init_file_watcher()
@@ -134,7 +138,10 @@ class exports.JupyterActions extends actions.JupyterActions
 
         dbg("no kernel; make one")
         # No kernel wrapper object setup at all. Make one.
-        @_jupyter_kernel = @_client.jupyter_kernel(name: kernel, path:@store.get('path'))
+        @_jupyter_kernel = @_client.jupyter_kernel
+            name    : kernel
+            path    : @store.get('path')
+            actions : @
 
         # Since we just made a new kernel connection, clearly no cells are running on the backend.
         delete @_running_cells
@@ -235,13 +242,21 @@ class exports.JupyterActions extends actions.JupyterActions
         # For efficiency reasons (involving syncdb patch sizes),
         # outputs is a map from the (string representations of) the numbers
         # from 0 to n-1, where there are n messages.
-        outputs    = null
-        exec_count = null
-        state      = 'run'
-        n          = 0
-        start      = null
-        end        = null
+        outputs                  = null
+        exec_count               = null
+        state                    = 'run'
+        n                        = 0
+        start                    = null
+        end                      = null
         clear_before_next_output = false
+        output_length            = 0
+        max_output_length        = @store.get('max_output_length')
+        in_more_output_mode      = false
+
+        dbg("max_output_length = #{max_output_length}")
+
+        @reset_more_output(id)
+
         set_cell = (save=true) =>
             dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
             if state == 'done'
@@ -266,6 +281,7 @@ class exports.JupyterActions extends actions.JupyterActions
             # (like in Sage worksheets).
             outputs = null
             n = 0
+            output_length = 0
             set_cell(save)
 
         report_started = =>
@@ -331,9 +347,71 @@ class exports.JupyterActions extends actions.JupyterActions
                     clear_output(false)
                 if outputs == null
                     outputs = {}
-                outputs[n] = mesg.content
+                    output_length = 0
+
+                mesg_length = JSON.stringify(mesg.content)?.length ? 0
+                output_length += mesg_length
+                if output_length <= max_output_length
+                    outputs[n] = mesg.content
+                    set_cell()
+                else
+                    if not in_more_output_mode
+                        outputs[n] = {more_output:true}
+                        set_cell()
+                        in_more_output_mode = true
+                    @set_more_output(id, mesg.content, mesg_length)
                 n += 1
-                set_cell()
+
+    reset_more_output: (id) =>
+        if @store._more_output?[id]?
+            delete @store._more_output[id]
+
+    set_more_output: (id, mesg, length) =>
+        @store._more_output ?= {}
+        output = @store._more_output[id] ?= {length:0, messages:[], lengths:[], discarded:0, truncated:0}
+
+        output.length += length
+        output.lengths.push(length)
+        output.messages.push(mesg)
+
+        goal_length = 10*@store.get('max_output_length')
+        while output.length > goal_length
+            did_truncate = false
+
+            # check if there is a text field, which we can truncate
+            len = output.messages[0].text?.length
+            if len?
+                need = output.length - goal_length + 50
+                if len > need
+                    # Instead of throwing this message away, let's truncate its text part.  After
+                    # doing this, the message is at least need shorter than it was before.
+                    output.messages[0].text = misc.trunc(output.messages[0].text, len - need)
+                    did_truncate = true
+
+            # check if there is a text field, which we can truncate
+            if not did_truncate and output.messages[0].data?
+                for field, val of output.messages[0].data
+                    if field.slice(0,4) == 'text'
+                        len = val.length
+                        if len?
+                            need = output.length - goal_length + 50
+                            if len > need
+                                # Instead of throwing this message away, let's truncate its text part.  After
+                                # doing this, the message is at least need shorter than it was before.
+                                output.messages[0].data[field] = misc.trunc(val, len - need)
+                                did_truncate = true
+
+            if did_truncate
+                new_len = JSON.stringify(output.messages[0]).length
+                output.length -= output.lengths[0] - new_len  # how much we saved
+                output.lengths[0] = new_len
+                output.truncated += 1
+                break
+
+            n = output.lengths.shift()
+            output.messages.shift()
+            output.length -= n
+            output.discarded += 1
 
     init_file_watcher: =>
         dbg = @dbg("file_watcher")

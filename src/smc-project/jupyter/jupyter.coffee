@@ -51,9 +51,10 @@ exports.kernel = (opts) ->
         client    : undefined
         verbose   : true
         path      : required   # filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
+        actions   : undefined  # optional redux actions object
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path)
+    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path, opts.actions)
 
 ###
 Jupyter Kernel interface.
@@ -69,10 +70,11 @@ node_cleanup =>
         kernel.close()
 
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_path) ->
+    constructor : (@name, @_dbg, @_path, @_actions) ->
         @_directory = misc.path_split(@_path)?.head
         @_set_state('off')
         @_identity = misc.uuid()
+        @_start_time = new Date() - 0
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
@@ -419,9 +421,25 @@ class Kernel extends EventEmitter
             cb         : required
         @call
             msg_type : 'kernel_info_request'
-            cb       : (err, info) ->
-                info?.nodejs_version = process.version
-                opts.cb(err, info)
+            cb       : (err, info) =>
+                if err
+                    opts.cb(err)
+                else
+                    info.nodejs_version   = process.version
+                    info.start_time = @_actions?.store.get('start_time')
+                    opts.cb(undefined, info)
+
+    more_output: (opts) =>
+        opts = defaults opts,
+            id : undefined
+            cb : required
+        if not opts.id?
+            opts.cb("must specify id")
+            return
+        if not @_actions?
+            opts.cb("must have redux actions")
+            return
+        opts.cb(undefined, @_actions?.store.get_more_output(opts.id) ? [])
 
     http_server: (opts) =>
         opts = defaults opts,
@@ -436,6 +454,11 @@ class Kernel extends EventEmitter
 
             when 'kernel_info'
                 @kernel_info(cb: opts.cb)
+
+            when 'more_output'
+                @more_output
+                    id : opts.query.id
+                    cb : opts.cb
 
             when 'complete'
                 code = opts.query.code
@@ -575,7 +598,7 @@ jupyter_kernel_http_server = (base, router) ->
                 if err
                     res.send(JSON.stringify({error:err}))
                 else
-                    res.send(JSON.stringify(resp))
+                    res.send(JSON.stringify(resp ? {}))
 
     return router
 

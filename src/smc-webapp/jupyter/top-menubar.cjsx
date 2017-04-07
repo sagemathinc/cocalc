@@ -28,6 +28,9 @@ exports.TopMenubar = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
+    focus: ->
+        @props.actions.focus(true)
+
     reduxProps :
         "#{name}" :
             kernels             : rtypes.immutable.List
@@ -81,23 +84,23 @@ exports.TopMenubar = rclass ({name}) ->
                 Edit
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.undo()}                 >Undo</MenuItem>
-                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.redo()}                 >Redo</MenuItem>
+                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.undo(); @focus()}                 >Undo</MenuItem>
+                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.redo(); @focus()}                 >Redo</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.cut_selected_cells()}   >Cut Cells</MenuItem>
-                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.copy_selected_cells()}  >Copy Cells</MenuItem>
-                <MenuItem eventKey="paste-cells-above"       onSelect={=>@props.actions.paste_cells(-1)}        >Paste Cells Above</MenuItem>
-                <MenuItem eventKey="paste-cells-below"       onSelect={=>@props.actions.paste_cells(1)}         >Paste Cells Below</MenuItem>
-                <MenuItem eventKey="paste-cells-and-replace" onSelect={=>@props.actions.paste_cells(0)}         >Paste Cells & Replace</MenuItem>
-                <MenuItem eventKey="delete-cells"            onSelect={=>@props.actions.delete_selected_cells()}>Delete Cells</MenuItem>
-                <MenuItem eventKey="undo-delete-cells"       onSelect={=>@props.actions.undo()}                 >Undo Delete Cells</MenuItem>
+                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.cut_selected_cells(); @focus()}   >Cut Cells</MenuItem>
+                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.copy_selected_cells(); @focus()}  >Copy Cells</MenuItem>
+                <MenuItem eventKey="paste-cells-above"       onSelect={=>@props.actions.paste_cells(-1); @focus()}        >Paste Cells Above</MenuItem>
+                <MenuItem eventKey="paste-cells-below"       onSelect={=>@props.actions.paste_cells(1); @focus()}         >Paste Cells Below</MenuItem>
+                <MenuItem eventKey="paste-cells-and-replace" onSelect={=>@props.actions.paste_cells(0); @focus()}         >Paste Cells & Replace</MenuItem>
+                <MenuItem eventKey="delete-cells"            onSelect={=>@props.actions.delete_selected_cells(); @focus()}>Delete Cells</MenuItem>
+                <MenuItem eventKey="undo-delete-cells"       onSelect={=>@props.actions.undo(); @focus()}                 >Undo Delete Cells</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="split-cell"              onSelect={=>@props.actions.split_current_cell()}   >Split Cell</MenuItem>
-                <MenuItem eventKey="merge-cell-above"        onSelect={=>@props.actions.merge_cell_above()}     >Merge Cell Above</MenuItem>
-                <MenuItem eventKey="merge-cell-below"        onSelect={=>@props.actions.merge_cell_below()}     >Merge Cell Below</MenuItem>
+                <MenuItem eventKey="split-cell"              onSelect={=>@props.actions.split_current_cell(); @focus()}   >Split Cell</MenuItem>
+                <MenuItem eventKey="merge-cell-above"        onSelect={=>@props.actions.merge_cell_above(); @focus()}     >Merge Cell Above</MenuItem>
+                <MenuItem eventKey="merge-cell-below"        onSelect={=>@props.actions.merge_cell_below(); @focus()}     >Merge Cell Below</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="move-cell-up"            onSelect={=>@props.actions.move_selected_cells(-1)}>Move Cell Up</MenuItem>
-                <MenuItem eventKey="move-cell-down"          onSelect={=>@props.actions.move_selected_cells(1)} >Move Cell Down</MenuItem>
+                <MenuItem eventKey="move-cell-up"            onSelect={=>@props.actions.move_selected_cells(-1); @focus()}>Move Cell Up</MenuItem>
+                <MenuItem eventKey="move-cell-down"          onSelect={=>@props.actions.move_selected_cells(1); @focus()} >Move Cell Down</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="edit-notebook-metadata">Edit Notebook Metadata</MenuItem>
                 <MenuItem divider />
@@ -111,17 +114,17 @@ exports.TopMenubar = rclass ({name}) ->
                 View
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="toggle-header"  onSelect={=>@props.actions.toggle_header()}>Toggle Header</MenuItem>
-                <MenuItem eventKey="toggle-toolbar" onSelect={=>@props.actions.toggle_toolbar()}>Toggle Toolbar</MenuItem>
-                <MenuItem eventKey="toggle-line-numbers" onSelect={=>@props.actions.toggle_line_numbers()}>Toggle Line Numbers</MenuItem>
+                <MenuItem eventKey="toggle-header"  onSelect={=>@props.actions.toggle_header(); @focus()}>Toggle Header</MenuItem>
+                <MenuItem eventKey="toggle-toolbar" onSelect={=>@props.actions.toggle_toolbar(); @focus()}>Toggle Toolbar</MenuItem>
+                <MenuItem eventKey="toggle-line-numbers" onSelect={=>@props.actions.toggle_line_numbers(); @focus()}>Toggle Line Numbers</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Cell Toolbar...</MenuItem>
                 <MenuItem eventKey="cell-toolbar-none"     ><span style={marginLeft:'4ex'}/> None</MenuItem>
                 <MenuItem eventKey="cell-toolbar-metadata" ><span style={marginLeft:'4ex'}/> Edit Metadata</MenuItem>
                 <MenuItem eventKey="cell-toolbar-slideshow"><span style={marginLeft:'4ex'}/> Slideshow</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="view-zoom-in"  onSelect={=>@props.actions.zoom(1)}>Zoom In</MenuItem>
-                <MenuItem eventKey="view-zoom-out" onSelect={=>@props.actions.zoom(-1)}>Zoom Out</MenuItem>
+                <MenuItem eventKey="view-zoom-in"  onSelect={=>@props.actions.zoom(1); @focus()}>Zoom In</MenuItem>
+                <MenuItem eventKey="view-zoom-out" onSelect={=>@props.actions.zoom(-1); @focus()}>Zoom Out</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
@@ -131,8 +134,8 @@ exports.TopMenubar = rclass ({name}) ->
                  Insert
             </Dropdown.Toggle>
             <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="insert-cell-above" onSelect={=>@props.actions.insert_cell(-1)}>Insert Cell Above</MenuItem>
-                <MenuItem eventKey="insert-cell-below" onSelect={=>@props.actions.insert_cell(1)} >Insert Cell Below</MenuItem>
+                <MenuItem eventKey="insert-cell-above" onSelect={=>@props.actions.insert_cell(-1); @focus()}>Insert Cell Above</MenuItem>
+                <MenuItem eventKey="insert-cell-below" onSelect={=>@props.actions.insert_cell(1); @focus()} >Insert Cell Below</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
@@ -148,6 +151,7 @@ exports.TopMenubar = rclass ({name}) ->
                         @props.actions.run_selected_cells()
                         @props.actions.move_cursor_to_last_selected_cell()
                         @props.actions.unselect_all_cells()
+                        @focus()
                         } >
                             Run Cells
                 </MenuItem>
@@ -156,6 +160,7 @@ exports.TopMenubar = rclass ({name}) ->
                         @props.actions.run_selected_cells()
                         @props.actions.move_cursor_after_selected_cells()
                         @props.actions.unselect_all_cells()
+                        @focus()
                         } >
                             Run Cells and Select Below
                 </MenuItem>
@@ -165,28 +170,29 @@ exports.TopMenubar = rclass ({name}) ->
                         @props.actions.move_cursor_to_last_selected_cell()
                         @props.actions.unselect_all_cells()
                         @props.actions.insert_cell(1)
+                        @focus()
                         setTimeout((()=>@props.actions.set_mode('edit')),0)
                         } >
                             Run Cells and Insert Below
                 </MenuItem>
-                <MenuItem eventKey="run-all" onSelect={=>@props.actions.run_all_cells()}>Run All</MenuItem>
-                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_above()}>Run All Above</MenuItem>
-                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_below()}>Run All Below</MenuItem>
+                <MenuItem eventKey="run-all" onSelect={=>@props.actions.run_all_cells(); @focus()}>Run All</MenuItem>
+                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_above(); @focus()}>Run All Above</MenuItem>
+                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_below(); @focus()}>Run All Below</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Cell Type...</MenuItem>
-                <MenuItem eventKey="cell-type-code"      onSelect={=>@props.actions.set_selected_cell_type('code')} ><span style={marginLeft:'4ex'}/> Code</MenuItem>
-                <MenuItem eventKey="cell-type-markdown"  onSelect={=>@props.actions.set_selected_cell_type('markdown')} ><span style={marginLeft:'4ex'}/> Markdown</MenuItem>
-                <MenuItem eventKey="cell-type-nbconvert" onSelect={=>@props.actions.set_selected_cell_type('nbconvert')} ><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
+                <MenuItem eventKey="cell-type-code"      onSelect={=>@props.actions.set_selected_cell_type('code'); @focus()} ><span style={marginLeft:'4ex'}/> Code</MenuItem>
+                <MenuItem eventKey="cell-type-markdown"  onSelect={=>@props.actions.set_selected_cell_type('markdown'); @focus()} ><span style={marginLeft:'4ex'}/> Markdown</MenuItem>
+                <MenuItem eventKey="cell-type-nbconvert" onSelect={=>@props.actions.set_selected_cell_type('nbconvert'); @focus()} ><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Current Outputs...</MenuItem>
-                <MenuItem eventKey="current-outputs-toggle"   onSelect={=>@props.actions.toggle_selected_outputs('collapsed')}  ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
+                <MenuItem eventKey="current-outputs-toggle"   onSelect={=>@props.actions.toggle_selected_outputs('collapsed'); @focus()}  ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
                 <MenuItem eventKey="current-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_selected_outputs('scrolled')}><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="current-outputs-clear"    onSelect={=>@props.actions.clear_selected_outputs()} ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
+                <MenuItem eventKey="current-outputs-clear"    onSelect={=>@props.actions.clear_selected_outputs(); @focus()} ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>All Output...</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle"     onSelect={=>@props.actions.toggle_all_outputs('collapsed')}><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_all_outputs('scrolled')} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="all-outputs-clear"      onSelect={=>@props.actions.clear_all_outputs()}  ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
+                <MenuItem eventKey="all-outputs-toggle"     onSelect={=>@props.actions.toggle_all_outputs('collapsed'); @focus()}><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
+                <MenuItem eventKey="all-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_all_outputs('scrolled'); @focus()} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
+                <MenuItem eventKey="all-outputs-clear"      onSelect={=>@props.actions.clear_all_outputs(); @focus()}  ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 
@@ -199,7 +205,7 @@ exports.TopMenubar = rclass ({name}) ->
         <MenuItem
             key      = {kernel.name}
             eventKey = "kernel-change-#{kernel.name}"
-            onSelect = {=>@props.actions.set_kernel(kernel.name)}
+            onSelect = {=>@props.actions.set_kernel(kernel.name); @focus()}
             >
             <span style={style}> {kernel.display_name} </span>
         </MenuItem>
@@ -219,24 +225,24 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Menu>
                 <MenuItem
                     eventKey = "kernel-interrupt"
-                    onSelect = {=>@props.actions.signal('SIGINT')}>
+                    onSelect = {=>@props.actions.signal('SIGINT'); @focus()}>
                     Interrrupt
                 </MenuItem>
                 <MenuItem
                     eventKey = "kernel-restart"
-                    onSelect = {=>@props.actions.signal('SIGKILL')}
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @focus()}
                     >
                     Restart
                 </MenuItem>
                 <MenuItem
                     eventKey="kernel-restart-clear"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.clear_all_outputs()}
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.clear_all_outputs(); @focus()}
                     >
                     Restart & Clear Output
                 </MenuItem>
                 <MenuItem
                     eventKey="kernel-run-all"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.run_all_cells()}
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.run_all_cells(); @focus()}
                     >
                     Restart & Run All
                 </MenuItem>

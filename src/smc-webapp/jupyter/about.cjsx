@@ -18,7 +18,7 @@ exports.About = rclass ({name}) ->
 
     close: ->
         @props.actions.setState(about:false)
-
+        @props.actions.focus()
 
     render_server_info: ->
         version = @props.backend_kernel_info?.get('nodejs_version')

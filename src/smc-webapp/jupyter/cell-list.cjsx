@@ -10,6 +10,8 @@ immutable = require('immutable')
 
 {Cell} = require('./cell')
 
+keyboard       = require('./keyboard')
+
 exports.CellList = rclass
     propTypes:
         actions      : rtypes.object   # if not defined, then everything read only
@@ -25,6 +27,8 @@ exports.CellList = rclass
         directory    : rtypes.string
         scrollTop    : rtypes.number
         complete     : rtypes.immutable.Map            # status of tab completion
+        is_focused   : rtypes.bool
+        more_output  : rtypes.immutable.Map
 
     componentWillUnmount: ->
         # save scroll state
@@ -32,10 +36,48 @@ exports.CellList = rclass
         if state? and @props.actions?
             @props.actions.set_scroll_state(state)
 
+        if @props.actions?
+            # handle focus via an event handler on window.
+            # We have to do this since, e.g., codemirror editors
+            # involve spans that aren't even children, etc...
+            $(window).unbind('click', @window_click)
+            keyboard.disable_handler(@props.actions)
+
     componentDidMount: ->
         # restore scroll state
         if @props.scrollTop?
             ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = @props.scrollTop
+
+        if @props.actions?
+            # Enable keyboard handler if necessary
+            if @props.is_focused
+                keyboard.enable_handler(@props.actions)
+            # Also since just mounted, set this to be focused.
+            # When we have multiple editors on the same page, we will
+            # have to set the focus at a higher level (in the project store?).
+            @props.actions.focus(true)
+            # setup a click handler so we can manage focus
+            $(window).on('click', @window_click)
+
+    window_click: (event) ->
+        # if click in the cell list, focus the cell list; otherwise, blur it.
+        elt = $(ReactDOM.findDOMNode(@))
+        offset = elt.offset()
+        x = event.pageX - offset.left
+        y = event.pageY - offset.top
+        if x >= 0 and y >=0 and x <= elt.outerWidth() and y <= elt.outerHeight()
+            @props.actions.focus()
+        else
+            @props.actions.blur()
+        return
+
+    componentWillReceiveProps: (next) ->
+        if @props.actions? and next.is_focused != @props.is_focused
+            # the focus state changed.
+            if next.is_focused
+                keyboard.enable_handler(@props.actions)
+            else
+                keyboard.disable_handler(@props.actions)
 
     render_loading: ->
         <div style={fontSize: '32pt', color: '#888', textAlign: 'center', marginTop: '15px'}>
@@ -69,6 +111,8 @@ exports.CellList = rclass
                     project_id       = {@props.project_id}
                     directory        = {@props.directory}
                     complete         = {@props.complete}
+                    is_focused       = {@props.is_focused}
+                    more_output      = {@props.more_output?.get(id)}
                     />
             v.push(cell)
             return
@@ -81,8 +125,13 @@ exports.CellList = rclass
             overflowY       : 'auto'
             overflowX       : 'hidden'
 
+        cells_style =
+            backgroundColor : '#fff'
+            padding         : '15px'
+            boxShadow       : '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'
+
         <div key='cells' style={style} ref='cell_list' onClick={@on_click if @props.actions? and @props.complete?}>
-            <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
+            <div style={cells_style}>
                 {v}
             </div>
         </div>

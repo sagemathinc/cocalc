@@ -14,19 +14,12 @@ Top-level react component, which ties everything together
 {Introspect}   = require('./introspect')
 #{CellList}    = require('./cell-list-single-editor')
 {Kernel, Mode} = require('./status')
-keyboard       = require('./keyboard')
 {About}        = require('./about')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
         error   : rtypes.string
         actions : rtypes.object.isRequired
-
-    componentDidMount: ->
-        keyboard.enable_handler(@props.actions)
-
-    componentWillUnmount: ->
-        keyboard.disable_handler(@props.actions)
 
     reduxProps :
         "#{name}" :
@@ -47,6 +40,8 @@ exports.JupyterEditor = rclass ({name}) ->
             version             : rtypes.object
             complete            : rtypes.immutable.Map              # status of tab completion
             introspect          : rtypes.immutable.Map              # status of introspection
+            is_focused          : rtypes.bool
+            more_output         : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -91,6 +86,8 @@ exports.JupyterEditor = rclass ({name}) ->
             directory    = {@props.directory}
             scrollTop    = {@props.actions.store.get_scroll_state()}
             complete     = {@props.complete}
+            is_focused   = {@props.is_focused}
+            more_output  = {@props.more_output}
             />
 
     render_introspect: ->

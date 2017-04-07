@@ -27,7 +27,7 @@ exports.InputPrompt = rclass
 
     render: ->
         if @props.type != 'code'
-            return <div style={minWidth: '14ex', fontFamily: 'monospace'}></div>
+            return <div style={INPUT_STYLE}></div>
 
         kernel = misc.capitalize(@props.kernel ? '')
 

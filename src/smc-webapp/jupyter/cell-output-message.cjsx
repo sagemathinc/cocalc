@@ -1,8 +1,9 @@
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
+{Icon, ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
+{Button} = require('react-bootstrap')
 
 Ansi = require('ansi-to-react')
 
@@ -146,6 +147,27 @@ Traceback = rclass
             {v}
         </div>
 
+MoreOutput = rclass
+    propTypes :
+        message : rtypes.immutable.Map.isRequired
+        actions : rtypes.object  # if not set, then can't get more ouput
+        id      : rtypes.string.isRequired
+
+    shouldComponentUpdate: (next) ->
+        return next.message != @props.message
+
+    show_more_output: ->
+        @props.actions?.fetch_more_output(@props.id)
+
+    render: ->
+        if not @props.actions? or @props.message.get('expired')
+            <Button bsStyle = "info" disabled>
+                <Icon name='eye-slash'/> Additional output not available
+            </Button>
+        else
+            <Button onClick={@show_more_output} bsStyle = "info">
+                <Icon name='eye'/> Fetch additional output...
+            </Button>
 
 NotImplemented = rclass
     propTypes :
@@ -159,8 +181,9 @@ NotImplemented = rclass
         </pre>
 
 
-
 message_component = (message) ->
+    if message.get('more_output')?
+        return MoreOutput
     if message.get('name') == 'stdout'
         return Stdout
     if message.get('name') == 'stderr'
@@ -176,8 +199,8 @@ exports.CellOutputMessage = CellOutputMessage = rclass
         message    : rtypes.immutable.Map.isRequired
         project_id : rtypes.string
         directory  : rtypes.string
-
-    mixins: [ImmutablePureRenderMixin]
+        actions    : rtypes.object  # optional  - not needed by most messages
+        id         : rtypes.string  # optional, and not usually needed either
 
     render: ->
         C = message_component(@props.message)
@@ -185,6 +208,8 @@ exports.CellOutputMessage = CellOutputMessage = rclass
             message    = {@props.message}
             project_id = {@props.project_id}
             directory  = {@props.directory}
+            actions    = {@props.actions}
+            id         = {@props.id}
             />
 
 OUTPUT_STYLE =
@@ -200,10 +225,12 @@ OUTPUT_STYLE_SCROLLED = misc.merge({maxHeight:'40vh'}, OUTPUT_STYLE)
 
 exports.CellOutputMessages = rclass
     propTypes :
+        actions    : rtypes.object  # optional actions
         output     : rtypes.immutable.Map.isRequired  # the actual messages
         project_id : rtypes.string
         directory  : rtypes.string
         scrolled   : rtypes.bool
+        id         : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return \
@@ -218,6 +245,8 @@ exports.CellOutputMessages = rclass
             message    = {mesg}
             project_id = {@props.project_id}
             directory  = {@props.directory}
+            actions    = {@props.actions}
+            id         = {@props.id}
         />
 
     message_list: ->

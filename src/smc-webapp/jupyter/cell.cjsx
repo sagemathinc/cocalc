@@ -27,7 +27,8 @@ exports.Cell = rclass
         project_id       : rtypes.string
         directory        : rtypes.string
         complete         : rtypes.immutable.Map
-
+        is_focused       : rtypes.bool
+        more_output      : rtypes.immutable.Map   # if given, is info for *this* cell
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -38,7 +39,9 @@ exports.Cell = rclass
                next.is_markdown_edit != @props.is_markdown_edit or \
                next.mode             != @props.mode or \
                next.font_size        != @props.font_size or \
-               (next.complete        != @props.complete)  # only worry about complete when editing this cell!
+               next.is_focused       != @props.is_focused or \
+               next.more_output      != @props.more_output or \
+               (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell
 
     render_cell_input: (cell) ->
         <CellInput
@@ -58,12 +61,13 @@ exports.Cell = rclass
 
     render_cell_output: (cell) ->
         <CellOutput
-            key        = 'out'
-            cell       = {cell}
-            actions    = {@props.actions}
-            id         = {@props.id}
-            project_id = {@props.project_id}
-            directory  = {@props.directory}
+            key         = 'out'
+            cell        = {cell}
+            actions     = {@props.actions}
+            id          = {@props.id}
+            project_id  = {@props.project_id}
+            directory   = {@props.directory}
+            more_output = {@props.more_output}
             />
 
     render_time: (cell) ->
@@ -96,8 +100,12 @@ exports.Cell = rclass
                 color1 = color2 = '#66bb6a'
             else
                 # escape mode
-                color1 = '#ababab'
-                color2 = '#42a5f5'
+                if @props.is_focused
+                    color1 = '#ababab'
+                    color2 = '#42a5f5'
+                else
+                    color1 = '#eee'
+                    color2 = '#42a5ff'
         else
             if @props.is_selected
                 color1 = color2 = '#e3f2fd'

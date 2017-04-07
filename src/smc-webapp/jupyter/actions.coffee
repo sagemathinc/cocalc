@@ -18,6 +18,7 @@ misc       = require('smc-util/misc')
 {Actions}  = require('../smc-react')
 
 util       = require('./util')
+parsing    = require('./parsing')
 
 jupyter_kernels = undefined
 
@@ -25,6 +26,19 @@ jupyter_kernels = undefined
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
 ###
+
+bounded_integer = (n, min, max, def) ->
+    if typeof(n) != 'number'
+        n = parseInt(n)
+    if isNaN(n)
+        return def
+    n = Math.round(n)
+    if n < min
+        return min
+    if n > max
+        return max
+    return n
+
 
 class exports.JupyterActions extends Actions
 
@@ -50,6 +64,8 @@ class exports.JupyterActions extends Actions
             project_id          : project_id
             directory           : misc.path_split(path)?.head
             path                : path
+            is_focused          : false            # whether or not the editor is focused.
+            max_output_length   : 20000
 
         f = () =>
             @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
@@ -84,14 +100,18 @@ class exports.JupyterActions extends Actions
         opts = defaults opts,
             url     : required
             timeout : 15000
-            cb      : undefined    # (err, data)
+            cb      : undefined    # (err, data as Javascript object -- i.e., JSON is parsed)
         if not $?
             opts.cb?("_ajax only makes sense in browser")
             return
         $.ajax(
             url     : opts.url
             timeout : opts.timeout
-            success : (data) => opts.cb?(undefined, data)
+            success : (data) =>
+                try
+                    opts.cb?(undefined, JSON.parse(data))
+                catch err
+                    opts.cb?("#{err}")
         ).fail (err) => opts.cb?(err.statusText ? 'error')
 
     set_jupyter_kernels: =>
@@ -109,7 +129,7 @@ class exports.JupyterActions extends Actions
                             cb(err)
                             return
                         try
-                            jupyter_kernels = immutable.fromJS(JSON.parse(data))
+                            jupyter_kernels = immutable.fromJS(data)
                             @setState(kernels: jupyter_kernels)
                             # We must also update the kernel info (e.g., display name), now that we
                             # know the kernels (e.g., maybe it changed or is now known but wasn't before).
@@ -134,6 +154,8 @@ class exports.JupyterActions extends Actions
         @setState
             error : err
 
+    # Set the input of the given cell in the syncdb, which will also
+    # change the store.
     set_cell_input: (id, input) =>
         @_set
             type  : 'cell'
@@ -293,6 +315,7 @@ class exports.JupyterActions extends Actions
         old_cell = cells.get(id)
         if not new_cell?
             # delete cell
+            @reset_more_output(id)  # free up memory locally
             if old_cell?
                 obj = {cells: cells.delete(id)}
                 cell_list = @store.get('cell_list')
@@ -304,6 +327,9 @@ class exports.JupyterActions extends Actions
             old_cell = cells.get(id)
             if new_cell.equals(old_cell)
                 return # nothing to do
+            if old_cell? and new_cell.get('start') != old_cell.get('start')
+                # cell re-evaluated so any more output is no longer valid.
+                @reset_more_output(id)
             obj = {cells: cells.set(id, new_cell)}
             if not old_cell? or old_cell.get('pos') != new_cell.get('pos')
                 cell_list_needs_recompute = true
@@ -330,8 +356,9 @@ class exports.JupyterActions extends Actions
                     orig_kernel = @store.get('kernel')
                     kernel = record.get('kernel')
                     obj =
-                        backend_state : record.get('backend_state')
-                        kernel_state  : record.get('kernel_state')
+                        backend_state     : record.get('backend_state')
+                        kernel_state      : record.get('kernel_state')
+                        max_output_length : bounded_integer(record.get('max_output_length'), 100, 100000, 20000)
                     if kernel != @store.get('kernel')
                         # kernel changed
                         obj.kernel              = kernel
@@ -508,7 +535,6 @@ class exports.JupyterActions extends Actions
                     k += 1
                 w[k] = v[i]
         # now w is a complete list of the id's in the proper order; use it to set pos
-        t = new Date()
         if underscore.isEqual(v, w)
             # no change
             return
@@ -535,17 +561,19 @@ class exports.JupyterActions extends Actions
 
         @unselect_all_cells()  # for whatever reason, any running of a cell deselects in official jupyter
 
-        @_input_editors?[id]?()
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
-                code = cell.get('input').trim()
-                if misc.endswith(code, '??')
-                    @introspect(code.slice(0,code.length-2), 1)
-                else if misc.endswith(code, '?')
-                    @introspect(code.slice(0,code.length-1), 0)
-                else
-                    @run_code_cell(id)
+                code = (@_input_editors?[id]?() ? cell.get('input') ? '').trim()
+                switch parsing.run_mode(code)
+                    when 'show_source'
+                        @introspect(code.slice(0,code.length-2), 1)
+                    when 'show_doc'
+                        @introspect(code.slice(0,code.length-1), 0)
+                    when 'empty'
+                        @clear_cell(id)
+                    when 'execute'
+                        @run_code_cell(id)
             when 'markdown'
                 @set_md_cell_not_editing(id)
         @save_asap()
@@ -556,6 +584,17 @@ class exports.JupyterActions extends Actions
             type         : 'cell'
             id           : id
             state        : 'start'
+            start        : null
+            end          : null
+            output       : null
+            exec_count   : null
+            collapsed    : null
+
+    clear_cell: (id) =>
+        @_set
+            type         : 'cell'
+            id           : id
+            state        : null
             start        : null
             end          : null
             output       : null
@@ -896,7 +935,7 @@ class exports.JupyterActions extends Actions
                 if err
                     complete = {error  : err}
                 else
-                    complete = JSON.parse(data)
+                    complete = data
                     if complete.status != 'ok'
                         complete = {error:'completion failed'}
                     delete complete.status
@@ -938,7 +977,7 @@ class exports.JupyterActions extends Actions
 
         @_ajax
             url     : util.get_introspect_url(@store.get('project_id'), @store.get('path'), code, cursor_pos, level)
-            timeout : 15000
+            timeout : 30000
             cb      : (err, data) =>
                 if @_introspect_request > req
                     # future completion or clear happened; so ignore this result.
@@ -946,7 +985,7 @@ class exports.JupyterActions extends Actions
                 if err
                     introspect = {error  : err}
                 else
-                    introspect = JSON.parse(data)
+                    introspect = data
                     if introspect.status != 'ok'
                         introspect = {error:'completion failed'}
                     delete introspect.status
@@ -979,20 +1018,19 @@ class exports.JupyterActions extends Actions
                         console.log("Error setting backend kernel info -- #{err}")
                         cb(true)
                     else
-                        data = JSON.parse(data)
                         if data.error?
                             console.log("Error setting backend kernel info -- #{data.error}")
                             cb(true)
                         else
                             @_fetching_backend_kernel_info = false
                             @setState(backend_kernel_info: immutable.fromJS(data))
+                            # this is when the server for this doc started, not when kernel last started!
+                            @setState(start_time : data.start_time)
         misc.retry_until_success
             f           : f
             max_time    : 60000
             start_delay : 3000
             max_delay   : 10000
-
-
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
     # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
@@ -1008,4 +1046,49 @@ class exports.JupyterActions extends Actions
     show_about: =>
         @setState(about:true)
         @set_backend_kernel_info()
+
+    focus: (wait) =>
+        if @_state == 'closed'
+            return
+        if wait
+            setTimeout(@focus, 1)
+        else
+            @setState(is_focused: true)
+
+    blur: =>
+        if @_state == 'closed'
+            return
+        @setState
+            is_focused : false
+            mode       : 'escape'
+
+    set_max_output_length: (n) =>
+        @_set
+            type              : 'settings'
+            max_output_length : n
+
+    fetch_more_output: (id) =>
+        time = @_client.server_time() - 0
+        @_ajax
+            url     : util.get_more_output_url(@store.get('project_id'), @store.get('path'), id)
+            timeout : 60000
+            cb      : (err, more_output) =>
+                if err
+                    @set_error(err)
+                else
+                    if not @store.getIn(['cells', id, 'scrolled'])
+                        # make output area scrolled, since there is going to be a lot of output
+                        @toggle_output(id, 'scrolled')
+                    @set_more_output(id, {time:time, mesg_list:more_output})
+
+    set_more_output: (id, more_output) =>
+        if not @store.getIn(['cells', id])?
+            return
+        x = @store.get('more_output') ? immutable.Map()
+        @setState(more_output : x.set(id, immutable.fromJS(more_output)))
+
+    reset_more_output: (id) =>
+        more_output = @store.get('more_output') ? immutable.Map()
+        if more_output.has(id)
+            @setState(more_output : more_output.delete(id))
 
