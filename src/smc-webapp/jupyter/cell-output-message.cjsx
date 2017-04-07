@@ -166,7 +166,7 @@ MoreOutput = rclass
             </Button>
         else
             <Button onClick={@show_more_output} bsStyle = "info">
-                <Icon name='eye'/> Show additional output...
+                <Icon name='eye'/> Fetch additional output...
             </Button>
 
 NotImplemented = rclass

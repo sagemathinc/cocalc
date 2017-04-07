@@ -433,7 +433,7 @@ class Kernel extends EventEmitter
         if not @_actions?
             opts.cb("must have redux actions")
             return
-        opts.cb(undefined, @_actions.store.get_more_output(opts.id))
+        opts.cb(undefined, @_actions.store.get_more_output(opts.id) ? [])
 
     http_server: (opts) =>
         opts = defaults opts,
@@ -592,7 +592,7 @@ jupyter_kernel_http_server = (base, router) ->
                 if err
                     res.send(JSON.stringify({error:err}))
                 else
-                    res.send(JSON.stringify(resp))
+                    res.send(JSON.stringify(resp ? {}))
 
     return router
 

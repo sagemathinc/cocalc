@@ -163,6 +163,16 @@ class exports.JupyterStore extends Store
     # used by the backend for storing extra output
     get_more_output: (id) =>
         @_more_output ?= {}
-        return @_more_output[id]
-
+        output = @_more_output[id]
+        if not output?
+            return
+        messages = output.messages
+        if output.discarded
+            warn = [{"text":"WARNING: #{output.discarded} #{if output.discarded>1 then 'messages were' else 'message was'}  discarded", "name":"stderr"}]
+            v = warn.concat(messages)
+            if output.discarded > 5
+                v.push(warn)
+            return v
+        else
+            return messages
 

@@ -246,8 +246,10 @@ class exports.JupyterActions extends actions.JupyterActions
         end                      = null
         clear_before_next_output = false
         output_length            = 0
-        max_output_length        = @store.get('max_output_length') ? 500 # for testing.
+        max_output_length        = @store.get('max_output_length')
         in_more_output_mode      = false
+
+        dbg("max_output_length = #{max_output_length}")
 
         @reset_more_output(id)
 
@@ -342,7 +344,9 @@ class exports.JupyterActions extends actions.JupyterActions
                 if outputs == null
                     outputs = {}
                     output_length = 0
-                output_length += JSON.stringify(mesg.content)?.length ? 0
+
+                mesg_length = JSON.stringify(mesg.content)?.length ? 0
+                output_length += mesg_length
                 if output_length <= max_output_length
                     outputs[n] = mesg.content
                     set_cell()
@@ -351,21 +355,26 @@ class exports.JupyterActions extends actions.JupyterActions
                         outputs[n] = {more_output:true, expired:false}
                         set_cell()
                         in_more_output_mode = true
-                    @set_more_output(id, mesg.content)
+                    @set_more_output(id, mesg.content, mesg_length)
                 n += 1
 
     reset_more_output: (id) =>
         if @store._more_output?[id]?
             delete @store._more_output[id]
 
-    set_more_output: (id, mesg) =>
+    set_more_output: (id, mesg, length) =>
         @store._more_output ?= {}
-        v =   @store._more_output[id] ?= []
-        v.push(mesg)
-        # don't accumulate indefinitely!
-        while v.length > 500  # TODO - this should be good enough for now; later could make customizable or based on length
-            v.shift()
-        return
+        output = @store._more_output[id] ?= {length:0, messages:[], lengths:[], discarded:0}
+
+        output.length += length
+        output.lengths.push(length)
+        output.messages.push(mesg)
+
+        while output.length > 10*@store.get('max_output_length')
+            n = output.lengths.shift()
+            output.messages.shift()
+            output.length -= n
+            output.discarded += 1
 
     init_file_watcher: =>
         dbg = @dbg("file_watcher")

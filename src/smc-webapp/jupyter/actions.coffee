@@ -27,6 +27,19 @@ The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
 ###
 
+bounded_integer = (n, min, max, def) ->
+    if typeof(n) != 'number'
+        n = parseInt(n)
+    if isNaN(n)
+        return def
+    n = Math.round(n)
+    if n < min
+        return min
+    if n > max
+        return max
+    return n
+
+
 class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
@@ -52,6 +65,7 @@ class exports.JupyterActions extends Actions
             directory           : misc.path_split(path)?.head
             path                : path
             is_focused          : false            # whether or not the editor is focused.
+            max_output_length   : 20000
 
         f = () =>
             @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
@@ -97,7 +111,7 @@ class exports.JupyterActions extends Actions
                 try
                     opts.cb?(undefined, JSON.parse(data))
                 catch err
-                    opts.cb?(err)
+                    opts.cb?("#{err}")
         ).fail (err) => opts.cb?(err.statusText ? 'error')
 
     set_jupyter_kernels: =>
@@ -343,7 +357,7 @@ class exports.JupyterActions extends Actions
                     obj =
                         backend_state     : record.get('backend_state')
                         kernel_state      : record.get('kernel_state')
-                        max_output_length : record.get('max_output_length')
+                        max_output_length : bounded_integer(record.get('max_output_length'), 100, 100000, 20000)
                     if kernel != @store.get('kernel')
                         # kernel changed
                         obj.kernel              = kernel
@@ -1059,6 +1073,9 @@ class exports.JupyterActions extends Actions
                 if err
                     @set_error(err)
                 else
+                    if not @store.getIn(['cells', id, 'scrolled'])
+                        # make output area scrolled, since there is going to be a lot of output
+                        @toggle_output(id, 'scrolled')
                     @set_more_output(id, {time:time, mesg_list:more_output})
 
     set_more_output: (id, more_output) =>
