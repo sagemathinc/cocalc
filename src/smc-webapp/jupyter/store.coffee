@@ -2,15 +2,11 @@
 The Store
 ###
 
-immutable           = require('immutable')
-
-misc                = require('smc-util/misc')
-
-{Store}             = require('../smc-react')
-
-{cm_options}        = require('./cm_options')
-
-ipynb_import_export = require('./ipynb-import-export')
+immutable         = require('immutable')
+misc              = require('smc-util/misc')
+{Store}           = require('../smc-react')
+{cm_options}      = require('./cm_options')
+{export_to_ipynb} = require('./export-to-ipynb')
 
 # Used for copy/paste.  We make a single global clipboard, so that
 # copy/paste between different notebooks works.
@@ -113,7 +109,7 @@ class exports.JupyterStore extends Store
         #else
         #    more_output = @get('more_output')
 
-        return ipynb_import_export.export_to_ipynb
+        return export_to_ipynb
             cells       : @get('cells')
             cell_list   : @get('cell_list')
             kernelspec  : kernelspec

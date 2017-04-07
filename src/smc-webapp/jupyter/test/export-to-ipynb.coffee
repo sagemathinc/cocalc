@@ -4,7 +4,7 @@ setup = (cb) -> (require('./setup').setup (err, x) -> actions=x; store=x?.store;
 
 expect  = require('expect')
 
-{export_to_ipynb} = require('../ipynb-import-export')
+{export_to_ipynb} = require('../export-to-ipynb')
 
 describe 'tests exporting the most basic ipynb file -- ', ->
     before(setup)

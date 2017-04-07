@@ -1,6 +1,6 @@
 ###
 
-Exporting to and importing from Ipynb files.
+Exporting from our in-memory sync-friendly format to ipynb
 
 ###
 
@@ -11,7 +11,7 @@ exports.export_to_ipynb = (opts) ->
     opts = defaults opts,
         cell_list   : required
         cells       : required
-        kernelspec  : undefined    # official jupyter will give an error on load without this (and ask to select a kernel)
+        kernelspec  : {}    # official jupyter will give an error on load without properly giving this (and ask to select a kernel)
         blob_store  : undefined
         more_output : undefined
 
