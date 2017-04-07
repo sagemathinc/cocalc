@@ -65,10 +65,14 @@ class exports.JupyterActions extends actions.JupyterActions
 
         #dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
+        @setState  # used by jupyter.coffee
+            start_time : @_client.server_time() - 0
+
         @_load_from_disk_if_newer () =>
             @set_backend_state('init')
 
             @ensure_backend_kernel_setup()  # this may change the syncdb.
+
             @init_kernel_info()             # need to have for saving.
 
             @init_file_watcher()
@@ -352,7 +356,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     set_cell()
                 else
                     if not in_more_output_mode
-                        outputs[n] = {more_output:true, expired:false}
+                        outputs[n] = {more_output:true}
                         set_cell()
                         in_more_output_mode = true
                     @set_more_output(id, mesg.content, mesg_length)

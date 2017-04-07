@@ -74,6 +74,7 @@ class Kernel extends EventEmitter
         @_directory = misc.path_split(@_path)?.head
         @_set_state('off')
         @_identity = misc.uuid()
+        @_start_time = new Date() - 0
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
@@ -420,9 +421,14 @@ class Kernel extends EventEmitter
             cb         : required
         @call
             msg_type : 'kernel_info_request'
-            cb       : (err, info) ->
-                info?.nodejs_version = process.version
-                opts.cb(err, info)
+            cb       : (err, info) =>
+                if err
+                    opts.cb(err)
+                else
+                    info.nodejs_version   = process.version
+                    info.start_time = @_actions?.store.get('start_time')
+                    opts.cb(undefined, info)
+
     more_output: (opts) =>
         opts = defaults opts,
             id : undefined
@@ -433,7 +439,7 @@ class Kernel extends EventEmitter
         if not @_actions?
             opts.cb("must have redux actions")
             return
-        opts.cb(undefined, @_actions.store.get_more_output(opts.id) ? [])
+        opts.cb(undefined, @_actions?.store.get_more_output(opts.id) ? [])
 
     http_server: (opts) =>
         opts = defaults opts,

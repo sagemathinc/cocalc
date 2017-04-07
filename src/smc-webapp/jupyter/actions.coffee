@@ -1024,6 +1024,8 @@ class exports.JupyterActions extends Actions
                         else
                             @_fetching_backend_kernel_info = false
                             @setState(backend_kernel_info: immutable.fromJS(data))
+                            # this is when the server for this doc started, not when kernel last started!
+                            @setState(start_time : data.start_time)
         misc.retry_until_success
             f           : f
             max_time    : 60000
@@ -1089,5 +1091,4 @@ class exports.JupyterActions extends Actions
         more_output = @store.get('more_output') ? immutable.Map()
         if more_output.has(id)
             @setState(more_output : more_output.delete(id))
-
 
