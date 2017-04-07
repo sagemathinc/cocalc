@@ -19,7 +19,7 @@ exports.CellOutput = rclass
         cell        : rtypes.immutable.Map.isRequired
         project_id  : rtypes.string
         directory   : rtypes.string
-        more_output : rtypes.immutable.List
+        more_output : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         for field in ['collapsed', 'scrolled', 'exec_count', 'state']
@@ -78,10 +78,16 @@ exports.CellOutput = rclass
                 # There's more output; remove the button to get more output, and
                 # include all the new more output messages.
                 n = output.size - 1
-                @props.more_output.forEach (mesg) =>
+                more = output.get("#{n}")
+                @props.more_output.get('mesg_list').forEach (mesg) =>
                     output = output.set("#{n}", mesg)
                     n += 1
                     return
+                if not @props.cell.get('end')? or @props.more_output.get('time') < @props.cell.get('end')
+                    # There may be more output since either the end time isn't set
+                    # or the time when we got the output is before the calculation ended.
+                    # We thus put the "more output" button back, so the user can click it again.
+                    output = output.set("#{n}", more)
             <CellOutputMessages
                 scrolled   = {@props.cell.get('scrolled')}
                 output     = {output}

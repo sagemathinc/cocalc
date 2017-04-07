@@ -520,7 +520,6 @@ class exports.JupyterActions extends Actions
                     k += 1
                 w[k] = v[i]
         # now w is a complete list of the id's in the proper order; use it to set pos
-        t = new Date()
         if underscore.isEqual(v, w)
             # no change
             return
@@ -1052,6 +1051,7 @@ class exports.JupyterActions extends Actions
             max_output_length : n
 
     fetch_more_output: (id) =>
+        time = @_client.server_time() - 0
         @_ajax
             url     : util.get_more_output_url(@store.get('project_id'), @store.get('path'), id)
             timeout : 60000
@@ -1059,7 +1059,7 @@ class exports.JupyterActions extends Actions
                 if err
                     @set_error(err)
                 else
-                    @set_more_output(id, more_output)
+                    @set_more_output(id, {time:time, mesg_list:more_output})
 
     set_more_output: (id, more_output) =>
         if not @store.getIn(['cells', id])?

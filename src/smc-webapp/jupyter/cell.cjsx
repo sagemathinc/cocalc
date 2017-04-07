@@ -28,7 +28,7 @@ exports.Cell = rclass
         directory        : rtypes.string
         complete         : rtypes.immutable.Map
         is_focused       : rtypes.bool
-        more_output      : rtypes.immutable.List   # if given, is the more output List for *this* cell
+        more_output      : rtypes.immutable.Map   # if given, is info for *this* cell
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
