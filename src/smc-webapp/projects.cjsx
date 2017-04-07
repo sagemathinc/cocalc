@@ -859,6 +859,9 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
+    clear_and_focus_search_input: ->
+        @refs.projects_search.clear_and_focus_search_input()
+
     render: ->
         <SearchInput
             ref         = 'projects_search'

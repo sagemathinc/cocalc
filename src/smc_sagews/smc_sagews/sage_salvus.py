@@ -1463,6 +1463,7 @@ def latex0(s=None, **kwds):
         kwds['locals'] = salvus.namespace
     if 'globals' not in kwds:
         kwds['globals'] = salvus.namespace
+    sage.misc.latex.latex.add_package_to_preamble_if_available('soul')
     sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
     salvus.file(kwds['filename'], once=False)
     if delete_file:
@@ -2520,6 +2521,12 @@ def show(*objs, **kwds):
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
+
+       - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
+
+       - background: string (default: 'transparent'), specifies background color for 3d images.
+         Ignored if viewer is set to "tachyon" or if object type is Tachyon.
+         May be 'transparent' or any valid CSS color string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
 
     ANIMATIONS:
 
