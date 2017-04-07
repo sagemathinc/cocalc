@@ -1653,36 +1653,37 @@ Drag'n'Drop dropzone area
 ###
 ReactDOMServer = require('react-dom/server')   # for dropzone below
 Dropzone       = require('dropzone')
+Dropzone.autoDiscover = false
 
-# Returns a component which files can be dragged onto
 # config is a placeholder for any configuration details that can't be passed as a prop to the returned component
-exports.AllowFileDropping = (ComposedComponent) =>
-    Dropzone = require('dropzone')
-    Dropzone.autoDiscover = false
-    return rclass
+exports.SMC_Dropzone = rclass
         displayName: 'dropzone-wrapper'
 
         propTypes:
             project_id           : rtypes.string.isRequired    # The project to upload files to
-            current_path         : rtypes.string.isRequired    # The path for files to be sent
+            dest_path            : rtypes.string.isRequired    # The path for files to be sent
             config               : rtypes.object               # All supported dropzone.js config options
-            disabled             : rtypes.bool                 # Will reject file drops if true. Default false
+            event_handlers       : rtypes.object
+            show_upload          : rtypes.bool
+            on_close             : rtypes.func
 
         getDefaultProps: ->
-            config : {}
+            config         : {}
+            hide_previewer : false
 
         getInitialState: ->
             files : []
 
         get_djs_config: ->
-            defaults @props.config,
+            with_defaults = defaults @props.config,
                 url : @postUrl()
                 previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
                 previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
             , true
+            return misc.merge with_defaults, @props.config
 
         postUrl: ->
-            dest_dir = misc.encode_path(@props.current_path)
+            dest_dir = misc.encode_path(@props.dest_path)
             postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
             return postUrl
 
@@ -1691,7 +1692,6 @@ exports.AllowFileDropping = (ComposedComponent) =>
             @_set_up_events()
 
         componentWillUnmount: ->
-            console.log "Component unmounting"
             if @dropzone
                 files = @dropzone.getActiveFiles()
 
@@ -1731,11 +1731,19 @@ exports.AllowFileDropping = (ComposedComponent) =>
             </div>
 
         close_preview: ->
+            @props.on_close?()
             @dropzone?.removeAllFiles()
 
         render_preview: ->
-            if @state.files.length == 0
+            if not @props.show_upload and @state.files.length == 0
                 style = display : 'none'
+            box_style =
+                border       : '2px solid #ccc'
+                boxShadow    : '4px 4px 2px #bbb'
+                borderRadius : '5px'
+                padding      : 0
+                margin       : '10px'
+                minHeight    : '40px'
 
             <div style={style}>
                 <div className='close-button pull-right'>
@@ -1751,15 +1759,16 @@ exports.AllowFileDropping = (ComposedComponent) =>
                     tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
                     <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
                 </Tip>
-                <div className='filepicker dropzone' style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'} >
-                    <div ref='preview_container'/>
-                </div>
+                <div ref='preview_container'
+                    className='filepicker dropzone'
+                    style={box_style}
+                />
             </div>
 
         render: ->
             <div>
                 {@render_preview()}
-                <ComposedComponent {...@props}/>
+                {@props.children}
             </div>
 
         _create_dropzone: ->
@@ -1768,6 +1777,22 @@ exports.AllowFileDropping = (ComposedComponent) =>
 
         _set_up_events: ->
             return unless @dropzone?
+
+            for name, handlers of @props.event_handlers
+                console.log "registering", name
+                # Check if there's an array of event handlers
+                if Object.prototype.toString.call(handlers) == '[object Array]'
+                    for handler in handlers
+                        # Check if it's an init handler
+                        if handler == 'init'
+                            handler(@dropzone)
+                        else
+                            @dropzone.on(name, handler)
+                else
+                    if name == 'init'
+                        handlers(@dropzone)
+                    else
+                        @dropzone.on(name, handlers)
 
             @dropzone.on 'addedfile', (file) =>
                 if file

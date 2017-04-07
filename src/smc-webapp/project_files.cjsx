@@ -23,8 +23,8 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, AllowFileDropping, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
- SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
+{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
+ SearchInput, SMC_Dropzone, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
@@ -84,7 +84,6 @@ PathSegmentLink = rclass
 
     handle_click: ->
         @props.actions.open_directory(@props.path)
-        @props.actions.show_upload(false)
 
     render_link: ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -535,7 +534,7 @@ pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
 
-FileListing = AllowFileDropping rclass
+FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
@@ -1849,7 +1848,6 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index : rtypes.number
             file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
-            show_upload         : rtypes.bool
             new_name            : rtypes.string
 
     propTypes :
@@ -1968,7 +1966,6 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        style = if @props.show_upload then 'primary' else 'default'
         <Col sm=3>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
@@ -1977,9 +1974,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle = {style}
-                onClick = {@props.actions.toggle_upload}
-                active  = {@props.show_upload}
+                className = "upload-button"
                 >
                 <Icon name='upload' /> Upload
             </Button>
@@ -2078,23 +2073,30 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Button>
             </div>
         else if listing?
-            <FileListing
-                listing             = {listing}
-                page_size           = {@file_listing_page_size()}
-                page_number         = {@props.page_number}
-                file_map            = {file_map}
-                file_search         = {@props.file_search}
-                checked_files       = {@props.checked_files}
-                current_path        = {@props.current_path}
-                public_view         = {public_view}
-                actions             = {@props.actions}
-                create_file         = {@create_file}
-                create_folder       = {@create_folder}
-                selected_file_index = {@props.selected_file_index}
-                project_id          = {@props.project_id}
-                show_upload         = {@props.show_upload}
-                shift_is_down       = {@state.shift_is_down}
-            />
+            <SMC_Dropzone
+                project_id     = {@props.project_id}
+                dest_path      = {@props.current_path}
+                event_handlers = {complete : => @props.actions.fetch_directory_listing()}
+                config         = {clickable : ".upload-button"}
+            >
+                <FileListing
+                    listing             = {listing}
+                    page_size           = {@file_listing_page_size()}
+                    page_number         = {@props.page_number}
+                    file_map            = {file_map}
+                    file_search         = {@props.file_search}
+                    checked_files       = {@props.checked_files}
+                    current_path        = {@props.current_path}
+                    public_view         = {public_view}
+                    actions             = {@props.actions}
+                    create_file         = {@create_file}
+                    create_folder       = {@create_folder}
+                    selected_file_index = {@props.selected_file_index}
+                    project_id          = {@props.project_id}
+                    shift_is_down       = {@state.shift_is_down}
+                    event_handlers
+                />
+            </SMC_Dropzone>
         else
             @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
