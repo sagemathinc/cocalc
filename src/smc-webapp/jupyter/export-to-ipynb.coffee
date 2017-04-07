@@ -83,7 +83,7 @@ cell_to_ipynb_nth_output = (cell, n, blob_store) =>
                     return  # impossible to include in the output without blob_store
         nth_output.output_type = "execute_result"
         nth_output.metadata = {}
-        nth_output.execution_count = cell.get('exec_count')
+        nth_output.execution_count = cell.get('exec_count') ? 0
     else if nth_output.name?
         nth_output.output_type = 'stream'
     else if nth_output.ename?

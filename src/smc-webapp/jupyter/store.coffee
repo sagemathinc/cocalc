@@ -98,12 +98,6 @@ class exports.JupyterStore extends Store
 
     ###
     get_ipynb: (blob_store) =>
-        kernelspec = @get_kernel_info(@get('kernel'))
-        if not kernelspec?
-            # kernels must be known before we can save, since the stupid ipynb file format
-            # requires several pointless extra pieces of information about the kernel...
-            return
-
         #if @_is_project
         #    more_output = @_more_output
         #else
@@ -112,7 +106,7 @@ class exports.JupyterStore extends Store
         return export_to_ipynb
             cells       : @get('cells')
             cell_list   : @get('cell_list')
-            kernelspec  : kernelspec
+            kernelspec  : @get_kernel_info(@get('kernel'))
             blob_store  : blob_store
             #more_output : more_output
 
