@@ -59,11 +59,11 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_group_run: ->
         <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.shift_enter_run_selected_cells(); @focus()} >
-                <Icon name='step-forward'/>
+            <Button onClick={=>@props.actions.shift_enter_run_selected_cells(); @focus()}>
+                <Icon name='play'/> Run
             </Button>
-            <Button onClick={=>@props.actions.signal('SIGINT'); @focus()} >
-                <Icon name='stop'/>
+            <Button onClick={=>@props.actions.signal('SIGINT'); @focus()}>
+                <Icon name='stop'/> Stop
             </Button>
         </ButtonGroup>
 
@@ -135,11 +135,11 @@ exports.TopButtonbar = rclass ({name}) ->
                 {@render_add_cell()}
                 {@render_group_edit()}
                 {@render_group_move()}
+                {@render_group_undo_redo()}
+                {@render_group_zoom()}
                 {@render_group_run()}
                 {@render_select_cell_type()}
                 {@render_keyboard()}
-                {@render_group_undo_redo()}
-                {@render_group_zoom()}
                 {@render_group_save_timetravel()}
             </Form>
         </div>

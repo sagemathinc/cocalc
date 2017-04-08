@@ -15,6 +15,7 @@ misc           = require('smc-util/misc')
 actions        = require('./actions')
 
 {OutputHandler} = require('./output-handler')
+{IpynbImporter} = require('./import-from-ipynb')
 
 DEFAULT_KERNEL = 'python2'  #TODO
 
@@ -262,7 +263,7 @@ class exports.JupyterActions extends actions.JupyterActions
         handler.on 'more_output', (mesg, mesg_length) =>
             @set_more_output(id, mesg, mesg_length)
 
-        handler.on 'process', @_jupyter_kernel.process_output
+        importer.on('process', @_jupyter_kernel.process_output)
 
         @_jupyter_kernel.execute_code
             code : input
@@ -412,6 +413,28 @@ class exports.JupyterActions extends actions.JupyterActions
                     dbg("succeeded at saving")
                     @_last_save_ipynb_file = new Date()
 
+    set_to_ipynb0: (ipynb) =>
+        dbg = @dbg("set_to_ipynb")
+        @_state = 'load'
+
+        # We have to parse out the kernel so we can use process_output below.
+        # (TODO: rewrite so process_output is not associated with a specific kernel)
+        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
+        dbg("kernel in ipynb: name='#{kernel}'")
+        @syncdb.set({type: 'settings', kernel: kernel}, false)
+        @ensure_backend_kernel_setup()
+
+        importer = new IpynbImporter()
+        importer.on('process', @_jupyter_kernel.process_output)
+
+        @syncdb.delete(false)
+        for record in importer.import(ipynb)
+            @syncdb.set(record, false)
+
+        @syncdb.sync () =>
+            @ensure_backend_kernel_setup()
+            @_state = 'ready'
+
     # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
     # the notebook defined by that object.
     set_to_ipynb: (ipynb) =>
@@ -439,11 +462,8 @@ class exports.JupyterActions extends actions.JupyterActions
             @syncdb.set(obj, false)
 
         # Set the kernel and other settings
-        kernel = ipynb.metadata?.kernelspec?.name
+        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
         dbg("kernel in ipynb: name='#{kernel}'")
-        if not kernel?
-            dbg("not defined, so using default")
-            kernel = DEFAULT_KERNEL
         set(type: 'settings', kernel: kernel)
         @ensure_backend_kernel_setup()
 

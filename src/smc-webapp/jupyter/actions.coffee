@@ -810,27 +810,32 @@ class exports.JupyterActions extends Actions
         else
             console.warn("paste_cells: invalid delta=#{delta}")
             return
-        if delta == 0
-            # replace, so delete currently selected
-            @delete_selected_cells(false)
-        clipboard = @store.get_global_clipboard()
-        if not clipboard? or clipboard.size == 0
-            return   # nothing more to do
-        # put the cells from the clipboard into the document, setting their positions
-        if not cell_before_pasted_id?
-            # very top cell
-            before_pos = undefined
-            after_pos  = cells.getIn([v[0], 'pos'])
-        else
-            before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
-            after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
-        positions = @_positions_between(before_pos, after_pos, clipboard.size)
-        clipboard.forEach (cell, i) =>
-            cell = cell.set('id', @_new_id())   # randomize the id of the cell
-            cell = cell.set('pos', positions[i])
-            @_set(cell, false)
-            return
-        @_sync()
+        try
+            if delta == 0
+                # replace, so delete currently selected, unless just the cursor, since
+                # cursor vs selection is confusing with Jupyer's model.
+                if v.length > 1
+                    @delete_selected_cells(false)
+            clipboard = @store.get_global_clipboard()
+            if not clipboard? or clipboard.size == 0
+                return   # nothing more to do
+            # put the cells from the clipboard into the document, setting their positions
+            if not cell_before_pasted_id?
+                # very top cell
+                before_pos = undefined
+                after_pos  = cells.getIn([v[0], 'pos'])
+            else
+                before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
+                after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
+            positions = @_positions_between(before_pos, after_pos, clipboard.size)
+            clipboard.forEach (cell, i) =>
+                cell = cell.set('id', @_new_id())   # randomize the id of the cell
+                cell = cell.set('pos', positions[i])
+                @_set(cell, false)
+                return
+        finally
+            # very important that we save whatever is done above, so other viewers see it.
+            @_sync()
 
     toggle_toolbar: =>
         val = not @store.get('toolbar')
