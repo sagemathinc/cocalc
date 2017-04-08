@@ -82,7 +82,7 @@ class WebappThreeJS
             width           : undefined
             height          : undefined
             renderer        : undefined  # 'webgl' or 'canvas' or undefined to choose best
-            background      : "transparent"
+            background      : "#fafafa"  # or "transparent", which makes frame look blue/weird.
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
