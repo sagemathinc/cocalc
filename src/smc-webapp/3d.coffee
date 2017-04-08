@@ -1,6 +1,6 @@
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculations in the Cloud
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -82,7 +82,7 @@ class WebappThreeJS
             width           : undefined
             height          : undefined
             renderer        : undefined  # 'webgl' or 'canvas' or undefined to choose best
-            background      : "#fafafa"
+            background      : "#fafafa"  # or "transparent", which makes frame look blue/weird.
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
@@ -177,7 +177,10 @@ class WebappThreeJS
         @renderer_type = 'dynamic'
         # place renderer in correct place in the DOM
         @opts.element.find(".webapp-3d-canvas").empty().append($(@renderer.domElement))
-        @renderer.setClearColor(@opts.background, 1)
+        if @opts.background == 'transparent'
+            @renderer.setClearColor(0x000000, 0)
+        else
+            @renderer.setClearColor(@opts.background, 1)
         @renderer.setSize(@opts.width, @opts.height)
         if @controls?
             @controls.enabled = true

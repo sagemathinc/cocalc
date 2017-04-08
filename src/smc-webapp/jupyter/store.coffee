@@ -1,8 +1,12 @@
-misc       = require('smc-util/misc')
+###
+The Store
+###
 
-{Store}  = require('../smc-react')
-
-{cm_options} = require('./cm_options')
+immutable         = require('immutable')
+misc              = require('smc-util/misc')
+{Store}           = require('../smc-react')
+{cm_options}      = require('./cm_options')
+{export_to_ipynb} = require('./export-to-ipynb')
 
 # Used for copy/paste.  We make a single global clipboard, so that
 # copy/paste between different notebooks works.
@@ -89,69 +93,20 @@ class exports.JupyterStore extends Store
                 return false
         return info
 
-    ###
-    Export the Jupyer notebook to an ipynb object.
-
-    NOTE: this is of course completely different than saving the syncdb
-    synchronized document to disk.
-    ###
+    # Export the Jupyer notebook to an ipynb object.
     get_ipynb: (blob_store) =>
-        if not @get('kernels')?
-            # kernels must be known before we can save, since the stupid ipynb file format
-            # requires several pointless extra pieces of information about the kernel...
-            return
-        ipynb =
-            cells : (@get_ipynb_cell(id, blob_store) for id in @get('cell_list').toJS())
-            metadata :
-                kernelspec: @get_kernel_info(@get('kernel'))
-            nbformat : 4
-            nbformat_minor : 0
-        return ipynb
+        more_output = {}
+        for id in @get('cell_list')?.toJS()
+            x = @get_more_output(id)
+            if x?
+                more_output[id] = x
 
-    # Return ipynb version of the given cell as Python object
-    get_ipynb_cell: (id, blob_store) =>
-        cell = @getIn(['cells', id])
-        output = cell.get('output')
-        obj =
-            cell_type       : cell.get('cell_type') ? 'code'
-            source          : cell.get('input')
-            metadata        : {}
-        if cell.get('collapsed')
-            obj.metadata.collapsed = true
-        if cell.get('scrolled')
-            obj.metadata.scrolled = true
-
-        if output?.size > 0
-            v = (@get_ipynb_cell_output(id, n, blob_store) for n in [0...output.size])
-            obj.outputs = (x for x in v when x?)
-        if not obj.outputs? and obj.cell_type == 'code'
-            obj.outputs = [] # annoying requirement of ipynb file format.
-        if obj.cell_type == 'code'
-            obj.execution_count = cell.get('exec_count') ? 0
-        return obj
-
-    get_ipynb_cell_output: (id, n, blob_store) =>
-        output = @getIn(['cells', id, 'output', "#{n}"]).toJS()
-        if output.data?
-            for k, v of output.data
-                if misc.startswith(k, 'image/')
-                    if blob_store?
-                        value = blob_store.get_ipynb(v)
-                        if not value?
-                            # The image is no longer known; this could happen if the user reverts in the history
-                            # browser and there is an image in the output that was not saved in the latest version.
-                            return
-                        output.data[k] = value
-                    else
-                        return  # impossible to include in the output without blob_store
-            output.output_type = "execute_result"
-            output.metadata = {}
-            output.execution_count = @getIn(['cells', id, 'exec_count'])
-        else if output.name?
-            output.output_type = 'stream'
-        else if output.ename?
-            output.output_type = 'error'
-        return output
+        return export_to_ipynb
+            cells       : @get('cells')
+            cell_list   : @get('cell_list')
+            kernelspec  : @get_kernel_info(@get('kernel'))
+            blob_store  : blob_store
+            more_output : more_output
 
     get_cm_options: (kernel) =>
         # TODO: this is temporary until implementing "editor options" from account settings...
@@ -160,24 +115,27 @@ class exports.JupyterStore extends Store
             options = options.set('lineNumbers', @get_local_storage('line_numbers'))
         return options
 
-    # used by the backend for storing extra output
     get_more_output: (id) =>
-        @_more_output ?= {}
-        output = @_more_output[id]
-        if not output?
-            return
-        messages = output.messages
+        if @_is_project
+            # This is ONLY used by the backend project for storing extra output.
+            @_more_output ?= {}
+            output = @_more_output[id]
+            if not output?
+                return
+            messages = output.messages
 
-        for x in ['discarded', 'truncated']
-            if output[x]
-                if x == 'truncated'
-                    text = "WARNING: some output was truncated.\n"
-                else
-                    text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
-                warn = [{"text":text, "name":"stderr"}]
-                if messages.length > 0
-                    messages = warn.concat(messages).concat(warn)
-                else
-                    messages = warn
-        return messages
-
+            for x in ['discarded', 'truncated']
+                if output[x]
+                    if x == 'truncated'
+                        text = "WARNING: some intermediate output was truncated.\n"
+                    else
+                        text = "WARNING: #{output[x]} intermediate output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
+                    warn = [{"text":text, "name":"stderr"}]
+                    if messages.length > 0
+                        messages = warn.concat(messages).concat(warn)
+                    else
+                        messages = warn
+            return messages
+        else
+            # client  -- return what we know
+            return @getIn(['more_output', id, 'mesg_list'])?.toJS()

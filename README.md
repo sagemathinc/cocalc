@@ -1,8 +1,8 @@
 # ![logo](https://raw.githubusercontent.com/sagemathinc/cocalc/master/src/webapp-lib/favicon-32x32.png) CoCalc
 
-#### _Collaborative Calculations Online_
+#### _Collaborative Calculation in the Cloud
 
-**CoCalc** offers collaborative calculations in the cloud.
+**CoCalc** offers collaborative calculation in the cloud.
 This includes working with the full (scientific) Python stack, SageMath, Julia, R, Octave, and more.
 It also offers capabilities to author documents in LaTeX, R/knitr or Markdown,
 storing and organizing files, a web-based Linux Terminal,

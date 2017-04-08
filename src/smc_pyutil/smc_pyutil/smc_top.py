@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculations in the Cloud
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015, CoCalc Authors
 #

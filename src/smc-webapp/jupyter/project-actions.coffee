@@ -14,6 +14,8 @@ underscore     = require('underscore')
 misc           = require('smc-util/misc')
 actions        = require('./actions')
 
+{OutputHandler} = require('./output-handler')
+
 DEFAULT_KERNEL = 'python2'  #TODO
 
 class exports.JupyterActions extends actions.JupyterActions
@@ -227,140 +229,58 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg = @dbg("manager_run_cell(id='#{id}')")
         dbg()
 
-        cell   = @store.get('cells').get(id)
-        input  = (cell.get('input') ? '').trim()
-        kernel = @store.get('kernel')
-        if not kernel?
-            dbg("no kernel set, so can't run cells")
+        @ensure_backend_kernel_setup()
+
+        if not @_jupyter_kernel?
+            handler.error("Unable to start Jupyter")
             return
 
-        @ensure_backend_kernel_setup()
+        cell   = @store.get('cells').get(id)
+        input  = (cell.get('input') ? '').trim()
 
         @_running_cells ?= {}
         @_running_cells[id] = true
-
-        # For efficiency reasons (involving syncdb patch sizes),
-        # outputs is a map from the (string representations of) the numbers
-        # from 0 to n-1, where there are n messages.
-        outputs                  = null
-        exec_count               = null
-        state                    = 'run'
-        n                        = 0
-        start                    = null
-        end                      = null
-        clear_before_next_output = false
-        output_length            = 0
-        max_output_length        = @store.get('max_output_length')
-        in_more_output_mode      = false
-
-        dbg("max_output_length = #{max_output_length}")
-
         @reset_more_output(id)
 
-        set_cell = (save=true) =>
-            dbg("set_cell: state='#{state}', outputs='#{misc.to_json(outputs)}', exec_count=#{exec_count}")
-            if state == 'done'
-                delete @_running_cells?[id]
-            obj =
-                type       : 'cell'
-                id         : id
-                state      : state
-                kernel     : kernel
-                output     : outputs
-                exec_count : exec_count
-                start      : start
-                end        : end
-            @_set(obj, save)
+        cell =
+            id     : id
+            type   : 'cell'
+            kernel : @store.get('kernel')
 
-        clear_output = (save) =>
-            clear_before_next_output = false
-            # clear output message -- we delete all the outputs
-            # reset the counter n, save, and are done.
-            # IMPORTANT: In Jupyter the clear_output message and everything
-            # before it is NOT saved in the notebook output itself
-            # (like in Sage worksheets).
-            outputs = null
-            n = 0
-            output_length = 0
-            set_cell(save)
+        dbg("using max_output_length=#{@store.get('max_output_length')}")
+        handler = new OutputHandler
+            cell              : cell
+            max_output_length : @store.get('max_output_length')
+            report_started_ms : 250
 
-        report_started = =>
-            if n > 0
-                # do nothing -- already getting output
-                return
-            set_cell()
+        handler.on 'change', (save) =>
+            @syncdb.set(cell, save)
 
-        setTimeout(report_started, 250)
+        handler.once 'done', =>
+            delete @_running_cells[id]
+
+        handler.on 'more_output', (mesg, mesg_length) =>
+            @set_more_output(id, mesg, mesg_length)
+
+        handler.on 'process', @_jupyter_kernel.process_output
 
         @_jupyter_kernel.execute_code
             code : input
             id   : id
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
-
                 if err
-                    mesg  = {content:{text:"#{err}", name:"stderr"}}
-                    state = 'done'
-                    end   = new Date() - 0
-                    set_cell()
-
-                else if mesg.content.execution_state == 'idle'
-                    state = 'done'
-                    end   = new Date() - 0
-                    set_cell()
-
-                else if mesg.content.execution_state == 'busy'
-                    start = new Date() - 0
-                    state = 'busy'
-                    # If there was no output during the first few ms, we set the start to running
-                    # and start reporting output.  We don't just do this immediately, since that's
-                    # a waste of time, as very often the whole computation takes little time.
-                    setTimeout(report_started, 250)
-
-                if not err
-                    if mesg.content.execution_count?
-                        exec_count = mesg.content.execution_count
-
-                    if mesg.msg_type == 'clear_output'
-                        if mesg.content.wait
-                            # wait until next output before clearing.
-                            clear_before_next_output = true
-                        else
-                            clear_output()
-                        return
-
-                    mesg.content = misc.copy_without(mesg.content, ['execution_state', 'code'])
-                    for k, v of mesg.content
-                        if misc.is_object(v) and misc.len(v) == 0
-                            delete mesg.content[k]
-                    if misc.len(mesg.metadata) > 0
-                        mesg.content.metadata = mesg.metadata
-                    if misc.len(mesg.buffers) > 0
-                        mesg.content.buffers = mesg.buffers
-                    k = misc.keys(mesg.content)
-                    if k.length == 0 or (k.length == 1 and k[0] == 'execution_count')
-                        # nothing interesting to send.
-                        return
-                    @_jupyter_kernel.process_output(mesg.content)
-
-                if clear_before_next_output
-                    clear_output(false)
-                if outputs == null
-                    outputs = {}
-                    output_length = 0
-
-                mesg_length = JSON.stringify(mesg.content)?.length ? 0
-                output_length += mesg_length
-                if output_length <= max_output_length
-                    outputs[n] = mesg.content
-                    set_cell()
-                else
-                    if not in_more_output_mode
-                        outputs[n] = {more_output:true}
-                        set_cell()
-                        in_more_output_mode = true
-                    @set_more_output(id, mesg.content, mesg_length)
-                n += 1
+                    handler.error(err)
+                    return
+                if mesg.msg_type == 'clear_output'
+                    handler.clear(mesg.content.wait)
+                    return
+                if mesg.content.execution_state == 'idle'
+                    handler.done()
+                    return
+                if mesg.content.execution_state == 'busy'
+                    handler.start()
+                handler.message(mesg.content)
 
     reset_more_output: (id) =>
         if @store._more_output?[id]?

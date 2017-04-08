@@ -1,6 +1,6 @@
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculations in the Cloud
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014--2016, SageMath, Inc.
 #
@@ -1702,6 +1702,7 @@ class CodeMirrorEditor extends FileEditor
     # Editor button bar support code
     ############
     textedit_command: (cm, cmd, args) =>
+        # ATTN when adding more cases, also edit textedit_only_show_known_buttons
         switch cmd
             when "link"
                 cm.insert_link(cb:() => @syncdoc?.sync())
@@ -1836,6 +1837,23 @@ class CodeMirrorEditor extends FileEditor
         @_current_mode = "sage"
         @mode_display.show()
 
+        # not all textedit buttons are known
+        textedit_only_show_known_buttons = (name) =>
+            EDIT_COMMANDS = require('./buttonbar').commands
+            {sagews_canonical_mode} = require('./misc_page')
+            default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
+            mode = sagews_canonical_mode(name, default_mode)
+            #if DEBUG then console.log "textedit_only_show_known_buttons: mode #{name} → #{mode}"
+            known_commands = misc.keys(EDIT_COMMANDS[mode] ? {})
+            # see special cases in 'textedit_command' and misc_page: 'edit_selection'
+            known_commands = known_commands.concat(['link', 'image', 'SpecialChar', 'font_size'])
+            for button in @textedit_buttons.find('a')
+                button = $(button)
+                cmd = button.attr('href').slice(1)
+                # in theory, this should also be done for html&md, but there are many more special cases
+                # therefore we just make sure they're all activated again
+                button.toggle((mode != 'tex') or (cmd in known_commands))
+
         set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
             if name?
@@ -1845,9 +1863,11 @@ class CodeMirrorEditor extends FileEditor
             mode_display.text("%" + mode)
             @_current_mode = mode
 
-        show_edit_buttons = (which_one, name) ->
+        show_edit_buttons = (which_one, name) =>
             for edit_buttons in all_edit_buttons
                 edit_buttons.toggle(edit_buttons == which_one)
+            if which_one == @textedit_buttons
+                textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
         mode_display.click(@wizard_handler)

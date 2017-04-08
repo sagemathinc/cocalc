@@ -1,7 +1,7 @@
 {
   "name": "cocalc",
   "version": "1.0.0",
-  "description": "Collaborative Calculations in the Cloud",
+  "description": "Collaborative Calculation in the Cloud",
   "main": "index.js",
   "directories": {
     "doc": "doc"

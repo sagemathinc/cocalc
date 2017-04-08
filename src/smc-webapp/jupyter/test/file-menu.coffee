@@ -14,5 +14,5 @@ describe 'test file-->open -- ', ->
 
     it 'do the file open action', ->
         actions.file_open()
-        store = actions.redux.getProjectStore(actions._project_id)
+        store = actions.redux.getProjectStore(store.get('project_id'))
         expect(store.active_project_tab).toBe('files')

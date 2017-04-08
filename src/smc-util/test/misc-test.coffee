@@ -1,6 +1,6 @@
 ###############################################################################
 #                                                                             #
-#    CoCalc: Collaborative Calculations in the Cloud                          #
+#    CoCalc: Collaborative Calculation in the Cloud                          #
 #                                                                             #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.                               #
 #                                                                             #
@@ -1145,6 +1145,9 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
         pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
         pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
+        pm('\\begin{bmatrix}foobar\\end{bmatrix}').should.eql [[0, 34]]
+    it "is not triggered by unknown environments", ->
+        pm('\\begin{cmatrix}foobar\\end{cmatrix}').should.eql []
 
 describe "replace_all", ->
     ra = misc.replace_all

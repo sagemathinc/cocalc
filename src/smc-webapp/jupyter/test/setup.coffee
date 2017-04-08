@@ -46,11 +46,12 @@ exports.setup = (cb) ->
 
     syncdb.once 'init', (err) =>
         if err
-            cb(err)
+            console.log("SETUP ERROR: {#err}")
+            cb?(err)
         else
             actions._syncdb_change()
             actions.ensure_there_is_a_cell()
-            cb(undefined, actions)
+            cb?(undefined, actions)
 
     # Cause the syncstring to be initialized so that the above 'init' happens.
     webapp_client.user_query
@@ -59,6 +60,9 @@ exports.setup = (cb) ->
                 project_id : project_id
                 path       : syncdb_path
                 init       : {time: new Date()}
+
+    return actions  # useful for easy command line testing, e.g.,
+                    # coffee> actions = require('./test/setup').setup()
 
 exports.teardown = (cb) ->
     smc_react.redux.getActions(redux_name)?.close()

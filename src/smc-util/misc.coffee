@@ -1,6 +1,6 @@
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculations in the Cloud
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -1125,16 +1125,15 @@ exports.parse_hashtags = (t) ->
                 base += i+1
                 t = t.slice(i+1)
 
-mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
-                 ['\\begin{equation}', '\\end{equation}'],
-                 ['\\begin{equation*}', '\\end{equation*}'],
-                 ['\\begin{align}', '\\end{align}'],
-                 ['\\begin{align*}', '\\end{align*}'],
-                 ['\\begin{eqnarray}', '\\end{eqnarray}'],
-                 ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
-                 ['\\begin{bmatrix}', '\\end{bmatrix}']
-                 ['$', '$']  # must be after $$
-                ]
+# see http://docs.mathjax.org/en/latest/tex.html#environments
+mathjax_environments = ['align', 'align*', 'alignat', 'alignat*', 'aligned', 'alignedat', 'array', \
+                        'Bmatrix', 'bmatrix', 'cases', 'CD', 'eqnarray', 'eqnarray*', 'equation', 'equation*', \
+                        'gather', 'gather*', 'gathered', 'matrix', 'multline', 'multline*', 'pmatrix', 'smallmatrix', \
+                        'split', 'subarray', 'Vmatrix', 'vmatrix']
+mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]']]
+for env in mathjax_environments
+    mathjax_delim.push(["\\begin{#{env}}", "\\end{#{env}}"])
+mathjax_delim.push(['$', '$'])  # must be after $$, best to put it at the end
 
 exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.

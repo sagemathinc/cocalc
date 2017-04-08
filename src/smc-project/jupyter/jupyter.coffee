@@ -183,9 +183,9 @@ class Kernel extends EventEmitter
             code : required
             id   : undefined   # optional tag to be used by cancel_execute
             all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
-            cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+            cb   : undefined   # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         if @_state == 'closed'
-            opts.cb("closed")
+            opts.cb?("closed")
             return
         @_execute_code_queue ?= []
         @_execute_code_queue.push(opts)
@@ -232,7 +232,7 @@ class Kernel extends EventEmitter
             if err
                 dbg("error running kernel -- #{err}")
                 for opts in @_execute_code_queue
-                    opts.cb(err)
+                    opts.cb?(err)
                 @_execute_code_queue = []
             else
                 dbg("now executing oldest item in queue")
@@ -247,7 +247,7 @@ class Kernel extends EventEmitter
         if not @_execute_code_queue?
             return
         for opts in @_execute_code_queue.slice(1)
-            opts.cb('interrupt')
+            opts.cb?('interrupt')
         @_execute_code_queue = []
 
     _execute_code: (opts) =>
@@ -259,7 +259,7 @@ class Kernel extends EventEmitter
         dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
         dbg("code='#{opts.code}', all=#{opts.all}")
         if @_state == 'closed'
-            opts.cb("closed")
+            opts.cb?("closed")
             return
 
         message =
@@ -294,13 +294,14 @@ class Kernel extends EventEmitter
                 if opts.all
                     all_mesgs.push(mesg)
                 else
-                    opts.cb(undefined, mesg)
+                    opts.cb?(undefined, mesg)
                 if done
                     @removeListener('iopub', f)
                     @_execute_code_queue.shift()   # finished
                     @_process_execute_code_queue()
                     if opts.all
-                        opts.cb(undefined, all_mesgs)
+                        opts.cb?(undefined, all_mesgs)
+                    delete opts.cb  # avoid memory leaks
             else
                 dbg("IGNORE message -- #{JSON.stringify(mesg)}")
 
@@ -309,7 +310,7 @@ class Kernel extends EventEmitter
         dbg("send the message")
         @_channels.shell.next(message)
 
-    process_output: (content) ->
+    process_output: (content) =>
         if @_state == 'closed'
             return
         dbg = @dbg("process_output")
