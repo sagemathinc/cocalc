@@ -127,9 +127,9 @@ class exports.JupyterStore extends Store
             for x in ['discarded', 'truncated']
                 if output[x]
                     if x == 'truncated'
-                        text = "WARNING: some output was truncated.\n"
+                        text = "WARNING: some intermediate output was truncated.\n"
                     else
-                        text = "WARNING: #{output[x]} output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
+                        text = "WARNING: #{output[x]} intermediate output #{if output[x]>1 then 'messages were' else 'message was'} #{x}.\n"
                     warn = [{"text":text, "name":"stderr"}]
                     if messages.length > 0
                         messages = warn.concat(messages).concat(warn)

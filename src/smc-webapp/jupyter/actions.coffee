@@ -68,7 +68,7 @@ class exports.JupyterActions extends Actions
             directory           : misc.path_split(path)?.head
             path                : path
             is_focused          : false            # whether or not the editor is focused.
-            max_output_length   : 20000
+            max_output_length   : 10000
 
         f = () =>
             @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
