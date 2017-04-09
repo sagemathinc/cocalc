@@ -93,7 +93,10 @@ exports.CellInput = rclass
                     value = @props.cell.get('input')?.trim()
                     if not value
                         value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
-                    <div onDoubleClick={@handle_md_double_click} style={width:'100%'}>
+                    <div
+                        onDoubleClick = {@handle_md_double_click}
+                        style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
+                        >
                         <Markdown
                             value      = {value}
                             project_id = {@props.project_id}

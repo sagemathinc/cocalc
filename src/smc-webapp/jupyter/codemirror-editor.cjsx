@@ -228,7 +228,7 @@ exports.CodeMirrorEditor = rclass
                 codemirror = {@cm} />
 
     render : ->
-        <div style={width:'100%'}>
+        <div style={width:'100%', overflow:'auto'}>
             {@render_cursors()}
             <div style={FOCUSED_STYLE}>
                 <textarea />

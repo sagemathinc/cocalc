@@ -23,8 +23,6 @@ misc = require('smc-util/misc')
 BLURRED_STYLE =
     width         : '100%'
     overflowX     : 'hidden'
-    border        : '1px solid #cfcfcf'
-    borderRadius  : '2px'
     background    : '#f7f7f7'
     lineHeight    : 'normal'
     height        : 'auto'
@@ -33,6 +31,9 @@ BLURRED_STYLE =
     padding       : '4px'
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
+    wordBreak     : 'normal'
+    border        : 0
+    paddingLeft   : '4px'
 
 exports.CodeMirrorStatic = rclass
     propTypes:
@@ -44,17 +45,6 @@ exports.CodeMirrorStatic = rclass
         cursors          : rtypes.immutable.Map
         complete         : rtypes.immutable.Map
         set_click_coords : rtypes.func.isRequired
-
-    render_html: ->
-        if @props.value
-            elt = document.createElement('pre')
-            # The newline at the end is needed so that if the cell
-            # ends in a blank line, it is properly rendered.
-            mode = @props.options.getIn(['mode', 'name']) ? 'python'
-            CodeMirror.runMode(@props.value+'\n', mode, elt)
-            {__html: elt.innerHTML}
-        else
-            {__html: ' '}   # blank space needed for empty cell to get the right height!
 
     focus: (event) ->
         if not @props.actions?  # read only
@@ -82,13 +72,65 @@ exports.CodeMirrorStatic = rclass
                 style     = {style}
             />
 
+    line_number: (key, line, width) ->
+        <div key={key} className='CodeMirror-gutter-wrapper'>
+            <div style={left:"-#{width+4}px", width:"#{width-9}px"} className='CodeMirror-linenumber CodeMirror-gutter-elt'>
+                {line}
+            </div>
+        </div>
+
+    render_lines: (width) ->
+        mode = @props.options.getIn(['mode', 'name']) ? 'python'
+        v = []
+        line_numbers = !!@props.options.get('lineNumbers')
+        line = 1
+        if line_numbers
+            append_line_number = =>
+                v.push(@line_number(v.length, line, width))
+                line += 1
+            append_line_number()
+        append = (text, type) ->
+            if type?
+                v.push(<span key={v.length} className={'cm-'+type}>{text}</span>)
+            else
+                v.push(<span key={v.length}>{text}</span>)
+            if line_numbers and text == '\n'
+                append_line_number()
+
+        CodeMirror.runMode(@props.value, mode, append)
+        line_numbers = false; append('\n')
+        return v
+
     render_code: ->
+        if @props.options.get('lineNumbers')
+            num_lines = @props.value.split('\n').length
+            if num_lines < 100
+                width = 30
+            else if num_lines < 1000
+                width = 39
+            else if num_lines < 10000
+                width = 49
+            else # nobody better do this...
+                width = 59
+            style = misc.merge(misc.copy(BLURRED_STYLE), {paddingLeft: "#{width+4}px"})
+        else
+            width = 0
+            style = BLURRED_STYLE
+
         <pre
-            className               = "CodeMirror cm-s-default"
-            style                   = {BLURRED_STYLE}
-            onClick                 = {@focus}
-            dangerouslySetInnerHTML = {@render_html()} >
+            className = "CodeMirror cm-s-default CodeMirror-wrap"
+            style     = {style}
+            onClick   = {@focus}>
+            {@render_lines(width)}
+            {@render_gutter(width)}
         </pre>
+
+    render_gutter: (width) ->
+        if @props.options.get('lineNumbers')
+            <div className="CodeMirror-gutters">
+                <div className="CodeMirror-gutter CodeMirror-linenumbers" style={width:"#{width-1}px"}>
+                </div>
+            </div>
 
     render_complete: ->
         if @props.complete?
@@ -104,9 +146,8 @@ exports.CodeMirrorStatic = rclass
             <Cursors cursors = {@props.cursors} />
 
     render: ->
-        <div style={width: '100%', display:'flex'}>
-            {@render_line_numbers()}
-            <div style={width: '100%'}>
+        <div style={width: '100%', display:'flex', overflow:'auto'}>
+            <div style={width: '100%', position:'relative', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px'}>
                 {@render_cursors()}
                 {@render_code()}
                 {@render_complete()}
