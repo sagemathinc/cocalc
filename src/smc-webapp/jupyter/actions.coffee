@@ -557,6 +557,11 @@ class exports.JupyterActions extends Actions
         @syncdb?.redo()
         return
 
+    # Save the last type of input to a cell, as parsed using CodeMirror.
+    # If the last type is *NOT* 'comment', then we might introspect; otherwise, we don't.
+    set_last_type: (id, type) =>
+        (@_cell_last_type ?= {})[id] = type
+
     run_cell: (id) =>
         cell = @store.getIn(['cells', id])
         if not cell?
@@ -568,7 +573,7 @@ class exports.JupyterActions extends Actions
         switch cell_type
             when 'code'
                 code = (@_input_editors?[id]?() ? cell.get('input') ? '').trim()
-                switch parsing.run_mode(code)
+                switch parsing.run_mode(code, @_cell_last_type[id])
                     when 'show_source'
                         @introspect(code.slice(0,code.length-2), 1)
                     when 'show_doc'

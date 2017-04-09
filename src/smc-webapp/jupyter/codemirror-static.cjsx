@@ -74,9 +74,13 @@ exports.CodeMirrorStatic = rclass
                 v.push(@line_number(v.length, line, width))
                 line += 1
             append_line_number()
+
+        last_type = undefined  # used for detecting introspection
         append = (text, type) ->
             if type?
                 v.push(<span key={v.length} className={'cm-'+type}>{text}</span>)
+                if text.trim().length > 0
+                    last_type = type
             else
                 v.push(<span key={v.length}>{text}</span>)
             if line_numbers and text == '\n'
@@ -84,6 +88,8 @@ exports.CodeMirrorStatic = rclass
 
         CodeMirror.runMode(@props.value, mode, append)
         line_numbers = false; append('\n')
+
+        @props.actions?.set_last_type(@props.id, last_type)
         return v
 
     render_code: ->

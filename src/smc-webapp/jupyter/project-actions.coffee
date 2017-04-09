@@ -263,7 +263,7 @@ class exports.JupyterActions extends actions.JupyterActions
         handler.on 'more_output', (mesg, mesg_length) =>
             @set_more_output(id, mesg, mesg_length)
 
-        importer.on('process', @_jupyter_kernel.process_output)
+        handler.on('process', @_jupyter_kernel.process_output)
 
         @_jupyter_kernel.execute_code
             code : input
