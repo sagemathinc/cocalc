@@ -16,8 +16,6 @@ misc = require('smc-util/misc')
 
 {Complete} = require('./complete')
 
-{LineNumbers} = require('./line-numbers')
-
 {Cursors} = require('./cursors')
 
 BLURRED_STYLE =
@@ -58,19 +56,6 @@ exports.CodeMirrorStatic = rclass
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
         @props.set_click_coords({left:event.clientX, top:event.clientY})
-
-    render_line_numbers: ->
-        if @props.options.get('lineNumbers')
-            style = background: '#f7f7f7'
-            if @props.complete?.get('matches')?.size > 0
-                width = @props.complete.getIn(['offset', 'gutter'])
-                if width?
-                    style.width = "#{width}px"
-
-            <LineNumbers
-                num_lines = {@props.value.split('\n').length}
-                style     = {style}
-            />
 
     line_number: (key, line, width) ->
         <div key={key} className='CodeMirror-gutter-wrapper'>
