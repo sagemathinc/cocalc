@@ -74,7 +74,10 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem divider />
                 <MenuItem eventKey="trusted" disabled={true}>Trusted Notebook</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="close">Close and Halt</MenuItem>
+                <MenuItem eventKey="close"
+                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.file_open(); @props.actions.file_action('close_file')}
+                    >Close and Halt
+                </MenuItem>
             </Dropdown.Menu>
         </Dropdown>
 

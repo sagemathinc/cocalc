@@ -1050,7 +1050,11 @@ class exports.JupyterActions extends Actions
     # the file manager, so gives a step to confirm, etc.
     file_action: (action_name) =>
         a = @redux.getProjectActions(@store.get('project_id'))
-        {head, tail} = misc.path_split(@store.get('path'))
+        path = @store.get('path')
+        if action_name == 'close_file'
+            a.close_file(path)
+            return
+        {head, tail} = misc.path_split(path)
         a.open_directory(head)
         a.set_all_files_unchecked()
         a.set_file_checked(@store.get('path'), true)
