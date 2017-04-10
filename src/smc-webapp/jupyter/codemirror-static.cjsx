@@ -52,6 +52,11 @@ exports.CodeMirrorStatic = rclass
             @props.actions.select_cell_range(@props.id)
             event.stopPropagation()
             return
+        if window.getSelection().toString()
+            # User is selected some text in the cell; if we switch to edit mode
+            # then the selection would be cleared, which is annoying.  NOTE that
+            # this makes the behavior slightly different than official Jupyter.
+            return
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
