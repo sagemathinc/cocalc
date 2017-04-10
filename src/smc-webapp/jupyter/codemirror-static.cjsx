@@ -14,10 +14,6 @@ misc = require('smc-util/misc')
 #{FormGroup, ControlLabel, FormControl, } = require('react-bootstrap')
 {Dropdown, MenuItem} = require('react-bootstrap')
 
-{Complete} = require('./complete')
-
-{Cursors} = require('./cursors')
-
 BLURRED_STYLE =
     width         : '100%'
     overflowX     : 'hidden'
@@ -128,26 +124,9 @@ exports.CodeMirrorStatic = rclass
                 </div>
             </div>
 
-    render_complete: ->
-        if @props.complete?
-            if @props.complete.get('matches')?.size > 0
-                <Complete
-                    complete = {@props.complete}
-                    actions  = {@props.actions}
-                    id       = {@props.id}
-                />
-
-    render_cursors: ->
-        if @props.cursors?
-            <Cursors cursors = {@props.cursors} />
-
     render: ->
-        <div style={width: '100%', display:'flex', overflow:'auto'}>
-            <div style={width: '100%', position:'relative', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px'}>
-                {@render_cursors()}
-                {@render_code()}
-                {@render_complete()}
-            </div>
+        <div style={width:'100%', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px', position:'relative', overflowX:'auto'}>
+            {@render_code()}
         </div>
 
 

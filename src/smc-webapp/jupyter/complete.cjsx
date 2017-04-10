@@ -37,10 +37,10 @@ exports.Complete = rclass
 
     render: ->
         offset = @props.complete.get('offset')?.toJS()
-        style = {cursor:'pointer', top: offset.top+'px', left:offset.left+'px', opacity: .95, zIndex: 10}
+        style = {cursor:'pointer', top: (-offset.top)+'px', left:offset.left+'px', opacity: .95, zIndex: 10, width:0, height:0}
         items = (@render_item(item) for item in @props.complete.get('matches')?.toJS())
         <div className = "dropdown open" style = {style}>
-            <ul className="dropdown-menu cocalc-complete" style = {maxHeight:'50vh'} onKeyDown={@key} onKeyUp={@key_up}>
+            <ul className="dropdown-menu cocalc-complete" style = {maxHeight:'40vh'} onKeyDown={@key} onKeyUp={@key_up}>
                 {items}
             </ul>
         </div>

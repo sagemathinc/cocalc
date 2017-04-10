@@ -10,6 +10,11 @@ immutable = require('immutable')
 
 {InputPrompt} = require('./prompt')
 
+{Complete} = require('./complete')
+
+{Cursors} = require('./cursors')
+
+
 {cm_options} = require('./cm_options')
 
 exports.CellInput = rclass
@@ -76,7 +81,6 @@ exports.CellInput = rclass
                     is_focused   = {@props.is_focused}
                     font_size    = {@props.font_size}
                     cursors      = {@props.cell.get('cursors')}
-                    complete     = {@props.complete}
                 />
             when 'markdown'
                 if @props.is_markdown_edit
@@ -108,9 +112,24 @@ exports.CellInput = rclass
                     Unsupported cell type {type}
                 </div>
 
+    render_complete: ->
+        if @props.complete?
+            if @props.complete.get('matches')?.size > 0
+                <Complete
+                    complete = {@props.complete}
+                    actions  = {@props.actions}
+                    id       = {@props.id}
+                />
+
+    render_cursors: ->
+        if not @props.is_focused and @props.cell.get('cursors')
+            <Cursors cursors={@props.cell.get('cursors')} />
+
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_input_prompt(type)}
+            {@render_complete()}
+            {@render_cursors()}
             {@render_input_value(type)}
         </div>
