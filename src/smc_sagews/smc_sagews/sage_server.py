@@ -961,12 +961,19 @@ class Salvus(object):
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 b = block.rstrip()
+                # get rid of comments at the end of the line -- issue #1835
+                from shlex import shlex
+                s = shlex(b)
+                s.commenters = '#'
+                s.quotes = '''"\''''
+                b = ''.join(s)
+                # e.g. now a line like 'x = test?   # bar' becomes 'x=test?'
                 if b.endswith('??'):
-                    p = sage_parsing.introspect(block,
+                    p = sage_parsing.introspect(b,
                                    namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "python")
                 elif b.endswith('?'):
-                    p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
+                    p = sage_parsing.introspect(b, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()
