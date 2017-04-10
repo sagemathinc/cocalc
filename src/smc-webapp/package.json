@@ -1,7 +1,7 @@
 {
   "name": "cocalc-webapp",
   "version": "1.0.0",
-  "description": "CoCalc: collaborative computations online",
+  "description": "CoCalc: Collaborative Calculation in the Cloud",
   "main": "index.js",
   "directories": {},
   "dependencies": {
