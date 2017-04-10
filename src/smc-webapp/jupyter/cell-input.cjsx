@@ -12,9 +12,6 @@ immutable = require('immutable')
 
 {Complete} = require('./complete')
 
-{Cursors} = require('./cursors')
-
-
 {cm_options} = require('./cm_options')
 
 exports.CellInput = rclass
@@ -121,15 +118,10 @@ exports.CellInput = rclass
                     id       = {@props.id}
                 />
 
-    render_cursors: ->
-        if not @props.is_focused and @props.cell.get('cursors')
-            <Cursors cursors={@props.cell.get('cursors')} />
-
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_input_prompt(type)}
             {@render_complete()}
-            {@render_cursors()}
             {@render_input_value(type)}
         </div>

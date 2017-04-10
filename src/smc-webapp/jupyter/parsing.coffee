@@ -4,12 +4,24 @@ Functions for parsing input, etc.
 
 misc = require('smc-util/misc')
 
-exports.run_mode = (code, last_type) ->
+last_style = (code, mode='python') ->
+    style = undefined
+    CodeMirror.runMode code, mode, (text, s) ->
+        style = s
+    return style
+
+exports.run_mode = (code) ->
     if not code  # code assumed trimmed
         return 'empty'
-    else if last_type != 'comment' and misc.endswith(code, '??')
-        return 'show_source'
-    else if last_type != 'comment' and misc.endswith(code, '?')
-        return 'show_doc'
+    else if misc.endswith(code, '??')
+        if last_style(code) in ['comment', 'string']
+            return 'execute'
+        else
+            return 'show_source'
+    else if misc.endswith(code, '?')
+        if last_style(code) in ['comment', 'string']
+            return 'execute'
+        else
+            return 'show_doc'
     else
         return 'execute'

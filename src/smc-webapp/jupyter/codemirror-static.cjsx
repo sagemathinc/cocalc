@@ -14,6 +14,7 @@ misc = require('smc-util/misc')
 #{FormGroup, ControlLabel, FormControl, } = require('react-bootstrap')
 {Dropdown, MenuItem} = require('react-bootstrap')
 
+
 BLURRED_STYLE =
     width         : '100%'
     overflowX     : 'hidden'
@@ -36,7 +37,6 @@ exports.CodeMirrorStatic = rclass
         options          : rtypes.immutable.Map.isRequired
         value            : rtypes.string.isRequired
         font_size        : rtypes.number
-        cursors          : rtypes.immutable.Map
         complete         : rtypes.immutable.Map
         set_click_coords : rtypes.func.isRequired
 
@@ -90,10 +90,13 @@ exports.CodeMirrorStatic = rclass
         CodeMirror.runMode(@props.value, mode, append)
         line_numbers = false; append('\n')
 
-        @props.actions?.set_last_type(@props.id, last_type)
         return v
 
     render_code: ->
+        # NOTE: for #v1 this line numbers code is NOT used for now.  It works perfectly regarding
+        # look and layout, but there is trouble with copying, which copies the line numbers too.
+        # This can be fixed via a standard trick of having an invisible text area or div
+        # in front with the same content... but that's a speed optimization for later.
         if @props.options.get('lineNumbers')
             num_lines = @props.value.split('\n').length
             if num_lines < 100
@@ -125,7 +128,8 @@ exports.CodeMirrorStatic = rclass
             </div>
 
     render: ->
-        <div style={width:'100%', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px', position:'relative', overflowX:'auto'}>
+        <div
+            style={width:'100%', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px', position:'relative', overflowX:'auto'}>
             {@render_code()}
         </div>
 

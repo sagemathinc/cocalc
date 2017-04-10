@@ -52,7 +52,7 @@ exports.CodeMirror = rclass
             next.complete     != @props.complete
 
     render: ->
-        if @props.is_focused
+        if @props.is_focused or @props.options.get('lineNumbers') or @props.cursors?.size > 0
             <CodeMirrorEditor
                 actions          = {@props.actions}
                 id               = {@props.id}
@@ -74,7 +74,6 @@ exports.CodeMirror = rclass
                 options          = {@props.options}
                 value            = {@props.value}
                 font_size        = {@props.font_size}
-                cursors          = {@props.cursors}
                 complete         = {@props.complete}
                 set_click_coords = {@set_click_coords}
                 />
