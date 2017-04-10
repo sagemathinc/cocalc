@@ -10,16 +10,16 @@ last_style = (code, mode='python') ->
         style = s
     return style
 
-exports.run_mode = (code) ->
+exports.run_mode = (code, mode) ->
     if not code  # code assumed trimmed
         return 'empty'
     else if misc.endswith(code, '??')
-        if last_style(code) in ['comment', 'string']
+        if last_style(code, mode) in ['comment', 'string']
             return 'execute'
         else
             return 'show_source'
     else if misc.endswith(code, '?')
-        if last_style(code) in ['comment', 'string']
+        if last_style(code, mode) in ['comment', 'string']
             return 'execute'
         else
             return 'show_doc'
