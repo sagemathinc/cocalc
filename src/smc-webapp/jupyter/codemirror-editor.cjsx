@@ -141,7 +141,7 @@ exports.CodeMirrorEditor = rclass
             CodeMirror.commands.defaultTab(@cm)
             return
         pos    = @cm.cursorCoords(cur, 'local')
-        top    = pos.bottom - @cm.getScrollInfo().height
+        top    = pos.bottom
         left   = pos.left
         gutter = $(@cm.getGutterElement()).width()
         @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left, gutter:gutter})
