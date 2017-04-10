@@ -19,15 +19,15 @@ NORMAL_STYLE = misc.merge({borderColor:'transparent'}, SCROLLED_STYLE)
 
 exports.OutputToggle = rclass
     propTypes:
-        actions  : rtypes.object.isRequired
+        actions  : rtypes.object
         id       : rtypes.string.isRequired
         scrolled : rtypes.bool
 
     toggle_scrolled: ->
-        @props.actions.toggle_output(@props.id, 'scrolled')
+        @props.actions?.toggle_output(@props.id, 'scrolled')
 
     collapse_output: ->
-        @props.actions.toggle_output(@props.id, 'collapsed')
+        @props.actions?.toggle_output(@props.id, 'collapsed')
 
     render: ->
         # We use a bootstrap button for the output toggle area, but disable the padding
@@ -46,11 +46,11 @@ exports.OutputToggle = rclass
 
 exports.CollapsedOutput = rclass
     propTypes:
-        actions  : rtypes.object.isRequired
+        actions  : rtypes.object
         id       : rtypes.string.isRequired
 
     show_output: ->
-        @props.actions.toggle_output(@props.id, 'collapsed')
+        @props.actions?.toggle_output(@props.id, 'collapsed')
 
     render: ->
         # We use a bootstrap button for the output toggle area, but disable the padding

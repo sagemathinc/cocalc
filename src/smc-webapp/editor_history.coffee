@@ -69,9 +69,9 @@ class exports.HistoryEditor extends FileEditor
             @_open_file_path = @_path
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
-            @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
+            @_path = misc.meta_file(@_path, 'jupyter2')
         if @ext == 'ipynb2'
-            @_path = '.' + @_path.slice(0, @_path.length-7) + '.sage-ipython'
+            @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
         if s.head
             @_path = s.head + '/' + @_path
 
@@ -120,10 +120,10 @@ class exports.HistoryEditor extends FileEditor
         opts.read_only = true
         switch @ext
             when 'ipynb'
-                @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
+                @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
                 @element.find("a[href=\"#show-diff\"]").hide()
             when 'ipynb2'
-                @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
+                @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                 @element.find("a[href=\"#show-diff\"]").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
@@ -146,7 +146,7 @@ class exports.HistoryEditor extends FileEditor
                 read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
-        if @ext == 'ipynb'
+        if @ext == 'ipynb2'
             @view_doc.once 'ready', =>
                 @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
                 @show()
@@ -254,12 +254,12 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        if @ext == 'ipynb2'
+        if @ext == 'ipynb'
             @view_doc.set_version(time)
         else
             val = @syncstring.version(time).to_str()
             switch @ext
-                when 'ipynb'
+                when 'ipynb2'
                     @view_doc.dom.set(val)
                 when 'tasks'
                     @view_doc.set_value(val)

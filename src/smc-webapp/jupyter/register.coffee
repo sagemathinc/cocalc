@@ -17,7 +17,7 @@ misc                   = require('smc-util/misc')
 {JupyterStore}         = require('./store')
 
 register_file_editor
-    ext       : ['ipynb2']
+    ext       : ['ipynb']
 
     is_public : false
 
@@ -33,10 +33,9 @@ register_file_editor
         actions = redux.createActions(name, JupyterActions)
         store   = redux.createStore(name, JupyterStore)
 
-        base = misc.separate_file_extension(path).name
         syncdb = salvus_client.sync_db
             project_id      : project_id
-            path            : misc.meta_file(base, 'ipython')  # TODO
+            path            : misc.meta_file(path, 'jupyter2')   # a.ipynb --> ".a.ipynb.sage-jupyter2"
             change_throttle : 5    # our UI/React can handle more rapid updates; plus we want output FAST.
             patch_interval  : 5
             save_interval   : 1500

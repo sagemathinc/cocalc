@@ -29,8 +29,8 @@ SYNCSTRING_MAX_AGE_M = 20
 # syncstring, etc.  It's critical that those only close when the user explicitly
 # kills them, or the project is closed.
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
-    sagews : true
-    'sage-ipython' : true
+    sagews          : true
+    'sage-jupyter2' : true
 
 fs     = require('fs')
 {join} = require('path')
@@ -244,7 +244,7 @@ class exports.Client extends EventEmitter
                                 setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
 
                             switch ext
-                                when 'sage-ipython'
+                                when 'sage-jupyter2'
                                     jupyter.jupyter_backend(ss, @)
 
                     )

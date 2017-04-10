@@ -27,9 +27,9 @@ exports.jupyter_backend = (syncdb, client) ->
 
     project_id = client.client_id()
 
-    # This path is the file we will watch for chnages and save to, which is in the original
+    # This path is the file we will watch for changes and save to, which is in the original
     # official ipynb format:
-    path = misc.original_path(syncdb._path) + '.ipynb2' # TODO: change to ipynb when done
+    path = misc.original_path(syncdb._path)
 
     redux_name = smc_react.redux_name(project_id, path)
     actions    = new JupyterActions(redux_name, smc_react.redux)

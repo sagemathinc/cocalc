@@ -765,6 +765,9 @@ exports.open_existing_sync_document = (opts) ->
             if resp.event == 'error'
                 opts.cb(resp.error)
                 return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
+                return
             doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
             opts2 =
                 project_id : opts.project_id
