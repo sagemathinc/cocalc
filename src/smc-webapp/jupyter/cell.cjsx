@@ -85,7 +85,7 @@ exports.Cell = rclass
     click_on_cell: (event) ->
         if not @props.actions?
             return
-        if event.shiftKey
+        if event.shiftKey and not @props.is_current
             misc_page.clear_selection()
             @props.actions.select_cell_range(@props.id)
         else
