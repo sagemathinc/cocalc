@@ -87,6 +87,27 @@ TextPlain = rclass
                 {@props.value}
             </div>
 
+Javascript = rclass
+    propTypes:
+        value : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
+
+    componentDidMount: ->
+        element = $(ReactDOM.findDOMNode(@))
+        if typeof(@props.value) != 'string'
+            value = @props.value.toJS()
+        else
+            value = @props.value
+        if not misc.is_array(value)
+            value = [value]
+        for line in value
+            try
+                eval(line)
+            catch err
+                console.log("Error: #{err}")
+
+    render: ->
+        <div></div>
+
 Data = rclass
     propTypes:
         message    : rtypes.immutable.Map.isRequired
@@ -127,6 +148,10 @@ Data = rclass
                         extension  = {type.split('/')[1].split('+')[0]}
                         sha1       = {value}
                         />
+                when 'application'
+                    switch b
+                        when 'javascript'
+                            return <Javascript value={value}/>
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 
