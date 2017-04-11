@@ -123,10 +123,10 @@ class exports.JupyterActions extends Actions
             url     : opts.url
             timeout : opts.timeout
             success : (data) =>
-                try
+                #try
                     opts.cb?(undefined, JSON.parse(data))
-                catch err
-                    opts.cb?("#{err}")
+                #catch err
+                #    opts.cb?("#{err}")
         ).fail (err) => opts.cb?(err.statusText ? 'error')
 
     set_jupyter_kernels: =>
@@ -1118,12 +1118,18 @@ class exports.JupyterActions extends Actions
             @setState(more_output : more_output.delete(id))
 
     set_cm_options: =>
-        mode             = @store.getIn(['backend_kernel_info', 'language_info', 'codemirror_mode'])?.toJS()
-        editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS()
-
+        mode             = @store.getIn(['backend_kernel_info', 'language_info', 'codemirror_mode'])
+        if typeof(mode) == 'string'
+            mode = {name:mode}  # some kernels send a string back for the mode; others an object
+        else if mode?.toJS?
+            mode = mode.toJS()
+        else if not mode?
+            mode = @store.get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
+        editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS?()
+        line_numbers = @store.get_local_storage('line_numbers')
         x = immutable.fromJS
-            options  : cm_options(mode, editor_settings, @store.get_local_storage('line_numbers'))
-            markdown : cm_options({name:'gfm2'}, editor_settings, @store.get_local_storage('line_numbers'))
+            options  : cm_options(mode, editor_settings, line_numbers)
+            markdown : cm_options({name:'gfm2'}, editor_settings, line_numbers)
 
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)
