@@ -8,13 +8,15 @@ Top-level react component, which ties everything together
 
 # React components that implement parts of the Jupyter notebook.
 
-{TopMenubar}     = require('./top-menubar')
-{TopButtonbar}   = require('./top-buttonbar')
-{CellList}       = require('./cell-list')
-{Introspect}     = require('./introspect')
-{Kernel, Mode}   = require('./status')
-{About}          = require('./about')
-{FindAndReplace} = require('./find-and-replace')
+{TopMenubar}        = require('./top-menubar')
+{TopButtonbar}      = require('./top-buttonbar')
+{CellList}          = require('./cell-list')
+{Introspect}        = require('./introspect')
+{Kernel, Mode}      = require('./status')
+{About}             = require('./about')
+{FindAndReplace}    = require('./find-and-replace')
+{ConfirmDialog}     = require('./confirm-dialog')
+{KeyboardShortcuts} = require('./keyboard-shortcuts')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -44,7 +46,9 @@ exports.JupyterEditor = rclass ({name}) ->
             more_output         : rtypes.immutable.Map
             about               : rtypes.bool
             backend_kernel_info : rtypes.immutable.Map
+            confirm_dialog      : rtypes.immutable.Map
             find_and_replace    : rtypes.immutable.Map
+            keyboard_shortcuts  : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -115,11 +119,25 @@ exports.JupyterEditor = rclass ({name}) ->
             find_and_replace = {@props.find_and_replace}
             />
 
+    render_confirm_dialog: ->
+        <ConfirmDialog
+            actions        = {@props.actions}
+            confirm_dialog = {@props.confirm_dialog}
+            />
+
+    render_keyboard_shortcuts: ->
+        <KeyboardShortcuts
+            actions            = {@props.actions}
+            keyboard_shortcuts = {@props.keyboard_shortcuts}
+            />
+
     render: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_about()}
             {@render_find_and_replace()}
+            {@render_keyboard_shortcuts()}
+            {@render_confirm_dialog()}
             {@render_heading()}
             {@render_cells()}
             {@render_introspect()}

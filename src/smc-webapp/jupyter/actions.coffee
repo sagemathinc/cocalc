@@ -22,6 +22,8 @@ parsing    = require('./parsing')
 
 keyboard   = require('./keyboard')
 
+commands   = require('./commands')
+
 {cm_options} = require('./cm_options')
 
 jupyter_kernels = undefined
@@ -92,6 +94,8 @@ class exports.JupyterActions extends Actions
             # set codemirror editor options whenever account editor_settings change.
             @redux.getStore('account').on('change', @_account_change)
 
+            @_commands = commands.commands(@)
+
     _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
         if not state.get('editor_settings').equals(@_account_change_editor_settings)
             @_account_change_editor_settings = state.get('editor_settings')
@@ -107,6 +111,7 @@ class exports.JupyterActions extends Actions
         @_state = 'closed'
         @syncdb.close()
         delete @syncdb
+        delete @_commands
         if @_key_handler?
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
@@ -1220,9 +1225,46 @@ class exports.JupyterActions extends Actions
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)
 
-    show_find_and_replace: ->
+    show_find_and_replace: =>
+        @blur()
         @setState(find_and_replace:{show:true})
 
-    close_find_and_replace: ->
+    close_find_and_replace: =>
         @setState(find_and_replace:undefined)
         @focus()
+
+    show_keyboard_shortcuts: =>
+        @blur()
+        @setState(keyboard_shortcuts:{show:true})
+
+    close_keyboard_shortcuts: =>
+        @setState(keyboard_shortcuts:undefined)
+        @focus()
+
+    # Display a confirmation dialog, then call opts.cb with the choice.
+    # See confirm-dialog.cjsx for options.
+    confirm_dialog: (opts) =>
+        @blur()
+        @setState(confirm_dialog : opts)
+        @store.wait
+            until   : (state) =>
+                c = state.get('confirm_dialog')
+                if not c?  # deleting confirm_dialog prop is same as cancelling.
+                    return 'cancel'
+                else
+                    return c.get('choice')
+            timeout : 0
+            cb      : (err, choice) =>
+                @focus()
+                opts.cb(choice)
+
+    close_confirm_dialog: (choice) =>
+        if not choice?
+            @setState(confirm_dialog: undefined)
+        else
+            confirm_dialog = @store.get('confirm_dialog')
+            if confirm_dialog?
+                @setState(confirm_dialog: confirm_dialog.set('choice', choice))
+
+    command: (name) =>
+        @_commands?[name]?.f?()

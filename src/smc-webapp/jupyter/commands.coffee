@@ -49,13 +49,48 @@ exports.commands = (actions) ->
         k : [{which:27, mode:'escape'}]
         f : -> actions.clear_introspect() if store.get('introspect')?
 
-    'confirm restart kernel' : undefined
+    'confirm restart kernel' :
+        k : [{"mode":"escape","which":48,twice:true}]
+        f : ->
+            actions.confirm_dialog
+                title   : 'Restart kernel?'
+                body    : 'Do you want to restart the current kernel?  All variables will be lost.'
+                choices : [{title:'Continue Running'}, {title:'Restart', style:'danger', default:true}]
+                cb      : (choice) ->
+                    if choice == 'Restart'
+                        actions.signal('SIGKILL')
 
-    'confirm restart kernel and clear output' : undefined
+    'confirm restart kernel and clear output' :
+        f : ->
+            actions.confirm_dialog
+                title   : 'Restart kernel and clear all output?'
+                body    : 'Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.'
+                choices : [{title:'Continue Running'}, {title:'Restart and Clear All Outputs', style:'danger', default:true}]
+                cb      : (choice) ->
+                    if choice == 'Restart and Clear All Outputs'
+                        actions.signal('SIGKILL')
+                        actions.clear_all_outputs()
 
-    'confirm restart kernel and run all cells' : undefined
+    'confirm restart kernel and run all cells' :
+        f : ->
+            actions.confirm_dialog
+                title   : 'Restart kernel and re-run the whole notebook?'
+                body    : 'Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.'
+                choices : [{title:'Continue Running'}, {title:'Restart and Run All Cells', style:'danger', default:true}]
+                cb      : (choice) ->
+                    if choice == 'Restart and Run All Cells'
+                        actions.signal('SIGKILL')
+                        actions.run_all_cells()
 
-    'confirm shutdown kernel' : undefined
+    'confirm shutdown kernel' :
+        f : ->
+            actions.confirm_dialog
+                title   : 'Shutdown kernel?'
+                body    : 'Do you want to shutdown the current kernel?  All variables will be lost.'
+                choices : [{title:'Continue Running'}, {title:'Shutdown', style:'danger', default:true}]
+                cb      : (choice) ->
+                    if choice == 'Shutdown'
+                        actions.signal('SIGKILL')
 
     'copy cell' :
         k : [{"mode":"escape","which":67}, {"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67, ctrl:true}]
@@ -70,12 +105,14 @@ exports.commands = (actions) ->
     'cut cell attachments' : undefined
 
     'delete cell' :  # jupyter has this but with d,d as shortcut, since they have no undo.
-        k : [{"mode":"escape","which":68}, {"mode":"escape","which":8}]
+        k : [{"mode":"escape","which":68,twice:true}, {"mode":"escape","which":8,twice:true}]
         f : -> actions.delete_selected_cells()
 
-    'duplicate notebook' : undefined
+    'duplicate notebook' :
+        f : -> actions.file_action('duplicate')
 
-    'edit keyboard shortcuts' : undefined
+    'edit keyboard shortcuts' :
+        f : -> actions.show_keyboard_shortcuts()
 
     'enter command mode' :
         k : [{which:27, mode:'edit'}]
@@ -261,6 +298,8 @@ exports.commands = (actions) ->
     'trust notebook': undefined
 
     'undo cell deletion': undefined
+
+    'user interface tour' : undefined
 
     'zoom in' :
         k : [{ctrl:true, shift:true, which:190}]

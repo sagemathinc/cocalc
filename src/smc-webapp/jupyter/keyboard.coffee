@@ -19,6 +19,7 @@ evt_to_shortcut = (evt, mode) ->
 exports.create_key_handler = (actions) ->
     shortcut_to_command = {}
     add_shortcut = (s, name, val) ->
+        delete s.twice  # TODO: not implemented yet.
         if not s.mode?
             for mode in ['escape', 'edit']
                 add_shortcut(misc.merge(s, {mode:mode}), name, val)

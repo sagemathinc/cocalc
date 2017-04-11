@@ -31,6 +31,9 @@ exports.TopMenubar = rclass ({name}) ->
     focus: ->
         @props.actions.focus(true)
 
+    command: (name) ->
+        return =>@props.actions?.command(name)
+
     reduxProps :
         "#{name}" :
             kernels             : rtypes.immutable.List
@@ -47,7 +50,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="new">New Notebook...</MenuItem>
                 <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="copy"    onSelect={=>@props.actions.file_action('duplicate')}>Make a Copy...</MenuItem>
+                <MenuItem eventKey="copy"    onSelect={@command('duplicate notebook')}>Make a Copy...</MenuItem>
                 <MenuItem eventKey="rename"  onSelect={=>@props.actions.file_action('rename')}>Rename...</MenuItem>
                 <MenuItem
                     eventKey = "save"
@@ -235,19 +238,19 @@ exports.TopMenubar = rclass ({name}) ->
                     eventKey = "kernel-restart"
                     onSelect = {=>@props.actions.signal('SIGKILL'); @focus()}
                     >
-                    Restart
+                    Restart...
                 </MenuItem>
                 <MenuItem
                     eventKey="kernel-restart-clear"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.clear_all_outputs(); @focus()}
+                    onSelect = {@command("confirm restart kernel and clear output")}
                     >
-                    Restart & Clear Output
+                    Restart & Clear Output...
                 </MenuItem>
                 <MenuItem
                     eventKey="kernel-run-all"
                     onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.run_all_cells(); @focus()}
                     >
-                    Restart & Run All
+                    Restart & Run All...
                 </MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="" disabled>Change kernel...</MenuItem>
@@ -325,7 +328,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
-                <MenuItem eventKey="help-keyboard">Keyboard Shortcuts</MenuItem>
+                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}>Keyboard Shortcuts</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}

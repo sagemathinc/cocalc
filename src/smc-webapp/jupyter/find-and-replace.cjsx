@@ -5,7 +5,7 @@ The find and replace modal dialog
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, Modal} = require('react-bootstrap')
 
-exports.FindAndReplace = rclass ({name}) ->
+exports.FindAndReplace = rclass
     propTypes :
         actions          : rtypes.object.isRequired
         find_and_replace : rtypes.immutable.Map
