@@ -108,8 +108,8 @@ class exports.JupyterActions extends Actions
         if @_file_watcher?
             @_file_watcher.close()
             delete @_file_watcher
-        if not client.is_project()
-            @redux.getStore('account').removeListener('change', @_account_change)
+        if not @_is_project
+            @redux.getStore('account')?.removeListener('change', @_account_change)
 
     _ajax: (opts) =>
         opts = defaults opts,
@@ -644,8 +644,8 @@ class exports.JupyterActions extends Actions
             @insert_cell(1)
             @set_mode('edit')
         else
-            @move_cursor(1)
             @set_mode('escape')
+            @move_cursor(1)
 
 
     run_all_cells: =>
@@ -859,10 +859,8 @@ class exports.JupyterActions extends Actions
         @redux?.getActions('page').toggle_fullscreen()
 
     toggle_line_numbers: =>
-        x = @store.get('cm_options') ? immutable.Map()
-        val = not x.get('lineNumbers')
-        @setState(cm_options: x.set('lineNumbers', val))
-        @set_local_storage('line_numbers', val)
+        @set_local_storage('line_numbers', not @store.get_local_storage('line_numbers'))
+        @set_cm_options()
         return
 
     # zoom in or out delta font sizes
@@ -1124,8 +1122,8 @@ class exports.JupyterActions extends Actions
         editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS()
 
         x = immutable.fromJS
-            options  : cm_options(mode, editor_settings, @store.get('line_numbers'))
-            markdown : cm_options({name:'gfm2'}, editor_settings, @store.get('line_numbers'))
+            options  : cm_options(mode, editor_settings, @store.get_local_storage('line_numbers'))
+            markdown : cm_options({name:'gfm2'}, editor_settings, @store.get_local_storage('line_numbers'))
 
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)

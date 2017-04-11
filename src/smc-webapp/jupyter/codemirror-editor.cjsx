@@ -49,6 +49,7 @@ exports.CodeMirrorEditor = rclass
         if @cm?
             @props.actions?.unregister_input_editor(@props.id)
             delete @_cm_last_remote
+            delete @cm.save
             if @_cm_change?
                 @cm.off('change', @_cm_change)
                 @cm.off('focus',  @_cm_focus)
@@ -163,6 +164,20 @@ exports.CodeMirrorEditor = rclass
         options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
 
         @cm = CodeMirror.fromTextArea(node, options0)
+
+        @cm.save = => @props.actions.save()
+
+        if @props.actions? and options0.keyMap == 'vim'
+            @cm.on 'vim-mode-change', (obj) =>
+                if obj.mode == 'normal'
+                    # The timeout is because this must not be set when the general
+                    # keyboard handler for the whole editor gets called with escape.
+                    # This is ugly, but I'm not going to spend forever on this before
+                    # the #v1 release, as vim support is a bonus feature.
+                    setTimeout((=>@props.actions.setState(cur_cell_vim_mode: 'escape')), 0)
+                else
+                    @props.actions.setState(cur_cell_vim_mode: 'edit')
+
         css = {height: 'auto'}
         if not options0.theme?
             css.backgroundColor = '#f7f7f7'  # this is what official jupyter looks like...

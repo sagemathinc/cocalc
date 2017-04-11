@@ -42,6 +42,8 @@ exports.CellInput = rclass
             next.complete               != @props.complete
 
     componentWillReceiveProps: (next) ->
+        return
+        # TODO: disabled for now -- is just wrong.
         if next.is_current and not next.is_focused and not @props.is_focused and not next.complete?
             elt = $(ReactDOM.findDOMNode(@))
             elt.scrollintoview

@@ -28,7 +28,7 @@ exports.cm_options = (mode, editor_settings, line_numbers) ->
         showCursorWhenSelecting : true
 
     if line_numbers?
-        options.line_numbers = line_numbers
+        options.lineNumbers = line_numbers
         # NOTE: We ignore the account-wide default for now because line numbers are less necessary
         # in jupyter, off by default in the official client, and they are currently slower
         # due to our static fallback not being done for them (will do in #v2).

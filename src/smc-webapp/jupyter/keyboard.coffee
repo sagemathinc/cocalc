@@ -44,6 +44,11 @@ key_handler = (evt) ->
         when 27  # escape key
             if store.get('mode') == 'escape' and store.get('introspect')?
                 actions.clear_introspect()
+
+            if store.getIn(['cm_options', 'options', 'keyMap']) == 'vim'
+                # Vim mode is trickier...
+                if (store.get("cur_cell_vim_mode") ? 'escape') != 'escape'
+                    return
             actions.set_mode('escape')
 
         when 83  # s for save
