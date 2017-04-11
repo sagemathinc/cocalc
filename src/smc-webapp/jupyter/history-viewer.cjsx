@@ -4,7 +4,6 @@ History viewer for Jupyter notebooks
 
 immutable  = require('immutable')
 
-
 {React, ReactDOM, rclass, rtypes, redux}  = require('../smc-react')
 
 misc         = require('smc-util/misc')
@@ -28,12 +27,16 @@ exports.HistoryViewer = HistoryViewer = rclass
             return
         cell_list  = util.sorted_cell_list(cells)
 
+        options = immutable.fromJS
+            markdown : undefined
+            options  : cm_options()   # TODO
+
         <CellList
             cell_list  = {cell_list}
             cells      = {cells}
             font_size  = {redux.getStore('account')?.get('font_size') ? 14}
             mode       = 'escape'
-            cm_options = {cm_options(settings?.kernel)}
+            cm_options = {options}
             project_id = {project_id}
             directory  = {directory}
             />

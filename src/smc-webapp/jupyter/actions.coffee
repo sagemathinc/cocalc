@@ -307,9 +307,21 @@ class exports.JupyterActions extends Actions
             cur_id  : id
 
     set_mode: (mode) =>
-        @setState(mode: mode)
         if mode == 'escape'
-            @set_cursor_locs([])  # none
+            if @store.get('mode') == 'escape'
+                return
+            # switching from edit to escape mode.
+            # save code being typed
+            @_input_editors?[@store.get('cur_id')]?()
+            # Now switch.
+            @setState(mode: mode)
+            if mode == 'escape'
+                @set_cursor_locs([])  # none
+        else
+            # from escape to edit
+            if @store.get('mode') == 'edit'
+                return
+            @setState(mode:mode)
 
     set_cell_list: =>
         cells = @store.get('cells')
@@ -457,6 +469,8 @@ class exports.JupyterActions extends Actions
         @syncdb.sync()
 
     save: =>
+        if @store.get('mode') == 'edit'
+            @_input_editors?[@store.get('cur_id')]?()
         # Saves our customer format sync doc-db to disk; the backend will
         # also save the normal ipynb file to disk right after.
         @syncdb.save () =>

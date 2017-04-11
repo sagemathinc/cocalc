@@ -38,10 +38,6 @@ exports.CodeMirrorEditor = rclass
         is_focused       : rtypes.bool
         complete         : rtypes.immutable.Map
 
-    reduxProps:
-        account :
-            editor_settings : rtypes.immutable.Map
-
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value, @props.cursors)
 
@@ -56,7 +52,7 @@ exports.CodeMirrorEditor = rclass
                 @cm.off('blur',   @_cm_blur)
                 delete @_cm_change
             $(@cm.getWrapperElement()).remove()  # remove from DOM
-            @cm.getOption('extraKeys').Tab = undefined  # no need to point at method of this react class
+            @cm.getOption('extraKeys')?.Tab = undefined  # no need to reference method of this react class
             delete @cm
 
     _cm_focus: ->
@@ -161,7 +157,6 @@ exports.CodeMirrorEditor = rclass
             options0.extraKeys["Tab"] = @tab_key
         else
             options0.readOnly = true
-        options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
 
         @cm = CodeMirror.fromTextArea(node, options0)
 
@@ -213,8 +208,7 @@ exports.CodeMirrorEditor = rclass
 
     componentWillReceiveProps: (next) ->
         if not @cm? or not @props.options.equals(next.options) or \
-                @props.font_size != next.font_size or \
-                not @props.editor_settings?.equals(next.editor_settings)
+                @props.font_size != next.font_size
             @init_codemirror(next.options, next.value, next.cursors)
             return
         if next.value != @props.value

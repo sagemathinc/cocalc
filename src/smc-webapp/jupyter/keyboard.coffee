@@ -2,6 +2,8 @@
 Keyboard event handler
 ###
 
+misc = require('smc-util/misc')
+
 actions = store = undefined
 exports.enable_handler = (_actions) ->
     actions = _actions; store = actions.store
@@ -14,34 +16,20 @@ exports.disable_handler = (_actions) ->
 key_handler = (evt) ->
     if not actions?
         return
-    #console.log evt.which
-    switch evt.which
-        when 13   # enter for evaluate
-            if evt.ctrlKey
-                actions.run_selected_cells()
-                actions.set_mode('escape')
-                return false
-            else if evt.shiftKey
-                actions.shift_enter_run_selected_cells()
-                return false
-            else if evt.altKey or evt.metaKey
-                v = store.get_selected_cell_ids_list()
-                actions.move_cursor_after_selected_cells()
-                actions.run_selected_cells()
-                if store.get('cur_id') in v
-                    actions.insert_cell(1)
-                else
-                    actions.insert_cell(-1)
-                actions.set_mode('edit')
-                return false
-            else if store.get('mode') == 'escape'
-                actions.set_mode('edit')
-                id = store.get('cur_id')
-                if store.getIn(['cells', id, 'cell_type']) == 'markdown'
-                    actions.set_md_cell_editing(id)
-                return false
+    return handler(evt)
 
-        when 27  # escape key
+COMMANDS =
+    'change cell to code' :
+        k : [{which:89, mode:'escape'}]
+        f : -> actions.set_selected_cell_type('code')
+
+    'change cell to markdown' :
+        k : [{which:77, mode:'escape'}]
+        f : -> actions.set_selected_cell_type('markdown')
+
+    'enter command mode' :
+        k : [{which:27, mode:'edit'}]
+        f : ->
             if store.get('mode') == 'escape' and store.get('introspect')?
                 actions.clear_introspect()
 
@@ -51,27 +39,97 @@ key_handler = (evt) ->
                     return
             actions.set_mode('escape')
 
-        when 83  # s for save
-            if evt.ctrlKey or evt.metaKey or evt.altKey
-                actions.save()
-                return false
+    'enter edit mode' :
+        k : [{which:13, mode:'escape'}]
+        f : -> actions.set_mode('edit')
 
-        when 38, 75  # up
-            if store.get('mode') == 'escape'
-                actions.move_cursor(-1)
+    'move cell down' : undefined
 
-        when 40, 74  # down
-            if store.get('mode') == 'escape'
-                actions.move_cursor(1)
+    'move cell up' : undefined
 
-        when 190 # >
-            if evt.ctrlKey and evt.shiftKey
-                actions.zoom(1)
-                return false
+    'move cursor down' :
+        k : [{which:40, mode:'escape'}, {which:74, mode:'escape'}]
+        f : -> actions.move_cursor(1)
 
-        when 188 # <
-            if evt.ctrlKey and evt.shiftKey
-                actions.zoom(-1)
-                return false
+    'move cursor up' :
+        k : [{which:38, mode:'escape'}, {which:75, mode:'escape'}]
+        f : -> actions.move_cursor(-1)
+
+    'run all cells ' : undefined
+
+    'run all cells above' : undefined
+
+    'run all cells below' : undefined
+
+    'run cell' :
+        k : [{which:13, ctrl:true}]
+        f : -> actions.run_selected_cells(); actions.set_mode('escape')
+
+    'run cell and insert below' :
+        k : [{which:13, alt:true}]
+        f : ->
+            v = store.get_selected_cell_ids_list()
+            actions.move_cursor_after_selected_cells()
+            actions.run_selected_cells()
+            if store.get('cur_id') in v
+                actions.insert_cell(1)
+            else
+                actions.insert_cell(-1)
+            actions.set_mode('edit')
+
+    'run cell and select next' :
+        k : [{which:13, shift:true}]
+        f : -> actions.shift_enter_run_selected_cells()
+
+    'save notebook' :
+        k : [{which:83, ctrl:true}, {which:83, alt:true}]
+        f : -> actions.save()
+
+    'split cell at cursor' :
+        k : [{ctrl:true, shift:true, which:189}]
+        f : -> actions.set_mode('escape'); actions.split_current_cell()
+
+    'zoom in' :
+        k : [{ctrl:true, shift:true, which:190}]
+        f : -> actions.zoom(1)
+
+    'zoom out' :
+        k : [{ctrl:true, shift:true, which:188}]
+        f : -> actions.zoom(-1)
 
 
+json = require('json-stable-stringify')
+evt_to_shortcut = (evt) ->
+    obj = {which: evt.which}
+    for k in ['ctrl', 'shift', 'alt', 'meta']
+        if evt[k+'Key']
+            obj[k] = true
+    obj.mode = store.get('mode')
+    return json(obj)
+
+shortcut_to_command = {}
+add_shortcut = (s, name, val) ->
+    if not s.mode?
+        for mode in ['escape', 'edit']
+            add_shortcut(misc.merge(s, {mode:mode}), name, val)
+        return
+    shortcut_to_command[json(s)] = {name:name, val:val}
+    if s.alt
+        s = misc.copy_without(s, 'alt')
+        s.meta = true
+        add_shortcut(s, name, val)
+
+for name, val of COMMANDS
+    if not val?.k?
+        continue
+    for s in val.k
+        add_shortcut(s, name, val)
+
+
+handler = (evt) ->
+    shortcut = evt_to_shortcut(evt)
+    cmd = shortcut_to_command[shortcut]
+    console.log 'shortcut', shortcut, cmd
+    if cmd?
+        cmd.val.f()
+        return false
