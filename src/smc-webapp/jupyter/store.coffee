@@ -5,7 +5,6 @@ The Store
 immutable         = require('immutable')
 misc              = require('smc-util/misc')
 {Store}           = require('../smc-react')
-{cm_options}      = require('./cm_options')
 {export_to_ipynb} = require('./export-to-ipynb')
 
 # Used for copy/paste.  We make a single global clipboard, so that
@@ -107,13 +106,6 @@ class exports.JupyterStore extends Store
             kernelspec  : @get_kernel_info(@get('kernel'))
             blob_store  : blob_store
             more_output : more_output
-
-    get_cm_options: (kernel) =>
-        # TODO: this is temporary until implementing "editor options" from account settings...
-        options = cm_options(kernel)
-        if @get_local_storage('line_numbers')?
-            options = options.set('lineNumbers', @get_local_storage('line_numbers'))
-        return options
 
     get_more_output: (id) =>
         if @_is_project

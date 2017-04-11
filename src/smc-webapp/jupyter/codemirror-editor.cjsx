@@ -138,7 +138,10 @@ exports.CodeMirrorEditor = rclass
             return
         cur  = @cm.getCursor()
         if cur.ch == 0 or /\s/.test(@cm.getLine(cur.line)[cur.ch - 1])  # whitespace before cursor
-            CodeMirror.commands.defaultTab(@cm)
+            if @cm.options.indentWithTabs
+                CodeMirror.commands.defaultTab(@cm)
+            else
+                @cm.tab_as_space()
             return
         pos    = @cm.cursorCoords(cur, 'local')
         top    = pos.bottom
@@ -160,7 +163,10 @@ exports.CodeMirrorEditor = rclass
         options0.autoCloseBrackets = @props.editor_settings.get('auto_close_brackets')
 
         @cm = CodeMirror.fromTextArea(node, options0)
-        $(@cm.getWrapperElement()).css(height: 'auto', backgroundColor:'#f7f7f7')
+        css = {height: 'auto'}
+        if not options0.theme?
+            css.backgroundColor = '#f7f7f7'  # this is what official jupyter looks like...
+        $(@cm.getWrapperElement()).css(css)
 
         @_cm_merge_remote(value)
         @_cm_change = underscore.debounce(@_cm_save, 1000)

@@ -72,7 +72,7 @@ exports.CellInput = rclass
             when 'code'
                 <CodeMirror
                     value        = {@props.cell.get('input') ? ''}
-                    options      = {@props.cm_options}
+                    options      = {@props.cm_options.get('options')}
                     actions      = {@props.actions}
                     id           = {id}
                     is_focused   = {@props.is_focused}
@@ -83,7 +83,7 @@ exports.CellInput = rclass
                 if @props.is_markdown_edit
                     <CodeMirror
                         value      = {@props.cell.get('input') ? ''}
-                        options    = {cm_options('markdown')}
+                        options    = {@props.cm_options.get('markdown')}
                         actions    = {@props.actions}
                         id         = {id}
                         is_focused = {@props.is_focused}

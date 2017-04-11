@@ -20,6 +20,8 @@ misc       = require('smc-util/misc')
 util       = require('./util')
 parsing    = require('./parsing')
 
+{cm_options} = require('./cm_options')
+
 jupyter_kernels = undefined
 
 ###
@@ -85,6 +87,14 @@ class exports.JupyterActions extends Actions
             # frontend browser client with jQuery
             @set_jupyter_kernels()  # must be after setting project_id above.
 
+            # set codemirror editor options whenever account editor_settings change.
+            @redux.getStore('account').on('change', @_account_change)
+
+    _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
+        if not state.get('editor_settings').equals(@_account_change_editor_settings)
+            @_account_change_editor_settings = state.get('editor_settings')
+            @set_cm_options()
+
     dbg: (f) =>
         return @_client.dbg("JupyterActions('#{@store.get('path')}').#{f}")
 
@@ -98,6 +108,8 @@ class exports.JupyterActions extends Actions
         if @_file_watcher?
             @_file_watcher.close()
             delete @_file_watcher
+        if not client.is_project()
+            @redux.getStore('account').removeListener('change', @_account_change)
 
     _ajax: (opts) =>
         opts = defaults opts,
@@ -362,15 +374,16 @@ class exports.JupyterActions extends Actions
                         backend_state     : record.get('backend_state')
                         kernel_state      : record.get('kernel_state')
                         max_output_length : bounded_integer(record.get('max_output_length'), 100, 100000, 20000)
-                    if kernel != @store.get('kernel')
-                        # kernel changed
+                    if kernel != orig_kernel
                         obj.kernel              = kernel
-                        obj.cm_options          = @store.get_cm_options(kernel)
                         obj.kernel_info         = @store.get_kernel_info(kernel)
                         obj.backend_kernel_info = undefined
+                    else
+                        kernel_changed = false
                     @setState(obj)
                     if not @_is_project and orig_kernel != kernel
                         @set_backend_kernel_info()
+                        @set_cm_options()
             return
         if cell_list_needs_recompute
             @set_cell_list()
@@ -1034,6 +1047,8 @@ class exports.JupyterActions extends Actions
                             @setState(backend_kernel_info: immutable.fromJS(data))
                             # this is when the server for this doc started, not when kernel last started!
                             @setState(start_time : data.start_time)
+                            # Update the codemirror editor options.
+                            @set_cm_options()
         misc.retry_until_success
             f           : f
             max_time    : 60000
@@ -1103,4 +1118,15 @@ class exports.JupyterActions extends Actions
         more_output = @store.get('more_output') ? immutable.Map()
         if more_output.has(id)
             @setState(more_output : more_output.delete(id))
+
+    set_cm_options: =>
+        mode             = @store.getIn(['backend_kernel_info', 'language_info', 'codemirror_mode'])?.toJS()
+        editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS()
+
+        x = immutable.fromJS
+            options  : cm_options(mode, editor_settings, @store.get('line_numbers'))
+            markdown : cm_options({name:'gfm2'}, editor_settings, @store.get('line_numbers'))
+
+        if not x.equals(@store.get('cm_options'))  # actually changed
+            @setState(cm_options: x)
 
