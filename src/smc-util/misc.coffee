@@ -2024,8 +2024,16 @@ exports.bind_objects = (scope, arr_objects) ->
 # Remove all whitespace from string s.
 # see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
 exports.remove_whitespace = (s) ->
-    return s.replace(/\s/g,'')
+    return s?.replace(/\s/g,'')
 
+exports.is_whitespace = (s) ->
+    return s?.trim().length == 0
+
+exports.lstrip = (s) ->
+    return s?.replace(/^\s*/g, "")
+
+exports.rstrip = (s) ->
+    return s?.replace(/\s*$/g, "")
 
 # ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
 exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']

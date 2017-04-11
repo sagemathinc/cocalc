@@ -271,6 +271,17 @@ class exports.JupyterActions extends Actions
             return
         @setState(md_edit_ids : md_edit_ids.delete(id))
 
+    change_cell_to_heading: (id, n=1) =>
+        @set_md_cell_editing(id)
+        @set_cell_type(id, 'markdown')
+        input = misc.lstrip(@_get_cell_input(id))
+        i = 0
+        while i < input.length and input[i] == '#'
+            i += 1
+        input = ('#' for _ in [0...n]).join('') + \
+            (if not misc.is_whitespace(input[i]) then ' ' else '') + input.slice(i)
+        @set_cell_input(id, input)
+
     # Set which cell is currently the cursor.
     set_cur_id: (id) =>
         @setState(cur_id : id)
@@ -326,7 +337,7 @@ class exports.JupyterActions extends Actions
                 return
             # switching from edit to escape mode.
             # save code being typed
-            @_input_editors?[@store.get('cur_id')]?()
+            @_get_cell_input()
             # Now switch.
             @setState(mode: mode)
             if mode == 'escape'
@@ -484,7 +495,7 @@ class exports.JupyterActions extends Actions
 
     save: =>
         if @store.get('mode') == 'edit'
-            @_input_editors?[@store.get('cur_id')]?()
+            @_get_cell_input()
         # Saves our customer format sync doc-db to disk; the backend will
         # also save the normal ipynb file to disk right after.
         @syncdb.save () =>
@@ -608,7 +619,7 @@ class exports.JupyterActions extends Actions
         cell_type = cell.get('cell_type') ? 'code'
         switch cell_type
             when 'code'
-                code = (@_input_editors?[id]?() ? cell.get('input') ? '').trim()
+                code = @_get_cell_input(id).trim()
                 switch parsing.run_mode(code, @store.getIn(['cm_options', 'mode', 'name']))
                     when 'show_source'
                         @introspect(code.slice(0,code.length-2), 1)
@@ -925,9 +936,13 @@ class exports.JupyterActions extends Actions
     register_input_editor: (id, save_value) =>
         @_input_editors ?= {}
         @_input_editors[id] = save_value
-
+        return
     unregister_input_editor: (id) =>
         delete @_input_editors?[id]
+    # Meant to be used for implementing actions -- do not call externally
+    _get_cell_input: (id) =>
+        id ?= @store.get('cur_id')
+        return (@_input_editors?[id]?() ? cell.get('input') ? '')
 
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel
