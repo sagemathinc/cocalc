@@ -41,7 +41,7 @@ exports.CellList = rclass
             # We have to do this since, e.g., codemirror editors
             # involve spans that aren't even children, etc...
             $(window).unbind('click', @window_click)
-            keyboard.disable_handler(@props.actions)
+            @props.actions.disable_key_handler()
 
     componentDidMount: ->
         # restore scroll state
@@ -51,7 +51,7 @@ exports.CellList = rclass
         if @props.actions?
             # Enable keyboard handler if necessary
             if @props.is_focused
-                keyboard.enable_handler(@props.actions)
+                @props.actions.enable_key_handler()
             # Also since just mounted, set this to be focused.
             # When we have multiple editors on the same page, we will
             # have to set the focus at a higher level (in the project store?).
@@ -75,9 +75,9 @@ exports.CellList = rclass
         if @props.actions? and next.is_focused != @props.is_focused
             # the focus state changed.
             if next.is_focused
-                keyboard.enable_handler(@props.actions)
+                @props.actions.enable_key_handler()
             else
-                keyboard.disable_handler(@props.actions)
+                @props.actions.disable_key_handler()
 
     render_loading: ->
         <div style={fontSize: '32pt', color: '#888', textAlign: 'center', marginTop: '15px'}>

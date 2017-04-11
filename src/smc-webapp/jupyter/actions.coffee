@@ -20,6 +20,8 @@ misc       = require('smc-util/misc')
 util       = require('./util')
 parsing    = require('./parsing')
 
+keyboard   = require('./keyboard')
+
 {cm_options} = require('./cm_options')
 
 jupyter_kernels = undefined
@@ -105,11 +107,23 @@ class exports.JupyterActions extends Actions
         @_state = 'closed'
         @syncdb.close()
         delete @syncdb
+        if @_key_handler?
+            @redux.getActions('page').erase_active_key_handler(@_key_handler)
+            delete @_key_handler
         if @_file_watcher?
             @_file_watcher.close()
             delete @_file_watcher
         if not @_is_project
             @redux.getStore('account')?.removeListener('change', @_account_change)
+
+    enable_key_handler: =>
+        if @_state == 'closed'
+            return
+        @_key_handler ?= keyboard.create_key_handler(@)
+        @redux.getActions('page').set_active_key_handler(@_key_handler)
+
+    disable_key_handler: =>
+        @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
     _ajax: (opts) =>
         opts = defaults opts,
