@@ -39,13 +39,43 @@ exports.commands = (actions) ->
         k : [{which:82, mode:'escape'}]
         f : -> actions.set_selected_cell_type('raw')
 
-    'clear all cells output' : undefined
+    'clear all cells output' :
+        f : -> actions.clear_all_outputs()
 
-    'clear cell output' : undefined
+    'clear cell output' :
+        f : -> actions.clear_selected_outputs()
 
     'close pager' :
         k : [{which:27, mode:'escape'}]
         f : -> actions.clear_introspect() if store.get('introspect')?
+
+    'confirm restart kernel' : undefined
+
+    'confirm restart kernel and clear output' : undefined
+
+    'confirm restart kernel and run all cells' : undefined
+
+    'confirm shutdown kernel' : undefined
+
+    'copy cell' :
+        k : [{"mode":"escape","which":67}, {"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67, ctrl:true}]
+        f : -> actions.copy_selected_cells()
+
+    'copy cell attachments' : undefined
+
+    'cut cell' :
+        k : [{"mode":"escape","which":88}, {"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88, ctrl:true}]
+        f : -> actions.cut_selected_cells()
+
+    'cut cell attachments' : undefined
+
+    'delete cell' :  # jupyter has this but with d,d as shortcut, since they have no undo.
+        k : [{"mode":"escape","which":68}, {"mode":"escape","which":8}]
+        f : -> actions.delete_selected_cells()
+
+    'duplicate notebook' : undefined
+
+    'edit keyboard shortcuts' : undefined
 
     'enter command mode' :
         k : [{which:27, mode:'edit'}]
@@ -63,13 +93,30 @@ exports.commands = (actions) ->
         k : [{which:13, mode:'escape'}]
         f : -> actions.set_mode('edit')
 
-    'extend selection above' : undefined
+    'extend selection above' :
+        k : [{"mode":"escape","shift":true,"which":75}, {"mode":"escape","shift":true,"which":38}]
+        f : -> actions.extend_selection(-1)
 
-    'extend selection below' : undefined
+    'extend selection below' :
+        k : [{"mode":"escape","shift":true,"which":74}, {"mode":"escape","shift":true,"which":40}]
+        f : -> actions.extend_selection(1)
 
-    'find and replace' : undefined
+    'find and replace' :
+        k : [{"mode":"escape","which":70}, {"alt":true,"mode":"escape","which":70}]
+        f : -> actions.show_find_and_replace()
 
-    'hide all line numbers' : undefined
+    'global undo':
+        d : 'Global user-aware undo.  Undo the last change *you* made to the notebook.'
+        k : [{alt:true,"mode":"escape","which":90}, {ctrl:true,"mode":"escape","which":90}]
+        f : -> actions.undo()
+
+    'global redo':
+        d : 'Global user-aware redo.  Redo the last change *you* made to the notebook.'
+        k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}]
+        f : -> actions.redo()
+
+    'hide all line numbers' :
+        f : -> actions.set_line_numbers(false)
 
     'hide header' : undefined
 
@@ -101,11 +148,22 @@ exports.commands = (actions) ->
 
     'move cursor up' : undefined
 
-    'paste cell above' : undefined
+    'paste cell above' :
+        k : [{"mode":"escape","shift":true,"which":86}, {"mode":"escape","shift":true,ctrl:true,"which":86},{"mode":"escape","shift":true,alt:true,"which":86}]
+        f : -> actions.paste_cells(-1)
 
     'paste cell attachments' : undefined
 
-    'paste cell below' : undefined
+    'paste cell below' :  # jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
+        f : -> actions.paste_cells(1)
+
+    'paste cell and replace' :   # jupyter doesn't have this but it's supposed to be normal paste behavior
+        k : [{"mode":"escape","which":86}, {"mode":"escape",ctrl:true,"which":86},{"mode":"escape",alt:true,"which":86}]
+        f : ->
+            if store.get('sel_ids')?.size > 0
+                actions.paste_cells(0)
+            else
+                actions.paste_cells(1)
 
     'rename notebook' : undefined
 
@@ -155,13 +213,14 @@ exports.commands = (actions) ->
 
     'select next cell' :
         k : [{which:40, mode:'escape'}, {which:74, mode:'escape'}]
-        f : -> actions.move_cursor(1)
+        f : -> actions.move_cursor(1); actions.unselect_all_cells()
 
     'select previous cell' :
         k : [{which:38, mode:'escape'}, {which:75, mode:'escape'}]
-        f : -> actions.move_cursor(-1)
+        f : -> actions.move_cursor(-1); actions.unselect_all_cells()
 
-    'show all line numbers': undefined
+    'show all line numbers':
+        f : -> actions.set_line_numbers(false)
 
     'show command palette': undefined
 
@@ -181,9 +240,13 @@ exports.commands = (actions) ->
 
     'toggle all cells output scrolled': undefined
 
-    'toggle all line numbers': undefined
+    'toggle all line numbers':
+        k : [{"mode":"escape","shift":true,"which":76}]
+        f : -> actions.toggle_line_numbers()
 
-    'toggle cell line numbers': undefined
+    'toggle cell line numbers':
+        k : [{"mode":"escape","which":76}]
+        f : -> actions.toggle_cell_line_numbers(id())
 
     'toggle cell output collapsed': undefined
 

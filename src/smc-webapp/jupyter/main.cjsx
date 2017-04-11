@@ -8,13 +8,13 @@ Top-level react component, which ties everything together
 
 # React components that implement parts of the Jupyter notebook.
 
-{TopMenubar}   = require('./top-menubar')
-{TopButtonbar} = require('./top-buttonbar')
-{CellList}     = require('./cell-list')
-{Introspect}   = require('./introspect')
-#{CellList}    = require('./cell-list-single-editor')
-{Kernel, Mode} = require('./status')
-{About}        = require('./about')
+{TopMenubar}     = require('./top-menubar')
+{TopButtonbar}   = require('./top-buttonbar')
+{CellList}       = require('./cell-list')
+{Introspect}     = require('./introspect')
+{Kernel, Mode}   = require('./status')
+{About}          = require('./about')
+{FindAndReplace} = require('./find-and-replace')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -42,6 +42,9 @@ exports.JupyterEditor = rclass ({name}) ->
             introspect          : rtypes.immutable.Map              # status of introspection
             is_focused          : rtypes.bool
             more_output         : rtypes.immutable.Map
+            about               : rtypes.bool
+            backend_kernel_info : rtypes.immutable.Map
+            find_and_replace    : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -100,22 +103,24 @@ exports.JupyterEditor = rclass ({name}) ->
             />
 
     render_about: ->
-        <About actions = {@props.actions} name={name} />
+        <About
+            actions             = {@props.actions}
+            about               = {@props.about}
+            backend_kernel_info = {@props.backend_kernel_info}
+            />
+
+    render_find_and_replace: ->
+        <FindAndReplace
+            actions          = {@props.actions}
+            find_and_replace = {@props.find_and_replace}
+            />
 
     render: ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_about()}
+            {@render_find_and_replace()}
             {@render_heading()}
             {@render_cells()}
             {@render_introspect()}
         </div>
-
-    ###
-    render: ->
-        {HistoryViewer} = require('./history-viewer')
-        <HistoryViewer
-            syncdb     = {@props.actions.syncdb}
-            version    = {@props.version}
-            />
-    ###

@@ -7,14 +7,11 @@ Ansi = require('ansi-to-react')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, Modal} = require('react-bootstrap')
 
-exports.About = rclass ({name}) ->
+exports.About = rclass
     propTypes :
-        actions : rtypes.object.isRequired
-
-    reduxProps:
-        "#{name}" :
-            about               : rtypes.bool
-            backend_kernel_info : rtypes.immutable.Map
+        actions             : rtypes.object.isRequired
+        about               : rtypes.bool
+        backend_kernel_info : rtypes.immutable.Map
 
     close: ->
         @props.actions.setState(about:false)

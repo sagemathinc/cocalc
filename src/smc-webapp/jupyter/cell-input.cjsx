@@ -12,8 +12,6 @@ immutable = require('immutable')
 
 {Complete} = require('./complete')
 
-{cm_options} = require('./cm_options')
-
 exports.CellInput = rclass
     propTypes:
         actions          : rtypes.object   # not defined = read only
@@ -29,17 +27,18 @@ exports.CellInput = rclass
 
     shouldComponentUpdate: (next) ->
         return \
-            next.cell.get('input')      != @props.cell.get('input') or \
-            next.cell.get('exec_count') != @props.cell.get('exec_count') or \
-            next.cell.get('cell_type')  != @props.cell.get('cell_type') or \
-            next.cell.get('state')      != @props.cell.get('state') or \
-            next.cell.get('cursors')    != @props.cell.get('cursors') or \
-            next.cm_options             != @props.cm_options or \
-            (next.is_markdown_edit      != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
-            next.is_focused             != @props.is_focused or \
-            next.is_current             != @props.is_current or \
-            next.font_size              != @props.font_size or \
-            next.complete               != @props.complete
+            next.cell.get('input')        != @props.cell.get('input') or \
+            next.cell.get('exec_count')   != @props.cell.get('exec_count') or \
+            next.cell.get('cell_type')    != @props.cell.get('cell_type') or \
+            next.cell.get('state')        != @props.cell.get('state') or \
+            next.cell.get('cursors')      != @props.cell.get('cursors') or \
+            next.cell.get('line_numbers') != @props.cell.get('line_numbers') or \
+            next.cm_options               != @props.cm_options or \
+            (next.is_markdown_edit        != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
+            next.is_focused               != @props.is_focused or \
+            next.is_current               != @props.is_current or \
+            next.font_size                != @props.font_size or \
+            next.complete                 != @props.complete
 
     componentWillReceiveProps: (next) ->
         return
@@ -68,13 +67,18 @@ exports.CellInput = rclass
         @props.actions.set_cur_id(id)
         @props.actions.set_mode('edit')
 
+    line_numbers: (options) ->
+        if @props.cell.get('line_numbers')?
+            options = options.set('lineNumbers', @props.cell.get('line_numbers'))
+        return options
+
     render_input_value: (type) ->
         id = @props.cell.get('id')
         switch type
             when 'code'
                 <CodeMirror
                     value        = {@props.cell.get('input') ? ''}
-                    options      = {@props.cm_options.get('options')}
+                    options      = {@line_numbers(@props.cm_options.get('options'))}
                     actions      = {@props.actions}
                     id           = {id}
                     is_focused   = {@props.is_focused}
@@ -85,7 +89,7 @@ exports.CellInput = rclass
                 if @props.is_markdown_edit
                     <CodeMirror
                         value      = {@props.cell.get('input') ? ''}
-                        options    = {@props.cm_options.get('markdown')}
+                        options    = {@line_numbers(@props.cm_options.get('markdown'))}
                         actions    = {@props.actions}
                         id         = {id}
                         is_focused = {@props.is_focused}

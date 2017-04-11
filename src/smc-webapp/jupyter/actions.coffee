@@ -304,6 +304,12 @@ class exports.JupyterActions extends Actions
             return
         @setState(sel_ids : sel_ids.add(id))
 
+    unselect_cell: (id) =>
+        sel_ids = @store.get('sel_ids')
+        if not sel_ids.contains(id)
+            return
+        @setState(sel_ids : sel_ids.remove(id))
+
     unselect_all_cells: =>
         @setState(sel_ids : immutable.Set())
 
@@ -330,6 +336,26 @@ class exports.JupyterActions extends Actions
         @setState
             sel_ids : sel_ids
             cur_id  : id
+
+    extend_selection: (delta) =>
+        cur_id = @store.get('cur_id')
+        @move_cursor(delta)
+        target_id = @store.get('cur_id')
+        if cur_id == target_id
+            # no move
+            return
+        sel_ids = @store.get('sel_ids')
+        if sel_ids?.get(target_id)
+            # moved cursor onto a selected cell
+            if sel_ids.size <= 2
+                # selection clears if shrinks to 1
+                @unselect_all_cells()
+            else
+                @unselect_cell(cur_id)
+        else
+            # moved onto a not-selected cell
+            @select_cell(cur_id)
+            @select_cell(target_id)
 
     set_mode: (mode) =>
         if mode == 'escape'
@@ -897,10 +923,27 @@ class exports.JupyterActions extends Actions
     toggle_header: =>
         @redux?.getActions('page').toggle_fullscreen()
 
-    toggle_line_numbers: =>
-        @set_local_storage('line_numbers', not @store.get_local_storage('line_numbers'))
+    set_line_numbers: (show) =>
+        @set_local_storage('line_numbers', !!show)
+        # unset the line_numbers property from all cells
+        cells = @store.get('cells').map((cell) -> cell.delete('line_numbers'))
+        if not cells.equals(@store.get('cells'))
+            # actually changed
+            @setState(cells: cells)
+        # now cause cells to update
         @set_cm_options()
         return
+
+    toggle_line_numbers: =>
+        @set_line_numbers(not @store.get_local_storage('line_numbers'))
+
+    toggle_cell_line_numbers: (id) =>
+        cells = @store.get('cells')
+        cell = cells.get(id)
+        if not cell?
+            return
+        line_numbers = cell.get('line_numbers') ? @store.get_local_storage('line_numbers') ? false
+        @setState(cells: cells.set(id, cell.set('line_numbers', not line_numbers)))
 
     # zoom in or out delta font sizes
     set_font_size: (pixels) =>
@@ -1177,3 +1220,9 @@ class exports.JupyterActions extends Actions
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)
 
+    show_find_and_replace: ->
+        @setState(find_and_replace:{show:true})
+
+    close_find_and_replace: ->
+        @setState(find_and_replace:undefined)
+        @focus()
