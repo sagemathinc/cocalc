@@ -10,7 +10,12 @@ File, Edit, etc....
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{KeyboardShortcut} = require('./keyboard-shortcuts')
+
 misc_page = require('../misc_page')
+
+misc = require('smc-util/misc')
+{required, defaults} = misc
 
 OPACITY='.9'
 
@@ -32,7 +37,7 @@ exports.TopMenubar = rclass ({name}) ->
         @props.actions.focus(true)
 
     command: (name) ->
-        return =>@props.actions?.command(name)
+        return => @props.actions?.command(name)
 
     reduxProps :
         "#{name}" :
@@ -41,98 +46,80 @@ exports.TopMenubar = rclass ({name}) ->
             has_unsaved_changes : rtypes.bool
             kernel_info         : rtypes.immutable.Map
 
-    render_file: ->
-        <Dropdown key='file' id='menu-file'>
+    menu_item: (key, name) ->
+        if name
+            if name[0] == '<'
+                return <MenuItem disabled key={key}>{name.slice(1)}</MenuItem>
+
+            if name[0] == '>'
+                indent = <span style={marginLeft:'4ex'}/>
+                name = name.slice(1)
+            else
+                indent = ''
+            obj = @props.actions._commands?[name]
+            if not obj?
+                return <MenuItem key={key}>{indent} {name} (not implemented)</MenuItem>
+
+            shortcut = obj.k?[0]
+            if shortcut?
+                s = <span  className='pull-right'><KeyboardShortcut shortcut={shortcut} /></span>
+            else
+                s = <span/>
+
+            <MenuItem
+                key      = {key}
+                onSelect = {@command(name)}
+                >
+                {indent} {obj.m ? name} {s}
+            </MenuItem>
+        else
+            <MenuItem key={key} divider />
+
+    menu_items: (names) ->
+        return (@menu_item(key, name) for key, name of names)
+
+    render_menu: (opts) ->
+        {heading, names, opacity} = defaults opts,
+            heading : required
+            names   : required
+            opacity : OPACITY
+        <Dropdown key={heading} id={heading}>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                File
+                {heading}
             </Dropdown.Toggle>
-            <Dropdown.Menu >
-                <MenuItem eventKey="new">New Notebook...</MenuItem>
-                <MenuItem eventKey="open"   onSelect={=>@props.actions.file_open()} >Open...</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="copy"    onSelect={@command('duplicate notebook')}>Make a Copy...</MenuItem>
-                <MenuItem eventKey="rename"  onSelect={=>@props.actions.file_action('rename')}>Rename...</MenuItem>
-                <MenuItem
-                    eventKey = "save"
-                    onSelect = {=>@props.actions.save()}
-                    disabled = {not @props.has_unsaved_changes} >
-                    Save
-                </MenuItem>
-                <MenuItem eventKey="timetravel"  onSelect={=>@props.actions.file_action('share')}>Publish...</MenuItem>
-                <MenuItem divider />
-                <MenuItem
-                    eventKey="timetravel"
-                    onSelect={=>@props.actions.show_history_viewer()}>
-                        TimeTravel...
-                </MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="print">Print Preview</MenuItem>
-                <MenuItem eventKey="download" disabled>Download As...</MenuItem>
-                <MenuItem eventKey="download-ipynb"   onSelect={=>@props.actions.file_action('download')}><span style={marginLeft:'4ex'}/> Notebook (.ipynb)</MenuItem>
-                <MenuItem eventKey="download-python"  ><span style={marginLeft:'4ex'}/> Python (.py)</MenuItem>
-                <MenuItem eventKey="download-html"    ><span style={marginLeft:'4ex'}/> HTML (.html)</MenuItem>
-                <MenuItem eventKey="download-markdown"><span style={marginLeft:'4ex'}/> Markdown (.md)</MenuItem>
-                <MenuItem eventKey="download-rst"     ><span style={marginLeft:'4ex'}/> reST (.rst)</MenuItem>
-                <MenuItem eventKey="download-pdf"     ><span style={marginLeft:'4ex'}/> PDF via LaTeX (.pdf)</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="trusted" disabled={true}>Trusted Notebook</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="close"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.file_open(); @props.actions.file_action('close_file')}
-                    >Close and Halt
-                </MenuItem>
+            <Dropdown.Menu style={opacity:opacity, minWidth: '20em'}>
+                {@menu_items(names)}
             </Dropdown.Menu>
         </Dropdown>
+
+    render_file: ->
+        @render_menu
+            heading : 'File'
+            names   : [
+                'new notebook', 'open file', '', \
+                'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
+                'print preview', '<Download As...', '>download ipynb',  '>download python', '>download html', '>download markdown', '>download rst', '>download pdf', '', \
+                'trust notebook', '', \   # will have to be redone
+                'close and halt'
+            ]
 
     render_edit: ->
-        <Dropdown key='edit' id='menu-edit'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                Edit
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.undo(); @focus()}                 >Undo</MenuItem>
-                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.redo(); @focus()}                 >Redo</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="cut-cells"               onSelect={=>@props.actions.cut_selected_cells(); @focus()}   >Cut Cells</MenuItem>
-                <MenuItem eventKey="copy-cells"              onSelect={=>@props.actions.copy_selected_cells(); @focus()}  >Copy Cells</MenuItem>
-                <MenuItem eventKey="paste-cells-above"       onSelect={=>@props.actions.paste_cells(-1); @focus()}        >Paste Cells Above</MenuItem>
-                <MenuItem eventKey="paste-cells-below"       onSelect={=>@props.actions.paste_cells(1); @focus()}         >Paste Cells Below</MenuItem>
-                <MenuItem eventKey="paste-cells-and-replace" onSelect={=>@props.actions.paste_cells(0); @focus()}         >Paste Cells & Replace</MenuItem>
-                <MenuItem eventKey="delete-cells"            onSelect={=>@props.actions.delete_selected_cells(); @focus()}>Delete Cells</MenuItem>
-                <MenuItem eventKey="undo-delete-cells"       onSelect={=>@props.actions.undo(); @focus()}                 >Undo Delete Cells</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="split-cell"              onSelect={=>@props.actions.split_current_cell(); @focus()}   >Split Cell</MenuItem>
-                <MenuItem eventKey="merge-cell-above"        onSelect={=>@props.actions.merge_cell_above(); @focus()}     >Merge Cell Above</MenuItem>
-                <MenuItem eventKey="merge-cell-below"        onSelect={=>@props.actions.merge_cell_below(); @focus()}     >Merge Cell Below</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="move-cell-up"            onSelect={=>@props.actions.move_selected_cells(-1); @focus()}>Move Cell Up</MenuItem>
-                <MenuItem eventKey="move-cell-down"          onSelect={=>@props.actions.move_selected_cells(1); @focus()} >Move Cell Down</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="edit-notebook-metadata">Edit Notebook Metadata</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="find-and-replace">Find and Replace</MenuItem>
-            </Dropdown.Menu>
-        </Dropdown>
+        @render_menu
+            heading : 'Edit'
+            names   : \
+                ["global undo", "global redo", "", \
+                 "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
+                 "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
+                 "move cell up", "move cell down", "", \
+                 "edit notebook metadata", "find and replace"]
 
     render_view: ->
-        <Dropdown key='view'  id='menu-view'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                View
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="toggle-header"  onSelect={=>@props.actions.toggle_header(); @focus()}>Toggle Header</MenuItem>
-                <MenuItem eventKey="toggle-toolbar" onSelect={=>@props.actions.toggle_toolbar(); @focus()}>Toggle Toolbar</MenuItem>
-                <MenuItem eventKey="toggle-line-numbers" onSelect={=>@props.actions.toggle_line_numbers(); @focus()}>Toggle Line Numbers</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="" disabled>Cell Toolbar...</MenuItem>
-                <MenuItem eventKey="cell-toolbar-none"     ><span style={marginLeft:'4ex'}/> None</MenuItem>
-                <MenuItem eventKey="cell-toolbar-metadata" ><span style={marginLeft:'4ex'}/> Edit Metadata</MenuItem>
-                <MenuItem eventKey="cell-toolbar-slideshow"><span style={marginLeft:'4ex'}/> Slideshow</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="view-zoom-in"  onSelect={=>@props.actions.zoom(1); @focus()}>Zoom In</MenuItem>
-                <MenuItem eventKey="view-zoom-out" onSelect={=>@props.actions.zoom(-1); @focus()}>Zoom Out</MenuItem>
-            </Dropdown.Menu>
-        </Dropdown>
+        @render_menu
+            heading : 'View'
+            names : \
+                ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
+                 '<Cell Toolbar...', 'cell toolbar none', 'cell toolbar metadata', 'cell toolbar slideshow', '', \
+                 'zoom in', 'zoom out']
 
     render_insert: ->
         <Dropdown key='insert'  id='menu-insert'>

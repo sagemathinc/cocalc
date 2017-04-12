@@ -1037,6 +1037,10 @@ class exports.JupyterActions extends Actions
         @redux?.getProjectActions(@store.get('project_id')).set_active_tab('files')
         return
 
+    file_new: =>
+        @redux?.getProjectActions(@store.get('project_id')).set_active_tab('new')
+        return
+
     register_input_editor: (id, save_value) =>
         @_input_editors ?= {}
         @_input_editors[id] = save_value
@@ -1347,3 +1351,12 @@ class exports.JupyterActions extends Actions
     # # supported scroll positions are in commands.coffee
     scroll: (pos) =>
         @setState(scroll: pos)
+
+    print_preview: =>
+        console.log("print_preview -- TODO")
+
+
+
+
+
+        

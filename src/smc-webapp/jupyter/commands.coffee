@@ -8,6 +8,15 @@ exports.commands = (actions) ->
     store = actions.store
     id = -> store.get('cur_id')
 
+    'cell toolbar none':
+        m : 'None'
+
+    'cell toolbar metadata':
+        m : 'Edit Metadata'
+
+    'cell toolbar slideshow':
+        m : 'Slideshow'
+
     'change cell to code' :
         k : [{which:89, mode:'escape'}]
         f : -> actions.set_selected_cell_type('code')
@@ -44,6 +53,13 @@ exports.commands = (actions) ->
 
     'clear cell output' :
         f : -> actions.clear_selected_outputs()
+
+    'close and halt' :
+        m : 'Close and Halt'
+        f : ->
+            actions.signal('SIGKILL')
+            actions.file_open()
+            actions.file_action('close_file')
 
     'close pager' :
         k : [{which:27, mode:'escape'}]
@@ -93,26 +109,33 @@ exports.commands = (actions) ->
                         actions.signal('SIGKILL')
 
     'copy cell' :
-        k : [{"mode":"escape","which":67}, {"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67, ctrl:true}]
+        m : 'Copy cells'
+        k : [{"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67}, {"mode":"escape","which":67, ctrl:true}]
         f : -> actions.copy_selected_cells()
 
     'copy cell attachments' : undefined   # no clue what this means or is for... but I can guess...
 
     'cut cell' :
-        k : [{"mode":"escape","which":88}, {"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88, ctrl:true}]
+        m : 'Cut cells'
+        k : [{"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88}, {"mode":"escape","which":88, ctrl:true}]
         f : -> actions.cut_selected_cells()
 
     'cut cell attachments' : undefined    # no clue
 
     'delete cell' :  # jupyter has this but with d,d as shortcut, since they have no undo.
-        k : [{"mode":"escape","which":68,twice:true}, {"mode":"escape","which":8,twice:true}]
+        m : 'Delete Cells'
+        k : [{"mode":"escape","which":8,twice:true}, {"mode":"escape","which":68,twice:true}]
         f : -> actions.delete_selected_cells()
 
     'duplicate notebook' :
+        m : 'Make a Copy...'
         f : -> actions.file_action('duplicate')
 
     'edit keyboard shortcuts' :
         f : -> actions.show_keyboard_shortcuts()
+
+    'edit notebook metadata' :  # TODO
+        m : 'Edit Notebook Metadata'
 
     'enter command mode' :
         k : [{which:27, mode:'edit'}]
@@ -139,15 +162,18 @@ exports.commands = (actions) ->
         f : -> actions.extend_selection(1)
 
     'find and replace' :
+        m : 'Find and Replace'
         k : [{"mode":"escape","which":70}, {"alt":true,"mode":"escape","which":70}]
         f : -> actions.show_find_and_replace()
 
     'global undo':
+        m : 'Undo'
         d : 'Global user-aware undo.  Undo the last change *you* made to the notebook.'
         k : [{alt:true,"mode":"escape","which":90}, {ctrl:true,"mode":"escape","which":90}]
         f : -> actions.undo()
 
     'global redo':
+        m : 'Redo'
         d : 'Global user-aware redo.  Redo the last change *you* made to the notebook.'
         k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}]
         f : -> actions.redo()
@@ -179,12 +205,15 @@ exports.commands = (actions) ->
         f : -> actions.signal('SIGINT')
 
     'merge cell with next cell' :
+        m : 'Merge Cell Below'
         f : -> actions.merge_cell_below()
 
     'merge cell with previous cell' :
+        m : 'Merge Cell Above'
         f : -> actions.merge_cell_above()
 
     'merge cells' :
+        m : 'Merge Selected Cells'
         k : [{"mode":"escape","shift":true,"which":77}]
         f : -> actions.merge_cells()
 
@@ -192,10 +221,12 @@ exports.commands = (actions) ->
         f : -> actions.merge_cells()
 
     'move cell down' :
+        m : 'Move Cell Down'
         k : [{"alt":true,"mode":"escape","which":40}]
         f : -> actions.move_selected_cells(1)
 
     'move cell up' :
+        m : 'Move Cell Up'
         k : [{"alt":true,"mode":"escape","which":38}]
         f : -> actions.move_selected_cells(-1)
 
@@ -205,24 +236,40 @@ exports.commands = (actions) ->
     'move cursor up' :
         f : -> actions.move_edit_cursor(-1)
 
+    'new notebook' :
+        m : "New..."
+        f : -> actions.file_new()
+
+    'open file':
+        m : 'Open...'
+        f : -> actions.file_open()
+
     'paste cell above' :
+        m : 'Paste Cells Above'
         k : [{"mode":"escape","shift":true,"which":86}, {"mode":"escape","shift":true,ctrl:true,"which":86},{"mode":"escape","shift":true,alt:true,"which":86}]
         f : -> actions.paste_cells(-1)
 
     'paste cell attachments' : undefined   # TODO ? not sure what the motivation is...
 
     'paste cell below' :  # jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
+        m : 'Paste Cells Below'
         f : -> actions.paste_cells(1)
 
     'paste cell and replace' :   # jupyter doesn't have this but it's supposed to be normal paste behavior
-        k : [{"mode":"escape","which":86}, {"mode":"escape",ctrl:true,"which":86},{"mode":"escape",alt:true,"which":86}]
+        m : 'Paste Cells & Replace'
+        k : [{"mode":"escape",alt:true,"which":86}, {"mode":"escape","which":86}, {"mode":"escape",ctrl:true,"which":86}]
         f : ->
             if store.get('sel_ids')?.size > 0
                 actions.paste_cells(0)
             else
                 actions.paste_cells(1)
 
+    'print preview' :
+        m : 'Print Preview...'
+        f : -> actions.print_preview()
+
     'rename notebook' :
+        m : 'Rename...'
         f : -> actions.file_action('rename')
 
     'restart kernel' :
@@ -269,7 +316,8 @@ exports.commands = (actions) ->
         f : -> actions.shift_enter_run_selected_cells(); actions.scroll('cell visible')
 
     'save notebook' :
-        k : [{which:83, ctrl:true}, {which:83, alt:true}]
+        m : 'Save'
+        k : [{which:83, alt:true}, {which:83, ctrl:true}]
         f : -> actions.save()
 
     'scroll cell center' :
@@ -325,8 +373,13 @@ exports.commands = (actions) ->
         f : -> actions.signal('SIGKILL')
 
     'split cell at cursor' :
+        m : 'Split Cell'
         k : [{ctrl:true, shift:true, which:189}]
         f : -> actions.set_mode('escape'); actions.split_current_cell()
+
+    'time travel' :
+        m : 'Time Travel...'
+        f : -> actions.show_history_viewer()
 
     'toggle all cells output collapsed':
         f : -> actions.toggle_all_outputs('collapsed')
@@ -335,6 +388,7 @@ exports.commands = (actions) ->
         f : -> actions.toggle_all_outputs('scrolled')
 
     'toggle all line numbers':
+        m : 'Toggle Line Numbers'
         k : [{"mode":"escape","shift":true,"which":76}]
         f : -> actions.toggle_line_numbers()
 
@@ -351,6 +405,7 @@ exports.commands = (actions) ->
         f : -> actions.toggle_selected_outputs('scrolled')
 
     'toggle header':
+        m : 'Toggle Header'
         f : -> actions.toggle_header()
 
     'toggle rtl layout': undefined
@@ -359,6 +414,7 @@ exports.commands = (actions) ->
         f : -> actions.toggle_toolbar()
 
     'trust notebook':
+        m : 'Trust Notebook'
         f : -> actions.trust_notebook()
 
     'undo cell deletion':
@@ -368,9 +424,12 @@ exports.commands = (actions) ->
     'user interface tour' : undefined
 
     'zoom in' :
+        m : 'Zoom In'
         k : [{ctrl:true, shift:true, which:190}]
         f : -> actions.zoom(1)
 
     'zoom out' :
+        m : 'Zoom Out'
         k : [{ctrl:true, shift:true, which:188}]
         f : -> actions.zoom(-1)
+

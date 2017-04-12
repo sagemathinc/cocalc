@@ -30,3 +30,57 @@ exports.KeyboardShortcuts = rclass
                 <Button onClick={@close}>Close</Button>
             </Modal.Footer>
         </Modal>
+
+SYMBOLS =
+    meta   : '⌘'
+    ctrl   : '⌃'
+    alt    : '⌥'
+    shift  : '⇧'
+    return : '↩'
+    space  : 'Space'
+    tab    : '⇥'
+    down   : 'down'
+    up     : 'up'
+    backspace : 'BS'
+
+IS_MAC = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+
+exports.KeyboardShortcut = rclass
+    propTypes :
+        shortcut : rtypes.object.isRequired
+
+    render: ->
+        s = ''
+        if @props.shortcut.shift
+            s += SYMBOLS.shift
+        if @props.shortcut.ctrl
+            s += SYMBOLS.ctrl
+        if @props.shortcut.alt
+            if IS_MAC
+                s += SYMBOLS.meta
+            else
+                s += SYMBOLS.alt
+        keyCode = @props.shortcut.which
+        switch keyCode
+            when 8
+                s += SYMBOLS.backspace
+            when 13
+                s += SYMBOLS.return
+            when 27
+                s += 'Esc'
+            when 40
+                s += SYMBOLS.down
+            when 38
+                s += SYMBOLS.up
+            else
+                chrCode = keyCode - (48 * Math.floor(keyCode / 48))
+                chr     = String.fromCharCode(if 96 <= keyCode then chrCode else keyCode)
+                s      += chr
+        <span style={fontFamily:'monospace'}>
+            {s}
+        </span>
+
+
+
+
+
