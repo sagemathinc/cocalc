@@ -33,11 +33,95 @@ exports.TopMenubar = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
+    render_file: ->
+        @render_menu
+            heading : 'File'
+            names   : [
+                'new notebook', 'open file', '', \
+                'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
+                'print preview', '<Download As...', '>download ipynb',  '>download python', '>download html', '>download markdown', '>download rst', '>download pdf', '', \
+                'trust notebook', '', \   # will have to be redone
+                'close and halt'
+            ]
+
+    render_edit: ->
+        @render_menu
+            heading : 'Edit'
+            names   : \
+                ["global undo", "global redo", "", \
+                 "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
+                 "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
+                 "move cell up", "move cell down", "", \
+                 "edit notebook metadata", "find and replace"]
+
+    render_view: ->
+        @render_menu
+            heading : 'View'
+            names : \
+                ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
+                 '<Cell Toolbar...', 'cell toolbar none', 'cell toolbar metadata', 'cell toolbar slideshow', '', \
+                 'zoom in', 'zoom out']
+
+    render_insert: ->
+        @render_menu
+            heading   : 'Insert'
+            names     : ['insert cell above', 'insert cell below']
+            min_width : '15em'
+
+    render_cell: ->
+        @render_menu
+            heading : 'Cell'
+            names   : [\
+                'run cell', 'run cell and select next', 'run cell and insert below', \
+                'run all cells', 'run all cells above', 'run all cells below', '', \
+                '<Cell Type...',\
+                '>change cell to code', '>change cell to markdown', '>change cell to raw', '', \
+                '<Current Output...',\
+                '>toggle cell output collapsed', '>toggle cell output scrolled', '>clear cell output', '', \
+                '<All Output...',\
+                '>toggle all cells output collapsed', '>toggle all cells output scrolled', '>clear all cells output'
+            ]
+
+    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
+    render_kernel_item: (kernel) ->
+        style = {marginLeft:'4ex'}
+        if kernel.name == @props.kernel
+            style.color = '#2196F3'
+            style.fontWeight = 'bold'
+        <MenuItem
+            key      = {kernel.name}
+            eventKey = "kernel-change-#{kernel.name}"
+            onSelect = {=>@props.actions.set_kernel(kernel.name); @focus()}
+            >
+            <span style={style}> {kernel.display_name} </span>
+        </MenuItem>
+
+    render_kernel_items: ->
+        if not @props.kernels?
+            return
+        else
+            for kernel in @props.kernels.toJS()
+                @render_kernel_item(kernel)
+
+    render_kernel: ->
+        names = ['interrupt kernel', 'confirm restart kernel', 'confirm restart kernel and clear output', \
+                 'confirm restart kernel and run all cells', '', \
+                 '<Change kernel...'].concat(@render_kernel_items())
+
+        @render_menu
+            heading : 'Kernel'
+            names   : names
+
     focus: ->
+        $(":focus").blur() # battling with react-bootstrap stupidity... ?
         @props.actions.focus(true)
 
     command: (name) ->
-        return => @props.actions?.command(name)
+        return =>
+            @props.actions?.command(name)
+            $(":focus").blur() # battling with react-bootstrap stupidity... ?
+            if not misc.endswith(@props.actions._commands?[name]?.m, '...')
+                @focus()
 
     reduxProps :
         "#{name}" :
@@ -48,6 +132,8 @@ exports.TopMenubar = rclass ({name}) ->
 
     menu_item: (key, name) ->
         if name
+            if typeof(name) != 'string'
+                return name  # it's already a MenuItem
             if name[0] == '<'
                 return <MenuItem disabled key={key}>{name.slice(1)}</MenuItem>
 
@@ -79,169 +165,17 @@ exports.TopMenubar = rclass ({name}) ->
         return (@menu_item(key, name) for key, name of names)
 
     render_menu: (opts) ->
-        {heading, names, opacity} = defaults opts,
+        {heading, names, opacity, min_width} = defaults opts,
             heading : required
             names   : required
-            opacity : OPACITY
+            opacity : 1
+            min_width : '20em'
         <Dropdown key={heading} id={heading}>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 {heading}
             </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:opacity, minWidth: '20em'}>
+            <Dropdown.Menu style={opacity:opacity, minWidth:min_width}>
                 {@menu_items(names)}
-            </Dropdown.Menu>
-        </Dropdown>
-
-    render_file: ->
-        @render_menu
-            heading : 'File'
-            names   : [
-                'new notebook', 'open file', '', \
-                'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
-                'print preview', '<Download As...', '>download ipynb',  '>download python', '>download html', '>download markdown', '>download rst', '>download pdf', '', \
-                'trust notebook', '', \   # will have to be redone
-                'close and halt'
-            ]
-
-    render_edit: ->
-        @render_menu
-            heading : 'Edit'
-            names   : \
-                ["global undo", "global redo", "", \
-                 "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
-                 "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
-                 "move cell up", "move cell down", "", \
-                 "edit notebook metadata", "find and replace"]
-
-    render_view: ->
-        @render_menu
-            heading : 'View'
-            names : \
-                ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
-                 '<Cell Toolbar...', 'cell toolbar none', 'cell toolbar metadata', 'cell toolbar slideshow', '', \
-                 'zoom in', 'zoom out']
-
-    render_insert: ->
-        <Dropdown key='insert'  id='menu-insert'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                 Insert
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem eventKey="insert-cell-above" onSelect={=>@props.actions.insert_cell(-1); @focus()}>Insert Cell Above</MenuItem>
-                <MenuItem eventKey="insert-cell-below" onSelect={=>@props.actions.insert_cell(1); @focus()} >Insert Cell Below</MenuItem>
-            </Dropdown.Menu>
-        </Dropdown>
-
-    render_cell: ->
-        <Dropdown key='cell'  id='menu-cell'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                Cell
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={opacity:OPACITY}>
-                <MenuItem
-                    eventKey = "run-cells"
-                    onSelect = { =>
-                        @props.actions.run_selected_cells()
-                        @props.actions.move_cursor_to_last_selected_cell()
-                        @props.actions.unselect_all_cells()
-                        @focus()
-                        } >
-                            Run Cells
-                </MenuItem>
-                <MenuItem eventKey="run-cells-select-below"
-                    onSelect = { =>
-                        @props.actions.run_selected_cells()
-                        @props.actions.move_cursor_after_selected_cells()
-                        @props.actions.unselect_all_cells()
-                        @focus()
-                        } >
-                            Run Cells and Select Below
-                </MenuItem>
-                <MenuItem eventKey="run-cells-insert-below"
-                    onSelect = { =>
-                        @props.actions.run_selected_cells()
-                        @props.actions.move_cursor_to_last_selected_cell()
-                        @props.actions.unselect_all_cells()
-                        @props.actions.insert_cell(1)
-                        @focus()
-                        setTimeout((()=>@props.actions.set_mode('edit')),0)
-                        } >
-                            Run Cells and Insert Below
-                </MenuItem>
-                <MenuItem eventKey="run-all" onSelect={=>@props.actions.run_all_cells(); @focus()}>Run All</MenuItem>
-                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_above(); @focus()}>Run All Above</MenuItem>
-                <MenuItem eventKey="run-all-below" onSelect={=>@props.actions.run_all_below(); @focus()}>Run All Below</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="" disabled>Cell Type...</MenuItem>
-                <MenuItem eventKey="cell-type-code"      onSelect={=>@props.actions.set_selected_cell_type('code'); @focus()} ><span style={marginLeft:'4ex'}/> Code</MenuItem>
-                <MenuItem eventKey="cell-type-markdown"  onSelect={=>@props.actions.set_selected_cell_type('markdown'); @focus()} ><span style={marginLeft:'4ex'}/> Markdown</MenuItem>
-                <MenuItem eventKey="cell-type-nbconvert" onSelect={=>@props.actions.set_selected_cell_type('nbconvert'); @focus()} ><span style={marginLeft:'4ex'}/> Raw NBConvert</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="" disabled>Current Outputs...</MenuItem>
-                <MenuItem eventKey="current-outputs-toggle"   onSelect={=>@props.actions.toggle_selected_outputs('collapsed'); @focus()}  ><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="current-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_selected_outputs('scrolled')}><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="current-outputs-clear"    onSelect={=>@props.actions.clear_selected_outputs(); @focus()} ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="" disabled>All Output...</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle"     onSelect={=>@props.actions.toggle_all_outputs('collapsed'); @focus()}><span style={marginLeft:'4ex'}/> Toggle</MenuItem>
-                <MenuItem eventKey="all-outputs-toggle-scrolling" onSelect={=>@props.actions.toggle_all_outputs('scrolled'); @focus()} ><span style={marginLeft:'4ex'}/> Toggle Scrolling</MenuItem>
-                <MenuItem eventKey="all-outputs-clear"      onSelect={=>@props.actions.clear_all_outputs(); @focus()}  ><span style={marginLeft:'4ex'}/> Clear</MenuItem>
-            </Dropdown.Menu>
-        </Dropdown>
-
-    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
-    render_kernel_item: (kernel) ->
-        style = {marginLeft:'4ex'}
-        if kernel.name == @props.kernel
-            style.color = '#2196F3'
-            style.fontWeight = 'bold'
-        <MenuItem
-            key      = {kernel.name}
-            eventKey = "kernel-change-#{kernel.name}"
-            onSelect = {=>@props.actions.set_kernel(kernel.name); @focus()}
-            >
-            <span style={style}> {kernel.display_name} </span>
-        </MenuItem>
-
-    render_kernel_items: ->
-        if not @props.kernels?
-            return
-        else
-            for kernel in @props.kernels.toJS()
-                @render_kernel_item(kernel)
-
-    render_kernel: ->
-        <Dropdown key='kernel'  id='menu-kernel'>
-            <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
-                Kernel
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-                <MenuItem
-                    eventKey = "kernel-interrupt"
-                    onSelect = {=>@props.actions.signal('SIGINT'); @focus()}>
-                    Interrrupt
-                </MenuItem>
-                <MenuItem
-                    eventKey = "kernel-restart"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @focus()}
-                    >
-                    Restart...
-                </MenuItem>
-                <MenuItem
-                    eventKey="kernel-restart-clear"
-                    onSelect = {@command("confirm restart kernel and clear output")}
-                    >
-                    Restart & Clear Output...
-                </MenuItem>
-                <MenuItem
-                    eventKey="kernel-run-all"
-                    onSelect = {=>@props.actions.signal('SIGKILL'); @props.actions.run_all_cells(); @focus()}
-                    >
-                    Restart & Run All...
-                </MenuItem>
-                <MenuItem divider />
-                <MenuItem eventKey="" disabled>Change kernel...</MenuItem>
-                {@render_kernel_items()}
             </Dropdown.Menu>
         </Dropdown>
 

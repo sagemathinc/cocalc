@@ -369,6 +369,7 @@ class exports.JupyterActions extends Actions
             @select_cell(target_id)
 
     set_mode: (mode) =>
+        console.log 'set mode to ', mode, ' from ', @store.get('mode')
         if mode == 'escape'
             if @store.get('mode') == 'escape'
                 return
@@ -376,9 +377,9 @@ class exports.JupyterActions extends Actions
             # save code being typed
             @_get_cell_input()
             # Now switch.
+            console.log 'actually switch to ', mode
             @setState(mode: mode)
-            if mode == 'escape'
-                @set_cursor_locs([])  # none
+            @set_cursor_locs([])  # none
         else if mode == 'edit'
             if @store.get('mode') == 'edit'
                 return
@@ -1359,4 +1360,3 @@ class exports.JupyterActions extends Actions
 
 
 
-        

@@ -9,12 +9,16 @@ The static buttonbar at the top.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+misc = require('smc-util/misc')
+{required, defaults} = misc
+
 
 exports.TopButtonbar = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
     focus: ->
+        $(":focus").blur() # battling with react-bootstrap stupidity... ?
         @props.actions.focus(true)
 
     reduxProps :
@@ -29,43 +33,37 @@ exports.TopButtonbar = rclass ({name}) ->
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
             next.has_unsaved_changes != @props.has_unsaved_changes
 
-    render_add_cell: ->
-        <Button onClick={=>@props.actions.insert_cell(1); @focus()}>
-            <Icon name='plus'/>
+    command: (name) ->
+        return =>
+            @props.actions?.command(name)
+            @focus()
+
+    render_button: (key, name) ->
+        obj = @props.actions._commands?[name]
+        <Button key={key} onClick={@command(name)} title={obj.m} >
+            <Icon name={obj.i}/>
         </Button>
 
-    render_group_edit: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.cut_selected_cells(); @focus()}>
-                <Icon name='scissors'/>
-            </Button>
-            <Button onClick={=>@props.actions.copy_selected_cells(); @focus()}>
-                <Icon name='files-o'/>
-            </Button>
-            <Button onClick={=>@props.actions.paste_cells(0); @focus()}>
-                <Icon name='clipboard'/>
-            </Button>
+    render_buttons: (names) ->
+        for key, name of names
+            @render_button(key, name)
+
+    render_button_group: (names) ->
+        <ButtonGroup>
+            {@render_buttons(names)}
         </ButtonGroup>
+
+    render_add_cell: ->
+        @render_buttons(['insert cell below'])
+
+    render_group_edit: ->
+        @render_button_group(['cut cell', 'copy cell', 'paste cell and replace'])
 
     render_group_move: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.move_selected_cells(-1); @focus()}>
-                <Icon name='arrow-up'/>
-            </Button>
-            <Button  onClick={=>@props.actions.move_selected_cells(1); @focus()}>
-                <Icon name='arrow-down'/>
-            </Button>
-        </ButtonGroup>
+        @render_button_group(['move cell up', 'move cell down'])
 
     render_group_run: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.shift_enter_run_selected_cells(); @focus()}>
-                <Icon name='play'/> Run
-            </Button>
-            <Button onClick={=>@props.actions.signal('SIGINT'); @focus()}>
-                <Icon name='stop'/> Stop
-            </Button>
-        </ButtonGroup>
+        @render_button_group(['run cell and select next', 'interrupt kernel'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
@@ -77,34 +75,24 @@ exports.TopButtonbar = rclass ({name}) ->
         else
             cell_type = @props.cells?.getIn([@props.cur_id, 'cell_type']) ? 'code'
         <FormControl
-            style          = {marginLeft : '5px'}
             componentClass = "select"
             placeholder    = "select"
             onChange       = {@cell_select_type}
             value          = {cell_type ? 'code'}>
             <option value="code"          >Code</option>
             <option value="markdown"      >Markdown</option>
-            <option value="raw-nbconvert" >Raw NBConvert</option>
+            <option value="raw" >Raw NBConvert</option>
             <option value="multi" disabled >-</option>
         </FormControl>
 
     render_keyboard: ->
-        <Button style={marginLeft:'5px'}>
-            <Icon name='keyboard-o'/>
-        </Button>
+        @render_button('0', 'show keyboard shortcuts')
 
     render_group_undo_redo: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
-            <Button onClick={=>@props.actions.undo(); @focus()}>
-                <Icon name='undo'/>
-            </Button>
-            <Button onClick={=>@props.actions.redo(); @focus()}>
-                <Icon name='repeat'/>
-            </Button>
-        </ButtonGroup>
+        @render_button_group(['global undo', 'global redo'])
 
     render_group_zoom: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
+        <ButtonGroup>
             <Button onClick={=>@props.actions.zoom(-1); @focus()}>
                 <Icon name='font' style={fontSize:'7pt'}/>
             </Button>
@@ -115,7 +103,7 @@ exports.TopButtonbar = rclass ({name}) ->
 
 
     render_group_save_timetravel: ->
-        <ButtonGroup  style={marginLeft:'5px'}>
+        <ButtonGroup>
             <Button
                 bsStyle  = "success"
                 onClick  = {=>@props.actions.save(); @focus()}
@@ -133,13 +121,21 @@ exports.TopButtonbar = rclass ({name}) ->
         <div style={margin: '1px 1px 0px 10px', backgroundColor:'#fff'}>
             <Form inline>
                 {@render_add_cell()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_edit()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_move()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_undo_redo()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_zoom()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_run()}
+                <span style={marginLeft:'5px'}/>
                 {@render_select_cell_type()}
+                <span style={marginLeft:'5px'}/>
                 {@render_keyboard()}
+                <span style={marginLeft:'5px'}/>
                 {@render_group_save_timetravel()}
             </Form>
         </div>

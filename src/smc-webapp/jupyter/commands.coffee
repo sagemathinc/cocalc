@@ -18,40 +18,51 @@ exports.commands = (actions) ->
         m : 'Slideshow'
 
     'change cell to code' :
+        m : 'Change to Code'
         k : [{which:89, mode:'escape'}]
         f : -> actions.set_selected_cell_type('code')
 
     'change cell to heading 1' :
+        m : 'Heading 1'
         k : [{which:49, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 1)
     'change cell to heading 2' :
+        m : 'Heading 2'
         k : [{which:50, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 2)
     'change cell to heading 3' :
+        m : 'Heading 3'
         k : [{which:51, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 3)
     'change cell to heading 4' :
+        m : 'Heading 4'
         k : [{which:52, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 4)
     'change cell to heading 5' :
+        m : 'Heading 5'
         k : [{which:53, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 5)
     'change cell to heading 6' :
+        m : 'Heading 6'
         k : [{which:54, mode:'escape'}]
         f : -> actions.change_cell_to_heading(id(), 6)
 
     'change cell to markdown' :
+        m : 'Change to Markdown'
         k : [{which:77, mode:'escape'}]
         f : -> actions.set_selected_cell_type('markdown')
 
     'change cell to raw' :
+        m : 'Change to Raw'
         k : [{which:82, mode:'escape'}]
         f : -> actions.set_selected_cell_type('raw')
 
     'clear all cells output' :
+        m : 'Clear All Output'
         f : -> actions.clear_all_outputs()
 
     'clear cell output' :
+        m : 'Clear Output'
         f : -> actions.clear_selected_outputs()
 
     'close and halt' :
@@ -62,10 +73,12 @@ exports.commands = (actions) ->
             actions.file_action('close_file')
 
     'close pager' :
+        m : 'Close Pager'
         k : [{which:27, mode:'escape'}]
         f : -> actions.clear_introspect() if store.get('introspect')?
 
     'confirm restart kernel' :
+        m : 'Restart Kernel...'
         k : [{"mode":"escape","which":48,twice:true}]
         f : ->
             actions.confirm_dialog
@@ -77,6 +90,7 @@ exports.commands = (actions) ->
                         actions.signal('SIGKILL')
 
     'confirm restart kernel and clear output' :
+        m : 'Restart and Clear Output...'
         f : ->
             actions.confirm_dialog
                 title   : 'Restart kernel and clear all output?'
@@ -88,6 +102,7 @@ exports.commands = (actions) ->
                         actions.clear_all_outputs()
 
     'confirm restart kernel and run all cells' :
+        m : 'Restart and Run All...'
         f : ->
             actions.confirm_dialog
                 title   : 'Restart kernel and re-run the whole notebook?'
@@ -99,6 +114,7 @@ exports.commands = (actions) ->
                         actions.run_all_cells()
 
     'confirm shutdown kernel' :
+        m : 'Shutdown Kernel...'
         f : ->
             actions.confirm_dialog
                 title   : 'Shutdown kernel?'
@@ -109,14 +125,16 @@ exports.commands = (actions) ->
                         actions.signal('SIGKILL')
 
     'copy cell' :
-        m : 'Copy cells'
+        i : 'files-o'
+        m : 'Copy Cells'
         k : [{"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67}, {"mode":"escape","which":67, ctrl:true}]
         f : -> actions.copy_selected_cells()
 
     'copy cell attachments' : undefined   # no clue what this means or is for... but I can guess...
 
     'cut cell' :
-        m : 'Cut cells'
+        i : 'scissors'
+        m : 'Cut Cells'
         k : [{"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88}, {"mode":"escape","which":88, ctrl:true}]
         f : -> actions.cut_selected_cells()
 
@@ -132,6 +150,7 @@ exports.commands = (actions) ->
         f : -> actions.file_action('duplicate')
 
     'edit keyboard shortcuts' :
+        m : 'Keyboard Shortcuts and Commands'
         f : -> actions.show_keyboard_shortcuts()
 
     'edit notebook metadata' :  # TODO
@@ -168,39 +187,50 @@ exports.commands = (actions) ->
 
     'global undo':
         m : 'Undo'
+        i : 'undo'
         d : 'Global user-aware undo.  Undo the last change *you* made to the notebook.'
         k : [{alt:true,"mode":"escape","which":90}, {ctrl:true,"mode":"escape","which":90}]
         f : -> actions.undo()
 
     'global redo':
         m : 'Redo'
+        i : 'repeat'
         d : 'Global user-aware redo.  Redo the last change *you* made to the notebook.'
         k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}]
         f : -> actions.redo()
 
     'hide all line numbers' :
+        m : 'Hide All Line Numbers'
         f : -> actions.set_line_numbers(false)
 
     'hide header' :
+        m : 'Hide Header'
         f : -> actions.set_header_state(true)
 
     'hide toolbar' :
+        m : 'Hide Toolbar'
         f : -> actions.set_toolbar_state(false)
 
     'ignore' : undefined   # no clue what this means
 
     'insert cell above' :
+        m : 'Insert Cell Above'
         k : [{"mode":"escape","which":65}]
         f : -> actions.insert_cell(-1)
 
     'insert cell below' :
+        i : 'plus'
+        m : 'Insert Cell Below'
         k : [{"mode":"escape","which":66}]
         f : -> actions.insert_cell(1)
 
     'insert image' :
+        m : 'Insert Image...'
         f : -> actions.insert_image()
 
     'interrupt kernel' :
+        i : 'stop'
+        m : 'Interrupt Kernel'
         k : [{"mode":"escape","which":73,twice:true}]
         f : -> actions.signal('SIGINT')
 
@@ -218,14 +248,17 @@ exports.commands = (actions) ->
         f : -> actions.merge_cells()
 
     'merge selected cells' :   # why is this in jupyter; it's the same as the above?
+        m : 'Merge Selected Cells'
         f : -> actions.merge_cells()
 
     'move cell down' :
+        i : 'arrow-down'
         m : 'Move Cell Down'
         k : [{"alt":true,"mode":"escape","which":40}]
         f : -> actions.move_selected_cells(1)
 
     'move cell up' :
+        i : 'arrow-up'
         m : 'Move Cell Up'
         k : [{"alt":true,"mode":"escape","which":38}]
         f : -> actions.move_selected_cells(-1)
@@ -256,6 +289,7 @@ exports.commands = (actions) ->
         f : -> actions.paste_cells(1)
 
     'paste cell and replace' :   # jupyter doesn't have this but it's supposed to be normal paste behavior
+        i : 'clipboard'
         m : 'Paste Cells & Replace'
         k : [{"mode":"escape",alt:true,"which":86}, {"mode":"escape","which":86}, {"mode":"escape",ctrl:true,"which":86}]
         f : ->
@@ -273,32 +307,40 @@ exports.commands = (actions) ->
         f : -> actions.file_action('rename')
 
     'restart kernel' :
+        m : 'Restart Kernel'
         f : -> actions.signal('SIGKILL')
 
     'restart kernel and clear output' :
+        m : 'Restart Kernel and Clear Output'
         f : ->
             actions.signal('SIGKILL')
             actions.clear_all_outputs()
 
     'restart kernel and run all cells' :
+        m : 'Restart and Run All'
         f : ->
             actions.signal('SIGKILL')
             actions.run_all_cells()
 
-    'run all cells ' :
+    'run all cells' :
+        m : 'Run All'
         f : -> actions.run_all_cells()
 
     'run all cells above' :
+        m : 'Run All Above'
         f : -> actions.run_all_cells_above()
 
     'run all cells below' :
+        m : 'Run All Below'
         f : -> actions.run_all_cells_below()
 
     'run cell' :
+        m : 'Run Cells'
         k : [{which:13, ctrl:true}]
         f : -> actions.run_selected_cells(); actions.set_mode('escape'); actions.scroll('cell visible')
 
     'run cell and insert below' :
+        m : 'Run Cells and Insert Below'
         k : [{which:13, alt:true}]
         f : ->
             v = store.get_selected_cell_ids_list()
@@ -312,6 +354,8 @@ exports.commands = (actions) ->
             actions.scroll('cell visible')
 
     'run cell and select next' :
+        i : 'play'
+        m : 'Run Cells and Select Below'
         k : [{which:13, shift:true}]
         f : -> actions.shift_enter_run_selected_cells(); actions.scroll('cell visible')
 
@@ -341,6 +385,7 @@ exports.commands = (actions) ->
         f : -> actions.scroll('list up')
 
     'select all cells' :
+        m : 'Select All Cells'
         k : [{"alt":true,"mode":"escape","which":65}, {"ctrl":true,"mode":"escape","which":65}]
         f : -> actions.select_all_cells()
 
@@ -356,20 +401,26 @@ exports.commands = (actions) ->
         f : -> actions.set_line_numbers(false)
 
     'show command palette':
+        m : 'Show Command Palette...'
         k : [{"alt":true,"mode":"escape","shift":true,"which":80}]
         f : -> actions.show_keyboard_shortcuts()
 
     'show header':
+        m : 'Show Header'
         f : -> actions.set_header_state(false)
 
     'show keyboard shortcuts':
+        i : 'keyboard-o'
+        m : 'Show Keyboard Shortcuts...'
         k : [{"mode":"escape","which":72}]
         f : -> actions.show_keyboard_shortcuts()
 
     'show toolbar':
+        m : 'Show Toolbar'
         f : -> actions.set_toolbar_state(true)
 
     'shutdown kernel':
+        m : 'Shutdown Kernel'
         f : -> actions.signal('SIGKILL')
 
     'split cell at cursor' :
@@ -382,25 +433,30 @@ exports.commands = (actions) ->
         f : -> actions.show_history_viewer()
 
     'toggle all cells output collapsed':
+        m : 'Toggle All Collapsed'
         f : -> actions.toggle_all_outputs('collapsed')
 
     'toggle all cells output scrolled':
+        m : 'Toggle All Scrolled'
         f : -> actions.toggle_all_outputs('scrolled')
 
     'toggle all line numbers':
-        m : 'Toggle Line Numbers'
+        m : 'Toggle All Line Numbers'
         k : [{"mode":"escape","shift":true,"which":76}]
         f : -> actions.toggle_line_numbers()
 
     'toggle cell line numbers':
+        m : 'Toggle Cell Line Numbers'
         k : [{"mode":"escape","which":76}]
         f : -> actions.toggle_cell_line_numbers(id())
 
     'toggle cell output collapsed':
+        m : 'Toggle Collapsed'
         k : [{"mode":"escape","which":79}]
         f : -> actions.toggle_selected_outputs('collapsed')
 
     'toggle cell output scrolled':
+        m : 'Toggle Scrolled'
         k : [{"mode":"escape","which":79, shift:true}]
         f : -> actions.toggle_selected_outputs('scrolled')
 
@@ -408,9 +464,11 @@ exports.commands = (actions) ->
         m : 'Toggle Header'
         f : -> actions.toggle_header()
 
-    'toggle rtl layout': undefined
+    'toggle rtl layout':  # TODO
+        m : 'Toggle RTL Layout'
 
     'toggle toolbar':
+        m : 'Toggle Toolbar'
         f : -> actions.toggle_toolbar()
 
     'trust notebook':
@@ -418,10 +476,12 @@ exports.commands = (actions) ->
         f : -> actions.trust_notebook()
 
     'undo cell deletion':
+        m : 'Undo Cell Deletion'
         k : [{"mode":"escape","which":90}]
         f : -> actions.undo()
 
-    'user interface tour' : undefined
+    'user interface tour' :  # TODO
+        m : 'User Interface Tour'
 
     'zoom in' :
         m : 'Zoom In'
