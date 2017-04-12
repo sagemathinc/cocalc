@@ -1778,6 +1778,7 @@ exports.SMC_Dropwrapper = rclass
         close_preview: ->
             @props.on_close?()
             @dropzone?.removeAllFiles()
+            @setState(files : [])
 
         render_preview: ->
             if not @props.show_upload and @state.files.length == 0
@@ -1824,7 +1825,6 @@ exports.SMC_Dropwrapper = rclass
             return unless @dropzone?
 
             for name, handlers of @props.event_handlers
-                console.log "registering", name
                 # Check if there's an array of event handlers
                 if Object.prototype.toString.call(handlers) == '[object Array]'
                     for handler in handlers
@@ -1844,16 +1844,6 @@ exports.SMC_Dropwrapper = rclass
                     files = @state.files
                     files.push(file)
                     @setState(files : files)
-
-            @dropzone.on 'removedfile', (file) =>
-                files = @state.files
-                return unless file and files
-
-                for item, i in files
-                    if item.name == file.name and item.size == file.size
-                        files.splice(i, 1)
-
-                @setState(files : files)
 
         # Removes ALL listeners and Destroys dropzone.
         # see https://github.com/enyo/dropzone/issues/1175
