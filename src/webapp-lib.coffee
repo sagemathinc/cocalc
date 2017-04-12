@@ -10,6 +10,10 @@
 
 require("script!primus/primus-engine.min.js")
 
+# polyfill Number.isNaN for IE -- see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
+Number.isNaN = Number.isNaN || (value) ->
+    typeof value == "number" and isNaN(value)
+
 # polyfill for internet explorer's lack of knowing String.prototype.startswith
 String::startsWith ?= (searchString, position) ->
     pos = position ? 0
