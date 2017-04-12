@@ -430,17 +430,20 @@ Student = rclass
             @setState(edited_first_name : next.student_name.first)
         if @props.student_name.last != next.student_name.last
             @setState(edited_last_name : next.student_name.last)
+        if @props.student.get('email_address') != next.student.get('email_address')
+            @setState(edited_email_address : next.student.get('email_address'))
 
     getInitialState: ->
         confirm_delete    : false
         editing_student   : false
         edited_first_name : @props.student_name.first
         edited_last_name  : @props.student_name.last
+        edited_email_address      : @props.student.get('email_address')
 
     on_key_down: (e) ->
         switch e.keyCode
             when 13
-                @save_student_name()
+                @save_student_changes()
             when 27
                 @cancel_student_edit()
 
@@ -526,7 +529,7 @@ Student = rclass
                         </Tip>
                     </Button>
                 </ButtonGroup>
-                {@render_edit_name() if @props.student.get('account_id')}
+                {@render_edit_student() if @props.student.get('account_id')}
             </ButtonToolbar>
         else
             <Tip placement='right'
@@ -537,11 +540,16 @@ Student = rclass
                 </Button>
             </Tip>
 
-    render_edit_name: ->
+    student_changed: ->
+        @props.student_name.first != @state.edited_first_name or
+            @props.student_name.last != @state.edited_last_name or
+            @props.student.get('email_address') != @state.edited_email_address
+
+    render_edit_student: ->
         if @state.editing_student
-            disable_save = @props.student_name.first == @state.edited_first_name and @props.student_name.last == @state.edited_last_name
+            disable_save = not @student_changed()
             <ButtonGroup>
-                <Button onClick={@save_student_name} bsStyle='success' disabled={disable_save}>
+                <Button onClick={@save_student_changes} bsStyle='success' disabled={disable_save}>
                     <Icon name='save'/> Save
                 </Button>
                 <Button onClick={@cancel_student_edit} >
@@ -556,8 +564,12 @@ Student = rclass
     cancel_student_edit: ->
         @setState(@getInitialState())
 
-    save_student_name: ->
-        @actions(@props.name).set_internal_student_name(@props.student, @state.edited_first_name, @state.edited_last_name)
+    save_student_changes: ->
+        @actions(@props.name).set_internal_student_info @props.student,
+            first_name    : @state.edited_first_name
+            last_name     : @state.edited_last_name
+            email_address : @state.edited_email_address
+
         @setState(editing_student:false)
 
     show_edit_name_dialogue: ->
@@ -723,6 +735,20 @@ Student = rclass
                             onClick    = {(e) => e.stopPropagation(); e.preventDefault()}
                             onChange   = {(e) => @setState(edited_last_name : e.target.value)}
                             onKeyDown  = {@on_key_down}
+                        />
+                    </FormGroup>
+                </Col>
+            </Row>
+            <Row>
+                <Col md=12>
+                    Email Address
+                    <FormGroup>
+                        <FormControl
+                            type      = 'text'
+                            value     = {@state.edited_email_address}
+                            onClick   = {(e) => e.stopPropagation(); e.preventDefault()}
+                            onChange  = {(e) => @setState(edited_email_address : e.target.value)}
+                            onKeyDown = {@on_key_down}
                         />
                     </FormGroup>
                 </Col>
