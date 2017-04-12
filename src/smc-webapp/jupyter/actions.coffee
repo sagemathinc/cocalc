@@ -190,19 +190,22 @@ class exports.JupyterActions extends Actions
 
     # Set the input of the given cell in the syncdb, which will also
     # change the store.
-    set_cell_input: (id, input) =>
+    set_cell_input: (id, input, save=true) =>
         @_set
             type  : 'cell'
             id    : id
             input : input
             start : null
-            end   : null
+            end   : null,
+            save
 
-    set_cell_output: (id, output) =>
+
+    set_cell_output: (id, output, save=true) =>
         @_set
             type   : 'cell'
             id     : id
-            output : output
+            output : output,
+            save
 
     clear_selected_outputs: =>
         cells = @store.get('cells')
@@ -318,6 +321,9 @@ class exports.JupyterActions extends Actions
     unselect_all_cells: =>
         @setState(sel_ids : immutable.Set())
 
+    select_all_cells: =>
+        @setState(sel_ids : @store.get('cell_list').toSet())
+
     # select all cells from the currently focused one (where the cursor is -- cur_id)
     # to the cell with the given id, then set the cursor to be at id.
     select_cell_range: (id) =>
@@ -373,11 +379,17 @@ class exports.JupyterActions extends Actions
             @setState(mode: mode)
             if mode == 'escape'
                 @set_cursor_locs([])  # none
-        else
-            # from escape to edit
+        else if mode == 'edit'
             if @store.get('mode') == 'edit'
                 return
+            # from escape to edit
             @setState(mode:mode)
+            id = @store.get('cur_id')
+            type = @store.getIn(['cells', id, 'cell_type'])
+            if type == 'markdown'
+                @set_md_cell_editing(id)
+        else
+            @set_error("unknown mode '#{mode}'")
 
     set_cell_list: =>
         cells = @store.get('cells')
@@ -712,7 +724,10 @@ class exports.JupyterActions extends Actions
         if cell_list?.get(cell_list.size-1) == last_id
             @set_cur_id(last_id)
             @insert_cell(1)
-            @set_mode('edit')
+            # this is ugly, but I don't know a better way; when the codemirror editor of
+            # the current cell unmounts, it blurs, which happens after right now.
+            # So we just change the mode back to edit slightly in the future.
+            setTimeout((()=>@set_mode('edit')), 10)
         else
             @set_mode('escape')
             @move_cursor(1)
@@ -813,13 +828,13 @@ class exports.JupyterActions extends Actions
         if right
             v = [right].concat(v)
         bottom = v.join('\n')
-        @set_cell_input(new_id, top)
-        @set_cell_input(cursor.id, bottom)
+        @set_cell_input(new_id, top, false)
+        @set_cell_input(cursor.id, bottom, true)
         @set_cur_id(cursor.id)
 
     # Copy content from the cell below the current cell into the currently
     # selected cell, then delete the cell below the current cell.s
-    merge_cell_below: =>
+    merge_cell_below: (save=true) =>
         cur_id = @store.get('cur_id')
         if not cur_id?
             return
@@ -830,14 +845,50 @@ class exports.JupyterActions extends Actions
         if not cells?
             return
         input  = (cells.get(cur_id)?.get('input') ? '') + '\n' + (cells.get(next_id)?.get('input') ? '')
+
+        output = undefined
+        output0 = cells.get(cur_id)?.get('output')
+        output1 = cells.get(next_id)?.get('output')
+        if not output0?
+            output = output1
+        else if not output1?
+            output = output0
+        else
+            # both output0 and output1 are defined; need to merge.
+            # This is complicated since output is a map from string numbers.
+            output = output0
+            n = output0.size
+            for i in [0...output1.size]
+                output = output.set("#{n}", output1.get("#{i}"))
+                n += 1
+
         @_delete({type:'cell', id:next_id}, false)
-        @set_cell_input(cur_id, input)
+        @_set
+            type   : 'cell'
+            id     : cur_id
+            input  : input
+            output : output ? null
+            start  : null
+            end    : null,
+            save
         return
 
     merge_cell_above: =>
         @move_cursor(-1)
         @merge_cell_below()
         return
+
+    # Merge all selected cells into one cell.
+    # We also merge all output, instead of throwing away
+    # all but first output (which jupyter does, and makes no sense).
+    merge_cells: =>
+        v = @store.get_selected_cell_ids_list()
+        n = v?.length
+        if not n? or n <= 1
+            return
+        @set_cur_id(v[0])
+        for i in [0...n-1]
+            @merge_cell_below(i == n-2)
 
     # Copy all currently selected cells into our internal clipboard
     copy_selected_cells: =>
@@ -921,12 +972,17 @@ class exports.JupyterActions extends Actions
             @_sync()
 
     toggle_toolbar: =>
-        val = not @store.get('toolbar')
+        @set_toolbar_state(not @store.get('toolbar'))
+
+    set_toolbar_state: (val) =>  # val = true = visible
         @setState(toolbar: val)
         @set_local_storage('hide_toolbar', not val)
 
     toggle_header: =>
         @redux?.getActions('page').toggle_fullscreen()
+
+    set_header_state: (val) =>
+        @redux?.getActions('page').set_fullscreen(val)
 
     set_line_numbers: (show) =>
         @set_local_storage('line_numbers', !!show)
@@ -990,7 +1046,7 @@ class exports.JupyterActions extends Actions
     # Meant to be used for implementing actions -- do not call externally
     _get_cell_input: (id) =>
         id ?= @store.get('cur_id')
-        return (@_input_editors?[id]?() ? cell.get('input') ? '')
+        return (@_input_editors?[id]?() ? @store.getIn(['cells', id, 'input']) ? '')
 
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel
@@ -1266,5 +1322,28 @@ class exports.JupyterActions extends Actions
             if confirm_dialog?
                 @setState(confirm_dialog: confirm_dialog.set('choice', choice))
 
+    trust_notebook: =>
+        # TODO:...
+        @setState(trust: true)
+        @set_error("trust_notebook not implemented")
+
+    insert_image: =>
+        # TODO -- this will bring up dialog with button to select file (use dropzone); on selection
+        # it will send to backend, etc.... and end up displayed in cell somehow.
+        @set_error("insert_image not implemented")
+
     command: (name) =>
-        @_commands?[name]?.f?()
+        f = @_commands?[name]?.f
+        if f?
+            f()
+        else
+            @set_error("Command '#{name}' is not implemented")
+        return
+
+    # if cell is being edited, use this to move the cursor *in that cell*
+    move_edit_cursor: (delta) =>
+        @set_error('move_edit_cursor not implemented')
+
+    # # supported scroll positions are in commands.coffee
+    scroll: (pos) =>
+        @setState(scroll: pos)

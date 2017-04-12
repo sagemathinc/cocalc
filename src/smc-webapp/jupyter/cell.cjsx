@@ -119,7 +119,12 @@ exports.Cell = rclass
         if @props.is_selected
             style.background = '#e3f2fd'
 
-        <div style={style} onClick={@click_on_cell}>
+        # Note that the cell id is used for the cell-list.cjsx scroll functionality.
+        <div
+            style   = {style}
+            onClick = {@click_on_cell}
+            id      = {@props.id}
+            >
             {@render_time(@props.cell)}
             {@render_cell_input(@props.cell)}
             {@render_cell_output(@props.cell)}

@@ -49,6 +49,7 @@ exports.JupyterEditor = rclass ({name}) ->
             confirm_dialog      : rtypes.immutable.Map
             find_and_replace    : rtypes.immutable.Map
             keyboard_shortcuts  : rtypes.immutable.Map
+            scroll              : rtypes.string
 
     render_error: ->
         if @props.error
@@ -95,6 +96,7 @@ exports.JupyterEditor = rclass ({name}) ->
             complete     = {@props.complete}
             is_focused   = {@props.is_focused}
             more_output  = {@props.more_output}
+            scroll       = {@props.scroll}
             />
 
     render_introspect: ->

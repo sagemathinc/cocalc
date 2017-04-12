@@ -29,6 +29,7 @@ exports.CellList = rclass
         complete     : rtypes.immutable.Map            # status of tab completion
         is_focused   : rtypes.bool
         more_output  : rtypes.immutable.Map
+        scroll       : rtypes.string
 
     componentWillUnmount: ->
         # save scroll state
@@ -78,6 +79,45 @@ exports.CellList = rclass
                 @props.actions.enable_key_handler()
             else
                 @props.actions.disable_key_handler()
+        if next.scroll?
+            @scroll_cell_list(next.scroll)
+            @props.actions.scroll()  # reset scroll request state
+
+    scroll_cell_list: (scroll) ->
+        elt = $(ReactDOM.findDOMNode(@refs.cell_list))
+        if elt.length > 0
+            # supported scroll positions are in commands.coffee
+            if scroll == 'cell visible'
+                # ensure selected cell is visible
+                cur = elt.find("##{@props.cur_id}")
+                if cur.length > 0
+                    top = cur.position().top - elt.position().top
+                    if top < 0
+                        scroll = 'cell top'
+                    else if top > elt.height()
+                        scroll = 'cell bottom'
+                    else
+                        return
+            switch scroll
+                when 'list up'
+                    # move scroll position of list up one page
+                    elt.scrollTop(elt.scrollTop() - elt.height()*.9)
+                when 'list down'
+                    # move scroll position of list up one page
+                    elt.scrollTop(elt.scrollTop() + elt.height()*.9)
+                when 'cell top'
+                    cur = elt.find("##{@props.cur_id}")
+                    if cur.length > 0
+                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top))
+                when 'cell center'
+                    cur = elt.find("##{@props.cur_id}")
+                    if cur.length > 0
+                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top) - elt.height()*.5)
+                when 'cell bottom'
+                    cur = elt.find("##{@props.cur_id}")
+                    if cur.length > 0
+                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top) - elt.height()*.9)
+
 
     render_loading: ->
         <div style={fontSize: '32pt', color: '#888', textAlign: 'center', marginTop: '15px'}>

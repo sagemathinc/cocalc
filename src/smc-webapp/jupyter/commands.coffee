@@ -96,13 +96,13 @@ exports.commands = (actions) ->
         k : [{"mode":"escape","which":67}, {"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67, ctrl:true}]
         f : -> actions.copy_selected_cells()
 
-    'copy cell attachments' : undefined
+    'copy cell attachments' : undefined   # no clue what this means or is for... but I can guess...
 
     'cut cell' :
         k : [{"mode":"escape","which":88}, {"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88, ctrl:true}]
         f : -> actions.cut_selected_cells()
 
-    'cut cell attachments' : undefined
+    'cut cell attachments' : undefined    # no clue
 
     'delete cell' :  # jupyter has this but with d,d as shortcut, since they have no undo.
         k : [{"mode":"escape","which":68,twice:true}, {"mode":"escape","which":8,twice:true}]
@@ -155,41 +155,61 @@ exports.commands = (actions) ->
     'hide all line numbers' :
         f : -> actions.set_line_numbers(false)
 
-    'hide header' : undefined
+    'hide header' :
+        f : -> actions.set_header_state(true)
 
-    'hide toolbar' : undefined
+    'hide toolbar' :
+        f : -> actions.set_toolbar_state(false)
 
-    'ignore' : undefined
+    'ignore' : undefined   # no clue what this means
 
-    'insert cell above' : undefined
+    'insert cell above' :
+        k : [{"mode":"escape","which":65}]
+        f : -> actions.insert_cell(-1)
 
-    'insert cell below' : undefined
+    'insert cell below' :
+        k : [{"mode":"escape","which":66}]
+        f : -> actions.insert_cell(1)
 
-    'insert cell image' : undefined
+    'insert image' :
+        f : -> actions.insert_image()
 
-    'interrupt kernel' : undefined
+    'interrupt kernel' :
+        k : [{"mode":"escape","which":73,twice:true}]
+        f : -> actions.signal('SIGINT')
 
-    'merge cell with next cell' : undefined
+    'merge cell with next cell' :
+        f : -> actions.merge_cell_below()
 
-    'merge cell with previous cell' : undefined
+    'merge cell with previous cell' :
+        f : -> actions.merge_cell_above()
 
-    'merge cells' : undefined
+    'merge cells' :
+        k : [{"mode":"escape","shift":true,"which":77}]
+        f : -> actions.merge_cells()
 
-    'merge selected cells' : undefined
+    'merge selected cells' :   # why is this in jupyter; it's the same as the above?
+        f : -> actions.merge_cells()
 
-    'move cell down' : undefined
+    'move cell down' :
+        k : [{"alt":true,"mode":"escape","which":40}]
+        f : -> actions.move_selected_cells(1)
 
-    'move cell up' : undefined
+    'move cell up' :
+        k : [{"alt":true,"mode":"escape","which":38}]
+        f : -> actions.move_selected_cells(-1)
 
-    'move cursor down' : undefined
+    'move cursor down' :
+        f : -> actions.move_edit_cursor(1)
 
-    'move cursor up' : undefined
+    'move cursor up' :
+        f : -> actions.move_edit_cursor(-1)
 
     'paste cell above' :
         k : [{"mode":"escape","shift":true,"which":86}, {"mode":"escape","shift":true,ctrl:true,"which":86},{"mode":"escape","shift":true,alt:true,"which":86}]
         f : -> actions.paste_cells(-1)
 
-    'paste cell attachments' : undefined
+    'paste cell attachments' : undefined   # TODO ? not sure what the motivation is...
 
     'paste cell below' :  # jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
         f : -> actions.paste_cells(1)
@@ -202,23 +222,34 @@ exports.commands = (actions) ->
             else
                 actions.paste_cells(1)
 
-    'rename notebook' : undefined
+    'rename notebook' :
+        f : -> actions.file_action('rename')
 
-    'restart kernel' : undefined
+    'restart kernel' :
+        f : -> actions.signal('SIGKILL')
 
-    'restart kernel and clear output' : undefined
+    'restart kernel and clear output' :
+        f : ->
+            actions.signal('SIGKILL')
+            actions.clear_all_outputs()
 
-    'restart kernel and run all cells' : undefined
+    'restart kernel and run all cells' :
+        f : ->
+            actions.signal('SIGKILL')
+            actions.run_all_cells()
 
-    'run all cells ' : undefined
+    'run all cells ' :
+        f : -> actions.run_all_cells()
 
-    'run all cells above' : undefined
+    'run all cells above' :
+        f : -> actions.run_all_cells_above()
 
-    'run all cells below' : undefined
+    'run all cells below' :
+        f : -> actions.run_all_cells_below()
 
     'run cell' :
         k : [{which:13, ctrl:true}]
-        f : -> actions.run_selected_cells(); actions.set_mode('escape')
+        f : -> actions.run_selected_cells(); actions.set_mode('escape'); actions.scroll('cell visible')
 
     'run cell and insert below' :
         k : [{which:13, alt:true}]
@@ -231,51 +262,77 @@ exports.commands = (actions) ->
             else
                 actions.insert_cell(-1)
             actions.set_mode('edit')
+            actions.scroll('cell visible')
 
     'run cell and select next' :
         k : [{which:13, shift:true}]
-        f : -> actions.shift_enter_run_selected_cells()
+        f : -> actions.shift_enter_run_selected_cells(); actions.scroll('cell visible')
 
     'save notebook' :
         k : [{which:83, ctrl:true}, {which:83, alt:true}]
         f : -> actions.save()
 
-    'scroll cell center' : undefined
+    'scroll cell center' :
+        f : -> actions.scroll('cell center')
 
-    'scroll cell top' : undefined
+    'scroll cell top' :
+        f : -> actions.scroll('cell top')
 
-    'scroll notebook down' : undefined
+    'scroll cell bottom' :
+        f : -> actions.scroll('cell bottom')
 
-    'scroll notebook up' : undefined
+    'scroll cell visible' :
+        f : -> actions.scroll('cell visible')
+
+    'scroll notebook down' :
+        k : [{"mode":"escape","which":32}]
+        f : -> actions.scroll('list down')
+
+    'scroll notebook up' :
+        k : [{"mode":"escape","shift":true,"which":32}]
+        f : -> actions.scroll('list up')
+
+    'select all cells' :
+        k : [{"alt":true,"mode":"escape","which":65}, {"ctrl":true,"mode":"escape","which":65}]
+        f : -> actions.select_all_cells()
 
     'select next cell' :
         k : [{which:40, mode:'escape'}, {which:74, mode:'escape'}]
-        f : -> actions.move_cursor(1); actions.unselect_all_cells()
+        f : -> actions.move_cursor(1); actions.unselect_all_cells(); actions.scroll('cell visible')
 
     'select previous cell' :
         k : [{which:38, mode:'escape'}, {which:75, mode:'escape'}]
-        f : -> actions.move_cursor(-1); actions.unselect_all_cells()
+        f : -> actions.move_cursor(-1); actions.unselect_all_cells(); actions.scroll('cell visible')
 
     'show all line numbers':
         f : -> actions.set_line_numbers(false)
 
-    'show command palette': undefined
+    'show command palette':
+        k : [{"alt":true,"mode":"escape","shift":true,"which":80}]
+        f : -> actions.show_keyboard_shortcuts()
 
-    'show header': undefined
+    'show header':
+        f : -> actions.set_header_state(false)
 
-    'show keyboard shortcuts': undefined
+    'show keyboard shortcuts':
+        k : [{"mode":"escape","which":72}]
+        f : -> actions.show_keyboard_shortcuts()
 
-    'show toolbar': undefined
+    'show toolbar':
+        f : -> actions.set_toolbar_state(true)
 
-    'shutdown kernel': undefined
+    'shutdown kernel':
+        f : -> actions.signal('SIGKILL')
 
     'split cell at cursor' :
         k : [{ctrl:true, shift:true, which:189}]
         f : -> actions.set_mode('escape'); actions.split_current_cell()
 
-    'toggle all cells output collapsed': undefined
+    'toggle all cells output collapsed':
+        f : -> actions.toggle_all_outputs('collapsed')
 
-    'toggle all cells output scrolled': undefined
+    'toggle all cells output scrolled':
+        f : -> actions.toggle_all_outputs('scrolled')
 
     'toggle all line numbers':
         k : [{"mode":"escape","shift":true,"which":76}]
@@ -285,19 +342,28 @@ exports.commands = (actions) ->
         k : [{"mode":"escape","which":76}]
         f : -> actions.toggle_cell_line_numbers(id())
 
-    'toggle cell output collapsed': undefined
+    'toggle cell output collapsed':
+        k : [{"mode":"escape","which":79}]
+        f : -> actions.toggle_selected_outputs('collapsed')
 
-    'toggle cell output scrolled': undefined
+    'toggle cell output scrolled':
+        k : [{"mode":"escape","which":79, shift:true}]
+        f : -> actions.toggle_selected_outputs('scrolled')
 
-    'toggle header': undefined
+    'toggle header':
+        f : -> actions.toggle_header()
 
     'toggle rtl layout': undefined
 
-    'toggle toolbar': undefined
+    'toggle toolbar':
+        f : -> actions.toggle_toolbar()
 
-    'trust notebook': undefined
+    'trust notebook':
+        f : -> actions.trust_notebook()
 
-    'undo cell deletion': undefined
+    'undo cell deletion':
+        k : [{"mode":"escape","which":90}]
+        f : -> actions.undo()
 
     'user interface tour' : undefined
 
