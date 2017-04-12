@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
- SearchInput, SMC_Dropzone, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
+ SearchInput, SMC_Dropwrapper, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
@@ -2073,7 +2073,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Button>
             </div>
         else if listing?
-            <SMC_Dropzone
+            <SMC_Dropwrapper
                 project_id     = {@props.project_id}
                 dest_path      = {@props.current_path}
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
@@ -2096,7 +2096,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     shift_is_down       = {@state.shift_is_down}
                     event_handlers
                 />
-            </SMC_Dropzone>
+            </SMC_Dropwrapper>
         else
             @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >

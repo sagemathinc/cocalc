@@ -364,6 +364,33 @@ exports.unmount = (dom_node) ->
     #console.log("unmount project_new")
     ReactDOM.unmountComponentAtNode(dom_node)
 
+FileUpload = rclass ({name}) ->
+    displayName : 'ProjectNew-FileUpload'
+
+    reduxProps :
+        "#{name}" :
+            current_path : rtypes.string
+
+    propTypes :
+        project_id : rtypes.string.isRequired
+
+    mixins : [ImmutablePureRenderMixin]
+
+    render: ->
+        {SMC_Dropzone} = require('./r_misc')
+
+        <Row>
+            <Col sm=3>
+                <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
+            </Col>
+            <Col sm=8>
+                <SMC_Dropzone
+                    dropzone_handler     = {{}}
+                    project_id           = @props.project_id
+                    current_path         = @props.current_path />
+            </Col>
+        </Row>
+
 exports.ProjectNew = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
@@ -372,4 +399,6 @@ exports.ProjectNew = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>
