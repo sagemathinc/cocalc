@@ -962,11 +962,11 @@ class Salvus(object):
             try:
                 b = block.rstrip()
                 # get rid of comments at the end of the line -- issue #1835
-                from ushlex import shlex
-                s = shlex(b)
-                s.commenters = '#'
-                s.quotes = '"\''
-                b = ''.join(s)
+                #from ushlex import shlex
+                #s = shlex(b)
+                #s.commenters = '#'
+                #s.quotes = '"\''
+                #b = ''.join(s)
                 # e.g. now a line like 'x = test?   # bar' becomes 'x=test?'
                 if b.endswith('??'):
                     p = sage_parsing.introspect(b,
