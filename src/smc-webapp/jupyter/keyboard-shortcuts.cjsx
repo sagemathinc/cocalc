@@ -5,6 +5,8 @@ The keyboard shortcuts and command listing dialog, which:
   - see and change the keyboard shortcuts for those commands
 """
 
+json = require('json-stable-stringify')
+
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
@@ -12,6 +14,7 @@ misc = require('smc-util/misc')
 {Icon, SearchInput} = require('../r_misc')
 
 commands = require('./commands')
+keyboard = require('./keyboard')
 
 SYMBOLS =
     meta   : '⌘'
@@ -34,10 +37,9 @@ shortcut_to_string = (shortcut) ->
     if shortcut.ctrl
         s += SYMBOLS.ctrl
     if shortcut.alt
-        if IS_MAC
-            s += SYMBOLS.meta
-        else
-            s += SYMBOLS.alt
+        s += SYMBOLS.alt
+    if shortcut.meta
+        s += SYMBOLS.meta
     keyCode = shortcut.which
     switch keyCode
         when 8
@@ -76,11 +78,13 @@ Shortcuts = rclass
         actions   : rtypes.object.isRequired
         name      : rtypes.string.isRequired
         shortcuts : rtypes.array.isRequired
+        taken     : rtypes.object.isRequired
 
     getInitialState: ->
         hover : false
         add   : false
         value : ''
+        taken : false
 
     edit_shortcut: (e) ->
         console.log 'edit_shortcut'
@@ -99,8 +103,7 @@ Shortcuts = rclass
 
     add_shortcut_mode: (e) ->
         e.stopPropagation()
-        @setState(add: true)
-        console.log 'add shortcut'
+        @setState(add: true, taken:false, value:'')
 
     render_add_shortcut: ->
         <span
@@ -110,18 +113,30 @@ Shortcuts = rclass
         </span>
 
     key_down: (e) ->
-        console.log e.which, e.shiftKey
-        @setState(value: shortcut_to_string(e))
+        if not e.shiftKey and not e.altKey and not e.metaKey and not e.ctrlKey
+            if e.which == 27
+                @setState(add:false)
+                return
+        shortcut = keyboard.evt_to_obj(e, 'escape')
+        s = shortcut_to_string(shortcut)
+
+        @setState
+            value    : s
+            shortcut : shortcut
+            taken    : @props.taken[json(shortcut)]
 
     render_edit_shortcut: ->
+        if @state.taken
+            bg = 'red'
+        else
+            bg = 'white'
         <input
-            style       = {width:'4em'}
+            style       = {width:'4em', backgroundColor:bg}
             autoFocus   = {true}
             ref         = 'input'
             type        = 'text'
             value       = {@state.value}
             onKeyDown   = {@key_down}
-            onKeyUp     = {@key_up}
         />
 
     render: ->
@@ -158,6 +173,7 @@ Command = rclass
         desc      : rtypes.string.isRequired
         icon      : rtypes.string
         shortcuts : rtypes.array.isRequired
+        taken     : rtypes.object.isRequired
 
     getInitialState: ->
         highlight : false
@@ -183,7 +199,8 @@ Command = rclass
         <Shortcuts
             actions   = {@props.actions}
             shortcuts = {@props.shortcuts}
-            name      = {@props.name} />
+            name      = {@props.name}
+            taken     = {@props.taken} />
 
     render: ->
         if @state.highlight
@@ -209,9 +226,9 @@ COMMAND_LIST_STYLE =
 
 CommandList = rclass
     propTypes :
-        actions  : rtypes.object.isRequired
-        commands : rtypes.object.isRequired
-        search   : rtypes.string
+        actions : rtypes.object.isRequired
+        taken   : rtypes.object.isRequired
+        search  : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.search != @props.search
@@ -240,6 +257,7 @@ CommandList = rclass
                 desc      = {desc}
                 icon      = {icon}
                 shortcuts = {shortcuts}
+                taken     = {@props.taken}
             />
         return cmds
 
@@ -255,8 +273,14 @@ exports.KeyboardShortcuts = rclass
         keyboard_shortcuts : rtypes.immutable.Map
 
     getInitialState: ->
-        search   : ''
-        commands : commands.commands()
+        obj =
+            search   : ''
+            commands : commands.commands()
+        obj.taken = {}
+        for name, val of obj.commands
+            for s in val?.k ? []
+                obj.taken[json(s)] = val.m ? name
+        return obj
 
     close: ->
         @props.actions.close_keyboard_shortcuts()
@@ -284,7 +308,7 @@ exports.KeyboardShortcuts = rclass
                 {@render_instructions()}
                 <CommandList
                     actions  = {@props.actions}
-                    commands = {@state.commands}
+                    taken    = {@state.taken}
                     search   = {@state.search} />
             </Modal.Body>
             <Modal.Footer>

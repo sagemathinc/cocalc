@@ -8,13 +8,16 @@ misc = require('smc-util/misc')
 
 commands = require('./commands')
 
-evt_to_shortcut = (evt, mode) ->
+exports.evt_to_obj = evt_to_obj = (evt, mode) ->
     obj = {which: evt.which}
     for k in ['ctrl', 'shift', 'alt', 'meta']
         if evt[k+'Key']
             obj[k] = true
     obj.mode = mode
-    return json(obj)
+    return obj
+
+evt_to_shortcut = (evt, mode) ->
+    return json(evt_to_obj(evt, mode))
 
 exports.create_key_handler = (actions) ->
     shortcut_to_command = {}
