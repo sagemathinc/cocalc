@@ -29,9 +29,7 @@ misc = require('smc-util/misc')
 {Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
-{ShowSupportLink} = require('./support')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{APP_LOGO} = require('./misc_page')
 {COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
 
 # List item style
@@ -347,7 +345,10 @@ exports.HelpPage = HelpPage = rclass
             textAlign       : 'center'
             marginBottom    : '30px'
 
-        {SmcWikiUrl} = require('./customize')
+        {SmcWikiUrl}      = require('./customize')
+        {ShowSupportLink} = require('./support')
+        {APP_LOGO}        = require('./misc_page')
+
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <h3 style={textAlign: 'center', marginBottom: '30px'}>
@@ -380,6 +381,18 @@ exports.HelpPage = HelpPage = rclass
                 <Footer/>
             </Col>
         </Row>
+
+exports.render_static_about = ->
+    <Col>
+        <Row>
+            <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+            <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+        </Row>
+        <Row style={marginTop:'20px'}>
+            <ThirdPartySoftware />
+            <HelpPageUsageSection store={{}} />
+        </Row>
+    </Col>
 
 exports._test =
     HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />

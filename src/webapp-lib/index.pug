@@ -1,9 +1,18 @@
 extends template.pug
 
-block content
-  h1 hello world2
+block header
+  style(type="text/css")
+      | .center { text-align: center; }
 
-  div
-    |  this is the first paragraph
-    a(href="app") Start #{htmlWebpackPlugin.options.title}
+block content
+
+  div.center
+    a(href="app")
+        img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
+
+  div.
+    this is the first paragraph
+    #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
+
+  //- include _static_about.html
 
