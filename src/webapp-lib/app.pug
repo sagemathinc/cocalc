@@ -1,0 +1,32 @@
+extends template.pug
+
+block content
+  style.
+    #{require('!css?minimize!app-startup-style.css')}
+  div#smc-startup-banner
+    div.banner-blink
+      img(src=require('!url?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
+    div.banner-error
+      div.message
+        | Something bad must have happened.
+        br/
+        | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
+  div#smc-startup-banner-status
+    | Initializing ...
+
+  //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
+  - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+  if typeof BASE_URL !== "undefined" && BASE_URL !== null
+      script(type="text/javascript").
+          window.app_base_url='#{BASE_URL}';
+  else
+      script(type="text/javascript" src="base_url.js")
+
+  script(type="text/javascript").
+      function smcLoadStatus(msg) {
+      try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
+
+  //- Hidden div to accurately determine if page is in responsive mode
+  div.webapp-responsive-mode-test
+
+  div#smc-react-container.page-container

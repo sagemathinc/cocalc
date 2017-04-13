@@ -1,77 +1,9 @@
-doctype html
-html
-  head
-    meta(charset="utf-8")
-    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
-    meta(http-equiv="X-UA-Compatible" content="IE=edge")
-    meta(name="google"      content="notranslate")
-    meta(name="description" content=htmlWebpackPlugin.options.description)
-    meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
-    meta(name="date"        content=htmlWebpackPlugin.options.date)
-    meta(name="version"     content=htmlWebpackPlugin.options.version)
-    title= htmlWebpackPlugin.options.title
+extends template.pug
 
-    //- http://realfavicongenerator.net
-    link(rel="apple-touch-icon", sizes="180x180", href=require("!file!apple-touch-icon.png"))
-    link(rel="icon", type="image/png", href=require("!file!favicon-32x32.png"), sizes="32x32")
-    link(rel="icon", type="image/png", href=require("!file!favicon-16x16.png"), sizes="16x16")
-    link(rel="manifest", href=require("!file!manifest.json"))
-    link(rel="mask-icon", href=require("!file!safari-pinned-tab.svg"), color="#fbb635")
-    meta(name="apple-mobile-web-app-title", content="CoCalc")
-    meta(name="application-name", content="CoCalc")
-    meta(name="theme-color", content="#fbb635")
+block content
+  h1 hello world2
 
-  body
-    style.
-      #{require('!css?minimize!app-startup-style.css')}
-    div#smc-startup-banner
-      div.banner-blink
-        img(src=require('!url?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
-      div.banner-error
-        div.message
-          | Something bad must have happened.
-          br/
-          | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
-    div#smc-startup-banner-status
-      | Initializing ...
+  div
+    |  this is the first paragraph
+    a(href="app.html") Start #{htmlWebpackPlugin.options.title}
 
-    //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
-    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
-    if typeof BASE_URL !== "undefined" && BASE_URL !== null
-        script(type="text/javascript").
-            window.app_base_url='#{BASE_URL}';
-    else
-        script(type="text/javascript" src="base_url.js")
-
-    script(type="text/javascript").
-        function smcLoadStatus(msg) {
-        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
-
-    //- if we have a GA token, insert the google analytics async script
-    - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
-    if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
-        //--- Google Analytics ---
-        script.
-            //- Instructs analytics.js to use the name `google_analytics`.
-            window.GoogleAnalyticsObject = 'google_analytics';
-            //- Creates an initial analytics() function.
-            //- The queued commands will be executed once analytics.js loads.
-            window.google_analytics = window.google_analytics || function() {
-              (google_analytics.q = google_analytics.q || []).push(arguments)
-            };
-            //- Sets the time (as an integer) this tag was executed.
-            //- Used for timing hits.
-            google_analytics.l = +new Date;
-            //- Creates a default tracker with automatic cookie domain configuration.
-            google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
-            //- Sends a pageview hit from the tracker just created.
-            google_analytics('send', 'pageview');
-
-        //- Sets the `async` attribute to load the script asynchronously.
-        script(async src='//www.google-analytics.com/analytics.js')
-        //--- End Google Analytics ---
-
-    //- Hidden div to accurately determine if page is in responsive mode
-    div.webapp-responsive-mode-test
-
-    div#smc-react-container.page-container

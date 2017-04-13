@@ -213,8 +213,23 @@ base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
-# this is the main index.html file, which should be served without any caching
-pug2html = new HtmlWebpackPlugin
+# this is the main app.html file, which should be served without any caching
+pug2app = new HtmlWebpackPlugin
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        description      : DESCRIPTION
+                        BASE_URL         : base_url_html
+                        theme            : theme
+                        git_rev          : GIT_REV
+                        mathjax          : MATHJAX_URL
+                        filename         : 'app.html'
+                        chunksSortMode   : smcChunkSorter
+                        hash             : PRODMODE
+                        template         : path.join(INPUT, 'app.pug')
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+
+pug2index = new HtmlWebpackPlugin
                         date             : BUILD_DATE
                         title            : TITLE
                         description      : DESCRIPTION
@@ -223,7 +238,7 @@ pug2html = new HtmlWebpackPlugin
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'index.html'
-                        chunksSortMode   : smcChunkSorter
+                        chunks           : ['css']
                         hash             : PRODMODE
                         template         : path.join(INPUT, 'index.pug')
                         minify           : htmlMinifyOpts
@@ -357,7 +372,7 @@ plugins = [
     #provideGlobals,
     setNODE_ENV,
     banner,
-    pug2html,
+    pug2index, pug2app,
     #commonsChunkPlugin,
     #extractCSS,
     #copyWebpackPlugin
