@@ -369,7 +369,6 @@ class exports.JupyterActions extends Actions
             @select_cell(target_id)
 
     set_mode: (mode) =>
-        console.log 'set mode to ', mode, ' from ', @store.get('mode')
         if mode == 'escape'
             if @store.get('mode') == 'escape'
                 return
@@ -377,7 +376,6 @@ class exports.JupyterActions extends Actions
             # save code being typed
             @_get_cell_input()
             # Now switch.
-            console.log 'actually switch to ', mode
             @setState(mode: mode)
             @set_cursor_locs([])  # none
         else if mode == 'edit'
@@ -724,11 +722,11 @@ class exports.JupyterActions extends Actions
         cell_list = @store.get('cell_list')
         if cell_list?.get(cell_list.size-1) == last_id
             @set_cur_id(last_id)
-            @insert_cell(1)
+            new_id = @insert_cell(1)
             # this is ugly, but I don't know a better way; when the codemirror editor of
             # the current cell unmounts, it blurs, which happens after right now.
             # So we just change the mode back to edit slightly in the future.
-            setTimeout((()=>@set_mode('edit')), 10)
+            setTimeout((()=>@set_cur_id(new_id); @set_mode('edit')), 1)
         else
             @set_mode('escape')
             @move_cursor(1)
@@ -1225,19 +1223,33 @@ class exports.JupyterActions extends Actions
         @set_backend_kernel_info()
 
     focus: (wait) =>
+        #console.log 'focus', wait, (new Error()).stack
         if @_state == 'closed'
+            return
+        if @_blur_lock
             return
         if wait
             setTimeout(@focus, 1)
         else
             @setState(is_focused: true)
 
-    blur: =>
+    blur: (wait) =>
         if @_state == 'closed'
             return
-        @setState
-            is_focused : false
-            mode       : 'escape'
+        if wait
+            setTimeout(@blur, 1)
+        else
+            @setState
+                is_focused : false
+                mode       : 'escape'
+
+    blur_lock: =>
+        @blur()
+        @_blur_lock = true
+
+    focus_unlock: =>
+        @_blur_lock = false
+        @focus()
 
     set_max_output_length: (n) =>
         @_set
@@ -1287,25 +1299,25 @@ class exports.JupyterActions extends Actions
             @setState(cm_options: x)
 
     show_find_and_replace: =>
-        @blur()
+        @blur_lock()
         @setState(find_and_replace:{show:true})
 
     close_find_and_replace: =>
         @setState(find_and_replace:undefined)
-        @focus()
+        @focus_unlock()
 
     show_keyboard_shortcuts: =>
-        @blur()
+        @blur_lock()
         @setState(keyboard_shortcuts:{show:true})
 
     close_keyboard_shortcuts: =>
         @setState(keyboard_shortcuts:undefined)
-        @focus()
+        @focus_unlock()
 
     # Display a confirmation dialog, then call opts.cb with the choice.
     # See confirm-dialog.cjsx for options.
     confirm_dialog: (opts) =>
-        @blur()
+        @blur_lock()
         @setState(confirm_dialog : opts)
         @store.wait
             until   : (state) =>
@@ -1316,7 +1328,7 @@ class exports.JupyterActions extends Actions
                     return c.get('choice')
             timeout : 0
             cb      : (err, choice) =>
-                @focus()
+                @focus_unlock()
                 opts.cb(choice)
 
     close_confirm_dialog: (choice) =>

@@ -33,14 +33,20 @@ exports.TopButtonbar = rclass ({name}) ->
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
             next.has_unsaved_changes != @props.has_unsaved_changes
 
-    command: (name) ->
+    command: (name, focus) ->
         return =>
             @props.actions?.command(name)
-            @focus()
+            if focus
+                @focus()
+            else
+                @props.actions.blur()
 
     render_button: (key, name) ->
         obj = @props.actions._commands?[name]
-        <Button key={key} onClick={@command(name)} title={obj.m} >
+        if not obj?
+            return
+        focus = not misc.endswith(obj.m, '...')
+        <Button key={key} onClick={@command(name, focus)} title={obj.m} >
             <Icon name={obj.i}/>
         </Button>
 
@@ -100,7 +106,6 @@ exports.TopButtonbar = rclass ({name}) ->
                 <Icon name='font' style={fontSize:'11pt'}/>
             </Button>
         </ButtonGroup>
-
 
     render_group_save_timetravel: ->
         <ButtonGroup>

@@ -120,8 +120,11 @@ exports.TopMenubar = rclass ({name}) ->
         return =>
             @props.actions?.command(name)
             $(":focus").blur() # battling with react-bootstrap stupidity... ?
-            if not misc.endswith(@props.actions._commands?[name]?.m, '...')
+            if misc.endswith(@props.actions._commands?[name]?.m, '...')
+                @props.actions.blur()
+            else
                 @focus()
+
 
     reduxProps :
         "#{name}" :
@@ -249,7 +252,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
                 <MenuItem divider />
                 <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
-                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}>Keyboard Shortcuts</MenuItem>
+                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}>Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}

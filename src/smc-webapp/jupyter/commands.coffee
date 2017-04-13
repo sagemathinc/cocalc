@@ -5,8 +5,9 @@ Comprehensive list of Jupyter notebook (version 5) command,
 ###
 
 exports.commands = (actions) ->
-    store = actions.store
-    id = -> store.get('cur_id')
+    if actions?
+        store = actions.store
+        id = -> store.get('cur_id')
 
     'cell toolbar none':
         m : 'None'
@@ -150,7 +151,7 @@ exports.commands = (actions) ->
         f : -> actions.file_action('duplicate')
 
     'edit keyboard shortcuts' :
-        m : 'Keyboard Shortcuts and Commands'
+        m : 'Keyboard Shortcuts and Commands...'
         f : -> actions.show_keyboard_shortcuts()
 
     'edit notebook metadata' :  # TODO
