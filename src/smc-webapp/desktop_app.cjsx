@@ -144,7 +144,6 @@ Page = rclass
         </Nav>
 
     # register a default drag and drop handler, that prevents accidental file drops
-    # therefore, dropping files only works when done right above the dedicated dropzone
     # TEST: make sure that usual drag'n'drop activities like rearranging tabs and reordering tasks work
     drop: (e) ->
         if DEBUG
@@ -152,11 +151,12 @@ Page = rclass
             console.log "react desktop_app.drop", e
         e.preventDefault()
         e.stopPropagation()
-        {alert_message} = require('./alerts')
-        alert_message
-            type     : 'info'
-            title    : 'File drop disabled'
-            message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
+        if e.dataTransfer.files.length > 0
+            {alert_message} = require('./alerts')
+            alert_message
+                type     : 'info'
+                title    : 'File Drop Rejected'
+                message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
 
     render: ->
         style =
