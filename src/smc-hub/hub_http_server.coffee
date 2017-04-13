@@ -41,15 +41,10 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
-
 hub_register = require('./hub_register')
-
 auth         = require('./auth')
-
 access       = require('./access')
-
 hub_proxy    = require('./proxy')
-
 hub_projects = require('./projects')
 
 # Rendering stripe invoice server side to PDF in memory
@@ -90,6 +85,9 @@ exports.init_express_http_server = (opts) ->
 
     router.get '/', (req, res) ->
         res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+
+    router.get '/app', (req, res) ->
+        res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
@@ -211,7 +209,7 @@ exports.init_express_http_server = (opts) ->
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(opts.base_url + "/#" + req.path.slice(1))
+        res.redirect(opts.base_url + "/app#" + req.path.slice(1))
 
     # Return global status information about smc
     router.get '/stats', (req, res) ->
