@@ -377,7 +377,7 @@ FileUpload = rclass ({name}) ->
     mixins : [ImmutablePureRenderMixin]
 
     render: ->
-        {SMC_Dropzone} = require('./r_misc')
+        {SMC_Dropzone} = require('./smc-dropzone')
 
         <Row>
             <Col sm=3>
