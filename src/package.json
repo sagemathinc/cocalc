@@ -61,7 +61,7 @@
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
-    "clean": "rm -rf node_modules */node_modules static/webpack"
+    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
   },
   "repository": {
     "type": "git",
