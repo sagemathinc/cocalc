@@ -1,3 +1,4 @@
+# coding: utf8
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
 import socket
@@ -16,6 +17,13 @@ class TestLex:
         exec2("x = 1 # plot?\nx","1\n")
     def test_lex_4(self, exec2):
         exec2('x="random?" # plot?\nx',"'random?'\n")
+
+class TestUnicode:
+    def test_unicode_1(self, exec2):
+        exec2(u'"äöüß"', '\xc3\xb6\xc3\xa4\xc3\x9f')
+    def test_unicode_2(self, exec2):
+        #exec2(u'u"öäß"', '\xf6\xe4\xdf')
+        exec2(u'u"öäß"', u"öäß")
 
 class TestDecorators:
     def test_simple_dec(self, exec2):
