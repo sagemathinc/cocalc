@@ -399,7 +399,8 @@ exports.commands = (actions) ->
         f : -> actions.move_cursor(-1); actions.unselect_all_cells(); actions.scroll('cell visible')
 
     'show all line numbers':
-        f : -> actions.set_line_numbers(false)
+        m : 'Show All Line Numbers'
+        f : -> actions.set_line_numbers(true)
 
     'show command palette':
         m : 'Show Command Palette...'

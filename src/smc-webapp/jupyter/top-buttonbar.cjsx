@@ -18,7 +18,6 @@ exports.TopButtonbar = rclass ({name}) ->
         actions : rtypes.object.isRequired
 
     focus: ->
-        $(":focus").blur() # battling with react-bootstrap stupidity... ?
         @props.actions.focus(true)
 
     reduxProps :
@@ -35,6 +34,7 @@ exports.TopButtonbar = rclass ({name}) ->
 
     command: (name, focus) ->
         return =>
+            $(":focus").blur() # battling with react-bootstrap stupidity... ?
             @props.actions?.command(name)
             if focus
                 @focus()
