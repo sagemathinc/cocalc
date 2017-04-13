@@ -290,7 +290,7 @@ class SagewsPrinter extends Printer
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
-                        src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+                        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML">
                     </script>
                 </head>
 

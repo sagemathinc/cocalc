@@ -25,6 +25,7 @@
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
+{SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
@@ -84,7 +85,6 @@ PathSegmentLink = rclass
 
     handle_click: ->
         @props.actions.open_directory(@props.path)
-        @props.actions.show_upload(false)
 
     render_link: ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -559,9 +559,6 @@ FileListing = rclass
         file_search : ''
         show_upload : false
 
-    componentDidUpdate: ->
-        @_show_upload_last = +new Date()
-
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
@@ -655,48 +652,13 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
-    # upload area config and handling
-    show_upload : (e, enter) ->
-        #if DEBUG
-        #    if enter
-        #        console.log "project_files/dragarea entered", e
-        #    else
-        #        console.log "project_files/dragarea left", e
-        # limit changing events, to avoid flickering during UI update
-        change = @props.show_upload != enter
-        if change and @_show_upload_last > (+new Date()) - 100
-            return
-        if e?
-            e.stopPropagation()
-            e.preventDefault()
-            # The very first time the event fires, it has a target attached and then it fires again.
-            # This filteres the very first time it is triggered to avoid double-firing.
-            if target?
-                return
-        @props.actions.show_upload(enter)
-
     render : ->
-        {SMC_Dropzone} = require('./r_misc')
-
-        dropzone_handler =
-            dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.fetch_directory_listing(path: @props.current_path)
-
-        <div>
-            {<Col sm=12 key='upload'>
-                <SMC_Dropzone
-                    dropzone_handler     = dropzone_handler
-                    project_id           = @props.project_id
-                    current_path         = @props.current_path
-                    close_button_onclick = {=>@show_upload(null, false)} />
-            </Col> if @props.show_upload}
-            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)} onDragLeave={(e) => @show_upload(e, false)}>
-                {@render_terminal_mode()}
-                {@parent_directory()}
-                {@render_rows()}
-                {@render_no_files()}
-            </Col>
-        </div>
+        <Col sm=12>
+            {@render_terminal_mode()}
+            {@parent_directory()}
+            {@render_rows()}
+            {@render_no_files()}
+        </Col>
 
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
@@ -1892,7 +1854,6 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index : rtypes.number
             file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
-            show_upload         : rtypes.bool
             new_name            : rtypes.string
 
     propTypes :
@@ -2011,7 +1972,6 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        style = if @props.show_upload then 'primary' else 'default'
         <Col sm=3>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
@@ -2020,9 +1980,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle = {style}
-                onClick = {@props.actions.toggle_upload}
-                active  = {@props.show_upload}
+                className = "upload-button"
                 >
                 <Icon name='upload' /> Upload
             </Button>
@@ -2121,23 +2079,30 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Button>
             </div>
         else if listing?
-            <FileListing
-                listing             = {listing}
-                page_size           = {@file_listing_page_size()}
-                page_number         = {@props.page_number}
-                file_map            = {file_map}
-                file_search         = {@props.file_search}
-                checked_files       = {@props.checked_files}
-                current_path        = {@props.current_path}
-                public_view         = {public_view}
-                actions             = {@props.actions}
-                create_file         = {@create_file}
-                create_folder       = {@create_folder}
-                selected_file_index = {@props.selected_file_index}
-                project_id          = {@props.project_id}
-                show_upload         = {@props.show_upload}
-                shift_is_down       = {@state.shift_is_down}
-            />
+            <SMC_Dropwrapper
+                project_id     = {@props.project_id}
+                dest_path      = {@props.current_path}
+                event_handlers = {complete : => @props.actions.fetch_directory_listing()}
+                config         = {clickable : ".upload-button"}
+            >
+                <FileListing
+                    listing             = {listing}
+                    page_size           = {@file_listing_page_size()}
+                    page_number         = {@props.page_number}
+                    file_map            = {file_map}
+                    file_search         = {@props.file_search}
+                    checked_files       = {@props.checked_files}
+                    current_path        = {@props.current_path}
+                    public_view         = {public_view}
+                    actions             = {@props.actions}
+                    create_file         = {@create_file}
+                    create_folder       = {@create_folder}
+                    selected_file_index = {@props.selected_file_index}
+                    project_id          = {@props.project_id}
+                    shift_is_down       = {@state.shift_is_down}
+                    event_handlers
+                />
+            </SMC_Dropwrapper>
         else
             @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
@@ -2191,6 +2156,7 @@ exports.ProjectFiles = rclass ({name}) ->
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
+
         <div style={padding:'15px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
