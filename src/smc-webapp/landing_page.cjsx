@@ -140,7 +140,7 @@ SignUp = rclass
         well_style =
             marginTop      : '10px'
             borderWidth    : 5
-            'border-color' : COLORS.LANDING.LOGIN_BAR_BG
+            borderColor    : COLORS.LANDING.LOGIN_BAR_BG
         <Well style=well_style>
             {@display_token_input()}
             {@display_error("token")}
