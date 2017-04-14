@@ -112,6 +112,7 @@ MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
+STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
@@ -374,16 +375,30 @@ plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner,
-    pug2index, pug2app,
-    #commonsChunkPlugin,
-    #extractCSS,
-    #copyWebpackPlugin
-    #webpackSHAHash,
-    #new PrintChunksPlugin(),
-    mathjaxVersionedSymlink,
-    #linkFilesIntoTargetPlugin,
+    banner
 ]
+
+if STATICPAGES
+    plugins.push(pug2index)
+    plugins = plugins.concat(policyPages)
+    entries =
+        css  : 'webapp-css.coffee'
+else
+    # ATTN don't alter or add names here, without changing the sorting function above!
+    entries =
+        css  : 'webapp-css.coffee'
+        lib  : 'webapp-lib.coffee'
+        smc  : 'webapp-smc.coffee'
+    plugins = plugins.concat([
+        pug2index, pug2app,
+        #commonsChunkPlugin,
+        #extractCSS,
+        #copyWebpackPlugin
+        #webpackSHAHash,
+        #new PrintChunksPlugin(),
+        mathjaxVersionedSymlink,
+        #linkFilesIntoTargetPlugin,
+    ])
 
 if not QUICK_BUILD or PRODMODE
     plugins = plugins.concat(policyPages)
@@ -451,10 +466,7 @@ module.exports =
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
 
-    entry: # ATTN don't alter or add names here, without changing the sorting function above!
-        css  : 'webapp-css.coffee'
-        lib  : 'webapp-lib.coffee'
-        smc  : 'webapp-smc.coffee'
+    entry: entries
 
     output:
         path          : OUTPUT
