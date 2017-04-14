@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 {HelpPageUsageSection, ThirdPartySoftware} = require('./r_help')
 DESC_FONT = 'sans-serif'
@@ -32,13 +32,6 @@ DESC_FONT = 'sans-serif'
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
 {APP_ICON_WHITE, APP_LOGO_NAME_WHITE} = require('./misc_page')
-
-images = [
-    require('sagepreview/01-worksheet.png'),
-    require('sagepreview/02-courses.png'),
-    require('sagepreview/03-latex.png'),
-    require('sagepreview/05-sky_is_the_limit.png'),
-]
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
@@ -504,6 +497,37 @@ LandingPageContent = rclass
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </Well>
 
+example_image_style =
+    border       : '1px solid #aaa'
+    borderRadius : '3px'
+    padding      : '5px'
+    background   : 'white'
+    height       : '236px'
+
+ExampleBox = rclass
+    displayName : "ExampleBox"
+
+    propTypes :
+        title : rtypes.string.isRequired
+        index : rtypes.number.isRequired
+
+    render: ->
+        images = [
+            require('sagepreview/01-worksheet.png'),
+            require('sagepreview/02-courses.png'),
+            require('sagepreview/03-latex.png'),
+            require('sagepreview/05-sky_is_the_limit.png'),
+        ]
+        <div>
+            <h3 style={marginBottom:UNIT} >{@props.title}</h3>
+            <div style={marginBottom:'10px'} >
+                <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
+            </div>
+            <div className="lighten">
+                {@props.children}
+            </div>
+        </div>
+
 SagePreview = rclass
     displayName : "SagePreview"
 
@@ -548,36 +572,10 @@ SagePreview = rclass
             </Well>
         </div>
 
-example_image_style =
-    border       : '1px solid #aaa'
-    borderRadius : '3px'
-    padding      : '5px'
-    background   : 'white'
-    height       : '236px'
-
-ExampleBox = rclass
-    displayName : "ExampleBox"
-
-    propTypes :
-        title : rtypes.string.isRequired
-        index : rtypes.number.isRequired
-
-    render: ->
-        <div>
-            <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
-            <div style={marginBottom:'10px'} >
-                <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
-            </div>
-            <div className="lighten">
-                {@props.children}
-            </div>
-        </div>
-
 Connecting = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
         <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
     </div>
-
 
 exports.LandingPage = rclass
     propTypes:

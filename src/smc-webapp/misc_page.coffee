@@ -37,11 +37,11 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON               = require('webapp-lib/cocalc-icon.svg')
-exports.APP_ICON_WHITE         = require('webapp-lib/cocalc-icon-white.svg')
-exports.APP_LOGO               = require('webapp-lib/cocalc-logo.svg')
-exports.APP_LOGO_WHITE         = require('webapp-lib/cocalc-icon-white-transparent.svg')
-exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
+exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
+exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
+exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
+exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
 
 {join} = require('path')
 exports.APP_BASE_URL = window?.app_base_url ? ''

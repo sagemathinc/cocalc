@@ -472,7 +472,7 @@ module.exports =
             { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
             { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
             { test: /\.json$/,   loaders: ['json-loader'] },
-            { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
+            { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},

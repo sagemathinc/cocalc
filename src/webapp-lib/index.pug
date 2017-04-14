@@ -1,24 +1,47 @@
+//- main landing page
+
 extends template.pug
 
 block header
-  style(type="text/css")
-    | div.main    { max-width: 900px; margin: 10px auto; min-height: 75vh; }
-    | .center { text-align: center; }
+
+  style
+    :sass
+      div.main
+        max-width: 900px
+        margin: 30px auto
+        .content
+          min-height: 66vh
+      .center
+        text-align: center
+
+  script
+    :coffee-script
+      update_stats = (stats) ->
+        console.log stats
+      get_stats = ->
+        r = new XMLHttpRequest()
+        r.open("GET", "stats", true)
+        r.onreadystatechange = ->
+          return if r.readyState != 4 or r.status != 200
+          try
+            update_stats(JSON.parse(r.responseText))
+          catch
+        r.send()
+        setTimeout(get_stats, 10 * 1000)
+      get_stats()
 
 block content
   div.main
-      div.center
-        a(href="app")
-            img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
+    div.center
+      a(href="app")
+          img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
+    div.row.content
+      div.col-md-8.
+        this is the first paragraph
+        #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
+      div.col-md-4
+        img(src=require('!file!sagepreview/01-worksheet.png'))
+    //- include _static_about.html
+    include _static_footer.html
 
-      div.row
-        div.col-md-8.
-          this is the first paragraph
-          #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
 
-        div.col-md-4.
-          more text
-
-      //- include _static_about.html
-
-  include _static_footer.html
