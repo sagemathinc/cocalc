@@ -223,7 +223,6 @@ class exports.JupyterActions extends actions.JupyterActions
     _cancel_run: (id) =>
         if @_running_cells?[id]
             @_jupyter_kernel?.cancel_execute(id: id)
-            delete @_running_cells[id]
 
     # Runs only on the backend
     manager_run_cell: (id) =>
@@ -240,6 +239,14 @@ class exports.JupyterActions extends actions.JupyterActions
         input  = (cell.get('input') ? '').trim()
 
         @_running_cells ?= {}
+
+        if @_running_cells[id]
+            # The cell is already running, so we must ensure cell is
+            # not already running; this would happen if your run cell,
+            # change input while it is still running, then re-run.
+            @_cancel_run(id)
+            return
+
         @_running_cells[id] = true
         @reset_more_output(id)
 
