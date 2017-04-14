@@ -2,17 +2,23 @@ extends template.pug
 
 block header
   style(type="text/css")
-      | .center { text-align: center; }
+    | div.main    { max-width: 900px; margin: 10px auto; min-height: 75vh; }
+    | .center { text-align: center; }
 
 block content
+  div.main
+      div.center
+        a(href="app")
+            img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
 
-  div.center
-    a(href="app")
-        img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
+      div.row
+        div.col-md-8.
+          this is the first paragraph
+          #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
 
-  div.
-    this is the first paragraph
-    #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
+        div.col-md-4.
+          more text
 
-  //- include _static_about.html
+      //- include _static_about.html
 
+  include _static_footer.html

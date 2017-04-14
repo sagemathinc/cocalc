@@ -23,21 +23,22 @@
 The Hub's HTTP Server
 ###
 
-fs          = require('fs')
-path_module = require('path')
-Cookies     = require('cookies')
-util        = require('util')
-ms          = require('ms')
+fs           = require('fs')
+path_module  = require('path')
+Cookies      = require('cookies')
+util         = require('util')
+ms           = require('ms')
 
-async       = require('async')
-body_parser = require('body-parser')
-express     = require('express')
-formidable  = require('formidable')
-http_proxy  = require('http-proxy')
-http        = require('http')
-winston     = require('winston')
+async        = require('async')
+cookieParser = require('cookie-parser')
+body_parser  = require('body-parser')
+express      = require('express')
+formidable   = require('formidable')
+http_proxy   = require('http-proxy')
+http         = require('http')
+winston      = require('winston')
 
-misc    = require('smc-util/misc')
+misc         = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
@@ -67,6 +68,7 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+    app.use(cookieParser())
     router.use(body_parser.urlencoded({ extended: true }))
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
@@ -84,7 +86,13 @@ exports.init_express_http_server = (opts) ->
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+        # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
+        # that's not a security issue b/c the hub will do the heavy lifting
+        remember_me = req.cookies[opts.base_url + 'remember_me']
+        if remember_me and remember_me?.split('$').length == 4 and not req.query.signed_out?
+            res.redirect(opts.base_url + '/app')
+        else
+            res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
 
     router.get '/app', (req, res) ->
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})

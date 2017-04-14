@@ -11,6 +11,7 @@
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^0.7.2",
     "commander": "^2.6.0",
+    "cookie-parser": "^1.4.3",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
     "expiring-lru-cache": "^2.1.0",

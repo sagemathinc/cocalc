@@ -19,7 +19,8 @@ $.get = ->
 
 static_react_pages = [
     [require('./billing.cjsx').render_static_pricing_page(), 'policies/_static_pricing_page.html'],
-    [require('./r_help.cjsx').render_static_about(), '_static_about.html']
+    #[require('./r_help.cjsx').render_static_about(), '_static_about.html'],
+    [require('./r_misc.cjsx').render_static_footer(), '_static_footer.html']
 ]
 
 # Code for static server-side rendering of the subscription options.

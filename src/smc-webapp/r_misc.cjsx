@@ -263,6 +263,9 @@ exports.Footer = rclass
             <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
         </footer>
 
+exports.render_static_footer = ->
+    Footer = exports.Footer
+    <Footer />
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'
