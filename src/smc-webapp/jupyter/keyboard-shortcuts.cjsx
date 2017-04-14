@@ -68,7 +68,7 @@ exports.KeyboardShortcut = KeyboardShortcut = rclass
         </span>
 
 SHORTCUTS_STYLE =
-    width        : '15em'
+    width        : '20em'
     overflowX    : 'hidden'
     border       : '1px solid transparent'
     paddingRight : '10px'
@@ -85,53 +85,62 @@ Shortcuts = rclass
         add   : false
         value : ''
         taken : false
+        shortcut : undefined
 
     edit_shortcut: (e) ->
-        console.log 'edit_shortcut'
         e.stopPropagation()
+
+    delete_shortcut: (shortcut) ->
+        @props.actions.delete_keyboard_shortcut(@props.name, shortcut)
 
     render_shortcuts: ->
         for key, shortcut of @props.shortcuts
-            <span
-                key     = {key}
-                style   = {border: '1px solid #999', margin: '2px', padding: '1px'}>
-                <KeyboardShortcut
-                    key      = {key}
-                    shortcut = {shortcut}
-                />
-            </span>
+            @render_shortcut(key, shortcut)
 
-    add_shortcut_mode: (e) ->
-        e.stopPropagation()
-        @setState(add: true, taken:false, value:'')
-
-    render_add_shortcut: ->
+    render_shortcut: (key, shortcut) ->
         <span
-            style   = {padding:'0px 10px'}
-            onClick = {@add_shortcut_mode} >
-            <Icon name='plus' />
+            key     = {key}
+            style   = {border: '1px solid #999', margin: '2px', padding: '1px'}>
+            <KeyboardShortcut
+                key      = {key}
+                shortcut = {shortcut}
+            />
+            <Icon
+                onClick = {(e) => e.stopPropagation(); @delete_shortcut(shortcut)}
+                name    = 'times'
+                style   = {color: '#888', paddingLeft: '1ex'}
+                />
         </span>
+
+    cancel_edit: ->
+        @setState(add: false, taken:false, value:'', shortcut:undefined)
+
+    confirm_edit: ->
+        @props.actions.add_keyboard_shortcut(@props.name, @state.shortcut)
+        @setState(add: false, taken:false, value:'', shortcut:undefined)
 
     key_down: (e) ->
         if not e.shiftKey and not e.altKey and not e.metaKey and not e.ctrlKey
             if e.which == 27
-                @setState(add:false)
+                @cancel_edit()
                 return
         shortcut = keyboard.evt_to_obj(e, 'escape')
-        s = shortcut_to_string(shortcut)
-
+        # Is this shortcut already taken, either in escape mode or both modes.
+        taken = @props.taken[json(keyboard.evt_to_obj(e))] ? @props.taken[json(shortcut)]
         @setState
-            value    : s
+            value    : shortcut_to_string(shortcut)
             shortcut : shortcut
-            taken    : @props.taken[json(shortcut)]
+            taken    : taken
 
     render_edit_shortcut: ->
         if @state.taken
-            bg = 'red'
+            bg    = 'red'
+            color = 'white'
         else
-            bg = 'white'
+            bg    = 'white'
+            color = 'black'
         <input
-            style       = {width:'4em', backgroundColor:bg}
+            style       = {width:'3em', backgroundColor:bg, color:color}
             autoFocus   = {true}
             ref         = 'input'
             type        = 'text'
@@ -139,23 +148,40 @@ Shortcuts = rclass
             onKeyDown   = {@key_down}
         />
 
+
+    render_cancel_edit_shortcut: ->
+          <Icon
+                onClick = {(e) => e.stopPropagation(); @cancel_edit()}
+                name    = 'times'
+                style   = {color: '#888', paddingLeft: '1ex'}
+                />
+
+    render_confirm_edit_shortcut: ->
+        <Icon
+            onClick = {(e) => e.stopPropagation(); @confirm_edit()}
+            name    = 'check'
+            style   = {color: '#888', paddingLeft: '1ex'}
+            />
+
+    render_taken_note: ->
+        <span style={backgroundColor:'#fff'}>
+            <br/>
+            Shortcut already used by '{@state.taken}'
+        </span>
+
     render: ->
-        if @state.hover
-            style = misc.merge({border:'1px solid blue', background:'white'}, SHORTCUTS_STYLE)
-        else
-            style = SHORTCUTS_STYLE
-        <span className    = 'pull-right'
-              style        = {style}
+        <div className    = 'pull-right'
+              style        = {SHORTCUTS_STYLE}
               onClick      = {@edit_shortcut}
               onMouseEnter = {=>@setState(hover:true)}
               onMouseLeave = {=>@setState(hover:false)}
               >
-            {@render_add_shortcut() if @state.hover}
-            {@render_edit_shortcut() if @state.add}
-            <span className='pull-right'>
-                {@render_shortcuts()}
-            </span>
-        </span>
+            {@render_shortcuts()}
+            {@render_edit_shortcut() if @state.hover}
+            {@render_cancel_edit_shortcut() if @state.hover}
+            {@render_confirm_edit_shortcut() if @state.value and not @state.taken and @state.hover}
+            {@render_taken_note() if @state.taken and @state.hover}
+        </div>
 
 
 capitalize = (s) ->
@@ -165,6 +191,7 @@ COMMAND_STYLE =
     cursor       : 'pointer'
     borderTop    : '1px solid #ccc'
     padding      : '5px 0 5px 10px'
+    height       : '2em'
 
 Command = rclass
     propTypes :
@@ -204,7 +231,7 @@ Command = rclass
 
     render: ->
         if @state.highlight
-            style = misc.merge({backgroundColor:'#ddd'}, COMMAND_STYLE)
+            style = misc.merge_copy(COMMAND_STYLE, {backgroundColor:'#ddd'})
         else
             style = COMMAND_STYLE
         <div
@@ -291,12 +318,12 @@ exports.KeyboardShortcuts = rclass
 
     render_instructions: ->
         <span style={color:'#666'}>
-            Click an action to perform it.
-            To add a keyboard shortcut, click plus next to the key combination then type the new keys.  To remove a shortcut, click it.
+            Click a command to perform it.
+            To add a keyboard shortcut, click plus next to the key combination then type the new keys.
         </span>
 
     render: ->
-        <Modal show={@props.keyboard_shortcuts?.get('show')} onHide={@close} >
+        <Modal show={@props.keyboard_shortcuts?.get('show')} onHide={@close} bsSize="large" >
             <Modal.Header closeButton>
                 <Modal.Title>Commands and Keyboard Shortcuts</Modal.Title>
             </Modal.Header>

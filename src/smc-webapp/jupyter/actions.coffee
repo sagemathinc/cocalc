@@ -92,13 +92,18 @@ class exports.JupyterActions extends Actions
             @set_jupyter_kernels()  # must be after setting project_id above.
 
             # set codemirror editor options whenever account editor_settings change.
-            @redux.getStore('account').on('change', @_account_change)
-
+            account_store = @redux.getStore('account')
+            account_store.on('change', @_account_change)
+            @_account_change_editor_settings = account_store.get('editor_settings')
             @_commands = commands.commands(@)
 
     _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
         if not state.get('editor_settings').equals(@_account_change_editor_settings)
-            @_account_change_editor_settings = state.get('editor_settings')
+            new_settings = state.get('editor_settings')
+            if @_account_change_editor_settings.get('jupyter_keyboard_shortcuts') != new_settings.get('jupyter_keyboard_shortcuts')
+                @update_keyboard_shortcuts()
+
+            @_account_change_editor_settings = new_settings
             @set_cm_options()
 
     dbg: (f) =>
@@ -1313,6 +1318,43 @@ class exports.JupyterActions extends Actions
     close_keyboard_shortcuts: =>
         @setState(keyboard_shortcuts:undefined)
         @focus_unlock()
+
+    _keyboard_settings: =>
+        if not @_account_change_editor_settings?
+            console.warn("account settings not loaded")  # should not happen
+            return
+        k = @_account_change_editor_settings.get('jupyter_keyboard_shortcuts')
+        if k?
+            return JSON.parse(k)
+        else
+            return {}
+
+    add_keyboard_shortcut: (name, shortcut) =>
+        k = @_keyboard_settings()
+        if not k?
+            return
+        v = k[name] ? []
+        for x in v
+            if underscore.isEqual(x, shortcut)
+                return
+        v.push(shortcut)
+        k[name] = v
+        @_set_keyboard_settings(k)
+
+    _set_keyboard_settings: (k) =>
+        @redux.getTable('account').set(editor_settings: {jupyter_keyboard_shortcuts : JSON.stringify(k)})
+
+    delete_keyboard_shortcut: (name, shortcut) =>
+        k = @_keyboard_settings()
+        if not k?
+            return
+        v = k[name] ? []
+        w = (x for x in v when not underscore.isEqual(x, shortcut))
+        if w.length == v.length
+            # must be removing a default shortcut
+            v.push(misc.merge_copy(shortcut, {remove:true}))
+        k[name] = v
+        @_set_keyboard_settings(k)
 
     # Display a confirmation dialog, then call opts.cb with the choice.
     # See confirm-dialog.cjsx for options.

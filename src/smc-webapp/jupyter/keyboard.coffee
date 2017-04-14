@@ -13,7 +13,8 @@ exports.evt_to_obj = evt_to_obj = (evt, mode) ->
     for k in ['ctrl', 'shift', 'alt', 'meta']
         if evt[k+'Key']
             obj[k] = true
-    obj.mode = mode
+    if mode?
+        obj.mode = mode
     return obj
 
 evt_to_shortcut = (evt, mode) ->

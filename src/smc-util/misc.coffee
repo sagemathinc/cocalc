@@ -84,11 +84,18 @@ exports.startswith = (s, x) ->
 exports.endswith = (s, t) ->
     return s.slice(s.length - t.length) == t
 
-# modifies in place the object dest so that it includes all values in objs and returns dest
+# Modifies in place the object dest so that it
+# includes all values in objs and returns dest
+# Rightmost object overwrites left.
 exports.merge = (dest, objs...) ->
     for obj in objs
-        dest[k] = v for k, v of obj
+        for k, v of obj
+            dest[k] = v
     dest
+
+# Makes new object that is shallow copy merge of all objects.
+exports.merge_copy = (objs...) ->
+    return exports.merge({}, objs...)
 
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
