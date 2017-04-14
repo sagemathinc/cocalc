@@ -3,45 +3,51 @@
 extends template.pug
 
 block header
-
-  style
-    :sass
-      div.main
-        max-width: 900px
-        margin: 30px auto
-        .content
-          min-height: 66vh
-      .center
-        text-align: center
-
   script
-    :coffee-script
-      update_stats = (stats) ->
-        console.log stats
-      get_stats = ->
-        r = new XMLHttpRequest()
-        r.open("GET", "stats", true)
-        r.onreadystatechange = ->
-          return if r.readyState != 4 or r.status != 200
-          try
-            update_stats(JSON.parse(r.responseText))
-          catch
-        r.send()
-        setTimeout(get_stats, 10 * 1000)
-      get_stats()
+    include:coffee-script index.coffee
 
 block content
   div.main
-    div.center
-      a(href="app")
-          img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'), style="width: 30%")
-    div.row.content
-      div.col-md-8.
+    div.row
+      div.col-sm-4.col-sm-offset-4.center.top
+        a(href="app")
+          img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.top
+        span #{htmlWebpackPlugin.options.description}
+    div.row
+      div.col-md-12.center
+        a.btn.btn-primary.btn-lg(href="app").
+          Start #{htmlWebpackPlugin.options.title}
+    div.row
+      div.col-sm-4.
         this is the first paragraph
         #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
-      div.col-md-4
+      div.col-sm-8
         img(src=require('!file!sagepreview/01-worksheet.png'))
     //- include _static_about.html
     include _static_footer.html
+    div.center(style="margin-bottom: 6rem;")
+      a(href="app")
+        img(src=require('!file!cocalc-font-dark.svg') style="height: 3rem; width: auto;")
 
-
+  //- overwrite any styles maybe defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      div
+        &.main
+          max-width    : 970px
+          margin       : 0 auto
+          min-height   : 66vh
+        img
+          width        : 100%
+          height       : auto
+        &.row
+          margin-top   : 6rem
+        &.top > span
+          color        : $COL_GRAY
+          font-size    : 2rem
+      .center
+        text-align     : center
+      footer
+        margin-top     : 6rem
