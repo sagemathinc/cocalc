@@ -229,6 +229,8 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg = @dbg("manager_run_cell(id='#{id}')")
         dbg()
 
+        delete @_run_again?[id]  # if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
+
         @ensure_backend_kernel_setup()
 
         if not @_jupyter_kernel?
@@ -244,6 +246,8 @@ class exports.JupyterActions extends actions.JupyterActions
             # The cell is already running, so we must ensure cell is
             # not already running; this would happen if your run cell,
             # change input while it is still running, then re-run.
+            @_run_again ?= {}
+            @_run_again[id] = true
             @_cancel_run(id)
             return
 
@@ -266,6 +270,8 @@ class exports.JupyterActions extends actions.JupyterActions
 
         handler.once 'done', =>
             delete @_running_cells[id]
+            if @_run_again?[id]
+                @run_code_cell(id)
 
         handler.on 'more_output', (mesg, mesg_length) =>
             @set_more_output(id, mesg, mesg_length)
