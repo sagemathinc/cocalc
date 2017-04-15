@@ -504,11 +504,6 @@ class Client extends EventEmitter
         opts = defaults opts,
             cb : required
 
-        @set_cookie
-            name  : BASE_URL + 'remember_me'
-            value : ''
-            ttl   : -60 * 60 * 24
-
         if @hash_session_id?
             database.delete_remember_me
                 hash : @hash_session_id

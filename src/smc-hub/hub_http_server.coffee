@@ -92,9 +92,11 @@ exports.init_express_http_server = (opts) ->
         if remember_me and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
+            res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
             res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
 
     router.get '/app', (req, res) ->
+        res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.

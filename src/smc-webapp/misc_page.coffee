@@ -41,6 +41,7 @@ exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.sv
 exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
 exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
 exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
 exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
 
 {join} = require('path')
@@ -1820,3 +1821,7 @@ exports.open_new_tab = (url, popup=false) ->
         return null
     return tab
 
+exports.get_cookie = (name) ->
+    value = "; " + document.cookie
+    parts = value.split("; " + name + "=")
+    return parts.pop().split(";").shift() if (parts.length == 2)
