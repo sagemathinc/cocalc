@@ -21,14 +21,13 @@ block content
           li #[a.active(href="app") Get Started]
 
   div.container.main#top
-    div.row
-      div.col-sm-4.col-sm-offset-4.center.top
+    div.row.intro
+      div.col-sm-4.col-sm-offset-4.center
         a(href="app")
           img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.top
-        span #{htmlWebpackPlugin.options.description}
-    div.row
-      div.col-md-12.center
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
         a.btn.btn-success.btn-lg(href="app").
           Start #{htmlWebpackPlugin.options.title} For Free
     div.row
@@ -58,11 +57,19 @@ block content
   style
     :sass
       @import "smc-webapp/_colors.sass"
+      div#top
+        >.intro
+          margin         : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        >div.row>div
+          margin-bottom  : 2rem
       nav.navbar.navbar-default
         border-bottom    : 2px solid $COL_GRAY
         background-color : $COL_GRAY_LL
         .navbar-header
-          margin-top     : 5px
+          margin-top     : 5px;
           img.icon
             height       : 4rem
             width        : auto
@@ -82,9 +89,6 @@ block content
           height       : auto
         &.row
           margin-top   : 6rem
-        &.top > span
-          color        : $COL_GRAY
-          font-size    : 2rem
       .center
         text-align     : center
       footer
