@@ -7,7 +7,20 @@ block header
     include:coffee-script index.coffee
 
 block content
-  div.main
+
+  nav.navbar.navbar-default.navbar-fixed-top
+    div.container
+      div.navbar-header
+        a(href="#top")
+          img.icon(alt="#{htmlWebpackPlugin.options.title}" src=require('!url?mimetype=image/svg+xml!cocalc-icon.svg'))
+          img.name(alt="#{htmlWebpackPlugin.options.title}" src=require('!url?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+      div.collapse.navbar-collapse
+        ul.nav.navbar-nav.navbar-right
+          li #[a(href="#explore") Explore]
+          li #[a(href="policies/pricing.html") Pricing]
+          li #[a.active(href="app") Get Started]
+
+  div.container.main#top
     div.row
       div.col-sm-4.col-sm-offset-4.center.top
         a(href="app")
@@ -16,27 +29,52 @@ block content
         span #{htmlWebpackPlugin.options.description}
     div.row
       div.col-md-12.center
-        a.btn.btn-primary.btn-lg(href="app").
-          Start #{htmlWebpackPlugin.options.title}
+        a.btn.btn-success.btn-lg(href="app").
+          Start #{htmlWebpackPlugin.options.title} For Free
     div.row
-      div.col-sm-4.
-        this is the first paragraph
-        #[a(href="app") Start #{htmlWebpackPlugin.options.title}]
-      div.col-sm-8
+      div.col-sm-6
         img(src=require('!file!sagepreview/01-worksheet.png'))
+      div.col-sm-6
+        h1.
+          Powerful Online
+        div.
+          #{htmlWebpackPlugin.options.title} is a ...
+        div.
+          #[a(href="app") Start #{htmlWebpackPlugin.options.title} For Free]
+
+    div.row#explore
+      div.col-md-12.center
+        h1 explore
+        div(style="height: 300px; background: #8ff").
+          explore
+
     //- include _static_about.html
     include _static_footer.html
     div.center(style="margin-bottom: 6rem;")
       a(href="app")
-        img(src=require('!file!cocalc-font-dark.svg') style="height: 3rem; width: auto;")
+        img(src=require('!url?mimetype=image/svg+xml!cocalc-font-dark.svg') style="height: 3rem; width: auto;")
 
   //- overwrite any styles maybe defined in the header
   style
     :sass
       @import "smc-webapp/_colors.sass"
+      nav.navbar.navbar-default
+        border-bottom    : 2px solid $COL_GRAY
+        background-color : $COL_GRAY_LL
+        .navbar-header
+          margin-top     : 5px
+          img.icon
+            height       : 4rem
+            width        : auto
+            margin-right : 2rem
+          img.name
+            height       : 3rem
+            width        : auto
+            margin-right : 2rem
+        .navbar-nav>li>a
+          font-size      : 2rem
       div
         &.main
-          max-width    : 970px
           margin       : 0 auto
           min-height   : 66vh
         img
