@@ -84,7 +84,7 @@ schema.syncstrings =
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : null
                 last_snapshot     : null
-                snapshot_interval : 400
+                snapshot_interval : 300
                 project_id        : null
                 path              : null
                 deleted           : null
