@@ -2079,6 +2079,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 dest_path      = {@props.current_path}
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
                 config         = {clickable : ".upload-button"}
+                disabled       = {public_view}
             >
                 <FileListing
                     listing             = {listing}

@@ -56,7 +56,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SelectorInput, Space, TextInput, TimeAgo, NumberInput} = require('../r_misc')
+    SaveButton, SelectorInput, Space, TimeAgo, NumberInput} = require('../r_misc')
 
 # Course components
 #{CourseActions} = require('./course_editor_components/actions')
