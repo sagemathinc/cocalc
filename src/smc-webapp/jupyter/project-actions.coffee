@@ -269,7 +269,7 @@ class exports.JupyterActions extends actions.JupyterActions
             @syncdb.set(cell, save)
 
         handler.once 'done', =>
-            delete @_running_cells[id]
+            delete @_running_cells?[id]
             if @_run_again?[id]
                 @run_code_cell(id)
 
@@ -284,6 +284,7 @@ class exports.JupyterActions extends actions.JupyterActions
             cb   : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
                 if err
+                    dbg("got error='#{err}'")
                     handler.error(err)
                     return
                 if mesg.msg_type == 'clear_output'

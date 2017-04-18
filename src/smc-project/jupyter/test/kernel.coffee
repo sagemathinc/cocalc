@@ -10,16 +10,16 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
     it 'creates a python2 kernel', ->
         kernel = common.kernel('python2')
 
-    it 'evaluate 2+2', (done) ->
+    it 'evaluate 2+7', (done) ->
         v = []
         kernel.execute_code
-            code : '2+2'
+            code : '2+7'
             all  : true
             cb   : (err, v) ->
                 if err
                     done(err)
                 else
-                    expect(v).toEqual([{"metadata":{},"content":{"execution_state":"busy"},"buffers":[]},{"metadata":{},"content":{"execution_count":1,"code":"2+2"},"buffers":[]},{"metadata":{},"content":{"execution_count":1,"data":{"text/plain":"4"},"metadata":{}},"buffers":[]},{"metadata":{},"content":{"execution_state":"idle"},"buffers":[]}])
+                    expect(v[2]?.content?.data).toEqual({"text/plain":"9"})
                     done()
 
     it 'closes the kernel', ->
@@ -36,7 +36,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 done()
 
 describe 'compute 2/3 using the python3 kernel -- ', ->
-    @timeout(30000)
+    @timeout(10000)
     kernel = undefined
 
     it 'creates a python3 kernel', ->
@@ -51,7 +51,7 @@ describe 'compute 2/3 using the python3 kernel -- ', ->
                 if err
                     done(err)
                 else
-                    expect(v).toEqual([{"metadata":{},"content":{"execution_state":"busy"},"buffers":[]},{"metadata":{},"content":{"execution_count":1,"code":"2/3"},"buffers":[]},{"metadata":{},"content":{"execution_count":1,"metadata":{},"data":{"text/plain":"0.6666666666666666"}},"buffers":[]},{"metadata":{},"content":{"execution_state":"idle"},"buffers":[]}])
+                    expect(v[2]?.content?.data).toEqual({"text/plain":"0.6666666666666666"})
                     done()
 
     it 'closes the kernel', ->
@@ -77,7 +77,7 @@ describe 'it tries to start a kernel that does not exist -- ', ->
 
 describe 'calling the spawn method -- ', ->
     kernel = undefined
-    @timeout(5000)
+    @timeout(10000)
 
     it 'creates a python2 kernel', ->
         kernel = common.kernel('python2')
@@ -161,8 +161,8 @@ describe 'start a kernel in a different directory -- ', ->
                 if not path?
                     done("output failed")
                     return
-                path = path.slice(path.length-12)
-                expect(path).toBe('jupyter/test')
+                path = path.slice(path.length-8)
+                expect(path).toBe('/jupyter')
                 done(err)
 
 
