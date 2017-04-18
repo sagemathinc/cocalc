@@ -223,13 +223,13 @@ THIRD_PARTY =
     r :
         icon : 'cc-icon-r'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
-        link : 'An Introduction to R'
-        text : 'open source statistics software'
+        link : 'R project'
+        text : 'the #1 open-source statistics software'
     python :
         icon : 'cc-icon-python'
         href : 'http://www.scipy-lectures.org/'
         link : 'Scientific Python'
-        text : <span>see also{' '}
+        text : <span>i.e.{' '}
                     <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
                     <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
                     <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
@@ -257,7 +257,8 @@ THIRD_PARTY =
     linux :
         icon : 'linux'
         href : 'http://ryanstutorials.net/linuxtutorial/'
-        link : 'Linux tutorial'
+        link : 'GNU/Linux'
+        text : 'introduction tutorial'
 
 
 ABOUT_LINKS =
@@ -321,7 +322,7 @@ LinkList = rclass
 
     render: ->
         <Col md={@props.width} sm={12}>
-            <h3> <Icon name={@props.icon} /> {@props.title}</h3>
+            {<h3> <Icon name={@props.icon} /> {@props.title}</h3> if @props.title}
             {@render_links()}
         </Col>
 
@@ -329,6 +330,9 @@ exports.ThirdPartySoftware = ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
         <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+
+exports.render_static_third_party_software = ->
+    <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />
 
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'

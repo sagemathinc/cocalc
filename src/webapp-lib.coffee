@@ -102,9 +102,6 @@ require("script!jsbeautify/beautify-html.min.js")
 # Make html into markdown
 #require("script!remarked/reMarked.min.js")
 
-# custom cocalc icon font
-require('webapp-lib/cocalc-icons-font/style.css')
-
 # ********************************
 # node_modules, mainly from inside smc-webapp
 

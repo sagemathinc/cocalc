@@ -247,6 +247,7 @@ pug2index = new HtmlWebpackPlugin
                         template         : path.join(INPUT, 'index.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        SCHEMA           : require('smc-util/schema')
 
 # the following set of plugins renders the policy pages
 # they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
