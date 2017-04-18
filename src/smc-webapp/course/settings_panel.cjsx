@@ -152,7 +152,7 @@ exports.SettingsPanel = rclass
         <Panel header={@render_title_desc_header()}>
             <LabeledRow label="Title">
                 <TextInput
-                    text={@props.settings.get('title')}
+                    text={@props.settings.get('title') ? ''}
                     on_change={(title)=>@actions(@props.name).set_title(title)}
                 />
             </LabeledRow>

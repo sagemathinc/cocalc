@@ -1354,7 +1354,7 @@ exports.ProjectsPage = ProjectsPage = rclass
 
     clear_filters_and_focus_search_input: ->
         @actions('projects').setState(selected_hashtags:{})
-        @refs.search.clear_and_focus_input()
+        @refs.search.clear_and_focus_search_input()
 
     render: ->
         if not @props.project_map?

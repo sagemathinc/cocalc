@@ -52,7 +52,7 @@
     "react-chosen": "^0.3.8",
     "react-dom": "^15.4.2",
     "react-draggable": "^2.2.2",
-    "react-dropzone-component": "github:felixrieseberg/React-Dropzone-Component",
+    "react-dropzone-component": "^1.4.1",
     "react-notify-resize": "^2.0.2",
     "react-redux": "^4.4.5",
     "react-select": "git://github.com/JedWatson/react-select.git",

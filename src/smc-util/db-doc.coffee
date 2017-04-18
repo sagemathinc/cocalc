@@ -567,7 +567,14 @@ class exports.SyncDB extends EventEmitter
         return @_doc.get_read_only()
 
     _on_change: () =>
-        # console.log '_on_change'
+        if not @_doc?
+            # This **can** happen because @_on_change is actually throttled, so
+            # definitely will sometimes get called one more time,
+            # even after this object is closed. (see the constructor above).
+            # Not rebroadcasting such change events is fine, since the object
+            # is already closed and nobody is listening.
+            # See https://github.com/sagemathinc/smc/issues/1829
+            return
         changes = @_doc.get_doc().changes()
         @_doc.get_doc().reset_changes()
         if changes.size > 0 or @_first_change_event  # something actually probably changed
@@ -578,7 +585,6 @@ class exports.SyncDB extends EventEmitter
         if not @_doc?
             return
         @removeAllListeners()
-        @_doc?.removeListener('change', @_on_change)
         @_doc?.close()
         delete @_doc
 

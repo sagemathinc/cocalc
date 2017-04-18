@@ -7,6 +7,16 @@ import re
 
 from textwrap import dedent
 
+class TestLex:
+    def test_lex_1(self, execdoc):
+        execdoc("x = random? # bar")
+    def test_lex_2(self, execdoc):
+        execdoc("x = random? # plot?")
+    def test_lex_3(self, exec2):
+        exec2("x = 1 # plot?\nx","1\n")
+    def test_lex_4(self, exec2):
+        exec2('x="random?" # plot?\nx',"'random?'\n")
+
 class TestDecorators:
     def test_simple_dec(self, exec2):
         code = dedent(r"""
@@ -118,19 +128,9 @@ class TestBasic:
         html = "https://www.google.com/search\?q=site%3Adoc.sagemath.org\+laurent\&oq=site%3Adoc.sagemath.org"
         exec2(code, html_pattern = html)
 
-    def test_show_doc(self, test_id, sagews):
+    def test_show_doc(self, execdoc):
         # issue 476
-        code = "show?"
-        patn = "import smc_sagews.graphics\nsmc_sagews.graphics.graph_to_d3_jsonable?"
-        m = conftest.message.execute_code(code = code, id = test_id)
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'code' in mesg
-        assert 'source' in mesg['code']
-        assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
-        conftest.recv_til_done(sagews, test_id)
+        execdoc("show?")
 
     # https://github.com/sagemathinc/smc/issues/1107
     def test_sage_underscore_1(self, exec2):
