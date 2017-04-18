@@ -507,6 +507,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     distance             = {3 if not IS_MOBILE}
                     bsStyle              = "pills"
                     style                = {display:'flex', overflow:'hidden', flex: 1}
+                    shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-file-tabs')}
                 >
                     {@file_tabs()}
                 </SortableNav>
