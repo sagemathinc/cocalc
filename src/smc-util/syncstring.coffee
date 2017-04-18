@@ -1796,7 +1796,7 @@ class SyncDoc extends EventEmitter
         new_remote = @_patch_list.value()
 
         # if document changed, set to new version
-        if live != new_remote
+        if not live?.is_equal(new_remote)
             @_last = @_doc = new_remote
             @emit('change')
 
@@ -1817,7 +1817,7 @@ class StringDocument
         return @_value
 
     is_equal: (other) =>
-        return @_value == other._value
+        return @_value == other?._value
 
     apply_patch: (patch) =>
         return new StringDocument(apply_patch(patch, @_value)[0])
