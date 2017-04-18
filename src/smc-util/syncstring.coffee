@@ -1790,13 +1790,13 @@ class SyncDoc extends EventEmitter
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
         # changes would overwrite the local ones.
-        live = @_save()
+        @_save()
 
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
 
         # if document changed, set to new version
-        if not live?.is_equal(new_remote)
+        if not @_doc?.is_equal(new_remote)
             @_last = @_doc = new_remote
             @emit('change')
 
