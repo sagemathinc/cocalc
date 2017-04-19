@@ -79,6 +79,7 @@ class Kernel extends EventEmitter
         dbg = @dbg('constructor')
         dbg()
         process.on('exit', @close)
+        @setMaxListeners(100)
 
     _set_state: (state) =>
         # state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
