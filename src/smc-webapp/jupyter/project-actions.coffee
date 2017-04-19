@@ -233,10 +233,6 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @ensure_backend_kernel_setup()
 
-        if not @_jupyter_kernel?
-            handler.error("Unable to start Jupyter")
-            return
-
         cell   = @store.get('cells').get(id)
         input  = (cell.get('input') ? '').trim()
 
@@ -275,6 +271,10 @@ class exports.JupyterActions extends actions.JupyterActions
 
         handler.on 'more_output', (mesg, mesg_length) =>
             @set_more_output(id, mesg, mesg_length)
+
+        if not @_jupyter_kernel?
+            handler.error("Unable to start Jupyter")
+            return
 
         handler.on('process', @_jupyter_kernel.process_output)
 

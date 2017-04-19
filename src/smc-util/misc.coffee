@@ -603,6 +603,8 @@ ELLIPSES = "…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")
@@ -614,6 +616,8 @@ exports.trunc = (s, max_length=1024) ->
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length <= max_length
         return s
     if max_length < 1
@@ -625,6 +629,8 @@ exports.trunc_middle = (s, max_length=1024) ->
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")

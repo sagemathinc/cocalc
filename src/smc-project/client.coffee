@@ -621,8 +621,10 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
-        @dbg("checking if path exists")(opts.path)
+        dbg = @dbg("checking if path (='#{opts.path}') exists")
+        dbg()
         fs.exists opts.path, (exists) =>
+            dbg("returned #{exists}")
             opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
     path_stat: (opts) =>  # see https://nodejs.org/api/fs.html#fs_class_fs_stats

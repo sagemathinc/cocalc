@@ -20,6 +20,12 @@
 ###############################################################################
 
 ###
+
+
+
+
+
+
 Database-backed time-log database-based synchronized editing
 
 [TODO: High level description of algorithm here, or link to article.]
@@ -1549,7 +1555,7 @@ class SyncDoc extends EventEmitter
                         if err
                             cb(err)
                         else if not exists
-                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get_doc()?.slice(0,80)}...'")
+                            dbg("write '#{path}' to disk from syncstring in-memory database version")
                             data = @to_str() ? ''  # maybe in case of no patches yet (?).
                             @_client.write_file
                                 path : path

@@ -13,7 +13,16 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
+
 require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
+
+process.addListener "uncaughtException", (err) ->
+    winston.debug("BUG ****************************************************************************")
+    winston.debug("Uncaught exception: " + err)
+    winston.debug(err.stack)
+    winston.debug("BUG ****************************************************************************")
+    if console? and console.trace?
+        console.trace()
 
 path    = require('path')
 async   = require('async')
@@ -295,14 +304,6 @@ start_server = (tcp_port, raw_port, cb) ->
             winston.debug("Successfully started servers.")
         cb(err)
     )
-
-process.addListener "uncaughtException", (err) ->
-    winston.debug("BUG ****************************************************************************")
-    winston.debug("Uncaught exception: " + err)
-    winston.debug(err.stack)
-    winston.debug("BUG ****************************************************************************")
-    if console? and console.trace?
-        console.trace()
 
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
