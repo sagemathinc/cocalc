@@ -592,8 +592,8 @@ exports.MobileProjectPage = rclass ({name}) ->
             fontSize   : '12pt'
 
         <MenuItem
-            key={path}
-            onClick={()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
+            key     = {path}
+            onClick = {()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
         >
             <div style={width:'100%'}>
                 <div style={x_button_styles}>
