@@ -23,7 +23,6 @@ class TestLex:
 class TestOutputReplace:
     def test_1865(self,exec2):
         code = 'for x in [u"ááá", "ááá"]: print(x)'
-        xout = "\\u00e1\\u00e1\\u00e1\\n\\u00e1\\u00e1\\u00e1\\n"
         xout = u'ááá\nááá\n'
         exec2(code, xout)
     
