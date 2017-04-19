@@ -76,8 +76,6 @@ class exports.JupyterActions extends actions.JupyterActions
 
             @ensure_backend_kernel_setup()  # this may change the syncdb.
 
-            @init_kernel_info()             # need to have for saving.
-
             @init_file_watcher()
 
             @syncdb.on 'save_to_disk_project', (err) =>
@@ -89,6 +87,9 @@ class exports.JupyterActions extends actions.JupyterActions
             if not @store.get('kernel')?
                 @set_kernel(DEFAULT_KERNEL)
                 @ensure_backend_kernel_setup()
+
+            @init_kernel_info()   # need to have for saving; must be after setting kernel.
+
             @set_backend_state('ready')
 
             @syncdb.on('change', @_backend_syncdb_change)
@@ -168,13 +169,26 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @_jupyter_kernel.on('execution_state', @set_kernel_state)
 
+        @_jupyter_kernel.on 'error', (err) =>
+            # TODO: need to save so gets reported to frontend...
+            dbg("error: #{err}")
+
         # Ready to run code, etc.
         @sync_exec_state()
         @set_backend_state('ready')
 
     init_kernel_info: =>
+        dbg = @dbg("init_kernel_info")
+        dbg("kernels.size=#{@store.get('kernels')?.size}")
         if not @store.get('kernels')?
+            dbg('getting')
+            if not @_jupyter_kernel?
+                @ensure_backend_kernel_setup()
+            if not @_jupyter_kernel?
+                dbg("no kernel, so unable to get info")
+                return
             @_jupyter_kernel?.get_kernel_data (err, kernels) =>
+                dbg("got #{err}, #{misc.to_json(kernels)}")
                 if not err
                     @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
 
@@ -407,6 +421,9 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg('saving to file')
         if not @_jupyter_kernel?
             dbg('no kernel so cannot save')
+            return
+        if not @store.get('kernels')?
+            dbg("kernel info not known, so can't save")
             return
         dbg("going to try to save")
         ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())

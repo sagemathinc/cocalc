@@ -43,7 +43,7 @@ exports.jupyter_backend = (syncdb, client) ->
 # for interactive testing
 class Client
     dbg: (f) ->
-        return (m) -> console.log("Client.#{f}: ", m)
+        return (m...) -> console.log("Client.#{f}: ", m...)
 
 exports.kernel = (opts) ->
     opts = defaults opts,
@@ -101,6 +101,9 @@ class Kernel extends EventEmitter
         dbg('spawning kernel...')
         success = (kernel) =>
             dbg("spawned kernel; now creating comm channels...")
+            kernel.spawn.on 'error', (err) =>
+                dbg("kernel spawn error", err)
+                @emit("error", err)
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
@@ -559,7 +562,7 @@ get_kernel_data = (cb) ->
                         name         : kernel
                         display_name : value.spec.display_name
                         language     : value.spec.language
-                v.sort (a,b) -> misc.cmp(a.name, b.name)
+                v.sort(misc.field_cmp('name'))
                 _kernel_data.jupyter_kernels = v
                 _kernel_data.jupyter_kernels_json = JSON.stringify(_kernel_data.jupyter_kernels)
                 cb(undefined, _kernel_data)
