@@ -128,7 +128,7 @@ exports.commands = (actions) ->
     'copy cell' :
         i : 'files-o'
         m : 'Copy Cells'
-        k : [{"mode":"escape","which":67, alt:true}, {"mode":"escape","which":67}, {"mode":"escape","which":67, ctrl:true}]
+        k : [{"mode":"escape","which":67}]
         f : -> actions.copy_selected_cells()
 
     'copy cell attachments' : undefined   # no clue what this means or is for... but I can guess...
@@ -136,14 +136,14 @@ exports.commands = (actions) ->
     'cut cell' :
         i : 'scissors'
         m : 'Cut Cells'
-        k : [{"mode":"escape","which":88, alt:true}, {"mode":"escape","which":88}, {"mode":"escape","which":88, ctrl:true}]
+        k : [{"mode":"escape","which":88}]
         f : -> actions.cut_selected_cells()
 
     'cut cell attachments' : undefined    # no clue
 
     'delete cell' :  # jupyter has this but with d,d as shortcut, since they have no undo.
         m : 'Delete Cells'
-        k : [{"mode":"escape","which":8,twice:true}, {"mode":"escape","which":68,twice:true}]
+        k : [{"mode":"escape","which":68,twice:true}]
         f : -> actions.delete_selected_cells()
 
     'duplicate notebook' :
