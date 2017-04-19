@@ -415,7 +415,6 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
     clear_and_focus_search_input: ->
         @props.clear_search()
         @setState(selected_items:[])
-        @refs.search_input.clear_and_focus_search_input()
 
     search_button: ->
         if @props.is_searching

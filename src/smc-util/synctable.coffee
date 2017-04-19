@@ -552,6 +552,14 @@ class SyncTable extends EventEmitter
                         # this can happen in case synctable is closed after _save is called but before returning from this query.
                         cb?("closed")
                         return
+                    if not @_value_server? or not @_value_local?
+                        # There is absolutely no possible way this can happen, since it was
+                        # checked for above before the call, and these can only get set by
+                        # the close method to undefined, which also sets the @_state to closed,
+                        # so would get caught above.  However, evidently this **does happen**:
+                        #   https://github.com/sagemathinc/smc/issues/1870
+                        cb?("value_server and value_local must be set")
+                        return
                     @emit('saved', saved_objs)
                     # success: each change in the query what committed successfully to the database; we can
                     # safely set @_value_server (for each value) as long as it didn't change in the meantime.
@@ -891,9 +899,9 @@ class SyncTable extends EventEmitter
         if @_id?
             @_client.query_cancel(id:@_id)
             delete @_id
+        @_state = 'closed'
         delete @_value_local
         delete @_value_server
-        @_state = 'closed'
 
     # wait until some function of this synctable is truthy
     # (this might be exactly the same code as in the postgres-synctable.coffee SyncTable....)
