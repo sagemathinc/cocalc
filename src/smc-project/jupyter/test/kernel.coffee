@@ -3,8 +3,14 @@ expect  = require('expect')
 
 common = require('./common')
 
+output_equals = (v, data) ->
+    for x in v
+        if x.content?.data?
+            expect(x.content.data).toEqual(data)
+
+
 describe 'compute 2+2 using the python2 kernel -- ', ->
-    @timeout(20000)
+    @timeout(5000)
     kernel = undefined
 
     it 'creates a python2 kernel', ->
@@ -19,7 +25,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 if err
                     done(err)
                 else
-                    expect(v[2]?.content?.data).toEqual({"text/plain":"9"})
+                    output_equals(v, {"text/plain":"9"})
                     done()
 
     it 'closes the kernel', ->
@@ -36,7 +42,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 done()
 
 describe 'compute 2/3 using the python3 kernel -- ', ->
-    @timeout(10000)
+    @timeout(5000)
     kernel = undefined
 
     it 'creates a python3 kernel', ->
@@ -51,7 +57,7 @@ describe 'compute 2/3 using the python3 kernel -- ', ->
                 if err
                     done(err)
                 else
-                    expect(v[2]?.content?.data).toEqual({"text/plain":"0.6666666666666666"})
+                    output_equals(v, {"text/plain":"0.6666666666666666"})
                     done()
 
     it 'closes the kernel', ->
@@ -77,28 +83,20 @@ describe 'it tries to start a kernel that does not exist -- ', ->
 
 describe 'calling the spawn method -- ', ->
     kernel = undefined
-    @timeout(10000)
+    @timeout(5000)
 
     it 'creates a python2 kernel', ->
         kernel = common.kernel('python2')
         expect(kernel._state).toBe('off')
 
-    it 'calls the spawn method directly', (done) ->
-        state = kernel._state
-        kernel.on 'state', (new_state) ->
-            switch state
-                when 'off'
-                    expect(new_state).toBe('spawning')
-                when 'spawning'
-                    expect(new_state).toBe('starting')
-                when 'starting'
-                    expect(new_state).toBe('running')
-                    kernel.removeAllListeners()
-                    kernel.close()
-                    done()
-            state = new_state
+    it 'observes state switches to running', (done) ->
+        kernel.on 'state', (state) ->
+            if state != 'running'
+                return
+            kernel.removeAllListeners()
+            kernel.close()
+            done()
         kernel.spawn (err) ->
-            expect(kernel._state).toBe('starting')
             expect(err).toBe(undefined)
 
 describe 'send signals to a kernel -- ', ->
@@ -131,7 +129,7 @@ describe 'start a kernel in a different directory -- ', ->
     kernel = undefined
     @timeout(5000)
 
-    it 'creates a python2 kernel', (done) ->
+    it 'creates a python2 kernel in current dir', (done) ->
         kernel = common.kernel('python2')
         kernel.execute_code
             code : 'import os; print(os.path.abspath("."))'
@@ -146,10 +144,10 @@ describe 'start a kernel in a different directory -- ', ->
                     return
                 path = path.slice(path.length-7)
                 expect(path).toBe('jupyter')
-                done(err)
+                done()
 
-    it 'creates a python2 kernel', (done) ->
-        kernel = common.kernel('python2', 'test')
+    it 'creates a python2 kernel with path test/a.ipynb2', (done) ->
+        kernel = common.kernel('python2', 'test/a.ipynb2')
         kernel.execute_code
             code      : 'import os; print(os.path.abspath("."))'
             all       : true
@@ -161,8 +159,8 @@ describe 'start a kernel in a different directory -- ', ->
                 if not path?
                     done("output failed")
                     return
-                path = path.slice(path.length-8)
-                expect(path).toBe('/jupyter')
+                path = path.slice(path.length-5)
+                expect(path).toBe('/test')
                 done(err)
 
 

@@ -69,8 +69,8 @@ describe "complete some things using python2 kernel -- ", ->
 describe "complete some things using sage kernel -- ", ->
     @timeout(30000)
 
-    it 'creates a sage-7.5 kernel', ->
-        kernel = common.kernel('sage-7.5')
+    it 'creates a sage kernel', ->
+        kernel = common.kernel('sage')
 
     check({code:'Ell'}, ['Ellipsis', 'EllipticCurve', 'EllipticCurve_from_c4c6', 'EllipticCurve_from_cubic', 'EllipticCurve_from_j', 'EllipticCurve_from_plane_curve', 'EllipticCurveIsogeny', 'EllipticCurves_with_good_reduction_outside_S' ])
 

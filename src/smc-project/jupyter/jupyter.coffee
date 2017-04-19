@@ -78,7 +78,7 @@ class Kernel extends EventEmitter
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
-        process.on('exit',=>console.log("exiting"))
+        process.on('exit', @close)
 
     _set_state: (state) =>
         # state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
@@ -110,15 +110,31 @@ class Kernel extends EventEmitter
                     @emit('execution_state', mesg.content?.execution_state)
                 @emit('iopub', mesg)
 
-            @once 'iopub', =>
-                # first iopub message from the kernel means it has start running
+            @once 'iopub', (m) =>
+                # first iopub message from the kernel means it has started running
+                dbg("iopub: #{misc.to_json(m)}")
                 @_set_state('running')
+                for cb in @_spawn_cbs
+                    cb?()
 
             kernel.spawn.on('close', @close)
 
             @_set_state('starting') # so we can send code execution to the kernel, etc.
-            for cb in @_spawn_cbs
-                cb?()
+
+            # Very ugly!  In practice, with testing, I've found that some kernels simply
+            # don't start immediately, and drop early messages.  The only reliable way to
+            # get things going properly is to just keep trying something (we do the kernel_info
+            # command) until it works. Only then do we declare the kernel ready for code
+            # execution, etc.   Probably the jupyter devs never notice this race condition
+            # bug in ZMQ/Jupyter kernels... or maybe the python server has a sort of
+            # accidental work around.
+            misc.retry_until_success
+                start_delay : 100
+                max_delay   : 5000
+                factor      : 1.4
+                f : (cb) =>
+                    @kernel_info(cb:=>)
+                    cb(@_state == 'starting')
 
         fail = (err) =>
             @_set_state('off')
@@ -167,6 +183,13 @@ class Kernel extends EventEmitter
             return ->
         else
             return @_dbg("jupyter.Kernel('#{@name}',path='#{@_path}').#{f}")
+
+    _low_level_dbg: =>
+        # for low level debugging only...
+        f = (channel) =>
+            @_channels[channel].subscribe (mesg) => console.log(channel, mesg)
+        for channel in ['shell', 'iopub', 'control', 'stdin']
+            f(channel)
 
     _ensure_running: (cb) =>
         if @_state == 'closed'
@@ -217,6 +240,7 @@ class Kernel extends EventEmitter
 
     _process_execute_code_queue: =>
         dbg = @dbg("_process_execute_code_queue")
+        dbg("state='#{@_state}'")
         if @_state == 'closed'
             dbg("closed")
             return
@@ -419,7 +443,7 @@ class Kernel extends EventEmitter
 
     kernel_info: (opts) =>
         opts = defaults opts,
-            cb         : required
+            cb : required
         @call
             msg_type : 'kernel_info_request'
             cb       : (err, info) =>
