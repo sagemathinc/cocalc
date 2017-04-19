@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
 import socket
@@ -7,6 +8,8 @@ import re
 
 from textwrap import dedent
 
+import pytest
+@pytest.mark.skip(reason="waiting until #1835 is fixed")
 class TestLex:
     def test_lex_1(self, execdoc):
         execdoc("x = random? # bar")
@@ -17,6 +20,13 @@ class TestLex:
     def test_lex_4(self, exec2):
         exec2('x="random?" # plot?\nx',"'random?'\n")
 
+class TestOutputReplace:
+    def test_1865(self,exec2):
+        code = 'for x in [u"ááá", "ááá"]: print(x)'
+        xout = "\\u00e1\\u00e1\\u00e1\\n\\u00e1\\u00e1\\u00e1\\n"
+        xout = u'ááá\nááá\n'
+        exec2(code, xout)
+    
 class TestDecorators:
     def test_simple_dec(self, exec2):
         code = dedent(r"""
