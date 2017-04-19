@@ -289,7 +289,7 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
+        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}>
             <NavDropdown id="smc-top-project-nav-dropdown" title=title className="smc-projects-tabs" style={flex:'1'}>
                 {@project_menu_items()}
             </NavDropdown>
