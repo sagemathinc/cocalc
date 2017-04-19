@@ -169,7 +169,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @_jupyter_kernel.on('execution_state', @set_kernel_state)
 
-        @_jupyter_kernel.on 'error', (err) =>
+        @_jupyter_kernel.on 'spawn_error', (err) =>
             # TODO: need to save so gets reported to frontend...
             dbg("error: #{err}")
 

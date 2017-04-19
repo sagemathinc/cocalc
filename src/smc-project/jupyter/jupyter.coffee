@@ -103,7 +103,8 @@ class Kernel extends EventEmitter
             dbg("spawned kernel; now creating comm channels...")
             kernel.spawn.on 'error', (err) =>
                 dbg("kernel spawn error", err)
-                @emit("error", err)
+                @emit("spawn_error", err)
+
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))

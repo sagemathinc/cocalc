@@ -29,9 +29,15 @@ Stdout = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
-        <div style={STDOUT_STYLE}>
-            {@props.message.get('text')}
-        </div>
+        value = @props.message.get('text')
+        if is_ansi(value)
+            <div style={STDOUT_STYLE}>
+                <Ansi>{value}</Ansi>
+            </div>
+        else
+            <div style={STDOUT_STYLE}>
+                {value}
+            </div>
 
 Stderr = rclass
     propTypes :
@@ -77,15 +83,9 @@ TextPlain = rclass
         value : rtypes.string.isRequired
 
     render: ->
-        if @props.value.indexOf("\u001b") != -1
-            # useful heuristic.
-            <div style={ANSI_STYLE}>
-                <Ansi>{@props.value}</Ansi>
-            </div>
-        else
-            <div style={STDOUT_STYLE}>
-                {@props.value}
-            </div>
+        <div style={STDOUT_STYLE}>
+            {@props.value}
+        </div>
 
 Javascript = rclass
     propTypes:
@@ -129,7 +129,10 @@ Data = rclass
                 when 'text'
                     switch b
                         when 'plain'
-                            return <TextPlain value={value}/>
+                            if is_ansi(value)
+                                return <div style={STDOUT_STYLE}><Ansi>{value}</Ansi></div>
+                            else
+                                return <TextPlain value={value}/>
                         when 'html'
                             return <HTML
                                     value      = {value}
@@ -300,3 +303,6 @@ exports.CellOutputMessages = rclass
             >
             {v}
         </div>
+
+is_ansi = (s) ->
+    return s? and s.indexOf("\u001b") != -1
