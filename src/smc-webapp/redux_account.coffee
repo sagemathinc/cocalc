@@ -6,6 +6,8 @@ async = require('async')
 
 {Actions, Store, Table, redux}  = require('./smc-react')
 
+{alert_message} = require('./alerts')
+
 misc = require('smc-util/misc')
 
 help = ->
@@ -16,7 +18,7 @@ remember_me = webapp_client.remember_me_key()
 
 # Define account actions
 class AccountActions extends Actions
-    set_user_type: (user_type) ->
+    set_user_type: (user_type) =>
         @setState(user_type: user_type)
 
     sign_in: (email, password) =>
@@ -43,7 +45,7 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account: (name, email, password, token) ->
+    create_account: (name, email, password, token) =>
         i = name.lastIndexOf(' ')
         if i == -1
             last_name = ''
@@ -95,7 +97,7 @@ class AccountActions extends Actions
                 @sign_out(true)
         )
 
-    forgot_password: (email) ->
+    forgot_password: (email) =>
         webapp_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
@@ -110,7 +112,7 @@ class AccountActions extends Actions
                         forgot_password_success : "Password reset message sent to #{email}; if you don't receive it, check your spam folder; if you have further trouble, write to #{help()}."
                         forgot_password_error   : ''
 
-    reset_password: (code, new_password) ->
+    reset_password: (code, new_password) =>
         webapp_client.reset_forgot_password
             reset_code   : code
             new_password : new_password
@@ -126,7 +128,7 @@ class AccountActions extends Actions
                         window.history.pushState("", document.title, window.location.pathname)
                         @setState(reset_key : '', reset_password_error : '')
 
-    sign_out: (everywhere) ->
+    sign_out: (everywhere) =>
         misc.delete_local_storage(remember_me)
 
         # record this event
@@ -141,9 +143,16 @@ class AccountActions extends Actions
         # and *invalidate* the remember_me cookie for this client.
         webapp_client.sign_out
             everywhere : everywhere
-            cb         : (error) ->
+            cb         : (error) =>
                 if error
-                    @setState('sign_out_error' : message.error)
+                    # We don't know error is a string; and the state when this happens could be
+                    # arbitrarily messed up.  So... both pop up an error (which user will see),
+                    # and set something in the store, which may or may not get displayed.
+                    err = "Error signing you out -- #{misc.to_json(error)} -- please refresh your browser and try again."
+                    alert_message(type:"error", message: err)
+                    @setState
+                        sign_out_error : err
+                        show_sign_out  : false
                 else
                     # Invalidate the remember_me cookie and force a refresh, since otherwise there could be data
                     # left in the DOM, which could lead to a vulnerability
@@ -231,7 +240,7 @@ redux.createStore('account', AccountStore, init)
 # Create and register account table, which gets automatically
 # synchronized with the server.
 class AccountTable extends Table
-    query: ->
+    query: =>
         return 'accounts'
 
     _change: (table) =>

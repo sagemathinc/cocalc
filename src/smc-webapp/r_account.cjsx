@@ -424,17 +424,17 @@ AccountSettings = rclass
                     Cancel
                 </Button>
             </ButtonToolbar>
-            {render_sign_out_error() if @props.sign_out_error}
+            {@render_sign_out_error() if @props.sign_out_error}
         </Well>
 
     render_sign_out_buttons: ->
         <ButtonToolbar className='pull-right'>
             <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false, sign_out_error:undefined)}>
                 <Icon name='sign-out'/> Sign out...
             </Button>
             <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true, sign_out_error:undefined)}>
                 <Icon name='sign-out'/> Sign out everywhere...
             </Button>
         </ButtonToolbar>

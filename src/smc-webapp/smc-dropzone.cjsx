@@ -69,10 +69,12 @@ exports.SMC_Dropwrapper = rclass
             event_handlers       : rtypes.object
             show_upload          : rtypes.bool
             on_close             : rtypes.func
+            disabled             : rtypes.bool                 # Do not do anything. Create no dropzone. Destroy it if one exists.
 
         getDefaultProps: ->
             config         : {}
             hide_previewer : false
+            disabled       : false
 
         getInitialState: ->
             files : []
@@ -91,8 +93,9 @@ exports.SMC_Dropwrapper = rclass
             return postUrl
 
         componentDidMount: ->
-            @_create_dropzone()
-            @_set_up_events()
+            if not @props.disabled
+                @_create_dropzone()
+                @_set_up_events()
 
         componentWillUnmount: ->
             if @dropzone
@@ -114,12 +117,17 @@ exports.SMC_Dropwrapper = rclass
 
         componentDidUpdate: ->
             @queueDestroy = false
-            if not @dropzone?
+            if not @dropzone? and not @props.disabled
                 @_create_dropzone()
 
         # Update Dropzone options each time the component updates.
-        componentWillUpdate: ->
-            @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
+        componentWillUpdate: (new_props) ->
+            if new_props.disabled
+                @dropzone = @_destroy(@dropzone)
+            else
+                if not @dropzone?
+                    @_create_dropzone()
+                @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
 
         preview_template: ->
             <div className='dz-preview dz-file-preview'>
@@ -171,7 +179,7 @@ exports.SMC_Dropwrapper = rclass
 
         render: ->
             <div>
-                {@render_preview()}
+                {@render_preview() if not @props.disabled}
                 {@props.children}
             </div>
 
@@ -206,5 +214,6 @@ exports.SMC_Dropwrapper = rclass
         # Removes ALL listeners and Destroys dropzone.
         # see https://github.com/enyo/dropzone/issues/1175
         _destroy: (dropzone) ->
+            return if not dropzone?
             dropzone.off()
             return dropzone.destroy()
