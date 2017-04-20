@@ -145,11 +145,13 @@ class DBDoc
                     return
                 return
         @size = @_everything.size
-        @_changes ?= immutable.Set()
+        if not @_changes?
+            @reset_changes()
 
     reset_changes: =>
-        @_changes = immutable.Set()
+        @_changes = {changes: immutable.Set(), from_db:@}
 
+    # Returns object {changes: an immutable set of primary keys, from_db: db object where change tracking started}
     changes: =>
         return @_changes
 
@@ -222,7 +224,7 @@ class DBDoc
         {where, set, obj} = @_parse(obj)
         # console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
         matches = @_select(where)
-        changes = @_changes
+        {changes} = @_changes
         n = matches?.first()
         # TODO: very natural optimization would be be to fully support and use obj being immutable
         if n?
@@ -247,7 +249,7 @@ class DBDoc
             if not before.equals(record)
                 # there was an actual change, so update; doesn't change anything involving indexes.
                 changes = changes.add(@_primary_key_cols(record))
-                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, changes)
+                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, {changes:changes, from_db:@_changes.from_db})
             else
                 return @
         else
@@ -274,7 +276,7 @@ class DBDoc
                     else
                         matches = immutable.Set([n])
                     indexes = indexes.set(field, index.set(k, matches))
-            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
+            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, {changes:changes, from_db:@_changes.from_db})
 
     delete: (where) =>
         if misc.is_array(where)
@@ -287,12 +289,12 @@ class DBDoc
         if @_everything.size == 0
             # no-op -- no data so deleting is trivial
             return @
-        changes = @_changes
+        {changes} = @_changes
         remove = @_select(where)
         if remove.size == @_everything.size
             # actually deleting everything; easy special cases
             changes = changes.union(@_records.filter((record)=>record?).map(@_primary_key_cols))
-            return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, changes)
+            return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, {changes:changes, from_db:@_changes.from_db})
 
         # remove matches from every index
         indexes = @_indexes
@@ -321,7 +323,7 @@ class DBDoc
 
         everything = @_everything.subtract(remove)
 
-        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
+        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, {changes:changes, from_db:@_changes.from_db})
 
     # Returns immutable list of all matches
     get: (where) =>
@@ -453,7 +455,26 @@ class DBDoc
             i += 2
         return db
 
+    # Return immutable set of primary keys of records that change in going from @ to other.
+    changed_keys: (other) =>
+        if @_records == other?._records   # identical
+            return immutable.Set()
+        t0 = immutable.Set(@_records)
+        if not other?
+            return t0.map(@_primary_key_cols)
 
+        t1 = immutable.Set(other._records)
+
+        # Remove the common intersection -- nothing going on there.
+        # Doing this greatly reduces the complexity in the common case in which little has changed
+        common = t0.intersect(t1).add(undefined)
+        t0 = t0.subtract(common)
+        t1 = t1.subtract(common)
+
+        # compute the key parts of t0 and t1 as sets
+        k0 = t0.map(@_primary_key_cols)
+        k1 = t1.map(@_primary_key_cols)
+        return k0.union(k1)
 
 class Doc
     constructor: (@_db) ->
@@ -566,7 +587,7 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.get_read_only()
 
-    _on_change: () =>
+    _on_change: =>
         if not @_doc?
             # This **can** happen because @_on_change is actually throttled, so
             # definitely will sometimes get called one more time,
@@ -575,10 +596,21 @@ class exports.SyncDB extends EventEmitter
             # is already closed and nobody is listening.
             # See https://github.com/sagemathinc/smc/issues/1829
             return
-        changes = @_doc.get_doc().changes()
-        @_doc.get_doc().reset_changes()
+        db = @_doc.get_doc()._db
+        if not @_last_db?
+            # first time ever -- just get all keys
+            changes = db.changed_keys()
+        else
+            # may be able to use tracked changes...
+            {changes, from_db} = @_doc.get_doc().changes()
+            @_doc.get_doc().reset_changes()
+            if from_db != @_last_db
+                # NOPE: have to compute the hard (but rock solid and accurate) way.
+                changes = db.changed_keys(@_last_db)
+
         if changes.size > 0 or @_first_change_event  # something actually probably changed
             @emit('change', changes)
+        @_last_db = db
         delete @_first_change_event
 
     close: () =>
@@ -720,12 +752,14 @@ class exports.SyncDB extends EventEmitter
         @_check()
         @_doc.set_doc(@_doc.undo())
         @_doc.save()
+        @_on_change()
         return
 
     redo: =>
         @_check()
         @_doc.set_doc(@_doc.redo())
         @_doc.save()
+        @_on_change()
         return
 
     exit_undo_mode: =>
