@@ -79,7 +79,7 @@ describe 'test the sage kernel --', ->
 
     kernel = undefined
     it 'evaluate 4/3', (done) ->
-        kernel = common.kernel('sage')
+        kernel = common.kernel('sagemath')
         kernel.execute_code
             code : '4/3'
             all  : true
@@ -144,7 +144,7 @@ describe 'test the non-sage R kernel --', ->
                 if err
                     done(err)
                 else
-                    expect(output(v)).toEqual('todo')
+                    expect(output(v)).toEqual({ 'text/html': '2.08166599946613', 'text/latex': '2.08166599946613', 'text/markdown': '2.08166599946613', 'text/plain': '[1] 2.081666' })
                     done()
 
     it 'closes the kernel', ->
@@ -162,7 +162,7 @@ describe 'test the sage R kernel --', ->
                 if err
                     done(err)
                 else
-                    expect(output(v)).toEqual('todo')
+                    expect(output(v)).toEqual({ 'text/html': '2.08166599946613', 'text/latex': '2.08166599946613', 'text/markdown': '2.08166599946613', 'text/plain': '[1] 2.081666' })
                     done()
 
     it 'closes the kernel', ->
