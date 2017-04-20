@@ -459,15 +459,15 @@ class DBDoc
     changed_keys: (other) =>
         if @_records == other?._records   # identical
             return immutable.Set()
-        t0 = immutable.Set(@_records)
+        t0 = immutable.Set(@_records).filter((x) -> x?)  # defined records
         if not other?
             return t0.map(@_primary_key_cols)
 
-        t1 = immutable.Set(other._records)
+        t1 = immutable.Set(other._records).filter((x) -> x?)
 
         # Remove the common intersection -- nothing going on there.
         # Doing this greatly reduces the complexity in the common case in which little has changed
-        common = t0.intersect(t1).add(undefined)
+        common = t0.intersect(t1)
         t0 = t0.subtract(common)
         t1 = t1.subtract(common)
 
