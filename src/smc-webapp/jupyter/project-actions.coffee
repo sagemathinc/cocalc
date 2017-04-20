@@ -337,10 +337,10 @@ class exports.JupyterActions extends actions.JupyterActions
                     output.messages[0].text = misc.trunc(output.messages[0].text, len - need)
                     did_truncate = true
 
-            # check if there is a text field, which we can truncate
+            # check if there is a text/plain field, which we can thus also safely truncate
             if not did_truncate and output.messages[0].data?
                 for field, val of output.messages[0].data
-                    if field.slice(0,4) == 'text'
+                    if field == 'text/plain'
                         len = val.length
                         if len?
                             need = output.length - goal_length + 50
