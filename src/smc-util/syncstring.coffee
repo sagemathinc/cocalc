@@ -1833,8 +1833,13 @@ class SyncDoc extends EventEmitter
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
 
-        # if document changed, set to new version
-        if not @_doc?.is_equal(new_remote)
+        # temporary hotfix for https://github.com/sagemathinc/smc/issues/1873
+        try
+            changed = not @_doc?.is_equal(new_remote)
+        catch
+            changed = true
+        # if any possibility that document changed, set to new version
+        if changed
             @_last = @_doc = new_remote
             @emit('change')
 
