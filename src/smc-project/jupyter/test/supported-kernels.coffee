@@ -35,14 +35,38 @@ describe 'test the bash kernel --', ->
     it 'pwd', (done) ->
         kernel = common.kernel('bash')
         kernel.execute_code
-            code : 'pwd'
+            code : 'cd /tmp; pwd'
             all  : true
             cb   : (err, v) ->
                 if err
                     done(err)
                 else
                     o = output(v)
-                    expect(o.slice(o.length-9)).toBe('/jupyter\n')
+                    expect(o.slice(o.length-9)).toBe('tmp\n')
+                    done()
+
+    it 'stateful setting of env sets', (done) ->
+        kernel.execute_code
+            code : "export FOOBAR='cocalc'; export FOOBAR2='cocalc2'; echo 'done'"
+            all  : true
+            cb   : (err, v) ->
+                if err
+                    done(err)
+                else
+                    o = output(v)
+                    expect(o).toBe('done\n')
+                    done()
+
+    it 'stateful setting of env worked', (done) ->
+        kernel.execute_code
+            code : "echo $FOOBAR; echo $FOOBAR2"
+            all  : true
+            cb   : (err, v) ->
+                if err
+                    done(err)
+                else
+                    o = output(v)
+                    expect(o).toBe('cocalc\ncocalc2\n')
                     done()
 
     it 'closes the kernel', ->
@@ -118,7 +142,6 @@ describe 'test the julia kernel --', ->
                 if err
                     done(err)
                 else
-                    console.log output(v)
                     expect(output(v)).toEqual({ 'text/plain': '1.3333333333333333' })
                     done()
 
