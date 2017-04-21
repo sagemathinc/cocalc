@@ -70,6 +70,12 @@ class TestUnicode:
         uout = ustr[1:-1].decode('utf8').encode('utf8').__repr__().decode('utf8')
         exec2(ustr, uout)
 
+class TestOutputReplace:
+    def test_1865(self,exec2):
+        code = 'for x in [u"ááá", "ááá"]: print(x)'
+        xout = u'ááá\nááá\n'
+        exec2(code, xout)
+
 class TestDecorators:
     def test_simple_dec(self, exec2):
         code = dedent(r"""
