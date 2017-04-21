@@ -7,13 +7,7 @@ expect  = require('expect')
 
 common = require('./common')
 
-output = (v, f) ->
-    for x in v
-        if x.content?.data?
-            return x.content.data
-        if x.content?.text?
-            return x.content.text
-
+{output} = common
 
 describe 'compute 4/3 using the python2 kernel -- ', ->
     @timeout(5000)

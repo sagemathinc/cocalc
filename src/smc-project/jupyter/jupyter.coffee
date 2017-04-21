@@ -108,7 +108,10 @@ class Kernel extends EventEmitter
 
             @_kernel = kernel
             @_channels = require('enchannel-zmq-backend').createChannels(@_identity, @_kernel.config)
+
             @_channels.shell.subscribe((mesg) => @emit('shell', mesg))
+
+            @_channels.stdin.subscribe((mesg) => @emit('stdin', mesg))
 
             @_channels.iopub.subscribe (mesg) =>
                 if mesg.content?.execution_state?
@@ -118,9 +121,14 @@ class Kernel extends EventEmitter
             @once 'iopub', (m) =>
                 # first iopub message from the kernel means it has started running
                 dbg("iopub: #{misc.to_json(m)}")
-                @_set_state('running')
-                for cb in @_spawn_cbs
-                    cb?()
+                # We still wait a few ms, since otherwise -- especially in testing --
+                # the kernel will bizarrely just ignore first input.
+                # TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
+                f = =>
+                    @_set_state('running')
+                    for cb in @_spawn_cbs
+                        cb?()
+                setTimeout(f, 100)
 
             kernel.spawn.on('close', @close)
 
@@ -208,10 +216,13 @@ class Kernel extends EventEmitter
 
     execute_code: (opts) =>
         opts = defaults opts,
-            code : required
-            id   : undefined   # optional tag to be used by cancel_execute
-            all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
-            cb   : undefined   # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+            code  : required
+            id    : undefined   # optional tag to be used by cancel_execute
+            all   : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
+            stdin : undefined   # if given, support stdin prompting; this function will be called
+                                # as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
+                                # Here, e.g., options = { password: false, prompt: '' }.
+            cb    : undefined   # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         if @_state == 'closed'
             opts.cb?("closed")
             return
@@ -281,10 +292,11 @@ class Kernel extends EventEmitter
 
     _execute_code: (opts) =>
         opts = defaults opts,
-            code : required
-            id   : undefined   # optional tag that can be used as input to cancel_execute.
-            all  : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
-            cb   : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+            code  : required
+            id    : undefined   # optional tag that can be used as input to cancel_execute.
+            all   : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
+            stdin : undefined
+            cb    : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
         dbg("code='#{opts.code}', all=#{opts.all}")
         if @_state == 'closed'
@@ -303,36 +315,59 @@ class Kernel extends EventEmitter
                 silent           : false
                 store_history    : true   # so execution_count is updated.
                 user_expressions : {}
-                allow_stdin      : false
+                allow_stdin      : opts.stdin?
 
         # setup handling of the results
         if opts.all
             all_mesgs = []
 
-        f = (mesg) =>
-            if mesg.parent_header.msg_id == message.header.msg_id
-                dbg("got message -- #{JSON.stringify(mesg)}")
-                done = mesg.content?.execution_state == 'idle'  # check this before giving opts.cb the chance to mutate.
+        if opts.stdin?
+            g = (mesg) =>
+                dbg("got STDIN message -- #{JSON.stringify(mesg)}")
+                if mesg.parent_header.msg_id != message.header.msg_id
+                    return
+                opts.stdin mesg.content, (err, response) =>
+                    if err
+                        response = "ERROR -- #{err}"
+                    m =
+                        header :
+                            msg_id   : message.header.msg_id
+                            username : ''
+                            session  : ''
+                            msg_type : 'input_reply'
+                            version  : '5.0'
+                        content :
+                            value: response
+                    @_channels.stdin.next(m)
 
-                # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
-                # is pretty annoying for our use. For now, we just copy it, which is a waste.
-                msg_type = mesg.header?.msg_type
-                mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
-                mesg = misc.deep_copy(mesg)
-                mesg.msg_type = msg_type
-                if opts.all
-                    all_mesgs.push(mesg)
-                else
-                    opts.cb?(undefined, mesg)
-                if done
-                    @removeListener('iopub', f)
-                    @_execute_code_queue.shift()   # finished
-                    @_process_execute_code_queue()
-                    if opts.all
-                        opts.cb?(undefined, all_mesgs)
-                    delete opts.cb  # avoid memory leaks
+            @on('stdin', g)
+
+        f = (mesg) =>
+            if mesg.parent_header.msg_id != message.header.msg_id
+                return
+            dbg("got message -- #{JSON.stringify(mesg)}")
+            # check this before giving opts.cb the chance to mutate.
+            done = mesg.content?.execution_state == 'idle'
+
+            # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
+            # is pretty annoying for our use. For now, we just copy it, which is a waste.
+            msg_type = mesg.header?.msg_type
+            mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
+            mesg = misc.deep_copy(mesg)
+            mesg.msg_type = msg_type
+            if opts.all
+                all_mesgs.push(mesg)
             else
-                dbg("IGNORE message -- #{JSON.stringify(mesg)}")
+                opts.cb?(undefined, mesg)
+            if done
+                @removeListener('iopub', f)
+                if opts.stdin?
+                    @removeListener('stdin', g)
+                @_execute_code_queue.shift()   # finished
+                @_process_execute_code_queue()
+                if opts.all
+                    opts.cb?(undefined, all_mesgs)
+                delete opts.cb  # avoid memory leaks
 
         @on('iopub', f)
 
