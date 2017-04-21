@@ -84,6 +84,7 @@ class JUPYTER(object):
     __doc__ = property(_get_doc)
 
 jupyter = JUPYTER()
+octave = jupyter('octave')
 
 
 def _jkmagic(kernel_name, **kwargs):
