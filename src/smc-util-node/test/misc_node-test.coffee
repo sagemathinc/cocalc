@@ -48,4 +48,13 @@ describe "sanitizing HTML", ->
             expect(ret).toBe exp
             done()
 
+describe 'check sales tax work', ->
+    sales_tax = misc_node.sales_tax
 
+    it 'knows about 98122', ->
+        expect(sales_tax('98122')).toBe 0.10100
+    it 'knows all expected zip codes', ->
+        for zip in [98001..99403]
+            v = sales_tax(zip)
+            expect(v).toBeGreaterThan(0)
+            expect(v).toBeLessThan(0.2000)
