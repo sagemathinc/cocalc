@@ -5,7 +5,7 @@ Kernel display
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Icon, ImmutablePureRenderMixin, Loading, Tip} = require('../r_misc')
 
-util = require('./util')
+{get_logo_url} = require('./server-urls')
 
 misc = require('smc-util/misc')
 
@@ -61,7 +61,7 @@ exports.Kernel = rclass ({name}) ->
             <img style   = {width:'0px', height:'32px'} />
         else
             <img
-                src     = {util.get_logo_url(@props.project_id, kernel) + "?n=#{Math.random()}"}
+                src     = {get_logo_url(@props.project_id, kernel) + "?n=#{Math.random()}"}
                 style   = {width:'32px', height:'32px'}
                 onError = {=> if @props.kernel_info? then @setState(logo_failed: kernel)}
             />

@@ -12,6 +12,8 @@ fs = require('fs')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
+{key_value_store} = require('smc-util/key-value-store')
+
 misc_node = require('smc-util-node/misc_node')
 
 {blob_store} = require('./jupyter-blobs')
@@ -71,6 +73,7 @@ node_cleanup =>
 
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg, @_path, @_actions) ->
+        @store = key_value_store()
         @_directory = misc.path_split(@_path)?.head
         @_set_state('off')
         @_identity = misc.uuid()
@@ -175,6 +178,7 @@ class Kernel extends EventEmitter
         @dbg("close")()
         if @_state == 'closed'
             return
+        @store.close(); delete @store
         @_set_state('closed')
         if _jupyter_kernels[@_path]?._identity == @_identity
             delete _jupyter_kernels[@_path]
@@ -326,6 +330,7 @@ class Kernel extends EventEmitter
                 dbg("got STDIN message -- #{JSON.stringify(mesg)}")
                 if mesg.parent_header.msg_id != message.header.msg_id
                     return
+
                 opts.stdin mesg.content, (err, response) =>
                     if err
                         response = "ERROR -- #{err}"
@@ -511,6 +516,9 @@ class Kernel extends EventEmitter
             segments : required
             query    : required
             cb       : required
+
+        dbg = @dbg("http_server")
+        dbg(opts.segments.join('/'))
         switch opts.segments[0]
 
             when 'signal'
@@ -568,6 +576,10 @@ class Kernel extends EventEmitter
                     cursor_pos   : cursor_pos
                     detail_level : level
                     cb           : opts.cb
+
+            when 'store'
+                @store.set(opts.query.key, opts.query.value)
+                opts.cb()
 
             else
                 opts.cb("no route '#{opts.segments.join('/')}'")

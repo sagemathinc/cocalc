@@ -18,6 +18,9 @@ misc       = require('smc-util/misc')
 {Actions}  = require('../smc-react')
 
 util       = require('./util')
+
+server_urls = require('./server-urls')
+
 parsing    = require('./parsing')
 
 keyboard   = require('./keyboard')
@@ -152,6 +155,7 @@ class exports.JupyterActions extends Actions
                 #catch err
                 #    opts.cb?("#{err}")
         ).fail (err) => opts.cb?(err.statusText ? 'error')
+        return
 
     set_jupyter_kernels: =>
         if jupyter_kernels?
@@ -161,7 +165,7 @@ class exports.JupyterActions extends Actions
                 if @_state == 'closed'
                     cb(); return
                 @_ajax
-                    url     : util.get_server_url(@store.get('project_id')) + '/kernels.json'
+                    url     : server_urls.get_server_url(@store.get('project_id')) + '/kernels.json'
                     timeout : 3000
                     cb      : (err, data) =>
                         if err
@@ -1101,7 +1105,7 @@ class exports.JupyterActions extends Actions
             cursor_pos = pos
 
         @_ajax
-            url     : util.get_complete_url(@store.get('project_id'), @store.get('path'), code, cursor_pos)
+            url     : server_urls.get_complete_url(@store.get('project_id'), @store.get('path'), code, cursor_pos)
             timeout : 5000
             cb      : (err, data) =>
                 if @_complete_request > req
@@ -1151,7 +1155,7 @@ class exports.JupyterActions extends Actions
         cursor_pos ?= code.length
 
         @_ajax
-            url     : util.get_introspect_url(@store.get('project_id'), @store.get('path'), code, cursor_pos, level)
+            url     : server_urls.get_introspect_url(@store.get('project_id'), @store.get('path'), code, cursor_pos, level)
             timeout : 30000
             cb      : (err, data) =>
                 if @_introspect_request > req
@@ -1174,7 +1178,7 @@ class exports.JupyterActions extends Actions
 
     signal: (signal='SIGINT') =>
         @_ajax
-            url     : util.get_signal_url(@store.get('project_id'), @store.get('path'), signal)
+            url     : server_urls.get_signal_url(@store.get('project_id'), @store.get('path'), signal)
             timeout : 5000
         return
 
@@ -1186,7 +1190,7 @@ class exports.JupyterActions extends Actions
         @_fetching_backend_kernel_info = true
         f = (cb) =>
             @_ajax
-                url     : util.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
+                url     : server_urls.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
                 timeout : 15000
                 cb      : (err, data) =>
                     if err
@@ -1265,7 +1269,7 @@ class exports.JupyterActions extends Actions
     fetch_more_output: (id) =>
         time = @_client.server_time() - 0
         @_ajax
-            url     : util.get_more_output_url(@store.get('project_id'), @store.get('path'), id)
+            url     : server_urls.get_more_output_url(@store.get('project_id'), @store.get('path'), id)
             timeout : 60000
             cb      : (err, more_output) =>
                 if err
@@ -1421,5 +1425,29 @@ class exports.JupyterActions extends Actions
         mesg = output.get(n)
         if not mesg?
             return
+
+        if mesg.getIn(['opts', 'password'])
+            # handle password input separately by first submitting to the backend.
+            @submit_password id, value, () =>
+                value = ('●' for i in [0...value.length]).join('')
+                @set_cell_output(id, output.set(n, mesg.set('value', value)), false)
+                @save_asap()
+            return
+
         @set_cell_output(id, output.set(n, mesg.set('value', value)), false)
         @save_asap()
+
+    submit_password: (id, value, cb) =>
+        @set_in_backend_key_value_store(id, value, cb)
+
+    set_in_backend_key_value_store: (key, value, cb) =>
+        @_ajax
+            url     : server_urls.get_store_url(@store.get('project_id'), @store.get('path'), key, value)
+            timeout : 15000
+            cb      : (err) =>
+                if @_state == 'closed'
+                    return
+                if err
+                    @set_error("Error setting backend key/value store (#{err})")
+                cb?(err)
+

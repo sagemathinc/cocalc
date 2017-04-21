@@ -7,7 +7,7 @@ misc = require('smc-util/misc')
 
 Ansi = require('ansi-to-react')
 
-util = require('./util')
+{get_blob_url} = require('./server-urls')
 
 OUT_STYLE =
     whiteSpace    : 'pre-wrap'
@@ -75,7 +75,7 @@ Image = rclass
     render: ->
         if not @props.project_id?   # not enough info to render
             return <span/>
-        src = util.get_blob_url(@props.project_id, @props.extension, @props.sha1) + "&attempts=#{@state.attempts}"
+        src = get_blob_url(@props.project_id, @props.extension, @props.sha1) + "&attempts=#{@state.attempts}"
         <img src={src} onError={@load_error}/>
 
 TextPlain = rclass
@@ -211,7 +211,7 @@ InputDone = rclass
             {@props.message.getIn(['opts', 'prompt']) ? ''}
             <input
                 style       = {INPUT_STYLE}
-                type        = 'text'
+                type        = {if @props.message.getIn(['opts', 'password']) then 'password' else 'text'}
                 size        = {Math.max(47, value.length + 10)}
                 readOnly    = {true}
                 value       = {value}
@@ -248,7 +248,7 @@ Input = rclass
                 style       = {INPUT_STYLE}
                 autoFocus   = {true}
                 readOnly    = {not @props.actions?}
-                type        = 'text'
+                type        = {if @props.message.getIn(['opts', 'password']) then 'password' else 'text'}
                 ref         = 'input'
                 size        = {Math.max(47, @state.value.length + 10)}
                 value       = {@state.value}

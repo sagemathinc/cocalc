@@ -293,11 +293,16 @@ class exports.JupyterActions extends actions.JupyterActions
 
         handler.on('process', @_jupyter_kernel.process_output)
 
+        get_password = =>
+            password = @_jupyter_kernel.store.get(id)
+            @_jupyter_kernel.store.delete(id)
+            return password
+
         # This is used only for stdin right now.
         cell_change = (cell_id, new_cell) =>
             if id == cell_id
                 dbg("cell_change")
-                handler.cell_changed(new_cell)
+                handler.cell_changed(new_cell, get_password)
         @store.on('cell_change', cell_change)
 
         @_jupyter_kernel.execute_code

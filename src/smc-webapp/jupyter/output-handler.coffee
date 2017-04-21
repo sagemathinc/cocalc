@@ -177,7 +177,7 @@ class exports.OutputHandler extends EventEmitter
         @_stdin_cb = cb
 
     # Call this when the cell changes; only used for stdin right now.
-    cell_changed: (cell) =>
+    cell_changed: (cell, get_password) =>
         if not @_stdin_cb?
             return
         output = cell?.get('output')
@@ -185,9 +185,16 @@ class exports.OutputHandler extends EventEmitter
             return
         value = output.getIn(["#{output.size-1}", 'value'])
         if value?
+            x = value
             if @_opts.cell.output
-                n = misc.len(@_opts.cell.output) - 1
+                n = "#{misc.len(@_opts.cell.output) - 1}"
+                if @_opts.cell.output[n]?.opts?.password
+                    # In case of a password, the value is NEVER placed in the document.
+                    # Instead the value is submitted to the backend via https, with
+                    # a random identifier put in the value.
+                    x = get_password()  # get actual password
                 @_opts.cell.output["#{n}"]?.value = value   # sync output-handler view of output with syncdb
-                #@emit('change')
-            @_stdin_cb(undefined, value)
+            @_stdin_cb(undefined, x)
             delete @_stdin_cb
+
+
