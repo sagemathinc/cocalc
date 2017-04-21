@@ -552,7 +552,10 @@ class exports.JupyterActions extends actions.JupyterActions
                 types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
                 if cell.outputs?.length > 0
                     output = {}
-                    for k, content of cell.outputs  # it's fine that k is a string here.
+                    for k, content of cell.outputs  # it's fine/good that k is a string here.
+                        cocalc_alt = cell.metadata?.cocalc?.outputs?[k]
+                        if cocalc_alt?
+                            content = cocalc_alt
                         if ipynb.nbformat <= 3
                             # fix old deprecated fields
                             if content.output_type == 'stream'
