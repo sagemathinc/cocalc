@@ -274,6 +274,7 @@ class exports.JupyterActions extends actions.JupyterActions
             cell              : cell
             max_output_length : @store.get('max_output_length')
             report_started_ms : 250
+            dbg               : (m) -> dbg(".handler #{m}")
 
         handler.on 'change', (save) =>
             @syncdb.set(cell, save)
@@ -292,6 +293,13 @@ class exports.JupyterActions extends actions.JupyterActions
 
         handler.on('process', @_jupyter_kernel.process_output)
 
+        # This is used only for stdin right now.
+        cell_change = (cell_id, new_cell) =>
+            if id == cell_id
+                dbg("cell_change")
+                handler.cell_changed(new_cell)
+        @store.on('cell_change', cell_change)
+
         @_jupyter_kernel.execute_code
             code  : input
             id    : id
@@ -307,6 +315,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     return
                 if mesg.content.execution_state == 'idle'
                     handler.done()
+                    @store.removeListener('cell_change', cell_change)
                     return
                 if mesg.content.execution_state == 'busy'
                     handler.start()

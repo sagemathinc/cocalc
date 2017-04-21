@@ -206,14 +206,15 @@ InputDone = rclass
         message : rtypes.immutable.Map.isRequired
 
     render: ->
+        value = @props.message.get('value') ? ''
         <div style={STDOUT_STYLE}>
             {@props.message.getIn(['opts', 'prompt']) ? ''}
             <input
                 style       = {INPUT_STYLE}
                 type        = 'text'
-                size        = 47
+                size        = {Math.max(47, value.length + 10)}
                 readOnly    = {true}
-                value       = {@props.message.get('value') ? ''}
+                value       = {value}
             />
         </div>
 
@@ -223,12 +224,22 @@ Input = rclass
         actions : rtypes.object
         id      : rtypes.string.isRequired
 
+    getInitialState: ->
+        value : ''
+
     key_down: (evt) ->
         if evt.keyCode == 13
             @submit()
+        # Official docs: If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.
+        # The Jupyter notebook does *NOT* properly implement this.  We do something at least similar
+        # and send an interrupt on control d or control z.
+        if (evt.keyCode == 68 or evt.keyCode == 90) and evt.ctrlKey
+            @props.actions?.signal('SIGINT')
+            setTimeout(@submit, 10)
 
     submit: ->
-        @props.actions?.submit_input(@props.id, ReactDOM.findDOMNode(@refs.input).value)
+        @props.actions?.submit_input(@props.id, @state.value)
+        @props.actions?.focus_unlock()
 
     render: ->
         <div style={STDOUT_STYLE}>
@@ -237,9 +248,11 @@ Input = rclass
                 style       = {INPUT_STYLE}
                 autoFocus   = {true}
                 readOnly    = {not @props.actions?}
-                ref         = 'input'
                 type        = 'text'
-                size        = 47
+                ref         = 'input'
+                size        = {Math.max(47, @state.value.length + 10)}
+                value       = {@state.value}
+                onChange    = {(e) => @setState(value: e.target.value)}
                 onBlur      = {@props.actions?.focus_unlock}
                 onFocus     = {@props.actions?.blur_lock}
                 onKeyDown   = {@key_down}

@@ -37,6 +37,7 @@ class exports.OutputHandler extends EventEmitter
                                             # messages are saved and made available.
             report_started_ms : undefined   # If no messages for this many ms, then we update via set to indicate
                                             # that cell is being run.
+            dbg               : undefined
 
         cell = @_opts.cell
         cell.output     = null
@@ -95,7 +96,7 @@ class exports.OutputHandler extends EventEmitter
             name : "stderr"
         @done()
 
-    # Call done when done
+    # Call done exactly once when done
     done: =>
         @_opts.cell.state = 'done'
         @_opts.cell.start ?= now()
@@ -170,5 +171,23 @@ class exports.OutputHandler extends EventEmitter
 
     stdin: (opts, cb) =>
         # See docs for stdin option to execute_code in backend jupyter.coffee
-        #cb(undefined, "389")
         @_push_mesg({name:'input', opts:opts})
+        # Now we wait until the output message we just included has its
+        # value set.  Then we call cb with that value.
+        @_stdin_cb = cb
+
+    # Call this when the cell changes; only used for stdin right now.
+    cell_changed: (cell) =>
+        if not @_stdin_cb?
+            return
+        output = cell?.get('output')
+        if not output?
+            return
+        value = output.getIn(["#{output.size-1}", 'value'])
+        if value?
+            if @_opts.cell.output
+                n = misc.len(@_opts.cell.output) - 1
+                @_opts.cell.output["#{n}"]?.value = value   # sync output-handler view of output with syncdb
+                #@emit('change')
+            @_stdin_cb(undefined, value)
+            delete @_stdin_cb

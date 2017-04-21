@@ -435,6 +435,7 @@ class exports.JupyterActions extends Actions
             @setState(obj)
         if @_is_project
             @manage_on_cell_change(id, new_cell, old_cell)
+        @store.emit('cell_change', id, new_cell, old_cell)
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
@@ -1420,4 +1421,5 @@ class exports.JupyterActions extends Actions
         mesg = output.get(n)
         if not mesg?
             return
-        @set_cell_output(id, output.set(n, mesg.set('value', value)))
+        @set_cell_output(id, output.set(n, mesg.set('value', value)), false)
+        @save_asap()
