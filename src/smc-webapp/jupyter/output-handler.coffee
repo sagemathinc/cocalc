@@ -119,6 +119,8 @@ class exports.OutputHandler extends EventEmitter
                 delete mesg[k]
 
     _push_mesg: (mesg, save=true) =>
+        if @_opts.cell.output == null
+            @_opts.cell.output = {}
         @_opts.cell.output["#{@_n}"] = mesg
         @_n += 1
         @emit('change', save)
@@ -147,9 +149,6 @@ class exports.OutputHandler extends EventEmitter
         if @_clear_before_next_output
             @_clear_output(false)
 
-        if @_opts.cell.output == null
-            @_opts.cell.output = {}
-
         if not @_opts.max_output_length
             @_push_mesg(mesg)
             return
@@ -169,3 +168,7 @@ class exports.OutputHandler extends EventEmitter
             @_in_more_output_mode = true
         @emit('more_output', mesg, mesg_length)
 
+    stdin: (opts, cb) =>
+        # See docs for stdin option to execute_code in backend jupyter.coffee
+        #cb(undefined, "389")
+        @_push_mesg({name:'input', opts:opts})

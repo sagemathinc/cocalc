@@ -1403,14 +1403,21 @@ class exports.JupyterActions extends Actions
     move_edit_cursor: (delta) =>
         @set_error('move_edit_cursor not implemented')
 
-    # # supported scroll positions are in commands.coffee
+    # supported scroll positions are in commands.coffee
     scroll: (pos) =>
         @setState(scroll: pos)
 
     print_preview: =>
         console.log("print_preview -- TODO")
 
-
-
-
-
+    # submit input for a particular cell -- this is used by the
+    # Input component output message type for interactive input.
+    submit_input: (id, value) =>
+        output = @store.getIn(['cells', id, 'output'])
+        if not output?
+            return
+        n = "#{output.size - 1}"
+        mesg = output.get(n)
+        if not mesg?
+            return
+        @set_cell_output(id, output.set(n, mesg.set('value', value)))

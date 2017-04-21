@@ -293,9 +293,10 @@ class exports.JupyterActions extends actions.JupyterActions
         handler.on('process', @_jupyter_kernel.process_output)
 
         @_jupyter_kernel.execute_code
-            code : input
-            id   : id
-            cb   : (err, mesg) =>
+            code  : input
+            id    : id
+            stdin : handler.stdin
+            cb    : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
                 if err
                     dbg("got error='#{err}'")

@@ -197,6 +197,56 @@ MoreOutput = rclass
                 <Icon name='eye'/> Fetch additional output...
             </Button>
 
+INPUT_STYLE =
+    padding : '0em 0.25em'
+    margin  : '0em 0.25em'
+
+InputDone = rclass
+    propTypes :
+        message : rtypes.immutable.Map.isRequired
+
+    render: ->
+        <div style={STDOUT_STYLE}>
+            {@props.message.getIn(['opts', 'prompt']) ? ''}
+            <input
+                style       = {INPUT_STYLE}
+                type        = 'text'
+                size        = 47
+                readOnly    = {true}
+                value       = {@props.message.get('value') ? ''}
+            />
+        </div>
+
+Input = rclass
+    propTypes :
+        message : rtypes.immutable.Map.isRequired
+        actions : rtypes.object
+        id      : rtypes.string.isRequired
+
+    key_down: (evt) ->
+        if evt.keyCode == 13
+            @submit()
+
+    submit: ->
+        @props.actions?.submit_input(@props.id, ReactDOM.findDOMNode(@refs.input).value)
+
+    render: ->
+        <div style={STDOUT_STYLE}>
+            {@props.message.getIn(['opts', 'prompt']) ? ''}
+            <input
+                style       = {INPUT_STYLE}
+                autoFocus   = {true}
+                readOnly    = {not @props.actions?}
+                ref         = 'input'
+                type        = 'text'
+                size        = 47
+                onBlur      = {@props.actions?.focus_unlock}
+                onFocus     = {@props.actions?.blur_lock}
+                onKeyDown   = {@key_down}
+            />
+        </div>
+
+
 NotImplemented = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
@@ -216,6 +266,11 @@ message_component = (message) ->
         return Stdout
     if message.get('name') == 'stderr'
         return Stderr
+    if message.get('name') == 'input'
+        if message.get('value')?
+            return InputDone
+        else
+            return Input
     if message.get('data')?
         return Data
     if message.get('traceback')?
