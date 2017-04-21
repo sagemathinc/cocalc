@@ -6,6 +6,8 @@ expect  = require('expect')
 
 misc = require('smc-util/misc')
 
+immutable = require('immutable')
+
 {OutputHandler} = require('../output-handler')
 
 describe 'very basic tests -- ', ->
@@ -66,7 +68,7 @@ describe 'clearing output -- with the non-default wait argument', ->
         handler.message({name:'stdout', text:'CoCalC'})
         expect(cell.output).toEqual({ 0: { name: 'stdout', text: 'CoCalC' } })
 
-describe 'verify that events are emitted when in several cases', ->
+describe 'verify that events are emitted in several cases', ->
     it 'does a very basic test', ->
         cell = {}
         handler = new OutputHandler(cell:cell)
@@ -97,7 +99,7 @@ describe 'verify that events are emitted when in several cases', ->
             done()
         handler.message(m)
 
-    it 'uses the process event to modify a message before it hits more_ouput', (done) ->
+    it 'uses the process event to modify a message before it hits more_output', (done) ->
         handler = new OutputHandler(cell:{}, max_output_length:30)
         m = { name: 'stdout', text: 'CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC CoCalC ' }
         handler.once 'process', (mesg) ->
@@ -107,4 +109,35 @@ describe 'verify that events are emitted when in several cases', ->
             expect(mesg_length).toBe(33)
             done()
         handler.message(m)
+
+describe 'stdin interactive input -- ', ->
+    it 'non-password input', (done) ->
+        cell = {}
+        handler = new OutputHandler(cell:cell)
+        handler.stdin {password:false, prompt:'a?'}, (err, value) ->
+            expect(value).toBe('cocalc')
+            expect(cell.output['0'].value).toBe('cocalc')
+            done(err)
+        expect(cell).toEqual({ end: null, exec_count: null, output: { 0: { name: 'input', opts: { password: false, prompt: 'a?' } } }, start: null, state: 'run' })
+        # now give it response
+        c = misc.deep_copy(cell)
+        c.output['0'].value = 'cocalc'
+        handler.cell_changed(immutable.fromJS(c))
+
+    it 'password input', (done) ->
+        cell = {}
+        handler = new OutputHandler(cell:cell)
+        handler.stdin {password:true, prompt:'a?'}, (err, value) ->
+            expect(value).toBe('cocalc')
+            expect(cell.output['0'].value).toBe('xxxxxx')
+            done(err)
+        expect(cell).toEqual({ end: null, exec_count: null, output: { 0: { name: 'input', opts: { password: true, prompt: 'a?' } } }, start: null, state: 'run' })
+        # now give it response
+        c = misc.deep_copy(cell)
+        c.output['0'].value = 'xxxxxx'
+        get_password = ->
+            return 'cocalc'
+        handler.cell_changed(immutable.fromJS(c), get_password)
+
+
 

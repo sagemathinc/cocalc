@@ -188,7 +188,7 @@ class exports.OutputHandler extends EventEmitter
             x = value
             if @_opts.cell.output
                 n = "#{misc.len(@_opts.cell.output) - 1}"
-                if @_opts.cell.output[n]?.opts?.password
+                if get_password? and @_opts.cell.output[n]?.opts?.password
                     # In case of a password, the value is NEVER placed in the document.
                     # Instead the value is submitted to the backend via https, with
                     # a random identifier put in the value.
