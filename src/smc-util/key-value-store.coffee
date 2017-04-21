@@ -32,5 +32,6 @@ class KeyValueStore
             throw Error("closed")
         delete @_data[json(key)]
 
+
     close: =>
         delete @_data
