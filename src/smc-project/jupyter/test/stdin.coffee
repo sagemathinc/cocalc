@@ -69,7 +69,19 @@ describe 'get input using the python2 kernel -- ', ->
                     expect(common.output(v)).toEqual('cocalc\n')
                     done()
 
-    # TODO: how can we make password: true ?
+    it 'reading a password', (done) ->
+        kernel.execute_code
+            code  : 'import getpass; print(getpass.getpass("password?"))'
+            all   : true
+            stdin : (opts, cb) ->
+                expect(opts).toEqual({ password: true, prompt: 'password?' })
+                cb(undefined, "cocalc")
+            cb    : (err, v) ->
+                if err
+                    done(err)
+                else
+                    expect(common.output(v)).toEqual('cocalc\n')
+                    done()
 
     it 'closes the kernel', ->
         kernel.close()
