@@ -163,4 +163,19 @@ describe 'start a kernel in a different directory -- ', ->
                 expect(path).toBe('/test')
                 done(err)
 
+describe 'use the key:value store -- ', ->
+    kernel = undefined
+    @timeout(5000)
+
+    it 'creates a python2 kernel', ->
+        kernel = common.kernel('python2')
+
+    it 'tests setting the store', ->
+        kernel.store.set({a:5, b:7}, {the:'value'})
+        expect(kernel.store.get({b:7, a:5})).toEqual({the:'value'})
+
+    it 'tests deleting from the store', ->
+        kernel.store.delete({a:5, b:7})
+        expect(kernel.store.get({b:7, a:5})).toBe(undefined)
+
 
