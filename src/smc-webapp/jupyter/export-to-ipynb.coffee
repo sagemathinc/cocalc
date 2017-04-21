@@ -28,14 +28,15 @@ exports.export_to_ipynb = (opts) ->
 # Return ipynb version of the given cell as Python object
 cell_to_ipynb = (id, opts) ->
     cell = opts.cells.get(id)
+    metadata = {}
     obj =
         cell_type : cell.get('cell_type') ? 'code'
         source    : cell.get('input')
-        metadata  : {}
+        metadata  : metadata
     if cell.get('collapsed')
-        obj.metadata.collapsed = true
+        metadata.collapsed = true
     if cell.get('scrolled')
-        obj.metadata.scrolled = true
+        metadata.scrolled = true
 
     exec_count = cell.get('exec_count') ? 0
     if obj.cell_type == 'code'
@@ -46,6 +47,13 @@ cell_to_ipynb = (id, opts) ->
         obj.outputs = ipynb_outputs(output, exec_count, opts.more_output?[id], opts.blob_store)
     else if not obj.outputs? and obj.cell_type == 'code'
         obj.outputs = [] # annoying requirement of ipynb file format.
+    for n, x of obj.outputs
+        if x.cocalc?
+            # alternative version of cell that official Jupyter doesn' support can only
+            # stored in the **cell-level** metadata, not output.
+            metadata.cocalc ?= {outputs:{}}
+            metadata.cocalc.outputs[n] = x.cocalc
+            delete x.cocalc
     return obj
 
 ipynb_outputs = (output, exec_count, more_output, blob_store) ->
@@ -99,6 +107,15 @@ process_output_n = (output_n, exec_count, blob_store) ->
         output_n.execution_count = exec_count
     else if output_n.name?
         output_n.output_type = 'stream'
+        if output_n.name == 'input'
+            process_stdin_output(output_n)
     else if output_n.ename?
         output_n.output_type = 'error'
     return
+
+process_stdin_output = (output) ->
+    output.cocalc = misc.deep_copy(output)
+    output.name = 'stdout'
+    output.text = output.opts.prompt + ' ' + (output.value ? '')
+    delete output.opts
+    delete output.value
