@@ -1,5 +1,5 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Button, Navbar, Nav, NavItem, NavDropdown, MenuItem} = require('react-bootstrap')
+{Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
 Sidebar = require('react-sidebar').default
 {Loading, Icon, Tip} = require('./r_misc')
 
