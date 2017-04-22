@@ -325,6 +325,14 @@ class Kernel extends EventEmitter
         if opts.all
             all_mesgs = []
 
+        f = g = h = shell_done = iopub_done = undefined
+
+        push_mesg = (mesg) =>
+            if opts.all
+                all_mesgs.push(mesg)
+            else
+                opts.cb?(undefined, mesg)
+
         if opts.stdin?
             g = (mesg) =>
                 dbg("got STDIN message -- #{JSON.stringify(mesg)}")
@@ -347,12 +355,29 @@ class Kernel extends EventEmitter
 
             @on('stdin', g)
 
+        h = (mesg) =>
+            if mesg.parent_header.msg_id != message.header.msg_id
+                return
+            dbg("got SHELL message -- #{JSON.stringify(mesg)}")
+            if mesg.content?.payload?.length > 0
+                # Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+                # ""Payloads are considered deprecated, though their replacement is not yet implemented."
+                # we fully have to implement them, since they are used to implement (crazy, IMHO)
+                # things like %load in the python2 kernel!
+                push_mesg(payload: mesg.content.payload)
+            shell_done = true
+            if iopub_done and shell_done
+                finish?()
+
+        @on('shell', h)
+
         f = (mesg) =>
             if mesg.parent_header.msg_id != message.header.msg_id
                 return
-            dbg("got message -- #{JSON.stringify(mesg)}")
+            dbg("got IOPUB message -- #{JSON.stringify(mesg)}")
+
             # check this before giving opts.cb the chance to mutate.
-            done = mesg.content?.execution_state == 'idle'
+            iopub_done = mesg.content?.execution_state == 'idle'
 
             # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
             # is pretty annoying for our use. For now, we just copy it, which is a waste.
@@ -360,21 +385,26 @@ class Kernel extends EventEmitter
             mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
             mesg = misc.deep_copy(mesg)
             mesg.msg_type = msg_type
-            if opts.all
-                all_mesgs.push(mesg)
-            else
-                opts.cb?(undefined, mesg)
-            if done
-                @removeListener('iopub', f)
-                if opts.stdin?
-                    @removeListener('stdin', g)
-                @_execute_code_queue.shift()   # finished
-                @_process_execute_code_queue()
-                if opts.all
-                    opts.cb?(undefined, all_mesgs)
-                delete opts.cb  # avoid memory leaks
+            push_mesg(mesg)
+
+            if iopub_done and shell_done
+                finish?()
 
         @on('iopub', f)
+
+        finish = () =>
+            if f?
+                @removeListener('iopub', f)
+            if g?
+                @removeListener('stdin', g)
+            if h?
+                @removeListener('shell', h)
+            @_execute_code_queue.shift()   # finished
+            @_process_execute_code_queue()
+            if opts.all
+                opts.cb?(undefined, all_mesgs)
+            delete opts.cb  # avoid memory leaks
+            finish = undefined
 
         dbg("send the message")
         @_channels.shell.next(message)
