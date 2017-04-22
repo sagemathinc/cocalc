@@ -396,7 +396,10 @@ class Kernel extends EventEmitter
         # NOTES:
         #   - html produced by kernels tends to be of much better quality than markdown.
         #     E.g., the R markdown output is crap but the HTML is great.
-        types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
+        #
+        # Also, this list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
+        #
+        types = ['application/javascript', 'text/html', 'text/markdown', 'text/latex', 'image/svg+xml', 'image/png', 'image/jpeg', 'application/pdf', 'text/plain']
         blob = false
         keep = undefined
         for type in types

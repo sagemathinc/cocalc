@@ -133,7 +133,7 @@ Data = rclass
                                 return <div style={STDOUT_STYLE}><Ansi>{value}</Ansi></div>
                             else
                                 return <TextPlain value={value}/>
-                        when 'html'
+                        when 'html', 'latex'  # put latex as HTML, since jupyter requires $'s anyways.
                             return <HTML
                                     value      = {value}
                                     project_id = {@props.project_id}

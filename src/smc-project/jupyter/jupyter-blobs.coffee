@@ -42,7 +42,7 @@ class BlobStore
         if x.type in ['image/png', 'image/jpeg']
             return x.data.toString('base64')
         else
-            return x.data
+            return x.data.toString()
 
     keys: =>
         return misc.keys(@_blobs)
