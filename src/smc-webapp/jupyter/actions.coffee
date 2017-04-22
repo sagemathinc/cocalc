@@ -438,7 +438,7 @@ class exports.JupyterActions extends Actions
                 cell_list_needs_recompute = true
             @setState(obj)
         if @_is_project
-            @manage_on_cell_change(id, new_cell, old_cell)
+            @manager_on_cell_change(id, new_cell, old_cell)
         @store.emit('cell_change', id, new_cell, old_cell)
         return cell_list_needs_recompute
 
@@ -484,6 +484,9 @@ class exports.JupyterActions extends Actions
             @initialize_manager()
         else if @_state == 'init'
             @_state = 'ready'
+
+        if @_is_project
+            @manager_run_cell_process_queue()
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
@@ -687,11 +690,18 @@ class exports.JupyterActions extends Actions
         return
 
     run_code_cell: (id) =>
+        # We mark the start timestamp uniquely, so that the backend can sort
+        # multiple cells with a simultaneous time to start request.
+        start = @_client.server_time() - 0
+        if @_last_start? and start <= @_last_start
+            start = @_last_start + 1
+        @_last_start = start
+
         @_set
             type         : 'cell'
             id           : id
             state        : 'start'
-            start        : null
+            start        : start
             end          : null
             output       : null
             exec_count   : null

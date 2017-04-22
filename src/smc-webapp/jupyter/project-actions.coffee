@@ -199,8 +199,8 @@ class exports.JupyterActions extends actions.JupyterActions
     # It should do things like ensure any cell with a compute request
     # gets computed, that all positions are unique, that there is a
     # cell, etc.  Only one client will run this code.
-    manage_on_cell_change: (id, new_cell, old_cell) =>
-        dbg = @dbg("manage_on_cell_change(id='#{id}')")
+    manager_on_cell_change: (id, new_cell, old_cell) =>
+        dbg = @dbg("manager_on_cell_change(id='#{id}')")
         dbg("new_cell='#{misc.to_json(new_cell?.toJS())}',old_cell='#{misc.to_json(old_cell?.toJS())}')")
 
         if not new_cell?
@@ -208,7 +208,7 @@ class exports.JupyterActions extends actions.JupyterActions
             return
 
         if new_cell.get('state') == 'start' and old_cell?.get('state') != 'start'
-            @manager_run_cell(id)
+            @manager_run_cell_enqueue(id)
             return
 
     # Ensure that the cells listed as running *are* exactly the
@@ -240,7 +240,28 @@ class exports.JupyterActions extends actions.JupyterActions
         if @_running_cells?[id]
             @_jupyter_kernel?.cancel_execute(id: id)
 
-    # Runs only on the backend
+    # Note that there is a request to run a given cell.
+    # You must call manager_run_cell_process_queue for them to actually start running.
+    manager_run_cell_enqueue: (id) =>
+        if @_running_cells?[id]
+            return
+        @_manager_run_cell_queue ?= {}
+        @_manager_run_cell_queue[id] = true
+
+    # properly start running -- in order -- the cells that have been requested to run
+    manager_run_cell_process_queue: =>
+        if not @_manager_run_cell_queue?
+            return
+        v = (@store.getIn(['cells', id]) for id, _ of @_manager_run_cell_queue when not @_running_cells?[id])
+        v.sort (a,b) ->
+            misc.cmp(a?.get('start'), b?.get('start'))
+        # dbg = @dbg("manager_run_cell_process_queue")
+        # dbg("running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}")
+        for cell in v
+            if cell?
+                @manager_run_cell(cell.get('id'))
+        delete @_manager_run_cell_queue
+
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell(id='#{id}')")
         dbg()
