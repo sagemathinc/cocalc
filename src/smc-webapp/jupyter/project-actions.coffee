@@ -347,6 +347,15 @@ class exports.JupyterActions extends actions.JupyterActions
                     return
                 if mesg.content.execution_state == 'busy'
                     handler.start()
+                if mesg.content.payload?.length > 0
+                    # payload shell message:
+                    # Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+                    # ""Payloads are considered deprecated, though their replacement is not yet implemented."
+                    # we fully have to implement them, since they are used to implement (crazy, IMHO)
+                    # things like %load in the python2 kernel!
+                    for p in mesg.content.payload
+                        handler.payload(p)
+
                 handler.message(mesg.content)
 
     reset_more_output: (id) =>

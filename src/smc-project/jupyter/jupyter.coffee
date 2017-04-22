@@ -328,6 +328,12 @@ class Kernel extends EventEmitter
         f = g = h = shell_done = iopub_done = undefined
 
         push_mesg = (mesg) =>
+            # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
+            # is pretty annoying for our use. For now, we just copy it, which is a waste.
+            msg_type = mesg.header?.msg_type
+            mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
+            mesg = misc.deep_copy(mesg)
+            mesg.msg_type = msg_type
             if opts.all
                 all_mesgs.push(mesg)
             else
@@ -359,12 +365,7 @@ class Kernel extends EventEmitter
             if mesg.parent_header.msg_id != message.header.msg_id
                 return
             dbg("got SHELL message -- #{JSON.stringify(mesg)}")
-            if mesg.content?.payload?.length > 0
-                # Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
-                # ""Payloads are considered deprecated, though their replacement is not yet implemented."
-                # we fully have to implement them, since they are used to implement (crazy, IMHO)
-                # things like %load in the python2 kernel!
-                push_mesg(payload: mesg.content.payload)
+            push_mesg(mesg)
             shell_done = true
             if iopub_done and shell_done
                 finish?()
@@ -379,12 +380,6 @@ class Kernel extends EventEmitter
             # check this before giving opts.cb the chance to mutate.
             iopub_done = mesg.content?.execution_state == 'idle'
 
-            # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
-            # is pretty annoying for our use. For now, we just copy it, which is a waste.
-            msg_type = mesg.header?.msg_type
-            mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
-            mesg = misc.deep_copy(mesg)
-            mesg.msg_type = msg_type
             push_mesg(mesg)
 
             if iopub_done and shell_done
