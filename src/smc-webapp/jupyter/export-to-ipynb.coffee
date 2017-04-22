@@ -31,10 +31,13 @@ cell_to_ipynb = (id, opts) ->
     metadata = {}
     obj =
         cell_type : cell.get('cell_type') ? 'code'
-        source    : cell.get('input')
+        source    : diff_friendly(cell.get('input'))
         metadata  : metadata
-    if cell.get('collapsed')
-        metadata.collapsed = true
+
+    # consistenty with jupyter -- they explicitly give collapsed true or false state no matter what
+    metadata.collapsed = !!cell.get('collapsed')
+
+    # Jupyter only gives scrolled state when true.
     if cell.get('scrolled')
         metadata.scrolled = true
 
@@ -49,7 +52,7 @@ cell_to_ipynb = (id, opts) ->
         obj.outputs = [] # annoying requirement of ipynb file format.
     for n, x of obj.outputs
         if x.cocalc?
-            # alternative version of cell that official Jupyter doesn' support can only
+            # alternative version of cell that official Jupyter doesn't support can only
             # stored in the **cell-level** metadata, not output.
             metadata.cocalc ?= {outputs:{}}
             metadata.cocalc.outputs[n] = x.cocalc
@@ -89,8 +92,12 @@ ipynb_outputs = (output, exec_count, more_output, blob_store) ->
 process_output_n = (output_n, exec_count, blob_store) ->
     if not output_n?
         return
+    if output_n.text?
+        output_n.text = diff_friendly(output_n.text)
     if output_n.data?
         for k, v of output_n.data
+            if k.slice(0,5) == 'text/'
+                output_n.data[k] = diff_friendly(output_n.data[k])
             if misc.startswith(k, 'image/')
                 if blob_store?
                     value = blob_store.get_ipynb(v)
@@ -119,3 +126,16 @@ process_stdin_output = (output) ->
     output.text = output.opts.prompt + ' ' + (output.value ? '')
     delete output.opts
     delete output.value
+
+# Transform a string s with newlines into an array v of strings
+# such that v.join('') == s.
+diff_friendly = (s) ->
+    if typeof(s) != 'string'  # might already be an array or undefined.
+        return s
+    v = s.split('\n')
+    for i in [0...v.length-1]
+        v[i] += '\n'
+    if v[v.length-1] == ''
+        v.pop()  # remove last elt
+    return v
+

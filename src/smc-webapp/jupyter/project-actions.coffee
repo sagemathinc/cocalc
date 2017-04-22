@@ -14,6 +14,8 @@ underscore     = require('underscore')
 misc           = require('smc-util/misc')
 actions        = require('./actions')
 
+json_stable    = require('json-stable-stringify')
+
 {OutputHandler} = require('./output-handler')
 {IpynbImporter} = require('./import-from-ipynb')
 
@@ -442,7 +444,9 @@ class exports.JupyterActions extends actions.JupyterActions
             return
         dbg("going to try to save")
         ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())
-        data = JSON.stringify(ipynb, null, 2)
+        # We use json_stable (and indent 1) to be more diff friendly to user, and more consistent
+        # with official Jupyter.
+        data = json_stable(ipynb,{space:1})
         if not data?
             dbg("ipynb not defined yet; can't save")
             return
