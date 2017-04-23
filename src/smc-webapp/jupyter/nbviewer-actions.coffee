@@ -11,6 +11,8 @@ immutable = require('immutable')
 
 util = require('./util')
 
+{IPynbImporter} = require('./import-from-ipynb')
+
 class exports.NBViewerActions extends Actions
     _init: (project_id, path, store, client) =>
         @store  = store
@@ -44,15 +46,18 @@ class exports.NBViewerActions extends Actions
                     @set_from_ipynb(ipynb)
 
     set_from_ipynb: (ipynb) =>
-        cells      = immutable.Map()
+        importer = new IPynbImporter()
+        importer.import
+            ipynb   : ipynb
+        cells      = immutable.fromJS(importer.cells())
         cell_list  = util.sorted_cell_list(cells)
-        cm_options = immutable.fromJS
+        options = immutable.fromJS
             markdown : undefined
             options  : cm_options()   # TODO
         @setState
             cells      : cells
             cell_list  : cell_list
-            cm_options : cm_options
+            cm_options : options
 
     close: =>
         delete @store
