@@ -289,17 +289,25 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title className="smc-projects-tabs" style={flex:'1'}>
+        <Nav
+            className = 'smc-dropdown-projects'
+            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}
+            >
+            <NavDropdown
+                id        = "smc-top-project-nav-dropdown"
+                title     = {title}
+                className = "smc-projects-tabs"
+                style     = {flex:'1'}
+            >
                 {@project_menu_items()}
             </NavDropdown>
         </Nav>
 
     render_one_project_item: (project_id) ->
         project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
         title = @props.get_title(project_id)
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
