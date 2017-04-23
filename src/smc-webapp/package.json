@@ -62,6 +62,7 @@
     "react-widgets": "^3.0.0",
     "redux": "^3.6.0",
     "remarked": "^0.1.4",
+    "requirejs": "^2.3.3",
     "reselect": "^2.5.4",
     "three": "^0.78.0",
     "timeago": "^1.5.3",
