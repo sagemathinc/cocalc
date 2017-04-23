@@ -6,6 +6,10 @@ Viewer for public ipynb files.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{CellList}   = require('./cell-list')
+
+misc = require('smc-util/misc')
+
 exports.NBViewer = rclass ({name}) ->
     reduxProps :
         "#{name}" :
@@ -13,7 +17,10 @@ exports.NBViewer = rclass ({name}) ->
             path       : rtypes.string.isRequired
             loading    : rtypes.object
             error      : rtypes.string
-            ipynb      : rtypes.object
+            cell_list  : rtypes.immutable
+            cells      : rtypes.immutable
+            font_size  : rtypes.number.isRequired
+            cm_options : rtypes.immutable
 
     render_loading: ->
         <Loading
@@ -26,13 +33,27 @@ exports.NBViewer = rclass ({name}) ->
             onClose = {=>@props.actions.setState(error: undefined)}
         />
 
-    render_ipynb: ->
-        <div>{@props.project_id} {@props.path} {JSON.stringify(@props.ipynb)}</div>
+    render_cells: ->
+        directory  = misc.path_split(@props.path).head
+        <CellList
+            cell_list  = {@props.cell_list}
+            cells      = {@props.cells}
+            font_size  = {@props.font_size}
+            mode       = 'escape'
+            cm_options = {@props.cm_options}
+            project_id = {@props.project_id}
+            directory  = {directory}
+            />
+
+    render_body: ->
+        <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
+            {@render_cells()}
+        </div>
 
     render: ->
         if @props.error?
             return @render_error()
-        else if @props.ipynb?
-            return @render_ipynb()
+        else if @props.cell_list? and @props.cells? and @props.cm_options?
+            return @render_body()
         else
             return @render_loading()

@@ -20,7 +20,6 @@ exports.HistoryViewer = HistoryViewer = rclass
     render_cells: ->
         project_id = @props.syncdb.get_project_id()
         directory  = misc.path_split(@props.syncdb.get_path())?.head
-        settings   = @props.syncdb.get_one(type:'settings', @props.version)
         cells      = immutable.Map()
         @props.syncdb.get(type:'cell', @props.version)?.forEach (cell) ->
             cells = cells.set(cell.get('id'), cell)
