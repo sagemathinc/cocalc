@@ -31,6 +31,8 @@ commands   = require('./commands')
 
 jupyter_kernels = undefined
 
+{IPynbImporter} = require('./import-from-ipynb')
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -563,8 +565,15 @@ class exports.JupyterActions extends Actions
                 setTimeout((()=>@syncdb.save_asap()), 50)
         return
 
-    _new_id: =>
-        return misc.uuid().slice(0,8)  # TODO: choose something...; ensure is unique, etc.
+    _id_is_available: (id) =>
+        return not @store.getIn(['cells', id])?
+
+    _new_id: (is_available) =>
+        is_available ?= @_id_is_available
+        while true
+            id = misc.uuid().slice(0,6)
+            if is_available(id)
+                return id
 
     # TODO: for insert i'm using averaging; for move I'm just resetting all to integers.
     # **should** use averaging but if get close re-spread all properly.  OR use strings?
@@ -1461,3 +1470,41 @@ class exports.JupyterActions extends Actions
                     @set_error("Error setting backend key/value store (#{err})")
                 cb?(err)
 
+    set_to_ipynb: (ipynb) =>
+        # set_to_ipynb - set from ipynb object.  This is
+        # mainly meant to be run on the backend in the project,
+        # but can -- mainly for testing -- be run on the frontend too
+        # (in which case it won't remove images, etc.).
+
+        dbg = @dbg("set_to_ipynb")
+        @_state = 'load'
+
+        # We have to parse out the kernel so we can use process_output below.
+        # (TODO: rewrite so process_output is not associated with a specific kernel)
+        kernel = ipynb.metadata?.kernelspec?.name ? 'python2'
+        dbg("kernel in ipynb: name='#{kernel}'")
+        @syncdb.set({type: 'settings', kernel: kernel}, false)
+        @ensure_backend_kernel_setup?()
+
+        importer = new IPynbImporter()
+
+        # We re-use any existing ids to make the patch that defines changing
+        # to the contents of ipynb more efficient.   In case of a very slight change
+        # on disk, this can be massively more efficient.
+        importer.import
+            ipynb        : ipynb
+            existing_ids : @store.get('cell_list')?.toJS()
+            new_id       : @_new_id
+            process      : @_jupyter_kernel?.process_output
+
+        @syncdb.delete(undefined, false)
+        for _, cell of importer.cells()
+            @syncdb.set(cell, false)
+
+        @syncdb.set({type: 'settings', kernel: importer.kernel()}, false)
+
+        importer.close()
+
+        @syncdb.sync () =>
+            @ensure_backend_kernel_setup?()
+            @_state = 'ready'

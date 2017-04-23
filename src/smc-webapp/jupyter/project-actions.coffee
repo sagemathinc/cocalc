@@ -17,7 +17,6 @@ actions        = require('./actions')
 json_stable    = require('json-stable-stringify')
 
 {OutputHandler} = require('./output-handler')
-{IpynbImporter} = require('./import-from-ipynb')
 
 DEFAULT_KERNEL = 'python2'  #TODO
 
@@ -118,19 +117,17 @@ class exports.JupyterActions extends actions.JupyterActions
     # ensure_backend_kernel_setup ensures that we have a connection
     # to the proper type of kernel.
     ensure_backend_kernel_setup: =>
-        dbg = @dbg("ensure_backend_kernel_setup")
         kernel = @store.get('kernel')
         if not kernel?
-            dbg("no kernel")
             return
 
         current = @_jupyter_kernel?.name
-
-        dbg("kernel='#{kernel}', current='#{current}'")
-
         if current == kernel
             # everything is properly setup
             return
+
+        dbg = @dbg("ensure_backend_kernel_setup")
+        dbg("kernel='#{kernel}', current='#{current}'")
 
         if current? and current != kernel
             dbg("kernel changed")
@@ -494,154 +491,6 @@ class exports.JupyterActions extends actions.JupyterActions
                 else
                     dbg("succeeded at saving")
                     @_last_save_ipynb_file = new Date()
-
-    set_to_ipynb0: (ipynb) =>
-        dbg = @dbg("set_to_ipynb")
-        @_state = 'load'
-
-        # We have to parse out the kernel so we can use process_output below.
-        # (TODO: rewrite so process_output is not associated with a specific kernel)
-        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
-        dbg("kernel in ipynb: name='#{kernel}'")
-        @syncdb.set({type: 'settings', kernel: kernel}, false)
-        @ensure_backend_kernel_setup()
-
-        importer = new IpynbImporter()
-        importer.on('process', @_jupyter_kernel.process_output)
-
-        @syncdb.delete(false)
-        for record in importer.import(ipynb)
-            @syncdb.set(record, false)
-
-        @syncdb.sync () =>
-            @ensure_backend_kernel_setup()
-            @_state = 'ready'
-
-    # Given an ipynb JSON object, set the syncdb (and hence the store, etc.) to
-    # the notebook defined by that object.
-    set_to_ipynb: (ipynb) =>
-        dbg = @dbg("set_to_ipynb")
-        @_state = 'load'
-        if not ipynb?
-            dbg("undefined ipynb so make blank")
-            @syncdb.delete()
-            @_state = 'ready'
-            @ensure_there_is_a_cell()  # just in case the ipynb file had no cells (?)
-            return
-
-        #dbg("importing '#{JSON.stringify(ipynb)}'")
-        @syncdb.exit_undo_mode()
-
-        # We re-use any existing ids to make the patch that defines changing
-        # to the contents of ipynb more efficient.   In case of a very slight change
-        # on disk, this can be massively more efficient.
-        existing_ids = @store.get('cell_list')?.toJS() ? []
-
-        # delete everything
-        @syncdb.delete(undefined, false)
-
-        set = (obj) =>
-            @syncdb.set(obj, false)
-
-        # Set the kernel and other settings
-        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
-        dbg("kernel in ipynb: name='#{kernel}'")
-        set(type: 'settings', kernel: kernel)
-        @ensure_backend_kernel_setup()
-
-        if ipynb.nbformat <= 3
-            dbg("handle older kernel format")
-            ipynb.cells ?= []
-            for worksheet in ipynb.worksheets
-                for cell in worksheet.cells
-                    if cell.input?
-                        cell.source = cell.input
-                        delete cell.input
-                    if cell.cell_type == 'heading'
-                        cell.cell_type = 'markdown'
-                        if misc.is_array(cell.source)
-                            cell.source = cell.source.join('')
-                        cell.source = '# ' + "#{cell.source}"
-                    ipynb.cells.push(cell)
-
-        dbg("Read in the cells")
-        if ipynb.cells?
-            n = 0
-            for cell in ipynb.cells
-                if cell.source?
-                    # "If you intend to work with notebook files directly, you must allow multi-line
-                    # string fields to be either a string or list of strings."
-                    # https://nbformat.readthedocs.io/en/latest/format_description.html#top-level-structure
-                    if misc.is_array(cell.source)
-                        input = cell.source.join('')
-                    else
-                        input = cell.source
-                if cell.execution_count?
-                    exec_count = cell.execution_count
-                else if cell.prompt_number?
-                    exec_count = cell.prompt_number
-                else
-                    exec_count = null
-
-                cell_type = cell.cell_type ? 'code'
-
-                types = ['image/svg+xml', 'image/png', 'image/jpeg', 'text/html', 'text/markdown', 'text/plain', 'text/latex']
-                if cell.outputs?.length > 0
-                    output = {}
-                    for k, content of cell.outputs  # it's fine/good that k is a string here.
-                        cocalc_alt = cell.metadata?.cocalc?.outputs?[k]
-                        if cocalc_alt?
-                            content = cocalc_alt
-                        if ipynb.nbformat <= 3
-                            # fix old deprecated fields
-                            if content.output_type == 'stream'
-                                if misc.is_array(content.text)
-                                    content.text = content.text.join('')
-                                content.name = content.stream
-                            else
-                                for t in types
-                                    [a,b] = t.split('/')
-                                    if content[b]?
-                                        content = {data:{"#{t}": content[b]}}
-                                        break  # at most one data per message.
-                                if content.text?
-                                    content = {data:{'text/plain':content.text}, output_type:'stream'}
-
-                        if content.data?
-                            for key, val of content.data
-                                if misc.is_array(val)
-                                    content.data[key] = val.join('')
-
-                        delete content.prompt_number  # in some files
-                        @_jupyter_kernel.process_output(content)
-                        output[k] = content
-                else
-                    output = null
-
-                obj =
-                    type       : 'cell'
-                    id         : existing_ids[n] ? @_new_id()
-                    pos        : n
-                    input      : input
-                    output     : output
-                    cell_type  : cell_type
-                    exec_count : exec_count
-                if cell.metadata.collapsed
-                    obj.collapsed = cell.metadata.collapsed
-                if cell.metadata.scrolled
-                    obj.scrolled = cell.metadata.scrolled
-                set(obj)
-
-                n += 1
-
-        @syncdb.sync () =>
-            @set_kernel(kernel)
-            @ensure_backend_kernel_setup()
-
-            # Wait for the store to get fully updated in response to the sync.
-            @_state = 'ready'
-            if not ipynb.cells? or ipynb.cells.length == 0
-                @ensure_there_is_a_cell()  # the ipynb file had no cells (?)
 
     ensure_there_is_a_cell: =>
         if @_state != 'ready'

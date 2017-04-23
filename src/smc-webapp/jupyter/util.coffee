@@ -26,3 +26,9 @@ exports.sorted_cell_list = (cells) ->
         misc.cmp(a.pos, b.pos)
     v = (x.id for x in v)
     return immutable.List(v)
+
+# This list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
+# The order matters -- we only keep the left-most type (see import-from-ipynb.coffee)
+
+exports.JUPYTER_MIMETYPES = ['application/javascript', 'text/html', 'text/markdown', 'text/latex', \
+                             'image/svg+xml', 'image/png', 'image/jpeg', 'application/pdf', 'text/plain']

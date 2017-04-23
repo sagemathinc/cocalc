@@ -20,6 +20,10 @@ misc_node = require('smc-util-node/misc_node')
 
 node_cleanup = require('node-cleanup')
 
+util = require('smc-webapp/jupyter/util')
+
+{remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
+
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
@@ -414,32 +418,12 @@ class Kernel extends EventEmitter
             dbg("no data, so nothing to do")
             return
 
-        # We only keep the *left-most* representation, since it provides the richest
-        # representation in the client; there is no need for the others.
-        # 1. We could make this rendering preferences table configurable.
-        # 2. TODO: we will still have to store all of these somewhere (in the backend only) for the .ipynb export!
-        # NOTES:
-        #   - html produced by kernels tends to be of much better quality than markdown.
-        #     E.g., the R markdown output is crap but the HTML is great.
-        #
-        # Also, this list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
-        #
-        types = ['application/javascript', 'text/html', 'text/markdown', 'text/latex', 'image/svg+xml', 'image/png', 'image/jpeg', 'application/pdf', 'text/plain']
-        blob = false
-        keep = undefined
-        for type in types
+        remove_redundant_reps(content.data)
+
+        for type in util.JUPYTER_MIMETYPES
             if content.data[type]?
                 if type.split('/')[0] == 'image'
-                    blob = true
-                keep = type
-                break
-        if keep?
-            for type,_ of content.data
-                if type != keep
-                    delete content.data[type]
-        if blob
-            content.data[keep] = blob_store.save(content.data[keep], keep)
-        dbg("keep='#{keep}'; blob='#{blob}'")
+                    content.data[type] = blob_store.save(content.data[type], type)
 
     # Returns a reference to the blob store.
     get_blob_store: =>

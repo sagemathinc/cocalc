@@ -19,7 +19,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 if err
                     done(err)
                 else
-                    expect(v.slice(0, v.length-1)).toEqual([{"metadata":{},"content":{"execution_state":"busy"},"buffers":[],msg_type: 'status'},{"metadata":{},"content":{"execution_count":1,"code":"2+2"},"buffers":[],msg_type: 'execute_input'},{"metadata":{},"content":{"execution_count":1,"data":{"text/plain":"4"},"metadata":{}},"buffers":[], msg_type: 'execute_result'},{"metadata":{},"content":{"execution_state":"idle"},"buffers":[], msg_type: 'status'}])
+                    expect(common.output(v)).toEqual({ 'text/plain': '4' })
                     done()
 
     it 'closes the kernel', ->
