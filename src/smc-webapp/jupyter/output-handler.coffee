@@ -120,14 +120,25 @@ class exports.OutputHandler extends EventEmitter
                 delete mesg[k]
 
     _push_mesg: (mesg, save=true) =>
+        if not @_opts?
+            return
         if @_opts.cell.output == null
             @_opts.cell.output = {}
         @_opts.cell.output["#{@_n}"] = mesg
         @_n += 1
         @emit('change', save)
 
+    set_input: (input, save=true) =>
+        if not @_opts?
+            return
+        @_opts.cell.input = input
+        @emit('change', save)
+
     # Process incoming messages.  This may mutate mesg.
     message: (mesg) =>
+        if not @_opts?
+            return
+
         if @_opts.cell.end
             # ignore any messages once we're done.
             return
@@ -197,4 +208,9 @@ class exports.OutputHandler extends EventEmitter
             @_stdin_cb(undefined, x)
             delete @_stdin_cb
 
-
+    payload: (payload) =>
+        if payload.source == 'set_next_input'
+            @set_input(payload.text)
+        else
+            # No idea what to do with this...
+            @_opts.dbg?("Unknown PAYLOAD: #{misc.to_json(payload)}")

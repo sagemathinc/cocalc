@@ -342,21 +342,23 @@ class exports.JupyterActions extends actions.JupyterActions
                     handler.clear(mesg.content.wait)
                     return
                 if mesg.content.execution_state == 'idle'
-                    handler.done()
                     @store.removeListener('cell_change', cell_change)
                     return
                 if mesg.content.execution_state == 'busy'
                     handler.start()
-                if mesg.content.payload?.length > 0
-                    # payload shell message:
-                    # Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
-                    # ""Payloads are considered deprecated, though their replacement is not yet implemented."
-                    # we fully have to implement them, since they are used to implement (crazy, IMHO)
-                    # things like %load in the python2 kernel!
-                    for p in mesg.content.payload
-                        handler.payload(p)
-
-                handler.message(mesg.content)
+                if mesg.content.payload?
+                    if mesg.content.payload?.length > 0
+                        # payload shell message:
+                        # Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+                        # ""Payloads are considered deprecated, though their replacement is not yet implemented."
+                        # we fully have to implement them, since they are used to implement (crazy, IMHO)
+                        # things like %load in the python2 kernel!
+                        for p in mesg.content.payload
+                            handler.payload(p)
+                    handler.done()
+                else
+                    # Normal iopub output message
+                    handler.message(mesg.content)
 
     reset_more_output: (id) =>
         if @store._more_output?[id]?
