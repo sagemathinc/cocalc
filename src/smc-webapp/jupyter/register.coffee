@@ -15,8 +15,6 @@ misc                   = require('smc-util/misc')
 {JupyterActions}       = require('./actions')
 {JupyterStore}         = require('./store')
 
-{NBViewer}             = require('./nbviewer')
-
 register_file_editor
     ext       : ['ipynb']
 
@@ -67,11 +65,12 @@ register_file_editor
         if not store?
             return
         delete store.state
-        # It is *critical* to first unmount the store, then the actions,
-        # or there will be a huge memory leak.
         redux.removeStore(name)
         redux.removeActions(name)
         return name
+
+{NBViewer}             = require('./nbviewer')
+{NBViewerActions}      = require('./nbviewer-actions')
 
 register_file_editor
     ext       : ['ipynb']
@@ -83,6 +82,23 @@ register_file_editor
     component : NBViewer
 
     init      : (path, redux, project_id) ->
+        name = redux_name(project_id, path)
+        if redux.getActions(name)?
+            return name  # already initialized
+        actions = redux.createActions(name, NBViewerActions)
+        store   = redux.createStore(name)
+        actions._init(project_id, path, store, salvus_client)
+        window.a = actions # for DEBUGGING
+        return name
 
     remove    : (path, redux, project_id) ->
-
+        name = redux_name(project_id, path)
+        actions = redux.getActions(name)
+        actions?.close()
+        store = redux.getStore(name)
+        if not store?
+            return
+        delete store.state
+        redux.removeStore(name)
+        redux.removeActions(name)
+        return name
