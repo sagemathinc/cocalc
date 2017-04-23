@@ -1,6 +1,5 @@
-
 ###
-Register this editor with SMC
+Register the Jupyter Notebook editor and viwer with SMC
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 ###
@@ -15,6 +14,8 @@ misc                   = require('smc-util/misc')
 {JupyterEditor}        = require('./main')
 {JupyterActions}       = require('./actions')
 {JupyterStore}         = require('./store')
+
+{NBViewer}             = require('./nbviewer')
 
 register_file_editor
     ext       : ['ipynb']
@@ -71,3 +72,17 @@ register_file_editor
         redux.removeStore(name)
         redux.removeActions(name)
         return name
+
+register_file_editor
+    ext       : ['ipynb']
+
+    is_public : true
+
+    icon      : 'list-alt'
+
+    component : NBViewer
+
+    init      : (path, redux, project_id) ->
+
+    remove    : (path, redux, project_id) ->
+

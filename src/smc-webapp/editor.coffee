@@ -3394,4 +3394,3 @@ exports.register_nonreact_editors = () ->
     register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
-    register(true, JupyterNBViewerEmbedded, ['ipynb'])
