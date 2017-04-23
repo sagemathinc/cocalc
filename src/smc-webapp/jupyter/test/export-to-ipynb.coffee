@@ -12,7 +12,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
 
     it 'by directly calling export_to_ipynb', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: {}, outputs: [], source: '' } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 } )
+        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 })
 
     it 'by calling function in the store', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'))
@@ -23,7 +23,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
         actions.set_cell_input(id, 'a=2\nb=3\na+b')
         actions.set_cell_output(id, {0:{data:{'text/plain':'5'}}})
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual( { cells: [ { cell_type: 'code', execution_count: 0, metadata: {}, outputs: [ { data: {"text/plain": "5"}, execution_count: 0, metadata: {}, output_type: 'execute_result' } ], source: 'a=2\nb=3\na+b' } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 } )
+        expect(ipynb).toEqual({"cells":[{"cell_type":"code","source":["a=2\n","b=3\n","a+b"],"metadata":{"collapsed":false},"execution_count":0,"outputs":[{"data":{"text/plain":["5"]},"output_type":"execute_result","metadata":{},"execution_count":0}]}],"metadata":{"kernelspec":{}},"nbformat":4,"nbformat_minor":0})
 
 describe 'tests exporting a file with many cells -- ', ->
     before(setup)
@@ -38,7 +38,7 @@ describe 'tests exporting a file with many cells -- ', ->
 
     it 'exports and confirms order is right', ->
         ipynb = store.get_ipynb()
-        inputs = (cell.source for cell in ipynb.cells)
+        inputs = (cell.source[0] for cell in ipynb.cells)
         expect(inputs).toEqual(store.get('cell_list')?.toJS())
 
 describe 'tests simple use of more_output ', ->
@@ -50,10 +50,10 @@ describe 'tests simple use of more_output ', ->
         actions.set_cell_output(id, {0:{more_output:true}})
 
     it 'tests that export removes and replaces by error', ->
-        expect(store.get_ipynb().cells[0].outputs).toEqual([ { name: 'stderr', output_type: 'stream', text: 'WARNING: Some output was deleted.\n' } ])
+        expect(store.get_ipynb().cells[0].outputs).toEqual([ { name: 'stderr', output_type: 'stream', text: [ 'WARNING: Some output was deleted.\n' ] } ] )
 
     it 'tests when there is more than one message', ->
         id = store.get('cur_id')
         actions.set_cell_output(id, {0:{data:{'text/plain':'5'}}, 1:{data:{'text/plain':'2'}}, 2:{more_output:true}})
-        expect(store.get_ipynb().cells[0].outputs[2]).toEqual({ name: 'stderr', output_type: 'stream', text: 'WARNING: Some output was deleted.\n' })
+        expect(store.get_ipynb().cells[0].outputs[2]).toEqual({ name: 'stderr', output_type: 'stream', text: [ 'WARNING: Some output was deleted.\n' ] } )
 
