@@ -107,3 +107,22 @@ describe 'get input using the python3 kernel -- ', ->
                 else
                     expect(common.output(v)).toEqual('cocalc\n')
                     done()
+
+describe 'get input using the ir kernel -- ', ->
+    @timeout(10000)
+
+    it 'do it', (done) ->
+        kernel = common.kernel('ir')
+        kernel.execute_code
+            code  : 'print(readline("prompt"))'
+            all   : true
+            stdin : (opts, cb) ->
+                expect(opts).toEqual({ password: false, prompt: 'prompt' })
+                cb(undefined, "cocalc")
+            cb    : (err, v) ->
+                kernel.close()
+                if err
+                    done(err)
+                else
+                    expect(common.output(v)).toEqual('[1] "cocalc"\n')
+                    done()
