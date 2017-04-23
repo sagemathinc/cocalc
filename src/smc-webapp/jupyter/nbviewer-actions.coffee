@@ -45,10 +45,19 @@ class exports.NBViewerActions extends Actions
                         return
                     @set_from_ipynb(ipynb)
 
+    _process: (content) =>
+        if not content.data?
+            return
+        for type in util.JUPYTER_MIMETYPES
+            if content.data[type]?
+                if type.split('/')[0] == 'image'
+                    content.data[type] = {value:content.data[type]}
+
     set_from_ipynb: (ipynb) =>
         importer = new IPynbImporter()
         importer.import
             ipynb   : ipynb
+            process : @_process
         cells      = immutable.fromJS(importer.cells())
         cell_list  = util.sorted_cell_list(cells)
         options = immutable.fromJS

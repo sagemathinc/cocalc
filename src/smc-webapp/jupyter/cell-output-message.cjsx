@@ -52,8 +52,9 @@ Stderr = rclass
 
 Image = rclass
     propTypes:
-        extension  : rtypes.string.isRequired
-        sha1       : rtypes.string.isRequired
+        type       : rtypes.string.isRequired
+        sha1       : rtypes.string   # one of sha1 or value should be given
+        value      : rtypes.string
         project_id : rtypes.string
 
     getInitialState: ->
@@ -72,11 +73,31 @@ Image = rclass
     componentWillUnmount: ->
         @_is_mounted = false
 
+    extension: ->
+        return @props.type.split('/')[1].split('+')[0]
+
+    render_using_server: ->
+        src = get_blob_url(@props.project_id, @extension(), @props.sha1) + "&attempts=#{@state.attempts}"
+        return <img src={src} onError={@load_error}/>
+
+    encoding: ->
+        switch @props.type
+            when "image/svg+xml"
+                return 'utf8'
+            else
+                return 'base64'
+
+    render_locally: ->
+        src = "data:#{@props.type};#{@encoding()},#{@props.value}"
+        return <img src={src}/>
+
     render: ->
-        if not @props.project_id?   # not enough info to render
-            return <span/>
-        src = get_blob_url(@props.project_id, @props.extension, @props.sha1) + "&attempts=#{@state.attempts}"
-        <img src={src} onError={@load_error}/>
+        if @props.value?
+            return @render_locally()
+        else if @props.sha1? and @props.project_id?
+            return @render_using_server()
+        else # not enough info to render
+            return <span>[unavailable {@extension()} image]</span>
 
 TextPlain = rclass
     propTypes:
@@ -148,8 +169,9 @@ Data = rclass
                 when 'image'
                     return <Image
                         project_id = {@props.project_id}
-                        extension  = {type.split('/')[1].split('+')[0]}
-                        sha1       = {value}
+                        type       = {type}
+                        sha1       = {value if typeof(value) == 'string'}
+                        value      = {value.get('value') if typeof(value) == 'object'}
                         />
                 when 'application'
                     switch b
