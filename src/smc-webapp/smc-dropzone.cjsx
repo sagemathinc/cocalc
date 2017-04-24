@@ -104,15 +104,17 @@ exports.SMC_Dropwrapper = rclass
 
                 destroyInterval = window.setInterval =>
                     if @queueDestroy == false
-                        console.log "Queue Destroy is false"
+                        # If the component remounts somehow, don't destroy the dropzone.
                         return window.clearInterval(destroyInterval)
 
                     if @dropzone.getActiveFiles().length == 0
-                        console.log "No active files"
                         @_destroy(@dropzone)
                         delete @dropzone
                         return window.clearInterval(destroyInterval)
                 , 500
+            else
+                @_destroy(@dropzone)
+                delete @dropzone
 
     componentDidUpdate: ->
         @queueDestroy = false
