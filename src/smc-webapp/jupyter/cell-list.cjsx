@@ -12,6 +12,8 @@ immutable = require('immutable')
 
 keyboard       = require('./keyboard')
 
+PADDING = 100
+
 exports.CellList = rclass
     propTypes:
         actions      : rtypes.object   # if not defined, then everything read only
@@ -92,9 +94,9 @@ exports.CellList = rclass
                 cur = elt.find("##{@props.cur_id}")
                 if cur.length > 0
                     top = cur.position().top - elt.position().top
-                    if top < 0
+                    if top < PADDING
                         scroll = 'cell top'
-                    else if top > elt.height()
+                    else if top > elt.height() - PADDING
                         scroll = 'cell bottom'
                     else
                         return
@@ -108,7 +110,7 @@ exports.CellList = rclass
                 when 'cell top'
                     cur = elt.find("##{@props.cur_id}")
                     if cur.length > 0
-                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top))
+                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top) - PADDING)
                 when 'cell center'
                     cur = elt.find("##{@props.cur_id}")
                     if cur.length > 0
@@ -116,7 +118,7 @@ exports.CellList = rclass
                 when 'cell bottom'
                     cur = elt.find("##{@props.cur_id}")
                     if cur.length > 0
-                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top) - elt.height()*.9)
+                        elt.scrollTop(elt.scrollTop() +  (cur.position().top - elt.position().top) - elt.height()*.9 + PADDING)
 
 
     render_loading: ->
@@ -173,5 +175,7 @@ exports.CellList = rclass
         <div key='cells' style={style} ref='cell_list' onClick={@on_click if @props.actions? and @props.complete?}>
             <div style={cells_style}>
                 {v}
+            </div>
+            <div style={minHeight: '100px'}>
             </div>
         </div>
