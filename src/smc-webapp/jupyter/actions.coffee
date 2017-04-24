@@ -191,7 +191,7 @@ class exports.JupyterActions extends Actions
 
     set_error: (err) =>
         if not err?
-            @setState(error: undefined)
+            @setState(error: undefined)            # delete from store
             return
         cur = @store.get('error')
         if cur
@@ -456,6 +456,8 @@ class exports.JupyterActions extends Actions
                 when 'cell'
                     if @_syncdb_cell_change(key.get('id'), record)
                         cell_list_needs_recompute = true
+                when 'fatal'
+                    @setState(fatal: record?.get('error'))
                 when 'settings'
                     if not record?
                         return

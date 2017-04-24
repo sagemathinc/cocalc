@@ -72,28 +72,53 @@ class exports.JupyterActions extends actions.JupyterActions
         @setState  # used by jupyter.coffee
             start_time : @_client.server_time() - 0
 
-        @_load_from_disk_if_newer () =>
-            @set_backend_state('init')
+        # We try once to load from disk.  If it fails, then a record with type:'fatal'
+        # is created in the database; if it succeeds, that record is deleted.
+        # Try again only when the file changes.
+        @_first_load()
 
-            @ensure_backend_kernel_setup()  # this may change the syncdb.
+    _first_load: =>
+        dbg = @dbg("_first_load")
+        dbg("doing load")
+        @_load_from_disk_if_newer (err) =>
+            if not err
+                dbg("loading worked")
+                @_init_after_first_load()
+            else
+                dbg("load failed -- #{err}; wait for one change and try again")
+                watcher = @_client.watch_file
+                    path     : @store.get('path')
+                    interval : 3000
+                watcher.once 'change', =>
+                    dbg("file changed")
+                    watcher.close()
+                    @_first_load()
 
-            @init_file_watcher()
+    _init_after_first_load: =>
+        dbg = @dbg("_init_after_first_load")
 
-            @syncdb.on 'save_to_disk_project', (err) =>
-                if not err
-                    @save_ipynb_file()
+        dbg("initializing")
+        @set_backend_state('init')
 
-            @_state = 'ready'
-            @ensure_there_is_a_cell()
-            if not @store.get('kernel')?
-                @set_kernel(DEFAULT_KERNEL)
-                @ensure_backend_kernel_setup()
+        @ensure_backend_kernel_setup()  # this may change the syncdb.
 
-            @init_kernel_info()   # need to have for saving; must be after setting kernel.
+        @init_file_watcher()
 
-            @set_backend_state('ready')
+        @syncdb.on 'save_to_disk_project', (err) =>
+            if not err
+                @save_ipynb_file()
 
-            @syncdb.on('change', @_backend_syncdb_change)
+        @_state = 'ready'
+        @ensure_there_is_a_cell()
+        if not @store.get('kernel')?
+            @set_kernel(DEFAULT_KERNEL)
+            @ensure_backend_kernel_setup()
+
+        @init_kernel_info()   # need to have for saving; must be after setting kernel.
+
+        @set_backend_state('ready')
+
+        @syncdb.on('change', @_backend_syncdb_change)
 
     _backend_syncdb_change: (changes) =>
         changes?.forEach (key) =>
@@ -435,32 +460,39 @@ class exports.JupyterActions extends actions.JupyterActions
             cb   : (err, stats) =>
                 dbg("stats.ctime = #{stats?.ctime}")
                 if err
-                    dbg("err stat'ing file: #{err}")
-                    # TODO
+                    # this just means the file doesn't exist.
+                    cb?()
                 else if not last_changed? or stats.ctime > last_changed
                     dbg("disk file changed more recently than edits, so loading")
-                    @load_ipynb_file()
+                    @load_ipynb_file(cb)
                 else
                     dbg("stick with database version")
-                cb?(err)
+                    cb?(err)
 
-    load_ipynb_file: =>
+    load_ipynb_file: (cb) =>
         dbg = @dbg("load_ipynb_file")
         dbg("reading file")
+        path = @store.get('path')
         @_client.path_read
-            path       : @store.get('path')
-            maxsize_MB : 10   # TODO: increase -- will eventually be able to handle a pretty big file!
+            path       : path
+            maxsize_MB : 10
             cb         : (err, content) =>
                 if err
-                    # TODO: need way to report this to frontend
-                    dbg("error reading file: #{err}")
+                    error = "Error reading ipynb file '#{path}': #{err}.  You must restore access to this ipynb file somehow before continuing."
+                    @syncdb.set(type:'fatal', error:error)
+                    cb?(error)
                     return
                 try
                     content = JSON.parse(content)
+                    @syncdb.delete(type:'fatal')
                 catch err
-                    dbg("error parsing ipynb file: #{err}")
+                    error = "Error parsing the ipynb file '#{path}': #{err}.  You must fix the ipynb file somehow before continuing."
+                    dbg(error)
+                    @syncdb.set(type:'fatal', error:error)
+                    cb?(error)
                     return
                 @set_to_ipynb(content)
+                cb?()
 
     save_ipynb_file: =>
         dbg = @dbg("save_ipynb_file")

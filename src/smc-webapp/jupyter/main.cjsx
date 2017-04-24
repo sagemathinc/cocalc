@@ -27,6 +27,7 @@ exports.JupyterEditor = rclass ({name}) ->
         "#{name}" :
             kernel              : rtypes.string                     # string name of the kernel
             error               : rtypes.string
+            fatal               : rtypes.string                     # *FATAL* error; user must edit file to fix.
             toolbar             : rtypes.bool
             has_unsaved_changes : rtypes.bool
             cell_list           : rtypes.immutable.List             # list of ids of cells in order
@@ -54,9 +55,22 @@ exports.JupyterEditor = rclass ({name}) ->
     render_error: ->
         if @props.error
             <ErrorDisplay
-                error = {@props.error}
+                error   = {@props.error}
+                style   = {margin:'1ex'}
                 onClose = {=>@props.actions.set_error(undefined)}
             />
+
+    render_fatal: ->
+        if @props.fatal
+            <div>
+                <h2 style={marginLeft:'10px'}>Fatal Error loading ipynb file</h2>
+
+                <ErrorDisplay
+                    error   = {@props.fatal}
+                    style   = {margin:'1ex'}
+                />
+
+            </div>
 
     render_kernel: ->
         <span>
@@ -134,6 +148,8 @@ exports.JupyterEditor = rclass ({name}) ->
             />
 
     render: ->
+        if @props.fatal
+            return @render_fatal()
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_about()}
