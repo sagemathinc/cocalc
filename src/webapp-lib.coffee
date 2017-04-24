@@ -72,9 +72,6 @@ require('jquery-highlight')
 #require("script!jquery/plugins/caret/jquery.caret.js")
 require('jquery-caret')
 
-# Activity spinner
-require("script!spin/spin.min.js")
-
 # Bootstrap
 # require("script!bootstrap-3.3.0/js/bootstrap.min.js")
 require('bootstrap')
