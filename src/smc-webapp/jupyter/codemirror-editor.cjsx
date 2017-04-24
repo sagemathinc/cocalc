@@ -59,9 +59,9 @@ exports.CodeMirrorEditor = rclass
         @_cm_is_focused = true
         if not @cm? or not @props.actions?
             return
-        @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
+        @props.actions.set_mode('edit')
         @_cm_cursor()
 
     _cm_blur: ->
