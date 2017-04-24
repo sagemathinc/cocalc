@@ -38,6 +38,11 @@ html
     meta(name="msapplication-TileImage" content=require('!file!favicon-144.png'))
     //- ****** faviconit.com favicons ******
 
+    //- loading it later via inserting a script tag sounds like a cool idea, but
+    //- fails because it doesn't load from within webpack when "require" is defined
+    // Disabled for now -- see https://github.com/sagemathinc/smc/issues/1888
+    // script(src=require('!file-loader!requirejs/require.js') async)
+
   body
     style.
       #{require('!css?minimize!smc-startup-style.css')}

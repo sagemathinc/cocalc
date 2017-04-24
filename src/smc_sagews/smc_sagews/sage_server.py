@@ -400,7 +400,10 @@ class BufferedOutputStream(object):
         # This is not going to silently corrupt anything -- it's just output that
         # is destined to be *rendered* in the browser.  This is only a partial
         # solution to a more general problem, but it is safe.
-        self._buf += output.replace('\x00','')
+        try:
+            self._buf += output.replace('\x00','')
+        except UnicodeDecodeError:
+            self._buf += output.decode('utf-8').replace('\x00','')
         #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or

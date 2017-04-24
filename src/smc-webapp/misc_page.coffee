@@ -91,6 +91,9 @@ exports.human_readable_size = (bytes) ->
 
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->
+    if not Spinner?
+        # HOTFIX: better nothing than broken!
+        return this
     @each ->
         $this = $(this)
         data = $this.data()
