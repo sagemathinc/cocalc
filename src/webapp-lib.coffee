@@ -77,17 +77,8 @@ require('jquery-caret')
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
-# the next 4 lines and the reversal below is a hack around defining "define" and "require" from requirejs
-window.__define = window.define
-window.__require = window.require
-window.define = undefined
-window.require = undefined
 require("script!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
 # require('bootbox') # this doesn't work, sadly (jquery initializiation with "modal" from bootstrap doesn't happen properly)
-window.define = window.__define
-window.require = window.__require
-window.__define = undefined
-window.__require = undefined
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
 #require("script!bootstrap-switch/bootstrap-switch.min.js")
