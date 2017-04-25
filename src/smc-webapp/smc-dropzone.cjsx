@@ -14,6 +14,25 @@ misc           = require('smc-util/misc')
 
 Dropzone.autoDiscover = false
 
+DROPSTYLE =
+    border       : '2px solid #ccc'
+    boxShadow    : '4px 4px 2px #bbb'
+    borderRadius : '5px'
+    padding      : 0
+    margin       : '10px'
+
+render_header = ->
+    <Tip
+        icon      = 'file'
+        title     = 'Drag and drop files'
+        placement = 'top'
+        tip       = 'Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+        <h4 style={color:"#666"}>
+            Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)
+        </h4>
+    </Tip>
+
+
 exports.SMC_Dropzone = rclass
     displayName: 'SMC_Dropzone'
 
@@ -21,6 +40,7 @@ exports.SMC_Dropzone = rclass
         project_id           : rtypes.string.isRequired
         current_path         : rtypes.string.isRequired
         dropzone_handler     : rtypes.object.isRequired
+        close_button_onclick : rtypes.func
 
     dropzone_template : ->
         <div className='dz-preview dz-file-preview'>
@@ -39,19 +59,21 @@ exports.SMC_Dropzone = rclass
         postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
+    render_close_button: ->
+        <div className='close-button pull-right'>
+            <span
+                onClick   = {@props.close_button_onclick}
+                className = 'close-button-x'
+                style     = {cursor: 'pointer', fontSize: '18px', color:'gray'}>
+                <i className="fa fa-times"></i>
+            </span>
+        </div>
+
     render: ->
         <div>
-            {<div className='close-button pull-right'>
-                <span
-                    onClick   = {@props.close_button_onclick}
-                    className = 'close-button-x'
-                    style     = {cursor: 'pointer', fontSize: '18px', color:'gray'}><i className="fa fa-times"></i></span>
-            </div> if @props.close_button_onclick?}
-            <Tip icon='file' title='Drag and drop files' placement='top'
-                tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-            </Tip>
-            <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
+            {@render_close_button() if @props.close_button_onclick?}
+            {render_header()}
+            <div style={DROPSTYLE}>
                 <DropComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
@@ -63,12 +85,12 @@ exports.SMC_Dropwrapper = rclass
     displayName: 'dropzone-wrapper'
 
     propTypes:
-        project_id           : rtypes.string.isRequired    # The project to upload files to
-        dest_path            : rtypes.string.isRequired    # The path for files to be sent
-        config               : rtypes.object               # All supported dropzone.js config options
-        event_handlers       : rtypes.object
-        show_upload          : rtypes.bool
-        on_close             : rtypes.func
+        project_id     : rtypes.string.isRequired    # The project to upload files to
+        dest_path      : rtypes.string.isRequired    # The path for files to be sent
+        config         : rtypes.object               # All supported dropzone.js config options
+        event_handlers : rtypes.object
+        show_upload    : rtypes.bool
+        on_close       : rtypes.func
 
     getDefaultProps: ->
         config         : {}
@@ -95,26 +117,28 @@ exports.SMC_Dropwrapper = rclass
         @_set_up_events()
 
     componentWillUnmount: ->
-        if @dropzone
-            files = @dropzone.getActiveFiles()
+        if not @dropzone?
+            return
 
-            if files.length > 0
-                # Stuff is still uploading...
-                @queueDestroy = true
+        files = @dropzone.getActiveFiles()
 
-                destroyInterval = window.setInterval =>
-                    if @queueDestroy == false
-                        # If the component remounts somehow, don't destroy the dropzone.
-                        return window.clearInterval(destroyInterval)
+        if files.length > 0
+            # Stuff is still uploading...
+            @queueDestroy = true
 
-                    if @dropzone.getActiveFiles().length == 0
-                        @_destroy(@dropzone)
-                        delete @dropzone
-                        return window.clearInterval(destroyInterval)
-                , 500
-            else
-                @_destroy(@dropzone)
-                delete @dropzone
+            destroyInterval = window.setInterval =>
+                if @queueDestroy == false
+                    # If the component remounts somehow, don't destroy the dropzone.
+                    return window.clearInterval(destroyInterval)
+
+                if @dropzone.getActiveFiles().length == 0
+                    @_destroy(@dropzone)
+                    delete @dropzone
+                    return window.clearInterval(destroyInterval)
+            , 500
+        else
+            @_destroy(@dropzone)
+            delete @dropzone
 
     componentDidUpdate: ->
         @queueDestroy = false
@@ -163,10 +187,7 @@ exports.SMC_Dropwrapper = rclass
                     <i className="fa fa-times"></i>
                 </span>
             </div>
-            <Tip icon='file' title='Drag and drop files' placement='top'
-                tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-            </Tip>
+            {render_header()}
             <div ref      = 'preview_container'
                 className = 'filepicker dropzone'
                 style     = {box_style}
