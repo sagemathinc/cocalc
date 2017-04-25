@@ -135,13 +135,11 @@ exports.SMC_Dropwrapper = rclass
                     return window.clearInterval(destroyInterval)
 
                 if @dropzone.getActiveFiles().length == 0
-                    @_destroy(@dropzone)
-                    delete @dropzone
+                    @_destroy()
                     return window.clearInterval(destroyInterval)
             , 500
         else
-            @_destroy(@dropzone)
-            delete @dropzone
+            @_destroy()
 
     componentDidUpdate: ->
         if not @props.disabled
@@ -151,7 +149,7 @@ exports.SMC_Dropwrapper = rclass
     # Update Dropzone options each time the component updates.
     componentWillUpdate: (new_props) ->
         if new_props.disabled
-            @dropzone = @_destroy(@dropzone)
+            @_destroy()
         else
             @_create_dropzone()
             @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
@@ -238,7 +236,9 @@ exports.SMC_Dropwrapper = rclass
 
     # Removes ALL listeners and Destroys dropzone.
     # see https://github.com/enyo/dropzone/issues/1175
-    _destroy: (dropzone) ->
-        return if not dropzone?
-        dropzone.off()
-        dropzone.destroy()
+    _destroy: ->
+        if not @dropzone?
+            return
+        @dropzone.off()
+        @dropzone.destroy()
+        delete @dropzone
