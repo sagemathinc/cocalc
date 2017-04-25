@@ -24,6 +24,8 @@ util = require('smc-webapp/jupyter/util')
 
 {remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
 
+nbconvert = require('./nbconvert')
+
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
@@ -523,6 +525,26 @@ class Kernel extends EventEmitter
             return
         opts.cb(undefined, @_actions?.store.get_more_output(opts.id) ? [])
 
+    nbconvert: (opts) =>
+        opts = defaults opts,
+            args : required
+            cb   : required
+        if @_nbconvert_lock
+            opts.cb("lock")
+            return
+        if not misc.is_array(opts.args)
+            opts.cb("args must be an array")
+            return
+        @_nbconvert_lock = true
+        args = misc.copy(opts.args)
+        args.push(@_path)
+        nbconvert.nbconvert
+            args : args
+            cb   : (a...) =>
+                delete @_nbconvert_lock
+                if @_state != 'closed'
+                    opts.cb(a...)
+
     http_server: (opts) =>
         opts = defaults opts,
             segments : required
@@ -592,6 +614,16 @@ class Kernel extends EventEmitter
             when 'store'
                 @store.set(opts.query.key, opts.query.value)
                 opts.cb()
+
+            when 'nbconvert'
+                try
+                    args = JSON.parse(opts.query.args) ? {}
+                catch err
+                    opts.cb(err)
+                    return
+                @nbconvert
+                    args : args
+                    cb   : opts.cb
 
             else
                 opts.cb("no route '#{opts.segments.join('/')}'")

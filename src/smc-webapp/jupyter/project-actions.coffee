@@ -121,20 +121,23 @@ class exports.JupyterActions extends actions.JupyterActions
         @syncdb.on('change', @_backend_syncdb_change)
 
     _backend_syncdb_change: (changes) =>
+        dbg = @dbg("_backend_syncdb_change")
         changes?.forEach (key) =>
-            if key.get('type') != 'settings'
-                return
-            #@dbg("_backend_syncdb_change")("#{JSON.stringify(@syncdb.get({type:'settings'}).toJS())}")
-            record = @syncdb.get_one(key)
-            if record?
-                # ensure kernel is properly configured
-                @ensure_backend_kernel_setup()
-                # only the backend should change kernel and backend state;
-                # however, our security model allows otherwise (e.g., via TimeTravel).
-                if record.get('kernel_state') != @_kernel_state
-                    @set_kernel_state(@_kernel_state, true)
-                if record.get('backend_state') != @_backend_state
-                    @set_backend_state(@_backend_state)
+            switch key.get('type')
+                when 'settings'
+                    dbg("settings change")
+                    record = @syncdb.get_one(key)
+                    if record?
+                        # ensure kernel is properly configured
+                        @ensure_backend_kernel_setup()
+                        # only the backend should change kernel and backend state;
+                        # however, our security model allows otherwise (e.g., via TimeTravel).
+                        if record.get('kernel_state') != @_kernel_state
+                            @set_kernel_state(@_kernel_state, true)
+                        if record.get('backend_state') != @_backend_state
+                            @set_backend_state(@_backend_state)
+                when 'export'
+                    dbg("export change")
             return
         @ensure_there_is_a_cell()
         @sync_exec_state()
@@ -484,13 +487,13 @@ class exports.JupyterActions extends actions.JupyterActions
                     return
                 try
                     content = JSON.parse(content)
-                    @syncdb.delete(type:'fatal')
                 catch err
                     error = "Error parsing the ipynb file '#{path}': #{err}.  You must fix the ipynb file somehow before continuing."
                     dbg(error)
                     @syncdb.set(type:'fatal', error:error)
                     cb?(error)
                     return
+                @syncdb.delete(type:'fatal')
                 @set_to_ipynb(content)
                 cb?()
 

@@ -1510,3 +1510,10 @@ class exports.JupyterActions extends Actions
         @syncdb.sync () =>
             @ensure_backend_kernel_setup?()
             @_state = 'ready'
+
+    _nbconvert: (args, cb) =>
+        url = server_urls.get_nbconvert_url(@store.get('project_id'), @store.get('path'), args)
+        @_ajax
+            url     : url
+            timeout : 90000
+            cb      : cb

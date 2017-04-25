@@ -28,7 +28,8 @@ exports.get_introspect_url = (project_id, path, code, cursor_pos, level) ->
 exports.get_store_url = (project_id, path, key, value) ->
     return "#{exports.get_server_url(project_id)}/kernels/store?key=#{encodeURIComponent(key)}&value=#{encodeURIComponent(value)}&path=#{encodeURIComponent(path)}"
 
-
+exports.get_nbconvert_url = (project_id, path, args) ->
+    return "#{exports.get_server_url(project_id)}/kernels/nbconvert?path=#{encodeURIComponent(path)}&args=#{encodeURIComponent(JSON.stringify(args))}"
 
 # signal should be SIGINT or SIGKILL (see https://nodejs.org/api/process.html#process_process_kill_pid_signal)
 exports.get_signal_url = (project_id, path, signal) ->

@@ -174,7 +174,7 @@ class DBDoc
     _select: (where) =>
         if immutable.Map.isMap(where)
             where = where.toJS()
-        # Return sparse array with defined indexes the elts of @_records that
+        # Return immutable set with defined indexes the elts of @_records that
         # satisfy the where condition.
         len = misc.len(where)
         result = undefined
@@ -183,11 +183,12 @@ class DBDoc
             if not index?
                 throw Error("field '#{field}' must be a primary key")
             # v is an immutable.js set or undefined
-            v = index.get(to_key(value))
-            if len == 1
-                return v  # no need to do further intersection
+            v = index.get(to_key(value))  # v may be undefined here, so important to do the v? check first!
             if not v?
                 return immutable.Set() # no matches for this field - done
+            if len == 1
+                # no need to do further intersection 
+                return v
             if result?
                 # intersect with what we've found so far via indexes.
                 result = result.intersect(v)
