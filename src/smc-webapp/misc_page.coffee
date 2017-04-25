@@ -98,6 +98,7 @@ $.fn.spin = (opts) ->
             data.spinner.stop()
             delete data.spinner
         if opts isnt false
+            Spinner = require("spin/spin.min.js")
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
     return this
 
