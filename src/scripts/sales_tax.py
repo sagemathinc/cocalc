@@ -7,7 +7,6 @@
 import urllib2
 import re
 import csv
-import collections
 
 def parse_tax_rate(text):
     match = re.search("Rate=([0-][\.1][0-9]*)", text)
@@ -66,6 +65,6 @@ for item in results:
     zip_code = item[0]
     tax_rate = get_tax_rate_of_zip(zip_code)
     if tax_rate is not None:
-        taxes_per_zip.append("%s:%s"%(zip_code, tax_rate))
+        taxes_per_zip.append("{}:{:.6f}".format(zip_code, tax_rate))
 
 print("exports.WA_sales_tax = {%s}"%(', '.join(taxes_per_zip[1:])))
