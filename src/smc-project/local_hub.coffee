@@ -111,7 +111,7 @@ json = common.json
 
 INFO = undefined
 init_info_json = (cb) ->
-    winston.debug("writing info.json")
+    winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
     v = process.env.HOME.split('/')
     project_id = v[v.length-1]

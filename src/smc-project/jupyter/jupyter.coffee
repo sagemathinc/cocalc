@@ -540,10 +540,9 @@ class Kernel extends EventEmitter
         args.push(@_path)
         nbconvert.nbconvert
             args : args
-            cb   : (a...) =>
+            cb   : (err) =>
                 delete @_nbconvert_lock
-                if @_state != 'closed'
-                    opts.cb(a...)
+                opts.cb(err)
 
     http_server: (opts) =>
         opts = defaults opts,
@@ -614,16 +613,6 @@ class Kernel extends EventEmitter
             when 'store'
                 @store.set(opts.query.key, opts.query.value)
                 opts.cb()
-
-            when 'nbconvert'
-                try
-                    args = JSON.parse(opts.query.args) ? {}
-                catch err
-                    opts.cb(err)
-                    return
-                @nbconvert
-                    args : args
-                    cb   : opts.cb
 
             else
                 opts.cb("no route '#{opts.segments.join('/')}'")

@@ -18,7 +18,6 @@ exports.nbconvert = (opts) ->
         path        : opts.directory
         err_on_exit : true
         cb          : (err, output) =>
-            if err
-                opts.cb(undefined, {status:'error', error:output?.stderr ? err})
-            else
-                opts.cb(undefined, {status:'ok'})
+            if err and output?.stderr
+                err = output?.stderr
+            opts.cb(err)

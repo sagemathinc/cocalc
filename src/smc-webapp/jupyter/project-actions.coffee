@@ -9,6 +9,7 @@ fully unit test it via mocking of components.
 ###
 
 immutable      = require('immutable')
+async          = require('async')
 underscore     = require('underscore')
 
 misc           = require('smc-util/misc')
@@ -77,6 +78,9 @@ class exports.JupyterActions extends actions.JupyterActions
         # Try again only when the file changes.
         @_first_load()
 
+        # Listen for changes...
+        @syncdb.on('change', @_backend_syncdb_change)
+
     _first_load: =>
         dbg = @dbg("_first_load")
         dbg("doing load")
@@ -118,8 +122,6 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @set_backend_state('ready')
 
-        @syncdb.on('change', @_backend_syncdb_change)
-
     _backend_syncdb_change: (changes) =>
         dbg = @dbg("_backend_syncdb_change")
         changes?.forEach (key) =>
@@ -136,8 +138,8 @@ class exports.JupyterActions extends actions.JupyterActions
                             @set_kernel_state(@_kernel_state, true)
                         if record.get('backend_state') != @_backend_state
                             @set_backend_state(@_backend_state)
-                when 'export'
-                    dbg("export change")
+                when 'nbconvert'
+                    @nbconvert_change()
             return
         @ensure_there_is_a_cell()
         @sync_exec_state()
@@ -497,14 +499,18 @@ class exports.JupyterActions extends actions.JupyterActions
                 @set_to_ipynb(content)
                 cb?()
 
-    save_ipynb_file: =>
+    save_ipynb_file: (cb) =>
         dbg = @dbg("save_ipynb_file")
         dbg('saving to file')
         if not @_jupyter_kernel?
-            dbg('no kernel so cannot save')
+            err = 'no kernel so cannot save'
+            dbg(err)
+            cb?(err)
             return
         if not @store.get('kernels')?
-            dbg("kernel info not known, so can't save")
+            err = "kernel info not known, so can't save"
+            dbg(err)
+            cb?(err)
             return
         dbg("going to try to save")
         ipynb = @store.get_ipynb(@_jupyter_kernel.get_blob_store())
@@ -512,7 +518,9 @@ class exports.JupyterActions extends actions.JupyterActions
         # with official Jupyter.
         data = json_stable(ipynb,{space:1})
         if not data?
-            dbg("ipynb not defined yet; can't save")
+            err = "ipynb not defined yet; can't save"
+            dbg(err)
+            cb?(err)
             return
         #dbg("got string version '#{data}'")
         @_client.write_file
@@ -522,10 +530,10 @@ class exports.JupyterActions extends actions.JupyterActions
                 if err
                     # TODO: need way to report this to frontend
                     dbg("error writing file: #{err}")
-                    return
                 else
                     dbg("succeeded at saving")
                     @_last_save_ipynb_file = new Date()
+                cb?(err)
 
     ensure_there_is_a_cell: =>
         if @_state != 'ready'
@@ -537,3 +545,66 @@ class exports.JupyterActions extends actions.JupyterActions
                 id    : @_new_id()
                 pos   : 0
                 input : ''
+
+    nbconvert_change: (old_val, new_val) =>
+        ###
+        Client sets this:
+            {type:'nbconvert', args:[...], state:'start'}
+
+        Then:
+         1. All clients show status bar that export is happening.
+         2. Commands to export are disabled during export.
+         3. Unless timeout (say 3 min?) exceeded.
+
+        - Project sees export entry in table.  If currently exporting, does nothing.
+        If not exporting, starts exporting and sets:
+
+             {type:'nbconvert', args:[...], state:'run'}
+
+        - When done, project sets
+
+             {type:'nbconvert', args:[...], state:'done'}
+
+        - If error, project stores the error in the key:value store and sets:
+
+             {type:'nbconvert', args:[...], state:'done', error:'message' or {key:'xlkjdf'}}
+        ###
+        dbg = @dbg("run_nbconvert")
+        dbg("#{misc.to_json(old_val?.toJS())} --> #{misc.to_json(new_val?.toJS())}")
+        # TODO - e.g. clear key:value store
+        if not new_val?
+            # delete
+            return
+        if new_val.get('state') == 'start'
+            if @_run_nbconvert_lock
+                # ignore -- this could only happen with a malicious client (or bug, of course)
+                return
+            args = new_val.get('args')?.toJS?()
+            if not misc.is_array(args)
+                @syncdb.set
+                    type  : 'nbconvert'
+                    state : 'done'
+                    error : 'args must be an array'
+                return
+            @syncdb.set
+                type  : 'nbconvert'
+                state : 'run'
+                error : null
+            @ensure_backend_kernel_setup()
+            @_run_nbconvert_lock = true
+            async.series([
+                (cb) =>
+                    @save_ipynb_file(cb)
+                (cb) =>
+                    @_jupyter_kernel.nbconvert
+                        args : args
+                        cb   : cb
+            ], (err) =>
+                @_run_nbconvert_lock = false
+                if not err
+                    err = null
+                @syncdb.set
+                    type  : 'nbconvert'
+                    state : 'done'
+                    error : err
+            )

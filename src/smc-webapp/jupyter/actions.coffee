@@ -458,6 +458,12 @@ class exports.JupyterActions extends Actions
                         cell_list_needs_recompute = true
                 when 'fatal'
                     @setState(fatal: record?.get('error'))
+                when 'nbconvert'
+                    if @_is_project
+                        # before setting in store, let backend react to change
+                        @nbconvert_change(@store.get('nbconvert'), record)
+                    # Now set in our store.
+                    @setState(nbconvert: record)
                 when 'settings'
                     if not record?
                         return
@@ -1511,9 +1517,9 @@ class exports.JupyterActions extends Actions
             @ensure_backend_kernel_setup?()
             @_state = 'ready'
 
-    _nbconvert: (args, cb) =>
-        url = server_urls.get_nbconvert_url(@store.get('project_id'), @store.get('path'), args)
-        @_ajax
-            url     : url
-            timeout : 90000
-            cb      : cb
+    nbconvert: (args) =>
+        @syncdb.set
+            type  : 'nbconvert'
+            args  : args
+            state : 'start'
+            error : null
