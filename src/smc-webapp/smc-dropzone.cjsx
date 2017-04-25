@@ -91,10 +91,12 @@ exports.SMC_Dropwrapper = rclass
         event_handlers : rtypes.object
         show_upload    : rtypes.bool
         on_close       : rtypes.func
+        disabled       : rtypes.bool
 
     getDefaultProps: ->
         config         : {}
         hide_previewer : false
+        disabled       : false
 
     getInitialState: ->
         files : []
@@ -113,8 +115,9 @@ exports.SMC_Dropwrapper = rclass
         return postUrl
 
     componentDidMount: ->
-        @_create_dropzone()
-        @_set_up_events()
+        if not @props.disabled
+            @_create_dropzone()
+            @_set_up_events()
 
     componentWillUnmount: ->
         if not @dropzone?
@@ -132,22 +135,24 @@ exports.SMC_Dropwrapper = rclass
                     return window.clearInterval(destroyInterval)
 
                 if @dropzone.getActiveFiles().length == 0
-                    @_destroy(@dropzone)
-                    delete @dropzone
+                    @_destroy()
                     return window.clearInterval(destroyInterval)
             , 500
         else
-            @_destroy(@dropzone)
-            delete @dropzone
+            @_destroy()
 
     componentDidUpdate: ->
-        @queueDestroy = false
-        if not @dropzone?
+        if not @props.disabled
+            @queueDestroy = false
             @_create_dropzone()
 
     # Update Dropzone options each time the component updates.
-    componentWillUpdate: ->
-        @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
+    componentWillUpdate: (new_props) ->
+        if new_props.disabled
+            @_destroy()
+        else
+            @_create_dropzone()
+            @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
 
     preview_template: ->
         <div className='dz-preview dz-file-preview'>
@@ -196,13 +201,14 @@ exports.SMC_Dropwrapper = rclass
 
     render: ->
         <div>
-            {@render_preview()}
+            {@render_preview() if not @props.disabled}
             {@props.children}
         </div>
 
     _create_dropzone: ->
-        dropzone_node = ReactDOM.findDOMNode(@)
-        @dropzone = new Dropzone(dropzone_node, @get_djs_config())
+        if not @dropzone? and not @props.disabled
+            dropzone_node = ReactDOM.findDOMNode(@)
+            @dropzone = new Dropzone(dropzone_node, @get_djs_config())
 
     _set_up_events: ->
         return unless @dropzone?
@@ -230,6 +236,9 @@ exports.SMC_Dropwrapper = rclass
 
     # Removes ALL listeners and Destroys dropzone.
     # see https://github.com/enyo/dropzone/issues/1175
-    _destroy: (dropzone) ->
-        dropzone.off()
-        dropzone.destroy()
+    _destroy: ->
+        if not @dropzone?
+            return
+        @dropzone.off()
+        @dropzone.destroy()
+        delete @dropzone
