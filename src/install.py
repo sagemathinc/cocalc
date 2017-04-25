@@ -41,7 +41,7 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    for m in './smc-util ./smc-util-node ./smc-project coffee-script forever'.split():
+    for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():

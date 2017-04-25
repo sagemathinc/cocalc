@@ -1,5 +1,5 @@
 {
-  "name": "sagemathcloud",
+  "name": "smc-webapp",
   "version": "1.0.0",
   "description": "SageMathCloud: the browser-based web application",
   "main": "index.js",
