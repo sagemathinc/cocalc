@@ -87,7 +87,10 @@ if DEBUG
 # These checks must be **after** the above functions are defined, since showing
 # these warnings requires functions like get_browser are already defined.
 # See https://github.com/sagemathinc/smc/issues/1898
-if navigator?
+cookies_and_local_storage = ->
+    if not navigator?
+        return
+
     # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
     if not navigator.cookieEnabled
         require('./smc-react').redux.getActions('page').show_cookie_warning()
@@ -96,3 +99,6 @@ if navigator?
     if not require('smc-util/misc').has_local_storage()
         require('./smc-react').redux.getActions('page').show_local_storage_warning()
 
+# It's fine to wait until page has loaded and then some before showing a warning
+# to the user.  This is also necessary to ensure the page actions/store have been defined.
+setTimeout(cookies_and_local_storage, 1000)
