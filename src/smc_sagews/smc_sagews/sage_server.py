@@ -415,7 +415,10 @@ class BufferedOutputStream(object):
         if not self._buf and not done:
             # no point in sending an empty message
             return
-        self._f(self._buf, done=done)
+        try:
+            self._f(self._buf, done=done)
+        except UnicodeDecodeError:
+            self._f(unicode(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
