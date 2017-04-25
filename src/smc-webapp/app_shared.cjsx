@@ -384,5 +384,5 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to sign into SageMathCloud{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
