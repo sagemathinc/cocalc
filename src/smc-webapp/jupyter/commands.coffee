@@ -275,46 +275,46 @@ exports.commands = (actions) ->
         f : -> actions.file_new()
 
     'nbconvert ipynb' :
-        m : "Export as Notebook (.ipynb)..."
+        m : "Notebook (.ipynb)..."
         f : ->
             actions.save()
             actions.file_action('download')
 
-    'nbconvert' :
-        m : "Export as..."
-        f : -> actions.show_nbconvert_dialog()
-
     'nbconvert asciidoc' :
-        m : "Export as AsciiDoc (.asciidoc)..."
+        m : "AsciiDoc (.asciidoc)..."
         f : -> actions.show_nbconvert_dialog('asciidoc')
 
     'nbconvert python' :
-        m : "Export as Python (.py)..."
+        m : "Python (.py)..."
         f : -> actions.show_nbconvert_dialog('python')
 
     'nbconvert html' :
-        m : "Export as HTML (.html)..."
+        m : "HTML (.html)..."
         f : -> actions.show_nbconvert_dialog('html')
 
     'nbconvert markdown' :
-        m : "Export as Markdown (.md)..."
+        m : "Markdown (.md)..."
         f : -> actions.show_nbconvert_dialog('markdown')
 
     'nbconvert rst' :
-        m : "Export as reST (.rst)..."
+        m : "reST (.rst)..."
         f : -> actions.show_nbconvert_dialog('rst')
 
     'nbconvert slides' :
-        m : "Export as Slides (.slides.html)..."
+        m : "Slides (.slides.html)..."
         f : -> actions.show_nbconvert_dialog('slides')
 
     'nbconvert tex' :
-        m : "Export as LaTeX (.tex)..."
+        m : "LaTeX (.tex)..."
         f : -> actions.show_nbconvert_dialog('latex')
 
     'nbconvert pdf' :
-        m : "Export as PDF via LaTeX (.pdf)..."
+        m : "PDF via LaTeX (.pdf)..."
         f : -> actions.show_nbconvert_dialog('pdf')
+
+    'nbconvert script' :
+        m : "Executable Script (.txt)..."
+        f : -> actions.show_nbconvert_dialog('script')
 
     'open file':
         m : 'Open...'
@@ -343,7 +343,7 @@ exports.commands = (actions) ->
 
     'print preview' :
         m : 'Print Preview...'
-        f : -> actions.print_preview()
+        f : -> actions.show_nbconvert_dialog('html')
 
     'rename notebook' :
         m : 'Rename...'

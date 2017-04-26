@@ -1461,6 +1461,11 @@ create_project_store_def = (name, project_id) ->
             return {err : listing}
         return {item : listing?.find (val) => val.get('name') == name}
 
+    get_raw_link: (path) ->
+        url = document.URL
+        url = url[0...url.indexOf('/projects/')]
+        return "#{url}/#{@project_id}/raw/#{misc.encode_path(path)}"
+
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()
         for t in words

@@ -1520,9 +1520,7 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     render_download_link: (single_item) ->
-        url = document.URL
-        url = url[0...url.indexOf('/projects/')]
-        target = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
+        target = @props.actions.get_store().get_raw_link(single_item)
         <pre style={@pre_styles}>
             <a href={target} target='_blank'>{target}</a>
         </pre>

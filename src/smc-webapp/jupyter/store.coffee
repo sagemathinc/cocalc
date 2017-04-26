@@ -131,3 +131,6 @@ class exports.JupyterStore extends Store
         else
             # client  -- return what we know
             return @getIn(['more_output', id, 'mesg_list'])?.toJS()
+
+    get_raw_link: (path) =>
+        return @redux.getProjectStore(@get('project_id')).get_raw_link(path)

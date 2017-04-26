@@ -1241,7 +1241,9 @@ class exports.JupyterActions extends Actions
             max_delay   : 10000
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
-    # 'copy', 'share', 'download', 'open'.  Each just shows the corresponding dialog in
+    # 'copy', 'share', 'download', 'open_file', 'close_file'.
+    # Each just shows
+    # the corresponding dialog in
     # the file manager, so gives a step to confirm, etc.
     # The path may optionally be *any* file in this project.
     file_action: (action_name, path) =>
@@ -1443,9 +1445,6 @@ class exports.JupyterActions extends Actions
     scroll: (pos) =>
         @setState(scroll: pos)
 
-    print_preview: =>
-        console.log("print_preview -- TODO")
-
     # submit input for a particular cell -- this is used by the
     # Input component output message type for interactive input.
     submit_input: (id, value) =>
@@ -1541,6 +1540,9 @@ class exports.JupyterActions extends Actions
                         to = args[i+1]
         to ?= 'html'
         @setState(nbconvert_dialog: {to:to})
+        if @store.getIn(['nbconvert', 'state']) not in ['start', 'run']
+            # start it
+            @nbconvert(['--to', to])
 
     nbconvert_get_error: =>
         key = @store.getIn(['nbconvert', 'error', 'key'])
