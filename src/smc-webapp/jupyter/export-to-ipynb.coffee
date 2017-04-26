@@ -102,7 +102,7 @@ process_output_n = (output_n, exec_count, blob_store) ->
         for k, v of output_n.data
             if k.slice(0,5) == 'text/'
                 output_n.data[k] = diff_friendly(output_n.data[k])
-            if misc.startswith(k, 'image/')
+            if misc.startswith(k, 'image/') or k == 'application/pdf'
                 if blob_store?
                     value = blob_store.get_ipynb(v)
                     if not value?

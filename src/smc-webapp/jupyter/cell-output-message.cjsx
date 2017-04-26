@@ -136,10 +136,10 @@ PDF = rclass
 
     render: ->
         if misc.is_string(@props.value)
-            href = "data:application/pdf;base64,#{@props.value}"
+            href  = get_blob_url(@props.project_id, 'pdf', @props.value)
         else
-            sha1 = @props.value.get('value')
-            href  = get_blob_url(@props.project_id, @extension(), sha1)
+            value = @props.value.get('value')
+            href = "data:application/pdf;base64,#{value}"
         <div style={OUT_STYLE}>
             <a href={href} target='_blank' style={cursor:'pointer'}>
                 View PDF
@@ -195,7 +195,7 @@ Data = rclass
                         when 'javascript'
                             return <Javascript value={value}/>
                         when 'pdf'
-                            return <PDF value={value}/>
+                            return <PDF value={value} project_id = {@props.project_id}/>
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 

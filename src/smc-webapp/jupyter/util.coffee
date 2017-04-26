@@ -32,3 +32,5 @@ exports.sorted_cell_list = (cells) ->
 
 exports.JUPYTER_MIMETYPES = ['application/javascript', 'text/html', 'text/markdown', 'text/latex', \
                              'image/svg+xml', 'image/png', 'image/jpeg', 'application/pdf', 'text/plain']
+
+exports.JUPYTER_

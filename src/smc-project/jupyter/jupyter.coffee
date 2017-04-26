@@ -424,7 +424,7 @@ class Kernel extends EventEmitter
 
         for type in util.JUPYTER_MIMETYPES
             if content.data[type]?
-                if type.split('/')[0] == 'image'
+                if type.split('/')[0] == 'image' or type == 'application/pdf'
                     content.data[type] = blob_store.save(content.data[type], type)
 
     # Returns a reference to the blob store.

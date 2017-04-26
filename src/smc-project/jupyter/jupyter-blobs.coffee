@@ -6,7 +6,7 @@ misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
 # TODO: are these the only base64 encoded types that jupyter kernels return?
-BASE64_TYPES = ['image/png', 'image/jpeg']
+BASE64_TYPES = ['image/png', 'image/jpeg', 'application/pdf']
 
 class BlobStore
     constructor: ->
@@ -39,7 +39,7 @@ class BlobStore
         x = @_blobs[sha1]
         if not x?
             return
-        if x.type in ['image/png', 'image/jpeg']
+        if x.type in BASE64_TYPES
             return x.data.toString('base64')
         else
             return x.data.toString()

@@ -50,7 +50,7 @@ class exports.NBViewerActions extends Actions
             return
         for type in util.JUPYTER_MIMETYPES
             if content.data[type]?
-                if type.split('/')[0] == 'image'
+                if type.split('/')[0] == 'image' or type == 'application/pdf'
                     content.data[type] = {value:content.data[type]}
 
     set_from_ipynb: (ipynb) =>
