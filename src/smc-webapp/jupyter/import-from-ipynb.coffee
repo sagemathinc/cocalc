@@ -190,8 +190,11 @@ class exports.IPynbImporter
             exec_count : @_get_exec_count(cell.execution_count, cell.prompt_number)
 
         for k in ['collapsed', 'scrolled']
-            if cell.metadata[k]
-                obj[k] = !!cell.metadata[k]
+            if cell.metadata?[k]
+                obj[k] = !!cell.metadata?[k]
+
+        if cell.metadata?.slideshow?
+            obj.slide = cell.metadata.slideshow.slide_type
 
         return obj
 
