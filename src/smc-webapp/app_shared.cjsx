@@ -31,13 +31,8 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
-<<<<<<< HEAD
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
-=======
 feature = require('./feature')
-
-ACTIVE_BG_COLOR = '#e7e7e7'
->>>>>>> origin/master
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
