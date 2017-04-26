@@ -129,6 +129,23 @@ Javascript = rclass
     render: ->
         <div></div>
 
+PDF = rclass
+    propTypes:
+        project_id : rtypes.string
+        value      : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
+
+    render: ->
+        if misc.is_string(@props.value)
+            href = "data:application/pdf;base64,#{@props.value}"
+        else
+            sha1 = @props.value.get('value')
+            href  = get_blob_url(@props.project_id, @extension(), sha1)
+        <div style={OUT_STYLE}>
+            <a href={href} target='_blank' style={cursor:'pointer'}>
+                View PDF
+            </a>
+        </div>
+
 Data = rclass
     propTypes:
         message    : rtypes.immutable.Map.isRequired
@@ -177,6 +194,8 @@ Data = rclass
                     switch b
                         when 'javascript'
                             return <Javascript value={value}/>
+                        when 'pdf'
+                            return <PDF value={value}/>
 
         return <pre>Unsupported message: {JSON.stringify(@props.message.toJS())}</pre>
 
