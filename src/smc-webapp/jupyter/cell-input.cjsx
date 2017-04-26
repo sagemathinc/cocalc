@@ -14,6 +14,9 @@ immutable = require('immutable')
 
 {CellToolbar} = require('./cell-toolbar')
 
+{CellTiming} = require('./cell-output-time')
+
+
 exports.CellInput = rclass
     propTypes:
         actions          : rtypes.object   # not defined = read only
@@ -34,6 +37,8 @@ exports.CellInput = rclass
             next.cell.get('exec_count')   != @props.cell.get('exec_count') or \
             next.cell.get('cell_type')    != @props.cell.get('cell_type') or \
             next.cell.get('state')        != @props.cell.get('state') or \
+            next.cell.get('start')        != @props.cell.get('start') or \
+            next.cell.get('end')          != @props.cell.get('end') or \
             next.cell.get('cursors')      != @props.cell.get('cursors') or \
             next.cell.get('line_numbers') != @props.cell.get('line_numbers') or \
             next.cm_options               != @props.cm_options or \
@@ -129,6 +134,20 @@ exports.CellInput = rclass
             cell         = {@props.cell}
             />
 
+
+    render_time: ->
+        cell = @props.cell
+        if cell.get('start')?
+            <div style={position:'relative', zIndex: 1, right: 0, width: '100%', paddingLeft:'5px'}, className='pull-right'>
+                <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
+                    <CellTiming
+                        start = {cell.get('start')}
+                        end   = {cell.get('end')}
+                        state = {cell.get('state')}
+                     />
+                </div>
+            </div>
+
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
@@ -136,6 +155,9 @@ exports.CellInput = rclass
             {@render_complete()}
             <div style={width:'100%'}>
                 {@render_cell_toolbar()}
-                {@render_input_value(type)}
+                <div>
+                    {@render_time()}
+                    {@render_input_value(type)}
+                </div>
             </div>
         </div>

@@ -527,8 +527,9 @@ class Kernel extends EventEmitter
 
     nbconvert: (opts) =>
         opts = defaults opts,
-            args : required
-            cb   : required
+            args    : required
+            timeout : 30  # seconds
+            cb      : required
         if @_nbconvert_lock
             opts.cb("lock")
             return
@@ -539,8 +540,9 @@ class Kernel extends EventEmitter
         args = misc.copy(opts.args)
         args.push(@_path)
         nbconvert.nbconvert
-            args : args
-            cb   : (err) =>
+            args    : args
+            timeout : opts.timeout
+            cb      : (err) =>
                 delete @_nbconvert_lock
                 opts.cb(err)
 

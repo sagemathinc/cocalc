@@ -11,8 +11,6 @@ misc_page = require('../misc_page')
 {CellInput}  = require('./cell-input')
 {CellOutput} = require('./cell-output')
 
-{CellTiming} = require('./cell-output-time')
-
 exports.Cell = rclass
     propTypes :
         actions          : rtypes.object   # not defined = read only
@@ -73,18 +71,6 @@ exports.Cell = rclass
             more_output = {@props.more_output}
             />
 
-    render_time: (cell) ->
-        if cell.get('start')?
-            <div style={position:'relative', zIndex: 1, right: 0, width: '100%', paddingLeft:'5px'}, className='pull-right'>
-                <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
-                    <CellTiming
-                        start = {cell.get('start')}
-                        end   = {cell.get('end')}
-                        state = {cell.get('state')}
-                     />
-                </div>
-            </div>
-
     click_on_cell: (event) ->
         if not @props.actions?
             return
@@ -128,7 +114,6 @@ exports.Cell = rclass
             onClick = {@click_on_cell}
             id      = {@props.id}
             >
-            {@render_time(@props.cell)}
             {@render_cell_input(@props.cell)}
             {@render_cell_output(@props.cell)}
         </div>
