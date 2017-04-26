@@ -62,7 +62,7 @@ if client._connected
 window.MathJax = exports.MathJaxConfig =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
-    jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+    jax: ["input/TeX","input/AsciiMath", "output/CommonHTML"]
     # http://docs.mathjax.org/en/latest/options/tex2jax.html
     tex2jax:
         inlineMath: [ ['$','$'], ["\\(","\\)"] ]
@@ -96,6 +96,9 @@ window.MathJax = exports.MathJaxConfig =
 
     # do not use "xypic.js", frequently causes crash!
     "HTML-CSS":
+        linebreaks:
+            automatic: true
+    CommonHTML:
         linebreaks:
             automatic: true
     SVG:
