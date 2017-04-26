@@ -30,6 +30,6 @@ exports.Slideshow = rclass
             componentClass = "select"
             placeholder    = "select"
             onChange       = {@select}
-            value          = {@props.cell.get('slide')}>
+            value          = {@props.cell.get('slide') ? ''}>
             {@render_options()}
         </FormControl>

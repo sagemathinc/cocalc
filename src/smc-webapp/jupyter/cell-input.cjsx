@@ -42,7 +42,8 @@ exports.CellInput = rclass
             next.is_current               != @props.is_current or \
             next.font_size                != @props.font_size or \
             next.complete                 != @props.complete or\
-            next.cell_toolbar             != @props.cell_toolbar
+            next.cell_toolbar             != @props.cell_toolbar or \
+            (next.cell_toolbar == 'slideshow' and (next.cell.get('slide') != @props.cell.get('slide')))
 
     render_input_prompt: (type) ->
         <InputPrompt
