@@ -59,7 +59,7 @@ exports.TopMenubar = rclass ({name}) ->
             heading : 'View'
             names : \
                 ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
-                 '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '', \
+                 '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '>cell toolbar attachments', '>cell toolbar tags', '', \
                  'zoom in', 'zoom out']
 
     render_insert: ->

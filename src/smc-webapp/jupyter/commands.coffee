@@ -11,12 +11,23 @@ exports.commands = (actions) ->
 
     'cell toolbar none':
         m : 'None'
+        f : -> actions.cell_toolbar()
+
+    'cell toolbar attachments':
+        m : 'Attachments'
+        f : -> actions.cell_toolbar('attachments')
+
+    'cell toolbar tags':
+        m : 'Tags'
+        f : -> actions.cell_toolbar('tags')
 
     'cell toolbar metadata':
         m : 'Edit Metadata'
+        f : -> actions.cell_toolbar('metadata')
 
     'cell toolbar slideshow':
         m : 'Slideshow'
+        f : -> actions.cell_toolbar('slideshow')
 
     'change cell to code' :
         m : 'Change to Code'

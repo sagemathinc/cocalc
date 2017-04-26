@@ -1557,3 +1557,8 @@ class exports.JupyterActions extends Actions
                 nbconvert = @store.get('nbconvert')
                 if nbconvert.getIn(['error', 'key']) == key
                     @setState(nbconvert : nbconvert.set('error', value))
+
+    cell_toolbar: (name) =>
+        # Set which cell toolbar is visible.  At most one may be visible.
+        # name=undefined to not show any.
+        @setState(cell_toolbar: name)
