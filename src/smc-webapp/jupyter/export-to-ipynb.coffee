@@ -45,6 +45,10 @@ cell_to_ipynb = (id, opts) ->
     if obj.cell_type == 'code'
         obj.execution_count = exec_count
 
+    slide = cell.get('slide')
+    if slide
+        metadata.slideshow = {slide_type:slide}
+
     output = cell.get('output')
     if output?.size > 0
         obj.outputs = ipynb_outputs(output, exec_count, opts.more_output?[id], opts.blob_store)
