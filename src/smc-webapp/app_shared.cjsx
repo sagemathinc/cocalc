@@ -8,6 +8,8 @@
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
+feature = require('./feature')
+
 ACTIVE_BG_COLOR = '#e7e7e7'
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
@@ -372,7 +374,7 @@ exports.CookieWarning = rclass
 
     render: ->
         <div style={warning_styles}>
-            <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
+            <Icon name='warning' /> You <em>must</em> enable cookies to sign into SageMathCloud.
         </div>
 
 misc = require('smc-util/misc')
@@ -384,5 +386,5 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud.  On some browsers you must also disable private browsing mode.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
