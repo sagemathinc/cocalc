@@ -7,7 +7,7 @@ immutable  = require('immutable')
 {React, ReactDOM, rclass, rtypes, redux}  = require('../smc-react')
 
 misc         = require('smc-util/misc')
-util         = require('./util')
+cell_utils   = require('./cell-utils')
 
 {CellList}   = require('./cell-list')
 {cm_options} = require('./cm_options')
@@ -24,7 +24,7 @@ exports.HistoryViewer = HistoryViewer = rclass
         @props.syncdb.get(type:'cell', @props.version)?.forEach (cell) ->
             cells = cells.set(cell.get('id'), cell)
             return
-        cell_list  = util.sorted_cell_list(cells)
+        cell_list  = cell_utils.sorted_cell_list(cells)
 
         options = immutable.fromJS
             markdown : undefined

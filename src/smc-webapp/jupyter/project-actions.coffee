@@ -63,6 +63,7 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg("cells at manage_init = #{JSON.stringify(@store.get('cells')?.toJS())}")
 
         @sync_exec_state = underscore.debounce(@sync_exec_state, 2000)
+        @_throttled_ensure_positions_are_unique = underscore.debounce(@ensure_positions_are_unique, 5000)
 
         # WARNING: @_load_from_disk_if_newer must happen before anything that might touch
         # the syncdb state.  Otherwise, the syncdb state will automatically be
@@ -143,6 +144,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     @nbconvert_change()
             return
         @ensure_there_is_a_cell()
+        @_throttled_ensure_positions_are_unique()
         @sync_exec_state()
 
     # ensure_backend_kernel_setup ensures that we have a connection
@@ -224,16 +226,11 @@ class exports.JupyterActions extends actions.JupyterActions
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
-    # It should do things like ensure any cell with a compute request
-    # gets computed, that all positions are unique, that there is a
-    # cell, etc.  Only one client will run this code.
+    # It ensures any cell with a compute request
+    # gets computed,    Only one client -- the project itself -- will run this code.
     manager_on_cell_change: (id, new_cell, old_cell) =>
         dbg = @dbg("manager_on_cell_change(id='#{id}')")
         dbg("new_cell='#{misc.to_json(new_cell?.toJS())}',old_cell='#{misc.to_json(old_cell?.toJS())}')")
-
-        if not new_cell?
-            # TODO: delete cell -- if it was running, stop it.
-            return
 
         if new_cell.get('state') == 'start' and old_cell?.get('state') != 'start'
             @manager_run_cell_enqueue(id)

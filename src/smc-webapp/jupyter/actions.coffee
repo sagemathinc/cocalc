@@ -27,6 +27,8 @@ keyboard   = require('./keyboard')
 
 commands   = require('./commands')
 
+cell_utils = require('./cell-utils')
+
 {cm_options} = require('./cm_options')
 
 jupyter_kernels = undefined
@@ -405,7 +407,7 @@ class exports.JupyterActions extends Actions
         cells = @store.get('cells')
         if not cells?
             return
-        cell_list = util.sorted_cell_list(cells)
+        cell_list = cell_utils.sorted_cell_list(cells)
         if not cell_list.equals(@store.get('cell_list'))
             @setState(cell_list : cell_list)
         return
@@ -583,33 +585,8 @@ class exports.JupyterActions extends Actions
             if is_available(id)
                 return id
 
-    # TODO: for insert i'm using averaging; for move I'm just resetting all to integers.
-    # **should** use averaging but if get close re-spread all properly.  OR use strings?
     insert_cell: (delta) =>  # delta = -1 (above) or +1 (below)
-        cur_id = @store.get('cur_id')
-        if not cur_id? # TODO
-            return
-        v = @store.get('cell_list')
-        if not v?
-            return
-        adjacent_id = undefined
-        v.forEach (id, i) ->
-            if id == cur_id
-                j = i + delta
-                if j >= 0 and j < v.size
-                    adjacent_id = v.get(j)
-                return false  # break iteration
-            return
-        cells = @store.get('cells')
-        if adjacent_id?
-            adjacent_pos = cells.get(adjacent_id)?.get('pos')
-        else
-            adjacent_pos = undefined
-        current_pos = cells.get(cur_id).get('pos')
-        if adjacent_pos?
-            pos = (adjacent_pos + current_pos)/2
-        else
-            pos = current_pos + delta
+        pos = cell_utils.new_cell_pos(@store.get('cells'), @store.get('cell_list'), @store.get('cur_id'), delta)
         new_id = @_new_id()
         @_set
             type  : 'cell'
@@ -617,7 +594,7 @@ class exports.JupyterActions extends Actions
             pos   : pos
             input : ''
         @set_cur_id(new_id)
-        return new_id  # technically violates CQRS -- but not from the store.
+        return new_id  # violates CQRS... (this *is* used elsewhere)
 
     delete_selected_cells: (sync=true) =>
         selected = @store.get_selected_cell_ids_list()
@@ -633,35 +610,16 @@ class exports.JupyterActions extends Actions
             @_sync()
         return
 
-    # move all selected cells delta positions, e.g., delta = +1 or delta = -1
     move_selected_cells: (delta) =>
+        # Move all selected cells delta positions up or down, e.g., delta = +1 or delta = -1
+        # This action changes the pos attributes of 0 or more cells.
         if delta == 0
             return
-        # This action changes the pos attributes of 0 or more cells.
-        selected = @store.get_selected_cell_ids()
-        if misc.len(selected) == 0
-            return # nothing to do
-        v = @store.get('cell_list')
-        if not v?
-            return  # don't even have cell list yet...
-        v = v.toJS()  # javascript array of unique cell id's, properly ordered
-        w = []
-        # put selected cells in their proper new positions
-        for i in [0...v.length]
-            if selected[v[i]]
-                n = i + delta
-                if n < 0 or n >= v.length
-                    # would move cells out of document, so nothing to do
-                    return
-                w[n] = v[i]
-        # now put non-selected in remaining places
-        k = 0
-        for i in [0...v.length]
-            if not selected[v[i]]
-                while w[k]?
-                    k += 1
-                w[k] = v[i]
-        # now w is a complete list of the id's in the proper order; use it to set pos
+        v = @store.get('cell_list')?.toJS()
+        w = cell_utils.move_selected_cells(v, @store.get_selected_cell_ids(), delta)
+        if not w?
+            return
+        # now w is a complete list of the id's of the whole worksheet in the proper order; use it to set pos
         if underscore.isEqual(v, w)
             # no change
             return
@@ -940,30 +898,6 @@ class exports.JupyterActions extends Actions
         @copy_selected_cells()
         @delete_selected_cells()
 
-    # Javascript array of num equally spaced positions starting after before_pos and ending
-    # before after_pos, so
-    #   [before_pos+delta, before_pos+2*delta, ..., after_pos-delta]
-    _positions_between: (before_pos, after_pos, num) =>
-        if not before_pos?
-            if not after_pos?
-                pos = 0
-                delta = 1
-            else
-                pos = after_pos - num
-                delta = 1
-        else
-            if not after_pos?
-                pos = before_pos + 1
-                delta = 1
-            else
-                delta = (after_pos - before_pos) / (num + 1)
-                pos = before_pos + delta
-        v = []
-        for i in [0...num]
-            v.push(pos)
-            pos += delta
-        return v
-
     # Paste cells from the internal clipboard; also
     #   delta = 0 -- replace currently selected cells
     #   delta = 1 -- paste cells below last selected cell
@@ -997,7 +931,7 @@ class exports.JupyterActions extends Actions
             else
                 before_pos = cells.getIn([cell_before_pasted_id, 'pos'])
                 after_pos  = cells.getIn([@store.get_cell_id(+1, cell_before_pasted_id), 'pos'])
-            positions = @_positions_between(before_pos, after_pos, clipboard.size)
+            positions = cell_utils.positions_between(before_pos, after_pos, clipboard.size)
             clipboard.forEach (cell, i) =>
                 cell = cell.set('id', @_new_id())   # randomize the id of the cell
                 cell = cell.set('pos', positions[i])
@@ -1570,3 +1504,10 @@ class exports.JupyterActions extends Actions
             type  : 'cell'
             id    : id
             slide : value
+
+    ensure_positions_are_unique: =>
+        changes = cell_utils.ensure_positions_are_unique(@store.get('cells'))
+        if changes?
+            for id, pos of changes
+                @set_cell_pos(id, pos, false)
+        @_sync()

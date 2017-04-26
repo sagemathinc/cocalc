@@ -3,14 +3,11 @@ Redux actions for nbviewer.
 
 """
 
-{Actions}  = require('../smc-react')
-
-{cm_options} = require('./cm_options')
-
-immutable = require('immutable')
-
-util = require('./util')
-
+{Actions}       = require('../smc-react')
+{cm_options}    = require('./cm_options')
+immutable       = require('immutable')
+cell_utils      = require('./cell-utils')
+util            = require('./util')
 {IPynbImporter} = require('./import-from-ipynb')
 
 class exports.NBViewerActions extends Actions
@@ -59,7 +56,7 @@ class exports.NBViewerActions extends Actions
             ipynb   : ipynb
             process : @_process
         cells      = immutable.fromJS(importer.cells())
-        cell_list  = util.sorted_cell_list(cells)
+        cell_list  = cell_utils.sorted_cell_list(cells)
         options = immutable.fromJS
             markdown : undefined
             options  : cm_options()   # TODO
