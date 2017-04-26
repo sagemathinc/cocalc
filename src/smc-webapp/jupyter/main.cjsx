@@ -55,6 +55,7 @@ exports.JupyterEditor = rclass ({name}) ->
             nbconvert           : rtypes.immutable.Map  # backend convert state
             nbconvert_dialog    : rtypes.immutable.Map  # frontend modal dialog state
             path                : rtypes.string
+            cell_toolbar        : rtypes.string
 
     render_error: ->
         if @props.error
@@ -115,6 +116,7 @@ exports.JupyterEditor = rclass ({name}) ->
             is_focused   = {@props.is_focused}
             more_output  = {@props.more_output}
             scroll       = {@props.scroll}
+            cell_toolbar = {@props.cell_toolbar}
             />
 
     render_introspect: ->

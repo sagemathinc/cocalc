@@ -12,6 +12,8 @@ immutable = require('immutable')
 
 {Complete} = require('./complete')
 
+{CellToolbar} = require('./cell-toolbar')
+
 exports.CellInput = rclass
     propTypes:
         actions          : rtypes.object   # not defined = read only
@@ -24,6 +26,7 @@ exports.CellInput = rclass
         project_id       : rtypes.string
         directory        : rtypes.string
         complete         : rtypes.immutable.Map              # status of tab completion
+        cell_toolbar     : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return \
@@ -38,7 +41,8 @@ exports.CellInput = rclass
             next.is_focused               != @props.is_focused or \
             next.is_current               != @props.is_current or \
             next.font_size                != @props.font_size or \
-            next.complete                 != @props.complete
+            next.complete                 != @props.complete or\
+            next.cell_toolbar             != @props.cell_toolbar
 
     render_input_prompt: (type) ->
         <InputPrompt
@@ -115,10 +119,22 @@ exports.CellInput = rclass
                     id       = {@props.id}
                 />
 
+    render_cell_toolbar: ->
+        if not @props.cell_toolbar or not @props.actions?
+            return
+        <CellToolbar
+            actions      = {@props.actions}
+            cell_toolbar = {@props.cell_toolbar}
+            cell         = {@props.cell}
+            />
+
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_input_prompt(type)}
             {@render_complete()}
-            {@render_input_value(type)}
+            <div style={width:'100%'}>
+                {@render_cell_toolbar()}
+                {@render_input_value(type)}
+            </div>
         </div>

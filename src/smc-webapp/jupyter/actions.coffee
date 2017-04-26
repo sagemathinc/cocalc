@@ -1562,3 +1562,11 @@ class exports.JupyterActions extends Actions
         # Set which cell toolbar is visible.  At most one may be visible.
         # name=undefined to not show any.
         @setState(cell_toolbar: name)
+
+    set_cell_slide: (id, value) =>
+        if not value
+            value = null  # delete
+        @_set
+            type  : 'cell'
+            id    : id
+            slide : value
