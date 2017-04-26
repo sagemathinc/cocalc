@@ -1808,7 +1808,7 @@ ProjectFilesNew = rclass
 
     render: ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={width:'111px', display: 'inline-block', marginRight: '20px' }>
+        <div style={whiteSpace: 'nowrap', display: 'inline-block', marginRight: '20px' }>
             <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />

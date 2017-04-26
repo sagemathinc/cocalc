@@ -31,7 +31,13 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
+<<<<<<< HEAD
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
+=======
+feature = require('./feature')
+
+ACTIVE_BG_COLOR = '#e7e7e7'
+>>>>>>> origin/master
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -401,7 +407,7 @@ exports.CookieWarning = rclass
 
     render: ->
         <div style={warning_styles}>
-            <Icon name='warning' /> You <em>must</em> enable cookies to use CoCalc.
+            <Icon name='warning' /> You <em>must</em> enable cookies to sign into CoCalc.
         </div>
 
 misc = require('smc-util/misc')
@@ -413,7 +419,7 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to use this website.  On some browsers you must also disable private browsing mode.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use this website{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
 
 # This is used in the "desktop_app" to show a global announcement on top of CC
