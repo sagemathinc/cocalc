@@ -12,7 +12,7 @@ exports.FindAndReplace = rclass
 
     close: ->
         @props.actions.close_find_and_replace()
-        @props.actions.focus()
+        @props.actions.focus(true)
 
     render: ->
         <Modal show={@props.find_and_replace?.get('show')} bsSize="large" onHide={@close} >

@@ -72,6 +72,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @setState  # used by jupyter.coffee
             start_time : @_client.server_time() - 0
+        @syncdb.delete(type:'nbconvert')   # clear on init, since can't be running yet
 
         # We try once to load from disk.  If it fails, then a record with type:'fatal'
         # is created in the database; if it succeeds, that record is deleted.
@@ -559,7 +560,7 @@ class exports.JupyterActions extends actions.JupyterActions
         - Project sees export entry in table.  If currently exporting, does nothing.
         If not exporting, starts exporting and sets:
 
-             {type:'nbconvert', args:[...], state:'run'}
+             {type:'nbconvert', args:[...], state:'run', start:[time in ms]}
 
         - When done, project sets
 
@@ -573,38 +574,54 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg("#{misc.to_json(old_val?.toJS())} --> #{misc.to_json(new_val?.toJS())}")
         # TODO - e.g. clear key:value store
         if not new_val?
-            # delete
+            dbg("delete nbconvert, so stop")
             return
         if new_val.get('state') == 'start'
             if @_run_nbconvert_lock
-                # ignore -- this could only happen with a malicious client (or bug, of course)
+                dbg("ignoring state change to start, since already running.")
+                # this could only happen with a malicious client (or bug, of course)?
                 return
             args = new_val.get('args')?.toJS?()
             if not misc.is_array(args)
+                dbg("invalid args")
                 @syncdb.set
                     type  : 'nbconvert'
                     state : 'done'
                     error : 'args must be an array'
                 return
+            dbg("starting running")
             @syncdb.set
                 type  : 'nbconvert'
                 state : 'run'
+                start : new Date() - 0
                 error : null
             @ensure_backend_kernel_setup()
             @_run_nbconvert_lock = true
             async.series([
                 (cb) =>
+                    dbg("saving file to disk first")
                     @save_ipynb_file(cb)
                 (cb) =>
+                    dbg("now actually running nbconvert")
                     @_jupyter_kernel.nbconvert
                         args : args
                         cb   : cb
             ], (err) =>
+                dbg("finished running; removing lock")
                 @_run_nbconvert_lock = false
                 if not err
                     err = null
+                if err
+                    dbg("error running")
+                    if not misc.is_string(err)
+                        err = JSON.stringify(err)
+                    if err.length >= 50
+                        # save in key:value store.
+                        @_jupyter_kernel.store.set('nbconvert_error', err)
+                        err = {key:'nbconvert_error'}
                 @syncdb.set
                     type  : 'nbconvert'
                     state : 'done'
                     error : err
+                    time  : new Date() - 0
             )

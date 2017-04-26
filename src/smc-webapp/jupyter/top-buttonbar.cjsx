@@ -120,6 +120,11 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> TimeTravel
             </Button>
+            <Button
+                bsStyle = "default"
+                onClick = {=>@props.actions.show_nbconvert_dialog()}>
+                <Icon name='file-pdf-o'/> Export...
+            </Button>
         </ButtonGroup>
 
     render: ->

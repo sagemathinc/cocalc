@@ -12,7 +12,7 @@ exports.ConfirmDialog = rclass
 
     close: ->
         @props.actions.close_confirm_dialog()
-        @props.actions.focus()
+        @props.actions.focus(true)
 
     render_button: (choice) ->
         <Button

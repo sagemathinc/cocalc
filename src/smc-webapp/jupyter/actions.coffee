@@ -1241,18 +1241,22 @@ class exports.JupyterActions extends Actions
             max_delay   : 10000
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
-    # 'copy', 'share', 'download'.  Each just shows the corresponding dialog in
+    # 'copy', 'share', 'download', 'open'.  Each just shows the corresponding dialog in
     # the file manager, so gives a step to confirm, etc.
-    file_action: (action_name) =>
+    # The path may optionally be *any* file in this project.
+    file_action: (action_name, path) =>
         a = @redux.getProjectActions(@store.get('project_id'))
-        path = @store.get('path')
+        path ?= @store.get('path')
         if action_name == 'close_file'
             a.close_file(path)
+            return
+        if action_name == 'open_file'
+            a.open_file(path: path)
             return
         {head, tail} = misc.path_split(path)
         a.open_directory(head)
         a.set_all_files_unchecked()
-        a.set_file_checked(@store.get('path'), true)
+        a.set_file_checked(path, true)
         a.set_file_action(action_name, -> tail)
 
     show_about: =>
@@ -1518,8 +1522,36 @@ class exports.JupyterActions extends Actions
             @_state = 'ready'
 
     nbconvert: (args) =>
+        if @store.getIn(['nbconvert', 'state']) in ['start', 'run']
+            # not allowed
+            return
         @syncdb.set
             type  : 'nbconvert'
             args  : args
             state : 'start'
             error : null
+
+    show_nbconvert_dialog: (to) =>
+        if not to?
+            # use last or a default
+            args = @store.getIn(['nbconvert', 'args'])
+            if args?
+                for i in [0...args.length-1]
+                    if args[i] == '--to'
+                        to = args[i+1]
+        to ?= 'html'
+        @setState(nbconvert_dialog: {to:to})
+
+    nbconvert_get_error: =>
+        key = @store.getIn(['nbconvert', 'error', 'key'])
+        if not key?
+            return
+        @_ajax
+            url     : server_urls.get_store_url(@store.get('project_id'), @store.get('path'), key)
+            timeout : 10000
+            cb      : (err, value) =>
+                if @_state == 'closed'
+                    return
+                nbconvert = @store.get('nbconvert')
+                if nbconvert.getIn(['error', 'key']) == key
+                    @setState(nbconvert : nbconvert.set('error', value))

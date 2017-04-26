@@ -14,6 +14,7 @@ Top-level react component, which ties everything together
 {Introspect}        = require('./introspect')
 {Kernel, Mode}      = require('./status')
 {About}             = require('./about')
+{NBConvert}         = require('./nbconvert')
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
@@ -51,6 +52,9 @@ exports.JupyterEditor = rclass ({name}) ->
             find_and_replace    : rtypes.immutable.Map
             keyboard_shortcuts  : rtypes.immutable.Map
             scroll              : rtypes.string
+            nbconvert           : rtypes.immutable.Map  # backend convert state
+            nbconvert_dialog    : rtypes.immutable.Map  # frontend modal dialog state
+            path                : rtypes.string
 
     render_error: ->
         if @props.error
@@ -129,6 +133,14 @@ exports.JupyterEditor = rclass ({name}) ->
             backend_kernel_info = {@props.backend_kernel_info}
             />
 
+    render_nbconvert: ->
+        <NBConvert
+            actions          = {@props.actions}
+            path             = {@props.path}
+            nbconvert        = {@props.nbconvert}
+            nbconvert_dialog = {@props.nbconvert_dialog}
+            />
+
     render_find_and_replace: ->
         <FindAndReplace
             actions          = {@props.actions}
@@ -153,6 +165,7 @@ exports.JupyterEditor = rclass ({name}) ->
         <div style={display: 'flex', flexDirection: 'column', height: '100%', overflowY:'hidden'}>
             {@render_error()}
             {@render_about()}
+            {@render_nbconvert()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
             {@render_confirm_dialog()}

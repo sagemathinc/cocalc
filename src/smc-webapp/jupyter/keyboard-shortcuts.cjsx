@@ -311,7 +311,7 @@ exports.KeyboardShortcuts = rclass
 
     close: ->
         @props.actions.close_keyboard_shortcuts()
-        @props.actions.focus()
+        @props.actions.focus(true)
 
     search_change: (search) ->
         @setState(search: search)

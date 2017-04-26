@@ -611,8 +611,26 @@ class Kernel extends EventEmitter
                     cb           : opts.cb
 
             when 'store'
-                @store.set(opts.query.key, opts.query.value)
-                opts.cb()
+                try
+                    if opts.query.key?
+                        key = JSON.parse(opts.query.key)
+                    else
+                        key = undefined
+                    if opts.query.value?
+                        value = JSON.parse(opts.query.value)
+                    else
+                        value = undefined
+                catch err
+                    opts.cb(err)
+                    return
+                if not value?
+                    opts.cb(undefined, @store.get(key))
+                else if value == null
+                    @store.delete(key)
+                    opts.cb()
+                else
+                    @store.set(key, value)
+                    opts.cb()
 
             else
                 opts.cb("no route '#{opts.segments.join('/')}'")
