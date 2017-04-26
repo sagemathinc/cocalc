@@ -68,5 +68,7 @@ describe 'check sales tax work', ->
     it 'knows all expected zip codes', ->
         for zip in WA_zips
             v = sales_tax(zip)
-            expect(v).toBeGreaterThan(0.0650)
-            expect(v).toBeLessThan(0.2000)
+            upper_bound = 0.2000
+            lower_bound = 0.0650
+            expect(v).toBeLessThan(upper_bound, "sales tax for #{zip} was #{v} but should be less than #{upper_bound}")
+            expect(v).toBeGreaterThan(lower_bound, "sales tax for #{zip} was #{v} but should be greater than #{lower_bound}")
