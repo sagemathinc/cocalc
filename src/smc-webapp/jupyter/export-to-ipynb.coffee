@@ -11,16 +11,18 @@ misc = require('smc-util/misc')
 
 exports.export_to_ipynb = (opts) ->
     opts = defaults opts,
-        cell_list   : required
-        cells       : required
-        kernelspec  : {}    # official jupyter will give an error on load without properly giving this (and ask to select a kernel)
-        blob_store  : undefined
-        more_output : undefined  # optional map id --> list of additional output messages to replace last output message.
+        cell_list     : required
+        cells         : required
+        kernelspec    : {}    # official jupyter will give an error on load without properly giving this (and ask to select a kernel)
+        language_info : undefined
+        blob_store    : undefined
+        more_output   : undefined  # optional map id --> list of additional output messages to replace last output message.
 
     ipynb =
         cells          : (cell_to_ipynb(id, opts) for id in opts.cell_list.toJS())
         metadata       :
-            kernelspec: opts.kernelspec
+            kernelspec    : opts.kernelspec
+            language_info : opts.language_info?.toJS() ? {}
         nbformat       : 4
         nbformat_minor : 0
     return ipynb

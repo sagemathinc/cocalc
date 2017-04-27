@@ -483,7 +483,7 @@ class exports.JupyterActions extends Actions
                     else
                         kernel_changed = false
                     @setState(obj)
-                    if not @_is_project and orig_kernel != kernel
+                    if orig_kernel != kernel
                         @set_backend_kernel_info()
                         @set_cm_options()
             return
@@ -1155,26 +1155,39 @@ class exports.JupyterActions extends Actions
             return
         if @store.get('backend_kernel_info')?
             return
+
         @_fetching_backend_kernel_info = true
+
         f = (cb) =>
-            @_ajax
-                url     : server_urls.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
-                timeout : 15000
-                cb      : (err, data) =>
-                    if err
-                        console.log("Error setting backend kernel info -- #{err}")
-                        cb(true)
-                    else
-                        if data.error?
-                            console.log("Error setting backend kernel info -- #{data.error}")
+            if @_is_project
+                if not @_jupyter_kernel?
+                    cb(true)
+                    return
+                @_jupyter_kernel.kernel_info
+                    cb : (err, data) =>
+                        if not err
+                            @_fetching_backend_kernel_info = false
+                            @setState(backend_kernel_info: data)
+                        cb(err)
+            else
+                @_ajax
+                    url     : server_urls.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
+                    timeout : 15000
+                    cb      : (err, data) =>
+                        if err
+                            console.log("Error setting backend kernel info -- #{err}")
                             cb(true)
                         else
-                            @_fetching_backend_kernel_info = false
-                            @setState(backend_kernel_info: immutable.fromJS(data))
-                            # this is when the server for this doc started, not when kernel last started!
-                            @setState(start_time : data.start_time)
-                            # Update the codemirror editor options.
-                            @set_cm_options()
+                            if data.error?
+                                console.log("Error setting backend kernel info -- #{data.error}")
+                                cb(true)
+                            else
+                                @_fetching_backend_kernel_info = false
+                                @setState(backend_kernel_info: immutable.fromJS(data))
+                                # this is when the server for this doc started, not when kernel last started!
+                                @setState(start_time : data.start_time)
+                                # Update the codemirror editor options.
+                                @set_cm_options()
         misc.retry_until_success
             f           : f
             max_time    : 60000
