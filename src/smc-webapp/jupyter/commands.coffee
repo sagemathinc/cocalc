@@ -123,7 +123,11 @@ exports.commands = (actions) ->
                 cb      : (choice) ->
                     if choice == 'Restart and Run All Cells'
                         actions.signal('SIGKILL')
-                        actions.run_all_cells()
+                        actions.store.wait
+                            until   : (s) -> s.get('backend_state') != 'running'
+                            timeout : 10
+                            cb      : (err) ->
+                                actions.run_all_cells()
 
     'confirm shutdown kernel' :
         m : 'Shutdown Kernel...'
