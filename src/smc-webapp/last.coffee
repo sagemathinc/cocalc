@@ -119,3 +119,23 @@ $ ->
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
     misc.wrap_log()
+
+    # require.js madness
+    requirejs      = document.createElement("script")
+    requirejs.type = "text/javascript"
+    requirejs.src  = require('!file-loader!requirejs/require.js')
+    orig_require   = window.require
+    orig_define    = window.define
+    orig_requirejs = window.requirejs
+    window.require   = undefined
+    window.define    = undefined
+    window.requirejs = undefined
+    requirejs.onload = ->
+        window.__require   = window.require
+        window.__define    = window.define
+        window.__requirejs = window.requirejs
+        window.require     = orig_require
+        window.define      = orig_define
+        window.requirejs   = orig_requirejs
+    document.getElementsByTagName("head")[0].appendChild(requirejs)
+
