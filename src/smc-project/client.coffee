@@ -658,6 +658,11 @@ class exports.Client extends EventEmitter
         opts.client = @
         return jupyter.kernel(opts)
 
+    jupyter_kernel_info: (opts) =>
+        opts = defaults opts,
+            cb : required
+        jupyter.get_kernel_data(opts.cb)
+
     # Watch for changes to the given file.  Returns obj, which
     # is an event emitter with events:
     #

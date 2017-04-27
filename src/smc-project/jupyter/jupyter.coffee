@@ -643,7 +643,7 @@ _kernel_data =
     jupyter_kernels      : undefined
     jupyter_kernels_json : undefined
 
-get_kernel_data = (cb) ->
+exports.get_kernel_data = get_kernel_data = (cb) ->
     # TODO: move out and unit test... or switch to using https://github.com/nteract/kernelspecs
     if _kernel_data.jupyter_kernels_json?
         cb(undefined, _kernel_data)

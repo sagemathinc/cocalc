@@ -19,8 +19,6 @@ json_stable    = require('json-stable-stringify')
 
 {OutputHandler} = require('./output-handler')
 
-DEFAULT_KERNEL = 'python2'  #TODO
-
 class exports.JupyterActions extends actions.JupyterActions
 
     set_backend_state: (state) =>
@@ -75,6 +73,9 @@ class exports.JupyterActions extends actions.JupyterActions
             start_time : @_client.server_time() - 0
         @syncdb.delete(type:'nbconvert')   # clear on init, since can't be running yet
 
+        # Initialize info about available kernels
+        @init_kernel_info()
+
         # We try once to load from disk.  If it fails, then a record with type:'fatal'
         # is created in the database; if it succeeds, that record is deleted.
         # Try again only when the file changes.
@@ -116,12 +117,6 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @_state = 'ready'
         @ensure_there_is_a_cell()
-        if not @store.get('kernel')?
-            @set_kernel(DEFAULT_KERNEL)
-            @ensure_backend_kernel_setup()
-
-        @init_kernel_info()   # need to have for saving; must be after setting kernel.
-
         @set_backend_state('ready')
 
     _backend_syncdb_change: (changes) =>
@@ -214,15 +209,11 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg("kernels.size=#{@store.get('kernels')?.size}")
         if not @store.get('kernels')?
             dbg('getting')
-            if not @_jupyter_kernel?
-                @ensure_backend_kernel_setup()
-            if not @_jupyter_kernel?
-                dbg("no kernel, so unable to get info")
-                return
-            @_jupyter_kernel?.get_kernel_data (err, kernels) =>
-                dbg("got #{err}, #{misc.to_json(kernels)}")
-                if not err
-                    @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
+            @_client.jupyter_kernel_info
+                cb : (err, kernels) =>
+                    dbg("got #{err}, #{misc.to_json(kernels)}")
+                    if not err
+                        @setState(kernels: immutable.fromJS(kernels.jupyter_kernels))
 
     # _manage_cell_change is called after a cell change has been
     # incorporated into the store by _syncdb_cell_change.
@@ -232,7 +223,7 @@ class exports.JupyterActions extends actions.JupyterActions
         dbg = @dbg("manager_on_cell_change(id='#{id}')")
         dbg("new_cell='#{misc.to_json(new_cell?.toJS())}',old_cell='#{misc.to_json(old_cell?.toJS())}')")
 
-        if new_cell.get('state') == 'start' and old_cell?.get('state') != 'start'
+        if new_cell?.get('state') == 'start' and old_cell?.get('state') != 'start'
             @manager_run_cell_enqueue(id)
             return
 
@@ -485,6 +476,14 @@ class exports.JupyterActions extends actions.JupyterActions
                     @syncdb.set(type:'fatal', error:error)
                     cb?(error)
                     return
+                if content.length == 0
+                    # Blank file, e.g., when creating in CoCalc.
+                    # This is good, works, etc. -- just clear state, including error.
+                    @syncdb.delete()
+                    cb?()
+                    return
+
+                # File is nontrivial -- parse and load.
                 try
                     content = JSON.parse(content)
                 catch err

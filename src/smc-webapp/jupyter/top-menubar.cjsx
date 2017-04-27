@@ -91,7 +91,7 @@ exports.TopMenubar = rclass ({name}) ->
         <MenuItem
             key      = {kernel.name}
             eventKey = "kernel-change-#{kernel.name}"
-            onSelect = {=>@props.actions.set_kernel(kernel.name); @focus()}
+            onSelect = {=>@props.actions.set_kernel(kernel.name); @focus(); @props.actions.set_default_kernel(kernel.name)}
             >
             <span style={style}> {kernel.display_name} </span>
         </MenuItem>

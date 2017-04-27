@@ -97,7 +97,7 @@ exports.JupyterEditor = rclass ({name}) ->
         </div>
 
     render_cells: ->
-        if not @props.cell_list? or not @props.font_size?
+        if not @props.cell_list? or not @props.font_size? or not @props.cm_options?
             return <Loading style={fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888'} />
         <CellList
             actions      = {@props.actions}

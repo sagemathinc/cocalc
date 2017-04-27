@@ -35,6 +35,8 @@ jupyter_kernels = undefined
 
 {IPynbImporter} = require('./import-from-ipynb')
 
+DEFAULT_KERNEL = 'python2'
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -211,7 +213,6 @@ class exports.JupyterActions extends Actions
             start : null
             end   : null,
             save
-
 
     set_cell_output: (id, output, save=true) =>
         @_set
@@ -499,6 +500,12 @@ class exports.JupyterActions extends Actions
 
         if @_is_project
             @manager_run_cell_process_queue()
+        else
+            # client
+            if not @store.get('kernel')
+                # kernel isn't set yet, so we set it.
+                kernel = @redux.getStore('account').getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
+                @set_kernel(kernel)
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
@@ -1424,9 +1431,11 @@ class exports.JupyterActions extends Actions
         dbg = @dbg("set_to_ipynb")
         @_state = 'load'
 
+        #dbg(misc.to_json(ipynb))
+
         # We have to parse out the kernel so we can use process_output below.
         # (TODO: rewrite so process_output is not associated with a specific kernel)
-        kernel = ipynb.metadata?.kernelspec?.name ? 'python2'
+        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
         dbg("kernel in ipynb: name='#{kernel}'")
         @syncdb.set({type: 'settings', kernel: kernel}, false)
         @ensure_backend_kernel_setup?()
@@ -1511,3 +1520,14 @@ class exports.JupyterActions extends Actions
             for id, pos of changes
                 @set_cell_pos(id, pos, false)
         @_sync()
+
+    set_default_kernel: (kernel) =>
+        if @_is_project  # doesn't make sense for project (right now at least)
+            return
+        s = @redux.getStore('account')
+        if not s?
+            return
+        cur = s.getIn(['editor_settings', 'jupyter'])?.toJS() ? {}
+        cur.kernel = kernel
+        @redux.getTable('account').set(editor_settings:{jupyter: cur})
+        return
