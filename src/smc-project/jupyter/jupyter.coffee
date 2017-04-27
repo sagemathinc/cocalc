@@ -202,6 +202,11 @@ class Kernel extends EventEmitter
             delete @_execute_code_queue
         delete @_kernel_info
 
+        if @_kernel_info_cbs?
+            for cb in @_kernel_info_cbs
+                cb('closed')
+            delete @_kernel_info_cbs
+
     dbg: (f) =>
         if not @_dbg?
             return ->
@@ -505,18 +510,22 @@ class Kernel extends EventEmitter
         opts = defaults opts,
             cb : required
         if @_kernel_info?
-            opts.cb(undefined, misc.deep_copy(@_kernel_info))
+            opts.cb(undefined, @_kernel_info)
             return
+        if @_kernel_info_cbs?
+            @_kernel_info_cbs.push(opts.cb)
+            return
+        @_kernel_info_cbs = [opts.cb]
         @call
             msg_type : 'kernel_info_request'
             cb       : (err, info) =>
-                if err
-                    opts.cb(err)
-                else
+                if not err
                     info.nodejs_version   = process.version
                     info.start_time = @_actions?.store.get('start_time')
                     @_kernel_info = info
-                    opts.cb(undefined, misc.deep_copy(info))
+                for cb in @_kernel_info_cbs
+                    cb(err, info)
+                delete @_kernel_info_cbs
 
     more_output: (opts) =>
         opts = defaults opts,

@@ -504,7 +504,7 @@ class exports.JupyterActions extends Actions
             # client
             if not @store.get('kernel')
                 # kernel isn't set yet, so we set it.
-                kernel = @redux.getStore('account').getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
+                kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
                 @set_kernel(kernel)
 
     _syncdb_cursor_activity: =>
@@ -1151,52 +1151,56 @@ class exports.JupyterActions extends Actions
         return
 
     set_backend_kernel_info: =>
-        dbg = @dbg("set_backend_kernel_info")
-        if @_fetching_backend_kernel_info
-            return
         if @store.get('backend_kernel_info')?
             return
 
-        @_fetching_backend_kernel_info = true
+        if @_is_project
+            dbg = @dbg("set_backend_kernel_info #{misc.uuid()}")
+            if not @_jupyter_kernel?
+                dbg("not defined")
+                return
+            dbg("calling kernel_info...")
+            @_jupyter_kernel.kernel_info
+                cb : (err, data) =>
+                    if not err
+                        dbg("got data='#{misc.to_json(data)}'")
+                        @setState(backend_kernel_info: data)
+                    else
+                        dbg("error = #{err}")
+            return
 
+        if @_fetching_backend_kernel_info
+            return
+        @_fetching_backend_kernel_info = true
         f = (cb) =>
-            dbg("f")
-            if @_is_project
-                @_jupyter_kernel.kernel_info
-                    cb : (err, data) =>
-                        if not err
-                            dbg("got data='#{misc.to_json(data)}'")
-                            @_fetching_backend_kernel_info = false
-                            @setState(backend_kernel_info: data)
-                        else
-                            dbg("error = #{err}")
-                        cb(err)
-            else
-                @_ajax
-                    url     : server_urls.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
-                    timeout : 15000
-                    cb      : (err, data) =>
-                        if err
-                            console.log("Error setting backend kernel info -- #{err}")
-                            cb(true)
-                        else if data.error?
-                            console.log("Error setting backend kernel info -- #{data.error}")
-                            cb(true)
-                        else
-                            # success
-                            @_fetching_backend_kernel_info = false
-                            @setState(backend_kernel_info: immutable.fromJS(data))
-                            # this is when the server for this doc started, not when kernel last started!
-                            @setState(start_time : data.start_time)
-                            # Update the codemirror editor options.
-                            @set_cm_options()
-                            cb()
+            if @_state == 'closed'
+                cb()
+            @_ajax
+                url     : server_urls.get_kernel_info_url(@store.get('project_id'), @store.get('path'))
+                timeout : 15000
+                cb      : (err, data) =>
+                    if err
+                        console.log("Error setting backend kernel info -- #{err}")
+                        cb(true)
+                    else if data.error?
+                        console.log("Error setting backend kernel info -- #{data.error}")
+                        cb(true)
+                    else
+                        # success
+                        @setState(backend_kernel_info: immutable.fromJS(data))
+                        # this is when the server for this doc started, not when kernel last started!
+                        @setState(start_time : data.start_time)
+                        # Update the codemirror editor options.
+                        @set_cm_options()
+                        cb()
 
         misc.retry_until_success
             f           : f
             max_time    : 60000
             start_delay : 1000
             max_delay   : 10000
+            cb          : (err) =>
+                @_fetching_backend_kernel_info = false
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
     # 'copy', 'share', 'download', 'open_file', 'close_file'.
