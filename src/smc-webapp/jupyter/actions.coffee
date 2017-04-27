@@ -1180,10 +1180,10 @@ class exports.JupyterActions extends Actions
                 timeout : 15000
                 cb      : (err, data) =>
                     if err
-                        console.log("Error setting backend kernel info -- #{err}")
+                        #console.log("Error setting backend kernel info -- #{err}")
                         cb(true)
                     else if data.error?
-                        console.log("Error setting backend kernel info -- #{data.error}")
+                        #console.log("Error setting backend kernel info -- #{data.error}")
                         cb(true)
                     else
                         # success

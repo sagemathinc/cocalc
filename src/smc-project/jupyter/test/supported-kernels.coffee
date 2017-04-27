@@ -10,7 +10,7 @@ common = require('./common')
 {output} = common
 
 describe 'compute 4/3 using the python2 kernel -- ', ->
-    @timeout(5000)
+    @timeout(10000)
 
     kernel = undefined
     it 'evaluate 4/3', (done) ->
@@ -150,7 +150,7 @@ describe 'test the julia kernel --', ->
 
 
 describe 'test the non-sage R kernel --', ->
-    @timeout(5000)
+    @timeout(20000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir')
@@ -168,7 +168,7 @@ describe 'test the non-sage R kernel --', ->
         kernel.close()
 
 describe 'test the sage R kernel --', ->
-    @timeout(5000)
+    @timeout(20000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir-sage')

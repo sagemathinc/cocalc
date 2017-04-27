@@ -12,7 +12,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
 
     it 'by directly calling export_to_ipynb', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 })
+        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {}, language_info: {} }, nbformat: 4, nbformat_minor: 0 })
 
     it 'by calling function in the store', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'))
@@ -23,7 +23,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
         actions.set_cell_input(id, 'a=2\nb=3\na+b')
         actions.set_cell_output(id, {0:{data:{'text/plain':'5'}}})
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual({"cells":[{"cell_type":"code","source":["a=2\n","b=3\n","a+b"],"metadata":{"collapsed":false},"execution_count":0,"outputs":[{"data":{"text/plain":["5"]},"output_type":"execute_result","metadata":{},"execution_count":0}]}],"metadata":{"kernelspec":{}},"nbformat":4,"nbformat_minor":0})
+        expect(ipynb).toEqual({"cells":[{"cell_type":"code","source":["a=2\n","b=3\n","a+b"],"metadata":{"collapsed":false},"execution_count":0,"outputs":[{"data":{"text/plain":["5"]},"output_type":"execute_result","metadata":{},"execution_count":0}]}],"metadata":{"kernelspec":{}, language_info: {} },"nbformat":4,"nbformat_minor":0})
 
 describe 'tests exporting a file with many cells -- ', ->
     before(setup)
