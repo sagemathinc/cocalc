@@ -108,26 +108,88 @@ TextPlain = rclass
             {@props.value}
         </div>
 
+'''
+Evaluating JavaScript in a cell.
+What features should be supported?
+
+* [x] local variable "element"
+* [ ] require.js loading
+* [ ] introspection, e.g.
+
+    %%javascript
+    var output_area = this;
+    // find my cell element
+    var cell_element = output_area.element.parents('.cell');
+    // which cell is it?
+    var cell_idx = Jupyter.notebook.get_cell_elements().index(cell_element);
+    // get the cell object
+    var cell = Jupyter.notebook.get_cell(cell_idx);
+
+* [ ] what else?
+'''
 Javascript = rclass
     propTypes:
         value : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
 
     componentDidMount: ->
-        element = $(ReactDOM.findDOMNode(@))
+        #element = $(ReactDOM.findDOMNode(@))
+        #if typeof(@props.value) != 'string'
+        #    value = @props.value.toJS()
+        #else
+        #    value = @props.value
+        #if not misc.is_array(value)
+        #    value = [value]
+        #for line in value
+        #    try
+        #        eval(line)
+        #    catch err
+        #        console.log("Error: #{err}")
+
+
+        # autoResize: =>
+        iframe = ReactDOM.findDOMNode(@)
+        autoResize = ->
+            iframe.height = (10 + iframe.contentWindow.document.body.scrollHeight) + "px"
+            console.log("autoResize", iframe, iframe.height)
+        iframe.addEventListener('load', autoResize)
+
+    render: ->
         if typeof(@props.value) != 'string'
             value = @props.value.toJS()
         else
             value = @props.value
-        if not misc.is_array(value)
-            value = [value]
-        for line in value
-            try
-                eval(line)
-            catch err
-                console.log("Error: #{err}")
+        if misc.is_array(value)
+            value = value.join('\n')
 
-    render: ->
-        <div></div>
+        style =
+            width: '100%'
+            border: 0
+
+        # including a script tag to our require.js doesn't work -- wrong mime type sent by the hub?
+        #revealjs = require('file-loader!requirejs/require.js')
+        #console.log("revealjs: ", revealjs)
+
+        srcDoc = """
+        <div id='content'></div>
+        <script type='text/javascript'>
+        window.require   = parent.__require;
+        window.define    = parent.__define;
+        window.requirejs = parent.__requirejs;
+        var element   = document.getElementById('content');
+        // var window    = parent;
+        var jQuery    = $ = parent.$;
+        try {
+        #{value};
+        } finally {
+        parent.__require   = window.require;
+        parent.__define    = window.define;
+        parent.__requirejs = window.requirejs;
+        };
+        </script>
+        """
+        #sandbox={'allow-scripts allow-same-origin allow-modals'}>   # it's possible to additionally sandbox the iframe
+        <iframe srcDoc={srcDoc} style={style}>
+        </iframe>
 
 PDF = rclass
     propTypes:
