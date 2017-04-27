@@ -137,10 +137,11 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_nbconvert: ->
         <NBConvert
-            actions          = {@props.actions}
-            path             = {@props.path}
-            nbconvert        = {@props.nbconvert}
-            nbconvert_dialog = {@props.nbconvert_dialog}
+            actions             = {@props.actions}
+            path                = {@props.path}
+            nbconvert           = {@props.nbconvert}
+            nbconvert_dialog    = {@props.nbconvert_dialog}
+            backend_kernel_info = {@props.backend_kernel_info}
             />
 
     render_find_and_replace: ->

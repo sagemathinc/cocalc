@@ -25,21 +25,37 @@ TITLE_STYLE =
     backgroundColor : 'rgb(247,247,247)'
 
 exports.TopMenubar = rclass ({name}) ->
+    reduxProps :
+        "#{name}" :
+            kernels             : rtypes.immutable.List
+            kernel              : rtypes.string
+            has_unsaved_changes : rtypes.bool
+            kernel_info         : rtypes.immutable.Map
+            backend_kernel_info : rtypes.immutable.Map
+
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
             next.kernels != @props.kernels or \
-            next.kernel != @props.kernel
+            next.kernel != @props.kernel or \
+            next.backend_kernel_info != @props.backend_kernel_info
 
     propTypes :
         actions : rtypes.object.isRequired
 
     render_file: ->
+        ext = @props.backend_kernel_info?.getIn(['language_info', 'file_extension'])
+        if ext?
+            m = misc.capitalize(@props.backend_kernel_info.getIn(['language_info', 'name']))
+            script_entry = {name:'>nbconvert script', display:"#{m} (#{ext})..."}
+        else
+            script_entry = '>nbconvert script'
+
         @render_menu
             heading : 'File'
             names   : [
                 'new notebook', 'open file', '', \
                 'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  '>nbconvert python', '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '>nbconvert script', '', \
+                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 'trust notebook', '', \   # will have to be redone
                 'close and halt'
             ]
@@ -125,16 +141,13 @@ exports.TopMenubar = rclass ({name}) ->
             else
                 @focus()
 
-
-    reduxProps :
-        "#{name}" :
-            kernels             : rtypes.immutable.List
-            kernel              : rtypes.string
-            has_unsaved_changes : rtypes.bool
-            kernel_info         : rtypes.immutable.Map
-
     menu_item: (key, name) ->
         if name
+            if name?.display?
+                # use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
+                {name, display} = name
+            else
+                display = undefined
             if typeof(name) != 'string'
                 return name  # it's already a MenuItem
             if name[0] == '<'
@@ -147,7 +160,7 @@ exports.TopMenubar = rclass ({name}) ->
                 indent = ''
             obj = @props.actions._commands?[name]
             if not obj?
-                return <MenuItem key={key}>{indent} {name} (not implemented)</MenuItem>
+                return <MenuItem key={key}>{indent} {display ? name} (not implemented)</MenuItem>
 
             shortcut = obj.k?[0]
             if shortcut?
@@ -159,7 +172,7 @@ exports.TopMenubar = rclass ({name}) ->
                 key      = {key}
                 onSelect = {@command(name)}
                 >
-                {indent} {obj.m ? name} {s}
+                {indent} {display ? obj.m ? name} {s}
             </MenuItem>
         else
             <MenuItem key={key} divider />

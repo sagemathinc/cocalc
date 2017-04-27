@@ -203,6 +203,7 @@ class exports.JupyterActions extends actions.JupyterActions
         # Ready to run code, etc.
         @sync_exec_state()
         @set_backend_state('ready')
+        @set_backend_kernel_info()
 
     init_kernel_info: =>
         dbg = @dbg("init_kernel_info")
@@ -233,7 +234,7 @@ class exports.JupyterActions extends actions.JupyterActions
         change = false
         # First verify that all actual cells that are said to be running
         # (according to the store) are in fact running.
-        @store.get('cells').forEach (cell, id) =>
+        @store.get('cells')?.forEach (cell, id) =>
             state = cell.get('state')
             if state? and state != 'done' and not @_running_cells?[id]
                 @_set({type:'cell', id:id, state:'done'}, false)

@@ -505,7 +505,7 @@ class Kernel extends EventEmitter
         opts = defaults opts,
             cb : required
         if @_kernel_info?
-            opts.cb(undefined, @_kernel_info)
+            opts.cb(undefined, misc.deep_copy(@_kernel_info))
             return
         @call
             msg_type : 'kernel_info_request'
@@ -516,7 +516,7 @@ class Kernel extends EventEmitter
                     info.nodejs_version   = process.version
                     info.start_time = @_actions?.store.get('start_time')
                     @_kernel_info = info
-                    opts.cb(undefined, info)
+                    opts.cb(undefined, misc.deep_copy(info))
 
     more_output: (opts) =>
         opts = defaults opts,

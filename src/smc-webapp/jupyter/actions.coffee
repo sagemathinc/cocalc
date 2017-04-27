@@ -483,7 +483,7 @@ class exports.JupyterActions extends Actions
                     else
                         kernel_changed = false
                     @setState(obj)
-                    if orig_kernel != kernel
+                    if not @_is_project and orig_kernel != kernel
                         @set_backend_kernel_info()
                         @set_cm_options()
             return
@@ -1151,6 +1151,7 @@ class exports.JupyterActions extends Actions
         return
 
     set_backend_kernel_info: =>
+        dbg = @dbg("set_backend_kernel_info")
         if @_fetching_backend_kernel_info
             return
         if @store.get('backend_kernel_info')?
@@ -1159,15 +1160,16 @@ class exports.JupyterActions extends Actions
         @_fetching_backend_kernel_info = true
 
         f = (cb) =>
+            dbg("f")
             if @_is_project
-                if not @_jupyter_kernel?
-                    cb(true)
-                    return
                 @_jupyter_kernel.kernel_info
                     cb : (err, data) =>
                         if not err
+                            dbg("got data='#{misc.to_json(data)}'")
                             @_fetching_backend_kernel_info = false
                             @setState(backend_kernel_info: data)
+                        else
+                            dbg("error = #{err}")
                         cb(err)
             else
                 @_ajax
@@ -1177,21 +1179,23 @@ class exports.JupyterActions extends Actions
                         if err
                             console.log("Error setting backend kernel info -- #{err}")
                             cb(true)
+                        else if data.error?
+                            console.log("Error setting backend kernel info -- #{data.error}")
+                            cb(true)
                         else
-                            if data.error?
-                                console.log("Error setting backend kernel info -- #{data.error}")
-                                cb(true)
-                            else
-                                @_fetching_backend_kernel_info = false
-                                @setState(backend_kernel_info: immutable.fromJS(data))
-                                # this is when the server for this doc started, not when kernel last started!
-                                @setState(start_time : data.start_time)
-                                # Update the codemirror editor options.
-                                @set_cm_options()
+                            # success
+                            @_fetching_backend_kernel_info = false
+                            @setState(backend_kernel_info: immutable.fromJS(data))
+                            # this is when the server for this doc started, not when kernel last started!
+                            @setState(start_time : data.start_time)
+                            # Update the codemirror editor options.
+                            @set_cm_options()
+                            cb()
+
         misc.retry_until_success
             f           : f
             max_time    : 60000
-            start_delay : 3000
+            start_delay : 1000
             max_delay   : 10000
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',

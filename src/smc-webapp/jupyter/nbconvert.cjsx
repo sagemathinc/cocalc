@@ -24,8 +24,8 @@ NAMES =
 
 Error = rclass
     propTypes :
-        actions          : rtypes.object.isRequired
-        nbconvert        : rtypes.immutable.Map
+        actions             : rtypes.object.isRequired
+        nbconvert           : rtypes.immutable.Map
 
     componentDidMount: ->
        setTimeout((()=>@scroll()),10)
@@ -63,10 +63,11 @@ Error = rclass
 
 exports.NBConvert = rclass
     propTypes :
-        actions          : rtypes.object.isRequired
-        path             : rtypes.string.isRequired
-        nbconvert        : rtypes.immutable.Map
-        nbconvert_dialog : rtypes.immutable.Map
+        actions             : rtypes.object.isRequired
+        path                : rtypes.string.isRequired
+        nbconvert           : rtypes.immutable.Map
+        nbconvert_dialog    : rtypes.immutable.Map
+        backend_kernel_info : rtypes.immutable.Map
 
     close: ->
         @props.actions.setState(nbconvert_dialog:undefined)
@@ -85,10 +86,16 @@ exports.NBConvert = rclass
     render_download: ->
         if @props.nbconvert.get('error')
             return
-        info = NAMES[@props.nbconvert_dialog.get('to')]
+        to = @props.nbconvert_dialog.get('to')
+        info = NAMES[to]
         if not info?
             return
-        target_path = misc.change_filename_extension(@props.path, info.ext)
+        if to == 'script' and @props.backend_kernel_info?
+            # special case where extension may be different
+            ext = @props.backend_kernel_info.getIn(['language_info', 'file_extension'])?.slice(1) ? 'txt'
+        else
+            ext = info.ext
+        target_path = misc.change_filename_extension(@props.path, ext)
         url = @props.actions.store.get_raw_link(target_path)
         <div style={fontSize: '14pt'}>
             <a href={url} target="_blank">{target_path}</a>
@@ -119,7 +126,7 @@ exports.NBConvert = rclass
         </div>
 
     render_cmd: ->
-        cmd = "nbconvert #{@args().join(' ')} #{@props.path}"
+        cmd = "jupyter nbconvert #{@args().join(' ')} #{@props.path}"
         <pre  style={margin: '15px 0px', overflowX: 'auto'}>{cmd}</pre>
 
     render_started: ->
