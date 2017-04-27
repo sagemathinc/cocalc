@@ -110,10 +110,27 @@ TextPlain = rclass
 
 '''
 Evaluating JavaScript in a cell.
-What features should be supported?
+What features should be supported? [x] means this works.
 
 * [x] local variable "element"
-* [ ] require.js loading
+* [x] require.js loading, e.g.
+
+    %%javascript
+    require(['//cdnjs.cloudflare.com/ajax/libs/d3/4.8.0/d3.js'], function(d3) {
+        console.log(d3); // d3 is sometimes undefined
+        d3.select(element[0]).append("h1").text("Successfully loaded D3 version " + d3.version);
+    });
+
+* [x] convey data from e.g. python via the global window reference to be used in javascript mode, e.g.
+
+    cell 1:
+        from IPython.display import Javascript
+        Javascript("window.xy = %s" % 99)
+    cell 2:
+        %%javascript
+        element.append(window.xy)
+    and then the output is 99.
+
 * [ ] introspection, e.g.
 
     %%javascript
@@ -125,35 +142,16 @@ What features should be supported?
     // get the cell object
     var cell = Jupyter.notebook.get_cell(cell_idx);
 
-* [ ] what else?
+* [ ] custom style (strategically add classNames, etc.)
+
+* [ ] anything else?
 '''
 Javascript = rclass
     propTypes:
         value : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
 
     componentDidMount: ->
-        #element = $(ReactDOM.findDOMNode(@))
-        #if typeof(@props.value) != 'string'
-        #    value = @props.value.toJS()
-        #else
-        #    value = @props.value
-        #if not misc.is_array(value)
-        #    value = [value]
-        #for line in value
-        #    try
-        #        eval(line)
-        #    catch err
-        #        console.log("Error: #{err}")
-
-
-        # autoResize: =>
-        iframe = ReactDOM.findDOMNode(@)
-        autoResize = ->
-            iframe.height = (10 + iframe.contentWindow.document.body.scrollHeight) + "px"
-            console.log("autoResize", iframe, iframe.height)
-        iframe.addEventListener('load', autoResize)
-
-    render: ->
+        element = $(ReactDOM.findDOMNode(@))
         if typeof(@props.value) != 'string'
             value = @props.value.toJS()
         else
@@ -161,35 +159,23 @@ Javascript = rclass
         if misc.is_array(value)
             value = value.join('\n')
 
-        style =
-            width: '100%'
-            border: 0
+        try
+            window.require   = window.__require
+            window.define    = window.__define
+            window.requirejs = window.__requirejs
+            eval(value)
+        catch err
+            console.log("Error: #{err}")
+        finally
+            window.__require   = window.require
+            window.__define    = window.define
+            window.__requirejs = window.requirejs
+            window.require     = undefined
+            window.define      = false  # the default, I don't know why
+            window.requirejs   = undefined
 
-        # including a script tag to our require.js doesn't work -- wrong mime type sent by the hub?
-        #revealjs = require('file-loader!requirejs/require.js')
-        #console.log("revealjs: ", revealjs)
-
-        srcDoc = """
-        <div id='content'></div>
-        <script type='text/javascript'>
-        window.require   = parent.__require;
-        window.define    = parent.__define;
-        window.requirejs = parent.__requirejs;
-        var element   = document.getElementById('content');
-        // var window    = parent;
-        var jQuery    = $ = parent.$;
-        try {
-        #{value};
-        } finally {
-        parent.__require   = window.require;
-        parent.__define    = window.define;
-        parent.__requirejs = window.requirejs;
-        };
-        </script>
-        """
-        #sandbox={'allow-scripts allow-same-origin allow-modals'}>   # it's possible to additionally sandbox the iframe
-        <iframe srcDoc={srcDoc} style={style}>
-        </iframe>
+    render: ->
+        <div></div>
 
 PDF = rclass
     propTypes:
