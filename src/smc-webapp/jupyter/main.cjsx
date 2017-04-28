@@ -16,6 +16,7 @@ Top-level react component, which ties everything together
 {About}             = require('./about')
 {NBConvert}         = require('./nbconvert')
 {InsertImage}       = require('./insert-image')
+{EditAttachments}   = require('./edit-attachments')
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
@@ -58,6 +59,7 @@ exports.JupyterEditor = rclass ({name}) ->
             path                : rtypes.string
             cell_toolbar        : rtypes.string
             insert_image        : rtypes.bool  # show insert image dialog
+            edit_attachments    : rtypes.string
 
     render_error: ->
         if @props.error
@@ -153,6 +155,17 @@ exports.JupyterEditor = rclass ({name}) ->
             insert_image = {@props.insert_image}
         />
 
+    render_edit_attachments: ->
+        if not @props.edit_attachments?
+            return
+        cell = @props.cells?.get(@props.edit_attachments)
+        if not cell?
+            return
+        <EditAttachments
+            actions = {@props.actions}
+            cell    = {cell}
+        />
+
     render_find_and_replace: ->
         <FindAndReplace
             actions          = {@props.actions}
@@ -179,6 +192,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_about()}
             {@render_nbconvert()}
             {@render_insert_image()}
+            {@render_edit_attachments()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
             {@render_confirm_dialog()}
