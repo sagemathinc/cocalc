@@ -111,9 +111,7 @@ exports.FindAndReplace = rclass
         @props.cell_list?.forEach (id) =>
             if not sel? or sel.has(id)
                 cell = @props.cells.get(id)
-                i = cell.get('input')
-                if i?
-                    v.push(i)
+                v.push(cell.get('input') ? '')
             return
         return v.join('\n')
 
@@ -161,10 +159,10 @@ exports.FindAndReplace = rclass
                 b_stop  = Math.min(line.length, stop - line_start)
                 w.push(<span key={key}>{line.slice(s, b_start)}</span>)
                 key += 1
-                w.push(<span key={key} style={backgroundColor: 'yellow'}>{line.slice(b_start, b_stop)}</span>)
+                w.push(<span key={key} style={backgroundColor: '#ffa'}>{line.slice(b_start, b_stop)}</span>)
                 key += 1
                 s = b_stop
-                if stop <= line_stop  # all on this line
+                if b_stop <= line_stop  # all on this line
                     i += 1
                 else
                     # spans multiple lines; but done with this line
@@ -178,10 +176,59 @@ exports.FindAndReplace = rclass
 
         <div>
             {@render_matches_title(matches?.length)}
-            <pre style={color:'#666', maxHeight: '60vh'}>
+            <pre style={color:'#666', maxHeight: '50vh'}>
                 {v}
             </pre>
         </div>
+
+    replace: (cnt) ->
+        matches = @_matches?.matches
+        if not matches?
+            return
+        sel = undefined
+        if not @state.all
+            sel = @props.sel_ids?.add(@props.cur_id)
+        i = 0
+        cell_start = 0
+        replace = @state.replace
+        replace_count = 0
+        @props.cell_list?.forEach (id) =>
+            if sel? and not sel.has(id)
+                return
+            if cnt? and replace_count >= cnt
+                return false # done
+            cell = @props.cells.get(id)
+            input = cell.get('input') ? ''
+            cell_stop = cell_start + input.length
+            new_input = ''  # will be new input after replace
+            s = 0
+            while i < matches.length
+                if cnt? and replace_count >= cnt # done
+                    i = matches.length
+                    break
+                {start, stop} = matches[i]
+                if start >= cell_stop
+                    # done -- starts in next cell
+                    break
+                b_start = Math.max(s, start - cell_start)
+                b_stop  = Math.min(input.length, stop - cell_start)
+                new_input += input.slice(s, b_start)
+                new_input += replace
+                replace_count += 1
+                s = b_stop
+                if b_stop <= cell_stop  # all in this cell
+                    i += 1
+                else
+                    # spans multiple cells; but done with this cell
+                    break
+            if s < input.length
+                new_input += input.slice(s)
+            if input != new_input
+                @props.actions.set_cell_input(id, new_input, false)
+            cell_start = cell_stop + 1  # +1 for the final newline
+            return
+
+        @props.actions._sync()
 
     render_results: ->
         {matches, abort, error, text} = @_matches
@@ -206,16 +253,28 @@ exports.FindAndReplace = rclass
                 s += "#{num} Selected Cell#{if num > 1 then 's' else ''}"
         return s
 
-    render_replace_button: ->
-        num = @_matches?.matches?.length ? 0
+    render_replace_one_button: ->
+        num = @num_matches()
+        <Button onClick={=>@replace(1)} bsStyle='primary' disabled={num==0}>
+            {@replace_action()} First Match
+        </Button>
+
+    num_matches: ->
+        return @_matches?.matches?.length ? 0
+
+    replace_action: (num) ->
+        if @state.replace then "Replace" else "Delete"
+
+    render_replace_all_button: ->
+        num = @num_matches()
         if num > 1
             s = "#{num} Matches"
         else if num > 0
             s = "One Match"
         else
             s = 'All'
-        <Button onClick={@replace_all} bsStyle='primary' disabled={num==0}>
-            Replace {s}
+        <Button onClick={=>@replace()} bsStyle='primary' disabled={num==0}>
+            {@replace_action(num)} {s}
         </Button>
 
     render: ->
@@ -230,7 +289,8 @@ exports.FindAndReplace = rclass
             </Modal.Body>
 
             <Modal.Footer>
-                {@render_replace_button()}
+                {@render_replace_one_button()}
+                {@render_replace_all_button()}
                 <Button onClick={@close}>Close</Button>
             </Modal.Footer>
         </Modal>
