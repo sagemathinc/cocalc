@@ -122,7 +122,9 @@ exports.TopMenubar = rclass ({name}) ->
         if not @props.kernels?
             return
         else
-            for kernel in @props.kernels.toJS()
+            kernels = @props.kernels.toJS()
+            get_val = (x) -> (x.display_name ? x.name ? '').toUpperCase()
+            for kernel in kernels.sort((a, b) -> misc.cmp(get_val(a), get_val(b)))
                 @render_kernel_item(kernel)
 
     render_kernel: ->
