@@ -34,7 +34,7 @@ exports.FindAndReplace = rclass
         @props.actions.focus(true)
 
     focus: ->
-        $(ReactDOM.findDOMNode(@refs.input)).focus()
+        $(ReactDOM.findDOMNode(@refs.find)).focus()
 
     render_case_button: ->
         <Button
@@ -63,7 +63,7 @@ exports.FindAndReplace = rclass
             <Icon name='arrows-v'/>
         </Button>
 
-    render_input: ->
+    render_find: ->
         place = 'Find'
         if @state.case
             place += ' case sensitive'
@@ -71,11 +71,21 @@ exports.FindAndReplace = rclass
             place += ' regular expression'
         <FormControl
             autoFocus   = {true}
-            ref         = 'input'
+            ref         = 'find'
             type        = 'text'
             placeholder = {place}
             value       = {@state.find}
-            onChange    = {=>@setState(input : ReactDOM.findDOMNode(@refs.input).value)}
+            onChange    = {=>@setState(find : ReactDOM.findDOMNode(@refs.find).value)}
+            />
+
+    render_replace: ->
+        <FormControl
+            style       = {marginTop: '15px'}
+            ref         = 'replace'
+            type        = 'text'
+            placeholder = 'Replace'
+            value       = {@state.replace}
+            onChange    = {=>@setState(replace : ReactDOM.findDOMNode(@refs.replace).value)}
             />
 
     render_form: ->
@@ -87,8 +97,9 @@ exports.FindAndReplace = rclass
                         {@render_regexp_button()}
                         {@render_all_button()}
                     </InputGroup.Button>
-                    {@render_input()}
+                    {@render_find()}
                 </InputGroup>
+                {@render_replace()}
             </FormGroup>
         </form>
 
