@@ -15,12 +15,14 @@ exports.FindAndReplace = rclass
         cells            : rtypes.immutable.Map.isRequired
         sel_ids          : rtypes.immutable.Set
         cur_id           : rtypes.string
+        cell_list        : rtypes.immutable.List
 
     getInitialState: ->
-        all    : false
-        case   : false
-        regexp : false
-        input  : ''
+        all     : false
+        case    : false
+        regexp  : false
+        find    : ''
+        replace : ''
 
     shouldComponentUpdate: (nextProps, nextState) ->
         if not nextProps.find_and_replace and not @props.find_and_replace
@@ -72,7 +74,7 @@ exports.FindAndReplace = rclass
             ref         = 'input'
             type        = 'text'
             placeholder = {place}
-            value       = {@state.input}
+            value       = {@state.find}
             onChange    = {=>@setState(input : ReactDOM.findDOMNode(@refs.input).value)}
             />
 
@@ -95,8 +97,9 @@ exports.FindAndReplace = rclass
         sel = undefined
         if not @state.all
             sel = @props.sel_ids?.add(@props.cur_id)
-        @props.cells.forEach (cell, id) =>
+        @props.cell_list?.forEach (id) =>
             if not sel? or sel.has(id)
+                cell = @props.cells.get(id)
                 i = cell.get('input')
                 if i?
                     v.push(i)
@@ -105,14 +108,13 @@ exports.FindAndReplace = rclass
 
     get_matches: ->
         text = @get_text()
-        console.log 'text=', text
-        x = find_matches(@state.input, text, @state.case, @state.regexp)
+        x = find_matches(@state.find, text, @state.case, @state.regexp)
         x.text = text
         return x
 
-    render_abort: ->
+    render_abort: (n=0) ->
         <div>
-            Only showing first 100 matches
+            Only showing first {n} matches
         </div>
 
     render_error: (error) ->
@@ -121,18 +123,61 @@ exports.FindAndReplace = rclass
             style   = {margin:'1ex'}
         />
 
+    render_matches_title: (n=0) ->
+        if n == 0
+            s = 'No matches'
+        else
+            s = "#{n} match#{if n != 1 then 'es' else ''}"
+        <h5>{s}</h5>
+
     render_matches: (matches, text) ->
         if not matches? or matches.length == 0
-            return <div style={color:'#666'}>No matches</div>
-        <span>
-            {JSON.stringify(matches)}
-        </span>
+            return @render_matches_title(matches?.length)
+        v = []
+        i = 0
+        line_start = 0
+        key = 0
+        for line in text.split('\n')
+            line_stop = line_start + line.length
+            w = []  # current line
+            s = 0
+            while i < matches.length
+                {start, stop} = matches[i]
+                if start >= line_stop
+                    # done -- starts on next line (or later)
+                    break
+                b_start = Math.max(s, start - line_start)
+                b_stop  = Math.min(line.length, stop - line_start)
+                w.push(<span key={key}>{line.slice(s, b_start)}</span>)
+                key += 1
+                w.push(<span key={key} style={backgroundColor: 'yellow'}>{line.slice(b_start, b_stop)}</span>)
+                key += 1
+                s = b_stop
+                if stop <= line_stop  # all on this line
+                    i += 1
+                else
+                    # spans multiple lines; but done with this line
+                    break
+            if s < line.length
+                w.push(<span key={key}>{line.slice(s)}</span>)
+                key += 1
+            v.push(<div key={key}>{w}</div>)
+            key += 1
+            line_start = line_stop + 1  # +1 for the newline
+
+        <div>
+            {@render_matches_title(matches?.length)}
+            <pre style={color:'#666', maxHeight: '60vh'}>
+                {v}
+            </pre>
+        </div>
 
     render_results: ->
         {matches, abort, error, text} = @_matches
+        if error
+            return @render_error(error)
         <div>
-            {@render_abort() if abort}
-            {@render_error(error) if error}
+            {@render_abort(matches?.length) if abort}
             {@render_matches(matches, text)}
         </div>
 

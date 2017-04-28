@@ -178,6 +178,7 @@ exports.JupyterEditor = rclass ({name}) ->
             sel_ids          = {@props.sel_ids}
             cur_id           = {@props.cur_id}
             cells            = {@props.cells}
+            cell_list        = {@props.cell_list}
             />
 
     render_confirm_dialog: ->

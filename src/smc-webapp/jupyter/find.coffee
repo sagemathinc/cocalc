@@ -21,7 +21,7 @@ construct_regexp = (string, flags, is_regexp) ->
     else
         return new RegExp(escape_regexp(string), flags)
 
-exports.find_matches = (pattern, string, is_case_sensitive=false, is_regexp=false) ->
+exports.find_matches = (pattern, string, is_case_sensitive=false, is_regexp=false, max_matches=100) ->
     ###
     Find all occurrences of `pattern` in `string`, match in a `case_sensitive` manner.
 
@@ -49,7 +49,7 @@ exports.find_matches = (pattern, string, is_case_sensitive=false, is_regexp=fals
             return {matches:[]}
         matches.push(match)
         escape_hatch++
-        if escape_hatch > 100
+        if escape_hatch >= max_matches
             abort = true
             break
 
