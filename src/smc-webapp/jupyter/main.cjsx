@@ -149,9 +149,12 @@ exports.JupyterEditor = rclass ({name}) ->
             />
 
     render_insert_image: ->
+        if not @props.cur_id? or not @props.project_id?
+            return
         <InsertImage
             actions      = {@props.actions}
             cur_id       = {@props.cur_id}
+            project_id   = {@props.project_id}
             insert_image = {@props.insert_image}
         />
 
