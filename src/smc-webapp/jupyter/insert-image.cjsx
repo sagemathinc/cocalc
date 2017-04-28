@@ -7,6 +7,8 @@ Modal for inserting an image
 {Button, Modal} = require('react-bootstrap')
 {SMC_Dropzone} = require('../smc-dropzone')
 
+TMP = '.smc/tmp'  # TODO: maybe .smc will change...
+
 exports.InsertImage = rclass
     propTypes :
         actions      : rtypes.object.isRequired
@@ -15,20 +17,14 @@ exports.InsertImage = rclass
         insert_image : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return nextProps.insert_image != @props.insert_image or \
-                nextState.path != @state.path
-
-    getInitialState: ->
-        path : undefined
+        return nextProps.insert_image != @props.insert_image
 
     close: ->
         @props.actions.setState(insert_image: false)
         @props.actions.focus(true)
 
-    ok: ->
-
-    handle_change: (e) ->
-        @setState(path: e.target.value)
+    add_file: (file) ->
+        @props.actions.add_attachment_to_cell(@props.cur_id, TMP + '/' + file.name)
 
     render: ->
         <Modal show={@props.insert_image} bsSize='large' onHide={@close} >
@@ -38,13 +34,12 @@ exports.InsertImage = rclass
             <Modal.Body>
                 <SMC_Dropzone
                     project_id       = {@props.project_id}
-                    current_path     = {'.smc/tmp'}
-                    dropzone_handler = { {} }
+                    current_path     = {TMP}
+                    dropzone_handler = { addedfile: @add_file }
                 />
             </Modal.Body>
 
             <Modal.Footer>
-                <Button disabled={not @state.path} onClick={@ok} bsStyle='primary'>OK</Button>
-                <Button onClick={@close}>Cancel</Button>
+                <Button onClick={@close}>Done</Button>
             </Modal.Footer>
         </Modal>

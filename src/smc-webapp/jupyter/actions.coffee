@@ -1022,8 +1022,10 @@ class exports.JupyterActions extends Actions
         @_input_editors ?= {}
         @_input_editors[id] = save_value
         return
+
     unregister_input_editor: (id) =>
         delete @_input_editors?[id]
+
     # Meant to be used for implementing actions -- do not call externally
     _get_cell_input: (id) =>
         id ?= @store.get('cur_id')
@@ -1553,3 +1555,45 @@ class exports.JupyterActions extends Actions
 
     edit_attachments: (id) =>
         @setState(edit_attachments: id)
+
+    _attachment_markdown: (name) =>
+        return "![#{encodeURIComponent(name)}](attachment:#{encodeURIComponent(name)})"
+
+    insert_input_at_cursor: (id, s, save) =>
+        input   = @_get_cell_input(id)
+        cursor  = @_cursor_locs?[0]
+        if cursor.id == id
+            v = input.split('\n')
+            line = v[cursor.y]
+            v[cursor.y] = line.slice(0, cursor.x) + s + line.slice(cursor.x)
+            input = v.join('\n')
+        else
+            input  += s
+        @_set({type:'cell', id:id, input:input}, save)
+
+    add_attachment_to_cell: (id, path) =>
+        cell = @store.getIn(['cells', id])
+        if not cell?
+            # no such cell
+            return
+        attachments = cell.get('attachments')?.toJS() ? {}
+        name = misc.path_split(path).tail
+        attachments[name] = {load:path}
+        @_set
+            type        : 'cell'
+            id          : id
+            attachments : attachments,
+            false
+        @insert_input_at_cursor(id, @_attachment_markdown(name), true)
+
+    delete_attachment_from_cell: (id, name) =>
+        attachments = @store.getIn(['cells', id, 'attachments'])?.toJS()
+        if not attachments?[name]
+            return
+        attachments[name] = null
+        @_set
+            type        : 'cell'
+            id          : id
+            input       : misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), '')
+            attachments : attachments
+
