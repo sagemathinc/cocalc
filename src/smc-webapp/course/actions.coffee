@@ -500,7 +500,7 @@ exports.CourseActions = class CourseActions extends Actions
         if not s?
             return
         body = s.get_email_invite()
-        invite = (x) ->
+        invite = (x) =>
             account_store = @redux.getStore('account')
             name    = account_store.get_fullname()
             replyto = account_store.get_email_address()
@@ -1183,6 +1183,7 @@ exports.CourseActions = class CourseActions extends Actions
                 @clear_activity(id)
 
     # Copy the collected folders from some students to the given student for peer grading.
+    # Assumes folder is non-empty
     peer_copy_to_student: (assignment, student) =>
         if @_start_copy(assignment, student, 'last_peer_assignment')
             return
