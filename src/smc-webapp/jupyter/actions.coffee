@@ -1467,10 +1467,11 @@ class exports.JupyterActions extends Actions
         # to the contents of ipynb more efficient.   In case of a very slight change
         # on disk, this can be massively more efficient.
         importer.import
-            ipynb        : ipynb
-            existing_ids : @store.get('cell_list')?.toJS()
-            new_id       : @_new_id
-            process      : @_jupyter_kernel?.process_output
+            ipynb              : ipynb
+            existing_ids       : @store.get('cell_list')?.toJS()
+            new_id             : @_new_id
+            process            : @_jupyter_kernel?.process_output
+            process_attachment : @_jupyter_kernel?.process_attachment
 
         @syncdb.delete(undefined, false)
         for _, cell of importer.cells()
@@ -1589,6 +1590,7 @@ class exports.JupyterActions extends Actions
 
     add_attachment_to_cell: (id, path) =>
         name = misc.path_split(path).tail
+        name = name.toLowerCase()
         name = encodeURIComponent(name).replace(/\(/g, "%28").replace(/\)/g, "%29")
         @set_cell_attachment(id, name, {type:'load', value:path})
         @store.wait

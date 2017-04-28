@@ -629,7 +629,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
     handle_all_cell_attachments: =>
         # Check if any cell attachments need to be loaded.
-        @store.get('cells').forEach (cell, id) =>
+        @store.get('cells')?.forEach (cell, id) =>
             @handle_cell_attachments(cell)
         return
 

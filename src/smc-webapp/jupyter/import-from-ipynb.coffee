@@ -17,13 +17,15 @@ class exports.IPynbImporter
             ipynb        : {}
             new_id       : undefined  # function that returns an unused id given
                                       # an is_available function; new_id(is_available) = a new id.
-            process      : undefined  # function that is called on output messages to mutate them
             existing_ids : []         # re-use these on loading for efficiency purposes
+            process      : undefined  # function that is called on output messages to mutate them
+            process_attachment : undefined  # process attachments:  attachment(base64, mime) --> sha1
 
-        @_ipynb        = misc.deep_copy(opts.ipynb)
-        @_new_id       = opts.new_id
-        @_process      = opts.process
-        @_existing_ids = opts.existing_ids  # option to re-use existing ids
+        @_ipynb              = misc.deep_copy(opts.ipynb)
+        @_new_id             = opts.new_id
+        @_process            = opts.process
+        @_process_attachment = opts.process_attachment
+        @_existing_ids       = opts.existing_ids  # option to re-use existing ids
 
         @_sanity_improvements()
         @_import_settings()
@@ -196,6 +198,15 @@ class exports.IPynbImporter
         if cell.metadata?.slideshow?
             obj.slide = cell.metadata.slideshow.slide_type
 
+        if cell.attachments?
+            obj.attachments = {}
+            for name, val of cell.attachments
+                for mime, base64 of val
+                    if @_process_attachment?
+                        sha1 = @_process_attachment(base64, mime)
+                        obj.attachments[name] = {type:'sha1', value:sha1}
+                    else
+                        obj.attachments[name] = {type:'base64', value:base64}
         return obj
 
 

@@ -26,11 +26,19 @@ href_transform = (project_id, cell) ->
             return href
         name = href.slice('attachment:'.length)
         data = cell.getIn(['attachments', name])
-        if data?.get('type') != 'sha1'
-            return ''
-        sha1 = data.get('value')
-        src = get_blob_url(project_id, misc.filename_extension(name), sha1)
-        return src
+        ext  = misc.filename_extension(name)
+        console.log 'transform', data?.get('type')
+        switch data?.get('type')
+            when 'sha1'
+                sha1 = data.get('value')
+                return get_blob_url(project_id, ext, sha1)
+            when 'base64'
+                console.log 'BASE64!'
+                if ext == 'jpg'
+                    ext = 'jpeg'
+                return "data:image/#{ext};base64,#{data.get('value')}"
+            else
+                return ''
 
 exports.CellInput = rclass
     propTypes:

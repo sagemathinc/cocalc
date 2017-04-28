@@ -579,6 +579,8 @@ class Kernel extends EventEmitter
                 fs.unlink(opts.path)
                 opts.cb(err, sha1)
 
+    process_attachment: (base64, mime) =>
+        return blob_store.save(base64, mime)
 
     http_server: (opts) =>
         opts = defaults opts,

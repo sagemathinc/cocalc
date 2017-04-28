@@ -167,8 +167,8 @@ $.fn.process_smc_links = (opts={}) ->
                         continue
                     if opts.href_transform?
                         src = opts.href_transform(src)
-                    if src[0] == '/'
-                        # absolute path
+                    if src[0] == '/' or src.slice(0,5) == 'data:'
+                        # absolute path or data: url
                         new_src = src
                     else
                         {join} = require('path')
