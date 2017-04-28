@@ -552,7 +552,7 @@ Assignment = rclass
                    key      = 'peer_grade_checkbox'
                    ref      = 'peer_grade_checkbox'
                    onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
-                   style    = {display:'inline-block'}
+                   style    = {display:'inline-block', verticalAlign:'middle'}
             />
             Enable Peer Grading
         </div>
