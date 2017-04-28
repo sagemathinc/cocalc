@@ -1562,7 +1562,7 @@ class exports.JupyterActions extends Actions
     insert_input_at_cursor: (id, s, save) =>
         input   = @_get_cell_input(id)
         cursor  = @_cursor_locs?[0]
-        if cursor.id == id
+        if cursor?.id == id
             v = input.split('\n')
             line = v[cursor.y]
             v[cursor.y] = line.slice(0, cursor.x) + s + line.slice(cursor.x)
