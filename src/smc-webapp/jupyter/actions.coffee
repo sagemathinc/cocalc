@@ -1560,6 +1560,8 @@ class exports.JupyterActions extends Actions
         return "![#{encodeURIComponent(name)}](attachment:#{encodeURIComponent(name)})"
 
     insert_input_at_cursor: (id, s, save) =>
+        if not @store.getIn(['cells', id])?
+            return
         input   = @_get_cell_input(id)
         cursor  = @_cursor_locs?[0]
         if cursor?.id == id
@@ -1571,29 +1573,26 @@ class exports.JupyterActions extends Actions
             input  += s
         @_set({type:'cell', id:id, input:input}, save)
 
-    add_attachment_to_cell: (id, path) =>
+    # Sets attachments[name] = val
+    set_cell_attachment: (id, name, val, save=true) =>
         cell = @store.getIn(['cells', id])
         if not cell?
             # no such cell
             return
         attachments = cell.get('attachments')?.toJS() ? {}
-        name = misc.path_split(path).tail
-        attachments[name] = {load:path}
+        attachments[name] = val
         @_set
             type        : 'cell'
             id          : id
             attachments : attachments,
-            false
+            save
+
+    add_attachment_to_cell: (id, path) =>
+        name = misc.path_split(path).tail
+        @set_cell_attachment(id, name, {type:'load', value:path}, false)
         @insert_input_at_cursor(id, @_attachment_markdown(name), true)
 
     delete_attachment_from_cell: (id, name) =>
-        attachments = @store.getIn(['cells', id, 'attachments'])?.toJS()
-        if not attachments?[name]
-            return
-        attachments[name] = null
-        @_set
-            type        : 'cell'
-            id          : id
-            input       : misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), '')
-            attachments : attachments
+        @set_cell_attachment(id, name, null, false)
+        @set_cell_input(id, misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), ''))
 

@@ -202,6 +202,7 @@ class exports.JupyterActions extends actions.JupyterActions
 
         # Ready to run code, etc.
         @sync_exec_state()
+        @handle_all_cell_attachments()
         @set_backend_state('ready')
         @set_backend_kernel_info()
 
@@ -227,6 +228,9 @@ class exports.JupyterActions extends actions.JupyterActions
         if new_cell?.get('state') == 'start' and old_cell?.get('state') != 'start'
             @manager_run_cell_enqueue(id)
             return
+
+        if new_cell?.get('attachments')? and new_cell.get('attachments') != old_cell?.get('attachments')
+            @handle_cell_attachments(new_cell)
 
     # Ensure that the cells listed as running *are* exactly the
     # ones actually running or queued up to run.
@@ -622,3 +626,31 @@ class exports.JupyterActions extends actions.JupyterActions
                     error : err
                     time  : new Date() - 0
             )
+
+    handle_all_cell_attachments: =>
+        # Check if any cell attachments need to be loaded.
+        @store.get('cells').forEach (cell, id) =>
+            @handle_cell_attachments(cell)
+        return
+
+    handle_cell_attachments: (cell) =>
+        if not @_jupyter_kernel? # can't do anything
+            return
+        dbg = @dbg("handle_cell_attachments(id=#{cell.get('id')})")
+        dbg()
+        cell.get('attachments')?.forEach (x, name) =>
+            if x?.get('type') == 'load'
+                # need to load from disk
+                @set_cell_attachment(cell.get('id'), name, {type:'loading', value:null})
+                @_jupyter_kernel?.load_attachment
+                    path : x.get('value')
+                    cb   : (err, sha1) =>
+                        if err
+                            @set_cell_attachment(cell.get('id'), name, {type:'error', value:err})
+                        else
+                            @set_cell_attachment(cell.get('id'), name, {type:'sha1', value:sha1})
+            return
+        return
+
+
+

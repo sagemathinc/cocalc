@@ -560,6 +560,26 @@ class Kernel extends EventEmitter
                 delete @_nbconvert_lock
                 opts.cb(err)
 
+    load_attachment: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : required
+        dbg = @dbg("load_attachment")
+        dbg("path='#{opts.path}'")
+        if opts.path[0] != '/'
+            opts.path = process.env.HOME + '/' + opts.path
+        sha1 = undefined
+        misc.retry_until_success
+            f : (cb) =>
+                blob_store.readFile opts.path, 'base64', (err, _sha1) =>
+                    sha1 = _sha1
+                    cb(err)
+            max_time : 30000
+            cb       : (err) =>
+                fs.unlink(opts.path)
+                opts.cb(err, sha1)
+
+
     http_server: (opts) =>
         opts = defaults opts,
             segments : required

@@ -2,11 +2,13 @@
 Jupyter in-memory blob store, which hooks into the raw http server.
 ###
 
+fs = require('fs')
+
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
 # TODO: are these the only base64 encoded types that jupyter kernels return?
-BASE64_TYPES = ['image/png', 'image/jpeg', 'application/pdf']
+BASE64_TYPES = ['image/png', 'image/jpeg', 'application/pdf', 'base64']
 
 class BlobStore
     constructor: ->
@@ -23,6 +25,17 @@ class BlobStore
         x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
         x.ref += 1
         return sha1
+
+    readFile: (path, type, cb) =>
+        fs.readFile path, (err, data) =>
+            if err
+                cb(err)
+            else
+                sha1 = misc_node.sha1(data)
+                ext = misc.filename_extension(path)?.toLowerCase()
+                x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
+                x.ref += 1
+                cb(undefined, sha1)
 
     free: (sha1) =>
         x = @_blobs[sha1]

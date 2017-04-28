@@ -241,7 +241,7 @@ exports.commands = (actions) ->
         f : -> actions.insert_cell(1)
 
     'insert image' :
-        m : 'Insert Image...'
+        m : 'Insert Images...'
         f : -> actions.insert_image()
 
     'interrupt kernel' :
