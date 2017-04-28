@@ -98,6 +98,7 @@ $.fn.spin = (opts) ->
             data.spinner.stop()
             delete data.spinner
         if opts isnt false
+            Spinner = require("spin/spin.min.js")
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
     return this
 
@@ -563,6 +564,27 @@ exports.cm_define_testbot = (cm) ->
                 setTimeout(f, opts.delay)
         f()
 
+exports.sagews_canonical_mode = (name, default_mode) ->
+    switch name
+        when 'markdown'
+            return 'md'
+        when 'xml'
+            return 'html'
+        when 'mediawiki'
+            return 'mediawiki'
+        when 'stex'
+            return 'tex'
+        when 'python'
+            return 'python'
+        when 'r'
+            return 'r'
+        when 'sagews'
+            return 'sage'
+        when 'shell'
+            return 'shell'
+        else
+            return default_mode
+
 exports.define_codemirror_extensions = () ->
 
     # LaTeX code folding (isn't included in CodeMirror)
@@ -1015,25 +1037,7 @@ exports.define_codemirror_extensions = () ->
             default_mode = cm.get_edit_mode()
 
         canonical_mode = (name) ->
-            switch name
-                when 'markdown'
-                    return 'md'
-                when 'xml'
-                    return 'html'
-                when 'mediawiki'
-                    return 'mediawiki'
-                when 'stex'
-                    return 'tex'
-                when 'python'
-                    return 'python'
-                when 'r'
-                    return 'r'
-                when 'sagews'
-                    return 'sage'
-                when 'shell'
-                    return 'shell'
-                else
-                    return default_mode
+            exports.sagews_canonical_mode(name, default_mode)
 
         args = opts.args
         cmd = opts.cmd
@@ -1079,6 +1083,9 @@ exports.define_codemirror_extensions = () ->
                     # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
+
+            if DEBUG and not how?
+                console.warn("CodeMirror/edit_selection: unknown 'how' for mode1='#{mode1}' and cmd='#{cmd}'")
 
             # trim whitespace
             i = 0
@@ -1159,6 +1166,13 @@ exports.define_codemirror_extensions = () ->
                             src = src1
                     if args != '3'
                         src = "<font size=#{args}>#{src}</font>"
+                else if mode == 'tex'
+                    # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                    latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                    i = parseInt(args)
+                    if i in [1..7]
+                        size = latex_sizes[i - 1]
+                        src = "{\\#{size} #{src}}"
 
             if cmd == 'color'
                 if mode in ['html', 'md', 'mediawiki']

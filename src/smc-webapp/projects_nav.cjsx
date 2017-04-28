@@ -176,13 +176,16 @@ FullProjectsNav = rclass
             width       : '100%'
             display     : 'flex'
 
-        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', height:'41px', margin:'0'}
-            helperClass={'smc-project-tab-floating'}
-            onSortEnd={@on_sort_end}
-            axis={'x'}
-            lockAxis={'x'}
-            lockToContainerEdges={true}
-            distance={3 if not isMobile.tablet()}
+        <SortableNav
+            className            = "smc-project-tab-sorter"
+            style                = {display:'flex', flex:'1', overflow: 'hidden', height:'41px', margin:'0'}
+            helperClass          = {'smc-project-tab-floating'}
+            onSortEnd            = {@on_sort_end}
+            axis                 = {'x'}
+            lockAxis             = {'x'}
+            lockToContainerEdges = {true}
+            distance             = {3 if not isMobile.tablet()}
+            shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-project-tab-sorter')}
         >
             {@project_tabs()}
         </SortableNav>
@@ -286,17 +289,25 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title className="smc-projects-tabs" style={flex:'1'}>
+        <Nav
+            className = 'smc-dropdown-projects'
+            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}
+            >
+            <NavDropdown
+                id        = "smc-top-project-nav-dropdown"
+                title     = {title}
+                className = "smc-projects-tabs"
+                style     = {flex:'1'}
+            >
                 {@project_menu_items()}
             </NavDropdown>
         </Nav>
 
     render_one_project_item: (project_id) ->
         project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
         title = @props.get_title(project_id)
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)

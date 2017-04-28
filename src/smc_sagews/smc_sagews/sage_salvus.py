@@ -1463,6 +1463,7 @@ def latex0(s=None, **kwds):
         kwds['locals'] = salvus.namespace
     if 'globals' not in kwds:
         kwds['globals'] = salvus.namespace
+    sage.misc.latex.latex.add_package_to_preamble_if_available('soul')
     sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
     salvus.file(kwds['filename'], once=False)
     if delete_file:
@@ -2524,8 +2525,12 @@ def show(*objs, **kwds):
        - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
 
        - background: string (default: 'transparent'), specifies background color for 3d images.
-         Ignored if viewer is set to "tachyon" or if object type is Tachyon.
+         Ignored if viewer is set to 'tachyon' or if object type is Tachyon.
          May be 'transparent' or any valid CSS color string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
+
+       - foreground: string, specifies frame color for 3d images. Defaults to 'gray' when
+         background is 'transparent', otherwise default is computed for visibility based on canvas
+         background.
 
     ANIMATIONS:
 

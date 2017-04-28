@@ -460,11 +460,11 @@ def introspect(code, namespace, preparse=True):
                 import sage.misc.sageinspect
                 result = get_file()
                 try:
-                    def f(s):
+                    def our_getdoc(s):
                         try:
                             x = sage.misc.sageinspect.sage_getargspec(s)
                             defaults = list(x.defaults) if x.defaults else []
-                            args = list(x.args) if x.defaults else []
+                            args = list(x.args) if x.args else []
                             v = []
                             if x.keywords:
                                 v.insert(0,'**kwds')
@@ -475,15 +475,16 @@ def introspect(code, namespace, preparse=True):
                                 k = args.pop()
                                 v.insert(0,'%s=%r'%(k,d))
                             v = args + v
-                            t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
+                            t = u"   Signature : %s(%s)\n"%(obj, ', '.join(v))
                         except:
-                            t = ""
+                            t = u""
                         try:
-                            t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
-                        except:
+                            t += u"   Docstring :\n%s" % sage.misc.sageinspect.sage_getdoc(s).decode('utf-8').strip()
+                        except Exception as ex:
+                            # print ex  # issue 1780: 'ascii' codec can't decode byte 0xc3 in position 3719: ordinal not in range(128)
                             pass
                         return t
-                    result += eval('getdoc(O)', {'getdoc':f, 'O':O})
+                    result += eval('getdoc(O)', {'getdoc':our_getdoc, 'O':O})
                 except Exception, err:
                     result += "Unable to read docstring (%s)"%err
                 result = result.lstrip().replace('\n   ','\n')  # Get rid of the 3 spaces in front of everything.

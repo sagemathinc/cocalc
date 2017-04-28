@@ -1122,16 +1122,15 @@ exports.parse_hashtags = (t) ->
                 base += i+1
                 t = t.slice(i+1)
 
-mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
-                 ['\\begin{equation}', '\\end{equation}'],
-                 ['\\begin{equation*}', '\\end{equation*}'],
-                 ['\\begin{align}', '\\end{align}'],
-                 ['\\begin{align*}', '\\end{align*}'],
-                 ['\\begin{eqnarray}', '\\end{eqnarray}'],
-                 ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
-                 ['\\begin{bmatrix}', '\\end{bmatrix}']
-                 ['$', '$']  # must be after $$
-                ]
+# see http://docs.mathjax.org/en/latest/tex.html#environments
+mathjax_environments = ['align', 'align*', 'alignat', 'alignat*', 'aligned', 'alignedat', 'array', \
+                        'Bmatrix', 'bmatrix', 'cases', 'CD', 'eqnarray', 'eqnarray*', 'equation', 'equation*', \
+                        'gather', 'gather*', 'gathered', 'matrix', 'multline', 'multline*', 'pmatrix', 'smallmatrix', \
+                        'split', 'subarray', 'Vmatrix', 'vmatrix']
+mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]']]
+for env in mathjax_environments
+    mathjax_delim.push(["\\begin{#{env}}", "\\end{#{env}}"])
+mathjax_delim.push(['$', '$'])  # must be after $$, best to put it at the end
 
 exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
@@ -1819,10 +1818,15 @@ exports.ticket_id_to_ticket_url = (tid) ->
 
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
-        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
-        'http://nbviewer.ipython.org/urls/':'https://'
-    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
-        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+        'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.jupyter.org/url/'             :'http://'
+        'http://nbviewer.jupyter.org/urls/'            :'https://'
+    if exports.startswith(url, "https://github.com/")
+        if url.indexOf('/blob/') != -1
+            url = url.replace("https://github.com", "https://raw.githubusercontent.com").replace("/blob/","/")
+        # issue #1818: https://github.com/plotly/python-user-guide → https://github.com/plotly/python-user-guide.git
+        else if url.split('://')[1]?.split('/').length == 3
+            url += '.git'
 
     if exports.startswith(url, 'git@github.com:')
         command = 'git'  # kind of useless due to host keys...
@@ -1834,6 +1838,10 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
         # fall back
         for a,b of URL_TRANSFORMS
             url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        # special case, this is only for nbviewer.../github/ URLs
+        if exports.startswith(url, 'http://nbviewer.jupyter.org/github/')
+            url = url.replace('http://nbviewer.jupyter.org/github/', 'https://raw.githubusercontent.com/')
+            url = url.replace("/blob/","/")
         command = 'wget'
         args = [url]
 

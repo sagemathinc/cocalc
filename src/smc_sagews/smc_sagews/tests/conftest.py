@@ -373,6 +373,35 @@ def data_path(tmpdir_factory):
     return path
 
 @pytest.fixture()
+def execdoc(request, sagews, test_id):
+    r"""
+    Fixture function execdoc. Depends on two other fixtures, sagews and test_id.
+
+    EXAMPLES:
+
+    ::
+
+        def test_assg(execdoc):
+            execdoc("random?")
+    """
+    def execfn(code, pattern='Docstring'):
+        m = message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'code' in mesg
+        assert 'source' in mesg['code']
+        assert re.sub('\s+','',pattern) in re.sub('\s+','',mesg['code']['source'])
+
+    def fin():
+        recv_til_done(sagews, test_id)
+
+    request.addfinalizer(fin)
+    return execfn
+
+
+@pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
     Fixture function exec2. Depends on two other fixtures, sagews and test_id.

@@ -56,7 +56,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SelectorInput, Space, TextInput, TimeAgo, NumberInput} = require('../r_misc')
+    SaveButton, SelectorInput, Space, TimeAgo, NumberInput} = require('../r_misc')
 
 # Course components
 #{CourseActions} = require('./course_editor_components/actions')
@@ -460,16 +460,24 @@ init_redux = (course_filename, redux, course_project_id) ->
                 is_descending = false
             @setState(active_student_sort : {column_name, is_descending})
 
-        set_internal_student_name: (student, first_name, last_name) =>
+        set_internal_student_info: (student, info) =>
             store = get_store()
             return if not store?
             student = store.get_student(student)
+
+            info = defaults info,
+                first_name    : required
+                last_name     : required
+                email_address : student.get('email_address')
+
             @_set
-                first_name : first_name
-                last_name  : last_name
-                student_id : student.get('student_id')
-                table      : 'students'
+                first_name    : info.first_name
+                last_name     : info.last_name
+                email_address : info.email_address
+                student_id    : student.get('student_id')
+                table         : 'students'
             @configure_all_projects()   # since they may get removed from shared project, etc.
+
 
         # Student projects
 

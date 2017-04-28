@@ -507,6 +507,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     distance             = {3 if not IS_MOBILE}
                     bsStyle              = "pills"
                     style                = {display:'flex', overflow:'hidden', flex: 1}
+                    shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-file-tabs')}
                 >
                     {@file_tabs()}
                 </SortableNav>
@@ -559,12 +560,17 @@ exports.MobileProjectPage = rclass ({name}) ->
         dropdown_title = "Open Files"
         path = misc.tab_to_path(@props.active_project_tab)
         if @props.open_files_order.includes(path)
-            dropdown_title = misc.trunc(misc.path_split(path).tail, 64)
+            dropdown_title = misc.path_split(path).tail
 
         items = []
         @props.open_files_order.map (path, index) =>
             items.push(@file_menu_item(path, index))
-        <NavDropdown id="smc-project-files-dropdown" title={dropdown_title} style={width:'100%', fontSize:'17px', textAlign:'left'}>
+        <NavDropdown
+            id        = "smc-project-files-dropdown"
+            className = "smc-project-files-dropdown"
+            title     = {dropdown_title}
+            style     = {width:'100%', fontSize:'17px', textAlign:'left'}
+        >
             {items}
         </NavDropdown>
 
@@ -591,8 +597,8 @@ exports.MobileProjectPage = rclass ({name}) ->
             fontSize   : '12pt'
 
         <MenuItem
-            key={path}
-            onClick={()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
+            key     = {path}
+            onClick = {()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
         >
             <div style={width:'100%'}>
                 <div style={x_button_styles}>

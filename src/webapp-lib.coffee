@@ -10,10 +10,25 @@
 
 require("script!primus/primus-engine.min.js")
 
-# polyfill for internet explorer's lack of knowing String.prototype.startswith
+# polyfill Number.isNaN for IE
+# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
+Number.isNaN = Number.isNaN || (value) ->
+    typeof value == "number" and isNaN(value)
+
+# polyfill for internet explorer's lack of String.prototype.startswith
 String::startsWith ?= (searchString, position) ->
     pos = position ? 0
     @indexOf(searchString, pos) == pos
+
+# polyfill for internet explorer's lack of String.prototype.includes
+# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
+String::includes ?= (search, start) ->
+    if typeof start != 'number'
+        start = 0
+    if start + search.length > @length
+        return false
+    else
+        return @indexOf(search, start) != -1
 
 # this must come before anything that touches event handling, etc.
 require('webapp-lib/webapp-error-reporter.coffee')
@@ -57,16 +72,13 @@ require('jquery-highlight')
 #require("script!jquery/plugins/caret/jquery.caret.js")
 require('jquery-caret')
 
-# Activity spinner
-require("script!spin/spin.min.js")
-
 # Bootstrap
 # require("script!bootstrap-3.3.0/js/bootstrap.min.js")
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
-require("script!bootbox/bootbox.min.js")
-# require('bootbox')
+require("script!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
+# require('bootbox') # this doesn't work, sadly (jquery initializiation with "modal" from bootstrap doesn't happen properly)
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
 #require("script!bootstrap-switch/bootstrap-switch.min.js")

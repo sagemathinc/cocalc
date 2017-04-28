@@ -1066,7 +1066,7 @@ class JupyterNotebook extends EventEmitter
             if @state == 'closed'
                 return
             #console.log 'handle_syncstring_change'
-            if @dom.state != 'ready'
+            if @dom?.state != 'ready'
                 # there is nothing we can do regarding setting it if the document is broken/closed.
                 return
             live = @syncstring.live()

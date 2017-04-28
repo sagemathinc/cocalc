@@ -1519,7 +1519,7 @@ class SyncDoc extends EventEmitter
                         if err
                             cb(err)
                         else if not exists
-                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get_doc().slice(0,80)}...'")
+                            dbg("write '#{path}' to disk from syncstring in-memory database version")
                             @_client.write_file
                                 path : path
                                 data : @to_str()
@@ -1790,13 +1790,18 @@ class SyncDoc extends EventEmitter
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
         # changes would overwrite the local ones.
-        live = @_save()
+        @_save()
 
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
 
-        # if document changed, set to new version
-        if live != new_remote
+        # temporary hotfix for https://github.com/sagemathinc/smc/issues/1873
+        try
+            changed = not @_doc?.is_equal(new_remote)
+        catch
+            changed = true
+        # if any possibility that document changed, set to new version
+        if changed
             @_last = @_doc = new_remote
             @emit('change')
 
@@ -1817,7 +1822,7 @@ class StringDocument
         return @_value
 
     is_equal: (other) =>
-        return @_value == other._value
+        return @_value == other?._value
 
     apply_patch: (patch) =>
         return new StringDocument(apply_patch(patch, @_value)[0])
