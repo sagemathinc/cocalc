@@ -1557,8 +1557,7 @@ class exports.JupyterActions extends Actions
         @setState(edit_attachments: id)
 
     _attachment_markdown: (name) =>
-        encoded = encodeURIComponent(name).replace(/\(/g, "%28").replace(/\)/g, "%29")
-        return "![#{name}](attachment:#{encoded})"
+        return "![#{name}](attachment:#{name})"
 
     insert_input_at_cursor: (id, s, save) =>
         if not @store.getIn(['cells', id])?
@@ -1590,6 +1589,7 @@ class exports.JupyterActions extends Actions
 
     add_attachment_to_cell: (id, path) =>
         name = misc.path_split(path).tail
+        name = encodeURIComponent(name).replace(/\(/g, "%28").replace(/\)/g, "%29")
         @set_cell_attachment(id, name, {type:'load', value:path})
         @store.wait
             until : =>

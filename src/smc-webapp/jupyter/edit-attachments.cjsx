@@ -41,7 +41,7 @@ exports.EditAttachments = rclass
 
     render_attachments: ->
         v = []
-        @props.cell?.get('attachments').forEach (target, name) =>
+        @props.cell?.get('attachments')?.forEach (target, name) =>
             if v.length > 0
                 v.push(<div style={marginTop:'7px'} key={name+'space'}></div>)
             v.push(@render_attachment(name))

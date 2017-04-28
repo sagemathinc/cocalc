@@ -51,6 +51,21 @@ cell_to_ipynb = (id, opts) ->
     if slide
         metadata.slideshow = {slide_type:slide}
 
+    attachments = cell.get('attachments')
+    if attachments
+        obj.attachments = {}
+        attachments.forEach (val, name) ->
+            if val.get('type') != 'sha1'
+                return  # didn't even upload
+            sha1 = val.get('value')
+            base64 = opts.blob_store.get_ipynb(sha1)
+            ext = misc.filename_extension(name)
+            if ext = 'jpg'
+                ext = 'jpeg'
+            obj.attachments[name] = {"image/#{ext}":base64}  # todo -- other types?
+            return
+
+
     output = cell.get('output')
     if output?.size > 0
         obj.outputs = ipynb_outputs(output, exec_count, opts.more_output?[id], opts.blob_store)

@@ -24,7 +24,7 @@ href_transform = (project_id, cell) ->
     (href) ->
         if not misc.startswith(href, 'attachment:')
             return href
-        name = decodeURI(href.slice('attachment:'.length))
+        name = href.slice('attachment:'.length)
         data = cell.getIn(['attachments', name])
         if data?.get('type') != 'sha1'
             return ''

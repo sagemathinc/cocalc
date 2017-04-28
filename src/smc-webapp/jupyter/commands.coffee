@@ -14,7 +14,7 @@ exports.commands = (actions) ->
         f : -> actions.cell_toolbar()
 
     'cell toolbar attachments':
-        m : 'Attachments'
+        m : 'Delete Attachments'
         f : -> actions.cell_toolbar('attachments')
 
     'cell toolbar tags':

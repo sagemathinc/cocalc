@@ -169,7 +169,7 @@ exports.TopMenubar = rclass ({name}) ->
                 indent = ''
             obj = @props.actions._commands?[name]
             if not obj?
-                return <MenuItem disabled={disabled} key={key}>{indent} {display ? name} (not implemented)</MenuItem>
+                return <MenuItem disabled={disabled} key={key}>{indent} {display ? name}</MenuItem>
 
             shortcut = obj.k?[0]
             if shortcut?
