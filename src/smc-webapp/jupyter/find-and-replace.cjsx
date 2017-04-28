@@ -4,7 +4,9 @@ The find and replace modal dialog
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, ButtonGroup, ControlLabel, FieldGroup, FormControl, FormGroup, InputGroup, Modal} = require('react-bootstrap')
-{Icon} = require('../r_misc')
+{ErrorDisplay, Icon} = require('../r_misc')
+
+{find_matches} = require('./find')
 
 exports.FindAndReplace = rclass
     propTypes :
@@ -20,6 +22,11 @@ exports.FindAndReplace = rclass
         regexp : false
         input  : ''
 
+    shouldComponentUpdate: (nextProps, nextState) ->
+        if not nextProps.find_and_replace and not @props.find_and_replace
+            return false
+        return true
+
     close: ->
         @props.actions.close_find_and_replace()
         @props.actions.focus(true)
@@ -29,7 +36,7 @@ exports.FindAndReplace = rclass
 
     render_case_button: ->
         <Button
-            onClick = {=>@setState(case: not @state.case, regexp: false); @focus()}
+            onClick = {=>@setState(case: not @state.case); @focus()}
             title   = 'Match case'
             active  = {@state.case}
         >
@@ -38,7 +45,7 @@ exports.FindAndReplace = rclass
 
     render_regexp_button: ->
         <Button
-            onClick = {=>@setState(regexp: not @state.regexp, case:false); @focus()}
+            onClick = {=>@setState(regexp: not @state.regexp); @focus()}
             title   = 'Use regex (JavaScript regex syntax)'
             active  = {@state.regexp}
         >
@@ -61,7 +68,7 @@ exports.FindAndReplace = rclass
         if @state.regexp
             place += ' regular expression'
         <FormControl
-            autofocus
+            autoFocus   = {true}
             ref         = 'input'
             type        = 'text'
             placeholder = {place}
@@ -83,14 +90,51 @@ exports.FindAndReplace = rclass
             </FormGroup>
         </form>
 
-    render_results: ->
-        <span
-            style={color:'#666'}
-        >
-            No matches, invalid or empty regular expression
+    get_text: ->
+        v = []
+        sel = undefined
+        if not @state.all
+            sel = @props.sel_ids?.add(@props.cur_id)
+        @props.cells.forEach (cell, id) =>
+            if not sel? or sel.has(id)
+                i = cell.get('input')
+                if i?
+                    v.push(i)
+            return
+        return v.join('\n')
 
-            {@state.input}
+    get_matches: ->
+        text = @get_text()
+        console.log 'text=', text
+        x = find_matches(@state.input, text, @state.case, @state.regexp)
+        x.text = text
+        return x
+
+    render_abort: ->
+        <div>
+            Only showing first 100 matches
+        </div>
+
+    render_error: (error) ->
+        <ErrorDisplay
+            error   = {error}
+            style   = {margin:'1ex'}
+        />
+
+    render_matches: (matches, text) ->
+        if not matches? or matches.length == 0
+            return <div style={color:'#666'}>No matches</div>
+        <span>
+            {JSON.stringify(matches)}
         </span>
+
+    render_results: ->
+        {matches, abort, error, text} = @get_matches()
+        <div>
+            {@render_abort() if abort}
+            {@render_error(error) if error}
+            {@render_matches(matches, text)}
+        </div>
 
     title: ->
         s = 'Find and Replace in '
