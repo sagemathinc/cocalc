@@ -1387,9 +1387,7 @@ class exports.JupyterActions extends Actions
         @set_error("trust_notebook not implemented")
 
     insert_image: =>
-        # TODO -- this will bring up dialog with button to select file (use dropzone); on selection
-        # it will send to backend, etc.... and end up displayed in cell somehow.
-        @set_error("insert_image not implemented")
+       @setState(insert_image: true)
 
     command: (name) =>
         f = @_commands?[name]?.f

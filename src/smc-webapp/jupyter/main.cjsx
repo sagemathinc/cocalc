@@ -15,6 +15,7 @@ Top-level react component, which ties everything together
 {Kernel, Mode}      = require('./status')
 {About}             = require('./about')
 {NBConvert}         = require('./nbconvert')
+{InsertImage}       = require('./insert-image')
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
@@ -56,6 +57,7 @@ exports.JupyterEditor = rclass ({name}) ->
             nbconvert_dialog    : rtypes.immutable.Map  # frontend modal dialog state
             path                : rtypes.string
             cell_toolbar        : rtypes.string
+            insert_image        : rtypes.bool  # show insert image dialog
 
     render_error: ->
         if @props.error
@@ -144,6 +146,13 @@ exports.JupyterEditor = rclass ({name}) ->
             backend_kernel_info = {@props.backend_kernel_info}
             />
 
+    render_insert_image: ->
+        <InsertImage
+            actions      = {@props.actions}
+            cur_id       = {@props.cur_id}
+            insert_image = {@props.insert_image}
+        />
+
     render_find_and_replace: ->
         <FindAndReplace
             actions          = {@props.actions}
@@ -169,6 +178,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_error()}
             {@render_about()}
             {@render_nbconvert()}
+            {@render_insert_image()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
             {@render_confirm_dialog()}
