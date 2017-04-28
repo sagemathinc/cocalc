@@ -1557,7 +1557,8 @@ class exports.JupyterActions extends Actions
         @setState(edit_attachments: id)
 
     _attachment_markdown: (name) =>
-        return "![#{encodeURIComponent(name)}](attachment:#{encodeURIComponent(name)})"
+        encoded = encodeURIComponent(name).replace(/\(/g, "%28").replace(/\)/g, "%29")
+        return "![#{name}](attachment:#{encoded})"
 
     insert_input_at_cursor: (id, s, save) =>
         if not @store.getIn(['cells', id])?
@@ -1589,8 +1590,15 @@ class exports.JupyterActions extends Actions
 
     add_attachment_to_cell: (id, path) =>
         name = misc.path_split(path).tail
-        @set_cell_attachment(id, name, {type:'load', value:path}, false)
-        @insert_input_at_cursor(id, @_attachment_markdown(name), true)
+        @set_cell_attachment(id, name, {type:'load', value:path})
+        @store.wait
+            until : =>
+                return @store.getIn(['cells', id, 'attachments', name, 'type']) == 'sha1'
+            cb    : =>
+                # This has to happen in the next render loop, since changing immediately
+                # can update before the attachments props are updated.
+                setTimeout((=>@insert_input_at_cursor(id, @_attachment_markdown(name), true)), 10)
+        return
 
     delete_attachment_from_cell: (id, name) =>
         @set_cell_attachment(id, name, null, false)

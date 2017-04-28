@@ -3,6 +3,8 @@ React component that describes the input of a cell
 ###
 immutable = require('immutable')
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Markdown} = require('../r_misc')
 
@@ -16,6 +18,19 @@ immutable = require('immutable')
 
 {CellTiming} = require('./cell-output-time')
 
+{get_blob_url} = require('./server-urls')
+
+href_transform = (project_id, cell) ->
+    (href) ->
+        if not misc.startswith(href, 'attachment:')
+            return href
+        name = decodeURI(href.slice('attachment:'.length))
+        data = cell.getIn(['attachments', name])
+        if data?.get('type') != 'sha1'
+            return ''
+        sha1 = data.get('value')
+        src = get_blob_url(project_id, misc.filename_extension(name), sha1)
+        return src
 
 exports.CellInput = rclass
     propTypes:
@@ -104,11 +119,13 @@ exports.CellInput = rclass
                     <div
                         onDoubleClick = {@handle_md_double_click}
                         style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
+                        className     = 'cocalc-jupyter-rendered'
                         >
                         <Markdown
-                            value      = {value}
-                            project_id = {@props.project_id}
-                            file_path  = {@props.directory}
+                            value          = {value}
+                            project_id     = {@props.project_id}
+                            file_path      = {@props.directory}
+                            href_transform = {href_transform(@props.project_id, @props.cell)}
                         />
                     </div>
             else
@@ -153,7 +170,7 @@ exports.CellInput = rclass
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_input_prompt(type)}
             {@render_complete()}
-            <div style={width:'100%'}>
+            <div style={width:'100%', overflow:'auto'}>
                 {@render_cell_toolbar()}
                 <div>
                     {@render_time()}

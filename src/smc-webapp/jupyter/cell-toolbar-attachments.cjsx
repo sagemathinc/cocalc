@@ -12,10 +12,10 @@ exports.Attachments = rclass
 
     edit: ->
         @props.actions.edit_attachments(@props.cell.get('id'))
-        
+
     render: ->
         <Button
             bsSize  = 'small'
             onClick = {@edit}>
-            Edit Attachments
+            Delete Attachments...
         </Button>

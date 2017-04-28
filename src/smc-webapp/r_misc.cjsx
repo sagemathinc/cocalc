@@ -731,12 +731,13 @@ exports.HTML = rclass
     displayName : 'Misc-HTML'
 
     propTypes :
-        value       : rtypes.string
-        style       : rtypes.object
-        has_mathjax : rtypes.bool
-        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path   : rtypes.string   # optional -- ...
-        className   : rtypes.string   # optional class
+        value          : rtypes.string
+        style          : rtypes.object
+        has_mathjax    : rtypes.bool
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
 
     getDefaultProps: ->
         has_mathjax : true
@@ -767,7 +768,10 @@ exports.HTML = rclass
     _update_links: ->
         if not @_is_mounted
             return
-        $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
+        $(ReactDOM.findDOMNode(@)).process_smc_links
+            project_id     : @props.project_id
+            file_path      : @props.file_path
+            href_transform : @props.href_transform
 
     _update_tables: ->
         if not @_is_mounted
@@ -812,11 +816,12 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value      : rtypes.string
-        style      : rtypes.object
-        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path  : rtypes.string   # optional -- ...
-        className  : rtypes.string   # optional class
+        value          : rtypes.string
+        style          : rtypes.object
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        href_transform : rtypes.func     # optional function used to first transform href target strings
 
     to_html: ->
         if @props.value
@@ -831,12 +836,14 @@ exports.Markdown = rclass
         value = @to_html()
         #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
         <HTML
-            value        = {value.s}
-            has_mathjax  = {value.has_mathjax}
-            style        = {@props.style}
-            project_id   = {@props.project_id}
-            file_path    = {@props.file_path}
-            className    = {@props.className}>
+            value          = {value.s}
+            has_mathjax    = {value.has_mathjax}
+            style          = {@props.style}
+            project_id     = {@props.project_id}
+            file_path      = {@props.file_path}
+            className      = {@props.className}
+            href_transform = {@props.href_transform}
+            >
         </HTML>
 
 activity_style =

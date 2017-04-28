@@ -151,6 +151,8 @@ Data = rclass
         message    : rtypes.immutable.Map.isRequired
         project_id : rtypes.string
         directory  : rtypes.string
+        id         : rtypes.string
+        actions    : rtypes.object
 
     mixins: [ImmutablePureRenderMixin]
 
@@ -178,10 +180,11 @@ Data = rclass
                                     file_path  = {@props.directory}
                                    />
                         when 'markdown'
+                            console.log 'markdown'
                             return <Markdown
-                                    value      = {value}
-                                    project_id = {@props.project_id}
-                                    file_path  = {@props.directory}
+                                    value          = {value}
+                                    project_id     = {@props.project_id}
+                                    file_path      = {@props.directory}
                                 />
                 when 'image'
                     return <Image
@@ -408,7 +411,8 @@ exports.CellOutputMessages = rclass
         # (yes, I know n is a string in the next line, but that's fine since it is used only as a key)
         v = (@render_output_message(n, mesg) for n, mesg of @message_list())
         <div
-            style = {if @props.scrolled then OUTPUT_STYLE_SCROLLED else OUTPUT_STYLE}
+            style     = {if @props.scrolled then OUTPUT_STYLE_SCROLLED else OUTPUT_STYLE}
+            className = 'cocalc-jupyter-rendered'
             >
             {v}
         </div>
