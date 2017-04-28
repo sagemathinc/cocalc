@@ -22,9 +22,10 @@ exports.export_to_ipynb = (opts) ->
         cells          : (cell_to_ipynb(id, opts) for id in opts.cell_list.toJS())
         metadata       :
             kernelspec    : opts.kernelspec
-            language_info : opts.language_info?.toJS() ? {}
         nbformat       : 4
         nbformat_minor : 0
+    if opts.language_info?
+        ipynb.metadata.language_info = opts.language_info.toJS() ? {}
     return ipynb
 
 # Return ipynb version of the given cell as Python object

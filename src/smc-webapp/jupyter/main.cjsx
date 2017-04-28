@@ -51,7 +51,7 @@ exports.JupyterEditor = rclass ({name}) ->
             about               : rtypes.bool
             backend_kernel_info : rtypes.immutable.Map
             confirm_dialog      : rtypes.immutable.Map
-            find_and_replace    : rtypes.immutable.Map
+            find_and_replace    : rtypes.bool
             keyboard_shortcuts  : rtypes.immutable.Map
             scroll              : rtypes.string
             nbconvert           : rtypes.immutable.Map  # backend convert state
@@ -170,9 +170,14 @@ exports.JupyterEditor = rclass ({name}) ->
         />
 
     render_find_and_replace: ->
+        if not @props.cells?
+            return
         <FindAndReplace
             actions          = {@props.actions}
             find_and_replace = {@props.find_and_replace}
+            sel_ids          = {@props.sel_ids}
+            cur_id           = {@props.cur_id}
+            cells            = {@props.cells}
             />
 
     render_confirm_dialog: ->

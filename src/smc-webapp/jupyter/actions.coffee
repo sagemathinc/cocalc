@@ -1307,10 +1307,10 @@ class exports.JupyterActions extends Actions
 
     show_find_and_replace: =>
         @blur_lock()
-        @setState(find_and_replace:{show:true})
+        @setState(find_and_replace:true)
 
     close_find_and_replace: =>
-        @setState(find_and_replace:undefined)
+        @setState(find_and_replace:false)
         @focus_unlock()
 
     show_keyboard_shortcuts: =>
