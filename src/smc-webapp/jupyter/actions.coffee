@@ -1550,3 +1550,6 @@ class exports.JupyterActions extends Actions
         cur.kernel = kernel
         @redux.getTable('account').set(editor_settings:{jupyter: cur})
         return
+
+    edit_attachments: (id) =>
+        @setState(edit_attachments: id)

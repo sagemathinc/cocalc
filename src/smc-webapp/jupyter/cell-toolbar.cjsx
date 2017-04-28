@@ -5,6 +5,7 @@ The toolbar at the top of each cell
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {Slideshow} = require('./cell-toolbar-slideshow')
+{Attachments} = require('./cell-toolbar-attachments')
 
 BAR_STYLE =
     width        : '100%'
@@ -23,6 +24,8 @@ exports.CellToolbar = rclass
         switch @props.cell_toolbar
             when 'slideshow'
                 T = Slideshow
+            when 'attachments'
+                T = Attachments
             else
                 return <span> Toolbar not implemented: {@props.cell_toolbar} </span>
         <div style={BAR_STYLE}>
