@@ -176,6 +176,7 @@ exports.StudentAssignmentInfo = rclass
 
     getInitialState: ->
         editing_grade : false
+        grade         : ''
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -205,7 +206,7 @@ exports.StudentAssignmentInfo = rclass
                             ref         = 'grade_input'
                             type        = 'text'
                             placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
                             onBlur      = {@save_grade}
                             onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
                         />

@@ -29,6 +29,9 @@ misc = require('smc-util/misc')
 schema = require('smc-util/schema')
 {salvus_client} = require('../salvus_client')
 
+# Course Library
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+
 # React libraries
 {Actions, Store}  = require('../smc-react')
 
@@ -732,7 +735,7 @@ exports.CourseActions = class CourseActions extends Actions
         # Where we collect homework that students have done (in teacher project)
         collect_path = @_collect_path(path)
         # folder that we return graded homework to (in student project)
-        graded_path = path + '-graded'
+        graded_path = 'Graded copy: ' + path
         # folder where we copy the assignment to
         target_path = path
         @_set
