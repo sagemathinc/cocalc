@@ -547,14 +547,15 @@ Assignment = rclass
         @props.redux.getActions(@props.name).set_peer_grade(@props.assignment, config)
 
     render_configure_peer_checkbox: (config) ->
-        <span>
+        <div>
             <Checkbox checked  = {config.enabled}
                    key      = 'peer_grade_checkbox'
                    ref      = 'peer_grade_checkbox'
                    onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
+                   style    = {display:'inline-block'}
             />
             Enable Peer Grading
-        </span>
+        </div>
 
     _peer_due: (date) ->
         date ?= @props.assignment.getIn(['peer_grade', 'due_date'])
@@ -609,11 +610,11 @@ Assignment = rclass
         <Alert bsStyle='warning'>
             <h3><Icon name="users"/> Peer grading</h3>
 
-            <span style={color:'#666'}>
+            <div style={color:'#666'}>
                 Use peer grading to randomly (and anonymously) redistribute
                 collected homework to your students, so that they can grade
                 it for you.
-            </span>
+            </div>
 
             {@render_configure_peer_checkbox(config)}
             {@render_configure_peer_number(config) if config.enabled}
