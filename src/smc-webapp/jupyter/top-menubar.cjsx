@@ -32,12 +32,16 @@ exports.TopMenubar = rclass ({name}) ->
             has_unsaved_changes : rtypes.bool
             kernel_info         : rtypes.immutable.Map
             backend_kernel_info : rtypes.immutable.Map
+            cells               : rtypes.immutable.Map
+            cur_id              : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
             next.kernels != @props.kernels or \
             next.kernel != @props.kernel or \
-            next.backend_kernel_info != @props.backend_kernel_info
+            next.backend_kernel_info != @props.backend_kernel_info or \
+            next.cur_id != @props.cur_id or \
+            next.cells != @props.cells
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -61,6 +65,7 @@ exports.TopMenubar = rclass ({name}) ->
             ]
 
     render_edit: ->
+        cell_type = @props.cells?.get(@props.cur_id)?.get('cell_type')
         @render_menu
             heading : 'Edit'
             names   : \
@@ -68,7 +73,8 @@ exports.TopMenubar = rclass ({name}) ->
                  "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
                  "move cell up", "move cell down", "", \
-                 "edit notebook metadata", "find and replace"]
+                 "edit notebook metadata", "find and replace", "", \
+                 "#{if cell_type != 'markdown' then '<' else ''}insert image"]   # disable if not markdown
 
     render_view: ->
         @render_menu
@@ -151,7 +157,10 @@ exports.TopMenubar = rclass ({name}) ->
             if typeof(name) != 'string'
                 return name  # it's already a MenuItem
             if name[0] == '<'
-                return <MenuItem disabled key={key}>{name.slice(1)}</MenuItem>
+                disabled = true
+                name = name.slice(1)
+            else
+                disabled = false
 
             if name[0] == '>'
                 indent = <span style={marginLeft:'4ex'}/>
@@ -160,17 +169,18 @@ exports.TopMenubar = rclass ({name}) ->
                 indent = ''
             obj = @props.actions._commands?[name]
             if not obj?
-                return <MenuItem key={key}>{indent} {display ? name} (not implemented)</MenuItem>
+                return <MenuItem disabled={disabled} key={key}>{indent} {display ? name} (not implemented)</MenuItem>
 
             shortcut = obj.k?[0]
             if shortcut?
-                s = <span  className='pull-right'><KeyboardShortcut shortcut={shortcut} /></span>
+                s = <span className='pull-right'><KeyboardShortcut shortcut={shortcut} /></span>
             else
                 s = <span/>
 
             <MenuItem
                 key      = {key}
                 onSelect = {@command(name)}
+                disabled = {disabled}
                 >
                 {indent} {display ? obj.m ? name} {s}
             </MenuItem>
