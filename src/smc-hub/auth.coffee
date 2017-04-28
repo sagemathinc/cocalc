@@ -660,10 +660,11 @@ exports.init_passport = (opts) ->
     ], (err) =>
         strategies.sort()
         strategies.unshift('email')
+        exports.all_known_strategies = strategies
         cb(err)
     )
 
-
+exports.all_known_strategies = []
 
 
 

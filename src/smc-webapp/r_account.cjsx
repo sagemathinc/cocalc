@@ -38,6 +38,11 @@ misc       = require('smc-util/misc')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+STRATEGIES = ['email']
+
+exports.set_strategies = (s) ->
+    STRATEGIES = s
+
 # Define a component for working with the user's basic
 # account information.
 
@@ -1454,19 +1459,6 @@ exports.AccountSettingsTop = rclass
             </Row>
             <Footer/>
         </div>
-
-STRATEGIES = ['email']
-f = () ->
-    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
-        if status == 'success'
-            STRATEGIES = strategies
-            # OPTIMIZATION: this forces re-render of the strategy part of the component above!
-            # It should directly depend on the store, but instead right now still
-            # depends on STRATEGIES.
-            redux.getActions('account').setState(strategies:strategies)
-        else
-            setTimeout(f, 60000)
-f()
 
 ugly_error = (err) ->
     if typeof(err) != 'string'

@@ -163,6 +163,7 @@ exports.init_express_http_server = (opts) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
+    # DEPRECATED -- moved to api.coffee
     router.get '/registration', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
@@ -175,6 +176,7 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.json({token:true})
 
+    # DEPRECATED -- moved to api.coffee
     router.get '/customize', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})

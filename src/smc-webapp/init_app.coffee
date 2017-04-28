@@ -279,3 +279,30 @@ salvus_client.on "connecting", () ->
 
 salvus_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
+
+# initialize webapp with configuration data coming from the server
+
+webapp_init = ->
+    $.get "#{window?.smc_base_url ? ''}/api/1/webapp_init", (data, status) ->
+        if status == 'success'
+            registr = data.registration ? {}
+            custom  = data.customize    ? {}
+            strats  = data.strategies   = ['email']
+
+            require('./r_account').set_strategies(strats)
+
+            redux.getActions('account').setState(
+                token      : registr.token
+                strategies : strats
+            )
+
+            custom.commercial = (custom.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
+            require('./customize').set_commercial(custom.commercial)
+            redux.getActions('customize').setState(custom)
+
+        else
+            n = 10
+            console.warning("Unable to initialize application -- trying again in #{n} seconds.")
+            setTimeout(webapp_init, n * 1000)
+
+webapp_init()

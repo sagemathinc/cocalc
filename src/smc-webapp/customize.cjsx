@@ -16,13 +16,6 @@ actions  = redux.createActions('customize')
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
 store    = redux.createStore('customize', defaults)
 
-# If we are running in the browser, then we customize the schema.  This also gets run on the backend
-# to generate static content, which can't be customized.
-$?.get (window.smc_base_url + "/customize"), (obj, status) ->
-    if status == 'success'
-        exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
-        actions.setState(obj)
-
 HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
     reduxProps :
@@ -146,3 +139,8 @@ exports.PolicyPrivacyPageUrl   = smc_base_url + '/policies/privacy.html'
 exports.PolicyCopyrightPageUrl = smc_base_url + '/policies/copyright.html'
 exports.PolicyTOSPageUrl       = smc_base_url + '/policies/terms.html'
 exports.SmcWikiUrl             = 'https://github.com/sagemathinc/smc/wiki/Portal'
+
+exports.commercial             = false # initialized in init_app
+exports.set_commercial = (c) ->
+    exports.commercial = c
+
