@@ -21,6 +21,7 @@ Top-level react component, which ties everything together
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
 {JSONView}          = require('./json-view')
+{RawEditor}         = require('./raw-editor')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -203,20 +204,20 @@ exports.JupyterEditor = rclass ({name}) ->
             kernel    = {@props.kernel}
         />
 
-    render_raw_json_editor: ->
-        json = @props.actions.store.get_ipynb()
-        if not json?
-            return
-        <textarea rows=20 cols=80>
-            {JSON.stringify(json)}
-        </textarea>
+    render_raw_editor: ->
+        <RawEditor
+            actions   = {@props.actions}
+            cells     = {@props.cells}
+            font_size = {@props.font_size}
+            kernel    = {@props.kernel}
+        />
 
     render_main_view: ->
         switch @props.view_mode
             when 'json'
                 return @render_json_viewer()
             when 'raw'
-                return @render_raw_json_editor()
+                return @render_raw_editor()
             when 'normal'
                 return @render_cells()
             else

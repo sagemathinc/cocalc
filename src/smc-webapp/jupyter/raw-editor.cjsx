@@ -1,14 +1,14 @@
 ###
-Provide nice JSON view of the ipynb
+Raw editable view of .ipynb file json, including metadata.
 ###
-
-Inspector = require('react-json-inspector')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {Loading} = require('../r_misc')
 
-exports.JSONView = rclass
+json_stable = require('json-stable-stringify')
+
+exports.RawEditor = rclass
     propTypes:
         actions   : rtypes.object.isRequired
         font_size : rtypes.number
@@ -21,6 +21,15 @@ exports.JSONView = rclass
         <div style={color:"#666", fontSize: '12pt', marginBottom: '15px'}>
             {s}
         </div>
+
+    render_editor: ->
+        ipynb = @props.actions.store.get_ipynb()
+        if not ipynb?
+            return
+        json = json_stable(ipynb, {space:1})
+        <pre>
+            {json}
+        </pre>
 
     render: ->
         style =
@@ -43,7 +52,7 @@ exports.JSONView = rclass
         <div style={style}>
             <div style={viewer_style}>
                 {@render_desc()}
-                <Inspector data={data}/>
+                {@render_editor()}
             </div>
         </div>
 
