@@ -14,7 +14,7 @@ RUN \
 
 # Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
-  pip install ipython jupyter
+  pip install "ipython<6" jupyter
 
 # Install Node.js
 RUN \
