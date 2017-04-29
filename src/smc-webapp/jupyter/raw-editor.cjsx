@@ -90,9 +90,9 @@ CodeMirrorEditor = rclass
         if not @cm?
             return
         value = @cm.getValue()
-        if value != @_cm_last_remote
+        #if value != @_cm_last_remote
             # only save if we actually changed something
-            @_cm_last_remote = value
+            #@_cm_last_remote = value
             ## TODO: save here?
         return value
 
@@ -107,9 +107,10 @@ CodeMirrorEditor = rclass
                 base   : @_cm_last_remote
                 local  : local
                 remote : remote
+            console.log "'#{@_cm_last_remote}'", "'#{local}'", "'#{remote}'", "'#{new_val}'"
         else
             new_val = remote
-        @_cm_last_remote = new_val
+        @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
 
     _cm_undo: ->
@@ -117,6 +118,7 @@ CodeMirrorEditor = rclass
     _cm_redo: ->
 
     init_codemirror: (options, value) ->
+        current_value = @cm?.getValue()
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
@@ -131,7 +133,13 @@ CodeMirrorEditor = rclass
         @cm = CodeMirror.fromTextArea(node, options0)
         $(@cm.getWrapperElement()).css(height:'100%')
 
-        @_cm_merge_remote(value)
+        if current_value?
+            # restore value and merge in new if changed
+            @cm.setValue(current_value)
+            @_cm_merge_remote(value)
+        else
+            # setting for first time
+            @cm.setValue(value)
 
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
@@ -146,7 +154,7 @@ CodeMirrorEditor = rclass
     componentWillReceiveProps: (next) ->
         if not @cm? or not @props.options.equals(next.options) or \
                 @props.font_size != next.font_size
-            @init_codemirror(next.options, next.value, next.cursors)
+            @init_codemirror(next.options, next.value)
             return
         if next.value != @props.value
             @_cm_merge_remote(next.value)

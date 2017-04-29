@@ -107,7 +107,7 @@ exports.CodeMirrorEditor = rclass
                 remote : remote
         else
             new_val = remote
-        @_cm_last_remote = new_val
+        @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
 
     _cm_undo: ->
@@ -147,6 +147,7 @@ exports.CodeMirrorEditor = rclass
         @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left, gutter:gutter})
 
     init_codemirror: (options, value, cursors) ->
+        current_value = @cm?.getValue()
         @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
@@ -182,7 +183,14 @@ exports.CodeMirrorEditor = rclass
             css.backgroundColor = '#f7f7f7'  # this is what official jupyter looks like...
         $(@cm.getWrapperElement()).css(css)
 
-        @_cm_merge_remote(value)
+        if current_value?
+            # restore value and merge in new if changed
+            @cm.setValue(current_value)
+            @_cm_merge_remote(value)
+        else
+            # setting for first time
+            @cm.setValue(value)
+
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
         @cm.on('focus' , @_cm_focus)
