@@ -14,6 +14,7 @@ TAG_STYLE =
     background   : '#5bc0de'
     borderRadius : '3px'
     color        : 'white'
+    display      : 'inline-block'
 
 exports.TagsToolbar = rclass
     propTypes :
@@ -40,7 +41,9 @@ exports.TagsToolbar = rclass
         t = @props.cell.get('tags')?.toJS()
         if not t?
             return
-        (@render_tag(tag) for tag in misc.keys(t).sort())
+        <div style={flex:1}>
+            {(@render_tag(tag) for tag in misc.keys(t).sort())}
+        </div>
 
     render_tag_input: ->
         <FormControl
@@ -50,7 +53,7 @@ exports.TagsToolbar = rclass
             type        = 'text'
             value       = {@state.input}
             onChange    = {=>@setState(input : ReactDOM.findDOMNode(@refs.input).value)}
-            style       = {flex:1}
+            style       = {height:'34px'}
             bsSize      = {'small'}
             onKeyDown   = {(e) => if e.which == 13 then @add_tags(); return}
             />
@@ -67,6 +70,7 @@ exports.TagsToolbar = rclass
             disabled = {@state.input.length == 0}
             title    = 'Add tag or tags (separate by spaces)'
             onClick  = {@add_tags}
+            style    = {height:'34px'}
         >
             Add
         </Button>
