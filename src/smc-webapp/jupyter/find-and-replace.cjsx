@@ -140,7 +140,7 @@ exports.FindAndReplace = rclass
         <h5>{s}</h5>
 
     render_matches: (matches, text) ->
-        if not matches? or matches.length == 0
+        if not matches?
             return @render_matches_title(matches?.length)
         v = []
         i = 0

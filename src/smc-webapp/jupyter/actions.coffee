@@ -1606,3 +1606,19 @@ class exports.JupyterActions extends Actions
         @set_cell_attachment(id, name, null, false)
         @set_cell_input(id, misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), ''))
 
+
+    add_tag: (id, tag, save=true) =>
+        @_set
+            type  : 'cell'
+            id    : id
+            tags  : {"#{tag}":true},
+            save
+
+    remove_tag: (id, tag, save=true) =>
+        @_set
+            type  : 'cell'
+            id    : id
+            tags  : {"#{tag}":null},
+            save
+
+
