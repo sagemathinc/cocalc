@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 
 TAG_STYLE =
     padding      : '3px 5px'
-    margin       : '5px 3px'
+    margin       : '3px 3px'
     background   : '#5bc0de'
     borderRadius : '3px'
     color        : 'white'

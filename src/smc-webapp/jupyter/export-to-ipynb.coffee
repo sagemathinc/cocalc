@@ -48,24 +48,9 @@ cell_to_ipynb = (id, opts) ->
     if obj.cell_type == 'code'
         obj.execution_count = exec_count
 
-    slide = cell.get('slide')
-    if slide
-        metadata.slideshow = {slide_type:slide}
-
-    attachments = cell.get('attachments')
-    if attachments
-        obj.attachments = {}
-        attachments.forEach (val, name) ->
-            if val.get('type') != 'sha1'
-                return  # didn't even upload
-            sha1 = val.get('value')
-            base64 = opts.blob_store.get_ipynb(sha1)
-            ext = misc.filename_extension(name)
-            if ext = 'jpg'
-                ext = 'jpeg'
-            obj.attachments[name] = {"image/#{ext}":base64}  # todo -- other types?
-            return
-
+    process_slides(obj, cell.get('slide'))
+    process_attachments(obj, cell.get('attachments'), opts.blob_store)
+    process_tags(obj, cell.get('tags'))
 
     output = cell.get('output')
     if output?.size > 0
@@ -80,6 +65,31 @@ cell_to_ipynb = (id, opts) ->
             metadata.cocalc.outputs[n] = x.cocalc
             delete x.cocalc
     return obj
+
+process_slides = (obj, slide) ->
+    if slide?
+        obj.metadata.slideshow = {slide_type: slide}
+
+process_tags = (obj, tags) ->
+    if tags?
+        # we store tags internally as an immutable js map (for easy
+        # efficient add/remove), but .ipynb uses a list.
+        obj.metadata.tags = misc.keys(tags.toJS()).sort()
+
+process_attachments = (obj, attachments, blob_store) ->
+    if not attachments?
+        return
+    obj.attachments = {}
+    attachments.forEach (val, name) ->
+        if val.get('type') != 'sha1'
+            return  # didn't even upload
+        sha1 = val.get('value')
+        base64 = blob_store.get_ipynb(sha1)
+        ext = misc.filename_extension(name)
+        if ext = 'jpg'
+            ext = 'jpeg'
+        obj.attachments[name] = {"image/#{ext}":base64}  # todo -- other types?
+        return
 
 ipynb_outputs = (output, exec_count, more_output, blob_store) ->
     # If the last message has the more_output field, then there may be
