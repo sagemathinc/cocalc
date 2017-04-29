@@ -198,6 +198,9 @@ class exports.IPynbImporter
         if cell.metadata?.slideshow?
             obj.slide = cell.metadata.slideshow.slide_type
 
+        if cell.metadata?.tags?
+            obj.tags = misc.dict([tag, true] for tag in cell.metadata.tags)
+
         if cell.attachments?
             obj.attachments = {}
             for name, val of cell.attachments
