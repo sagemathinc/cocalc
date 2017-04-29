@@ -22,6 +22,7 @@ exports.cm_options = (mode, editor_settings, line_numbers) ->
         matchBrackets           : editor_settings.match_brackets
         autoCloseBrackets       : editor_settings.auto_close_brackets
         autoCloseTags           : editor_settings.auto_close_xml_tags
+        foldGutter              : editor_settings.code_folding
         lineWrapping            : true
         readOnly                : false
         indentWithTabs          : not editor_settings.spaces_instead_of_tabs

@@ -158,6 +158,10 @@ exports.CodeMirrorEditor = rclass
         else
             options0.readOnly = true
 
+        if options0.foldGutter
+            options0.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
+            options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+
         @cm = CodeMirror.fromTextArea(node, options0)
 
         @cm.save = => @props.actions.save()
@@ -251,9 +255,3 @@ exports.CodeMirrorEditor = rclass
             {@render_complete()}
         </div>
 
-###
-enable_folding = (options) ->
-    options.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
-    options.foldGutter = true
-    options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
-###
