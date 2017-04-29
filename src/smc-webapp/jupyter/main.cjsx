@@ -20,6 +20,7 @@ Top-level react component, which ties everything together
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
+{JSONView}          = require('./json-view')
 
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
@@ -28,6 +29,7 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
+            view_mode           : rtypes.string                     # 'normal', 'json', 'raw'
             kernel              : rtypes.string                     # string name of the kernel
             error               : rtypes.string
             fatal               : rtypes.string                     # *FATAL* error; user must edit file to fix.
@@ -191,7 +193,34 @@ exports.JupyterEditor = rclass ({name}) ->
         <KeyboardShortcuts
             actions            = {@props.actions}
             keyboard_shortcuts = {@props.keyboard_shortcuts}
-            />
+        />
+
+    render_json_viewer: ->
+        <JSONView
+            actions   = {@props.actions}
+            cells     = {@props.cells}
+            font_size = {@props.font_size}
+            kernel    = {@props.kernel}
+        />
+
+    render_raw_json_editor: ->
+        json = @props.actions.store.get_ipynb()
+        if not json?
+            return
+        <textarea rows=20 cols=80>
+            {JSON.stringify(json)}
+        </textarea>
+
+    render_main_view: ->
+        switch @props.view_mode
+            when 'json'
+                return @render_json_viewer()
+            when 'raw'
+                return @render_raw_json_editor()
+            when 'normal'
+                return @render_cells()
+            else
+                return @render_cells()
 
     render: ->
         if @props.fatal
@@ -206,6 +235,6 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_keyboard_shortcuts()}
             {@render_confirm_dialog()}
             {@render_heading()}
-            {@render_cells()}
+            {@render_main_view()}
             {@render_introspect()}
         </div>

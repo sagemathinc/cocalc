@@ -73,8 +73,9 @@ exports.TopMenubar = rclass ({name}) ->
                  "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
                  "move cell up", "move cell down", "", \
-                 "edit notebook metadata", "find and replace", "", \
-                 "#{if cell_type != 'markdown' then '<' else ''}insert image"]   # disable if not markdown
+                 "find and replace", "", \
+                 "#{if cell_type != 'markdown' then '<' else ''}insert image", "", \  # disable if not markdown
+                 "<Show Notebook as...", ">view notebook normal", ">view notebook json", ">view notebook raw"]
 
     render_view: ->
         @render_menu

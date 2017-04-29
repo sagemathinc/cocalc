@@ -169,9 +169,6 @@ exports.commands = (actions) ->
         m : 'Keyboard Shortcuts and Commands...'
         f : -> actions.show_keyboard_shortcuts()
 
-    'edit notebook metadata' :  # TODO
-        m : 'Edit Notebook Metadata'
-
     'enter command mode' :
         k : [{which:27, mode:'edit'}]
         f : ->
@@ -541,6 +538,18 @@ exports.commands = (actions) ->
 
     'user interface tour' :  # TODO
         m : 'User Interface Tour'
+
+    'view notebook normal' :
+        m : 'Cells (normal)'
+        f : -> actions.set_view_mode('normal')
+
+    'view notebook json' :
+        m : 'JSON Object'
+        f : -> actions.set_view_mode('json')
+
+    'view notebook raw' :
+        m : 'Raw .IPynb'
+        f : -> actions.set_view_mode('raw')
 
     'zoom in' :
         m : 'Zoom In'

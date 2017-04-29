@@ -71,6 +71,7 @@ class exports.JupyterActions extends Actions
         @_account_id = client.client_id()   # project or account's id
 
         @setState
+            view_mode           : 'normal'
             error               : undefined
             cur_id              : @store.get_local_storage('cur_id')
             toolbar             : not @store.get_local_storage('hide_toolbar')
@@ -1621,4 +1622,5 @@ class exports.JupyterActions extends Actions
             tags  : {"#{tag}":null},
             save
 
-
+    set_view_mode: (mode) =>
+        @setState(view_mode: mode)

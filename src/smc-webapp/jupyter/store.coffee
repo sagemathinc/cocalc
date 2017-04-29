@@ -94,8 +94,12 @@ class exports.JupyterStore extends Store
 
     # Export the Jupyer notebook to an ipynb object.
     get_ipynb: (blob_store) =>
+        if not @get('cells')? or not @get('cell_list')?
+            # not sufficiently loaded yet.
+            return
+
         more_output = {}
-        for id in @get('cell_list')?.toJS()
+        for id in @get('cell_list')?.toJS() ? []
             x = @get_more_output(id)
             if x?
                 more_output[id] = x
