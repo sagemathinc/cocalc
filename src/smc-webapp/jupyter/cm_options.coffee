@@ -27,6 +27,7 @@ exports.cm_options = (mode, editor_settings, line_numbers) ->
         readOnly                : false
         indentWithTabs          : not editor_settings.spaces_instead_of_tabs
         showCursorWhenSelecting : true
+        extraKeys               : {}
 
     if line_numbers?
         options.lineNumbers = line_numbers

@@ -63,6 +63,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cell_toolbar        : rtypes.string
             insert_image        : rtypes.bool  # show insert image dialog
             edit_attachments    : rtypes.string
+            editor_settings     : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
