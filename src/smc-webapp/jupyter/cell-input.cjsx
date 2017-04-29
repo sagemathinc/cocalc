@@ -62,6 +62,7 @@ exports.CellInput = rclass
             next.cell.get('state')        != @props.cell.get('state') or \
             next.cell.get('start')        != @props.cell.get('start') or \
             next.cell.get('end')          != @props.cell.get('end') or \
+            next.cell.get('tags')         != @props.cell.get('tags') or \
             next.cell.get('cursors')      != @props.cell.get('cursors') or \
             next.cell.get('line_numbers') != @props.cell.get('line_numbers') or \
             next.cm_options               != @props.cm_options or \
@@ -178,7 +179,7 @@ exports.CellInput = rclass
         <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
             {@render_input_prompt(type)}
             {@render_complete()}
-            <div style={width:'100%', overflow:'auto'}>
+            <div style={width:'100%'}>
                 {@render_cell_toolbar()}
                 <div>
                     {@render_time()}
