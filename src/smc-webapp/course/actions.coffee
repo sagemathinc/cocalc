@@ -734,10 +734,12 @@ exports.CourseActions = class CourseActions extends Actions
         # Add an assignment to the course, which is defined by giving a directory in the project.
         # Where we collect homework that students have done (in teacher project)
         collect_path = @_collect_path(path)
+        path_parts = misc.path_split(path)
         # folder that we return graded homework to (in student project)
-        graded_path = 'Graded copy: ' + path
+        graded_path = path_parts.head + '/graded-' + path_parts.tail
         # folder where we copy the assignment to
         target_path = path
+
         @_set
             path          : path
             collect_path  : collect_path

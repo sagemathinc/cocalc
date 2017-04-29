@@ -34,8 +34,6 @@ schema = require('smc-util/schema')
 exports.create_sync_db = (redux, actions, store) =>
     return if not redux? or not actions? or not store?
 
-    console.log "sync initializing"
-
     syncdb = salvus_client.sync_db
         project_id      : store.get('course_project_id')
         path            : store.get('course_filename')
@@ -46,7 +44,6 @@ exports.create_sync_db = (redux, actions, store) =>
 
 
     syncdb.once 'init', (err) =>
-        console.log "Initializing syncdb"
         if err
             actions?.set_error(err)
             console.warn("Error opening '#{store.course_filename}' -- #{err}")
