@@ -1,5 +1,9 @@
 ###
 Raw editable view of .ipynb file json, including metadata.
+
+WARNING:  There are many similarities between the code in this file and in
+the file codemirror-editor.cjsx, and also many differences.  Part of the
+subtlely comes from editing JSON, but not saving when state is invalid.
 ###
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
@@ -126,22 +130,22 @@ CodeMirrorEditor = rclass
                 return
             @props.actions.set_to_ipynb(ipynb)
             @_cm_last_remote = value
+        # Things are good -- clear error state if it is set
+        if @props.raw_editor?.get('error')
             @setReduxState(error : undefined)
         return value
 
     _cm_merge_remote: (remote) ->
         if not @cm?
             return
-        if @_cm_last_remote?
-            if @_cm_last_remote == remote
-                return  # nothing to do
-            local = @cm.getValue()
-            new_val = syncstring.three_way_merge
-                base   : @_cm_last_remote
-                local  : local
-                remote : remote
-        else
-            new_val = remote
+        @_cm_last_remote ?= ''
+        if @_cm_last_remote == remote
+            return  # nothing to do
+        local = @cm.getValue()
+        new_val = syncstring.three_way_merge
+            base   : @_cm_last_remote
+            local  : local
+            remote : remote
         @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
 
@@ -158,9 +162,14 @@ CodeMirrorEditor = rclass
             return
         @props.actions.redo()
 
+    update_codemirror_options: (next, current) ->
+        next.forEach (value, option) =>
+            if value != current.get(option)
+                value = value?.toJS?() ? value
+                @cm.setOption(option, value)
+            return
+
     init_codemirror: (options, value) ->
-        current_value = @cm?.getValue()
-        @_cm_destroy()
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
@@ -174,18 +183,12 @@ CodeMirrorEditor = rclass
         @cm = CodeMirror.fromTextArea(node, options0)
         $(@cm.getWrapperElement()).css(height:'100%')
 
-        if current_value?
-            # restore value and merge in new if changed
-            @cm.setValue(current_value)
-            @_cm_merge_remote(value)
-        else
-            # setting for first time
-            @cm.setValue(value)
+        @_cm_last_remote = value
+        @cm.setValue(value)
 
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
-
-        # replace undo/redo by our sync aware versions
+        # replace undo/redo by our multi-user sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
@@ -193,10 +196,13 @@ CodeMirrorEditor = rclass
         @init_codemirror(@props.options, @props.value)
 
     componentWillReceiveProps: (next) ->
-        if not @cm? or not @props.options.equals(next.options) or \
-                @props.font_size != next.font_size
+        if not @cm?
             @init_codemirror(next.options, next.value)
             return
+        if not @props.options.equals(next.options)
+            @update_codemirror_options(next.options, @props.options)
+        if @props.font_size != next.font_size
+            @cm.refresh()
         if next.value != @props.value
             @_cm_merge_remote(next.value)
 

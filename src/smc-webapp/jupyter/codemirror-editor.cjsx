@@ -39,7 +39,7 @@ exports.CodeMirrorEditor = rclass
         complete         : rtypes.immutable.Map
 
     componentDidMount: ->
-        @init_codemirror(@props.options, @props.value, @props.cursors)
+        @init_codemirror(@props.options, @props.value)
 
     _cm_destroy: ->
         if @cm?
@@ -97,16 +97,14 @@ exports.CodeMirrorEditor = rclass
     _cm_merge_remote: (remote) ->
         if not @cm?
             return
-        if @_cm_last_remote?
-            if @_cm_last_remote == remote
-                return  # nothing to do
-            local = @cm.getValue()
-            new_val = syncstring.three_way_merge
-                base   : @_cm_last_remote
-                local  : local
-                remote : remote
-        else
-            new_val = remote
+        @_cm_last_remote ?= ''
+        if @_cm_last_remote == remote
+            return  # nothing to do
+        local = @cm.getValue()
+        new_val = syncstring.three_way_merge
+            base   : @_cm_last_remote
+            local  : local
+            remote : remote
         @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
 
@@ -146,9 +144,14 @@ exports.CodeMirrorEditor = rclass
         gutter = $(@cm.getGutterElement()).width()
         @props.actions.complete(@cm.getValue(), cur, @props.id, {top:top, left:left, gutter:gutter})
 
-    init_codemirror: (options, value, cursors) ->
-        current_value = @cm?.getValue()
-        @_cm_destroy()
+    update_codemirror_options: (next, current) ->
+        next.forEach (value, option) =>
+            if value != current.get(option)
+                value = value?.toJS?() ? value
+                @cm.setOption(option, value)
+            return
+
+    init_codemirror: (options, value) ->
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
@@ -164,7 +167,6 @@ exports.CodeMirrorEditor = rclass
             options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
         @cm = CodeMirror.fromTextArea(node, options0)
-
         @cm.save = => @props.actions.save()
 
         if @props.actions? and options0.keyMap == 'vim'
@@ -183,13 +185,8 @@ exports.CodeMirrorEditor = rclass
             css.backgroundColor = '#f7f7f7'  # this is what official jupyter looks like...
         $(@cm.getWrapperElement()).css(css)
 
-        if current_value?
-            # restore value and merge in new if changed
-            @cm.setValue(current_value)
-            @_cm_merge_remote(value)
-        else
-            # setting for first time
-            @cm.setValue(value)
+        @_cm_last_remote = value
+        @cm.setValue(value)
 
         @_cm_change = underscore.debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
@@ -211,18 +208,22 @@ exports.CodeMirrorEditor = rclass
             # editor clicked on, so restore cursor to that position
             @cm.setCursor(@cm.coordsChar(@props.click_coords, 'window'))
             @props.set_click_coords()  # clear them
+
         else if @props.last_cursor?
             @cm.setCursor(@props.last_cursor)
             @props.set_last_cursor()
 
     componentDidMount: ->
-        @init_codemirror(@props.options, @props.value, @props.cursors)
+        @init_codemirror(@props.options, @props.value)
 
     componentWillReceiveProps: (next) ->
-        if not @cm? or not @props.options.equals(next.options) or \
-                @props.font_size != next.font_size
-            @init_codemirror(next.options, next.value, next.cursors)
+        if not @cm?
+            @init_codemirror(next.options, next.value)
             return
+        if not @props.options.equals(next.options)
+            @update_codemirror_options(next.options, @props.options)
+        if @props.font_size != next.font_size
+            @cm.refresh()
         if next.value != @props.value
             @_cm_merge_remote(next.value)
         if next.is_focused and not @props.is_focused
