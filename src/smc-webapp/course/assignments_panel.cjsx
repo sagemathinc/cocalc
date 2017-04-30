@@ -548,7 +548,7 @@ Assignment = rclass
 
     render_configure_peer_checkbox: (config) ->
         <div>
-            <Checkbox checked  = {config.enabled}
+            <Checkbox checked  = {config.enabled ? false}
                    key      = 'peer_grade_checkbox'
                    ref      = 'peer_grade_checkbox'
                    onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
