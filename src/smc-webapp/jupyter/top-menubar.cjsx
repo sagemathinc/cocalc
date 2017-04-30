@@ -74,8 +74,7 @@ exports.TopMenubar = rclass ({name}) ->
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
                  "move cell up", "move cell down", "", \
                  "find and replace", "", \
-                 "#{if cell_type != 'markdown' then '<' else ''}insert image", "", \  # disable if not markdown
-                 "<Show Notebook as...", ">view notebook normal", ">view notebook json", ">view notebook raw"]
+                 "#{if cell_type != 'markdown' then '<' else ''}insert image"]  # disable if not markdown
 
     render_view: ->
         @render_menu
@@ -83,7 +82,8 @@ exports.TopMenubar = rclass ({name}) ->
             names : \
                 ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
                  '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '>cell toolbar attachments', '>cell toolbar tags', '', \
-                 'zoom in', 'zoom out']
+                 'zoom in', 'zoom out', '', \
+                 "<Show Notebook as...", ">view notebook normal", ">view notebook raw", ">view notebook json"]
 
     render_insert: ->
         @render_menu
@@ -208,6 +208,7 @@ exports.TopMenubar = rclass ({name}) ->
             </Dropdown.Menu>
         </Dropdown>
 
+    ###
     render_widgets: -> # TODO: not supported in v1
         <Dropdown key='widgets' id='menu-widgets'>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
@@ -219,6 +220,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="widgets-embed">Embed widgets</MenuItem>
             </Dropdown.Menu>
         </Dropdown>
+    ###
 
     links_python: ->
         'Python'     : 'https://docs.python.org/2.7/'
@@ -296,7 +298,6 @@ exports.TopMenubar = rclass ({name}) ->
                 {@render_insert()}
                 {@render_cell()}
                 {@render_kernel()}
-                {# @render_widgets()}
                 {@render_help()}
             </ButtonGroup>
         </div>

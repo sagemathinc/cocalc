@@ -64,6 +64,7 @@ exports.JupyterEditor = rclass ({name}) ->
             insert_image        : rtypes.bool  # show insert image dialog
             edit_attachments    : rtypes.string
             editor_settings     : rtypes.immutable.Map
+            raw_editor          : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -207,10 +208,11 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_raw_editor: ->
         <RawEditor
-            actions   = {@props.actions}
-            cells     = {@props.cells}
-            font_size = {@props.font_size}
-            kernel    = {@props.kernel}
+            actions    = {@props.actions}
+            cells      = {@props.cells}
+            font_size  = {@props.font_size}
+            kernel     = {@props.kernel}
+            raw_editor = {@props.raw_editor}
         />
 
     render_main_view: ->

@@ -1624,3 +1624,4 @@ class exports.JupyterActions extends Actions
 
     set_view_mode: (mode) =>
         @setState(view_mode: mode)
+

@@ -17,10 +17,11 @@ underscore  = require('underscore')
 
 exports.RawEditor = rclass
     propTypes:
-        actions   : rtypes.object.isRequired
-        font_size : rtypes.number
-        cells     : rtypes.immutable.Map   # ipynb object depends on this
-        kernel    : rtypes.string          # ipynb object depends on this, too
+        actions    : rtypes.object.isRequired
+        font_size  : rtypes.number
+        cells      : rtypes.immutable.Map   # ipynb object depends on this
+        kernel     : rtypes.string          # ipynb object depends on this, too
+        raw_editor : rtypes.immutable.Map   # redux state
 
     reduxProps :
         account :
@@ -44,9 +45,11 @@ exports.RawEditor = rclass
         options.indentUnit = options.tabSize = 1
         options.indentWithTabs = false
         <CodeMirrorEditor
-            options = {immutable.fromJS(options)}
-            value   = {json}
-            font_size = {@props.font_size}
+            actions    = {@props.actions}
+            options    = {immutable.fromJS(options)}
+            value      = {json}
+            font_size  = {@props.font_size}
+            raw_editor = {@props.raw_editor}
         />
 
     render: ->
@@ -71,15 +74,38 @@ exports.RawEditor = rclass
             </div>
         </div>
 
+ERROR_STYLE =
+    color        : 'white'
+    background   : 'red'
+    padding      : "5px"
+    position     : 'absolute'
+    zIndex       : '5'
+    width        : '50%'
+    right        : '0'
+    borderRadius : '3px'
+    boxShadow    : '0px 0px 3px 2px rgba(87, 87, 87, 0.2)'
+
 CodeMirrorEditor = rclass
     propTypes :
-        options   : rtypes.immutable.Map.isRequired
-        value     : rtypes.string.isRequired
-        font_size : rtypes.number   # font_size not explicitly used, but it is critical
-                                           # to re-render on change so Codemirror recomputes itself!
+        actions    : rtypes.object.isRequired
+        options    : rtypes.immutable.Map.isRequired
+        value      : rtypes.string.isRequired
+        font_size  : rtypes.number   # font_size not explicitly used, but it is critical
+                                    # to re-render on change so Codemirror recomputes itself!
+        raw_editor : rtypes.immutable.Map
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)
+
+    setReduxState: (obj) ->
+        x = @props.raw_editor ? immutable.Map()
+        for k, v of obj
+            if not v?
+                x = x.delete(k)
+            else
+                x = x.set(k, immutable.fromJS(v))
+        if not x.equals(@props.raw_editor)
+            @props.actions.setState(raw_editor: x)
 
     _cm_destroy: ->
         if @cm?
@@ -90,10 +116,15 @@ CodeMirrorEditor = rclass
         if not @cm?
             return
         value = @cm.getValue()
-        #if value != @_cm_last_remote
-            # only save if we actually changed something
-            #@_cm_last_remote = value
-            ## TODO: save here?
+        if value != @_cm_last_remote
+            try
+                ipynb = JSON.parse(value)
+            catch error
+                @setReduxState(error : "#{error}")
+                return
+            @props.actions.set_to_ipynb(ipynb)
+            @_cm_last_remote = value
+            @setReduxState(error : undefined)
         return value
 
     _cm_merge_remote: (remote) ->
@@ -107,15 +138,23 @@ CodeMirrorEditor = rclass
                 base   : @_cm_last_remote
                 local  : local
                 remote : remote
-            console.log "'#{@_cm_last_remote}'", "'#{local}'", "'#{remote}'", "'#{new_val}'"
         else
             new_val = remote
         @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
 
     _cm_undo: ->
+        if not @cm? or not @props.actions?
+            return
+        if not @props.actions.syncdb.in_undo_mode() or @cm.getValue() != @_cm_last_remote
+            if not @_cm_save()?  # failed to save
+                return
+        @props.actions.undo()
 
     _cm_redo: ->
+        if not @cm? or not @props.actions?
+            return
+        @props.actions.redo()
 
     init_codemirror: (options, value) ->
         current_value = @cm?.getValue()
@@ -164,8 +203,16 @@ CodeMirrorEditor = rclass
             @_cm_save()
             @_cm_destroy()
 
+    render_error: ->
+        error = @props.raw_editor?.get('error')
+        if error
+            <div style={ERROR_STYLE}>
+                ERROR: {error}
+            </div>
+
     render : ->
-        <div style={width:'100%', overflow:'auto', height:'100%'}>
+        <div style={width:'100%', overflow:'auto', height:'100%', position:'relative'}>
+            {@render_error()}
             <textarea />
         </div>
 
