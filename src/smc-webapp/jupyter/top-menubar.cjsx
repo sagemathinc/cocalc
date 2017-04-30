@@ -34,6 +34,7 @@ exports.TopMenubar = rclass ({name}) ->
             backend_kernel_info : rtypes.immutable.Map
             cells               : rtypes.immutable.Map
             cur_id              : rtypes.string
+            trust               : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
@@ -54,13 +55,18 @@ exports.TopMenubar = rclass ({name}) ->
         else
             script_entry = '>nbconvert script'
 
+        if @props.trust
+            trust = {name:"<trust notebook", display:"Trusted Notebook"}
+        else
+            trust = {name:"trust notebook", display:"Trust Notebook..."}
+
         @render_menu
             heading : 'File'
             names   : [
                 'new notebook', 'open file', '', \
                 'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
                 'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
-                'trust notebook', '', \   # will have to be redone
+                trust, '', \
                 'close and halt'
             ]
 

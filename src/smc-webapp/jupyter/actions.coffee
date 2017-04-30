@@ -673,7 +673,7 @@ class exports.JupyterActions extends Actions
         @save_asap()
         return
 
-    run_code_cell: (id) =>
+    run_code_cell: (id, save=true) =>
         # We mark the start timestamp uniquely, so that the backend can sort
         # multiple cells with a simultaneous time to start request.
         start = @_client.server_time() - 0
@@ -689,9 +689,11 @@ class exports.JupyterActions extends Actions
             end          : null
             output       : null
             exec_count   : null
-            collapsed    : null
+            collapsed    : null,
+            save
+        @set_trust_notebook(true)
 
-    clear_cell: (id) =>
+    clear_cell: (id, save=true) =>
         @_set
             type         : 'cell'
             id           : id
@@ -700,7 +702,8 @@ class exports.JupyterActions extends Actions
             end          : null
             output       : null
             exec_count   : null
-            collapsed    : null
+            collapsed    : null,
+            save
 
     run_selected_cells: =>
         v = @store.get_selected_cell_ids_list()
@@ -1386,9 +1389,18 @@ class exports.JupyterActions extends Actions
                 @setState(confirm_dialog: confirm_dialog.set('choice', choice))
 
     trust_notebook: =>
-        # TODO:...
-        @setState(trust: true)
-        @set_error("trust_notebook not implemented")
+        @confirm_dialog
+            icon    : 'warning'
+            title   : 'Trust this Notebook?'
+            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks.)'
+            choices : [{title:'Trust', style:'danger', default:true}, {title:'Cancel'}]
+            cb      : (choice) =>
+                if choice == 'Trust'
+                    @set_trust_notebook(true)
+
+    set_trust_notebook: (trust) =>
+        if not @store.get('trust')
+            @setState(trust: trust)
 
     insert_image: =>
        @setState(insert_image: true)

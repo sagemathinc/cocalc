@@ -2,6 +2,7 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 """
 
+{Icon} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, Modal} = require('react-bootstrap')
 
@@ -30,13 +31,18 @@ exports.ConfirmDialog = rclass
             v.push(@render_button(choice))
         return v
 
+    render_title_icon: ->
+        icon = @props.confirm_dialog?.get('icon')
+        if icon?
+            <Icon name={icon}/>
+
     render: ->
         # Show if the confirm_dailog prop is set, but the choice field is not set.
         <Modal
             show   = {@props.confirm_dialog? and not @props.confirm_dialog.get('choice')?}
             onHide = {@close} >
             <Modal.Header closeButton>
-                <Modal.Title>{@props.confirm_dialog?.get('title')}</Modal.Title>
+                <Modal.Title>{@render_title_icon()} {@props.confirm_dialog?.get('title')}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 {@props.confirm_dialog?.get('body')}

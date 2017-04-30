@@ -28,6 +28,7 @@ exports.Cell = rclass
         is_focused       : rtypes.bool
         more_output      : rtypes.immutable.Map   # if given, is info for *this* cell
         cell_toolbar     : rtypes.string
+        trust            : rtypes.bool
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -41,6 +42,7 @@ exports.Cell = rclass
                next.is_focused       != @props.is_focused or \
                next.more_output      != @props.more_output or \
                next.cell_toolbar     != @props.cell_toolbar or \
+               next.trust            != @props.trust or \
                (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell
 
     render_cell_input: (cell) ->
@@ -69,6 +71,7 @@ exports.Cell = rclass
             project_id  = {@props.project_id}
             directory   = {@props.directory}
             more_output = {@props.more_output}
+            trust       = {@props.trust}
             />
 
     click_on_cell: (event) ->

@@ -66,6 +66,7 @@ exports.JupyterEditor = rclass ({name}) ->
             editor_settings     : rtypes.immutable.Map
             raw_editor          : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
+            trust               : rtypes.bool
 
     render_error: ->
         if @props.error
@@ -127,6 +128,7 @@ exports.JupyterEditor = rclass ({name}) ->
             more_output  = {@props.more_output}
             scroll       = {@props.scroll}
             cell_toolbar = {@props.cell_toolbar}
+            trust        = {@props.trust}
             />
 
     render_introspect: ->

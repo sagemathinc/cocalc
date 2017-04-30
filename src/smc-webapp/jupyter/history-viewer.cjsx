@@ -38,6 +38,7 @@ exports.HistoryViewer = HistoryViewer = rclass
             cm_options = {options}
             project_id = {project_id}
             directory  = {directory}
+            trust      = {false}
             />
 
     render: ->

@@ -24,8 +24,10 @@ exports.Mode = rclass ({name}) ->
         </div>
 
 KERNEL_NAME_STYLE =
-    margin : '5px'
-    color  : 'rgb(33, 150, 243)'
+    margin      : '5px'
+    color       : 'rgb(33, 150, 243)'
+    borderLeft  : '1px solid #666'
+    paddingLeft : '5px'
 
 KERNEL_ERROR_STYLE =
     margin          : '5px'
@@ -51,6 +53,7 @@ exports.Kernel = rclass ({name}) ->
             kernel_info   : rtypes.immutable.Map
             backend_state : rtypes.string
             kernel_state  : rtypes.string
+            trust         : rtypes.bool
 
     getInitialState: ->
         logo_failed : ''
@@ -129,11 +132,23 @@ exports.Kernel = rclass ({name}) ->
             </span>
         </Tip>
 
+    render_trust: ->
+        if @props.trust
+            <span style={color:'#666'}>Trusted</span>
+        else
+            <span
+                title = {'Notebook is not trusted'}
+                style = {background:'#5bc0de', color:'white', cursor:'pointer', padding: '3px', borderRadius: '3px'}
+                onClick={=>@props.actions.trust_notebook()}
+            >
+                Not Trusted
+            </span>
 
     render : ->
         if not @props.kernel?
             return <span/>
-        <div className='pull-right' style={color:'#666', borderLeft:'1px solid #666'}>
+        <div className='pull-right' style={color:'#666'}>
+            {@render_trust()}
             {@render_name()}
             {@render_backend_state()}
             {@render_logo()}

@@ -9,6 +9,8 @@ Ansi = require('ansi-to-react')
 
 {get_blob_url} = require('./server-urls')
 
+{javascript_eval} = require('./javascript-eval')
+
 OUT_STYLE =
     whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
@@ -108,23 +110,29 @@ TextPlain = rclass
             {@props.value}
         </div>
 
+UntrustedJavascript = rclass
+    propTypes:
+        value : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
+
+    render: ->
+        <span style={color:'#888'}>
+            (not running untrusted Javascript)
+        </span>
+
 Javascript = rclass
     propTypes:
         value : rtypes.oneOfType([rtypes.object, rtypes.string]).isRequired
 
     componentDidMount: ->
         element = $(ReactDOM.findDOMNode(@))
-        if typeof(@props.value) != 'string'
-            value = @props.value.toJS()
-        else
-            value = @props.value
+        element.empty()
+        value = @props.value
+        if typeof(value) != 'string'
+            value = value.toJS()
         if not misc.is_array(value)
             value = [value]
         for line in value
-            try
-                eval(line)
-            catch err
-                console.log("Error: #{err}")
+            javascript_eval(line, element)
 
     render: ->
         <div></div>
@@ -153,6 +161,7 @@ Data = rclass
         directory  : rtypes.string
         id         : rtypes.string
         actions    : rtypes.object
+        trust      : rtypes.bool
 
     mixins: [ImmutablePureRenderMixin]
 
@@ -196,7 +205,11 @@ Data = rclass
                 when 'application'
                     switch b
                         when 'javascript'
-                            return <Javascript value={value}/>
+                            if @props.trust
+                                return <Javascript value={value} />
+                            else
+                                return <UntrustedJavascript value={value} />
+
                         when 'pdf'
                             return <PDF value={value} project_id = {@props.project_id}/>
 
@@ -341,6 +354,7 @@ exports.CellOutputMessage = CellOutputMessage = rclass
         directory  : rtypes.string
         actions    : rtypes.object  # optional  - not needed by most messages
         id         : rtypes.string  # optional, and not usually needed either
+        trust      : rtypes.bool    # is notebook trusted by the user (if not won't eval javascript)
 
     render: ->
         C = message_component(@props.message)
@@ -349,6 +363,7 @@ exports.CellOutputMessage = CellOutputMessage = rclass
             project_id = {@props.project_id}
             directory  = {@props.directory}
             actions    = {@props.actions}
+            trust      = {@props.trust}
             id         = {@props.id}
             />
 
@@ -370,12 +385,14 @@ exports.CellOutputMessages = rclass
         project_id : rtypes.string
         directory  : rtypes.string
         scrolled   : rtypes.bool
+        trust      : rtypes.bool
         id         : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return \
             next.output   != @props.output or \
-            next.scrolled != @props.scrolled
+            next.scrolled != @props.scrolled or \
+            next.trust    != @props.trust
 
     render_output_message: (n, mesg) ->
         if not mesg?
@@ -386,6 +403,7 @@ exports.CellOutputMessages = rclass
             project_id = {@props.project_id}
             directory  = {@props.directory}
             actions    = {@props.actions}
+            trust      = {@props.trust}
             id         = {@props.id}
         />
 
@@ -402,7 +420,6 @@ exports.CellOutputMessages = rclass
             if k > 0 and (name == 'stdout' or name == 'stderr') and v[k-1].get('name') == name
                 v[k-1] = v[k-1].set('text', v[k-1].get('text') + mesg.get('text'))
             else
-
                 v[k] = mesg
                 k += 1
         return v

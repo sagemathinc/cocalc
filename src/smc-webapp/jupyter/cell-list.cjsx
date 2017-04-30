@@ -33,6 +33,7 @@ exports.CellList = rclass
         more_output  : rtypes.immutable.Map
         scroll       : rtypes.string
         cell_toolbar : rtypes.string
+        trust        : rtypes.bool
 
     componentWillUnmount: ->
         # save scroll state
@@ -157,6 +158,7 @@ exports.CellList = rclass
                     is_focused       = {@props.is_focused}
                     more_output      = {@props.more_output?.get(id)}
                     cell_toolbar     = {@props.cell_toolbar}
+                    trust            = {@props.trust}
                     />
             v.push(cell)
             return

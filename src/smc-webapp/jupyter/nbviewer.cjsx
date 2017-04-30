@@ -43,6 +43,7 @@ exports.NBViewer = rclass ({name}) ->
             cm_options = {@props.cm_options}
             project_id = {@props.project_id}
             directory  = {directory}
+            trust      = {false}
             />
 
     render_body: ->

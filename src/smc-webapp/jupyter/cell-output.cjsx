@@ -20,13 +20,14 @@ exports.CellOutput = rclass
         project_id  : rtypes.string
         directory   : rtypes.string
         more_output : rtypes.immutable.Map
+        trust       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         for field in ['collapsed', 'scrolled', 'exec_count', 'state']
             if next.cell.get(field) != @props.cell.get(field)
                 return true
 
-        if @props.more_output != next.more_output
+        if @props.more_output != next.more_output or @props.trust != next.trust
             return true
 
         new_output = next.cell.get('output')
@@ -94,6 +95,7 @@ exports.CellOutput = rclass
                 project_id = {@props.project_id}
                 directory  = {@props.directory}
                 actions    = {@props.actions}
+                trust      = {@props.trust}
                 id         = {@props.id}
                 />
 
