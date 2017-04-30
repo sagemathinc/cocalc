@@ -138,6 +138,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 when 'nbconvert'
                     @nbconvert_change()
             return
+
         @ensure_there_is_a_cell()
         @_throttled_ensure_positions_are_unique()
         @sync_exec_state()
@@ -547,6 +548,8 @@ class exports.JupyterActions extends actions.JupyterActions
                 id    : @_new_id()
                 pos   : 0
                 input : ''
+            # We are obviously contributing all content to this notebook.
+            @set_trust_notebook(true)
 
     nbconvert_change: (old_val, new_val) =>
         ###

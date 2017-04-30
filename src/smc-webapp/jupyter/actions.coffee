@@ -474,6 +474,7 @@ class exports.JupyterActions extends Actions
                     orig_kernel = @store.get('kernel')
                     kernel = record.get('kernel')
                     obj =
+                        trust             : !!record.get('trust')  # case to boolean
                         backend_state     : record.get('backend_state')
                         kernel_state      : record.get('kernel_state')
                         metadata          : record.get('metadata')   # extra custom user-specified metadata
@@ -1392,15 +1393,16 @@ class exports.JupyterActions extends Actions
         @confirm_dialog
             icon    : 'warning'
             title   : 'Trust this Notebook?'
-            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks.)'
+            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your SageMathCloud projects.)'
             choices : [{title:'Trust', style:'danger', default:true}, {title:'Cancel'}]
             cb      : (choice) =>
                 if choice == 'Trust'
                     @set_trust_notebook(true)
 
     set_trust_notebook: (trust) =>
-        if not @store.get('trust')
-            @setState(trust: trust)
+        @_set
+            type  : 'settings'
+            trust : !!trust  # case to bool
 
     insert_image: =>
        @setState(insert_image: true)
@@ -1487,11 +1489,13 @@ class exports.JupyterActions extends Actions
             process            : @_jupyter_kernel?.process_output
             process_attachment : @_jupyter_kernel?.process_attachment
 
+        # preserve trust state across file updates/loads
+        trust = @store.get('trust')
         @syncdb.delete(undefined, false)
         for _, cell of importer.cells()
             @syncdb.set(cell, false)
 
-        @syncdb.set({type: 'settings', kernel: importer.kernel()}, false)
+        @syncdb.set({type: 'settings', kernel: importer.kernel(), trust:trust}, false)
 
         metadata = importer.metadata()
         if metadata?

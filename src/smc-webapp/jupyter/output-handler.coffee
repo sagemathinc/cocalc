@@ -52,11 +52,14 @@ class exports.OutputHandler extends EventEmitter
         @_output_length            = 0
         @_in_more_output_mode      = false
 
+        @_state                    = 'ready'
+
         # Report that computation started if there is no output soon.
         if @_opts.report_started_ms?
             setTimeout(@_report_started, @_opts.report_started_ms)
 
     close: =>
+        @_state = 'closed'
         @emit('done')
         delete @_opts
         delete @_n
@@ -66,6 +69,8 @@ class exports.OutputHandler extends EventEmitter
         @removeAllListeners()
 
     _clear_output: (save) =>
+        if @_state == 'closed'
+            return
         @_clear_before_next_output = false
         # clear output message -- we delete all the outputs
         # reset the counter n, save, and are done.
@@ -85,6 +90,8 @@ class exports.OutputHandler extends EventEmitter
 
     # Call when computation starts
     start: =>
+        if @_state == 'closed'
+            return
         @_opts.cell.start = new Date() - 0
         @_opts.cell.state = 'busy'
 
@@ -98,6 +105,8 @@ class exports.OutputHandler extends EventEmitter
 
     # Call done exactly once when done
     done: =>
+        if @_state == 'closed'
+            return
         @_opts.cell.state = 'done'
         @_opts.cell.start ?= now()
         @_opts.cell.end   = now()
@@ -120,7 +129,7 @@ class exports.OutputHandler extends EventEmitter
                 delete mesg[k]
 
     _push_mesg: (mesg, save=true) =>
-        if not @_opts?
+        if @_state == 'closed'
             return
         if @_opts.cell.output == null
             @_opts.cell.output = {}
@@ -129,14 +138,14 @@ class exports.OutputHandler extends EventEmitter
         @emit('change', save)
 
     set_input: (input, save=true) =>
-        if not @_opts?
+        if @_state == 'closed'
             return
         @_opts.cell.input = input
         @emit('change', save)
 
     # Process incoming messages.  This may mutate mesg.
     message: (mesg) =>
-        if not @_opts?
+        if @_state == 'closed'
             return
 
         if @_opts.cell.end
@@ -189,6 +198,8 @@ class exports.OutputHandler extends EventEmitter
 
     # Call this when the cell changes; only used for stdin right now.
     cell_changed: (cell, get_password) =>
+        if @_state == 'closed'
+            return
         if not @_stdin_cb?
             return
         output = cell?.get('output')
@@ -209,6 +220,8 @@ class exports.OutputHandler extends EventEmitter
             delete @_stdin_cb
 
     payload: (payload) =>
+        if @_state == 'closed'
+            return
         if payload.source == 'set_next_input'
             @set_input(payload.text)
         else
