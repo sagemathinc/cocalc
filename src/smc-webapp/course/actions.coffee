@@ -529,7 +529,7 @@ exports.CourseActions = class CourseActions extends Actions
         else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
             invite(student_account_id)
         # Make sure all collaborators on course project are on the student's project:
-        target_users = @redux.getStore('projects').get_users(s.course_project_id)
+        target_users = @redux.getStore('projects').get_users(s.get('course_project_id'))
         if not target_users?
             return  # projects store isn't sufficiently initialized, so we can't do this yet...
         target_users.map (_, account_id) =>
