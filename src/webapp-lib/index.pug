@@ -55,63 +55,70 @@ block content
         div.
           #[a(href="app") Start #{htmlWebpackPlugin.options.title} For Free]
 
-    div.row#explore
-      div.col-md-12.center
-        h1 Explore #{htmlWebpackPlugin.options.title}
-      div.col-md-3.col-sm-6
-        h3 #[i.fa.fa-archive] Projects
-        div.
-          Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong private projects].
-          They form your personal workspaces containing your files, computational worksheets, and data.
-          You run your computations through the web-interface, either via interactive worksheets, notebooks, or by executing a program in a terminal.
-      div.col-md-3.col-sm-6
-        h3 #[i.fa.fa-users] Collaboration
-        div.
-          You can invite collaborators to work with you inside a project.
-          Like you, they can edit the files in that project.
-          Edits are visible in #[strong real-time] for everyone online.
-          You can share your thoughts in a #[strong side-chat] next to each document.
-      div.clearfix.visible-sm-block
-      div.col-md-3.col-sm-6
-        h3 #[i.fa.fa-graduation-cap] Teaching
-        div.
-          #{htmlWebpackPlugin.options.title} offers sophisticated tools for teaching.
-          Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
-          While students work on it you can assist them by jumping right into their files where they're working.
-          Later, collect, grade and re-distribute the files.
-      div.col-md-3.col-sm-6
-        h3 #[i.fa.fa-file-text-o] Authoring
-        div.
-          Write scientific documents online in a #[strong LaTeX editor].
-          It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
-          and also supports advanced features like
-          #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
-          #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
+  div#explore
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Explore #{htmlWebpackPlugin.options.title}
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-archive] Projects
+          div.
+            Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong private projects].
+            They form your personal workspaces containing your files, computational worksheets, and data.
+            You run your computations through the web-interface, either via interactive worksheets, notebooks, or by executing a program in a terminal.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-users] Collaboration
+          div.
+            You can invite collaborators to work with you inside a project.
+            Like you, they can edit the files in that project.
+            Edits are visible in #[strong real-time] for everyone online.
+            You can share your thoughts in a #[strong side-chat] next to each document.
+        div.clearfix.visible-sm-block
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-graduation-cap] Teaching
+          div.
+            #{htmlWebpackPlugin.options.title} offers sophisticated tools for teaching.
+            Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
+            While students work on it you can assist them by jumping right into their files where they're working.
+            Later, collect, grade and re-distribute the files.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-file-text-o] Authoring
+          div.
+            Write scientific documents online in a #[strong LaTeX editor].
+            It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
+            and also supports advanced features like
+            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
+            #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
 
-    div.row
-      div.col-md-6
-        blockquote.blockquote
-          img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
-          p.
-            I just found out that my #{NAME} class got by far the best course evaluations
-            for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
-            which makes it a sure thing that I'll be teaching this course again (in some form) next year!
-            Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
-          footer.
-            #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
-      div.col-md-6
-        blockquote.blockquote
-          img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
-          p.
-            #{NAME} provides a user-friendly interface.
-            Students don’t need to install any software at all.
-            They just open up a web browser and go to #{URL} and that’s it.
-            They just type code directly in, hit shift+enter and it runs, and they can see if it works.
-            It provides immediate feedback.
-            The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
-          footer.
-            #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+  div#testimonials
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Testimonials
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
+            p.
+              I just found out that my #{NAME} class got by far the best course evaluations
+              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
+              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
+              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
+            footer.
+              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
+            p.
+              #{NAME} provides a user-friendly interface.
+              Students don’t need to install any software at all.
+              They just open up a web browser and go to #{URL} and that’s it.
+              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+              It provides immediate feedback.
+              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
+            footer.
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
 
+  div.container
     div.row
       div.col-md-6#included
         h2 #[i.fa.fa-battery-three-quarters] Batteries included
@@ -123,7 +130,7 @@ block content
         h2 #[i.fa.fa-line-chart] Statistics
         div.
           There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
-        div
+        div(style="margin-top: 3rem")
           table.table.bordered.condensed.hover.cc-help-stats-table#statstable
             thead
               tr
@@ -185,7 +192,8 @@ block content
           width        : 100%
           height       : auto
         &.row
-          margin-top   : 6rem
+          margin-top   : 3rem
+          margin-bottom: 2rem
           > div > h2
             margin-bottom : 3rem
       .center
@@ -195,8 +203,10 @@ block content
       .left,
       #statstable td.left
         text-align     : left
-      #explore > div > h3
-        white-space    : nowrap
+      #explore
+        background-color : $COL_GRAY_LLL
+        div > h3
+          white-space    : nowrap
       #included > div
         padding        : 0
       body > div.container > footer

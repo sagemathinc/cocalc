@@ -28,7 +28,9 @@ update_stats = (stats) ->
         row    = table.insertRow()
         cell   = row.insertCell()
         cell.className = 'left'
-        cell.appendChild(document.createTextNode(name))
+        rowname = document.createElement("strong")
+        rowname.appendChild(document.createTextNode(name))
+        cell.appendChild(rowname)
         for j in window.stat_times
             cell   = row.insertCell()
             cell.appendChild(document.createTextNode("#{stats[key][j]}"))
