@@ -57,3 +57,16 @@ describe 'tests simple use of more_output ', ->
         actions.set_cell_output(id, {0:{data:{'text/plain':'5'}}, 1:{data:{'text/plain':'2'}}, 2:{more_output:true}})
         expect(store.get_ipynb().cells[0].outputs[2]).toEqual({ name: 'stderr', output_type: 'stream', text: [ 'WARNING: Some output was deleted.\n' ] } )
 
+describe 'tests exporting custom metadata -- ', ->
+    before(setup)
+    after(teardown)
+
+    it 'sets custom metadata', ->
+        actions.setState(metadata:{custom:{data:389}})
+
+    it 'exports and checks it is there', ->
+        expect(store.get_ipynb().metadata.custom).toEqual({data:389})
+
+
+
+

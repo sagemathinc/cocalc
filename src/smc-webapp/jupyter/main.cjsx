@@ -65,6 +65,7 @@ exports.JupyterEditor = rclass ({name}) ->
             edit_attachments    : rtypes.string
             editor_settings     : rtypes.immutable.Map
             raw_editor          : rtypes.immutable.Map
+            metadata            : rtypes.immutable.Map
 
     render_error: ->
         if @props.error
@@ -213,6 +214,7 @@ exports.JupyterEditor = rclass ({name}) ->
             font_size  = {@props.font_size}
             kernel     = {@props.kernel}
             raw_editor = {@props.raw_editor}
+            metadata   = {@props.metadata}
         />
 
     render_main_view: ->

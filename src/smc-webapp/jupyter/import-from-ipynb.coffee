@@ -98,7 +98,7 @@ class exports.IPynbImporter
         @_language_info = @_ipynb?.metadata?.language_info
 
     _import_metadata: =>
-        m = @_ipynb?.metadata?
+        m = @_ipynb?.metadata
         if not m?
             return
         metadata = {}

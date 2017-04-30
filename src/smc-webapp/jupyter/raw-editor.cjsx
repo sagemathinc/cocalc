@@ -19,9 +19,11 @@ exports.RawEditor = rclass
     propTypes:
         actions    : rtypes.object.isRequired
         font_size  : rtypes.number
+        raw_editor : rtypes.immutable.Map   # redux state
+
         cells      : rtypes.immutable.Map   # ipynb object depends on this
         kernel     : rtypes.string          # ipynb object depends on this, too
-        raw_editor : rtypes.immutable.Map   # redux state
+        metadata   : rtypes.immutable.Map   # ipynb object depends on this
 
     reduxProps :
         account :
@@ -113,7 +115,7 @@ CodeMirrorEditor = rclass
             delete @cm
 
     _cm_save: ->
-        if not @cm?
+        if not @cm? or not @props.actions?
             return
         value = @cm.getValue()
         if value != @_cm_last_remote

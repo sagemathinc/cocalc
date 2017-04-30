@@ -1291,7 +1291,7 @@ class exports.JupyterActions extends Actions
             @setState(more_output : more_output.delete(id))
 
     set_cm_options: =>
-        mode             = @store.getIn(['backend_kernel_info', 'language_info', 'codemirror_mode'])
+        mode = @store.getIn(['backend_kernel_info', 'language_info', 'codemirror_mode'])
         if typeof(mode) == 'string'
             mode = {name:mode}  # some kernels send a string back for the mode; others an object
         else if mode?.toJS?

@@ -61,4 +61,23 @@ describe 'test call process function --', ->
                 content.text = 'cocalc'
         expect(importer.cells()[0].output[0]).toEqual({ name: 'stdout', output_type: 'stream', text: 'cocalc' } )
 
+describe 'test custom medata -- ', ->
+    importer = undefined
+    ipynb = {"cells":[],"metadata":{"kernelspec":{"name":"python389"},"custom":{"meta":389}}}
+
+    it 'do it', ->
+        importer = new IPynbImporter()
+        importer.import(ipynb : ipynb)
+        expect(importer.metadata()).toEqual({ custom: { meta: 389 } })
+
+
+describe 'test language_info medata -- ', ->
+    importer = undefined
+    language_info = {"codemirror_mode": { "name": "ipython", "version": 2},"file_extension": ".py","mimetype": "text/x-python","name": "python","nbconvert_exporter": "python","pygments_lexer": "ipython2","version": "2.7.10"}
+    ipynb = {"cells":[],"metadata":{"language_info": language_info}}
+
+    it 'do it', ->
+        importer = new IPynbImporter()
+        importer.import(ipynb : ipynb)
+        expect(importer.language_info()).toEqual(language_info)
 
