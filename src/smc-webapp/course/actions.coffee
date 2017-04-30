@@ -785,6 +785,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_active_assignment_sort: (column_name) =>
+        store = @get_store()
+        if not store?
+            return
+        current_column = store.getIn(['active_assignment_sort', 'column_name'])
+        if current_column == column_name
+            is_descending = not store.getIn(['active_assignment_sort', 'is_descending'])
+        else
+            is_descending = false
+        @setState(active_assignment_sort : {column_name, is_descending})
+
     _set_assignment_field: (assignment, name, val) =>
         store = @get_store()
         return if not store?

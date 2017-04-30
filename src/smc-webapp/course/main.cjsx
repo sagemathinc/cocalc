@@ -60,12 +60,13 @@ init_redux = (course_filename, redux, course_project_id) ->
         return
 
     initial_store_state =
-        course_filename      : course_filename
-        course_project_id    : course_project_id
-        expanded_students    : immutable.Set() # Set of student id's (string) which should be expanded on render
-        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded on render
-        expanded_handouts    : immutable.Set() # Set of handout id's (string) which should be expanded on render
-        active_student_sort  : {column_name : "last_name", is_descending : false}
+        course_filename        : course_filename
+        course_project_id      : course_project_id
+        expanded_students      : immutable.Set() # Set of student id's (string) which should be expanded on render
+        expanded_assignments   : immutable.Set() # Set of assignment id's (string) which should be expanded on render
+        expanded_handouts      : immutable.Set() # Set of handout id's (string) which should be expanded on render
+        active_student_sort    : {column_name : "last_name", is_descending : false}
+        active_assignment_sort : {column_name : "dir_name", is_descending : false}
 
     actions = redux.createActions(the_redux_name, CourseActions)
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)
