@@ -13,6 +13,7 @@ exports.export_to_ipynb = (opts) ->
     opts = defaults opts,
         cell_list     : required
         cells         : required
+        metadata      : undefined   # custom metadata only
         kernelspec    : {}    # official jupyter will give an error on load without properly giving this (and ask to select a kernel)
         language_info : undefined
         blob_store    : undefined
@@ -20,12 +21,14 @@ exports.export_to_ipynb = (opts) ->
 
     ipynb =
         cells          : (cell_to_ipynb(id, opts) for id in opts.cell_list.toJS())
-        metadata       :
-            kernelspec    : opts.kernelspec
+        metadata       : opts.metadata?.toJS() ? {}
         nbformat       : 4
         nbformat_minor : 0
+
+    ipynb.metadata.kernelspec = opts.kernelspec
     if opts.language_info?
         ipynb.metadata.language_info = opts.language_info.toJS() ? {}
+
     return ipynb
 
 # Return ipynb version of the given cell as Python object

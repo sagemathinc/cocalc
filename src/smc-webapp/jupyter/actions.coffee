@@ -476,6 +476,7 @@ class exports.JupyterActions extends Actions
                     obj =
                         backend_state     : record.get('backend_state')
                         kernel_state      : record.get('kernel_state')
+                        metadata          : record.get('metadata')   # extra custom user-specified metadata
                         max_output_length : bounded_integer(record.get('max_output_length'), 100, 100000, 20000)
                     if kernel != orig_kernel
                         obj.kernel              = kernel
@@ -1479,6 +1480,10 @@ class exports.JupyterActions extends Actions
             @syncdb.set(cell, false)
 
         @syncdb.set({type: 'settings', kernel: importer.kernel()}, false)
+
+        metadata = importer.metadata()
+        if metadata?
+            @syncdb.set({type: 'settings', metadata: metadata}, false)
 
         importer.close()
 

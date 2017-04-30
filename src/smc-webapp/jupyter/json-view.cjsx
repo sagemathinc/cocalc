@@ -16,9 +16,8 @@ exports.JSONView = rclass
         kernel    : rtypes.string          # ipynb object depends on this, too
 
     render_desc: ->
-        s = "This is an editable view IPynb notebook's underlying .ipynb file "
-        s += " (images are replaced by sha1 hashes)."
-        <div style={color:"#666", fontSize: '12pt', marginBottom: '15px'}>
+        s = "Read-only view of notebook's underlying object structure."
+        <div style={color:"#666", fontSize: '12pt', right: '15px', position:'absolute', background:'white'}>
             {s}
         </div>
 
@@ -36,6 +35,7 @@ exports.JSONView = rclass
             backgroundColor : '#fff'
             padding         : '15px'
             boxShadow       : '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'
+            position        : 'relative'
 
         data = @props.actions.store.get_ipynb()
         if not data?

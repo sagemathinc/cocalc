@@ -107,6 +107,7 @@ class exports.JupyterStore extends Store
         return export_to_ipynb
             cells         : @get('cells')
             cell_list     : @get('cell_list')
+            metadata      : @get('metadata')  # custom metadata
             kernelspec    : @get_kernel_info(@get('kernel'))
             language_info : @getIn(['backend_kernel_info','language_info'])
             blob_store    : blob_store
