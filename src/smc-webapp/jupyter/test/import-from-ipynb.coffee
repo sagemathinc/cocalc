@@ -55,10 +55,14 @@ describe 'test call process function --', ->
         importer = new IPynbImporter()
         importer.import
             ipynb : {"cells":[{"cell_type":"code","execution_count":1,"metadata":{"collapsed":false},"outputs":[{"name":"stdout","output_type":"stream","text":["3\n","5\n"]}],"source":['print "3"\n','print "5"']}]}
-            process : (content) ->
-                expect(content).toEqual({ name: 'stdout', output_type: 'stream', text: '3\n5\n' })
-                # Now mutate in a devious way:
-                content.text = 'cocalc'
+            output_handler : (cell) ->
+                cell.output = {}
+                done    : ->
+                message : (content) ->
+                    expect(content).toEqual({ name: 'stdout', output_type: 'stream', text: '3\n5\n' })
+                    # Now mutate in a devious way:
+                    content.text = 'cocalc'
+                    cell.output[0] = content
         expect(importer.cells()[0].output[0]).toEqual({ name: 'stdout', output_type: 'stream', text: 'cocalc' } )
 
 describe 'test custom medata -- ', ->
