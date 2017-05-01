@@ -43,8 +43,8 @@ exports.CellOutput = rclass
         exec_count = undefined
         output = @props.cell.get('output')
         output?.forEach (x) ->
-            if x.has('execution_count')?
-                exec_count = x.get('execution_count')
+            if x.has('exec_count')
+                exec_count = x.get('exec_count')
                 return false
         prompt = <OutputPrompt
                     state      = {@props.cell.get('state')}

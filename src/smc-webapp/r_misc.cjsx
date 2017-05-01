@@ -844,7 +844,6 @@ exports.Markdown = rclass
             {s: '', has_mathjax: false}
 
     render: ->
-        console.log 'markdown', @props.safeHTML
         HTML = exports.HTML
         value = @to_html()
         #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)

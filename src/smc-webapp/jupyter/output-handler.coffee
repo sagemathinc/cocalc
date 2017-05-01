@@ -154,8 +154,11 @@ class exports.OutputHandler extends EventEmitter
 
         # record execution_count, if there.
         if mesg.execution_count?
+            has_exec_count = true
             @_opts.cell.exec_count = mesg.execution_count
             delete mesg.execution_count
+        else
+            has_exec_count = false
 
         # delete useless fields
         @_clean_mesg(mesg)
@@ -163,6 +166,10 @@ class exports.OutputHandler extends EventEmitter
         if misc.len(mesg) == 0
             # don't even both saving this message; nothing useful here.
             return
+
+        if has_exec_count
+            # message that has an execution count
+            mesg.exec_count = @_opts.cell.exec_count
 
         # hook to process message (e.g., this may mutate mesg, e.g., to remove big images)
         @emit('process', mesg)

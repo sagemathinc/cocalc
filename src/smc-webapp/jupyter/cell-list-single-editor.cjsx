@@ -45,7 +45,6 @@ exports.CellList = rclass
             v.push(s)
             return
         value = v.join('\n\n')
-        console.log "compute value '#{value}'"
         return value
 
     parse_and_save: (value) ->
@@ -58,13 +57,11 @@ exports.CellList = rclass
             if i == -1
                 return
             id = value.slice(0, i)
-            console.log 'got id =', id
             value = value.slice(i+2)
             prompt = "\nOut[#{id}]"
             i = value.indexOf(prompt)
             if i != -1
                 value = value.slice(0, i)
-            console.log 'got value = ', value
             @props.actions.set_cell_input(id, value)
             value = value.slice(i+1)
 
@@ -163,7 +160,7 @@ exports.CellList = rclass
             height          : '100%'
             overflowY       : 'auto'
             overflowX       : 'hidden'
-            
+
         <div key='cells' style={style} ref='cell_list'>
             <div style={backgroundColor:'#fff', padding:'15px', boxShadow: '0px 0px 12px 1px rgba(87, 87, 87, 0.2)'}>
                 <textarea />
