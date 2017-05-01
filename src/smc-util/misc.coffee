@@ -2061,6 +2061,6 @@ exports.sanitize_html_attributes = ($, node) ->
         attrName  = this.name
         attrValue = this.value
         # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...
-        # remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
+        # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
