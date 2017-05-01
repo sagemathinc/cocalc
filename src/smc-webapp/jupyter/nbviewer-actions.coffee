@@ -53,8 +53,14 @@ class exports.NBViewerActions extends Actions
     set_from_ipynb: (ipynb) =>
         importer = new IPynbImporter()
         importer.import
-            ipynb   : ipynb
-            process : @_process
+            ipynb          : ipynb
+            output_handler : (cell) =>
+                k = 0
+                message : (content) =>
+                    @_process(content)
+                    cell.output["#{k}"] = content
+                    k += 1
+
         cells      = immutable.fromJS(importer.cells())
         cell_list  = cell_utils.sorted_cell_list(cells)
         options = immutable.fromJS

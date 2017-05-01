@@ -14,16 +14,16 @@ DEFAULT_IPYNB = {"cells":[{"cell_type":"code","execution_count":null,"metadata":
 class exports.IPynbImporter
     import: (opts) =>
         opts = defaults opts,
-            ipynb        : {}
-            new_id       : undefined  # function that returns an unused id given
+            ipynb              : {}
+            new_id             : undefined  # function that returns an unused id given
                                       # an is_available function; new_id(is_available) = a new id.
-            existing_ids : []         # re-use these on loading for efficiency purposes
-            process      : undefined  # function that is called on output messages to mutate them
+            existing_ids       : []         # re-use these on loading for efficiency purposes
+            output_handler     : undefined  # h = output_handler(cell); h.message(...) -- hard to explain
             process_attachment : undefined  # process attachments:  attachment(base64, mime) --> sha1
 
         @_ipynb              = misc.deep_copy(opts.ipynb)
         @_new_id             = opts.new_id
-        @_process            = opts.process
+        @_output_handler     = opts.output_handler
         @_process_attachment = opts.process_attachment
         @_existing_ids       = opts.existing_ids  # option to re-use existing ids
 
@@ -55,7 +55,8 @@ class exports.IPynbImporter
         delete @_ipynb
         delete @_existing_ids
         delete @_new_id
-        delete @_process
+        delete @_output_handler
+        delete @_process_attachment
 
     ###
     Everything below is the internal private implementation.
@@ -154,7 +155,6 @@ class exports.IPynbImporter
             content.text = content.text.join('')
         remove_redundant_reps(content.data)        # multiple output formats
         delete content.prompt_number               # redundant; in some files
-        @_process?(content)  # chance to mutate the content, e.g., on backend, removes images and puts in blob store.
         return content
 
     _id_is_available: (id) =>
@@ -182,15 +182,22 @@ class exports.IPynbImporter
     _get_cell_type: (cell_type) =>
         return cell_type ? 'code'
 
-    _get_cell_output: (outputs, alt_outputs) =>
+    _get_cell_output: (outputs, alt_outputs, id) =>
         if outputs?.length > 0
-            output = {}
+            cell = {id:id, output:{}}
+            if @_output_handler?
+                handler = @_output_handler(cell)
+
             for k, content of outputs  # it's fine/good that k is a string here.
                 cocalc_alt = alt_outputs?[k]
                 if cocalc_alt?
                     content = cocalc_alt
-                output[k] = @_import_cell_output_content(content)
-            return output
+                @_import_cell_output_content(content)
+                if handler?
+                    handler.message(content)
+                else
+                    cell.output[k] = content
+            return cell.output
         else
             return null
 
@@ -207,12 +214,13 @@ class exports.IPynbImporter
             input = null
 
     _import_cell: (cell, n) =>
+        id = @_existing_ids?[n] ? @_get_new_id()
         obj =
             type       : 'cell'
-            id         : @_existing_ids?[n] ? @_get_new_id()
+            id         : id
             pos        : n
             input      : @_get_cell_input(cell.source, n)
-            output     : @_get_cell_output(cell.outputs, cell.metadata?.cocalc?.outputs)
+            output     : @_get_cell_output(cell.outputs, cell.metadata?.cocalc?.outputs, id)
             cell_type  : @_get_cell_type(cell.cell_type)
             exec_count : @_get_exec_count(cell.execution_count, cell.prompt_number)
 

@@ -134,7 +134,7 @@ exports.Kernel = rclass ({name}) ->
 
     render_trust: ->
         if @props.trust
-            <span style={color:'#666'}>Trusted</span>
+            <span style={color:'#888'}>Trusted</span>
         else
             <span
                 title = {'Notebook is not trusted'}

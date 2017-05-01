@@ -1462,7 +1462,8 @@ class exports.JupyterActions extends Actions
     set_to_ipynb: (ipynb) =>
         # set_to_ipynb - set from ipynb object.  This is
         # mainly meant to be run on the backend in the project,
-        # but can -- mainly for testing -- be run on the frontend too
+        # but is also run on the frontend too, e.g.,
+        # for client-side nbviewer.
         # (in which case it won't remove images, etc.).
 
         dbg = @dbg("set_to_ipynb")
@@ -1482,21 +1483,26 @@ class exports.JupyterActions extends Actions
         # We re-use any existing ids to make the patch that defines changing
         # to the contents of ipynb more efficient.   In case of a very slight change
         # on disk, this can be massively more efficient.
+        output_handler = (cell) =>
+
         importer.import
             ipynb              : ipynb
             existing_ids       : @store.get('cell_list')?.toJS()
             new_id             : @_new_id
-            process            : @_jupyter_kernel?.process_output
             process_attachment : @_jupyter_kernel?.process_attachment
+            output_handler     : @_output_handler   # undefined in client; defined in project
 
-        # preserve trust state across file updates/loads
-        trust = @store.get('trust')
-        @syncdb.delete(undefined, false)
+        trust = @store.get('trust')       # preserve trust state across file updates/loads
+        @syncdb.delete(undefined, false)  # completely empty database
+
+        # Set all the cells
         for _, cell of importer.cells()
             @syncdb.set(cell, false)
 
+        # Set the settings
         @syncdb.set({type: 'settings', kernel: importer.kernel(), trust:trust}, false)
 
+        # Set extra user-defined metadata
         metadata = importer.metadata()
         if metadata?
             @syncdb.set({type: 'settings', metadata: metadata}, false)

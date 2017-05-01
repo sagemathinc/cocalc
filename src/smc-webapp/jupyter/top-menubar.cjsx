@@ -42,7 +42,8 @@ exports.TopMenubar = rclass ({name}) ->
             next.kernel != @props.kernel or \
             next.backend_kernel_info != @props.backend_kernel_info or \
             next.cur_id != @props.cur_id or \
-            next.cells != @props.cells
+            next.cells != @props.cells or \
+            next.trust != @props.trust
 
     propTypes :
         actions : rtypes.object.isRequired

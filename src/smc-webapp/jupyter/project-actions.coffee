@@ -284,6 +284,18 @@ class exports.JupyterActions extends actions.JupyterActions
                 @manager_run_cell(cell.get('id'))
         delete @_manager_run_cell_queue
 
+    _output_handler: (cell) =>
+        handler = new OutputHandler
+            cell              : cell
+            max_output_length : @store.get('max_output_length')
+            report_started_ms : 250
+            dbg               : @dbg("handler(id='#{cell.id}')")
+
+        handler.on 'more_output', (mesg, mesg_length) =>
+            @set_more_output(cell.id, mesg, mesg_length)
+
+        handler.on('process', @_jupyter_kernel?.process_output)
+
     manager_run_cell: (id) =>
         dbg = @dbg("manager_run_cell(id='#{id}')")
         dbg()
@@ -315,11 +327,7 @@ class exports.JupyterActions extends actions.JupyterActions
             kernel : @store.get('kernel')
 
         dbg("using max_output_length=#{@store.get('max_output_length')}")
-        handler = new OutputHandler
-            cell              : cell
-            max_output_length : @store.get('max_output_length')
-            report_started_ms : 250
-            dbg               : (m) -> dbg(".handler #{m}")
+        handler = @_output_handler(cell)
 
         handler.on 'change', (save) =>
             @syncdb.set(cell, save)
@@ -329,14 +337,9 @@ class exports.JupyterActions extends actions.JupyterActions
             if @_run_again?[id]
                 @run_code_cell(id)
 
-        handler.on 'more_output', (mesg, mesg_length) =>
-            @set_more_output(id, mesg, mesg_length)
-
         if not @_jupyter_kernel?
             handler.error("Unable to start Jupyter")
             return
-
-        handler.on('process', @_jupyter_kernel.process_output)
 
         get_password = =>
             password = @_jupyter_kernel.store.get(id)
@@ -478,7 +481,7 @@ class exports.JupyterActions extends actions.JupyterActions
             maxsize_MB : 10
             cb         : (err, content) =>
                 if err
-                    error = "Error reading ipynb file '#{path}': #{err}.  You must restore access to this ipynb file somehow before continuing."
+                    error = "Error reading ipynb file '#{path}': #{err}.  Fix this to continue."
                     @syncdb.set(type:'fatal', error:error)
                     cb?(error)
                     return
