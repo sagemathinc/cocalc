@@ -109,7 +109,7 @@ describe 'get input using the python3 kernel -- ', ->
                     done()
 
 describe 'get input using the ir kernel -- ', ->
-    @timeout(10000)
+    @timeout(15000)
 
     it 'do it', (done) ->
         kernel = common.kernel('ir')
