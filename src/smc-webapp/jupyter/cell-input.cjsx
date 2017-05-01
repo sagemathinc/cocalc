@@ -27,24 +27,21 @@ href_transform = (project_id, cell) ->
         name = href.slice('attachment:'.length)
         data = cell.getIn(['attachments', name])
         ext  = misc.filename_extension(name)
-        console.log 'transform', data?.get('type')
         switch data?.get('type')
             when 'sha1'
                 sha1 = data.get('value')
                 return get_blob_url(project_id, ext, sha1)
             when 'base64'
-                console.log 'BASE64!'
                 if ext == 'jpg'
                     ext = 'jpeg'
                 return "data:image/#{ext};base64,#{data.get('value')}"
             else
                 return ''
 
-SPACE = RegExp(' ', 'g')
 markdown_post_hook = (elt) ->
     elt.find(':header').each (_, h) ->
         h    = $(h)
-        hash = h.text().replace(SPACE, '-')
+        hash = h.text().trim().replace(/\s/g,'-')
         h.attr('id', hash).addClass('cocalc-jupyter-header')
         h.append($('<a/>').addClass('cocalc-jupyter-anchor-link').attr('href', '#' + hash).text('¶'))
         return

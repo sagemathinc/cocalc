@@ -121,6 +121,8 @@ $.fn.process_smc_links = (opts={}) ->
             y = $(x)
             href = y.attr('href')
             if href?
+                if href[0] == '#'  # internal link - do not touch
+                    continue
                 if opts.href_transform?
                     href = opts.href_transform(href)
                 if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
