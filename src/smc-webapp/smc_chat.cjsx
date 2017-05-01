@@ -558,7 +558,7 @@ ChatRoom = rclass ({name}) ->
             value = misc.smiley
                 s: value
                 wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-            value = misc_page.sanitize_html(value)
+            value = misc_page.sanitize_html_safe(value)
             file_path = if @props.path? then misc.path_split(@props.path).head
 
             <Row ref="preview" style={position:'absolute', bottom:'0px', width:'100%'}>
