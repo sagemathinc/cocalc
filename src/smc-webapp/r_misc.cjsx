@@ -728,9 +728,11 @@ exports.HTML = rclass
         project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path   : rtypes.string   # optional -- ...
         className   : rtypes.string   # optional class
+        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
 
     getDefaultProps: ->
         has_mathjax : true
+        safeHTML    : true
 
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
@@ -782,7 +784,11 @@ exports.HTML = rclass
 
     render_html: ->
         if @props.value
-            {__html: require('./misc_page').sanitize_html(@props.value)}
+            if @props.safeHTML
+                html = require('./misc_page').sanitize_html_safe(@props.value)
+            else
+                html = require('./misc_page').sanitize_html(@props.value)
+            {__html: html}
         else
             {__html: ''}
 
@@ -797,11 +803,15 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value      : rtypes.string
-        style      : rtypes.object
-        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path  : rtypes.string   # optional -- ...
-        className  : rtypes.string   # optional class
+        value       : rtypes.string
+        style       : rtypes.object
+        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path   : rtypes.string   # optional -- ...
+        className   : rtypes.string   # optional class
+        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+
+    getDefaultProps: ->
+        safeHTML : true
 
     to_html: ->
         if @props.value
@@ -821,7 +831,8 @@ exports.Markdown = rclass
             style        = {@props.style}
             project_id   = {@props.project_id}
             file_path    = {@props.file_path}
-            className    = {@props.className}>
+            className    = {@props.className}
+            safeHTML     = {@props.safeHTML}>
         </HTML>
 
 activity_style =
