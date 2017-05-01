@@ -10,6 +10,7 @@ common = require('./common')
 {output} = common
 
 describe 'compute 4/3 using the python2 kernel -- ', ->
+
     @timeout(10000)
 
     kernel = undefined
@@ -29,7 +30,7 @@ describe 'compute 4/3 using the python2 kernel -- ', ->
         kernel.close()
 
 describe 'test the bash kernel --', ->
-    @timeout(5000)
+    @timeout(8000)
     kernel = undefined
 
     it 'pwd', (done) ->
@@ -185,7 +186,32 @@ describe 'test the sage R kernel --', ->
     it 'closes the kernel', ->
         kernel.close()
 
+describe 'test the scala kernel --', ->
+    @timeout(30000)
+    kernel = undefined
+    it 'matchTest', (done) ->
+        kernel = common.kernel('scala211')
+        kernel.execute_code
+            code : """
+                   object MatchTest1 extends App {
+                       def matchTest(x: Int): String = x match {
+                           case 1 => "one"
+                           case 2 => "two"
+                           case _ => "many"
+                       }
+                       println(matchTest(3))
+                   }
+                   """
+            all  : true
+            cb   : (err, v) ->
+                if err
+                    done(err)
+                else
+                    expect(output(v)).toEqual({'text/plain': 'defined \x1b[32mobject \x1b[36mMatchTest1\x1b[0m'})
+                    done()
 
+    it 'closes the kernel', ->
+        kernel.close()
 
 
 
