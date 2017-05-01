@@ -739,6 +739,11 @@ exports.HTML = rclass
         className      : rtypes.string   # optional class
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+                                         # the jQuery wrapped set that is created (and discarded!) in the course of
+                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                         # before it is exported to text and given to react.   Obviously, you can't
+                                         # install click handlers here.
 
     getDefaultProps: ->
         has_mathjax : true
@@ -806,9 +811,9 @@ exports.HTML = rclass
     render_html: ->
         if @props.value
             if @props.safeHTML
-                html = require('./misc_page').sanitize_html_safe(@props.value)
+                html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
-                html = require('./misc_page').sanitize_html(@props.value)
+                html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
             {__html: html}
         else
             {__html: ''}
@@ -831,6 +836,7 @@ exports.Markdown = rclass
         className      : rtypes.string   # optional class
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function used to first transform href target strings
+        post_hook      : rtypes.func     # see docs to HTML
 
     getDefaultProps: ->
         safeHTML : true
@@ -855,6 +861,7 @@ exports.Markdown = rclass
             file_path      = {@props.file_path}
             className      = {@props.className}
             href_transform = {@props.href_transform}
+            post_hook      = {@props.post_hook}
             safeHTML       = {@props.safeHTML} />
 
 activity_style =

@@ -880,7 +880,7 @@ exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = tr
                 sanitize_html_attributes($, this)
         cb(sani.html())
 
-exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, keepScripts = false, keepUnsafeAttributes = false)
+exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, false, false)
 
 # common configuration for webpack and hub
 # inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?

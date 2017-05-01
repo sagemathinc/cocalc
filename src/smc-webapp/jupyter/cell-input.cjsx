@@ -40,6 +40,15 @@ href_transform = (project_id, cell) ->
             else
                 return ''
 
+SPACE = RegExp(' ', 'g')
+markdown_post_hook = (elt) ->
+    elt.find(':header').each (_, h) ->
+        h    = $(h)
+        hash = h.text().replace(SPACE, '-')
+        h.attr('id', hash).addClass('cocalc-jupyter-header')
+        h.append($('<a/>').addClass('cocalc-jupyter-anchor-link').attr('href', '#' + hash).text('¶'))
+        return
+
 exports.CellInput = rclass
     propTypes:
         actions          : rtypes.object   # not defined = read only
@@ -137,6 +146,7 @@ exports.CellInput = rclass
                             project_id     = {@props.project_id}
                             file_path      = {@props.directory}
                             href_transform = {href_transform(@props.project_id, @props.cell)}
+                            post_hook      = {markdown_post_hook}
                             safeHTML       = {not @props.trust}
                         />
                     </div>
