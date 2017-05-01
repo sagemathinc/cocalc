@@ -187,13 +187,14 @@ Data = rclass
                                     value      = {value}
                                     project_id = {@props.project_id}
                                     file_path  = {@props.directory}
+                                    safeHTML   = {not @props.trust}
                                    />
                         when 'markdown'
-                            console.log 'markdown'
                             return <Markdown
                                     value          = {value}
                                     project_id     = {@props.project_id}
                                     file_path      = {@props.directory}
+                                    safeHTML       = {not @props.trust}
                                 />
                 when 'image'
                     return <Image

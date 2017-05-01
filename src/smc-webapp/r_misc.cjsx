@@ -731,13 +731,13 @@ exports.HTML = rclass
     displayName : 'Misc-HTML'
 
     propTypes :
-        value       : rtypes.string
-        style       : rtypes.object
-        has_mathjax : rtypes.bool
-        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path   : rtypes.string   # optional -- ...
-        className   : rtypes.string   # optional class
-        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        value          : rtypes.string
+        style          : rtypes.object
+        has_mathjax    : rtypes.bool
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function that link/src hrefs are fed through
 
     getDefaultProps: ->
@@ -745,7 +745,9 @@ exports.HTML = rclass
         safeHTML    : true
 
     shouldComponentUpdate: (newProps) ->
-        return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
+        return @props.value != newProps.value or \
+             not underscore.isEqual(@props.style, newProps.style) or \
+             @props.safeHTML != newProps.safeHTML
 
     _update_escaped_chars: ->
         if not @_is_mounted
@@ -822,12 +824,12 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value       : rtypes.string
-        style       : rtypes.object
-        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path   : rtypes.string   # optional -- ...
-        className   : rtypes.string   # optional class
-        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        value          : rtypes.string
+        style          : rtypes.object
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function used to first transform href target strings
 
     getDefaultProps: ->
@@ -842,19 +844,19 @@ exports.Markdown = rclass
             {s: '', has_mathjax: false}
 
     render: ->
+        console.log 'markdown', @props.safeHTML
         HTML = exports.HTML
         value = @to_html()
         #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
         <HTML
-            value        = {value.s}
-            has_mathjax  = {value.has_mathjax}
-            style        = {@props.style}
-            project_id   = {@props.project_id}
-            file_path    = {@props.file_path}
-            className    = {@props.className}
+            value          = {value.s}
+            has_mathjax    = {value.has_mathjax}
+            style          = {@props.style}
+            project_id     = {@props.project_id}
+            file_path      = {@props.file_path}
+            className      = {@props.className}
             href_transform = {@props.href_transform}
-            safeHTML     = {@props.safeHTML}>
-        </HTML>
+            safeHTML       = {@props.safeHTML} />
 
 activity_style =
     float           : 'right'

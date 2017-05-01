@@ -53,6 +53,7 @@ exports.CellInput = rclass
         directory        : rtypes.string
         complete         : rtypes.immutable.Map              # status of tab completion
         cell_toolbar     : rtypes.string
+        trust            : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return \
@@ -66,6 +67,7 @@ exports.CellInput = rclass
             next.cell.get('cursors')      != @props.cell.get('cursors') or \
             next.cell.get('line_numbers') != @props.cell.get('line_numbers') or \
             next.cm_options               != @props.cm_options or \
+            next.trust                    != @props.trust or \
             (next.is_markdown_edit        != @props.is_markdown_edit and next.cell.get('cell_type') == 'markdown') or \
             next.is_focused               != @props.is_focused or \
             next.is_current               != @props.is_current or \
@@ -135,6 +137,7 @@ exports.CellInput = rclass
                             project_id     = {@props.project_id}
                             file_path      = {@props.directory}
                             href_transform = {href_transform(@props.project_id, @props.cell)}
+                            safeHTML       = {not @props.trust}
                         />
                     </div>
             else

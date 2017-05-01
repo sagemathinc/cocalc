@@ -60,6 +60,7 @@ exports.Cell = rclass
             directory        = {@props.directory}
             complete         = {@props.complete if @props.is_current}
             cell_toolbar     = {@props.cell_toolbar}
+            trust            = {@props.trust}
             />
 
     render_cell_output: (cell) ->
