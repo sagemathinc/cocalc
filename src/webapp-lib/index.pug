@@ -41,19 +41,43 @@ block content
         a.btn.btn-success.btn-lg(href="app").
           Start #{NAME} For Free
     div.row
+      div.col-md-12.center
+        h1 Zero setup
       div.col-sm-6
         img(src=require('!file!sagepreview/01-worksheet.png'))
       div.col-sm-6
-        h1.
-          Powerful Online
-        div.
-          #{htmlWebpackPlugin.options.title} is a ...
-        div.
-          You start working in free and private projects.
+        p.
+          #{NAME} is a sophisticated all-round web-service for
+          #[strong mathematical calculation], #[strong statistical analysis] and #[strong various other computation].
+        ul
+          li.
+            Getting started #[em does not require any software installation]:
+            #[strong Create a project for free] to start working in your own private workspace.
+          li Share your files privately with collaborators. All files are synchronized in real-time.
+          li Finally, you can publish your documents, files and data publicly.
+        p.
           Each project starts with a maximum of #{free_memory_gb} GB memory and
           #{free_disk_gb} GB of disk space.
-        div.
+          #[a(href="policies/pricing.html") Subscriptions] give you
+        p.
           #[a(href="app") Start #{htmlWebpackPlugin.options.title} For Free]
+
+    div.row
+      div.col-md-12.center
+        h1 Teaching made easy
+      div.col-sm-6.
+        ...
+      div.col-sm-6
+        p.
+          Have you ever experieneced the pain setting up the software environments of your students?
+          With #{NAME} #[strong no software needs to be setup] and with its unique features you
+          can finally #[strong focus on your students again]!
+        ol
+          li Create a course on #{NAME}
+          li Add your students
+          li Distribute assignments and handouts
+          li Jump into student's files right where they are working
+          li Collect and grade assignments
 
   div#explore
     div.container
@@ -192,10 +216,11 @@ block content
           width        : 100%
           height       : auto
         &.row
-          margin-top   : 3rem
-          margin-bottom: 2rem
-          > div > h2
-            margin-bottom : 3rem
+          margin-top   : 2rem
+          margin-bottom: 4rem
+          > div
+            > h2, h3
+              margin-bottom : 2rem
       .center
         text-align     : center
       .right
@@ -204,7 +229,7 @@ block content
       #statstable td.left
         text-align     : left
       #explore
-        background-color : $COL_GRAY_LLL
+        background-color : $COL_GRAY_LL
         div > h3
           white-space    : nowrap
       #included > div
