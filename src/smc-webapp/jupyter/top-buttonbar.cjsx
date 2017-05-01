@@ -26,11 +26,13 @@ exports.TopButtonbar = rclass ({name}) ->
             cur_id              : rtypes.string          # id of currently selected cell
             sel_ids             : rtypes.immutable.Set   # set of selected cells
             has_unsaved_changes : rtypes.bool
+            kernel_state        : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.cur_id != @props.cur_id or \
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
-            next.has_unsaved_changes != @props.has_unsaved_changes
+            next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.kernel_state != @props.kernel_state
 
     command: (name, focus) ->
         return =>
@@ -42,11 +44,13 @@ exports.TopButtonbar = rclass ({name}) ->
                 @props.actions.blur()
 
     render_button: (key, name) ->
+        if typeof(name) == 'object'
+            {name, disabled} = name
         obj = @props.actions._commands?[name]
         if not obj?
             return
         focus = not misc.endswith(obj.m, '...')
-        <Button key={key} onClick={@command(name, focus)} title={obj.m} >
+        <Button key={key} onClick={@command(name, focus)} title={obj.m} disabled={disabled} >
             <Icon name={obj.i}/>
         </Button>
 
@@ -69,7 +73,7 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button_group(['move cell up', 'move cell down'])
 
     render_group_run: ->
-        @render_button_group(['run cell and select next', 'interrupt kernel'])
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
