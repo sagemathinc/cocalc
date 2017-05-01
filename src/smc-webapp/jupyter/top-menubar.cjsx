@@ -152,9 +152,10 @@ exports.TopMenubar = rclass ({name}) ->
                 @render_kernel_item(kernel)
 
     render_kernel: ->
+        items = @render_kernel_items()
         names = ['interrupt kernel', 'confirm restart kernel', 'confirm restart kernel and clear output', \
                  'confirm restart kernel and run all cells', '', \
-                 '<Change kernel...'].concat(@render_kernel_items())
+                 '<Change kernel...'].concat(items)
 
         @render_menu
             heading : 'Kernel'
@@ -176,6 +177,8 @@ exports.TopMenubar = rclass ({name}) ->
     menu_item: (key, name) ->
         # TODO: this got complicated and should be its own component
         if name
+            if name.props?
+                return name  # it's already a MenuItem components
             if typeof(name) == 'object'
                 # use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
                 {name, display, style} = name
@@ -184,8 +187,6 @@ exports.TopMenubar = rclass ({name}) ->
             else
                 display = undefined
             style ?= {}
-            if typeof(name) != 'string'
-                return name  # it's already a MenuItem
             if name[0] == '<'
                 disabled = true
                 name = name.slice(1)
