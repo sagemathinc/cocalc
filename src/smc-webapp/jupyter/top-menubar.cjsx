@@ -305,9 +305,9 @@ exports.TopMenubar = rclass ({name}) ->
                 Help
             </Dropdown.Toggle>
             <Dropdown.Menu>
-                <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
+                <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} ><Icon name='question-circle'/>  About...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}>Keyboard Shortcuts...</MenuItem>
+                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}

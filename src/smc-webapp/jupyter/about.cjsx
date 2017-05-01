@@ -6,6 +6,7 @@ Ansi = require('ansi-to-react')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, Modal} = require('react-bootstrap')
+{Icon} = require('../r_misc')
 
 exports.About = rclass
     propTypes :
@@ -38,7 +39,7 @@ exports.About = rclass
     render: ->
         <Modal show={@props.about} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
-                <Modal.Title>About CoCalc Jupyter Notebook</Modal.Title>
+                <Modal.Title><Icon name='question-circle'/> About CoCalc Jupyter Notebook</Modal.Title>
             </Modal.Header>
             <Modal.Body>
 
@@ -46,17 +47,21 @@ exports.About = rclass
                     You are using the CoCalc Jupyter notebook.
                 </p>
 
-                <p style={color:'#666'}>
-                    CoCalc Jupyter notebook is a reimplementation by SageMath, Inc.
-                    of both the Jupyter notebook client and server that was made popular
-                    by the <a href="http://jupyter.org/" target="_blank">Jupyter project</a>.
-                    CoCalc Jupyter notebook is better than the official Jupyter notebook
-                    in that it supports TimeTravel showing the history of
-                    how a notebook was created, document-wide undo, multiple
-                    simultaneous people editing the same document, and
-                    much, much more.  The main drawback is that official
+                <p style={color:'#666', margin: '0px 45px'}>
+                    CoCalc Jupyter notebook is a complete rewrite by SageMath, Inc.
+                    of the classical Jupyter notebook client from
+                    the <a href="http://jupyter.org/" target="_blank">Jupyter project</a>.
+                    CoCalc Jupyter notebook maintains full compatibility with the file format
+                    and general look and feel of the classical notebook.
+                    It improves on the classical notebook
+                    in that it supports multiple simultaneous users, TimeTravel showing the history of
+                    how a notebook was created, document-wide user-aware undo, a raw file edit mode,
+                    a cleaner more modern look with buttons and menus that better reflect state,
+                    more sophisticated handling of large output, and background
+                    capturing of output even if no user has the notebook open in their browser.
+                    Some functionality of classical
                     extensions and widgets are not yet supported (if you need
-                    something in an extension, let us know).
+                    something, let us know).
                 </p>
 
                 <h4>Server Information</h4>
