@@ -24,6 +24,10 @@ TITLE_STYLE =
     border          : 0
     backgroundColor : 'rgb(247,247,247)'
 
+SELECTED_STYLE =
+    color      : '#2196F3'
+    fontWeight : 'bold'
+
 exports.TopMenubar = rclass ({name}) ->
     reduxProps :
         "#{name}" :
@@ -35,6 +39,7 @@ exports.TopMenubar = rclass ({name}) ->
             cells               : rtypes.immutable.Map
             cur_id              : rtypes.string
             trust               : rtypes.bool
+            view_mode           : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
@@ -43,7 +48,8 @@ exports.TopMenubar = rclass ({name}) ->
             next.backend_kernel_info != @props.backend_kernel_info or \
             next.cur_id != @props.cur_id or \
             next.cells != @props.cells or \
-            next.trust != @props.trust
+            next.trust != @props.trust or \
+            next.view_mode != @props.view_mode
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -61,11 +67,15 @@ exports.TopMenubar = rclass ({name}) ->
         else
             trust = {name:"trust notebook", display:"Trust Notebook..."}
 
+        save = 'save notebook'
+        if not @props.has_unsaved_changes
+            save = '<' + save
+
         @render_menu
             heading : 'File'
             names   : [
                 'new notebook', 'open file', '', \
-                'duplicate notebook', 'rename notebook', 'save notebook', 'time travel', '', \
+                'duplicate notebook', 'rename notebook', save, 'time travel', '', \
                 'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 trust, '', \
                 'close and halt'
@@ -84,13 +94,19 @@ exports.TopMenubar = rclass ({name}) ->
                  "#{if cell_type != 'markdown' then '<' else ''}insert image"]  # disable if not markdown
 
     render_view: ->
+        shownb =
+            normal : '>view notebook normal'
+            raw    : '>view notebook raw'
+            json   : '>view notebook json'
+        shownb[@props.view_mode] = {name:shownb[@props.view_mode], style:SELECTED_STYLE}
+
         @render_menu
             heading : 'View'
             names : \
                 ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
                  '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '>cell toolbar attachments', '>cell toolbar tags', '', \
                  'zoom in', 'zoom out', '', \
-                 "<Show Notebook as...", ">view notebook normal", ">view notebook raw", ">view notebook json"]
+                 "<Show Notebook as...", shownb.normal, shownb.raw, shownb.json]
 
     render_insert: ->
         @render_menu
@@ -158,12 +174,16 @@ exports.TopMenubar = rclass ({name}) ->
                 @focus()
 
     menu_item: (key, name) ->
+        # TODO: this got complicated and should be its own component
         if name
-            if name?.display?
+            if typeof(name) == 'object'
                 # use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
-                {name, display} = name
+                {name, display, style} = name
+                if style?
+                    style = misc.copy(style)
             else
                 display = undefined
+            style ?= {}
             if typeof(name) != 'string'
                 return name  # it's already a MenuItem
             if name[0] == '<'
@@ -173,13 +193,11 @@ exports.TopMenubar = rclass ({name}) ->
                 disabled = false
 
             if name[0] == '>'
-                indent = <span style={marginLeft:'4ex'}/>
+                style.marginLeft = '4ex'
                 name = name.slice(1)
-            else
-                indent = ''
             obj = @props.actions._commands?[name]
             if not obj?
-                return <MenuItem disabled={disabled} key={key}>{indent} {display ? name}</MenuItem>
+                return <MenuItem disabled={disabled} key={key}><span style={style}>{display ? name}</span></MenuItem>
 
             shortcut = obj.k?[0]
             if shortcut?
@@ -192,7 +210,9 @@ exports.TopMenubar = rclass ({name}) ->
                 onSelect = {@command(name)}
                 disabled = {disabled}
                 >
-                {indent} {display ? obj.m ? name} {s}
+                <span style={style}>
+                    {display ? obj.m ? name} {s}
+                </span>
             </MenuItem>
         else
             <MenuItem key={key} divider />
@@ -286,7 +306,6 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Menu>
                 <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} >About</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-ui-tour">User Interface Tour</MenuItem>
                 <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}>Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}

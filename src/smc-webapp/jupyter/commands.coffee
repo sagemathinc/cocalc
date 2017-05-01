@@ -485,7 +485,7 @@ exports.commands = (actions) ->
         f : -> actions.set_mode('escape'); actions.split_current_cell()
 
     'time travel' :
-        m : 'Time Travel...'
+        m : 'TimeTravel...'
         f : -> actions.show_history_viewer()
 
     'toggle all cells output collapsed':

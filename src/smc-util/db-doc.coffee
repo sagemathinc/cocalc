@@ -187,7 +187,7 @@ class DBDoc
             if not v?
                 return immutable.Set() # no matches for this field - done
             if len == 1
-                # no need to do further intersection 
+                # no need to do further intersection
                 return v
             if result?
                 # intersect with what we've found so far via indexes.
