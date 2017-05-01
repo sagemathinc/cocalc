@@ -285,6 +285,8 @@ class exports.JupyterActions extends actions.JupyterActions
         delete @_manager_run_cell_queue
 
     _output_handler: (cell) =>
+        @reset_more_output(cell.id)
+
         handler = new OutputHandler
             cell              : cell
             max_output_length : @store.get('max_output_length')
@@ -319,7 +321,6 @@ class exports.JupyterActions extends actions.JupyterActions
             return
 
         @_running_cells[id] = true
-        @reset_more_output(id)
 
         cell =
             id     : id
@@ -386,6 +387,8 @@ class exports.JupyterActions extends actions.JupyterActions
                     handler.message(mesg.content)
 
     reset_more_output: (id) =>
+        if not id?
+            delete @store._more_output
         if @store._more_output?[id]?
             delete @store._more_output[id]
 

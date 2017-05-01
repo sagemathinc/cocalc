@@ -1480,10 +1480,11 @@ class exports.JupyterActions extends Actions
 
         importer = new IPynbImporter()
 
-        # We re-use any existing ids to make the patch that defines changing
+        # NOTE: Below we re-use any existing ids to make the patch that defines changing
         # to the contents of ipynb more efficient.   In case of a very slight change
         # on disk, this can be massively more efficient.
-        output_handler = (cell) =>
+
+        @reset_more_output?()  # clear the more output handler (only on backend)
 
         importer.import
             ipynb              : ipynb

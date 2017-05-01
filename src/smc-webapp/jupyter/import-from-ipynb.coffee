@@ -197,6 +197,7 @@ class exports.IPynbImporter
                     handler.message(content)
                 else
                     cell.output[k] = content
+            handler?.done()
             return cell.output
         else
             return null
