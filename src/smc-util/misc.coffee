@@ -2052,3 +2052,15 @@ exports.op_to_function = (op) ->
             return (a,b) -> a > b
         else
             throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
+
+# this is a helper for sanitizing html. It is used in
+# * smc-util-node/misc_node → sanitize_html
+# * smc-webapp/misc_page    → sanitize_html
+exports.sanitize_html_attributes = ($, node) ->
+    $.each node.attributes, ->
+        attrName  = this.name
+        attrValue = this.value
+        # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...
+        # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
+        if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
+            $(node).removeAttr(attrName)

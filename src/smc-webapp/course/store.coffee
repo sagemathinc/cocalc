@@ -97,14 +97,14 @@ exports.CourseStore = class CourseStore extends Store
             full_name = last_name
         else
             full_name = email ? 'student'
-        if not include_email
-            return full_name
         if include_email and full_name? and email?
             full = full_name + " <#{email}>"
         else
             full = full_name
         if full_name == 'Unknown User' and email?
             full_name = email
+        if not include_email
+            return full_name
         return {simple:full_name.replace(/\W/g, ' '), full:full}
 
     get_student_email: (student) =>
