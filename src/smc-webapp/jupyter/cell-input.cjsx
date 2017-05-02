@@ -100,57 +100,68 @@ exports.CellInput = rclass
         @props.actions.set_cur_id(id)
         @props.actions.set_mode('edit')
 
-    line_numbers: (options) ->
+    options: (type) ->
+        switch type
+            when 'code'
+                options = @props.cm_options.get('options')
+            when 'markdown'
+                options = @props.cm_options.get('markdown')
+            else
+                options = @props.cm_options.get('options')
+                options = options.delete('mode')
         if @props.cell.get('line_numbers')?
             options = options.set('lineNumbers', @props.cell.get('line_numbers'))
         return options
+
+    render_codemirror: (type) ->
+        <CodeMirror
+            value         = {@props.cell.get('input') ? ''}
+            options       = {@options(type)}
+            actions       = {@props.actions}
+            id            = {@props.cell.get('id')}
+            is_focused    = {@props.is_focused}
+            font_size     = {@props.font_size}
+            cursors       = {@props.cell.get('cursors')}
+        />
+
+    render_markdown: ->
+        value = @props.cell.get('input')?.trim()
+        if not value
+            value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
+        <div
+            onDoubleClick = {@handle_md_double_click}
+            style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
+            className     = 'cocalc-jupyter-rendered'
+            >
+            <Markdown
+                value          = {value}
+                project_id     = {@props.project_id}
+                file_path      = {@props.directory}
+                href_transform = {href_transform(@props.project_id, @props.cell)}
+                post_hook      = {markdown_post_hook}
+                safeHTML       = {not @props.trust}
+            />
+        </div>
+
+    render_unsupported: (type) ->
+        <div>
+            Unsupported cell type {type}
+        </div>
 
     render_input_value: (type) ->
         id = @props.cell.get('id')
         switch type
             when 'code'
-                <CodeMirror
-                    value         = {@props.cell.get('input') ? ''}
-                    options       = {@line_numbers(@props.cm_options.get('options'))}
-                    actions       = {@props.actions}
-                    id            = {id}
-                    is_focused    = {@props.is_focused}
-                    font_size     = {@props.font_size}
-                    cursors       = {@props.cell.get('cursors')}
-                />
+                @render_codemirror(type)
+            when 'raw'
+                @render_codemirror(type)
             when 'markdown'
                 if @props.is_markdown_edit
-                    <CodeMirror
-                        value         = {@props.cell.get('input') ? ''}
-                        options       = {@line_numbers(@props.cm_options.get('markdown'))}
-                        actions       = {@props.actions}
-                        id            = {id}
-                        is_focused    = {@props.is_focused}
-                        font_size     = {@props.font_size}
-                        cursors       = {@props.cell.get('cursors')}
-                    />
+                    @render_codemirror(type)
                 else
-                    value = @props.cell.get('input')?.trim()
-                    if not value
-                        value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
-                    <div
-                        onDoubleClick = {@handle_md_double_click}
-                        style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
-                        className     = 'cocalc-jupyter-rendered'
-                        >
-                        <Markdown
-                            value          = {value}
-                            project_id     = {@props.project_id}
-                            file_path      = {@props.directory}
-                            href_transform = {href_transform(@props.project_id, @props.cell)}
-                            post_hook      = {markdown_post_hook}
-                            safeHTML       = {not @props.trust}
-                        />
-                    </div>
+                    @render_markdown()
             else
-                <div>
-                    Unsupported cell type {type}
-                </div>
+                @render_unsupported(type)
 
     render_complete: ->
         if @props.complete?
