@@ -744,7 +744,11 @@ exports.CourseActions = class CourseActions extends Actions
         collect_path = @_collect_path(path)
         path_parts = misc.path_split(path)
         # folder that we return graded homework to (in student project)
-        graded_path = path_parts.head + '/graded-' + path_parts.tail
+        if path_parts.head
+            beginning = '/graded-'
+        else
+            beginning = 'graded-'
+        graded_path = path_parts.head + beginning + path_parts.tail
         # folder where we copy the assignment to
         target_path = path
 
