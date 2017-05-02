@@ -83,6 +83,12 @@ exports.CodeMirrorEditor = rclass
         locs = ({x:c.anchor.ch, y:c.anchor.line, id:@props.id} for c in @cm.listSelections())
         @props.actions.set_cursor_locs(locs)
 
+        # See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
+        cell_list_top = @props.actions._cell_list_div?.offset().top
+        if cell_list_top? and @cm.cursorCoords(true, 'window').top < cell_list_top
+            scroll = @props.actions._cell_list_div.scrollTop()
+            @props.actions._cell_list_div.scrollTop(scroll - (cell_list_top - @cm.cursorCoords(true, 'window').top) - 20)
+
     _cm_save: ->
         if not @cm? or not @props.actions?
             return

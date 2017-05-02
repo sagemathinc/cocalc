@@ -110,24 +110,24 @@ exports.CellInput = rclass
         switch type
             when 'code'
                 <CodeMirror
-                    value        = {@props.cell.get('input') ? ''}
-                    options      = {@line_numbers(@props.cm_options.get('options'))}
-                    actions      = {@props.actions}
-                    id           = {id}
-                    is_focused   = {@props.is_focused}
-                    font_size    = {@props.font_size}
-                    cursors      = {@props.cell.get('cursors')}
+                    value         = {@props.cell.get('input') ? ''}
+                    options       = {@line_numbers(@props.cm_options.get('options'))}
+                    actions       = {@props.actions}
+                    id            = {id}
+                    is_focused    = {@props.is_focused}
+                    font_size     = {@props.font_size}
+                    cursors       = {@props.cell.get('cursors')}
                 />
             when 'markdown'
                 if @props.is_markdown_edit
                     <CodeMirror
-                        value      = {@props.cell.get('input') ? ''}
-                        options    = {@line_numbers(@props.cm_options.get('markdown'))}
-                        actions    = {@props.actions}
-                        id         = {id}
-                        is_focused = {@props.is_focused}
-                        font_size  = {@props.font_size}
-                        cursors    = {@props.cell.get('cursors')}
+                        value         = {@props.cell.get('input') ? ''}
+                        options       = {@line_numbers(@props.cm_options.get('markdown'))}
+                        actions       = {@props.actions}
+                        id            = {id}
+                        is_focused    = {@props.is_focused}
+                        font_size     = {@props.font_size}
+                        cursors       = {@props.cell.get('cursors')}
                     />
                 else
                     value = @props.cell.get('input')?.trim()
