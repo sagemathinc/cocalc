@@ -62,6 +62,8 @@ exports.CodeMirrorEditor = rclass
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
         @props.actions.set_mode('edit')
+        if @_vim_mode
+            $(@cm.getWrapperElement()).css(paddingBottom:'1.5em')
         @_cm_cursor()
 
     _cm_blur: ->
@@ -69,6 +71,8 @@ exports.CodeMirrorEditor = rclass
         if not @cm? or not @props.actions?
             return
         @props.set_last_cursor(@cm.getCursor())
+        if @_vim_mode
+            return
         @props.actions.set_mode('escape')
 
     _cm_cursor: ->
@@ -168,8 +172,8 @@ exports.CodeMirrorEditor = rclass
 
         @cm = CodeMirror.fromTextArea(node, options0)
         @cm.save = => @props.actions.save()
-
         if @props.actions? and options0.keyMap == 'vim'
+            @_vim_mode = true
             @cm.on 'vim-mode-change', (obj) =>
                 if obj.mode == 'normal'
                     # The timeout is because this must not be set when the general
@@ -179,6 +183,8 @@ exports.CodeMirrorEditor = rclass
                     setTimeout((=>@props.actions.setState(cur_cell_vim_mode: 'escape')), 0)
                 else
                     @props.actions.setState(cur_cell_vim_mode: 'edit')
+        else
+            @_vim_mode = false
 
         css = {height: 'auto'}
         if not options0.theme?
@@ -234,6 +240,9 @@ exports.CodeMirrorEditor = rclass
             # this somehow.  Note that codemirror has no .blur().
             # See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
             setTimeout((=>@cm?.getInputField().blur()), 1)
+        if @_vim_mode and not next.is_focused and @props.is_focused
+            $(@cm.getWrapperElement()).css(paddingBottom:0)
+
 
     componentWillUnmount: ->
         if @cm?
