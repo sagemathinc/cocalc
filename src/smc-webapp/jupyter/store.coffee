@@ -109,9 +109,12 @@ class exports.JupyterStore extends Store
             cell_list     : @get('cell_list')
             metadata      : @get('metadata')  # custom metadata
             kernelspec    : @get_kernel_info(@get('kernel'))
-            language_info : @getIn(['backend_kernel_info','language_info'])
+            language_info : @get_language_info()
             blob_store    : blob_store
             more_output   : more_output
+
+    get_language_info: =>
+        return @getIn(['backend_kernel_info','language_info']) ? @getIn(['settings', 'metadata', 'language_info'])
 
     get_more_output: (id) =>
         if @_is_project

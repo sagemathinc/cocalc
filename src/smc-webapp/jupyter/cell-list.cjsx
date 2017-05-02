@@ -64,7 +64,7 @@ exports.CellList = rclass
             # setup a click handler so we can manage focus
             $(window).on('click', @window_click)
 
-        @props.actions._cell_list_div = $(ReactDOM.findDOMNode(@refs.cell_list))
+        @props.actions?._cell_list_div = $(ReactDOM.findDOMNode(@refs.cell_list))
 
     window_click: (event) ->
         # if click in the cell list, focus the cell list; otherwise, blur it.

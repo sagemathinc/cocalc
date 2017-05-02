@@ -29,7 +29,6 @@ class exports.IPynbImporter
 
         @_sanity_improvements()
         @_import_settings()
-        @_import_language_info()
         @_import_metadata()
         @_handle_old_versions()
         @_read_in_cells()
@@ -43,9 +42,6 @@ class exports.IPynbImporter
 
     metadata: =>
         return @_metadata
-
-    language_info: =>
-        return @_language_info
 
     close: =>
         delete @_cells
@@ -95,16 +91,13 @@ class exports.IPynbImporter
     _import_settings: =>
         @_kernel = @_ipynb?.metadata?.kernelspec?.name
 
-    _import_language_info: =>
-        @_language_info = @_ipynb?.metadata?.language_info
-
     _import_metadata: =>
         m = @_ipynb?.metadata
         if not m?
             return
         metadata = {}
         for k, v of m
-            if k == 'kernelspec' or k == 'language_info'
+            if k == 'kernelspec'
                 continue
             metadata[k] = v
         if misc.len(metadata) > 0
