@@ -106,9 +106,10 @@ exports.CellInput = rclass
                 options = @props.cm_options.get('options')
             when 'markdown'
                 options = @props.cm_options.get('markdown')
-            else
+            else  # raw
                 options = @props.cm_options.get('options')
-                options = options.delete('mode')
+                options = options.set('mode',{})
+                options = options.set('foldGutter', false)  # no use with no mode
         if @props.cell.get('line_numbers')?
             options = options.set('lineNumbers', @props.cell.get('line_numbers'))
         return options
