@@ -40,6 +40,7 @@ exports.TopMenubar = rclass ({name}) ->
             cur_id              : rtypes.string
             trust               : rtypes.bool
             view_mode           : rtypes.string
+            toolbar             : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
@@ -49,6 +50,7 @@ exports.TopMenubar = rclass ({name}) ->
             next.cur_id != @props.cur_id or \
             next.cells != @props.cells or \
             next.trust != @props.trust or \
+            next.toolbar != @props.toolbar or \
             next.view_mode != @props.view_mode
 
     propTypes :
@@ -100,10 +102,12 @@ exports.TopMenubar = rclass ({name}) ->
             json   : '>view notebook json'
         shownb[@props.view_mode] = {name:shownb[@props.view_mode], style:SELECTED_STYLE}
 
+        toolbar = {name:'toggle toolbar', display:if @props.toolbar then 'Hide Toolbar' else 'Show Toolbar'}
+
         @render_menu
             heading : 'View'
             names : \
-                ['toggle header', 'toggle toolbar', 'toggle all line numbers', '', \
+                ['toggle header', toolbar, 'toggle all line numbers', '', \
                  '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '>cell toolbar attachments', '>cell toolbar tags', '', \
                  'zoom in', 'zoom out', '', \
                  "<Show Notebook as...", shownb.normal, shownb.raw, shownb.json]
