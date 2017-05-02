@@ -119,7 +119,7 @@ exports.CourseActions = class CourseActions extends Actions
                 if key?
                     t = t.set(table, t.get(table).set(x.get(key), x))
                 else if table == 'settings'
-                    t = t.set(table, x)
+                    t = t.set(table, t.get(table).merge(x.delete('table')))
                 else
                     # no idea what to do with this
                     console.warn("unknown table '#{table}'")
