@@ -197,7 +197,6 @@ exports.StudentAssignmentInfo = rclass
 
     render_grade_score: ->
         if @state.editing_grade
-            console.log "FormControl Value:", @state.edited_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
                     <InputGroup>
