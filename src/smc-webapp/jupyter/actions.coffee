@@ -1459,13 +1459,16 @@ class exports.JupyterActions extends Actions
                     @set_error("Error setting backend key/value store (#{err})")
                 cb?(err)
 
-    set_to_ipynb: (ipynb) =>
-        # set_to_ipynb - set from ipynb object.  This is
-        # mainly meant to be run on the backend in the project,
-        # but is also run on the frontend too, e.g.,
-        # for client-side nbviewer.
-        # (in which case it won't remove images, etc.).
+    set_to_ipynb: (ipynb, data_only=false) =>
+        ###
+        set_to_ipynb - set from ipynb object.  This is
+        mainly meant to be run on the backend in the project,
+        but is also run on the frontend too, e.g.,
+        for client-side nbviewer (in which case it won't remove images, etc.).
 
+        See the documentation for load_ipynb_file in project-actions.coffee for
+        documentation about the data_only input variable.
+        ###
         dbg = @dbg("set_to_ipynb")
         @_state = 'load'
 
@@ -1473,9 +1476,18 @@ class exports.JupyterActions extends Actions
 
         # We have to parse out the kernel so we can use process_output below.
         # (TODO: rewrite so process_output is not associated with a specific kernel)
-        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL
+        kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL   # very like to work since official ipynb file without this kernelspec is invalid.
         dbg("kernel in ipynb: name='#{kernel}'")
-        @syncdb.set({type: 'settings', kernel: kernel}, false)
+
+        if data_only
+            set = ->
+        else
+            @reset_more_output?()  # clear the more output handler (only on backend)
+            @syncdb.delete(undefined, false)  # completely empty database
+            set = (obj) =>
+                @syncdb.set(obj, false)
+
+        set({type: 'settings', kernel: kernel})
         @ensure_backend_kernel_setup?()
 
         importer = new IPynbImporter()
@@ -1484,8 +1496,6 @@ class exports.JupyterActions extends Actions
         # to the contents of ipynb more efficient.   In case of a very slight change
         # on disk, this can be massively more efficient.
 
-        @reset_more_output?()  # clear the more output handler (only on backend)
-
         importer.import
             ipynb              : ipynb
             existing_ids       : @store.get('cell_list')?.toJS()
@@ -1493,20 +1503,23 @@ class exports.JupyterActions extends Actions
             process_attachment : @_jupyter_kernel?.process_attachment
             output_handler     : @_output_handler   # undefined in client; defined in project
 
+        if data_only
+            importer.close()
+            return
+
         trust = @store.get('trust')       # preserve trust state across file updates/loads
-        @syncdb.delete(undefined, false)  # completely empty database
 
         # Set all the cells
         for _, cell of importer.cells()
-            @syncdb.set(cell, false)
+            set(cell)
 
         # Set the settings
-        @syncdb.set({type: 'settings', kernel: importer.kernel(), trust:trust}, false)
+        set({type: 'settings', kernel: importer.kernel(), trust:trust})
 
         # Set extra user-defined metadata
         metadata = importer.metadata()
         if metadata?
-            @syncdb.set({type: 'settings', metadata: metadata}, false)
+            set({type: 'settings', metadata: metadata})
 
         importer.close()
 

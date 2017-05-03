@@ -473,15 +473,24 @@ class exports.JupyterActions extends actions.JupyterActions
                 if err
                     # this just means the file doesn't exist.
                     cb?()
-                else if not last_changed? or stats.ctime > last_changed
-                    dbg("disk file changed more recently than edits, so loading")
-                    @load_ipynb_file(cb)
                 else
-                    dbg("stick with database version")
-                    cb?(err)
+                    file_is_newer = not last_changed? or stats.ctime > last_changed
+                    dbg("disk file changed more recently than edits, so loading")
+                    @load_ipynb_file(cb, not file_is_newer)
 
-    load_ipynb_file: (cb) =>
-        dbg = @dbg("load_ipynb_file")
+    load_ipynb_file: (cb, data_only=false) =>
+        """
+        Read the ipynb file from disk.
+
+        - If data_only is false (the default), fully use the ipynb file to
+          set the syncdb's state.  We do this when opening a new file, or when
+          the file changes on disk (e.g., a git checkout or something).
+        - If data_only is true, we load the ipynb file *only* to extra more output
+          and base64 encoded (etc.) images, and store them in our in-memory
+          key:value store or cache.   We do this, because the file is the only
+          place that has this data (it is NOT in the syncb).
+        """
+        dbg = @dbg("load_ipynb_file(data_only=#{data_only})")
         dbg("reading file")
         path = @store.get('path')
         @_client.path_read
@@ -506,11 +515,12 @@ class exports.JupyterActions extends actions.JupyterActions
                 catch err
                     error = "Error parsing the ipynb file '#{path}': #{err}.  You must fix the ipynb file somehow before continuing."
                     dbg(error)
-                    @syncdb.set(type:'fatal', error:error)
+                    if not data_only
+                        @syncdb.set(type:'fatal', error:error)
                     cb?(error)
                     return
                 @syncdb.delete(type:'fatal')
-                @set_to_ipynb(content)
+                @set_to_ipynb(content, data_only)
                 cb?()
 
     save_ipynb_file: (cb) =>
