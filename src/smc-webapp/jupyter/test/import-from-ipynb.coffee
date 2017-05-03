@@ -83,5 +83,5 @@ describe 'test language_info medata -- ', ->
     it 'do it', ->
         importer = new IPynbImporter()
         importer.import(ipynb : ipynb)
-        expect(importer.language_info()).toEqual(language_info)
+        expect(importer.metadata().language_info).toEqual(language_info)
 

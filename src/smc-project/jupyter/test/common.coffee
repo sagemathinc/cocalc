@@ -14,6 +14,6 @@ exports.output = (v, f) ->
             return x.content.data
         if x.content?.text?
             s += x.content.text
-        if x.content.ename?
+        if x.content?.ename?
             return x.content
     return s
