@@ -36,6 +36,19 @@ exports.About = rclass
                 </Ansi>
             </pre>
 
+    render_features: ->
+        <ul>
+            <li> Full support for multiple people simultaneously editing a notebook, including multiple cursors and document-wide user-aware undo and redo, </li>
+            <li> TimeTravel showing detailed history of how a notebook was created</li>
+            <li> Raw file edit mode (synchronized editing of underlying JSON ipynb file)</li>
+            <li> Uniform font sizing</li>
+            <li> Code folding</li>
+            <li> Cleaner more modern look with buttons and menus that better reflect state</li>
+            <li> Sophisticated handling of large output (throttling, windowing, backend buffering)</li>
+            <li> Background capture of execution output even if no user has the notebook open in their browser</li>
+            <li> A purely client-side notebook viewer for easily sharing your work publicly</li>
+        </ul>
+
     render: ->
         <Modal show={@props.about} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
@@ -48,20 +61,17 @@ exports.About = rclass
                 </p>
 
                 <p style={color:'#666', margin: '0px 45px'}>
-                    CoCalc Jupyter notebook is a complete rewrite by SageMath, Inc.
+                    CoCalc Jupyter notebook is a complete open source rewrite by SageMath, Inc.
                     of the classical Jupyter notebook client from
                     the <a href="http://jupyter.org/" target="_blank">Jupyter project</a>.
                     CoCalc Jupyter notebook maintains full compatibility with the file format
                     and general look and feel of the classical notebook.
-                    It improves on the classical notebook
-                    in that it supports multiple simultaneous users, TimeTravel showing the history of
-                    how a notebook was created, document-wide user-aware undo, a raw file edit mode,
-                    a cleaner more modern look with buttons and menus that better reflect state,
-                    more sophisticated handling of large output, and background
-                    capturing of output even if no user has the notebook open in their browser.
+                    It improves on the classical notebook as follows:
+                    {@render_features()}
                     Some functionality of classical
                     extensions and widgets are not yet supported (if you need
-                    something, let us know).
+                    something, let us know), and of course some of the above is
+                    also available in classical Jupyter via extensions.
                 </p>
 
                 <h4>Server Information</h4>
