@@ -38,7 +38,7 @@ exports.CodeMirrorStatic = rclass
         value            : rtypes.string.isRequired
         font_size        : rtypes.number
         complete         : rtypes.immutable.Map
-        set_click_coords : rtypes.func.isRequired
+        set_click_coords : rtypes.func
 
     focus: (event) ->
         if not @props.actions?  # read only
@@ -56,7 +56,7 @@ exports.CodeMirrorStatic = rclass
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
-        @props.set_click_coords({left:event.clientX, top:event.clientY})
+        @props.set_click_coords?({left:event.clientX, top:event.clientY})
 
     line_number: (key, line, width) ->
         <div key={key} className='CodeMirror-gutter-wrapper'>

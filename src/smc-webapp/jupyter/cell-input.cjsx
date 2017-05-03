@@ -9,6 +9,7 @@ misc = require('smc-util/misc')
 {Markdown} = require('../r_misc')
 
 {CodeMirror} = require('./codemirror')
+{CodeMirrorStatic} = require('./codemirror-static')
 
 {InputPrompt} = require('./prompt')
 
@@ -115,15 +116,25 @@ exports.CellInput = rclass
         return options
 
     render_codemirror: (type) ->
-        <CodeMirror
-            value         = {@props.cell.get('input') ? ''}
-            options       = {@options(type)}
-            actions       = {@props.actions}
-            id            = {@props.cell.get('id')}
-            is_focused    = {@props.is_focused}
-            font_size     = {@props.font_size}
-            cursors       = {@props.cell.get('cursors')}
-        />
+        if @props.actions?
+            <CodeMirror
+                value         = {@props.cell.get('input') ? ''}
+                options       = {@options(type)}
+                actions       = {@props.actions}
+                id            = {@props.cell.get('id')}
+                is_focused    = {@props.is_focused}
+                font_size     = {@props.font_size}
+                cursors       = {@props.cell.get('cursors')}
+            />
+        else
+            <CodeMirrorStatic
+                value         = {@props.cell.get('input') ? ''}
+                options       = {@options(type)}
+                actions       = {@props.actions}
+                id            = {@props.cell.get('id')}
+                font_size     = {@props.font_size}
+            />
+
 
     render_markdown: ->
         value = @props.cell.get('input')?.trim()
