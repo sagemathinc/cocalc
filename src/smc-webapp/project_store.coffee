@@ -1071,7 +1071,7 @@ class ProjectActions extends Actions
             return
         if ext == 'tex'
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                if p.indexOf(bad_char) != -1
+                if name.indexOf(bad_char) != -1
                     @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
                     return
         salvus_client.exec
