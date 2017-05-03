@@ -1,6 +1,6 @@
 //- main landing page
 
-extends template.pug
+extends _base.pug
 
 block header
   - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
@@ -10,25 +10,12 @@ block header
     window.stat_times = !{stat_times};
   script(type="text/javascript")
     include:coffee-script index.coffee
+  meta(name="description" content=htmlWebpackPlugin.options.description)
 
 block content
   - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
-  - var NAME = htmlWebpackPlugin.options.title
-  - var URL = "cocalc.com"
-
-  nav.navbar.navbar-default.navbar-fixed-top
-    div.container
-      div.navbar-header
-        a(href="#top")
-          img.icon(alt="#{htmlWebpackPlugin.options.title}" src=require('!url?mimetype=image/svg+xml!cocalc-icon.svg'))
-          img.name(alt="#{htmlWebpackPlugin.options.title}" src=require('!url?mimetype=image/svg+xml!cocalc-font-dark.svg'))
-      div.collapse.navbar-collapse
-        ul.nav.navbar-nav.navbar-right
-          li #[a(href="#explore") Explore]
-          li #[a(href="policies/pricing.html") Pricing]
-          li #[a.active(href="app") Get Started]
 
   div.container
     div.row.intro#top
@@ -169,12 +156,6 @@ block content
               tr
               tr
 
-    //- include _static_about.html
-    include _static_footer.html
-    div.center(style="margin-bottom: 6rem;")
-      a(href="app")
-        img(src=require('!url?mimetype=image/svg+xml!cocalc-font-dark.svg') style="height: 3rem; width: auto;")
-
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
     :sass
@@ -184,23 +165,8 @@ block content
         .descr
           color          : $COL_GRAY
           font-size      : 2rem
-        >div
+        > div
           margin-bottom  : 2rem
-      nav.navbar.navbar-default
-        border-bottom    : 2px solid $COL_GRAY
-        background-color : $COL_GRAY_LL
-        .navbar-header
-          margin-top     : 5px;
-          img.icon
-            height       : 4rem
-            width        : auto
-            margin-right : 2rem
-          img.name
-            height       : 3rem
-            width        : auto
-            margin-right : 2rem
-        .navbar-nav>li>a
-          font-size      : 2rem
       #statstable td,
       #statstable th
         text-align       : right
@@ -221,10 +187,6 @@ block content
           > div
             > h2, h3
               margin-bottom : 2rem
-      .center
-        text-align     : center
-      .right
-        text-align     : right
       .left,
       #statstable td.left
         text-align     : left
@@ -234,5 +196,3 @@ block content
           white-space    : nowrap
       #included > div
         padding        : 0
-      body > div.container > footer
-        margin-top     : 6rem

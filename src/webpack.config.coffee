@@ -88,6 +88,7 @@ path          = require('path')
 fs            = require('fs')
 glob          = require('glob')
 child_process = require('child_process')
+misc          = require('smc-util/misc')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 program       = require('commander')
@@ -232,6 +233,7 @@ pug2app = new HtmlWebpackPlugin
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
 
+# static html pages
 pug2index = new HtmlWebpackPlugin
                         date             : BUILD_DATE
                         title            : TITLE
@@ -247,21 +249,28 @@ pug2index = new HtmlWebpackPlugin
                         template         : path.join(INPUT, 'index.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
 
 # the following set of plugins renders the policy pages
 # they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
 # via lodash's template syntax. e.g.: <%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>
 policyPages = []
-for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename(x)[0] != '_')
+for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
+    output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
     policyPages.push new HtmlWebpackPlugin
-                        filename : "policies/#{path.basename(pp)}"
-                        theme    : theme
-                        inject   : 'head'
-                        favicon  : path.join(INPUT, 'favicon.ico')
-                        template : pp
-                        chunks   : ['css']
-                        minify   : htmlMinifyOpts
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        template         : pp
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url

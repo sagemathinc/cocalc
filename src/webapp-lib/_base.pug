@@ -1,11 +1,15 @@
 doctype html
-html
+block vars
+  - var NAME = htmlWebpackPlugin.options.title
+  - var URL = htmlWebpackPlugin.options.theme.DOMAIN_NAME
+  - var COMPANY_NAME = htmlWebpackPlugin.options.theme.COMPANY_NAME
+
+html(lang="en")
   head
     meta(charset="utf-8")
     meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
     meta(http-equiv="X-UA-Compatible" content="IE=edge")
     meta(name="google"      content="notranslate")
-    meta(name="description" content=htmlWebpackPlugin.options.description)
     meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
     meta(name="date"        content=htmlWebpackPlugin.options.date)
     meta(name="version"     content=htmlWebpackPlugin.options.version)
@@ -24,7 +28,43 @@ html
     block header
 
   body
+    - var NAME = htmlWebpackPlugin.options.title
+    - var URL = htmlWebpackPlugin.options.theme.DOMAIN_NAME
+    - var COMPANY_NAME = htmlWebpackPlugin.options.theme.COMPANY_NAME
+
+    include _top_navbar.pug
     block content
+    include _footer.pug
+
+    style
+      :sass
+        @import "smc-webapp/_colors.sass"
+        nav.navbar.navbar-default
+          border-bottom    : 2px solid $COL_GRAY
+          background-color : $COL_GRAY_LL
+          .navbar-header
+            margin-top     : 5px;
+            img.icon
+              height       : 4rem
+              width        : auto
+              margin-right : 2rem
+            img.name
+              height       : 3rem
+              width        : auto
+              margin-right : 2rem
+          .navbar-nav>li>a
+            font-size      : 2rem
+        div.jumbotron
+          padding-top      : 10rem
+          background-color : $COL_GRAY_LL
+        .center
+          text-align     : center
+        .right
+          text-align     : right
+        .vertical-expand
+          min-height     : 40vw
+        body > div.container > footer
+          margin-top     : 6rem
 
     //- if we have a GA token, insert the google analytics async script
     - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
