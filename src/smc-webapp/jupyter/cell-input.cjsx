@@ -143,7 +143,7 @@ exports.CellInput = rclass
         <div
             onDoubleClick = {@handle_md_double_click}
             style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
-            className     = 'cocalc-jupyter-rendered'
+            className     = 'cocalc-jupyter-rendered cocalc-jupyter-rendered-md'
             >
             <Markdown
                 value          = {value}
