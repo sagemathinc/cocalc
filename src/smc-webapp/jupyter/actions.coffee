@@ -394,6 +394,8 @@ class exports.JupyterActions extends Actions
             @setState(mode: mode)
             @set_cursor_locs([])  # none
         else if mode == 'edit'
+            # no matter what, switch to focused:
+            @focus_unlock()
             if @store.get('mode') == 'edit'
                 return
             # from escape to edit
