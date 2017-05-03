@@ -114,7 +114,7 @@ class exports.JupyterStore extends Store
             more_output   : more_output
 
     get_language_info: =>
-        return @getIn(['backend_kernel_info','language_info']) ? @getIn(['settings', 'metadata', 'language_info'])
+        return @getIn(['backend_kernel_info','language_info']) ? @getIn(['metadata', 'language_info'])
 
     get_more_output: (id) =>
         if @_is_project
