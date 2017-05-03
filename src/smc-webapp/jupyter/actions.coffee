@@ -394,7 +394,7 @@ class exports.JupyterActions extends Actions
             @setState(mode: mode)
             @set_cursor_locs([])  # none
         else if mode == 'edit'
-            # no matter what, switch to focused:
+            # switch to focused
             @focus_unlock()
             if @store.get('mode') == 'edit'
                 return
@@ -1667,4 +1667,7 @@ class exports.JupyterActions extends Actions
 
     set_view_mode: (mode) =>
         @setState(view_mode: mode)
+
+    edit_cell_metadata: (id) =>
+        @setState(edit_cell_metadata: id)
 

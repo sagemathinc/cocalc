@@ -63,6 +63,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cell_toolbar        : rtypes.string
             insert_image        : rtypes.bool  # show insert image dialog
             edit_attachments    : rtypes.string
+            edit_cell_metadata  : rtypes.string
             editor_settings     : rtypes.immutable.Map
             raw_editor          : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map

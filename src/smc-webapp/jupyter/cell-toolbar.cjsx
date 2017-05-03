@@ -7,6 +7,7 @@ The toolbar at the top of each cell
 {Slideshow}   = require('./cell-toolbar-slideshow')
 {Attachments} = require('./cell-toolbar-attachments')
 {TagsToolbar} = require('./cell-toolbar-tags')
+{Metadata}    = require('./cell-toolbar-metadata')
 
 BAR_STYLE =
     width        : '100%'
@@ -29,6 +30,8 @@ exports.CellToolbar = rclass
                 T = Attachments
             when 'tags'
                 T = TagsToolbar
+            when 'metadata'
+                T = Metadata
             else
                 return <span> Toolbar not implemented: {@props.cell_toolbar} </span>
         <div style={BAR_STYLE}>
