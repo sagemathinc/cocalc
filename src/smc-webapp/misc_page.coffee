@@ -1751,6 +1751,16 @@ exports.restore_selection = (selected_range) ->
 exports.sanitize_html = (html) ->
     return jQuery("<div>").html(html).html()
 
+# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
+exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true) ->
+    {sanitize_html_attributes} = require('smc-util/misc')
+    sani = jQuery(jQuery.parseHTML('<div>' + html + '</div>', null, keepScripts))
+    if not keepUnsafeAttributes
+        sani.find('*').each ->
+            sanitize_html_attributes(jQuery, this)
+    return sani.html()
+
+exports.sanitize_html_safe = (html) -> exports.sanitize_html(html, keepScripts = false, keepUnsafeAttributes = false)
 
 ###
 _sanitize_html_lib = require('sanitize-html')

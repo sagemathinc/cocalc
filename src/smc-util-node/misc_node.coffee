@@ -870,10 +870,17 @@ run_jQuery = (cb) ->
                 _jQuery_cached = window.$
                 cb(_jQuery_cached)
 
-
-exports.sanitize_html = (html, cb) ->
+# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
+exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = true) ->
+    {sanitize_html_attributes} = require('smc-util/misc')
     run_jQuery ($) ->
-        cb($("<div>").html(html).html())
+        sani = $($.parseHTML('<div>' + html + '</div>', null, keepScripts))
+        if not keepUnsafeAttributes
+            sani.find('*').each ->
+                sanitize_html_attributes($, this)
+        cb(sani.html())
+
+exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, keepScripts = false, keepUnsafeAttributes = false)
 
 # common configuration for webpack and hub
 # inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?
