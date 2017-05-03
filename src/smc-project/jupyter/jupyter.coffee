@@ -343,7 +343,7 @@ class Kernel extends EventEmitter
             # TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
             # is pretty annoying for our use. For now, we just copy it, which is a waste.
             msg_type = mesg.header?.msg_type
-            mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers'])
+            mesg = misc.copy_with(mesg,['metadata', 'content', 'buffers', 'done'])
             mesg = misc.deep_copy(mesg)
             mesg.msg_type = msg_type
             if opts.all
@@ -377,10 +377,13 @@ class Kernel extends EventEmitter
             if mesg.parent_header.msg_id != message.header.msg_id
                 return
             dbg("got SHELL message -- #{JSON.stringify(mesg)}")
-            push_mesg(mesg)
-            shell_done = true
-            if iopub_done and shell_done
-                finish?()
+            if mesg.content?.status == 'error'
+                finish?()  # just bail; actual error would have been reported on iopub channel, hopefully.
+            else
+                push_mesg(mesg)
+                shell_done = true
+                if iopub_done and shell_done
+                    finish?()
 
         @on('shell', h)
 
@@ -407,7 +410,8 @@ class Kernel extends EventEmitter
             if h?
                 @removeListener('shell', h)
             @_execute_code_queue.shift()   # finished
-            @_process_execute_code_queue()
+            @_process_execute_code_queue() # start next exec
+            push_mesg({done:true})
             if opts.all
                 opts.cb?(undefined, all_mesgs)
             delete opts.cb  # avoid memory leaks

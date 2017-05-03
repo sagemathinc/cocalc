@@ -360,9 +360,15 @@ class exports.JupyterActions extends actions.JupyterActions
             stdin : handler.stdin
             cb    : (err, mesg) =>
                 dbg("got mesg='#{JSON.stringify(mesg)}'")
+                if not mesg? and not err  # can't possibly happen, of course.
+                    err = 'empty mesg'
                 if err
                     dbg("got error='#{err}'")
                     handler.error(err)
+                    return
+                if mesg.done
+                    # special internal cocalc message.
+                    handler.done()
                     return
                 if mesg.msg_type == 'clear_output'
                     handler.clear(mesg.content.wait)
@@ -381,7 +387,6 @@ class exports.JupyterActions extends actions.JupyterActions
                         # things like %load in the python2 kernel!
                         for p in mesg.content.payload
                             handler.payload(p)
-                    handler.done()
                 else
                     # Normal iopub output message
                     handler.message(mesg.content)

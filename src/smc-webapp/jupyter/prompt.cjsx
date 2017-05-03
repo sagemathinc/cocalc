@@ -30,7 +30,7 @@ exports.InputPrompt = rclass
             return <div style={INPUT_STYLE}></div>
 
         kernel = misc.capitalize(@props.kernel ? '')
-
+        tip = "Enter code to be evaluated."
         switch @props.state
             when 'start'
                 n = <Icon name='arrow-circle-o-left' style={fontSize:'80%'} />
@@ -49,11 +49,10 @@ exports.InputPrompt = rclass
                     n = @props.exec_count
                     if @props.end?
                         tip = <span>Evaluated <TimeAgo date = {new Date(@props.end)} /> using {kernel}.</span>
-                    else
+                    else if kernel
                         tip = "Last evaluated using #{kernel}."
                 else
                     n = ' '
-                    tip = "Enter code to be evaluated."
 
         <div style={INPUT_STYLE}>
             <Tip

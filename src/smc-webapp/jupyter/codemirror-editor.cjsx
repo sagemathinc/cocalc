@@ -174,7 +174,7 @@ exports.CodeMirrorEditor = rclass
 
         if options0.foldGutter
             options0.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
-            options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]  # TODO: if we later change options to disable folding, the gutter still remains in the editors.  
+            options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]  # TODO: if we later change options to disable folding, the gutter still remains in the editors.
 
         @cm = CodeMirror.fromTextArea(node, options0)
         @cm.save = => @props.actions.save()
