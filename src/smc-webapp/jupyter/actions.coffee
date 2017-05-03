@@ -512,6 +512,9 @@ class exports.JupyterActions extends Actions
                 kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
                 @set_kernel(kernel)
 
+        if @store.get("view_mode") == 'raw'
+            @set_raw_ipynb()
+
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
         next_cursors = @syncdb.get_cursors()
@@ -1482,10 +1485,13 @@ class exports.JupyterActions extends Actions
         dbg("kernel in ipynb: name='#{kernel}'")
 
         if data_only
+            trust = undefined
             set = ->
         else
             @reset_more_output?()  # clear the more output handler (only on backend)
             @syncdb.delete(undefined, false)  # completely empty database
+            # preserve trust state across file updates/loads
+            trust = @store.get('trust')
             set = (obj) =>
                 @syncdb.set(obj, false)
 
@@ -1508,8 +1514,6 @@ class exports.JupyterActions extends Actions
         if data_only
             importer.close()
             return
-
-        trust = @store.get('trust')       # preserve trust state across file updates/loads
 
         # Set all the cells
         for _, cell of importer.cells()
@@ -1667,7 +1671,22 @@ class exports.JupyterActions extends Actions
 
     set_view_mode: (mode) =>
         @setState(view_mode: mode)
+        if mode == 'raw'
+            @set_raw_ipynb()
 
     edit_cell_metadata: (id) =>
         @setState(edit_cell_metadata: id)
 
+    set_cell_metadata: (id, metadata, save=true) =>
+        if not metadata? or misc.len(metadata) == 0
+            metadata = null # delete
+        @_set
+            type     : 'cell'
+            id       : id
+            metadata : metadata,
+            save
+
+    set_raw_ipynb: =>
+        if @_state == 'load'
+            return
+        @setState(raw_ipynb: immutable.fromJS(@store.get_ipynb()))

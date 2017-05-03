@@ -17,6 +17,7 @@ Top-level react component, which ties everything together
 {NBConvert}         = require('./nbconvert')
 {InsertImage}       = require('./insert-image')
 {EditAttachments}   = require('./edit-attachments')
+{EditCellMetadata}  = require('./edit-cell-metadata')
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
@@ -65,7 +66,7 @@ exports.JupyterEditor = rclass ({name}) ->
             edit_attachments    : rtypes.string
             edit_cell_metadata  : rtypes.string
             editor_settings     : rtypes.immutable.Map
-            raw_editor          : rtypes.immutable.Map
+            raw_ipynb           : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
             trust               : rtypes.bool
 
@@ -178,6 +179,17 @@ exports.JupyterEditor = rclass ({name}) ->
             cell    = {cell}
         />
 
+    render_edit_cell_metadata: ->
+        if not @props.edit_cell_metadata?
+            return
+        cell = @props.cells?.get(@props.edit_cell_metadata)
+        if not cell?
+            return
+        <EditCellMetadata
+            actions = {@props.actions}
+            cell    = {cell}
+        />
+
     render_find_and_replace: ->
         if not @props.cells?
             return
@@ -211,13 +223,13 @@ exports.JupyterEditor = rclass ({name}) ->
         />
 
     render_raw_editor: ->
+        if not @props.raw_ipynb? or not @props.cm_options?
+            return <Loading/>
         <RawEditor
             actions    = {@props.actions}
-            cells      = {@props.cells}
             font_size  = {@props.font_size}
-            kernel     = {@props.kernel}
-            raw_editor = {@props.raw_editor}
-            metadata   = {@props.metadata}
+            raw_ipynb  = {@props.raw_ipynb}
+            cm_options = {@props.cm_options.get('options')}
         />
 
     render_main_view: ->
@@ -240,6 +252,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_nbconvert()}
             {@render_insert_image()}
             {@render_edit_attachments()}
+            {@render_edit_cell_metadata()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
             {@render_confirm_dialog()}

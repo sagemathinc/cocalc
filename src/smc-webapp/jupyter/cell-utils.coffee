@@ -41,7 +41,7 @@ exports.sorted_cell_list = (cells) ->
     # TODO: rewrite staying immutable
     v = []
     cells.forEach (record, id) ->
-        v.push({id:id, pos:record.get('pos')})
+        v.push({id:id, pos:record.get('pos') ? -1})   # set undefined to -1 to get total ordering; ensure below will fix this in a few seconds, but in the meantime, better to have some sanity.
         return
     v.sort(misc.field_cmp('pos'))
     v = (x.id for x in v)
@@ -53,16 +53,16 @@ exports.ensure_positions_are_unique = (cells) ->
     if not cells?
         return
     v = {}
-    all_unique = false
+    all_unique = true
     cells.forEach (cell, id) ->
         pos = cell.get('pos')
-        if v[pos]
-            # dup!
-            all_unique = true
+        if not pos? or v[pos]
+            # dup! (or not defined)
+            all_unique = false
             return false
         v[pos] = true
         return
-    if not all_unique
+    if all_unique
         return
     pos = 0
     new_pos = {}
