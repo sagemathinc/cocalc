@@ -58,6 +58,8 @@ Image = rclass
         sha1       : rtypes.string   # one of sha1 or value should be given
         value      : rtypes.string
         project_id : rtypes.string
+        width      : rtypes.number
+        height     : rtypes.number
 
     getInitialState: ->
         attempts : 0
@@ -80,7 +82,7 @@ Image = rclass
 
     render_using_server: ->
         src = get_blob_url(@props.project_id, @extension(), @props.sha1) + "&attempts=#{@state.attempts}"
-        return <img src={src} onError={@load_error}/>
+        return <img src={src} onError={@load_error} width={@props.width} height={@props.height} />
 
     encoding: ->
         switch @props.type
@@ -202,6 +204,8 @@ Data = rclass
                         type       = {type}
                         sha1       = {value if typeof(value) == 'string'}
                         value      = {value.get('value') if typeof(value) == 'object'}
+                        width      = {@props.message.getIn(['metadata','width'])}
+                        height     = {@props.message.getIn(['metadata','height'])}
                         />
                 when 'application'
                     switch b
