@@ -218,15 +218,20 @@ class exports.IPynbImporter
             cell_type  : @_get_cell_type(cell.cell_type)
             exec_count : @_get_exec_count(cell.execution_count, cell.prompt_number)
 
-        for k in ['collapsed', 'scrolled']
-            if cell.metadata?[k]
-                obj[k] = !!cell.metadata?[k]
+        if cell.metadata?
+            for k in ['collapsed', 'scrolled']
+                if cell.metadata?[k]
+                    obj[k] = !!cell.metadata?[k]
 
-        if cell.metadata?.slideshow?
-            obj.slide = cell.metadata.slideshow.slide_type
+            if cell.metadata?.slideshow?
+                obj.slide = cell.metadata.slideshow.slide_type
 
-        if cell.metadata?.tags?
-            obj.tags = misc.dict([tag, true] for tag in cell.metadata.tags)
+            if cell.metadata?.tags?
+                obj.tags = misc.dict([tag, true] for tag in cell.metadata.tags)
+
+            other = misc.copy_without(cell.metadata, ['collapsed', 'scrolled', 'slideshow', 'tags'])
+            if misc.len(other) > 0
+                obj.metadata = other
 
         if cell.attachments?
             obj.attachments = {}

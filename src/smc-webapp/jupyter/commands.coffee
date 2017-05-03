@@ -544,11 +544,11 @@ exports.commands = (actions) ->
         f : -> actions.set_view_mode('normal')
 
     'view notebook json' :
-        m : 'Object'
+        m : 'Object browser'
         f : -> actions.set_view_mode('json')
 
     'view notebook raw' :
-        m : '.ipynb File'
+        m : 'Raw .ipynb (file)'
         f : -> actions.set_view_mode('raw')
 
     'zoom in' :

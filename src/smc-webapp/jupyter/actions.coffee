@@ -1474,7 +1474,7 @@ class exports.JupyterActions extends Actions
         See the documentation for load_ipynb_file in project-actions.coffee for
         documentation about the data_only input variable.
         ###
-        dbg = @dbg("set_to_ipynb")
+        #dbg = @dbg("set_to_ipynb")
         @_state = 'load'
 
         #dbg(misc.to_json(ipynb))
@@ -1482,7 +1482,7 @@ class exports.JupyterActions extends Actions
         # We have to parse out the kernel so we can use process_output below.
         # (TODO: rewrite so process_output is not associated with a specific kernel)
         kernel = ipynb.metadata?.kernelspec?.name ? DEFAULT_KERNEL   # very like to work since official ipynb file without this kernelspec is invalid.
-        dbg("kernel in ipynb: name='#{kernel}'")
+        #dbg("kernel in ipynb: name='#{kernel}'")
 
         if data_only
             trust = undefined

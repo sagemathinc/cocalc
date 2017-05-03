@@ -186,8 +186,10 @@ exports.JupyterEditor = rclass ({name}) ->
         if not cell?
             return
         <EditCellMetadata
-            actions = {@props.actions}
-            cell    = {cell}
+            actions    = {@props.actions}
+            cell       = {cell}
+            font_size  = {@props.font_size}
+            cm_options = {@props.cm_options.get('options')}
         />
 
     render_find_and_replace: ->

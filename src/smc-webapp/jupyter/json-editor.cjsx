@@ -108,6 +108,9 @@ exports.JSONEditor = rclass
 
     options: (cm_options) ->
         options = cm_options.toJS()
+        options.mode = {name:'application/json'}
+        options.indentUnit = options.tabSize = 1
+        options.indentWithTabs = false
         options.foldGutter = true
         options.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
         options.extraKeys["Tab"] = (cm) -> cm.tab_as_space()

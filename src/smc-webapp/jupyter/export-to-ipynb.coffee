@@ -40,6 +40,10 @@ cell_to_ipynb = (id, opts) ->
         source    : diff_friendly(cell.get('input'))
         metadata  : metadata
 
+    # Handle any extra metadata (mostly user defined) that we don't handle in a special
+    # way for efficiency reasons.
+    process_other_metadata(obj, cell.get('metadata'))
+
     # consistenty with jupyter -- they explicitly give collapsed true or false state no matter what
     metadata.collapsed = !!cell.get('collapsed')
 
@@ -78,6 +82,11 @@ process_tags = (obj, tags) ->
         # we store tags internally as an immutable js map (for easy
         # efficient add/remove), but .ipynb uses a list.
         obj.metadata.tags = misc.keys(tags.toJS()).sort()
+
+process_other_metadata = (obj, other_metadata) ->
+    if other_metadata?
+        for k, v of other_metadata
+            obj.metadata[k] = v
 
 process_attachments = (obj, attachments, blob_store) ->
     if not attachments?

@@ -6,10 +6,14 @@ Modal for editing cell metadata that are attached to any cell
 {Icon} = require('../r_misc')
 {Button, Modal} = require('react-bootstrap')
 
+{JSONEditor} = require('./json-editor')
+
 exports.EditCellMetadata = rclass
     propTypes :
-        actions : rtypes.object.isRequired
-        cell    : rtypes.immutable.Map
+        actions    : rtypes.object.isRequired
+        font_size  : rtypes.number
+        cell       : rtypes.immutable.Map
+        cm_options : rtypes.immutable.Map.isRequired
 
     getInitialState: ->
         metadata : JSON.stringify(@props.cell.get('metadata')?.toJS() ? {})
@@ -38,11 +42,19 @@ exports.EditCellMetadata = rclass
             Manually edit the JSON below to manipulate the metadata for this cell.
         </span>
 
+    on_change: ->
+
     render_editor: ->
-        <textarea
-            value={@state.metadata}
-        >
-        </textarea>
+        <div style={fontSize:@props.font_size}>
+            <JSONEditor
+                value      = {@props.cell.get('metadata')}
+                font_size  = {@props.font_size}
+                on_change  = {@on_change}
+                cm_options = {@props.cm_options}
+                undo       = {@props.actions.undo}
+                redo       = {@props.actions.redo}
+            />
+        </div>
 
     render: ->
         <Modal show={@props.cell?} onHide={@close} >

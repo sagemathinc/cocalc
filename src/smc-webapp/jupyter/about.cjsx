@@ -43,7 +43,7 @@ exports.About = rclass
             <li> Raw file edit mode (synchronized editing of underlying JSON ipynb file)</li>
             <li> Uniform font sizing</li>
             <li> Code folding</li>
-            <li> Cleaner more modern look with buttons and menus that better reflect state</li>
+            <li> Cleaner more modern look with buttons, menus and cell execution hints that better reflect state</li>
             <li> Sophisticated handling of large output (throttling, windowing, backend buffering)</li>
             <li> Background capture of execution output even if no user has the notebook open in their browser</li>
             <li> A purely client-side notebook viewer for easily sharing your work publicly</li>
