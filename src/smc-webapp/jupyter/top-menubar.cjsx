@@ -33,6 +33,7 @@ exports.TopMenubar = rclass ({name}) ->
         "#{name}" :
             kernels             : rtypes.immutable.List
             kernel              : rtypes.string
+            kernel_state        : rtypes.string
             has_unsaved_changes : rtypes.bool
             kernel_info         : rtypes.immutable.Map
             backend_kernel_info : rtypes.immutable.Map
@@ -41,16 +42,19 @@ exports.TopMenubar = rclass ({name}) ->
             trust               : rtypes.bool
             view_mode           : rtypes.string
             toolbar             : rtypes.bool
+            cell_toolbar        : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
             next.kernels != @props.kernels or \
             next.kernel != @props.kernel or \
+            next.kernel_state != @props.kernel_state or \
             next.backend_kernel_info != @props.backend_kernel_info or \
             next.cur_id != @props.cur_id or \
             next.cells != @props.cells or \
             next.trust != @props.trust or \
             next.toolbar != @props.toolbar or \
+            next.cell_toolbar != @props.cell_toolbar or \
             next.view_mode != @props.view_mode
 
     propTypes :
@@ -100,17 +104,26 @@ exports.TopMenubar = rclass ({name}) ->
             normal : '>view notebook normal'
             raw    : '>view notebook raw'
             json   : '>view notebook json'
+
         shownb[@props.view_mode] = {name:shownb[@props.view_mode], style:SELECTED_STYLE}
 
         toolbar = {name:'toggle toolbar', display:if @props.toolbar then 'Hide Toolbar' else 'Show Toolbar'}
+
+        cell_toolbars = []
+        for name in ['none', 'metadata', 'slideshow', 'attachments', 'tags']
+            item_name = ">cell toolbar #{name}"
+            if (@props.cell_toolbar ? 'none') == name
+                cell_toolbars.push({name:item_name, style:SELECTED_STYLE})
+            else
+                cell_toolbars.push(item_name)
 
         @render_menu
             heading : 'View'
             names : \
                 ['toggle header', toolbar, 'toggle all line numbers', '', \
-                 '<Cell Toolbar...', '>cell toolbar none', '>cell toolbar metadata', '>cell toolbar slideshow', '>cell toolbar attachments', '>cell toolbar tags', '', \
+                 '<Cell Toolbar...'].concat(cell_toolbars).concat(['', \
                  'zoom in', 'zoom out', '', \
-                 "<Show Notebook as...", shownb.normal, shownb.raw, shownb.json]
+                 "<Show Notebook as...", shownb.normal, shownb.raw, shownb.json])
 
     render_insert: ->
         @render_menu
@@ -157,7 +170,7 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_kernel: ->
         items = @render_kernel_items()
-        names = ['interrupt kernel', 'confirm restart kernel', 'confirm restart kernel and clear output', \
+        names = ["#{if @props.kernel_state != 'busy' then '<' else ''}interrupt kernel", 'confirm restart kernel', 'confirm restart kernel and clear output', \
                  'confirm restart kernel and run all cells', '', \
                  '<Change kernel...'].concat(items)
 
