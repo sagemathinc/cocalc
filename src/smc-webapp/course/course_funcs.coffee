@@ -73,6 +73,7 @@ exports.order_list = (opts) ->
     opts = defaults opts,
         list             : required
         compare_function : required
+        reverse          : false
         include_deleted  : false
     {list, compare_function, include_deleted} = opts
 
@@ -81,6 +82,9 @@ exports.order_list = (opts) ->
 
     y = list.filter (x) => not x.deleted
     list = y.sort compare_function
+
+    if opts.reverse
+        list.reverse()
 
     if include_deleted
         list = list.concat(sorted_deleted)

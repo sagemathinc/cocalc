@@ -196,6 +196,7 @@ exports.StudentAssignmentInfo = rclass
 
     getInitialState: ->
         editing_grade : false
+        edited_grade  : ''
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -208,11 +209,11 @@ exports.StudentAssignmentInfo = rclass
 
     save_grade: (e) ->
         e?.preventDefault()
-        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_grade)
         @setState(editing_grade:false)
 
     edit_grade: ->
-        @setState(grade:@props.grade, editing_grade:true)
+        @setState(edited_grade:@props.grade ? '', editing_grade:true)
 
     render_grade_score: ->
         if @state.editing_grade
@@ -221,13 +222,13 @@ exports.StudentAssignmentInfo = rclass
                     <InputGroup>
                         <FormControl
                             autoFocus
-                            value       = {@state.grade}
+                            value       = {@state.edited_grade}
                             ref         = 'grade_input'
                             type        = 'text'
                             placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
                             onBlur      = {@save_grade}
-                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
                         />
                         <InputGroup.Button>
                             <Button bsStyle='success'>Save</Button>

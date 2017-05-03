@@ -336,7 +336,7 @@ exports.render_history = render_history = (history, user_map) ->
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-        value = misc_page.sanitize_html(value)
+        value = misc_page.sanitize_html_safe(value)
         author = misc.trunc_middle(user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name'), 20)
         if value.trim() == ''
             text = "Message deleted "

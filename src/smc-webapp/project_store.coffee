@@ -1070,9 +1070,10 @@ class ProjectActions extends Actions
             @setState(file_creation_error: "Cannot create a file with the #{ext} extension")
             return
         if ext == 'tex'
+            filename = misc.path_split(name).tail
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                if p.indexOf(bad_char) != -1
-                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
+                if filename.indexOf(bad_char) != -1
+                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename '#{filename}'")
                     return
         webapp_client.exec
             project_id  : @project_id
