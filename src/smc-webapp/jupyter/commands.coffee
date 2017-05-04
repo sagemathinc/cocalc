@@ -125,7 +125,7 @@ exports.commands = (actions) ->
                         actions.signal('SIGKILL')
                         actions.store.wait
                             until   : (s) -> s.get('backend_state') != 'running'
-                            timeout : 10
+                            timeout : 3
                             cb      : (err) ->
                                 actions.run_all_cells()
 

@@ -238,6 +238,7 @@ class Kernel extends EventEmitter
             stdin : undefined   # if given, support stdin prompting; this function will be called
                                 # as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
                                 # Here, e.g., options = { password: false, prompt: '' }.
+            halt_on_error : true  # Clear execution queue if shell returns status:'error', e.g., on traceback
             cb    : undefined   # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         if @_state == 'closed'
             opts.cb?("closed")
@@ -302,17 +303,23 @@ class Kernel extends EventEmitter
             return
         if not @_execute_code_queue?
             return
+        mesg = {done:true}
         for opts in @_execute_code_queue.slice(1)
-            opts.cb?('interrupt')
+            if opts.all
+                opts.cb?(undefined, [mesg])
+            else
+                opts.cb?(undefined, mesg)
         @_execute_code_queue = []
 
     _execute_code: (opts) =>
         opts = defaults opts,
-            code  : required
-            id    : undefined   # optional tag that can be used as input to cancel_execute.
-            all   : false       # if all=true, cb(undefined, [all output messages]); used for testing mainly.
-            stdin : undefined
-            cb    : required    # if all=false, this happens **repeatedly**:  cb(undefined, output message)
+            code          : required
+            id            : undefined # optional tag that can be used as input to cancel_execute.
+            all           : false     # if all=true, cb(undefined, [all output messages]);
+                                      # used for testing mainly.
+            stdin         : undefined
+            halt_on_error : true      # clear execution queue if there is an error.
+            cb            : required  # if all=false, this happens **repeatedly**:  cb(undefined, output message)
         dbg = @dbg("_execute_code('#{misc.trunc(opts.code, 15)}')")
         dbg("code='#{opts.code}', all=#{opts.all}")
         if @_state == 'closed'
@@ -378,7 +385,10 @@ class Kernel extends EventEmitter
                 return
             dbg("got SHELL message -- #{JSON.stringify(mesg)}")
             if mesg.content?.status == 'error'
-                finish?()  # just bail; actual error would have been reported on iopub channel, hopefully.
+                if opts.halt_on_error
+                    @_clear_execute_code_queue()
+                # just bail; actual error would have been reported on iopub channel, hopefully.
+                finish?()
             else
                 push_mesg(mesg)
                 shell_done = true
