@@ -1033,9 +1033,9 @@ class exports.JupyterActions extends Actions
         @redux?.getProjectActions(@store.get('project_id')).set_active_tab('new')
         return
 
-    register_input_editor: (id, save_value) =>
+    register_input_editor: (id, editor) =>
         @_input_editors ?= {}
-        @_input_editors[id] = save_value
+        @_input_editors[id] = editor
         return
 
     unregister_input_editor: (id) =>
@@ -1044,7 +1044,17 @@ class exports.JupyterActions extends Actions
     # Meant to be used for implementing actions -- do not call externally
     _get_cell_input: (id) =>
         id ?= @store.get('cur_id')
-        return (@_input_editors?[id]?() ? @store.getIn(['cells', id, 'input']) ? '')
+        return (@_input_editors?[id]?.save?() ? @store.getIn(['cells', id, 'input']) ? '')
+
+    set_cursor: (id, pos) =>
+        ###
+        id = cell id
+        pos = {x:?, y:?} coordinates in a cell
+
+        use y=-1 for last line.
+        ###
+        @_input_editors?[id]?.set_cursor?(pos)
+        return
 
     set_kernel: (kernel) =>
         if @store.get('kernel') != kernel

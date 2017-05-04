@@ -73,6 +73,9 @@ exports.CodeMirrorEditor = rclass
         @props.set_last_cursor(@cm.getCursor())
         if @_vim_mode
             return
+        if @_cm_blur_skip
+            delete @_cm_blur_skip
+            return
         @props.actions.set_mode('escape')
 
     _cm_cursor: ->
@@ -88,6 +91,13 @@ exports.CodeMirrorEditor = rclass
         if cell_list_top? and @cm.cursorCoords(true, 'window').top < cell_list_top
             scroll = @props.actions._cell_list_div.scrollTop()
             @props.actions._cell_list_div.scrollTop(scroll - (cell_list_top - @cm.cursorCoords(true, 'window').top) - 20)
+
+    _cm_set_cursor: (pos) ->
+        {x, y} = pos
+        x ?= 0; y ?= 0   # codemirror tracebacks on undefined pos!
+        if y < 0  # for getting last line...
+            y = @cm.lastLine() + 1 + y
+        @cm.setCursor({line:y, ch:x})
 
     _cm_save: ->
         if not @cm? or not @props.actions?
@@ -131,12 +141,38 @@ exports.CodeMirrorEditor = rclass
         @props.actions.redo()
 
     tab_key: ->
-        if not @props.actions? or not @cm?
+        if not @cm?
             return
         if @cm.somethingSelected()
             CodeMirror.commands.defaultTab(@cm)
         else
             @tab_nothing_selected()
+
+    up_key: ->
+        if not @cm?
+            return
+        cur = @cm.getCursor()
+        if cur?.line == @cm.firstLine() and cur?.ch == 0
+            @adjacent_cell(-1)
+        else
+            CodeMirror.commands.goLineUp(@cm)
+
+    down_key: ->
+        if not @cm?
+            return
+        cur = @cm.getCursor()
+        n = @cm.lastLine()
+        if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
+            @adjacent_cell(0)  # the down arrow goes to the general key handler instead
+        else
+            CodeMirror.commands.goLineDown(@cm)
+
+    adjacent_cell: (y) ->
+        @props.actions.set_mode('escape')
+        finish = =>
+            @props.actions.set_mode('edit')
+            @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
+        setTimeout(finish, 0)
 
     tab_nothing_selected: ->
         if not @cm?
@@ -167,8 +203,10 @@ exports.CodeMirrorEditor = rclass
             return
         options0 = options.toJS()
         if @props.actions?
-            options0.extraKeys ?= {}
-            options0.extraKeys["Tab"] = @tab_key
+            options0.extraKeys        ?= {}
+            options0.extraKeys["Tab"]  = @tab_key
+            options0.extraKeys["Up"]   = @up_key
+            options0.extraKeys["Down"] = @down_key
         else
             options0.readOnly = true
 
@@ -211,7 +249,10 @@ exports.CodeMirrorEditor = rclass
         @cm.redo = @_cm_redo
 
         if @props.actions?
-            @props.actions.register_input_editor(@props.id, (=> @_cm_save()))
+            editor =
+                save        : @_cm_save
+                set_cursor  : @_cm_set_cursor
+            @props.actions.register_input_editor(@props.id, editor)
 
         if @props.is_focused
             @cm.focus()
