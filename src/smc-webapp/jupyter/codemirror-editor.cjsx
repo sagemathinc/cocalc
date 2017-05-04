@@ -92,6 +92,15 @@ exports.CodeMirrorEditor = rclass
             scroll = @props.actions._cell_list_div.scrollTop()
             @props.actions._cell_list_div.scrollTop(scroll - (cell_list_top - @cm.cursorCoords(true, 'window').top) - 20)
 
+        @set_hook_pos()
+
+    set_hook_pos: ->
+        if not @cm?
+            return
+        # Used for maintaining vertical scroll position with multiple simultaneous editors.
+        offset = @cm.cursorCoords(true, 'local').top
+        @props.actions.setState({hook_offset: offset})
+
     _cm_set_cursor: (pos) ->
         {x, y} = pos
         x ?= 0; y ?= 0   # codemirror tracebacks on undefined pos!
@@ -127,6 +136,7 @@ exports.CodeMirrorEditor = rclass
             remote : remote
         @_cm_last_remote = remote
         @cm.setValueNoJump(new_val)
+        @set_hook_pos()
 
     _cm_undo: ->
         if not @cm? or not @props.actions?

@@ -107,6 +107,19 @@ class exports.JupyterActions extends Actions
             @_account_change_editor_settings = account_store.get('editor_settings')
             @_commands = commands.commands(@)
 
+            @init_scroll_pos_hook()
+
+    init_scroll_pos_hook: =>
+        # maintain scroll hook on change; critical for multiuser editing
+        before = after = undefined
+        @_hook_before_change = =>
+            before = $(".cocalc-jupyter-hook").offset()?.top
+        @_hook_after_change = =>
+            after  = $(".cocalc-jupyter-hook").offset()?.top
+            if before? and after? and before != after
+                @scroll(after - before)
+
+
     _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
         if not state.get('editor_settings').equals(@_account_change_editor_settings)
             new_settings = state.get('editor_settings')
@@ -455,6 +468,11 @@ class exports.JupyterActions extends Actions
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
+        @_hook_before_change?()
+        @__syncdb_change(changes)
+        @_hook_after_change?()
+
+    __syncdb_change: (changes) =>
         do_init = @_is_project and @_state == 'init'
         #console.log 'changes', changes, changes?.toJS()
         #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
@@ -1667,7 +1685,6 @@ class exports.JupyterActions extends Actions
     delete_attachment_from_cell: (id, name) =>
         @set_cell_attachment(id, name, null, false)
         @set_cell_input(id, misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), ''))
-
 
     add_tag: (id, tag, save=true) =>
         @_set

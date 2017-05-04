@@ -6,7 +6,7 @@ misc_page = require('../misc_page')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-{Loading}    = require('../r_misc')
+{Icon, Loading}    = require('../r_misc')
 
 {CellInput}  = require('./cell-input')
 {CellOutput} = require('./cell-output')
@@ -85,6 +85,10 @@ exports.Cell = rclass
             @props.actions.set_cur_id(@props.id)
             @props.actions.unselect_all_cells()
 
+    render_hook: ->
+        if @props.is_current and @props.actions?
+            <Hook name={@props.actions.name} />
+
     render: ->
         if @props.is_current
             # is the current cell
@@ -108,6 +112,7 @@ exports.Cell = rclass
             border          : "1px solid #{color1}"
             borderLeft      : "5px solid #{color2}"
             padding         : '5px'
+            position        : 'relative'
 
         if @props.is_selected
             style.background = '#e3f2fd'
@@ -118,6 +123,29 @@ exports.Cell = rclass
             onClick = {@click_on_cell}
             id      = {@props.id}
             >
+            {@render_hook()}
             {@render_cell_input(@props.cell)}
             {@render_cell_output(@props.cell)}
+        </div>
+
+Hook = rclass ({name}) ->
+    reduxProps:
+        "#{name}" :
+            hook_offset : rtypes.number
+            mode        : rtypes.string
+
+    render: ->
+        style =
+            position   : 'absolute'
+            top        : if @props.mode == 'edit' then @props.hook_offset
+            color      : '#ccc'
+            fontSize   : '6pt'
+            paddingTop : '5px'
+            right      : '-10px'
+            zIndex     : 10
+        <div
+            style={style}
+            className='cocalc-jupyter-hook'
+        >
+            <Icon name="circle" />
         </div>

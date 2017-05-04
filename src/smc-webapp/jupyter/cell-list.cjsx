@@ -31,7 +31,7 @@ exports.CellList = rclass
         complete     : rtypes.immutable.Map            # status of tab completion
         is_focused   : rtypes.bool
         more_output  : rtypes.immutable.Map
-        scroll       : rtypes.string
+        scroll       : rtypes.oneOfType([rtypes.number, rtypes.string])
         cell_toolbar : rtypes.string
         trust        : rtypes.bool
 
@@ -92,6 +92,10 @@ exports.CellList = rclass
     scroll_cell_list: (scroll) ->
         elt = $(ReactDOM.findDOMNode(@refs.cell_list))
         if elt.length > 0
+            if typeof(scroll) == 'number'
+                elt.scrollTop(elt.scrollTop() + scroll)
+                return
+
             # supported scroll positions are in commands.coffee
             if scroll == 'cell visible'
                 # ensure selected cell is visible

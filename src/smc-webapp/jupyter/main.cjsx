@@ -57,7 +57,7 @@ exports.JupyterEditor = rclass ({name}) ->
             confirm_dialog      : rtypes.immutable.Map
             find_and_replace    : rtypes.bool
             keyboard_shortcuts  : rtypes.immutable.Map
-            scroll              : rtypes.string
+            scroll              : rtypes.oneOfType([rtypes.number, rtypes.string])
             nbconvert           : rtypes.immutable.Map  # backend convert state
             nbconvert_dialog    : rtypes.immutable.Map  # frontend modal dialog state
             path                : rtypes.string
