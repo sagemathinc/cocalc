@@ -132,7 +132,7 @@ exports.JSONEditor = rclass
         @_cm_last_save = @to_json(@props.value)
         @cm.setValue(@_cm_last_save)
 
-        save = underscore.debounce(@_cm_save, 500)
+        save = underscore.debounce(@_cm_save, 5000)
         @cm.on 'change', (instance, changeObj) ->
             if changeObj.origin != 'setValue'
                 save()

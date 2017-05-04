@@ -51,7 +51,7 @@ exports.EditCellMetadata = rclass
     render: ->
         <Modal show={@props.id?} onHide={@close} >
             <Modal.Header closeButton>
-                <Modal.Title><Icon name='trash'/> Edit Cell Metadata</Modal.Title>
+                <Modal.Title><Icon name='edit'/> Edit Custom Cell Metadata</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 {@render_directions()}
