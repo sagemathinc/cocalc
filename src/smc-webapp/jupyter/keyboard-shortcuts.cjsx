@@ -97,6 +97,13 @@ Shortcuts = rclass
         for key, shortcut of @props.shortcuts
             @render_shortcut(key, shortcut)
 
+    render_shortcut_delete_icon: ->
+        <Icon
+            onClick = {(e) => e.stopPropagation(); @delete_shortcut(shortcut)}
+            name    = 'times'
+            style   = {color: '#888', paddingLeft: '1ex'}
+            />
+
     render_shortcut: (key, shortcut) ->
         <span
             key     = {key}
@@ -105,11 +112,7 @@ Shortcuts = rclass
                 key      = {key}
                 shortcut = {shortcut}
             />
-            <Icon
-                onClick = {(e) => e.stopPropagation(); @delete_shortcut(shortcut)}
-                name    = 'times'
-                style   = {color: '#888', paddingLeft: '1ex'}
-                />
+            {# @render_shortcut_delete_icon() # disabled for now}
         </span>
 
     cancel_edit: ->
@@ -150,18 +153,18 @@ Shortcuts = rclass
 
 
     render_cancel_edit_shortcut: ->
-          <Icon
-                onClick = {(e) => e.stopPropagation(); @cancel_edit()}
-                name    = 'times'
-                style   = {color: '#888', paddingLeft: '1ex'}
-                />
+        <Icon
+            onClick = {(e) => e.stopPropagation(); @cancel_edit()}
+            name    = 'times'
+            style   = {color: '#888', paddingLeft: '1ex'}
+        />
 
     render_confirm_edit_shortcut: ->
         <Icon
             onClick = {(e) => e.stopPropagation(); @confirm_edit()}
             name    = 'check'
             style   = {color: '#888', paddingLeft: '1ex'}
-            />
+        />
 
     render_taken_note: ->
         <span style={backgroundColor:'#fff'}>
@@ -170,6 +173,8 @@ Shortcuts = rclass
         </span>
 
     render: ->
+        hover = @state.hover
+        hover = false # editing shortcuts disabled until #v2
         <div className    = 'pull-right'
               style        = {SHORTCUTS_STYLE}
               onClick      = {@edit_shortcut}
@@ -177,10 +182,10 @@ Shortcuts = rclass
               onMouseLeave = {=>@setState(hover:false)}
               >
             {@render_shortcuts()}
-            {@render_edit_shortcut() if @state.hover}
-            {@render_cancel_edit_shortcut() if @state.hover}
-            {@render_confirm_edit_shortcut() if @state.value and not @state.taken and @state.hover}
-            {@render_taken_note() if @state.taken and @state.hover}
+            {@render_edit_shortcut() if hover}
+            {@render_cancel_edit_shortcut() if hover}
+            {@render_confirm_edit_shortcut() if @state.value and not @state.taken and hover}
+            {@render_taken_note() if @state.taken and hover}
         </div>
 
 
@@ -317,15 +322,15 @@ exports.KeyboardShortcuts = rclass
         @setState(search: search)
 
     render_instructions: ->
-        <span style={color:'#666'}>
+        <div style={color:'#666', marginBottom:'10px'}>
             Click a command to perform it.
-            To add a keyboard shortcut, click plus next to the key combination then type the new keys.
-        </span>
+            {# To add a keyboard shortcut, click plus next to the key combination then type the new keys. }
+        </div>
 
     render: ->
         <Modal show={@props.keyboard_shortcuts?.get('show')} onHide={@close} bsSize="large" >
             <Modal.Header closeButton>
-                <Modal.Title>Commands and Keyboard Shortcuts</Modal.Title>
+                <Modal.Title><Icon name='keyboard-o'/> Commands and Keyboard Shortcuts</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <SearchInput
