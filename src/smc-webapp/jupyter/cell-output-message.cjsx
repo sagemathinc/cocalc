@@ -230,6 +230,8 @@ Traceback = rclass
         v = []
         n = 0
         @props.message.get('traceback').forEach (x) ->
+            if not misc.endswith(x, '\n')
+                x += '\n'
             v.push(<Ansi key={n}>{x}</Ansi>)
             n += 1
             return
