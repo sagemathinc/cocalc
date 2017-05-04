@@ -445,9 +445,13 @@ class exports.JupyterActions extends Actions
             if not old_cell? or old_cell.get('pos') != new_cell.get('pos')
                 cell_list_needs_recompute = true
             @setState(obj)
+            if @store.getIn(['edit_cell_metadata', 'id']) == id
+                @edit_cell_metadata(id)  # updates the state during active editing.
+
         if @_is_project
             @manager_on_cell_change(id, new_cell, old_cell)
         @store.emit('cell_change', id, new_cell, old_cell)
+
         return cell_list_needs_recompute
 
     _syncdb_change: (changes) =>
@@ -1675,16 +1679,35 @@ class exports.JupyterActions extends Actions
             @set_raw_ipynb()
 
     edit_cell_metadata: (id) =>
-        @setState(edit_cell_metadata: id)
+        metadata = @store.getIn(['cells', id, 'metadata']) ? immutable.Map()
+        @blur_lock()
+        @setState(edit_cell_metadata: {id: id, metadata:metadata})
 
     set_cell_metadata: (id, metadata, save=true) =>
+        ###
+        Sets the metadata to exactly the metadata object.  It doesn't just merge it in.
+        ###
         if not metadata? or misc.len(metadata) == 0
-            metadata = null # delete
+            @_set
+                type     : 'cell'
+                id       : id
+                metadata : null,
+                save
+            return
+        # first delete
+        @_set
+            type     : 'cell'
+            id       : id
+            metadata : null,
+            false
+        # then set
         @_set
             type     : 'cell'
             id       : id
             metadata : metadata,
             save
+        if @store.getIn(['edit_cell_metadata', 'id']) == id
+            @edit_cell_metadata(id)  # updates the state while editing
 
     set_raw_ipynb: =>
         if @_state == 'load'

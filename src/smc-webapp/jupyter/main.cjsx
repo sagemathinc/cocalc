@@ -64,7 +64,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cell_toolbar        : rtypes.string
             insert_image        : rtypes.bool  # show insert image dialog
             edit_attachments    : rtypes.string
-            edit_cell_metadata  : rtypes.string
+            edit_cell_metadata  : rtypes.immutable.Map
             editor_settings     : rtypes.immutable.Map
             raw_ipynb           : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
@@ -182,12 +182,10 @@ exports.JupyterEditor = rclass ({name}) ->
     render_edit_cell_metadata: ->
         if not @props.edit_cell_metadata?
             return
-        cell = @props.cells?.get(@props.edit_cell_metadata)
-        if not cell?
-            return
         <EditCellMetadata
             actions    = {@props.actions}
-            cell       = {cell}
+            id         = {@props.edit_cell_metadata.get('id')}
+            metadata   = {@props.edit_cell_metadata.get('metadata')}
             font_size  = {@props.font_size}
             cm_options = {@props.cm_options.get('options')}
         />

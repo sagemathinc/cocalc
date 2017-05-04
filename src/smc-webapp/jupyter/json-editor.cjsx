@@ -61,8 +61,8 @@ exports.JSONEditor = rclass
         catch error
             @setState(error : "#{error}")
             return
-        @props.on_change(obj)
         @_cm_last_save = value
+        @props.on_change(obj)
         @clear_error()
         return value
 
