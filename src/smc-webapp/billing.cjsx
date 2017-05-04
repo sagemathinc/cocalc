@@ -1893,7 +1893,6 @@ exports.render_static_pricing_page = () ->
         <SubscriptionGrid period='month4 year1' is_static={true}/>
         <hr/>
         <FAQ/>
-        <Footer/>
     </div>
 
 exports.visit_billing_page = ->
