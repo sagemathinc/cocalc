@@ -293,11 +293,13 @@ Input = rclass
 
     key_down: (evt) ->
         if evt.keyCode == 13
+            evt.stopPropagation()
             @submit()
         # Official docs: If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.
         # The Jupyter notebook does *NOT* properly implement this.  We do something at least similar
         # and send an interrupt on control d or control z.
         if (evt.keyCode == 68 or evt.keyCode == 90) and evt.ctrlKey
+            evt.stopPropagation()
             @props.actions?.signal('SIGINT')
             setTimeout(@submit, 10)
 
