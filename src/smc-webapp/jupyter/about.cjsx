@@ -38,7 +38,7 @@ exports.About = rclass
 
     render_features: ->
         <ul style={marginTop:'10px', backgroundColor: '#eee'}>
-            <li> Multiple people can simultaneously edit notebooks: multiple cursors, document-wide user-aware undo and redo</li>
+            <li> Multiple people can simultaneously edit notebooks: multiple cursors, document-wide user-specific undo and redo</li>
             <li> TimeTravel shows detailed history of exactly how a notebook was created</li>
             <li> Zoom in and out for demos or tired eyes</li>
             <li> Code folding</li>

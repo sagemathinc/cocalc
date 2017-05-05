@@ -56,6 +56,8 @@ shortcut_to_string = (shortcut) ->
             chrCode = keyCode - (48 * Math.floor(keyCode / 48))
             chr     = String.fromCharCode(if 96 <= keyCode then chrCode else keyCode)
             s      += chr
+    if shortcut.twice
+        s = s + ',' + s        
     return s
 
 exports.KeyboardShortcut = KeyboardShortcut = rclass
