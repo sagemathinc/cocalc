@@ -38,15 +38,16 @@ exports.About = rclass
 
     render_features: ->
         <ul>
-            <li> Full support for multiple people simultaneously editing a notebook, including multiple cursors and document-wide user-aware undo and redo, </li>
-            <li> TimeTravel showing detailed history of how a notebook was created</li>
-            <li> Raw file edit mode (synchronized editing of underlying JSON ipynb file)</li>
-            <li> Uniform font sizing</li>
+            <li> Multiple people can simultaneously edit notebooks: multiple cursors, document-wide user-aware undo and redo</li>
+            <li> TimeTravel shows detailed history of exactly how a notebook was created</li>
+            <li> Easy font resizing for demos (or tired eyes)</li>
             <li> Code folding</li>
             <li> Cleaner more modern look with buttons, menus and cell execution hints that better reflect state</li>
             <li> Sophisticated handling of large output (throttling, windowing, backend buffering)</li>
             <li> Background capture of execution output even if no user has the notebook open in their browser</li>
-            <li> A purely client-side notebook viewer for easily sharing your work publicly</li>
+            <li> Improved phone and tablet support</li>
+            <li> Easily sharing your work publicly with a client-side notebook viewer</li>
+            <li> Raw file edit mode (synchronized editing of underlying JSON ipynb file)</li>
         </ul>
 
     render: ->

@@ -41,7 +41,11 @@ exports.UncommittedChanges = rclass
         @_mounted = true
 
     render: ->
+<<<<<<< HEAD
         if not @props.has_uncommitted_changes or (new Date() - @_last_change < (@props.delay_ms ? 5000))
+=======
+        if not @props.has_uncommitted_changes or (new Date() - @_last_change < (@props.delay_ms ? 3000))
+>>>>>>> 9ec4fdb27cd32b9609ab6d7f40edd07362408607
             return <span/>
         # actually render it.
         <span
