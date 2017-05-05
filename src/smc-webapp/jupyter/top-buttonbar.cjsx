@@ -103,10 +103,10 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_group_zoom: ->
         <ButtonGroup>
-            <Button onClick={=>@props.actions.zoom(-1); @focus()}>
+            <Button onClick={=>@props.actions.zoom(-1); @focus()} title='Zoom out (make text smaller)'>
                 <Icon name='font' style={fontSize:'7pt'}/>
             </Button>
-            <Button onClick={=>@props.actions.zoom(1); @focus()}>
+            <Button onClick={=>@props.actions.zoom(1); @focus()}  title='Zoom in (make text larger)'>
                 <Icon name='font' style={fontSize:'11pt'}/>
             </Button>
         </ButtonGroup>
@@ -114,12 +114,14 @@ exports.TopButtonbar = rclass ({name}) ->
     render_group_save_timetravel: ->
         <ButtonGroup>
             <Button
+                title    = 'Save file to disk'
                 bsStyle  = "success"
                 onClick  = {=>@props.actions.save(); @focus()}
                 disabled = {not @props.has_unsaved_changes}>
                 <Icon name='save'/> Save
             </Button>
             <Button
+                title   = 'Show complete edit history'
                 bsStyle = "info"
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> TimeTravel
