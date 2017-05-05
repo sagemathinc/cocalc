@@ -4,6 +4,8 @@ React component that describes a single cell
 
 misc_page = require('../misc_page')
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {Icon, Loading}    = require('../r_misc')
@@ -127,6 +129,19 @@ exports.Cell = rclass
             {@render_cell_input(@props.cell)}
             {@render_cell_output(@props.cell)}
         </div>
+###
+VISIBLE_STYLE =
+    position   : 'absolute'
+    color      : '#ccc'
+    fontSize   : '6pt'
+    paddingTop : '5px'
+    right      : '-10px'
+    zIndex     : 10
+###
+
+NOT_VISIBLE_STYLE =
+    position   : 'absolute'
+    fontSize   : 0
 
 Hook = rclass ({name}) ->
     reduxProps:
@@ -135,17 +150,11 @@ Hook = rclass ({name}) ->
             mode        : rtypes.string
 
     render: ->
-        style =
-            position   : 'absolute'
-            top        : if @props.mode == 'edit' then @props.hook_offset
-            color      : '#ccc'
-            fontSize   : '6pt'
-            paddingTop : '5px'
-            right      : '-10px'
-            zIndex     : 10
+        style = misc.copy(NOT_VISIBLE_STYLE)
+        style.top = if @props.mode == 'edit' then @props.hook_offset
         <div
-            style={style}
-            className='cocalc-jupyter-hook'
+            style     = {style}
+            className = 'cocalc-jupyter-hook'
         >
             <Icon name="circle" />
         </div>

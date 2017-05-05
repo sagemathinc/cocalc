@@ -317,7 +317,7 @@ exports.TopMenubar = rclass ({name}) ->
         return v
 
     render_help: ->
-        <Dropdown key='help'  id='menu-help'>
+        <Dropdown key='help'  id='menu-help' className='hidden-xs'>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 Help
             </Dropdown.Toggle>

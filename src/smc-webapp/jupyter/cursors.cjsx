@@ -33,9 +33,11 @@ exports.Cursor = Cursor = rclass
             @_timer = setTimeout((=>@hide()), n)
 
     render: ->
+        # onClick is needed for mobile.
         <span
             style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all'}
-            onMouseEnter = {=>@show(2000)}
+            onMouseEnter = {=>@show(3000)}
+            onClick      = {=>@show(3000)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}

@@ -83,7 +83,7 @@ exports.Kernel = rclass ({name}) ->
                 {display_name ? "No Kernel"}
             </span>
 
-    render_backend_state: ->
+    render_backend_state_icon: ->
         backend_state = @props.backend_state
         if not backend_state?
             return <Loading />
@@ -95,8 +95,6 @@ exports.Kernel = rclass ({name}) ->
             'idle' or 'running'
         ###
         spin = false
-        backend_tip = "Backend is #{backend_state}."
-        kernel_tip = ''
         color = undefined
         switch backend_state
             when 'init'
@@ -113,26 +111,15 @@ exports.Kernel = rclass ({name}) ->
                 switch @props.kernel_state
                     when 'busy'
                         name = 'circle'
-                        kernel_tip = ' Kernel is busy.'
                         color = '#5cb85c'
                     when 'idle'
                         name = 'circle-o'
-                        kernel_tip = ' Kernel is idle.'
                     else
                         name = 'circle-o'
-                        kernel_tip = ' Kernel will start when you run code.'
 
-        icon  = <Icon name={name} spin={spin} style={color:color}/>
-        title = <span>{icon} Jupyter State</span>
-        tip = <span>{backend_tip}{<br/> if kernel_tip}{kernel_tip}</span>
-        <Tip
-            title     = {title}
-            tip       = {tip}
-            placement = 'left' >
-            <span style={BACKEND_STATE_STYLE}>
-                {icon}
-            </span>
-        </Tip>
+        <span style={BACKEND_STATE_STYLE}>
+            <Icon name={name} spin={spin} style={color:color}/>
+        </span>
 
     render_trust: ->
         if @props.trust
@@ -146,13 +133,37 @@ exports.Kernel = rclass ({name}) ->
                 Not Trusted
             </span>
 
+    render_tip: (title, body) ->
+        backend_state = @props.backend_state
+        backend_tip   = "Backend is #{backend_state}."
+        if backend_state == 'running'
+            switch @props.kernel_state
+                when 'busy'
+                    kernel_tip = ' Kernel is busy.'
+                when 'idle'
+                    kernel_tip = ' Kernel is idle.'
+                else
+                    kernel_tip = ' Kernel will start when you run code.'
+        else
+            kernel_tip  = ''
+
+        tip = <span>{backend_tip}{<br/> if kernel_tip}{kernel_tip}</span>
+        <Tip
+            title     = {title}
+            tip       = {tip}
+            placement = 'bottom'
+        >
+            {body}
+        </Tip>
+
     render : ->
         if not @props.kernel?
             return <span/>
-        <div className='pull-right' style={color:'#666'}>
-            {@render_trust()}
-            {@render_name()}
-            {@render_backend_state()}
-            {@render_logo()}
-        </div>
+        title = <span>{@render_trust()}{@render_name()}</span>
+        body = <div className='pull-right' style={color:'#666', cursor:'pointer'}>
+                {title}
+                {@render_backend_state_icon()}
+                {@render_logo()}
+            </div>
+        return @render_tip(title, body)
 

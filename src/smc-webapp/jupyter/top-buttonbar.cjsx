@@ -62,8 +62,8 @@ exports.TopButtonbar = rclass ({name}) ->
         for key, name of names
             @render_button(key, name)
 
-    render_button_group: (names) ->
-        <ButtonGroup>
+    render_button_group: (names, hide_xs) ->
+        <ButtonGroup className={if hide_xs then 'hidden-xs' else ''}>
             {@render_buttons(names)}
         </ButtonGroup>
 
@@ -71,10 +71,10 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_buttons(['insert cell below'])
 
     render_group_edit: ->
-        @render_button_group(['cut cell', 'copy cell', 'paste cell and replace'])
+        @render_button_group(['cut cell', 'copy cell', 'paste cell and replace'], true)
 
     render_group_move: ->
-        @render_button_group(['move cell up', 'move cell down'])
+        @render_button_group(['move cell up', 'move cell down'], true)
 
     render_group_run: ->
         @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}])
@@ -92,10 +92,12 @@ exports.TopButtonbar = rclass ({name}) ->
             componentClass = "select"
             placeholder    = "select"
             onChange       = {@cell_select_type}
+            className      = 'hidden-xs'
+            style          = {maxWidth: '8em'}
             value          = {cell_type ? 'code'}>
             <option value="code"          >Code</option>
             <option value="markdown"      >Markdown</option>
-            <option value="raw" >Raw NBConvert</option>
+            <option value="raw" >Raw</option>
             <option value="multi" disabled >-</option>
         </FormControl>
 
@@ -119,20 +121,20 @@ exports.TopButtonbar = rclass ({name}) ->
         <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
 
     render_group_save_timetravel: ->
-        <ButtonGroup>
+        <ButtonGroup className = 'hidden-xs'>
             <Button
                 title    = 'Save file to disk'
                 bsStyle  = "success"
                 onClick  = {=>@props.actions.save(); @focus()}
                 disabled = {not @props.has_unsaved_changes}>
-                <Icon name='save'/> Save
+                <Icon name='save'/> <span className = 'hidden-sm'>Save</span>
                 {@render_uncommitted()}
             </Button>
             <Button
                 title   = 'Show complete edit history'
                 bsStyle = "info"
                 onClick = {=>@props.actions.show_history_viewer()}>
-                <Icon name='history'/> TimeTravel
+                <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
         </ButtonGroup>
 

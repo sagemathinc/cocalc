@@ -54,7 +54,7 @@ exports.InputPrompt = rclass
                 else
                     n = ' '
 
-        <div style={INPUT_STYLE}>
+        <div style={INPUT_STYLE} className='hidden-xs'>
             <Tip
                 title     = {'Code Cell'}
                 tip       = {tip}
@@ -83,9 +83,9 @@ exports.OutputPrompt = rclass
         else
             n = @props.exec_count ? ' '
         if not n?
-            return <div style={OUTPUT_STYLE}> </div>
+            return <div style={OUTPUT_STYLE}  className='hidden-xs'> </div>
         else
-            <div style={OUTPUT_STYLE}>
+            <div style={OUTPUT_STYLE}  className='hidden-xs'>
                 Out[{n}]:
             </div>
 

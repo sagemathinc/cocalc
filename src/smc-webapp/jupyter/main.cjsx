@@ -24,6 +24,12 @@ Top-level react component, which ties everything together
 {JSONView}          = require('./json-view')
 {RawEditor}         = require('./raw-editor')
 
+KERNEL_STYLE =
+    position        : 'absolute'
+    right           : 0
+    paddingLeft     : '5px'
+    backgroundColor : '#eee'
+
 exports.JupyterEditor = rclass ({name}) ->
     propTypes :
         error   : rtypes.string
@@ -91,7 +97,7 @@ exports.JupyterEditor = rclass ({name}) ->
             </div>
 
     render_kernel: ->
-        <span>
+        <span style={KERNEL_STYLE}>
             <Kernel name={@props.name} actions={@props.actions} />
             <Mode   name={@props.name} />
         </span>

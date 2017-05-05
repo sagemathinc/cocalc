@@ -272,13 +272,14 @@ CommandList = rclass
                 v.push(name:name, val:val)
         v.sort(misc.field_cmp('name'))
         cmds = []
+        search = @props.search?.toLowerCase() ? ''
         for x in v
             if not x.val.f?
                 continue
             desc = x.val.m ? capitalize(x.name)
             if not desc?
                 continue
-            if desc.toLowerCase().indexOf(@props.search) == -1
+            if desc.toLowerCase().indexOf(search) == -1
                 continue
             icon = x.val.i
             shortcuts = x.val.k ? []
