@@ -97,6 +97,7 @@ exports.Kernel = rclass ({name}) ->
         spin = false
         backend_tip = "Backend is #{backend_state}."
         kernel_tip = ''
+        color = undefined
         switch backend_state
             when 'init'
                 name = 'unlink'
@@ -113,6 +114,7 @@ exports.Kernel = rclass ({name}) ->
                     when 'busy'
                         name = 'circle'
                         kernel_tip = ' Kernel is busy.'
+                        color = '#5cb85c'
                     when 'idle'
                         name = 'circle-o'
                         kernel_tip = ' Kernel is idle.'
@@ -120,7 +122,7 @@ exports.Kernel = rclass ({name}) ->
                         name = 'circle-o'
                         kernel_tip = ' Kernel will start when you run code.'
 
-        icon  = <Icon name={name} spin={spin} />
+        icon  = <Icon name={name} spin={spin} style={color:color}/>
         title = <span>{icon} Jupyter State</span>
         tip = <span>{backend_tip}{<br/> if kernel_tip}{kernel_tip}</span>
         <Tip

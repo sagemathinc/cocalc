@@ -39,7 +39,7 @@ exports.InputPrompt = rclass
                 n = <Icon name='circle-o'  style={fontSize:'80%'} />
                 tip = "Waiting for another computation to finish first. Will evaluate using #{kernel}."
             when 'busy'
-                n = <Icon name='circle'  style={fontSize:'80%'}/>
+                n = <Icon name='circle'  style={fontSize:'80%', color:'#5cb85c'}/>
                 if @props.start?
                     tip = <span>Running since <TimeAgo date = {new Date(@props.start)} /> using {kernel}.</span>
                 else
