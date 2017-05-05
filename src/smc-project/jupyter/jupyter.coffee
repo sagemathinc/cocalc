@@ -753,8 +753,11 @@ jupyter_kernel_info_handler = (base, router) ->
                     # (this really can't happen due to url rules already; just being super paranoid.)
                     res.send("suspicious path '#{path}'")
                 else
-                    res.sendFile(path)
-
+                    fs.exists path, (exists) ->
+                        if not exists
+                            res.send("no such path '#{path}'")
+                        else
+                            res.sendFile(path)
     return router
 
 
