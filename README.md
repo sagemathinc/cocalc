@@ -85,7 +85,15 @@ please contact help@sagemath.com.
 </pre>
 
 
-## Development installation
+## Development
+
+### Prerequisites
+
+* node
+* Postgres
+* `pip install pyyaml`
+
+## Installation
 
 The following instruction **don't** install SMC. They're for development purposes only!
 
