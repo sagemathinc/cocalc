@@ -306,8 +306,12 @@ class exports.JupyterActions extends actions.JupyterActions
 
         @ensure_backend_kernel_setup()
 
-        cell   = @store.get('cells').get(id)
-        input  = (cell.get('input') ? '').trim()
+        orig_cell   = @store.get('cells').get(id)
+        if not orig_cell?
+            # nothing to do -- cell deleted
+            return
+
+        input  = (orig_cell.get('input') ? '').trim()
 
         @_running_cells ?= {}
 
@@ -331,6 +335,13 @@ class exports.JupyterActions extends actions.JupyterActions
         handler = @_output_handler(cell)
 
         handler.on 'change', (save) =>
+            if not @store.getIn(['cells', id])
+                # The cell was deleted, but we just got some output
+                # NOTE: client shouldn't allow deleting running or queued
+                # cells, but we still want to do something useful/sensible.
+                # We put cell back where it was with same input.
+                cell.input = orig_cell.get('input')
+                cell.pos   = orig_cell.get('pos')
             @syncdb.set(cell, save)
 
         handler.once 'done', =>
@@ -367,7 +378,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     handler.error(err)
                     return
                 if mesg.done
-                    # special internal cocalc message.
+                    # done is a special internal cocalc message.
                     handler.done()
                     return
                 if mesg.msg_type == 'clear_output'
