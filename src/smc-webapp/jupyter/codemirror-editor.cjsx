@@ -177,9 +177,30 @@ exports.CodeMirrorEditor = rclass
         else
             CodeMirror.commands.goLineDown(@cm)
 
-    adjacent_cell: (y) ->
+    page_up_key: ->
+        if not @cm?
+            return
+        cur = @cm.getCursor()
+        if cur?.line == @cm.firstLine() and cur?.ch == 0
+            @adjacent_cell(-1, -1)
+        else
+            CodeMirror.commands.goPageUp(@cm)
+
+    page_down_key: ->
+        if not @cm?
+            return
+        cur = @cm.getCursor()
+        n = @cm.lastLine()
+        if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
+            @adjacent_cell(0, 1)  # the down arrow goes to the general key handler instead
+        else
+            CodeMirror.commands.goPageDown(@cm)
+
+    adjacent_cell: (y, delta) ->
         @props.actions.set_mode('escape')
         finish = =>
+            if delta?
+                @props.actions.move_cursor(delta)
             @props.actions.set_mode('edit')
             @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
         setTimeout(finish, 0)
@@ -217,6 +238,8 @@ exports.CodeMirrorEditor = rclass
             options0.extraKeys["Tab"]  = @tab_key
             options0.extraKeys["Up"]   = @up_key
             options0.extraKeys["Down"] = @down_key
+            options0.extraKeys["PageUp"]   = @page_up_key
+            options0.extraKeys["PageDown"] = @page_down_key
         else
             options0.readOnly = true
 
