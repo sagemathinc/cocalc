@@ -37,17 +37,18 @@ exports.About = rclass
             </pre>
 
     render_features: ->
-        <ul>
+        <ul style={marginTop:'10px', backgroundColor: '#eee'}>
             <li> Multiple people can simultaneously edit notebooks: multiple cursors, document-wide user-aware undo and redo</li>
             <li> TimeTravel shows detailed history of exactly how a notebook was created</li>
-            <li> Easy font resizing for demos (or tired eyes)</li>
+            <li> Zoom in and out for demos or tired eyes</li>
             <li> Code folding</li>
-            <li> Cleaner more modern look with buttons, menus and cell execution hints that better reflect state</li>
-            <li> Sophisticated handling of large output (throttling, windowing, backend buffering)</li>
-            <li> Background capture of execution output even if no user has the notebook open in their browser</li>
+            <li> Modern look with buttons, menus and cell execution hints that better reflect state</li>
+            <li> Sophisticated handling of large output: throttling, windowing, backend buffering</li>
+            <li> Background capture of output even if no user has the notebook open</li>
             <li> Improved phone and tablet support</li>
-            <li> Easily sharing your work publicly with a client-side notebook viewer</li>
-            <li> Raw file edit mode (synchronized editing of underlying JSON ipynb file)</li>
+            <li> Easily sharing your work publicly with our client-side notebook viewer</li>
+            <li> Raw file edit mode: synchronized editing of underlying ipynb file</li>
+            <li> Easily export notebook to LaTeX, then edit the generated LaTeX with our integrated LaTeX editor</li>
         </ul>
 
     render: ->
@@ -61,7 +62,7 @@ exports.About = rclass
                     You are using the CoCalc Jupyter notebook.
                 </p>
 
-                <p style={color:'#666', margin: '0px 45px'}>
+                <div style={color:'#666', margin: '0px 45px'}>
                     CoCalc Jupyter notebook is a complete open source rewrite by SageMath, Inc.
                     of the classical Jupyter notebook client from
                     the <a href="http://jupyter.org/" target="_blank">Jupyter project</a>.
@@ -73,7 +74,7 @@ exports.About = rclass
                     extensions and widgets are not yet supported (if you need
                     something, let us know), and of course some of the above is
                     also available in classical Jupyter via extensions.
-                </p>
+                </div>
 
                 <h4>Server Information</h4>
                 {@render_server_info()}
