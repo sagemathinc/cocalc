@@ -49,6 +49,7 @@ exports.About = rclass
             <li> Easily sharing your work publicly with our client-side notebook viewer</li>
             <li> Raw file edit mode: synchronized editing of underlying ipynb file</li>
             <li> Easily export notebook to LaTeX, then edit the generated LaTeX with our integrated LaTeX editor</li>
+            <li> VIM, Emacs, and Sublime keybindings, and color schemes (in account settings)</li>
         </ul>
 
     render: ->
