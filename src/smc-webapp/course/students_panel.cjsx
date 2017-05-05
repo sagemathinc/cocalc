@@ -434,11 +434,11 @@ Student = rclass
             @setState(edited_email_address : next.student.get('email_address'))
 
     getInitialState: ->
-        confirm_delete    : false
-        editing_student   : false
-        edited_first_name : @props.student_name.first
-        edited_last_name  : @props.student_name.last
-        edited_email_address      : @props.student.get('email_address')
+        confirm_delete       : false
+        editing_student      : false
+        edited_first_name    : @props.student_name.first ? ""
+        edited_last_name     : @props.student_name.last ? ""
+        edited_email_address : @props.student.get('email_address') ? ""
 
     on_key_down: (e) ->
         switch e.keyCode
