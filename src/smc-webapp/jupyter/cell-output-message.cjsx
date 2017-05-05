@@ -96,7 +96,6 @@ Image = rclass
         return <img src={src}  width={@props.width} height={@props.height}/>
 
     render: ->
-        console.log 'width', @props.width
         if @props.value?
             return @render_locally()
         else if @props.sha1? and @props.project_id?

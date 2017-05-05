@@ -75,9 +75,6 @@ class exports.JupyterStore extends Store
     get_global_clipboard: =>
         return global_clipboard
 
-    has_uncommitted_changes: =>
-        return @syncdb.has_uncommitted_changes()
-
     get_local_storage: (key) =>
         value = localStorage?[@name]
         if value?
