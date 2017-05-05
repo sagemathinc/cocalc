@@ -352,7 +352,9 @@ class DBDoc
         return @get().toJS()
 
     to_str: =>
-        return (misc.to_json(x) for x in @to_obj()).join('\n')
+        if @_to_str_cache?  # save to cache since this is an immutable object
+            return @_to_str_cache
+        return @_to_str_cache = (misc.to_json(x) for x in @to_obj()).join('\n')
 
     # x = javascript object
     _primary_key_part: (x) =>

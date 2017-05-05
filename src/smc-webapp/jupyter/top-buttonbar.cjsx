@@ -12,6 +12,8 @@ The static buttonbar at the top.
 misc = require('smc-util/misc')
 {required, defaults} = misc
 
+{UncommittedChanges} = require('./uncommitted-changes')
+
 
 exports.TopButtonbar = rclass ({name}) ->
     propTypes :
@@ -22,16 +24,18 @@ exports.TopButtonbar = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            cells               : rtypes.immutable.Map   # map from id to cells
-            cur_id              : rtypes.string          # id of currently selected cell
-            sel_ids             : rtypes.immutable.Set   # set of selected cells
-            has_unsaved_changes : rtypes.bool
-            kernel_state        : rtypes.string
+            cells                   : rtypes.immutable.Map   # map from id to cells
+            cur_id                  : rtypes.string          # id of currently selected cell
+            sel_ids                 : rtypes.immutable.Set   # set of selected cells
+            has_unsaved_changes     : rtypes.bool
+            has_uncommitted_changes : rtypes.bool
+            kernel_state            : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.cur_id != @props.cur_id or \
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
             next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.has_uncommitted_changes != @props.has_uncommitted_changes or \
             next.kernel_state != @props.kernel_state
 
     command: (name, focus) ->
@@ -111,6 +115,9 @@ exports.TopButtonbar = rclass ({name}) ->
             </Button>
         </ButtonGroup>
 
+    render_uncommitted: ->
+        <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
+
     render_group_save_timetravel: ->
         <ButtonGroup>
             <Button
@@ -119,6 +126,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick  = {=>@props.actions.save(); @focus()}
                 disabled = {not @props.has_unsaved_changes}>
                 <Icon name='save'/> Save
+                {@render_uncommitted()}
             </Button>
             <Button
                 title   = 'Show complete edit history'

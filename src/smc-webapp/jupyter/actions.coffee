@@ -75,7 +75,7 @@ class exports.JupyterActions extends Actions
             error               : undefined
             cur_id              : @store.get_local_storage('cur_id')
             toolbar             : not @store.get_local_storage('hide_toolbar')
-            has_unsaved_changes : true
+            has_unsaved_changes : false
             sel_ids             : immutable.Set()  # immutable set of selected cells
             md_edit_ids         : immutable.Set()  # set of ids of markdown cells in edit mode
             mode                : 'escape'
@@ -86,12 +86,18 @@ class exports.JupyterActions extends Actions
             is_focused          : false            # whether or not the editor is focused.
             max_output_length   : 10000
 
-        f = () =>
-            @setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())
-            setTimeout((=>@setState(has_unsaved_changes : @syncdb?.has_unsaved_changes())), 3000)
-        @set_has_unsaved_changes = underscore.debounce(f, 1500)
+        if @_client
+            do_set = =>
+                @setState
+                    has_unsaved_changes     : @syncdb?.has_unsaved_changes()
+                    has_uncommitted_changes : @syncdb?.has_uncommitted_changes()
+            f = =>
+                do_set()
+                setTimeout(do_set, 3000)
+            @set_save_status = underscore.debounce(f, 1500)
+            @syncdb.on('metadata-change', @set_save_status)
+            @syncdb.on('connected', @set_save_status)
 
-        @syncdb.on('metadata-change', @set_has_unsaved_changes)
         @syncdb.on('change', @_syncdb_change)
 
         if not client.is_project() # project doesn't care about cursors
@@ -471,12 +477,12 @@ class exports.JupyterActions extends Actions
         @_hook_before_change?()
         @__syncdb_change(changes)
         @_hook_after_change?()
+        @set_save_status?()
 
     __syncdb_change: (changes) =>
         do_init = @_is_project and @_state == 'init'
         #console.log 'changes', changes, changes?.toJS()
         #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
-        @set_has_unsaved_changes()
         cell_list_needs_recompute = false
         changes?.forEach (key) =>
             record = @syncdb.get_one(key)
@@ -603,8 +609,8 @@ class exports.JupyterActions extends Actions
         # Saves our customer format sync doc-db to disk; the backend will
         # also save the normal ipynb file to disk right after.
         @syncdb.save () =>
-            @set_has_unsaved_changes()
-        @set_has_unsaved_changes()
+            @set_save_status?()
+        @set_save_status?()
 
     save_asap: =>
         @syncdb.save_asap (err) =>
