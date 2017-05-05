@@ -93,9 +93,10 @@ Image = rclass
 
     render_locally: ->
         src = "data:#{@props.type};#{@encoding()},#{@props.value}"
-        return <img src={src}/>
+        return <img src={src}  width={@props.width} height={@props.height}/>
 
     render: ->
+        console.log 'width', @props.width
         if @props.value?
             return @render_locally()
         else if @props.sha1? and @props.project_id?
@@ -199,13 +200,26 @@ Data = rclass
                                     safeHTML       = {not @props.trust}
                                 />
                 when 'image'
+                    height = width = undefined
+                    @props.message.get('metadata')?.forEach? (value, key) =>
+                        if key == 'width'
+                            width = value
+                        else if key == 'height'
+                            height = value
+                        else
+                            # sometimes metadata is e.g., "image/png":{width:, height:}
+                            value?.forEach? (value, key) =>
+                                if key == 'width'
+                                    width = value
+                                else if key == 'height'
+                                    height = value
                     return <Image
                         project_id = {@props.project_id}
                         type       = {type}
                         sha1       = {value if typeof(value) == 'string'}
                         value      = {value.get('value') if typeof(value) == 'object'}
-                        width      = {@props.message.getIn(['metadata','width'])}
-                        height     = {@props.message.getIn(['metadata','height'])}
+                        width      = {width}
+                        height     = {height}
                         />
                 when 'application'
                     switch b
