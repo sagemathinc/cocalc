@@ -44,7 +44,7 @@ register_file_editor
 
         actions._init(project_id, path, syncdb, store, salvus_client)
 
-        window.a = actions # for DEBUGGING
+        ## window.a = actions # for DEBUGGING
 
         syncdb.once 'init', (err) =>
             if err
