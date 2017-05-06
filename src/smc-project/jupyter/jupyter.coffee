@@ -149,14 +149,15 @@ class Kernel extends EventEmitter
             # get things going properly is to just keep trying something (we do the kernel_info
             # command) until it works. Only then do we declare the kernel ready for code
             # execution, etc.   Probably the jupyter devs never notice this race condition
-            # bug in ZMQ/Jupyter kernels... or maybe the python server has a sort of
+            # bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
             # accidental work around.
             misc.retry_until_success
-                start_delay : 100
+                start_delay : 500
                 max_delay   : 5000
                 factor      : 1.4
+                max_time    : 45000
                 f : (cb) =>
-                    @kernel_info(cb:=>)
+                    @kernel_info(cb : =>)
                     cb(@_state == 'starting')
 
         fail = (err) =>
