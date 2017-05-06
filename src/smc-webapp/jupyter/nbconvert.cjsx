@@ -126,7 +126,7 @@ exports.NBConvert = rclass
         </div>
 
     render_cmd: ->
-        cmd = "jupyter nbconvert #{@args().join(' ')} #{@props.path}"
+        cmd = "jupyter nbconvert #{@args().join(' ')} '#{misc.path_split(@props.path)?.tail}'"
         <pre  style={margin: '15px 0px', overflowX: 'auto'}>{cmd}</pre>
 
     render_started: ->
