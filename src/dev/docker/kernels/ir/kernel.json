@@ -1,7 +1,7 @@
 {
  "language": "r",
  "argv": [
-  "/usr/local/share/jupyter/kernels/ir-sage/R-sage",
+  "/usr/local/share/jupyter/kernels/ir/R-sage",
   "-e",
   "IRkernel::main()",
   "--args",
