@@ -383,11 +383,11 @@ exports.commands = (actions) ->
 
     'run all cells above' :
         m : 'Run All Above'
-        f : -> actions.run_all_cells_above()
+        f : -> actions.run_all_above()
 
     'run all cells below' :
         m : 'Run All Below'
-        f : -> actions.run_all_cells_below()
+        f : -> actions.run_all_below()
 
     'run cell' :
         m : 'Run Cells'
