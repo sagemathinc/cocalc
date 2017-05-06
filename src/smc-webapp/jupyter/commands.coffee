@@ -170,7 +170,7 @@ exports.commands = (actions) ->
         f : -> actions.show_keyboard_shortcuts()
 
     'enter command mode' :
-        k : [{which:27, mode:'edit'}]
+        k : [{which:27, mode:'edit'}, {"ctrl":true,"mode":"edit","which":77}, {"alt":true,"mode":"edit","which":77}]
         f : ->
             if store.get('mode') == 'escape' and store.get('introspect')?
                 actions.clear_introspect()

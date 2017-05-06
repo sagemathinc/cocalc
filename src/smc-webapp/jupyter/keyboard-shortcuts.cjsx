@@ -57,7 +57,7 @@ shortcut_to_string = (shortcut) ->
             chr     = String.fromCharCode(if 96 <= keyCode then chrCode else keyCode)
             s      += chr
     if shortcut.twice
-        s = s + ',' + s        
+        s = s + ',' + s
     return s
 
 exports.KeyboardShortcut = KeyboardShortcut = rclass
@@ -327,6 +327,8 @@ exports.KeyboardShortcuts = rclass
     render_instructions: ->
         <div style={color:'#666', marginBottom:'10px'}>
             Click a command to perform it.
+            <br/>
+            NOTE: Keyboard shortcuts are not customizable yet.
             {# To add a keyboard shortcut, click plus next to the key combination then type the new keys. }
         </div>
 
