@@ -641,6 +641,9 @@ class SyncDoc extends EventEmitter
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
 
     set_doc: (value) =>
+        if not value?.apply_patch?
+            # Do a sanity check -- see https://github.com/sagemathinc/smc/issues/1831
+            throw Error("value must be a document object with apply_patch, etc., methods")
         @_doc = value
         return
 
