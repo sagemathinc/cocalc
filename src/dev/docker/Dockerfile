@@ -75,6 +75,9 @@ COPY bashrc /root/.bashrc
 
 RUN echo "umask 077" >> /etc/bash.bashrc
 
+# Install Jupyter kernels
+COPY kernels /usr/local/share/jupyter/kernels
+
 # Remove packages needed for the build above, which we don't want to have
 # available when running the hub in production (e.g., having a compiler could
 # result in an exploit...). This doesn't save space, but may improve security.
