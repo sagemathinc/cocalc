@@ -149,8 +149,8 @@ GhostTab = (props) ->
 SortableFileTab = SortableElement(FileTab)
 SortableNav = SortableContainer(NavWrapper)
 
-FreeProjectWarning = rclass ({name}) ->
-    displayName : 'FreeProjectWarning'
+ProjectWarning = rclass ({name}) ->
+    displayName : 'ProjectWarning'
 
     reduxProps :
         projects :
@@ -165,18 +165,14 @@ FreeProjectWarning = rclass ({name}) ->
 
     propTypes :
         project_id : rtypes.string
+        project    : rtypes.object
 
-    shouldComponentUpdate : (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
-            @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
-
-    extra : (host, internet) ->
+    render_extra_info : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host} 
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
@@ -187,8 +183,37 @@ FreeProjectWarning = rclass ({name}) ->
             </ul>
         </div>
 
+    render_learn_more : ->
+        <a onClick={@actions(project_id: @props.project_id).show_extra_free_warning}> learn more...</a>
+
+    get_quota_alerts : ->
+        status       = @props.project?.status
+        total_quotas = @props.get_total_project_quotas(@props.project_id)
+        memory_used     = '?'
+        disk_used       = '?'
+        if status?
+            rss = status.memory?.rss
+            if rss
+                memory_used = Math.round(rss/1000)
+            disk_used = status.disk_MB
+            if disk_used
+                disk_used = Math.ceil(disk)
+        if memory_used
+            memory_over_quota = (total_quotas['memory'] - memory_used) < 0
+            memory_near_quota = (total_quotas['memory'] - memory_used) >= 0 and (total_quotas['memory'] - memory) < 100
+        else
+            memory_over_quota = false
+            memory_near_quota = false
+        if disk_used
+            disk_over_quota = (total_quotas['disk_quota'] - disk_used) < 0
+            disk_near_quota = (total_quotas['disk_quota'] - disk_used) >= 0 and (total_quotas['disk_quota'] - disk) < 100
+        else
+            disk_over_quota = false
+            disk_near_quota = false
+        return [memory_over_quota, memory_near_quota, disk_over_quota, disk_near_quota]
+
     render : ->
-        if not require('./customize').commercial
+        if not @props.project or not require('./customize').commercial
             return null
         if @props.free_warning_closed
             return null
@@ -200,7 +225,8 @@ FreeProjectWarning = rclass ({name}) ->
             return null
         host = not quotas.member_host
         internet = not quotas.network
-        if not host and not internet
+        [memory_over_quota, memory_near_quota, disk_over_quota, disk_near_quota] = @get_quota_alerts()
+        if not memory_over_quota and not memory_near_quota and not disk_over_quota and not disk_near_quota and not host and not internet
             return null
         styles =
             padding      : 2
@@ -219,10 +245,16 @@ FreeProjectWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
+            <Icon name='exclamation-triangle' /> WARNING: {<span>This project is over its memory quota. 
+            Either add more memory through upgrades or kill processes.</span> if memory_over_quota} 
+            {<span>This project is near its memory quota. Either add more memory through upgrades or kill processes.</span> if memory_near_quota}
+            {<span>This project is over its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_over_quota}
+            {<span>This project is near its disk space quota. Either add more disk space through upgrades or delete files.</span> if disk_near_quota}
+            {<span>This project runs</span> if host or internet} {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host}
+            {<span>without <b>internet access</b></span> if internet} &mdash;
+            {@render_learn_more() if host or internet}
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
-            {@extra(host, internet)}
+            {@render_extra_info(host, internet)}
         </Alert>
 
 # is_public below -- only show this tab if this is true
@@ -412,7 +444,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map  : rtypes.immutable
+            project_map  : rtypes.object
             get_my_group : rtypes.func
         page :
             fullscreen : rtypes.bool
@@ -522,7 +554,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <ProjectWarning project_id={@props.project_id} project={@props.project_map?[@props.project_id]} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
                 project_id      = {@props.project_id}
@@ -637,7 +669,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <ProjectWarning project_id={@props.project_id} project={@props.project_map?.get(@props.project_id)} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
