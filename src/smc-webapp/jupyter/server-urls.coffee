@@ -3,7 +3,7 @@ Functions for getting or formatting url's for various backend endpoints
 ###
 
 exports.get_server_url = (project_id) ->
-    return "#{window?.smc_base_url ? ''}/#{project_id}/raw/.smc/jupyter"
+    return "#{window?.app_base_url ? ''}/#{project_id}/raw/.smc/jupyter"
 
 exports.get_blob_url = (project_id, extension, sha1) ->
     return "#{exports.get_server_url(project_id)}/blobs/a.#{extension}?sha1=#{sha1}"
