@@ -3,7 +3,14 @@ Jupyter Backend
 ###
 
 async = require('async')
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
+
+# A bug in coffee-cache breaks this, and it creates the cache in ~/usr, which is
+# ... disturbing (but otherwise works fine).  The fix will be to fix coffee-cache.
+# You can see what is wrong by putting a console.log to show the err they catch
+# and don't handle here: https://github.com/trello/node-coffee-cache/blob/master/lib/coffee-cache.js#L76
+# Commenting this out slows down hub startup (or at least jupyter startup!) by 3s at least
+# the first time, so this is important.
+#require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
 {EventEmitter} = require('events')
 
