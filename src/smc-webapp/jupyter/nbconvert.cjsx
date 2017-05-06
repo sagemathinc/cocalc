@@ -127,7 +127,10 @@ exports.NBConvert = rclass
         </div>
 
     render_cmd: ->
-        cmd = "jupyter nbconvert #{@args().join(' ')} '#{misc.path_split(@props.path)?.tail}'"
+        if @props.nbconvert_dialog.get('to') == 'sagews'
+            cmd = "smc-ipynb2sagews '#{misc.path_split(@props.path)?.tail}'"
+        else
+            cmd = "jupyter nbconvert #{@args().join(' ')} '#{misc.path_split(@props.path)?.tail}'"
         <pre  style={margin: '15px 0px', overflowX: 'auto'}>{cmd}</pre>
 
     render_started: ->
