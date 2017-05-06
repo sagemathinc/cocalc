@@ -23,7 +23,6 @@ exports.Logo = rclass
             s.logo_failed != @state.logo_failed
 
     render: ->
-        console.log 'render', @props.kernel, @props.project_id, @props.kernel_info_known
         kernel = @props.kernel
         if @state.logo_failed == kernel
             <img style   = {width:'0px', height:'32px'} />
