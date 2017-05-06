@@ -1,6 +1,6 @@
 {
  "display_name": "SageMath",
- "argv": ["/usr/local/share/jupyter/kernels/sagemath/cc-run-jupyter-kernel", "/usr/local/bin/sage", "--python", "-m", "sage.repl.ipython_kernel", "--matplotlib=inline", "-f", "{connection_file}"],
+ "argv": ["/usr/local/share/jupyter/kernels/sagemath/cc-run-jupyter-kernel", "/usr/bin/sage", "--python", "-m", "sage.repl.ipython_kernel", "--matplotlib=inline", "-f", "{connection_file}"],
  "env":{
     "CCACHE_BASEDIR": "/usr/local/sage",
     "CPATH": "/usr/local/sage/local/include:/usr/include/x86_64-linux-gnu",

@@ -10,7 +10,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Ubuntu software that are used by SMC (latex, pandoc, sage, jupyter)
 RUN \
   apt-get update && \
-  apt-get install -y software-properties-common texlive texlive-latex-extra tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick
+  apt-get install -y software-properties-common texlive texlive-latex-extra tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev
 
 # Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
@@ -75,15 +75,11 @@ COPY bashrc /root/.bashrc
 
 RUN echo "umask 077" >> /etc/bash.bashrc
 
-# Install Jupyter kernels
+# Install Jupyter kernels definition files
 COPY kernels /usr/local/share/jupyter/kernels
 
-# Remove packages needed for the build above, which we don't want to have
-# available when running the hub in production (e.g., having a compiler could
-# result in an exploit...). This doesn't save space, but may improve security.
-#RUN \
-#  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
-#  apt-get autoremove -y
+# Install R Jupyter Kernel package into R itself (so R kernel works)
+RUN echo "install.packages(c('repr', 'IRdisplay', 'evaluate', 'crayon', 'pbdZMQ', 'httr', 'devtools', 'uuid', 'digest'), repos='http://cran.us.r-project.org'); devtools::install_github('IRkernel/IRkernel')" | sage -R --no-save
 
 CMD /root/run.py
 

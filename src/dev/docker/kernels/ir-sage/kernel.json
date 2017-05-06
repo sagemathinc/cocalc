@@ -1,11 +1,11 @@
 {
  "language": "r",
  "argv": [
-  "R-sage",
+  "/usr/local/share/jupyter/kernels/sagemath/ir-sage/R-sage",
   "-e",
   "IRkernel::main()",
   "--args",
   "{connection_file}"
  ],
- "display_name": "R (SageMath)"
+ "display_name": "R"
 }
