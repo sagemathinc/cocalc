@@ -475,7 +475,12 @@ class exports.JupyterActions extends actions.JupyterActions
 
     _load_from_disk_if_newer: (cb) =>
         dbg = @dbg("load_from_disk_if_newer")
-        last_changed = @syncdb.last_changed()
+        if @syncdb.get(type:'file').size == 0
+            # never ever loaded from disk before; we have to load at least once
+            last_changed = 0
+        else
+            last_changed = @syncdb.last_changed()
+
         dbg("syncdb last_changed=#{last_changed}")
         @_client.path_stat
             path : @store.get('path')
@@ -488,6 +493,11 @@ class exports.JupyterActions extends actions.JupyterActions
                     file_is_newer = not last_changed? or stats.ctime > last_changed
                     dbg("disk file changed more recently than edits, so loading")
                     @load_ipynb_file(cb, not file_is_newer)
+
+    set_last_load: =>
+        @syncdb.set
+            type      : 'file'
+            last_load : new Date() - 0
 
     load_ipynb_file: (cb, data_only=false) =>
         """
@@ -513,10 +523,12 @@ class exports.JupyterActions extends actions.JupyterActions
                     @syncdb.set(type:'fatal', error:error)
                     cb?(error)
                     return
+
                 if content.length == 0
                     # Blank file, e.g., when creating in CoCalc.
                     # This is good, works, etc. -- just clear state, including error.
                     @syncdb.delete()
+                    @set_last_load()
                     cb?()
                     return
 
@@ -532,6 +544,7 @@ class exports.JupyterActions extends actions.JupyterActions
                     return
                 @syncdb.delete(type:'fatal')
                 @set_to_ipynb(content, data_only)
+                @set_last_load()
                 cb?()
 
     save_ipynb_file: (cb) =>
