@@ -81,6 +81,9 @@ COPY kernels /usr/local/share/jupyter/kernels
 # Install R Jupyter Kernel package into R itself (so R kernel works)
 RUN echo "install.packages(c('repr', 'IRdisplay', 'evaluate', 'crayon', 'pbdZMQ', 'httr', 'devtools', 'uuid', 'digest'), repos='http://cran.us.r-project.org'); devtools::install_github('IRkernel/IRkernel')" | sage -R --no-save
 
+# Configure so that R kernel actually works -- see https://github.com/IRkernel/IRkernel/issues/388
+COPY kernels/ir-sage/Rprofile.site /usr/local/sage/local/lib/R/etc/Rprofile.site
+
 CMD /root/run.py
 
 EXPOSE 80 443
