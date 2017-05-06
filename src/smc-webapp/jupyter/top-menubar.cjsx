@@ -82,7 +82,7 @@ exports.TopMenubar = rclass ({name}) ->
             names   : [
                 'new notebook', 'open file', '', \
                 'duplicate notebook', 'rename notebook', save, 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
+                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 trust, '', \
                 'close and halt'
             ]

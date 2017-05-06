@@ -328,6 +328,10 @@ exports.commands = (actions) ->
         m : "Executable Script (.txt)..."
         f : -> actions.show_nbconvert_dialog('script')
 
+    'nbconvert sagews' :
+        m : "Sage Worksheet (.sagews)..."
+        f : -> actions.show_nbconvert_dialog('sagews')
+
     'open file':
         m : 'Open...'
         f : -> actions.file_open()

@@ -19,6 +19,7 @@ NAMES =
     asciidoc : {ext:'asciidoc'   , display:'AsciiDoc'}
     slides   : {ext:'slides.html', display:'Slides'}
     latex    : {ext:'tex'        , display:'LaTeX',    internal:true}
+    sagews   : {ext:'sagews'     , display:'Sage Worksheet',    internal:true, nolink:true}
     pdf      : {ext:'pdf'        , display:'PDF'}
     script   : {ext:'txt'        , display:'Executable Script', internal:true}
 
@@ -98,7 +99,7 @@ exports.NBConvert = rclass
         target_path = misc.change_filename_extension(@props.path, ext)
         url = @props.actions.store.get_raw_link(target_path)
         <div style={fontSize: '14pt'}>
-            <a href={url} target="_blank">{target_path}</a>
+            {<a href={url} target="_blank">{target_path}</a> if not info.nolink}
             {@render_edit(target_path) if info.internal}
         </div>
 
