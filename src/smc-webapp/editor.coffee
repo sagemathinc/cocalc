@@ -1615,9 +1615,7 @@ class CodeMirrorEditor extends FileEditor
             else
                 v[i] += amount
         $("body").remove("#webapp-cm-activeline")
-        $("body").append("<style id='webapp-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
-
-
+        $("body").append("<style id='webapp-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")   # this is a memory leak!
 
     _show_codemirror_editors: (height) =>
         # console.log("_show_codemirror_editors: #{@_layout}")
@@ -3400,10 +3398,9 @@ exports.register_nonreact_editors = () ->
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
     register(false, TaskList,         ['tasks'])
-    register(false, JupyterNotebook,  ['ipynb'])
+    register(false, JupyterNotebook,  ['ipynb2'])
 
     # "Editors" for read-only public files
     register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
-    register(true, JupyterNBViewerEmbedded, ['ipynb'])

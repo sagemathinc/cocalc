@@ -108,6 +108,7 @@ exports.Icon = Icon = rclass
         rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
         flip       : rtypes.oneOf(['horizontal', 'vertical'])
         spin       : rtypes.bool
+        pulse      : rtypes.bool
         fixedWidth : rtypes.bool
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
@@ -122,7 +123,8 @@ exports.Icon = Icon = rclass
         onClick : ->
 
     render: ->
-        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
+        # temporary until file_associations can be changed
         if name.slice(0, 3) == 'cc-'
             classNames = "fa #{name}"
             # the cocalc icon font can't do any extra tricks
@@ -142,6 +144,8 @@ exports.Icon = Icon = rclass
             classNames += ' fa-fw'
         if spin
             classNames += ' fa-spin'
+        if pulse
+            classNames += ' fa-pulse'
         if stack
             classNames += " fa-stack-#{stack}"
         if inverse
@@ -175,8 +179,13 @@ exports.Octicon = rclass
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
+    propTypes :
+        style : rtypes.object
+
     render: ->
-        <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
+        <span style={@props.style}>
+            <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
+        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
@@ -502,12 +511,13 @@ exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
     propTypes :
-        popover     : rtypes.bool
-        placement   : rtypes.string
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
 
     getDefaultProps: ->
         popover   : true
-        minPeriod : 45000
+        minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
@@ -523,7 +533,7 @@ exports.TimeAgo = rclass
             return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
-            <Tip title={s} id={s} placement={@props.placement}>
+            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
                 {@render_timeago(d)}
             </Tip>
         else
@@ -728,72 +738,91 @@ exports.HTML = rclass
     displayName : 'Misc-HTML'
 
     propTypes :
-        value       : rtypes.string
-        style       : rtypes.object
-        has_mathjax : rtypes.bool
-        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path   : rtypes.string   # optional -- ...
-        className   : rtypes.string   # optional class
-        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        value          : rtypes.string
+        style          : rtypes.object
+        has_mathjax    : rtypes.bool
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+                                         # the jQuery wrapped set that is created (and discarded!) in the course of
+                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                         # before it is exported to text and given to react.   Obviously, you can't
+                                         # install click handlers here.
 
     getDefaultProps: ->
         has_mathjax : true
         safeHTML    : true
 
     shouldComponentUpdate: (newProps) ->
-        return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
+        return @props.value != newProps.value or \
+             not underscore.isEqual(@props.style, newProps.style) or \
+             @props.safeHTML != newProps.safeHTML
 
     _update_escaped_chars: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
 
     _update_mathjax: (cb) ->
-        if not @_isMounted  # see https://github.com/sagemathinc/cocalc/issues/1689
+        if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
+            cb()
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 cb : () =>
-                    # Awkward code, since cb may be called more than once.
+                    # Awkward code, since cb may be called more than once if there
+                    # where more than one node.
                     cb?()
                     cb = undefined
         else
             cb()
 
     _update_links: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
-        $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
+        $(ReactDOM.findDOMNode(@)).process_smc_links
+            project_id     : @props.project_id
+            file_path      : @props.file_path
+            href_transform : @props.href_transform
+
+    _update_tables: ->
+        if not @_is_mounted
+            return
+        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     update_content: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         # orchestrates the _update_* methods
         @_update_mathjax =>
-            if not @_isMounted
+            if not @_is_mounted
                 return
             @_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+            @_update_tables()
 
     componentDidUpdate: ->
         @update_content()
 
     componentDidMount: ->
-        @_isMounted = true
+        @_is_mounted = true
         @update_content()
 
     componentWillUnmount: ->
         # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
         # and https://github.com/sagemathinc/cocalc/issues/1689
-        @_isMounted = false
+        @_is_mounted = false
 
     render_html: ->
         if @props.value
             if @props.safeHTML
-                html = require('./misc_page').sanitize_html_safe(@props.value)
+                html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
-                html = require('./misc_page').sanitize_html(@props.value)
+                html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
             {__html: html}
         else
             {__html: ''}
@@ -809,12 +838,14 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value       : rtypes.string
-        style       : rtypes.object
-        project_id  : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path   : rtypes.string   # optional -- ...
-        className   : rtypes.string   # optional class
-        safeHTML    : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        value          : rtypes.string
+        style          : rtypes.object
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform : rtypes.func     # optional function used to first transform href target strings
+        post_hook      : rtypes.func     # see docs to HTML
 
     getDefaultProps: ->
         safeHTML : true
@@ -832,14 +863,15 @@ exports.Markdown = rclass
         value = @to_html()
         #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
         <HTML
-            value        = {value.s}
-            has_mathjax  = {value.has_mathjax}
-            style        = {@props.style}
-            project_id   = {@props.project_id}
-            file_path    = {@props.file_path}
-            className    = {@props.className}
-            safeHTML     = {@props.safeHTML}>
-        </HTML>
+            value          = {value.s}
+            has_mathjax    = {value.has_mathjax}
+            style          = {@props.style}
+            project_id     = {@props.project_id}
+            file_path      = {@props.file_path}
+            className      = {@props.className}
+            href_transform = {@props.href_transform}
+            post_hook      = {@props.post_hook}
+            safeHTML       = {@props.safeHTML} />
 
 activity_style =
     float           : 'right'

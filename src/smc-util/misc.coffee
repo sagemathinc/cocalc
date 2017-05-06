@@ -84,11 +84,18 @@ exports.startswith = (s, x) ->
 exports.endswith = (s, t) ->
     return s.slice(s.length - t.length) == t
 
-# modifies in place the object dest so that it includes all values in objs and returns dest
+# Modifies in place the object dest so that it
+# includes all values in objs and returns dest
+# Rightmost object overwrites left.
 exports.merge = (dest, objs...) ->
     for obj in objs
-        dest[k] = v for k, v of obj
+        for k, v of obj
+            dest[k] = v
     dest
+
+# Makes new object that is shallow copy merge of all objects.
+exports.merge_copy = (objs...) ->
+    return exports.merge({}, objs...)
 
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
@@ -197,7 +204,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -205,7 +212,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -215,7 +222,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -596,6 +603,8 @@ ELLIPSES = "…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")
@@ -607,6 +616,8 @@ exports.trunc = (s, max_length=1024) ->
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length <= max_length
         return s
     if max_length < 1
@@ -618,6 +629,8 @@ exports.trunc_middle = (s, max_length=1024) ->
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")
@@ -923,6 +936,9 @@ exports.eval_until_defined = (opts) ->
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
+
+# TODO: this is actually throttle, not debounce...
+
 exports.async_debounce = (opts) ->
     opts = defaults opts,
         f        : required   # async function f whose *only* argument is a callback
@@ -2030,8 +2046,16 @@ exports.bind_objects = (scope, arr_objects) ->
 # Remove all whitespace from string s.
 # see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
 exports.remove_whitespace = (s) ->
-    return s.replace(/\s/g,'')
+    return s?.replace(/\s/g,'')
 
+exports.is_whitespace = (s) ->
+    return s?.trim().length == 0
+
+exports.lstrip = (s) ->
+    return s?.replace(/^\s*/g, "")
+
+exports.rstrip = (s) ->
+    return s?.replace(/\s*$/g, "")
 
 # ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
 exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']
@@ -2053,6 +2077,20 @@ exports.op_to_function = (op) ->
         else
             throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
 
+# modify obj in place substituting keys as given.
+exports.obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            exports.obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
+
 # this is a helper for sanitizing html. It is used in
 # * smc-util-node/misc_node → sanitize_html
 # * smc-webapp/misc_page    → sanitize_html
@@ -2064,3 +2102,4 @@ exports.sanitize_html_attributes = ($, node) ->
         # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
+

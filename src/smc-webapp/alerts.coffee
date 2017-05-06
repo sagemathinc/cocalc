@@ -19,8 +19,9 @@
 #
 ###############################################################################
 
-$                   = window.$
-misc                = require('misc')
+# window? is so this can be imported in the backend for testing...
+$                   = window?.$
+misc                = require('smc-util/misc')
 {defaults, to_json} = misc
 {webapp_client}     = require('./webapp_client')
 
@@ -31,7 +32,7 @@ default_timeout =
     success : 2
     info    : 3
 
-$("#alert-templates").hide()
+$?("#alert-templates").hide()
 
 last_shown = {}
 

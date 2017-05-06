@@ -41,7 +41,7 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    for m in './smc-util ./smc-util-node ./smc-project coffee-script forever'.split():
+    for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
@@ -55,7 +55,7 @@ def install_webapp(*args):
 
     if 'build' in action:
         cmd("cd wizard && make")
-        for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
+        for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm install"%path)
         # react static step must come *before* webpack step
         cmd("update_react_static")

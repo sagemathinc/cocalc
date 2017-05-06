@@ -55,16 +55,16 @@ Then the **only way** to access your SMC server is to type the following on your
 
 and open your web browser to http://localhost:8080
 
-### Make a user an admins
+### Make a user an admin
 
-Get a bash shell insider the container, then connect to the database and make all users admins as follows:
+Get a bash shell insider the container, then connect to the database and make a user (me!) an admin as follows:
 
     $ docker exec -it smc bash
     root@931045eda11f:/# coffee
     coffee> require 'c'; db()
     coffee> db.make_user_admin(email_address:'wstein@gmail.com', cb:done())
 
-Obviously, make the user you created (with its email address) an admin, not me!
+Obviously, you should really make the user you created (with its email address) an admin, not me!
 Refresh your browser, and then you should see an extra admin panel in the lower right of accounts settings; you can also open any project by directly visiting its URL.
 
 #### Account Creation Token

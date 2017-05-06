@@ -400,10 +400,10 @@ WizardBody = rclass
         search_str : ''
 
     componentDidMount: ->
-        @scrollTo0 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollIntoView()), 50
-        @scrollTo1 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollIntoView()), 50
-        @scrollTo2 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_2)).find('.active').scrollIntoView()), 50
-        @scrollToS = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollIntoView()), 50
+        @scrollTo0 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollintoview()), 50
+        @scrollTo1 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollintoview()), 50
+        @scrollTo2 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_2)).find('.active').scrollintoview()), 50
+        @scrollToS = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollintoview()), 50
 
     componentDidUpdate: (props, state) ->
         @scrollTo0()

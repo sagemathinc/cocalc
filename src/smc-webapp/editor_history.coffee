@@ -23,6 +23,9 @@
 
 $ = window.$
 
+underscore = require('underscore')
+async = require('async')
+
 misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
@@ -31,24 +34,29 @@ misc = require('smc-util/misc')
 
 sagews  = require('./sagews')
 jupyter = require('./editor_jupyter')
+{jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
 
 templates = $("#webapp-editor-templates")
-
-underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         # window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
-        @init_view_doc opts, (err) =>
+        @element  = templates.find(".webapp-editor-history").clone()
+        async.series([
+            (cb) =>
+                @init_syncstring(cb)
+            (cb) =>
+                @init_view_doc(opts, cb)
+        ], (err) =>
             if not err
-                @init_syncstring()
                 @init_slider()
+                @init_ui()
             else
-                # FUTURE: need a better way to report this
-                console.warn("FAILED to configure view_doc")
+                alert_message(type:'error', message:"Failed to open history document -- #{err}")
+        )
 
     init_paths: =>
         #   @filename = "path/to/.file.sage-history"
@@ -61,37 +69,41 @@ class exports.HistoryEditor extends FileEditor
             @_open_file_path = @_path
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
+            @_path = misc.meta_file(@_path, 'jupyter2')
+        if @ext == 'ipynb2'
             @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
         if s.head
             @_path = s.head + '/' + @_path
 
-    init_syncstring: =>
+    init_syncstring: (cb) =>
         webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
             cb         : (err, syncstring) =>
                 if err
-                    alert_message(type:'error', message:"Failed to open document -- #{err}")
-                    return
-                @syncstring = syncstring
-                @syncstring.once 'connected', =>
-                    @render_slider()
-                    @render_diff_slider()
-                    @syncstring.on 'change', =>
-                        if @_diff_mode
-                            @resize_diff_slider()
-                        else
-                            @resize_slider()
+                    cb?(err)
+                else
+                    @syncstring = syncstring
+                    @syncstring.once('connected', cb)
 
-                    if @syncstring.has_full_history()
-                        @load_all.hide()
-                    else
-                        @load_all.show()
+    init_ui: =>
+        @render_slider()
+        @render_diff_slider()
+        @syncstring.on 'change', =>
+            if @_diff_mode
+                @resize_diff_slider()
+            else
+                @resize_slider()
 
-                    # only show button for reverting if not read only
-                    @syncstring.wait_until_read_only_known (err) =>
-                        if not @syncstring.get_read_only()
-                            @element.find("a[href=\"#revert\"]").show()
+        if @syncstring.has_full_history()
+            @load_all.hide()
+        else
+            @load_all.show()
+
+        # only show button for reverting if not read only
+        @syncstring.wait_until_read_only_known (err) =>
+            if not @syncstring.get_read_only()
+                @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -106,9 +118,11 @@ class exports.HistoryEditor extends FileEditor
     init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
-        @element  = templates.find(".webapp-editor-history").clone()
         switch @ext
             when 'ipynb'
+                @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
+                @element.find("a[href=\"#show-diff\"]").hide()
+            when 'ipynb2'
                 @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                 @element.find("a[href=\"#show-diff\"]").hide()
             when 'tasks'
@@ -132,13 +146,14 @@ class exports.HistoryEditor extends FileEditor
                 read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
-        if @ext == 'ipynb'
+        if @ext == 'ipynb2'
             @view_doc.once 'ready', =>
                 @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
                 @show()
                 cb()
             @view_doc.once('failed', => cb('failed'))
         else
+            @show()
             cb()
 
     init_slider: =>
@@ -239,14 +254,18 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        val = @syncstring.version(time).to_str()
-        switch @ext
-            when 'ipynb'
-                @view_doc.dom.set(val)
-            when 'tasks'
-                @view_doc.set_value(val)
-            else
-                @view_doc.codemirror.setValueNoJump(val)
+        if @ext == 'ipynb'
+            @view_doc.set_version(time)
+        else
+            val = @syncstring.version(time).to_str()
+            switch @ext
+                when 'ipynb2'
+                    @view_doc.dom.set(val)
+                when 'tasks'
+                    @view_doc.set_value(val)
+                else
+                    @view_doc.codemirror.setValueNoJump(val)
+
         @process_view()
 
     set_doc_diff: (time0, time1) =>

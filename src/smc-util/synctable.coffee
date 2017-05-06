@@ -872,12 +872,16 @@ class SyncTable extends EventEmitter
                 when 'none'
                     new_val = changes
                 else
-                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+                    cb?("merge must be one of 'deep', 'shallow', 'none'")
+                    return
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
             @emit_change([id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+        else
+            cb?()
+
         return new_val
 
     close: =>
@@ -934,12 +938,12 @@ class SyncTable extends EventEmitter
         return
 
 synctables = {}
+
 # for debugging; in particular, verify that synctables are freed.
 # Do not leave in production; could be slight security risk.
 ## window?.synctables = synctables
 
 exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined, use_cache=true) ->
-
     cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval, throttle_changes:throttle_changes)
     if not use_cache
         return new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)

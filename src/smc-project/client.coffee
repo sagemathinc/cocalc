@@ -29,7 +29,8 @@ SYNCSTRING_MAX_AGE_M = 20
 # syncstring, etc.  It's critical that those only close when the user explicitly
 # kills them, or the project is closed.
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
-    sagews : true   # only sagews for now.
+    sagews          : true
+    'sage-jupyter2' : true
 
 fs     = require('fs')
 {join} = require('path')
@@ -51,6 +52,8 @@ syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
 
 sage_session = require('./sage_session')
+
+jupyter = require('./jupyter/jupyter')
 
 {json} = require('./common')
 
@@ -210,6 +213,8 @@ class exports.Client extends EventEmitter
                         else if not @_open_syncstrings[string_id]?
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
 
+                            ext = misc.separate_file_extension(path).ext
+
                             doctype = val.get('doctype')
                             if doctype?
                                 dbg("using doctype='#{doctype}'")
@@ -220,6 +225,11 @@ class exports.Client extends EventEmitter
                             else
                                 opts = {path:path}
                                 type = 'string'
+
+                            if ext == 'sage-ipython'
+                                opts.change_throttle = opts.patch_interval = 5
+                                opts.save_interval = 25
+
                             ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
 
                             ss.on 'error', (err) =>
@@ -232,6 +242,11 @@ class exports.Client extends EventEmitter
                                 # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
                                 @_wait_syncstrings[string_id] = true
                                 setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
+
+                            switch ext
+                                when 'sage-jupyter2'
+                                    jupyter.jupyter_backend(ss, @)
+
                     )
             return  # so map doesn't terminate due to funny return value
 
@@ -253,7 +268,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{s}")
+                winston.debug("Client.#{f}: #{misc.trunc_middle(s,1000)}")
         else
             return (m) ->
 
@@ -474,8 +489,8 @@ class exports.Client extends EventEmitter
             opts.cb(undefined, ids)
 
     # Get the synchronized table defined by the given query.
-    sync_table: (query, options, debounce_interval=2000) =>
-        return synctable.sync_table(query, options, @, debounce_interval)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,
         #    query             : required
@@ -486,7 +501,9 @@ class exports.Client extends EventEmitter
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
-            path    : required
+            path            : required
+            save_interval   : 500    # amount to debounce saves (in ms)
+            patch_interval  : 500    # debouncing of incoming patches
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -494,9 +511,12 @@ class exports.Client extends EventEmitter
 
     sync_db: (opts) =>
         opts = defaults opts,
-            path         : required
-            primary_keys : required
-            string_cols  : []
+            path            : required
+            primary_keys    : required
+            string_cols     : []
+            change_throttle : 0      # amount to throttle change events (in ms)
+            save_interval   : 500    # amount to debounce saves (in ms)
+            patch_interval  : 500    # debouncing of incoming patches
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
@@ -540,7 +560,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path       : required
             maxsize_MB : undefined   # in megabytes; if given and file would be larger than this, then cb(err)
-            cb         : required
+            cb         : required    # cb(err, file content as string (not Buffer!))
         content = undefined
         path    = join(process.env.HOME, opts.path)
         dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
@@ -601,8 +621,10 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
-        @dbg("checking if path exists")(opts.path)
+        dbg = @dbg("checking if path (='#{opts.path}') exists")
+        dbg()
         fs.exists opts.path, (exists) =>
+            dbg("returned #{exists}")
             opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
     path_stat: (opts) =>  # see https://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -630,6 +652,16 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
+
+    # returns a Jupyter kernel session
+    jupyter_kernel: (opts) =>
+        opts.client = @
+        return jupyter.kernel(opts)
+
+    jupyter_kernel_info: (opts) =>
+        opts = defaults opts,
+            cb : required
+        jupyter.get_kernel_data(opts.cb)
 
     # Watch for changes to the given file.  Returns obj, which
     # is an event emitter with events:

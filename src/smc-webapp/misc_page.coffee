@@ -132,6 +132,10 @@ $.fn.process_smc_links = (opts={}) ->
             y = $(x)
             href = y.attr('href')
             if href?
+                if href[0] == '#'  # internal link - do not touch
+                    continue
+                if opts.href_transform?
+                    href = opts.href_transform(href)
                 if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
                     # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
                     # link directly inside this browser tab.
@@ -176,25 +180,28 @@ $.fn.process_smc_links = (opts={}) ->
                     src = y.attr(attr)
                     if not src?
                         continue
-                    {join} = require('path')
-
-                    i = src.indexOf('/projects/')
-                    j = src.indexOf('/files/')
-                    if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
-                        # the href is inside the app, points to the current project or another one
-                        # j-i should be 36, unless we ever start to have different (vanity) project_ids
-                        path = src.slice(j + '/files/'.length)
-                        project_id = src.slice(i + '/projects/'.length, j)
-                        new_src = join('/', window.app_base_url, project_id, 'raw', path)
-                        y.attr(attr, new_src)
-                        continue
-
-                    if src.indexOf('://') != -1
-                        # link points somewhere else
-                        continue
-
-                    # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
-                    new_src = join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
+                    if opts.href_transform?
+                        src = opts.href_transform(src)
+                    if src[0] == '/' or src.slice(0,5) == 'data:'
+                        # absolute path or data: url
+                        new_src = src
+                    else
+                        {join} = require('path')
+                        i = src.indexOf('/projects/')
+                        j = src.indexOf('/files/')
+                        if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
+                            # the href is inside the app, points to the current project or another one
+                            # j-i should be 36, unless we ever start to have different (vanity) project_ids
+                            path = src.slice(j + '/files/'.length)
+                            project_id = src.slice(i + '/projects/'.length, j)
+                            new_src = join('/', window.app_base_url, project_id, 'raw', path)
+                            y.attr(attr, new_src)
+                            continue
+                        if src.indexOf('://') != -1
+                            # link points somewhere else
+                            continue
+                        # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
+                        new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e
@@ -270,8 +277,9 @@ $.fn.extend
             if not opts.tex? and not opts.display and not opts.inline
                 # Doing this test is still much better than calling mathjax below, since I guess
                 # it doesn't do a simple test first... and mathjax is painful.
-                html = t.html()
-                if html.indexOf('$') == -1 and html.indexOf('\\') == -1
+                html = t.html().toLowerCase()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1 and html.indexOf('math/tex') == -1
+                    opts.cb?()
                     return t
                 # this is a common special case - the code below would work, but would be
                 # stupid, since it involves converting back and forth between html
@@ -789,6 +797,11 @@ exports.define_codemirror_extensions = () ->
             # there is no meaningful thing to do but "do nothing".  We detected this periodically
             # by catching user stacktraces in production...  See https://github.com/sagemathinc/smc/issues/1768
             return
+        current_value = @getValue()
+        if value == current_value
+            # Nothing to do
+            return
+
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -801,7 +814,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(current_value, value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -1752,15 +1765,18 @@ exports.sanitize_html = (html) ->
     return jQuery("<div>").html(html).html()
 
 # http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
-exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true) ->
+exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true, post_hook = undefined) ->
     {sanitize_html_attributes} = require('smc-util/misc')
     sani = jQuery(jQuery.parseHTML('<div>' + html + '</div>', null, keepScripts))
     if not keepUnsafeAttributes
         sani.find('*').each ->
             sanitize_html_attributes(jQuery, this)
+    if post_hook?
+        post_hook(sani)
     return sani.html()
 
-exports.sanitize_html_safe = (html) -> exports.sanitize_html(html, keepScripts = false, keepUnsafeAttributes = false)
+exports.sanitize_html_safe = (html, post_hook=undefined) ->
+    exports.sanitize_html(html, false, false, post_hook)
 
 ###
 _sanitize_html_lib = require('sanitize-html')
@@ -1830,3 +1846,11 @@ exports.open_new_tab = (url, popup=false) ->
         return null
     return tab
 
+# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
+exports.clear_selection = ->
+    if window.getSelection?().empty?
+        window.getSelection().empty() # chrome
+    else if window.getSelection?().removeAllRanges?
+        window.getSelection().removeAllRanges() # firefox
+    else
+        document.selection?.empty?()

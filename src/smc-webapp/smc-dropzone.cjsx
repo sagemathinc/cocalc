@@ -25,10 +25,10 @@ render_header = ->
     <Tip
         icon      = 'file'
         title     = 'Drag and drop files'
-        placement = 'top'
+        placement = 'bottom'
         tip       = 'Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
         <h4 style={color:"#666"}>
-            Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)
+            Drag and drop files. Each file must be under 30MB.
         </h4>
     </Tip>
 
