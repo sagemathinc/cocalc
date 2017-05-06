@@ -67,6 +67,11 @@ exports.CellList = rclass
         @props.actions?._cell_list_div = $(ReactDOM.findDOMNode(@refs.cell_list))
 
     window_click: (event) ->
+        if $(".in.modal").length
+            # A bootstrap modal is currently opened, e.g., support page, etc.
+            # so do not focus no matter what -- in fact, blur for sure.
+            @props.actions.blur()
+            return
         # if click in the cell list, focus the cell list; otherwise, blur it.
         elt = $(ReactDOM.findDOMNode(@))
         offset = elt.offset()
