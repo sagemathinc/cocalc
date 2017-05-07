@@ -17,6 +17,7 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
+  a.anchor#a-top
   div.container
     div.row.intro#top
       div.col-sm-4.col-sm-offset-4.center
@@ -27,27 +28,31 @@ block content
       div.col-sm-12.center
         a.btn.btn-success.btn-lg(href="app").
           Start #{NAME} For Free
+
     div.row
       div.col-md-12.center
-        h1 Zero setup
+        h1 Collaborative computing environment
       div.col-sm-6
         img(src=require('!file!sagepreview/01-worksheet.png'))
       div.col-sm-6
         p.
           #{NAME} is a sophisticated all-round web-service for
           #[strong mathematical calculation], #[strong statistical analysis] and #[strong various other computation].
-        ul
-          li.
-            Getting started #[em does not require any software installation]:
-            #[strong Create a project for free] to start working in your own private workspace.
-          li Share your files privately with collaborators. All files are synchronized in real-time.
-          li Finally, you can publish your documents, files and data publicly.
+        p
+          strong Zero setup
+          ul
+            li.
+              Getting started #[em does not require any software installation]:
+              #[strong Create a project for free] to start working in your own private workspace.
+            li Share your files privately with collaborators. All files are synchronized in real-time.
+            li #[em Time-travel] is a detailed history of your edits, and everything is backed up in #[em consistent snapshots].
+            li Finally, you can publish your documents, files and data publicly.
         p.
           Each project starts with a maximum of #{free_memory_gb} GB memory and
           #{free_disk_gb} GB of disk space.
-          #[a(href="policies/pricing.html") Subscriptions] give you
+          A #[a(href="policies/pricing.html") subscription] gives you better hosting and increased quotas.
         p.
-          #[a(href="app") Start #{htmlWebpackPlugin.options.title} For Free]
+          #[a(href="app") Start #{NAME} For Free]
 
     div.row
       div.col-md-12.center
@@ -66,6 +71,36 @@ block content
           li Jump into student's files right where they are working
           li Collect and grade assignments
 
+  a.anchor#a-testimonials
+  div#testimonials
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Testimonials
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
+            p.
+              I just found out that my #{NAME} class got by far the best course evaluations
+              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
+              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
+              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
+            footer.
+              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
+            p.
+              #{NAME} provides a user-friendly interface.
+              Students don’t need to install any software at all.
+              They just open up a web browser and go to #{URL} and that’s it.
+              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+              It provides immediate feedback.
+              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
+            footer.
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+
+  a.anchor#a-explore
   div#explore
     div.container
       div.row
@@ -101,42 +136,39 @@ block content
             #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
             #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
 
-  div#testimonials
+  a.anchor#a-unique
+  div#unique
     div.container
       div.row
         div.col-md-12.center
-          h1 Testimonials
+          h1 Unique Features
         div.col-md-6
-          blockquote.blockquote
-            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
-            p.
-              I just found out that my #{NAME} class got by far the best course evaluations
-              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
-              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
-              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
-            footer.
-              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+          h2 #[i.fa.fa-history] Time-Travel
+          div.
+            All your changes are recorded in fine details.
+            You can go back and forth in time across hundreds of changes to recover your previous edits!
+          br/
+          div
+            video(loop autoplay).fit
+              source(src=require("file-loader!webapp-lib/assets/smc-time-travel-4x.webm") type="video/webm; codecs=vp9")
+              source(src=require("file-loader!webapp-lib/assets/smc-time-travel-4x.mp4") type="video/mp4")
         div.col-md-6
-          blockquote.blockquote
-            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
-            p.
-              #{NAME} provides a user-friendly interface.
-              Students don’t need to install any software at all.
-              They just open up a web browser and go to #{URL} and that’s it.
-              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
-              It provides immediate feedback.
-              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
-            footer.
-              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+          h2 #[i.fa.fa-camera-retro] Backups
+          div.
+            Every couple of minutes, consistent read-only snapshots of all your files are created.
+            This means even when all your files got corrupted, there is still a way to recover everything.
+
 
   div.container
     div.row
+      a.anchor#a-included
       div.col-md-6#included
         h2 #[i.fa.fa-battery-three-quarters] Batteries included
         p.
           Out of the box hundreds of open-source tools are available for you.
           Here is a short list of a selected few:
         include _static_third_party_software.html
+      a.anchor#a-stats
       div.col-md-6#stats
         h2 #[i.fa.fa-line-chart] Statistics
         div.
@@ -185,6 +217,8 @@ block content
           margin-top   : 2rem
           margin-bottom: 4rem
           > div
+            > h1
+              margin-bottom : 4rem
             > h2, h3
               margin-bottom : 2rem
       .left,

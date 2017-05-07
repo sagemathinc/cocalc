@@ -42,13 +42,13 @@ html.no-js(lang="en")
     nav.navbar.navbar-default.navbar-fixed-top
       div.container
         div.navbar-header
-          a(href=PREFIX + "#top")
+          a(href=PREFIX + "#a-top")
             img.icon(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
             img.name(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
             li
-              a(href=PREFIX + "#explore") Explore
+              a(href=PREFIX + "#a-explore") Explore
             li
               a(href=PREFIX + "policies/index.html") Policies
             li
@@ -91,13 +91,25 @@ html.no-js(lang="en")
           min-height     : 40vw
         .uppercase
           text-transform : uppercase
+        .fit
+          width          : 100%
+          heigh          : auto
         body > div.container > footer
           margin-top     : 6rem
+        /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
+        a.anchor
+          display        : block
+          position       : relative
+          top            : -5rem
+          visibility     : hidden
 
     script
       :coffee-script
         html = document.documentElement
         html.className = html.className.replace(/\bno-js\b/, 'js')
+    noscript
+      style.
+        html.no-js { display: block; }
 
     //- if we have a GA token, insert the google analytics async script
     - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
