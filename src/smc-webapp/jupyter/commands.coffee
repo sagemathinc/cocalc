@@ -209,7 +209,7 @@ exports.commands = (actions) ->
         m : 'Redo'
         i : 'repeat'
         d : 'Global user-aware redo.  Redo the last change *you* made to the notebook.'
-        k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}]
+        k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}, {alt:true,"mode":"escape","which":89}, {ctrl:true,"mode":"escape","which":89}]
         f : -> actions.redo()
 
     'hide all line numbers' :

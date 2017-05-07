@@ -903,6 +903,7 @@ KEYBOARD_SHORTCUTS =
     #'Previous file tab'            : 'control+['
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
+    'Toggle comment'               : 'control+/'
     'Go to line'                   : 'control+L'
     'Find'                         : 'control+F'
     'Find next'                    : 'control+G'

@@ -804,6 +804,9 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-'"       : "indentAuto"
             "Cmd-'"        : "indentAuto"
 
+            "Cmd-/"        : "toggleComment"
+            "Ctrl-/"       : "toggleComment"    # shortcut chosen by jupyter project (undocumented)
+
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
