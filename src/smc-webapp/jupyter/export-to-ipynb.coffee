@@ -59,6 +59,10 @@ cell_to_ipynb = (id, opts) ->
     process_attachments(obj, cell.get('attachments'), opts.blob_store)
     process_tags(obj, cell.get('tags'))
 
+    if obj.cell_type != 'code'
+        # Code is the only cell type that is allowed to have an outputs field.
+        return obj
+
     output = cell.get('output')
     if output?.size > 0
         obj.outputs = ipynb_outputs(output, exec_count, opts.more_output?[id], opts.blob_store)

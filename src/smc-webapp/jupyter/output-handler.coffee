@@ -153,6 +153,10 @@ class exports.OutputHandler extends EventEmitter
             # ignore any messages once we're done.
             return
 
+        if mesg.comm_id
+            # ignore any comm/widget related messages
+            return
+
         # record execution_count, if there.
         if mesg.execution_count?
             has_exec_count = true
