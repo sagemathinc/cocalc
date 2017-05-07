@@ -136,6 +136,8 @@ ipynb_outputs = (output, exec_count, more_output, blob_store) ->
 process_output_n = (output_n, exec_count, blob_store) ->
     if not output_n?
         return
+    if output_n.exec_count?
+        delete output_n.exec_count
     if output_n.text?
         output_n.text = diff_friendly(output_n.text)
     if output_n.data?

@@ -5,7 +5,6 @@ Jupyter Backend
 async = require('async')
 
 
-
 {EventEmitter} = require('events')
 
 fs = require('fs')
@@ -81,7 +80,9 @@ node_cleanup =>
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg, @_path, @_actions) ->
         @store = key_value_store()
-        @_directory = misc.path_split(@_path)?.head
+        {head, tail} = misc.path_split(@_path)
+        @_directory = head
+        @_filename = tail
         @_set_state('off')
         @_identity = misc.uuid()
         @_start_time = new Date() - 0
@@ -568,11 +569,12 @@ class Kernel extends EventEmitter
             return
         @_nbconvert_lock = true
         args = misc.copy(opts.args)
-        args.push(@_path)
+        args.push(@_filename)
         nbconvert.nbconvert
-            args    : args
-            timeout : opts.timeout
-            cb      : (err) =>
+            args      : args
+            timeout   : opts.timeout
+            directory : @_directory
+            cb        : (err) =>
                 delete @_nbconvert_lock
                 opts.cb(err)
 

@@ -170,7 +170,7 @@ exports.commands = (actions) ->
         f : -> actions.show_keyboard_shortcuts()
 
     'enter command mode' :
-        k : [{which:27, mode:'edit'}]
+        k : [{which:27, mode:'edit'}, {"ctrl":true,"mode":"edit","which":77}, {"alt":true,"mode":"edit","which":77}]
         f : ->
             if store.get('mode') == 'escape' and store.get('introspect')?
                 actions.clear_introspect()
@@ -209,7 +209,7 @@ exports.commands = (actions) ->
         m : 'Redo'
         i : 'repeat'
         d : 'Global user-aware redo.  Redo the last change *you* made to the notebook.'
-        k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}]
+        k : [{alt:true,"mode":"escape","which":90, shift:true}, {ctrl:true,"mode":"escape","which":90, shift:true}, {alt:true,"mode":"escape","which":89}, {ctrl:true,"mode":"escape","which":89}]
         f : -> actions.redo()
 
     'hide all line numbers' :
@@ -328,6 +328,10 @@ exports.commands = (actions) ->
         m : "Executable Script (.txt)..."
         f : -> actions.show_nbconvert_dialog('script')
 
+    'nbconvert sagews' :
+        m : "Sage Worksheet (.sagews)..."
+        f : -> actions.show_nbconvert_dialog('sagews')
+
     'open file':
         m : 'Open...'
         f : -> actions.file_open()
@@ -383,11 +387,11 @@ exports.commands = (actions) ->
 
     'run all cells above' :
         m : 'Run All Above'
-        f : -> actions.run_all_cells_above()
+        f : -> actions.run_all_above()
 
     'run all cells below' :
         m : 'Run All Below'
-        f : -> actions.run_all_cells_below()
+        f : -> actions.run_all_below()
 
     'run cell' :
         m : 'Run Cells'

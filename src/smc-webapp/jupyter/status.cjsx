@@ -3,18 +3,19 @@ Kernel display
 ###
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{Icon, ImmutablePureRenderMixin, Loading, Tip} = require('../r_misc')
-
-{get_logo_url} = require('./server-urls')
+{Icon, Loading, Tip} = require('../r_misc')
 
 misc = require('smc-util/misc')
+
+{Logo} = require('./logo')
 
 exports.Mode = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             mode : rtypes.string
 
-    mixins: [ImmutablePureRenderMixin]
+    shouldComponentUpdate: (next) ->
+        return next.mode != @props.mode
 
     render : ->
         if @props.mode != 'edit'
@@ -43,8 +44,6 @@ exports.Kernel = rclass ({name}) ->
     propTypes:
         actions : rtypes.object.isRequired
 
-    mixins: [ImmutablePureRenderMixin]
-
     reduxProps:
         "#{name}" :
             kernel        : rtypes.string
@@ -55,19 +54,25 @@ exports.Kernel = rclass ({name}) ->
             kernel_state  : rtypes.string
             trust         : rtypes.bool
 
-    getInitialState: ->
-        logo_failed : ''
+    shouldComponentUpdate: (next) ->
+        return next.kernel     != @props.kernel or \
+            next.kernels?      != @props.kernels? or # yes, only care about defined state\
+            next.project_id    != @props.project_id or \
+            next.kernel_info   != @props.kernel_info or \
+            next.backend_state != @props.backend_state or \
+            next.kernel_state  != @props.kernel_state or \
+            next.trust         != @props.trust
 
     render_logo: ->
-        kernel = @props.kernel
-        if @state.logo_failed == kernel or not @props.project_id?
-            <img style   = {width:'0px', height:'32px'} />
-        else
-            <img
-                src     = {get_logo_url(@props.project_id, kernel) + "?n=#{Math.random()}"}
-                style   = {width:'32px', height:'32px'}
-                onError = {=> if @props.kernel_info? then @setState(logo_failed: kernel)}
-            />
+        if not @props.project_id? or not @props.kernel?
+            return
+        <span className='pull-right'>
+            <Logo
+                project_id        = {@props.project_id}
+                kernel            = {@props.kernel}
+                kernel_info_known = {@props.kernel_info?}
+                />
+        </span>
 
     render_name: ->
         display_name = @props.kernel_info?.get('display_name')
@@ -160,10 +165,12 @@ exports.Kernel = rclass ({name}) ->
         if not @props.kernel?
             return <span/>
         title = <span>{@render_trust()}{@render_name()}</span>
-        body = <div className='pull-right' style={color:'#666', cursor:'pointer'}>
+        body = <div className='pull-right' style={color:'#666', cursor:'pointer', marginTop:'7px'}>
                 {title}
                 {@render_backend_state_icon()}
-                {@render_logo()}
             </div>
-        return @render_tip(title, body)
+        <span>
+            {@render_logo()}
+            {@render_tip(title, body)}
+        </span>
 

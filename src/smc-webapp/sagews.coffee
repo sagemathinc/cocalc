@@ -850,7 +850,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
-            @_syncstring.set_doc(after)
+            @_syncstring.from_str(after)
 
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")

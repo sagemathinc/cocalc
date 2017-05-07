@@ -82,7 +82,7 @@ exports.TopMenubar = rclass ({name}) ->
             names   : [
                 'new notebook', 'open file', '', \
                 'duplicate notebook', 'rename notebook', save, 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
+                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 trust, '', \
                 'close and halt'
             ]
@@ -327,6 +327,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
+                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/smc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}

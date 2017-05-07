@@ -761,11 +761,14 @@ exports.HTML = rclass
              not underscore.isEqual(@props.style, newProps.style) or \
              @props.safeHTML != newProps.safeHTML
 
+    ###
+    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/smc/issues/1895
     _update_escaped_chars: ->
         if not @_is_mounted
             return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
+    ###
 
     _update_mathjax: (cb) ->
         if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
@@ -801,8 +804,8 @@ exports.HTML = rclass
         @_update_mathjax =>
             if not @_is_mounted
                 return
-            @_update_escaped_chars()
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+            #@_update_escaped_chars()
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
             @_update_tables()
 
     componentDidUpdate: ->
