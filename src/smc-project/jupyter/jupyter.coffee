@@ -166,7 +166,7 @@ class Kernel extends EventEmitter
             err = "#{err}"
             for cb in @_spawn_cbs
                 cb?(err)
-        opts = {detached: true}
+        opts = {detached: true, stdio:'ignore'}
         if @_directory != ''
             opts.cwd = @_directory
         require('spawnteract').launch(@name, opts).then(success, fail)
