@@ -1545,19 +1545,23 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             timeout : 60*10  # 10 minutes
             cb      : required
-        winston.debug("wait_stable_state")
+        dbg = (m) => winston.debug("wait_stable_state (state='#{@_synctable.getIn([@project_id, 'state', 'state'])}')': #{m}")
+        dbg('causing state update')
         @state    # opportunity to cause state update
-            force : true
+            force  : true
             update : true
-            cb    : () =>
+            cb     : () =>
+                dbg("waiting for state to change to something stable")
                 @_synctable.wait
                     timeout : opts.timeout
                     cb      : opts.cb
                     until   : (table) =>
                         state = table.getIn([@project_id, 'state', 'state'])
                         if STATES[state]?.stable
+                            dbg("synctable changed to stable state")
                             return state
                         else
+                            dbg("synctable changed but state NOT stable yet; keep waiting...")
                             return false
 
     wait_for_a_state: (opts) =>
@@ -1565,17 +1569,48 @@ class ProjectClient extends EventEmitter
             timeout : 60         # 1 minute
             states  : required
             cb      : required
-        winston.debug("wait_for_a_state")
-        @state   # opportunity to cause state update
+        dbg = (m) => winston.debug("wait_for_a_state in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
+        dbg("cause state update")
+        if @_dev
+            @_wait_for_a_state_dev(opts)
+            return
+        @state
             force : true
-            cb    : () =>
-                @_synctable.wait
-                    timeout : opts.timeout
-                    cb      : opts.cb
-                    until   : (table) =>
-                        state = table.getIn([@project_id, 'state', 'state'])
+            cb    : =>
+                    # Compute server will update synctable when change happens.
+                    @_synctable.wait
+                        timeout : opts.timeout
+                        cb      : opts.cb
+                        until   : (table) =>
+                            state = table.getIn([@project_id, 'state', 'state'])
+                            if state in opts.states
+                                dbg("in the right state")
+                                return state
+                            else
+                                dbg("wait longer...")
+
+    _wait_for_a_state_dev: (opts) =>
+        # For smc-in-smc dev, we have to **manually** cause another check,
+        # since there is no separate compute server running!
+        dbg = (m) => winston.debug("_wait_for_a_state(dev) in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
+        dbg("retry until succeess")
+        misc.retry_until_success
+            max_time    : opts.timeout*1000
+            start_delay : 250
+            max_delay   : 3000
+            f           : (cb) =>
+                dbg("force update")
+                @state
+                    force  : true
+                    update : true
+                    cb     : =>
+                        state = @_synctable.getIn([@project_id, 'state', 'state'])
                         if state in opts.states
-                            return state
+                            dbg("in a required state")
+                            opts.cb(undefined, state)
+                            cb()
+                        else
+                            cb('keep trying')
 
     # Move project from one compute node to another one.  Both hosts are assumed to be working!
     # We will have to write something else to deal with auto-failover in case of a host not working.

@@ -538,7 +538,7 @@ class TaskList
             if not current_task_is_visible and @_visible_tasks.length > 0
                 @set_current_task(@_visible_tasks[0])
             else
-                @current_task?.element?.addClass("webapp-current-task")#.scrollintoview()
+                @current_task?.element?.addClass("webapp-current-task").scrollintoview(direction:'vertical', viewPadding: { y: 50 })
 
             if focus_current
                 cm.focus()
@@ -860,7 +860,7 @@ class TaskList
                 # clicking when something in the task is selected -- e.g., don't scroll into view
                 scroll_into_view = false
             if scroll_into_view
-                task.element.scrollIntoView()
+                task.element.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
 
     get_task_visible_index: (task) =>
         if not task?

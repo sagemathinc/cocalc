@@ -434,7 +434,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
-            @_local_hub_socket_queue = []
+            if @_local_hub_socket_queue?
+                @dbg("local_hub_socket: cancelled due to timeout")
+                for c in @_local_hub_socket_queue
+                    c?('timeout')
+                delete @_local_hub_socket_queue
             clearTimeout(connecting_timer)
 
         # If below fails for 20s for some reason, cancel everything to allow for future attempt.
@@ -442,11 +446,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
+            if not @_local_hub_socket_queue?
+                # already gave up.
+                return
             @_local_hub_socket_connecting = false
             @dbg("local_hub_socket: new_socket returned #{err}")
             if err
                 for c in @_local_hub_socket_queue
-                    c(err)
+                    c?(err)
+                delete @_local_hub_socket_queue
             else
                 socket.on 'mesg', (type, mesg) =>
                     switch type
@@ -464,7 +472,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 socket.write_mesg('json', {event:'hello'})
 
                 for c in @_local_hub_socket_queue
-                    c(undefined, socket)
+                    c?(undefined, socket)
+                delete @_local_hub_socket_queue
 
                 @_socket = socket
 

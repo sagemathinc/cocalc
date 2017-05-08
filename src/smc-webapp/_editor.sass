@@ -517,14 +517,6 @@ code
 .nav-pills > li + li
   margin-left : 0 !important
 
-.btn-group
-  .btn +
-    .btn, .btn-group
-      margin-left : 0 !important
-  .btn-group +
-    .btn, .btn-group
-      margin-left : 0 !important
-
 .webapp-editor-codemirror-not-synced
   background    : red
   color         : white
@@ -673,3 +665,11 @@ h6 { font-size: 110% }
   pre
     font-size: inherit
     padding: 5px
+
+// Make codemirror tabs visible.  Tabs are the source of great confusion for python
+// users, so we definitely don't want to not make them very explicit.  See
+// https://codemirror.net/demo/visibletabs.html
+.cm-tab
+   background          : url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=)
+   background-position : right
+   background-repeat   : no-repeat

@@ -72,8 +72,10 @@ class Actions
         if not @redux?
             throw Error("@redux must be defined")
 
-    setState: (obj) =>
-        @redux._set_state({"#{@name}":obj})
+    setState: (obj, nothing_else) =>
+        if nothing_else?
+            throw Error("setState takes exactly one argument, which must be an object")
+        @redux._set_state({"#{@name}": obj})
         return
 
     destroy: =>
@@ -360,7 +362,7 @@ class AppRedux
         if not name?
             throw Error("name must be a string")
         if @_tables[name]?
-            @_tables[name]._table.close()
+            @_tables[name]._table?.close()
             delete @_tables[name]
 
     removeStore: (name) =>
@@ -517,6 +519,9 @@ connect_component = (spec) =>
         if not state?
             return props
         for store_name, info of spec
+            if store_name=='undefined'  # gets turned into this string when making a common mistake
+                console.warn("spec = ", spec)
+                throw Error("store_name of spec *must* be defined")
             for prop, type of info
                 if redux.getStore(store_name).__converted?
                     val = redux.getStore(store_name)[prop]
@@ -628,7 +633,6 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 # TODO: this code is also in many editors -- make them all just use this.
 exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
-
 exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 exports.computed = computed
@@ -641,7 +645,7 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-if DEBUG
+if DEBUG? and DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
     exports._internals =
         AppRedux                 : AppRedux

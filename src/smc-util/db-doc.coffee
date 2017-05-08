@@ -145,11 +145,13 @@ class DBDoc
                     return
                 return
         @size = @_everything.size
-        @_changes ?= immutable.Set()
+        if not @_changes?
+            @reset_changes()
 
     reset_changes: =>
-        @_changes = immutable.Set()
+        @_changes = {changes: immutable.Set(), from_db:@}
 
+    # Returns object {changes: an immutable set of primary keys, from_db: db object where change tracking started}
     changes: =>
         return @_changes
 
@@ -172,7 +174,7 @@ class DBDoc
     _select: (where) =>
         if immutable.Map.isMap(where)
             where = where.toJS()
-        # Return sparse array with defined indexes the elts of @_records that
+        # Return immutable set with defined indexes the elts of @_records that
         # satisfy the where condition.
         len = misc.len(where)
         result = undefined
@@ -181,11 +183,12 @@ class DBDoc
             if not index?
                 throw Error("field '#{field}' must be a primary key")
             # v is an immutable.js set or undefined
-            v = index.get(to_key(value))
-            if len == 1
-                return v  # no need to do further intersection
+            v = index.get(to_key(value))  # v may be undefined here, so important to do the v? check first!
             if not v?
                 return immutable.Set() # no matches for this field - done
+            if len == 1
+                # no need to do further intersection
+                return v
             if result?
                 # intersect with what we've found so far via indexes.
                 result = result.intersect(v)
@@ -199,8 +202,8 @@ class DBDoc
 
     # Used internally for determining the set/where parts of an object.
     _parse: (obj) =>
-        if immutable.Map.isMap(obj)
-            obj = obj.toJS() # TODO?
+        if immutable.Map.isMap(obj)  # it is very clean/convenient to allow this
+            obj = obj.toJS()
         if not misc.is_object(obj)
             throw Error("obj must be a Javascript object")
         where = {}
@@ -211,7 +214,7 @@ class DBDoc
                     where[field] = val
             else
                 set[field] = val
-        return {where:where, set:set}
+        return {where:where, set:set, obj:obj}  # return obj, in case had to convert from immutable
 
     set: (obj) =>
         if misc.is_array(obj)
@@ -219,10 +222,10 @@ class DBDoc
             for x in obj
                 z = z.set(x)
             return z
-        {where, set} = @_parse(obj)
-        ## console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
+        {where, set, obj} = @_parse(obj)
+        # console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
         matches = @_select(where)
-        changes = @_changes
+        {changes} = @_changes
         n = matches?.first()
         # TODO: very natural optimization would be be to fully support and use obj being immutable
         if n?
@@ -247,7 +250,7 @@ class DBDoc
             if not before.equals(record)
                 # there was an actual change, so update; doesn't change anything involving indexes.
                 changes = changes.add(@_primary_key_cols(record))
-                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, changes)
+                return new DBDoc(@_primary_keys, @_string_cols, @_records.set(n, record), @_everything, @_indexes, {changes:changes, from_db:@_changes.from_db})
             else
                 return @
         else
@@ -274,7 +277,7 @@ class DBDoc
                     else
                         matches = immutable.Set([n])
                     indexes = indexes.set(field, index.set(k, matches))
-            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
+            return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, {changes:changes, from_db:@_changes.from_db})
 
     delete: (where) =>
         if misc.is_array(where)
@@ -282,16 +285,17 @@ class DBDoc
             for x in where
                 z = z.delete(x)
             return z
+        # console.log("delete #{misc.to_json(where)}")
         # if where undefined, will delete everything
         if @_everything.size == 0
             # no-op -- no data so deleting is trivial
             return @
-        changes = @_changes
+        {changes} = @_changes
         remove = @_select(where)
         if remove.size == @_everything.size
             # actually deleting everything; easy special cases
             changes = changes.union(@_records.filter((record)=>record?).map(@_primary_key_cols))
-            return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, changes)
+            return new DBDoc(@_primary_keys, @_string_cols, undefined, undefined, undefined, {changes:changes, from_db:@_changes.from_db})
 
         # remove matches from every index
         indexes = @_indexes
@@ -312,7 +316,7 @@ class DBDoc
                     indexes = indexes.set(field, index)
                 return
 
-        # delete corresponding records
+        # delete corresponding records (actually set to undefined)
         records = @_records
         remove.map (n) =>
             changes = changes.add(@_primary_key_cols(records.get(n)))
@@ -320,7 +324,7 @@ class DBDoc
 
         everything = @_everything.subtract(remove)
 
-        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, changes)
+        return new DBDoc(@_primary_keys, @_string_cols, records, everything, indexes, {changes:changes, from_db:@_changes.from_db})
 
     # Returns immutable list of all matches
     get: (where) =>
@@ -348,7 +352,9 @@ class DBDoc
         return @get().toJS()
 
     to_str: =>
-        return (misc.to_json(x) for x in @to_obj()).join('\n')
+        if @_to_str_cache?  # save to cache since this is an immutable object
+            return @_to_str_cache
+        return @_to_str_cache = (misc.to_json(x) for x in @to_obj()).join('\n')
 
     # x = javascript object
     _primary_key_part: (x) =>
@@ -452,7 +458,26 @@ class DBDoc
             i += 2
         return db
 
+    # Return immutable set of primary keys of records that change in going from @ to other.
+    changed_keys: (other) =>
+        if @_records == other?._records   # identical
+            return immutable.Set()
+        t0 = immutable.Set(@_records).filter((x) -> x?)  # defined records
+        if not other?
+            return t0.map(@_primary_key_cols)
 
+        t1 = immutable.Set(other._records).filter((x) -> x?)
+
+        # Remove the common intersection -- nothing going on there.
+        # Doing this greatly reduces the complexity in the common case in which little has changed
+        common = t0.intersect(t1)
+        t0 = t0.subtract(common)
+        t1 = t1.subtract(common)
+
+        # compute the key parts of t0 and t1 as sets
+        k0 = t0.map(@_primary_key_cols)
+        k1 = t1.map(@_primary_key_cols)
+        return k0.union(k1)
 
 class Doc
     constructor: (@_db) ->
@@ -482,6 +507,12 @@ class Doc
         @_db.reset_changes()
         return
 
+    get: (where) =>
+        return @_db?.get(where)
+
+    get_one: (where) =>
+        return @_db?.get_one(where)
+
 class SyncDoc extends syncstring.SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
@@ -489,7 +520,9 @@ class SyncDoc extends syncstring.SyncDoc
             project_id        : undefined
             path              : undefined
             save_interval     : undefined
+            patch_interval    : undefined
             file_use_interval : undefined
+            cursors           : false
             primary_keys      : required
             string_cols       : []
 
@@ -506,8 +539,9 @@ class SyncDoc extends syncstring.SyncDoc
             project_id        : opts.project_id
             path              : opts.path
             save_interval     : opts.save_interval
+            patch_interval    : opts.patch_interval
             file_use_interval : opts.file_use_interval
-            cursors           : false
+            cursors           : opts.cursors
             from_str          : from_str
             doctype           :
                 type         : 'db'
@@ -516,22 +550,28 @@ class SyncDoc extends syncstring.SyncDoc
                     primary_keys : opts.primary_keys
                     string_cols  : opts.string_cols
 
+# TODO: obviously I should rewrite this so SyncDB just derives from SyncDoc.  I didn't realize
+# otherwise I would have to proxy all the methods.
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
         @_path = opts.path
         if opts.change_throttle
             # console.log("throttling on_change #{opts.throttle}")
             @_on_change = underscore.throttle(@_on_change, opts.change_throttle)
-            delete opts.change_throttle
+        delete opts.change_throttle
         @_doc = new SyncDoc(opts)
         # Ensure that we always emit first change event, even if it is [] (in case of empty syncdb);
         # clients depend on this to know when the syncdb has been properly loaded.
         @_first_change_event = true
         @_doc.on('change', @_on_change)
+        @_doc.on('metadata-change', => @emit('metadata-change'))
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        if opts.cursors
+            @_doc.on('cursor_activity', (args...) => @emit('cursor_activity', args...))
         @_doc.on('connected', => @emit('connected'))
         @_doc.on('init', (err) => @emit('init', err))
+        @_doc.on('save_to_disk_project', (err) => @emit('save_to_disk_project', err))  # only emitted on the backend/project!
         @setMaxListeners(100)
 
     _check: =>
@@ -550,7 +590,7 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.get_read_only()
 
-    _on_change: () =>
+    _on_change: =>
         if not @_doc?
             # This **can** happen because @_on_change is actually throttled, so
             # definitely will sometimes get called one more time,
@@ -559,10 +599,21 @@ class exports.SyncDB extends EventEmitter
             # is already closed and nobody is listening.
             # See https://github.com/sagemathinc/smc/issues/1829
             return
-        changes = @_doc.get_doc().changes()
-        @_doc.get_doc().reset_changes()
+        db = @_doc.get_doc()._db
+        if not @_last_db?
+            # first time ever -- just get all keys
+            changes = db.changed_keys()
+        else
+            # may be able to use tracked changes...
+            {changes, from_db} = @_doc.get_doc().changes()
+            @_doc.get_doc().reset_changes()
+            if from_db != @_last_db
+                # NOPE: have to compute the hard (but rock solid and accurate) way.
+                changes = db.changed_keys(@_last_db)
+
         if changes.size > 0 or @_first_change_event  # something actually probably changed
             @emit('change', changes)
+        @_last_db = db
         delete @_first_change_event
 
     close: () =>
@@ -575,9 +626,19 @@ class exports.SyncDB extends EventEmitter
     is_closed: =>
         return not @_doc?
 
+    sync: (cb) =>
+        @_check()
+        @_doc.save(cb)
+        return
+
     save: (cb) =>
         @_check()
         @_doc.save_to_disk(cb)
+        return
+
+    save_asap: (cb) =>
+        @_check()
+        @_doc.save_asap(cb)
         return
 
     set_doc: (value) =>
@@ -589,13 +650,21 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.get_doc()
 
+    get_path: =>
+        @_check()
+        return @_doc.get_path()
+
+    get_project_id: =>
+        return @_doc.get_project_id()
+
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
-    set: (obj) =>
+    set: (obj, save=true) =>
         if not @_doc?
             return
         @_doc.set_doc(new Doc(@_doc.get_doc()._db.set(obj)))
-        @_doc.save()   # always saves to backend after change
+        if save
+            @_doc.save()
         @_on_change()
         return
 
@@ -606,6 +675,8 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
+        if not d?
+            return
         return d._db.get(where)
 
     get_one: (where, time) =>
@@ -615,20 +686,30 @@ class exports.SyncDB extends EventEmitter
             d = @_doc.version(time)
         else
             d = @_doc.get_doc()
+        if not d?
+            return
         return d._db.get_one(where)
 
     # delete everything that matches the given criterion; returns number of deleted items
-    delete: (where) =>
+    delete: (where, save=true) =>
         if not @_doc?
             return
-        @_doc.set_doc(new Doc(@_doc.get_doc()._db.delete(where)))
-        @_doc.save()   # always saves to backend after change
+        d = @_doc.get_doc()
+        if not d?
+            return
+        @_doc.set_doc(new Doc(d._db.delete(where)))
+        if save
+            @_doc.save()
         @_on_change()
         return
 
     versions: =>
         @_check()
         return @_doc.versions()
+
+    last_changed: =>
+        @_check()
+        return @_doc.last_changed()
 
     all_versions: =>
         @_check()
@@ -646,9 +727,9 @@ class exports.SyncDB extends EventEmitter
         @_check()
         return @_doc.time_sent(t)
 
-    show_history: =>
+    show_history: (opts) =>
         @_check()
-        return @_doc.show_history()
+        return @_doc.show_history(opts)
 
     has_full_history: =>
         @_check()
@@ -672,21 +753,39 @@ class exports.SyncDB extends EventEmitter
 
     undo: =>
         @_check()
-        @_doc.set_doc(@_doc.get_doc().undo())
+        @_doc.set_doc(@_doc.undo())
         @_doc.save()
+        @_on_change()
         return
 
     redo: =>
         @_check()
-        @_doc.set_doc(@_doc.get_doc().redo())
+        @_doc.set_doc(@_doc.redo())
         @_doc.save()
+        @_on_change()
         return
+
+    exit_undo_mode: =>
+        @_check()
+        @_doc.exit_undo_mode()
+
+    in_undo_mode: =>
+        @_check()
+        return @_doc.in_undo_mode()
 
     revert: (version) =>
         @_check()
         @_doc.revert(version)
         @_doc.save()
         return
+
+    set_cursor_locs: (locs) =>
+        @_check()
+        @_doc.set_cursor_locs(locs)
+        return
+
+    get_cursors: =>
+        return @_doc?.get_cursors()
 
 # Open an existing sync document -- returns instance of SyncString or SyncDB, depending
 # on what is already in the database.  Error if file doesn't exist.
@@ -708,6 +807,9 @@ exports.open_existing_sync_document = (opts) ->
                 return
             if resp.event == 'error'
                 opts.cb(resp.error)
+                return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
                 return
             doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
             opts2 =
