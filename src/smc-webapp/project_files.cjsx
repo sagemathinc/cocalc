@@ -122,6 +122,56 @@ FileCheckbox = rclass
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
+# TODO: Something should uniformly describe how sorted table headers work.
+# 5/8/201 We have 3 right now, Course students and assignments panel and this one.
+ListingHeader = rclass
+    propTypes:
+        active_file_sort : rtypes.object    # {column_name : string, is_descending : bool}
+        sort_by          : rtypes.func      # Invoked as `sort_by(string)
+        check_all        : rtypes.bool      # String one of:
+
+    getDefaultProps: ->
+        active_file_sort : {column_name : 'date-modified', is_descending : false}
+        sort_by          : (column_name) -> console.log "Sorting by", column_name
+        check_all        : false
+
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@props.sort_by(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_file_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_file_sort.column_name == column_name}
+        </a>
+
+    render: ->
+        row_styles =
+            cursor          : 'pointer'
+            color           : '#666'
+            borderRadius    : '4px'
+            backgroundColor : 'white'
+            borderStyle     : 'solid'
+            borderColor     : 'white'
+
+        <Row style={row_styles}>
+            <Col sm=2 xs=3>
+                <Icon name={if @props.check_all then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
+            </Col>
+            <Col sm=1 xs=3>
+                {@render_sort_link("file-type", "File Type")}
+            </Col>
+            <Col sm=4 smPush=5 xs=6>
+                {@render_sort_link("date-modified", "Date Modified")}
+                <span className='pull-right'>
+                    {@render_sort_link("file-size", "Size")}
+                </span>
+            </Col>
+            <Col sm=5 smPull=4 xs=12>
+                {@render_sort_link("file-name", "Name")}
+            </Col>
+        </Row>
+
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
 
@@ -656,6 +706,7 @@ FileListing = rclass
         <Col sm=12>
             {@render_terminal_mode()}
             {@parent_directory()}
+            <ListingHeader/>
             {@render_rows()}
             {@render_no_files()}
         </Col>

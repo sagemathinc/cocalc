@@ -1344,6 +1344,7 @@ create_project_store_def = (name, project_id) ->
 
         # Project Files
         activity               : rtypes.immutable
+        active_file_sort       : rtypes.object     # {column_name : string, is_descending : bool}
         page_number            : rtypes.number
         file_action            : rtypes.string
         file_search            : rtypes.string
