@@ -149,10 +149,9 @@ ListingHeader = rclass
         row_styles =
             cursor          : 'pointer'
             color           : '#666'
+            backgroundColor : '#fafafa'
+            border          : '1px solid #eee'
             borderRadius    : '4px'
-            backgroundColor : 'white'
-            borderStyle     : 'solid'
-            borderColor     : 'white'
 
         <Row style={row_styles}>
             <Col sm=2 xs=3>
@@ -656,34 +655,6 @@ FileListing = rclass
                 no_select    = {@props.shift_is_down}
             />
 
-    handle_parent: (e) ->
-        e.preventDefault()
-        path = misc.path_split(@props.current_path).head
-        @props.actions.open_directory(path)
-
-    parent_directory: ->
-        styles =
-            fontWeight   : 'bold'
-            whiteSpace   : 'pre-wrap'
-            wordWrap     : 'break-word'
-            overflowWrap : 'break-word'
-
-        row_styles =
-            backgroundColor : '#fafafa'
-            border          : '1px solid #eee'
-            cursor          : 'pointer'
-            borderRadius    : '4px'
-
-        if @props.current_path.length > 0
-            <Row style={row_styles} onClick={@handle_parent}>
-                <Col sm=1 smOffset=1>
-                    <a><Icon name='reply' style={fontSize:'14pt'} /></a>
-                </Col>
-                <Col sm=4 style={styles}>
-                    <a href=''>Parent Directory</a>
-                </Col>
-            </Row>
-
     render_rows: ->
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
@@ -705,8 +676,7 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode()}
-            {@parent_directory()}
-            <ListingHeader/>
+            {<ListingHeader/> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
         </Col>
