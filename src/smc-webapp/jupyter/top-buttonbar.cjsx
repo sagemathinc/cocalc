@@ -137,9 +137,9 @@ exports.TopButtonbar = rclass ({name}) ->
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
             <Button
-                title   = 'Show complete edit history'
+                title   = 'Switch to classical notebook'
                 onClick = {=>@props.actions.switch_to_classical_notebook()}>
-                <Icon name='exchange'/> <span className = 'hidden-sm'>Classic Notebook...</span>
+                <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
             </Button>
         </ButtonGroup>
 
