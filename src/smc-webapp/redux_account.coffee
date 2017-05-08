@@ -287,5 +287,10 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         salvus_client.set_standby_timeout_m(x)
 
-
-
+account_store.on 'change', ->
+    x = account_store.getIn(['editor_settings', 'jupyter_classic'])
+    if x?
+        if x
+            require('./editor').switch_to_ipynb_classic()
+        else
+            require('./jupyter/register').register()

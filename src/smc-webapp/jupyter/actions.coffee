@@ -1746,3 +1746,6 @@ class exports.JupyterActions extends Actions
         if @_state == 'load'
             return
         @setState(raw_ipynb: immutable.fromJS(@store.get_ipynb()))
+
+    set_classical_notebook: (use_classic=true) =>
+        @redux.getTable('account').set(editor_settings: {jupyter_classic : use_classic})

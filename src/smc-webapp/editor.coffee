@@ -3391,7 +3391,8 @@ exports.register_nonreact_editors = () ->
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
     register(false, TaskList,         ['tasks'])
-    register(false, JupyterNotebook,  ['ipynb2'])
+    exports.switch_to_ipynb_classic = ->
+        register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
     register(true, PublicCodeMirrorEditor,  [''])
