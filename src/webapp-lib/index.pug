@@ -39,7 +39,7 @@ block content
           #{NAME} is a sophisticated all-round web-service for
           #[strong mathematical calculation], #[strong statistical analysis] and #[strong various other computation].
         p
-          strong Zero setup
+          strong Zero Setup
           ul
             li.
               Getting started #[em does not require any software installation]:
@@ -51,25 +51,34 @@ block content
           Each project starts with a maximum of #{free_memory_gb} GB memory and
           #{free_disk_gb} GB of disk space.
           A #[a(href="policies/pricing.html") subscription] gives you better hosting and increased quotas.
-        p.
-          #[a(href="app") Start #{NAME} For Free]
+        //- p.
+        //-   #[a(href="app") Start #{NAME} For Free]
 
     div.row
       div.col-md-12.center
-        h1 Teaching made easy
-      div.col-sm-6.
-        ...
+        h1 #[i.fa.fa-graduation-cap] Teaching made easy
+      div.col-sm-6
+        div
+          img(src=require("webapp-lib/assets/cocalc-teaching-rendered.svg")).fit
       div.col-sm-6
         p.
-          Have you ever experieneced the pain setting up the software environments of your students?
+          Have you ever experieneced the pain setting up the software environments for your students?
           With #{NAME} #[strong no software needs to be setup] and with its unique features you
-          can finally #[strong focus on your students again]!
+          can finally #[strong focus on your students]!
         ol
           li Create a course on #{NAME}
           li Add your students
           li Distribute assignments and handouts
           li Jump into student's files right where they are working
           li Collect and grade assignments
+        p.
+          Combined with #{NAME}'s other unique features you can check and retrace all steps a student takes.
+        ul
+          li Use #[em TimeTravel] to see each step a student took to get to the solution.
+          li Consistent and immutable #[em Backups] guard against losing files.
+          li Via #[em Integrated Chat] you can discuss collected files with your collegues or assistents.
+          li The project's #[em Activity Log] shows you when files were accessed.
+
 
   a.anchor#a-testimonials
   div#testimonials
@@ -105,7 +114,7 @@ block content
     div.container
       div.row
         div.col-md-12.center
-          h1 Explore #{htmlWebpackPlugin.options.title}
+          h1 Explore #{NAME}
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-archive] Projects
           div.
@@ -157,36 +166,67 @@ block content
           div.
             Every couple of minutes, consistent read-only snapshots of all your files are created.
             This means even when all your files got corrupted, there is still a way to recover everything.
+          br/
+          div
+            img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+      div.row
+        div.col-md-6
+          h2 #[i.fa.fa-comments-o] Chat
+          div.
+            A #[strong stand-alone] chat and #[strong side-by-side] chat for each file
+            gives you the ability to discuss any content with your collegues or to take notes.
+            Collaborators who are not online, will be notified about new messages once they sign in again.
+            The chat supports markdown formatting and Latex formulas.
+          br/
+          div
+            img(src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
+        div.col-md-6
+          h2 #[i.fa.fa-fw.cc-icon-jupyter] Integrated Jupyter Notebooks
+          div.
+            This is a #[strong complete rewrite] of the classical Jupyter Notebook.
+            It is tightly integrated into #{NAME} and gives you collaboration, time-travel history
+            and #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html" target="_blank") much more].
+          br/
+          div
+            img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
 
+  a.anchor#a-bottom
+  div#bottom
+    div.container
+      div.row
+        a.anchor#a-included
+        div.col-md-6#included
+          h2 #[i.fa.fa-battery-three-quarters] Batteries included
+          p.
+            Out of the box hundreds of open-source tools are available for you.
+            Here is a short list of a selected few:
+          include _static_third_party_software.html
+        a.anchor#a-stats
+        div.col-md-6#stats
+          h2 #[i.fa.fa-line-chart] Statistics
+          div.
+            There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
+          div(style="margin-top: 3rem")
+            table.table.bordered.condensed.hover.cc-help-stats-table#statstable
+              thead
+                tr
+                  th past
+                  th hour
+                  th day
+                  th week
+                  th month
+              tbody
+                tr
+                  td.left(colspan="4") Loading ...
+                tr
+                tr
 
-  div.container
-    div.row
-      a.anchor#a-included
-      div.col-md-6#included
-        h2 #[i.fa.fa-battery-three-quarters] Batteries included
-        p.
-          Out of the box hundreds of open-source tools are available for you.
-          Here is a short list of a selected few:
-        include _static_third_party_software.html
-      a.anchor#a-stats
-      div.col-md-6#stats
-        h2 #[i.fa.fa-line-chart] Statistics
-        div.
-          There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
-        div(style="margin-top: 3rem")
-          table.table.bordered.condensed.hover.cc-help-stats-table#statstable
-            thead
-              tr
-                th past
-                th hour
-                th day
-                th week
-                th month
-            tbody
-              tr
-                td.left(colspan="4") Loading ...
-              tr
-              tr
+  div
+    div.container
+      div.row
+        div.col-sm-12.center
+          a.btn.btn-success.btn-lg(href="app").
+            Start #{NAME} For Free
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -224,7 +264,8 @@ block content
       .left,
       #statstable td.left
         text-align     : left
-      #explore
+      #explore,
+      #bottom
         background-color : $COL_GRAY_LL
         div > h3
           white-space    : nowrap

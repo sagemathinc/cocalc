@@ -217,7 +217,7 @@ while base_url_html and base_url_html[base_url_html.length-1] == '/'
 
 # this is the main app.html file, which should be served without any caching
 # config: https://github.com/jantimon/html-webpack-plugin#configuration
-pug2app = new HtmlWebpackPlugin
+pug2app = new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
                         description      : DESCRIPTION
@@ -232,9 +232,13 @@ pug2app = new HtmlWebpackPlugin
                         template         : path.join(INPUT, 'app.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+)
 
 # static html pages
-pug2index = new HtmlWebpackPlugin
+# they only depend on the css chunk
+staticPages = []
+for [fn_in, fn_out] in [['index.pug', 'index.html'], ['features.pug', 'features.html']]
+    staticPages.push(new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
                         description      : DESCRIPTION
@@ -242,23 +246,22 @@ pug2index = new HtmlWebpackPlugin
                         theme            : theme
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
-                        filename         : 'index.html'
+                        filename         : fn_out
                         chunks           : ['css']
                         inject           : 'head'
                         hash             : PRODMODE
-                        template         : path.join(INPUT, 'index.pug')
+                        template         : path.join(INPUT, fn_in)
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
                         PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
+                        PREFIX           : if fn_in == 'index.pug' then '' else '../'
+    ))
 
-# the following set of plugins renders the policy pages
-# they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
-# via lodash's template syntax. e.g.: <%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>
-policyPages = []
+# the following renders the policy pages
 for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
     output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
-    policyPages.push new HtmlWebpackPlugin
+    staticPages.push(new HtmlWebpackPlugin(
                         filename         : output_fn
                         date             : BUILD_DATE
                         title            : TITLE
@@ -271,6 +274,7 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         hash             : PRODMODE
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
+    ))
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
@@ -389,8 +393,7 @@ plugins = [
 ]
 
 if STATICPAGES
-    plugins.push(pug2index)
-    plugins = plugins.concat(policyPages)
+    plugins = plugins.concat(staticPages)
     entries =
         css  : 'webapp-css.coffee'
 else
@@ -400,7 +403,7 @@ else
         lib  : 'webapp-lib.coffee'
         smc  : 'webapp-smc.coffee'
     plugins = plugins.concat([
-        pug2index, pug2app,
+        pug2app,
         #commonsChunkPlugin,
         #extractCSS,
         #copyWebpackPlugin
@@ -411,7 +414,7 @@ else
     ])
 
 if not QUICK_BUILD or PRODMODE
-    plugins = plugins.concat(policyPages)
+    plugins = plugins.concat(staticPages)
     plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
     # video chat plugins would be added here
 
