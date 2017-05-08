@@ -844,7 +844,8 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @load(opts.cb)
+        @ensure_nonempty () =>
+            @load(opts.cb)
 
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
@@ -861,6 +862,14 @@ class JupyterNotebook extends EventEmitter
         @syncstring?.close()
         delete @syncstring
         @state = 'closed'
+
+    ensure_nonempty: (cb) =>
+        salvus_client.exec
+            command    : 'smc-jupyter-ensure-nonempty'
+            project_id : @project_id
+            path       : @path
+            args       : [@file]
+            cb         : cb
 
     load: (cb) =>
         if @state != 'init' and @state != 'failed'

@@ -1750,7 +1750,7 @@ class exports.JupyterActions extends Actions
     switch_to_classical_notebook: =>
         @confirm_dialog
             title   : 'Classical Notebook'
-            body    : 'If you are having trouble with the new Jupyter Notebook, you can easily switch to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).'
+            body    : 'If you are having trouble with the new Jupyter Notebook, you can easily switch to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).  NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!'
             choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using new notebook', default:true}]
             cb      : (choice) =>
                 console.log 'choice', choice
