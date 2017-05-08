@@ -61,7 +61,7 @@ STATIC_PATH = path_module.join(SMC_ROOT, 'static')
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         base_url       : required
-        dev            : false  # if true, serve additional dev stuff, e.g., a proxyserver.
+        dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         stripe         : undefined   # stripe api connection
         database       : required
         compute_server : required
