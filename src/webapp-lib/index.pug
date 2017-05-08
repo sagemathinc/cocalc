@@ -30,27 +30,31 @@ block content
           Start #{NAME} For Free
 
     div.row
-      div.col-md-12.center
-        h1 Collaborative computing environment
+      //- div.col-md-12.center
+      //-   h1 Collaborative computing environment
       div.col-sm-6
         img(src=require('!file!sagepreview/01-worksheet.png'))
       div.col-sm-6
-        p.
-          #{NAME} is a sophisticated all-round web-service for
-          #[strong mathematical calculation], #[strong statistical analysis] and #[strong various other computation].
+        p #{NAME} is a sophisticated all-round web-service for
+        ul
+          li #[strong Mathematical calculation]: SageMath, SymPy, Maxima;
+          li #[strong Statistical analysis]: R, Pandas, statsmodels, scikit-learn, Tensorflow; and
+          li #[strong Various other computation]: Octave, Julia, etc.
         p
           strong Zero Setup
           ul
             li.
               Getting started #[em does not require any software installation]:
               #[strong Create a project for free] to start working in your own private workspace.
-            li Share your files privately with collaborators. All files are synchronized in real-time.
+            li Create a worksheet or upload your own files: #{NAME} supports Sage Worksheets, Jupyter Notebooks, Latex files, etc.
+            li Share your files #[em privately] with collaborators. All files are synchronized in real-time.
             li #[em Time-travel] is a detailed history of your edits, and everything is backed up in #[em consistent snapshots].
-            li Finally, you can publish your documents, files and data publicly.
+            li Finally, you can publish documents, download any file or share your data publicly.
         p.
-          Each project starts with a maximum of #{free_memory_gb} GB memory and
+          Each project initially has a quota of #{free_memory_gb} GB memory and
           #{free_disk_gb} GB of disk space.
-          A #[a(href="policies/pricing.html") subscription] gives you better hosting and increased quotas.
+        p.
+          A #[a(href="policies/pricing.html") subscription] gives you a more robust hosting and increased quotas.
         //- p.
         //-   #[a(href="app") Start #{NAME} For Free]
 
@@ -63,7 +67,7 @@ block content
       div.col-sm-6
         p.
           Have you ever experieneced the pain setting up the software environments for your students?
-          With #{NAME} #[strong no software needs to be setup] and with its unique features you
+          With #{NAME} #[strong no software needs to be setup] and you
           can finally #[strong focus on your students]!
         ol
           li Create a course on #{NAME}
@@ -176,12 +180,12 @@ block content
             A #[strong stand-alone] chat and #[strong side-by-side] chat for each file
             gives you the ability to discuss any content with your collegues or to take notes.
             Collaborators who are not online, will be notified about new messages once they sign in again.
-            The chat supports markdown formatting and Latex formulas.
+            It supports markdown formatting and Latex formulas.
           br/
           div
             img(src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
         div.col-md-6
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Integrated Jupyter Notebooks
+          h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
           div.
             This is a #[strong complete rewrite] of the classical Jupyter Notebook.
             It is tightly integrated into #{NAME} and gives you collaboration, time-travel history
@@ -224,7 +228,7 @@ block content
   div
     div.container
       div.row
-        div.col-sm-12.center
+        div.col-sm-12.center(style="margin-top: 6rem")
           a.btn.btn-success.btn-lg(href="app").
             Start #{NAME} For Free
 
