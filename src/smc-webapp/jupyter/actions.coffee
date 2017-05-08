@@ -1747,5 +1747,17 @@ class exports.JupyterActions extends Actions
             return
         @setState(raw_ipynb: immutable.fromJS(@store.get_ipynb()))
 
-    set_classical_notebook: (use_classic=true) =>
-        @redux.getTable('account').set(editor_settings: {jupyter_classic : use_classic})
+    switch_to_classical_notebook: =>
+        @confirm_dialog
+            title   : 'Classical Notebook'
+            body    : 'If you are having trouble with the new Jupyter Notebook, you can easily switch to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).'
+            choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using new notebook', default:true}]
+            cb      : (choice) =>
+                console.log 'choice', choice
+                if choice != 'Switch to Classical Notebook'
+                    return
+                @redux.getTable('account').set(editor_settings: {jupyter_classic : true})
+                @save()
+                @file_action('close_file', @store.get('path'))
+                @file_action('open_file', @store.get('path'))
+

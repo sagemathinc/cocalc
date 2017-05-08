@@ -488,6 +488,10 @@ exports.commands = (actions) ->
         k : [{ctrl:true, shift:true, which:189}]
         f : -> actions.set_mode('escape'); actions.split_current_cell()
 
+    'switch to classical notebook' :
+        m : 'Switch to Classical Notebook...'
+        f : -> actions.switch_to_classical_notebook()
+
     'time travel' :
         m : 'TimeTravel...'
         f : -> actions.show_history_viewer()
