@@ -236,7 +236,7 @@ describe "default", ->
         global.DEBUG = @debug_orig
 
     beforeEach =>
-        @console_debug_stub = sinon.stub(global.console, "debug")
+        @console_debug_stub = sinon.stub(global.console, "warn")
         @console_trace_stub = sinon.stub(global.console, "trace")
 
     afterEach =>

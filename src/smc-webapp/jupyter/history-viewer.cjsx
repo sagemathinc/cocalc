@@ -12,6 +12,14 @@ cell_utils   = require('./cell-utils')
 {CellList}   = require('./cell-list')
 {cm_options} = require('./cm_options')
 
+get_cells = (syncdb, version) ->
+    cells      = immutable.Map()
+    syncdb.get(type:'cell', version)?.forEach (cell) ->
+        cells = cells.set(cell.get('id'), cell)
+        return
+    cell_list  = cell_utils.sorted_cell_list(cells)
+    return {cells:cells, cell_list:cell_list}
+
 exports.HistoryViewer = HistoryViewer = rclass
     propTypes :
         syncdb     : rtypes.object.isRequired   # syncdb object corresponding to a jupyter notebook
@@ -20,11 +28,7 @@ exports.HistoryViewer = HistoryViewer = rclass
     render_cells: ->
         project_id = @props.syncdb.get_project_id()
         directory  = misc.path_split(@props.syncdb.get_path())?.head
-        cells      = immutable.Map()
-        @props.syncdb.get(type:'cell', @props.version)?.forEach (cell) ->
-            cells = cells.set(cell.get('id'), cell)
-            return
-        cell_list  = cell_utils.sorted_cell_list(cells)
+        {cells, cell_list} = get_cells(@props.syncdb, @props.version)
 
         options = immutable.fromJS
             markdown : undefined
@@ -46,8 +50,10 @@ exports.HistoryViewer = HistoryViewer = rclass
             {@render_cells()}
         </div>
 
-# The following is just for integrating the history viewer
-# with
+# The following is just for integrating the history viewer.
+{export_to_ipynb} = require('./export-to-ipynb')
+json_stable = require('json-stable-stringify')
+
 exports.jupyter_history_viewer_jquery_shim = (syncdb) ->
     elt = $("<div class='smc-vfill'></div>")
 
@@ -58,6 +64,9 @@ exports.jupyter_history_viewer_jquery_shim = (syncdb) ->
         remove      : -> ReactDOM.unmountComponentAtNode(elt[0])
         set_version : (version) ->
             ReactDOM.render(<HistoryViewer syncdb={syncdb} version={version} />, elt[0])
+        to_str      : (version) ->
+            ipynb = export_to_ipynb(get_cells(syncdb, version))
+            return json_stable(ipynb, {space:1})
 
     return obj
 
