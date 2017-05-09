@@ -648,24 +648,34 @@ class ProjectActions extends Actions
             opts?.finish_cb?()
         )
 
+    # Sets the active file_sort to next_column_name
+    set_sorted_file_column: (column_name) =>
+        current = @get_store()?.active_file_sort
+        if current.get('column_name') == column_name
+            is_descending = not current.get('is_descending')
+        else
+            is_descending = false
+        next_file_sort = {is_descending, column_name}
+        @setState(active_file_sort : next_file_sort)
+
     # Increases the selected file index by 1
     # undefined increments to 0
-    increment_selected_file_index: ->
+    increment_selected_file_index: =>
         current_index = @get_store().selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
     # Does nothing when selected_file_index is undefined
-    decrement_selected_file_index: ->
+    decrement_selected_file_index: =>
         current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
-    zero_selected_file_index: ->
+    zero_selected_file_index: =>
         @setState(selected_file_index : 0)
 
-    clear_selected_file_index: ->
+    clear_selected_file_index: =>
         @setState(selected_file_index : undefined)
 
     # Set the most recently clicked checkbox, expects a full/path/name
@@ -1320,6 +1330,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
         num_ghost_file_tabs: 0
+        active_file_sort   : {column_name : "date-modified", is_descending : false}
 
     reduxState:
         account:

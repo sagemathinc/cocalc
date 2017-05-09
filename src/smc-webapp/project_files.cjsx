@@ -132,8 +132,26 @@ ListingHeader = rclass
 
     getDefaultProps: ->
         active_file_sort : {column_name : 'date-modified', is_descending : false}
-        sort_by          : (column_name) -> console.log "Sorting by", column_name
         check_all        : false
+
+    check_all_click_handler: (e) ->
+        console.log "check all clicked"
+
+    render_check_all: ->
+        if @props.checked_files.size is 0
+            button_icon = 'square-o'
+            button_text = 'Check all'
+        else
+            button_text = 'Uncheck all'
+
+            if @props.checked_files.size >= @props.listing.length
+                button_icon = 'check-square-o'
+            else
+                button_icon = 'minus-square-o'
+
+        <span onClick={@check_all_click_handler} >
+            <Icon name={button_icon} /> {button_text}
+        </span>
 
     render_sort_link: (column_name, display_name) ->
         <a href=''
@@ -588,6 +606,7 @@ FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
+        active_file_sort    : rtypes.object
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -603,6 +622,7 @@ FileListing = rclass
         project_id          : rtypes.string
         show_upload         : rtypes.bool
         shift_is_down       : rtypes.bool
+        sort_by             : rtypes.func
 
     getDefaultProps: ->
         file_search : ''
@@ -676,7 +696,11 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode()}
-            {<ListingHeader/> if @props.listing.length > 0}
+            {<ListingHeader
+                active_file_sort = {@props.active_file_sort}
+                sort_by          = {@props.sort_by}
+                check_all        = false
+                /> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
         </Col>
@@ -1856,6 +1880,7 @@ exports.ProjectFiles = rclass ({name}) ->
             customer      : rtypes.object
 
         "#{name}" :
+            active_file_sort    : rtypes.object
             current_path        : rtypes.string
             activity            : rtypes.object
             page_number         : rtypes.number
@@ -2101,6 +2126,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 disabled       = {public_view}
             >
                 <FileListing
+                    active_file_sort    = {@props.active_file_sort}
                     listing             = {listing}
                     page_size           = {@file_listing_page_size()}
                     page_number         = {@props.page_number}
@@ -2115,6 +2141,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     selected_file_index = {@props.selected_file_index}
                     project_id          = {@props.project_id}
                     shift_is_down       = {@state.shift_is_down}
+                    sort_by             = {@props.actions.set_sorted_file_column}
                     event_handlers
                 />
             </SMC_Dropwrapper>
