@@ -21,6 +21,9 @@ require('react-widgets/lib/less/react-widgets.less')
 # Needed by Octicon for displaying GitHub fonticons (see r_misc.cjsx)
 require('octicons/octicons/octicons.css')
 
+# custom cocalc icon font
+require('webapp-lib/cocalc-icons-font/style.css')
+
 # info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?
     window.smcLoadStatus("Loading JavaScript libraries ...")

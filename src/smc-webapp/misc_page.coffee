@@ -37,13 +37,15 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON               = require('webapp-lib/cocalc-icon.svg')
-exports.APP_ICON_WHITE         = require('webapp-lib/cocalc-icon-white.svg')
-exports.APP_LOGO               = require('webapp-lib/cocalc-logo.svg')
-exports.APP_LOGO_WHITE         = require('webapp-lib/cocalc-icon-white-transparent.svg')
-exports.APP_LOGO_NAME_WHITE    = require('webapp-lib/cocalc-font-white.svg')
+exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
+exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
+exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
+exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
+exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
 
 {join} = require('path')
+exports.APP_BASE_URL = window?.app_base_url ? ''
 exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
@@ -1846,6 +1848,11 @@ exports.open_new_tab = (url, popup=false) ->
             timeout : 10
         return null
     return tab
+
+exports.get_cookie = (name) ->
+    value = "; " + document.cookie
+    parts = value.split("; " + name + "=")
+    return parts.pop().split(";").shift() if (parts.length == 2)
 
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->

@@ -130,6 +130,8 @@ class AccountActions extends Actions
 
     sign_out: (everywhere) =>
         misc.delete_local_storage(remember_me)
+
+        # record this event
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
@@ -152,12 +154,13 @@ class AccountActions extends Actions
                         sign_out_error : err
                         show_sign_out  : false
                 else
-                    # Force a refresh, since otherwise there could be data
+                    # Invalidate the remember_me cookie and force a refresh, since otherwise there could be data
                     # left in the DOM, which could lead to a vulnerability
                     # or bleed into the next login somehow.
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
-                    window.location = window.location.pathname.slice(0, -8) # remove settings hashtag so that on login the projects page shows instead of settings page
+                    {APP_BASE_URL} = require('./misc_page')
+                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
 
     push_state: (url) =>
         {set_url} = require('./history')

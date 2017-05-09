@@ -1,0 +1,136 @@
+doctype html
+
+-
+  var NAME          = htmlWebpackPlugin.options.title;
+  var URL           = htmlWebpackPlugin.options.theme.DOMAIN_NAME;
+  var COMPANY_NAME  = htmlWebpackPlugin.options.theme.COMPANY_NAME;
+  var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
+  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
+  var subtitle      = null;
+
+block vars
+
+-
+  var fulltitle = htmlWebpackPlugin.options.title;
+  if (subtitle) {fulltitle += " - " + subtitle};
+
+html.no-js(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="google"      content="notranslate")
+    meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
+    meta(name="date"        content=htmlWebpackPlugin.options.date)
+    meta(name="version"     content=htmlWebpackPlugin.options.version)
+
+    title= fulltitle
+
+    //- http://realfavicongenerator.net
+    link(rel="apple-touch-icon", sizes="180x180", href=require("!file!apple-touch-icon.png"))
+    link(rel="icon", type="image/png", href=require("!file!favicon-32x32.png"), sizes="32x32")
+    link(rel="icon", type="image/png", href=require("!file!favicon-16x16.png"), sizes="16x16")
+    link(rel="manifest", href=require("!file!manifest.json"))
+    link(rel="mask-icon", href=require("!file!safari-pinned-tab.svg"), color="#fbb635")
+    meta(name="apple-mobile-web-app-title", content="CoCalc")
+    meta(name="application-name", content="CoCalc")
+    meta(name="theme-color", content="#fbb635")
+    block header
+
+  body
+
+    nav.navbar.navbar-default.navbar-fixed-top
+      div.container
+        div.navbar-header
+          a(href=PREFIX + "#a-top")
+            img.icon(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
+            img.name(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+        div.collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            li
+              a(href=PREFIX + "#a-explore") Explore
+            li
+              a(href=PREFIX + "policies/index.html") Policies
+            li
+              a(href=PREFIX + "policies/pricing.html") Pricing
+            li
+              a.active(href=PREFIX + "app") Get Started
+
+    block content
+
+    include _footer.pug
+
+    style
+      :sass
+        @import "smc-webapp/_colors.sass"
+        html.no-js
+          display          : none
+        nav.navbar.navbar-default
+          border-bottom    : 2px solid $COL_GRAY
+          background-color : $COL_GRAY_LL
+          .navbar-header
+            margin-top     : 5px;
+            img.icon
+              height       : 4rem
+              width        : auto
+              margin-right : 2rem
+            img.name
+              height       : 3rem
+              width        : auto
+              margin-right : 2rem
+          .navbar-nav>li>a
+            font-size      : 2rem
+        div.jumbotron
+          padding-top      : 10rem
+          background-color : $COL_GRAY_LL
+        .center
+          text-align     : center
+        .right
+          text-align     : right
+        .vertical-expand
+          min-height     : 50vw
+        .uppercase
+          text-transform : uppercase
+        .fit
+          width          : 100%
+          heigh          : auto
+        body > div.container > footer
+          margin-top     : 6rem
+        /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
+        a.anchor
+          display        : block
+          position       : relative
+          top            : -5rem
+          visibility     : hidden
+
+    script
+      :coffee-script
+        html = document.documentElement
+        html.className = html.className.replace(/\bno-js\b/, 'js')
+    noscript
+      style.
+        html.no-js { display: block; }
+
+    //- if we have a GA token, insert the google analytics async script
+    - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
+    if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
+        //--- Google Analytics ---
+        script.
+            //- Instructs analytics.js to use the name `google_analytics`.
+            window.GoogleAnalyticsObject = 'google_analytics';
+            //- Creates an initial analytics() function.
+            //- The queued commands will be executed once analytics.js loads.
+            window.google_analytics = window.google_analytics || function() {
+              (google_analytics.q = google_analytics.q || []).push(arguments)
+            };
+            //- Sets the time (as an integer) this tag was executed.
+            //- Used for timing hits.
+            google_analytics.l = +new Date;
+            //- Creates a default tracker with automatic cookie domain configuration.
+            google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
+            //- Sends a pageview hit from the tracker just created.
+            google_analytics('send', 'pageview');
+
+        //- Sets the `async` attribute to load the script asynchronously.
+        script(async src='//www.google-analytics.com/analytics.js')
+        //--- End Google Analytics ---

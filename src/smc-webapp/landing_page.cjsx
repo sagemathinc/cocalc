@@ -24,21 +24,14 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 {HelpPageUsageSection, ThirdPartySoftware} = require('./r_help')
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
-{APP_ICON_WHITE, APP_LOGO_NAME_WHITE} = require('./misc_page')
-
-images = [
-    require('sagepreview/01-worksheet.png'),
-    require('sagepreview/02-courses.png'),
-    require('sagepreview/03-latex.png'),
-    require('sagepreview/05-sky_is_the_limit.png'),
-]
+{APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./misc_page')
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
@@ -105,12 +98,13 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies    : rtypes.array
-        sign_up_error : rtypes.object
-        token         : rtypes.bool
-        has_account   : rtypes.bool
-        signing_up    : rtypes.bool
-        style         : rtypes.object
+        strategies      : rtypes.array
+        sign_up_error   : rtypes.object
+        token           : rtypes.bool
+        has_account     : rtypes.bool
+        signing_up      : rtypes.bool
+        style           : rtypes.object
+        has_remember_me : rtypes.bool
 
     make_account: (e) ->
         e.preventDefault()
@@ -141,7 +135,13 @@ SignUp = rclass
             marginTop      : '10px'
             borderWidth    : 5
             borderColor    : COLORS.LANDING.LOGIN_BAR_BG
-        <Well style=well_style>
+        well_class = ''
+        if not @props.has_remember_me
+            # additional highlighting
+            well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
+            well_style.color           = 'white'
+            well_class = 'webapp-landing-sign-up-highlight'
+        <Well style=well_style className={well_class}>
             {@display_token_input()}
             {@display_error("token")}
             {@display_error("account_creation_failed")}   {# a generic error}
@@ -189,6 +189,7 @@ SignIn = rclass
         signing_in    : rtypes.bool
         has_account   : rtypes.bool
         xs            : rtypes.bool
+        color         : rtypes.string
 
     componentDidMount: ->
         @actions('page').set_sign_in_func(@sign_in)
@@ -238,7 +239,7 @@ SignIn = rclass
                     </Row>
                     <Row>
                         <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={color:"#FFF", cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
+                            <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Row>
                     <Row>
@@ -281,7 +282,7 @@ SignIn = rclass
                 <Row>
                     <Col xs=7 xsOffset=5 style={paddingLeft:15}>
                         <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={color:"#FFF", cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
+                            <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Col>
                 </Row>
@@ -504,6 +505,37 @@ LandingPageContent = rclass
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </Well>
 
+example_image_style =
+    border       : '1px solid #aaa'
+    borderRadius : '3px'
+    padding      : '5px'
+    background   : 'white'
+    height       : '236px'
+
+ExampleBox = rclass
+    displayName : "ExampleBox"
+
+    propTypes :
+        title : rtypes.string.isRequired
+        index : rtypes.number.isRequired
+
+    render: ->
+        images = [
+            require('sagepreview/01-worksheet.png'),
+            require('sagepreview/02-courses.png'),
+            require('sagepreview/03-latex.png'),
+            require('sagepreview/05-sky_is_the_limit.png'),
+        ]
+        <div>
+            <h3 style={marginBottom:UNIT} >{@props.title}</h3>
+            <div style={marginBottom:'10px'} >
+                <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
+            </div>
+            <div className="lighten">
+                {@props.children}
+            </div>
+        </div>
+
 SagePreview = rclass
     displayName : "SagePreview"
 
@@ -548,36 +580,10 @@ SagePreview = rclass
             </Well>
         </div>
 
-example_image_style =
-    border       : '1px solid #aaa'
-    borderRadius : '3px'
-    padding      : '5px'
-    background   : 'white'
-    height       : '236px'
-
-ExampleBox = rclass
-    displayName : "ExampleBox"
-
-    propTypes :
-        title : rtypes.string.isRequired
-        index : rtypes.number.isRequired
-
-    render: ->
-        <div>
-            <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
-            <div style={marginBottom:'10px'} >
-                <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
-            </div>
-            <div className="lighten">
-                {@props.children}
-            </div>
-        </div>
-
 Connecting = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
         <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
     </div>
-
 
 exports.LandingPage = rclass
     propTypes:
@@ -593,11 +599,30 @@ exports.LandingPage = rclass
         reset_key               : rtypes.string
         reset_password_error    : rtypes.string
         remember_me             : rtypes.bool
+        has_remember_me         : rtypes.bool
         has_account             : rtypes.bool
 
     render: ->
         if not @props.remember_me
             reset_key = reset_password_key()
+
+            if @props.has_remember_me
+                topbar =
+                  img_icon    : APP_ICON_WHITE
+                  img_name    : APP_LOGO_NAME_WHITE
+                  img_opacity : 1.0
+                  color       : 'white'
+                  bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+                  border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+            else
+                topbar =
+                  img_icon    : APP_ICON
+                  img_name    : APP_LOGO_NAME
+                  img_opacity : 0.6
+                  color       : COLORS.GRAY
+                  bg_color    : COLORS.GRAY_LL
+                  border      : "5px solid #{COLORS.GRAY}"
+
             <div style={margin: UNIT}>
                     {<ResetPassword
                         reset_key={reset_key}
@@ -615,10 +640,12 @@ exports.LandingPage = rclass
                             signing_in    = {@props.signing_in}
                             sign_in_error = {@props.sign_in_error}
                             has_account   = {@props.has_account}
-                            xs            = {true} />
+                            xs            = {true}
+                            color         = {topbar.color} />
                         <div style={clear:'both'}></div>
                 </Row>
-                <Row style={backgroundColor : COLORS.LANDING.LOGIN_BAR_BG,\
+                <Row style={backgroundColor : topbar.bg_color,\
+                            border          : topbar.border,\
                             padding         : 5,\
                             margin          : 0,\
                             marginBottom    : 20,\
@@ -638,10 +665,11 @@ exports.LandingPage = rclass
                               signing_in    = {@props.signing_in}
                               sign_in_error = {@props.sign_in_error}
                               has_account   = {@props.has_account}
-                              xs            = {false} />
+                              xs            = {false}
+                              color         = {topbar.color} />
                       </div>
                       <div style={ display          : 'inline-block', \
-                                   backgroundImage  : "url('#{APP_ICON_WHITE}')", \
+                                   backgroundImage  : "url('#{topbar.img_icon}')", \
                                    backgroundSize   : 'contain', \
                                    height           : UNIT * 5, width: UNIT * 5, \
                                    margin           : 5,\
@@ -657,8 +685,9 @@ exports.LandingPage = rclass
                                   width            : 250,\
                                   height           : 55,\
                                   position         : 'absolute',\
-                                  color            : 'white',\
-                                  backgroundImage  : "url('#{APP_LOGO_NAME_WHITE}')",\
+                                  color            : topbar.color,\
+                                  opacity          : topbar.img_opacity,\
+                                  backgroundImage  : "url('#{topbar.img_name}')",\
                                   backgroundSize   : 'contain',\
                                   backgroundRepeat : 'no-repeat'}>
                       </div>
@@ -671,17 +700,18 @@ exports.LandingPage = rclass
                                   left         : UNIT * 7,\
                                   display      : 'inline-block',\
                                   position     : "absolute",\
-                                  color        : "white"} />
+                                  color        : topbar.color} />
                       </div>
                 </Row>
                 <Row>
                     <Col sm=5>
                         <SignUp
-                            sign_up_error = {@props.sign_up_error}
-                            strategies    = {@props.strategies}
-                            token         = {@props.token}
-                            signing_up    = {@props.signing_up}
-                            has_account   = {@props.has_account} />
+                            sign_up_error   = {@props.sign_up_error}
+                            strategies      = {@props.strategies}
+                            token           = {@props.token}
+                            has_remember_me = {@props.has_remember_me}
+                            signing_up      = {@props.signing_up}
+                            has_account     = {@props.has_account} />
                     </Col>
                     <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
                         <Well style={'float':'right', marginBottom:'15px'} className="lighten">

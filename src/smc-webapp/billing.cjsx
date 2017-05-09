@@ -1883,6 +1883,8 @@ set_selected_plan = (plan, period) ->
 
 exports.render_static_pricing_page = () ->
     <div>
+        <ExplainResources type='shared' is_static={true}/>
+        <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
         {# <Space/><ExplainResources type='dedicated'/> }
@@ -1890,10 +1892,7 @@ exports.render_static_pricing_page = () ->
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>
         <hr/>
-        <ExplainResources type='shared' is_static={true}/>
-        <hr/>
         <FAQ/>
-        <Footer/>
     </div>
 
 exports.visit_billing_page = ->

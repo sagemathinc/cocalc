@@ -54,6 +54,7 @@ exports.AccountPage = rclass
             reset_key               : rtypes.string
             reset_password_error    : rtypes.string
             remember_me             : rtypes.bool
+            has_remember_me         : rtypes.bool
             first_name              : rtypes.string
             last_name               : rtypes.string
             email_address           : rtypes.string
@@ -130,6 +131,7 @@ exports.AccountPage = rclass
             reset_key               = {@props.reset_key}
             reset_password_error    = {@props.reset_password_error}
             remember_me             = {@props.remember_me}
+            has_remember_me         = {@props.has_remember_me}
             has_account             = {misc.local_storage_length() > 0} />
 
     render_commercial_tabs: ->

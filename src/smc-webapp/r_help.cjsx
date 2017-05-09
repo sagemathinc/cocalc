@@ -29,9 +29,7 @@ misc = require('smc-util/misc')
 {Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
-{ShowSupportLink} = require('./support')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{APP_LOGO} = require('./misc_page')
 {COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
 
 # List item style
@@ -225,13 +223,13 @@ THIRD_PARTY =
     r :
         icon : 'cc-icon-r'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
-        link : 'An Introduction to R'
-        text : 'open source statistics software'
+        link : 'R project'
+        text : 'the #1 open-source statistics software'
     python :
         icon : 'cc-icon-python'
         href : 'http://www.scipy-lectures.org/'
         link : 'Scientific Python'
-        text : <span>see also{' '}
+        text : <span>i.e.{' '}
                     <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
                     <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
                     <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
@@ -259,7 +257,8 @@ THIRD_PARTY =
     linux :
         icon : 'linux'
         href : 'http://ryanstutorials.net/linuxtutorial/'
-        link : 'Linux tutorial'
+        link : 'GNU/Linux'
+        text : 'introduction tutorial'
 
 
 ABOUT_LINKS =
@@ -323,7 +322,7 @@ LinkList = rclass
 
     render: ->
         <Col md={@props.width} sm={12}>
-            <h3> <Icon name={@props.icon} /> {@props.title}</h3>
+            {<h3> <Icon name={@props.icon} /> {@props.title}</h3> if @props.title}
             {@render_links()}
         </Col>
 
@@ -331,6 +330,9 @@ exports.ThirdPartySoftware = ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
         <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+
+exports.render_static_third_party_software = ->
+    <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />
 
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
@@ -347,7 +349,10 @@ exports.HelpPage = HelpPage = rclass
             textAlign       : 'center'
             marginBottom    : '30px'
 
-        {SmcWikiUrl} = require('./customize')
+        {SmcWikiUrl}      = require('./customize')
+        {ShowSupportLink} = require('./support')
+        {APP_LOGO}        = require('./misc_page')
+
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <h3 style={textAlign: 'center', marginBottom: '30px'}>
@@ -380,6 +385,18 @@ exports.HelpPage = HelpPage = rclass
                 <Footer/>
             </Col>
         </Row>
+
+exports.render_static_about = ->
+    <Col>
+        <Row>
+            <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+            <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+        </Row>
+        <Row style={marginTop:'20px'}>
+            <ThirdPartySoftware />
+            <HelpPageUsageSection store={{}} />
+        </Row>
+    </Col>
 
 exports._test =
     HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />

@@ -88,6 +88,7 @@ path          = require('path')
 fs            = require('fs')
 glob          = require('glob')
 child_process = require('child_process')
+misc          = require('smc-util/misc')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 program       = require('commander')
@@ -112,6 +113,7 @@ MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
+STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
@@ -213,8 +215,9 @@ base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
-# this is the main index.html file, which should be served without any caching
-pug2html = new HtmlWebpackPlugin
+# this is the main app.html file, which should be served without any caching
+# config: https://github.com/jantimon/html-webpack-plugin#configuration
+pug2app = new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
                         description      : DESCRIPTION
@@ -222,26 +225,56 @@ pug2html = new HtmlWebpackPlugin
                         theme            : theme
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
-                        filename         : 'index.html'
+                        filename         : 'app.html'
                         chunksSortMode   : smcChunkSorter
+                        inject           : 'body'
                         hash             : PRODMODE
-                        template         : path.join(INPUT, 'index.pug')
+                        template         : path.join(INPUT, 'app.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+)
 
-# the following set of plugins renders the policy pages
-# they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
-# via lodash's template syntax. e.g.: <%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>
-policyPages = []
-for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename(x)[0] != '_')
-    policyPages.push new HtmlWebpackPlugin
-                        filename : "policies/#{path.basename(pp)}"
-                        theme    : theme
-                        inject   : 'head'
-                        favicon  : path.join(INPUT, 'favicon.ico')
-                        template : pp
-                        chunks   : ['css']
-                        minify   : htmlMinifyOpts
+# static html pages
+# they only depend on the css chunk
+staticPages = []
+for [fn_in, fn_out] in [['index.pug', 'index.html'], ['features.pug', 'features.html']]
+    staticPages.push(new HtmlWebpackPlugin(
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        description      : DESCRIPTION
+                        BASE_URL         : base_url_html
+                        theme            : theme
+                        git_rev          : GIT_REV
+                        mathjax          : MATHJAX_URL
+                        filename         : fn_out
+                        chunks           : ['css']
+                        inject           : 'head'
+                        hash             : PRODMODE
+                        template         : path.join(INPUT, fn_in)
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        PREFIX           : ''
+                        SCHEMA           : require('smc-util/schema')
+                        PREFIX           : if fn_in == 'index.pug' then '' else '../'
+    ))
+
+# the following renders the policy pages
+for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
+    output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        template         : pp
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
@@ -356,19 +389,32 @@ plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner,
-    pug2html,
-    #commonsChunkPlugin,
-    #extractCSS,
-    #copyWebpackPlugin
-    #webpackSHAHash,
-    #new PrintChunksPlugin(),
-    mathjaxVersionedSymlink,
-    #linkFilesIntoTargetPlugin,
+    banner
 ]
 
+if STATICPAGES
+    plugins = plugins.concat(staticPages)
+    entries =
+        css  : 'webapp-css.coffee'
+else
+    # ATTN don't alter or add names here, without changing the sorting function above!
+    entries =
+        css  : 'webapp-css.coffee'
+        lib  : 'webapp-lib.coffee'
+        smc  : 'webapp-smc.coffee'
+    plugins = plugins.concat([
+        pug2app,
+        #commonsChunkPlugin,
+        #extractCSS,
+        #copyWebpackPlugin
+        #webpackSHAHash,
+        #new PrintChunksPlugin(),
+        mathjaxVersionedSymlink,
+        #linkFilesIntoTargetPlugin,
+    ])
+
 if not QUICK_BUILD or PRODMODE
-    plugins = plugins.concat(policyPages)
+    plugins = plugins.concat(staticPages)
     plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
     # video chat plugins would be added here
 
@@ -433,10 +479,7 @@ module.exports =
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
 
-    entry: # ATTN don't alter or add names here, without changing the sorting function above!
-        css  : 'webapp-css.coffee'
-        lib  : 'webapp-lib.coffee'
-        smc  : 'webapp-smc.coffee'
+    entry: entries
 
     output:
         path          : OUTPUT
@@ -454,7 +497,7 @@ module.exports =
             { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
             { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
             { test: /\.json$/,   loaders: ['json-loader'] },
-            { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
+            { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},

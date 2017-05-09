@@ -1,82 +1,277 @@
-doctype html
-html
-  head
-    meta(charset="utf-8")
-    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
-    meta(http-equiv="X-UA-Compatible" content="IE=edge")
-    meta(name="google"      content="notranslate")
-    meta(name="description" content=htmlWebpackPlugin.options.description)
-    meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
-    meta(name="date"        content=htmlWebpackPlugin.options.date)
-    meta(name="version"     content=htmlWebpackPlugin.options.version)
-    title= htmlWebpackPlugin.options.title
+//- main landing page
 
-    //- http://realfavicongenerator.net
-    link(rel="apple-touch-icon", sizes="180x180", href=require("!file!apple-touch-icon.png"))
-    link(rel="icon", type="image/png", href=require("!file!favicon-32x32.png"), sizes="32x32")
-    link(rel="icon", type="image/png", href=require("!file!favicon-16x16.png"), sizes="16x16")
-    link(rel="manifest", href=require("!file!manifest.json"))
-    link(rel="mask-icon", href=require("!file!safari-pinned-tab.svg"), color="#fbb635")
-    meta(name="apple-mobile-web-app-title", content="CoCalc")
-    meta(name="application-name", content="CoCalc")
-    meta(name="theme-color", content="#fbb635")
+extends _base.pug
 
-    //- loading it later via inserting a script tag sounds like a cool idea, but
-    //- fails because it doesn't load from within webpack when "require" is defined
-    //- Disabled for now -- see https://github.com/sagemathinc/smc/issues/1888
-    //- script(src=require('!file-loader!requirejs/require.js') async)
+block header
+  - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
+  - var stat_times_keys = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES_KEY
+  - var stat_times = JSON.stringify([stat_times_keys.last_hour, stat_times_keys.last_day, stat_times_keys.last_week, stat_times_keys.last_month])
+  script(type="text/javascript").
+    window.stat_times = !{stat_times};
+  script(type="text/javascript")
+    include:coffee-script index.coffee
+  meta(name="description" content=htmlWebpackPlugin.options.description)
 
-  body
-    style.
-      #{require('!css?minimize!app-startup-style.css')}
-    div#smc-startup-banner
-      div.banner-blink
-        img(src=require('!url?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
-      div.banner-error
-        div.message
-          | Something bad must have happened.
+block content
+  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-4.col-sm-offset-4.center
+        a(href="app")
+          img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        a.btn.btn-success.btn-lg(href="app").
+          Start #{NAME} For Free
+
+    div.row
+      //- div.col-md-12.center
+      //-   h1 Collaborative computing environment
+      div.col-sm-6
+        img(src=require('!file!sagepreview/01-worksheet.png'))
+      div.col-sm-6
+        p #{NAME} is a sophisticated all-round web-service for
+        ul
+          li #[strong Mathematical calculation]: SageMath, SymPy, Maxima;
+          li #[strong Statistical analysis]: R, Pandas, statsmodels, scikit-learn, Tensorflow; and
+          li #[strong Various other computation]: Octave, Julia, etc.
+        p
+          strong Zero Setup
+          ul
+            li.
+              Getting started #[em does not require any software installation]:
+              #[strong Create a project for free] to start working in your own private workspace.
+            li Create a worksheet or upload your own files: #{NAME} supports Sage Worksheets, Jupyter Notebooks, Latex files, etc.
+            li Share your files #[em privately] with collaborators. All files are synchronized in real-time.
+            li #[em Time-travel] is a detailed history of your edits, and everything is backed up in #[em consistent snapshots].
+            li Finally, you can publish documents, download any file or share your data publicly.
+        p.
+          Each project initially has a quota of #{free_memory_gb} GB memory and
+          #{free_disk_gb} GB of disk space.
+        p.
+          A #[a(href="policies/pricing.html") subscription] gives you a more robust hosting and increased quotas.
+        //- p.
+        //-   #[a(href="app") Start #{NAME} For Free]
+
+    div.row
+      div.col-md-12.center
+        h1 #[i.fa.fa-graduation-cap] Teaching made easy
+      div.col-sm-6
+        div
+          img(src=require("webapp-lib/assets/cocalc-teaching-rendered.svg")).fit
+      div.col-sm-6
+        p.
+          Have you ever experienced the pain setting up the software environments for your students?
+          With #{NAME} #[strong no software needs to be setup] and you
+          can finally #[strong focus on your students]!
+        ol
+          li Create a course on #{NAME}
+          li Add your students
+          li Distribute assignments and handouts
+          li Jump into student's files right where they are working
+          li Collect and grade assignments
+        p.
+          Combined with #{NAME}'s other unique features you can check and retrace all steps a student takes.
+        ul
+          li Use #[em TimeTravel] to see each step a student took to get to the solution.
+          li Consistent and immutable #[em Backups] guard against losing files.
+          li Via #[em Integrated Chat] you can discuss collected files with your collegues or assistents.
+          li The project's #[em Activity Log] shows you when files were accessed.
+
+
+  a.anchor#a-testimonials
+  div#testimonials
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Testimonials
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
+            p.
+              I just found out that my #{NAME} class got by far the best course evaluations
+              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
+              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
+              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
+            footer.
+              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
+            p.
+              #{NAME} provides a user-friendly interface.
+              Students don’t need to install any software at all.
+              They just open up a web browser and go to #{URL} and that’s it.
+              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+              It provides immediate feedback.
+              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
+            footer.
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+
+  a.anchor#a-explore
+  div#explore
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Explore #{NAME}
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-archive] Projects
+          div.
+            Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong private projects].
+            They form your personal workspaces containing your files, computational worksheets, and data.
+            You run your computations through the web-interface, either via interactive worksheets, notebooks, or by executing a program in a terminal.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-users] Collaboration
+          div.
+            You can invite collaborators to work with you inside a project.
+            Like you, they can edit the files in that project.
+            Edits are visible in #[strong real-time] for everyone online.
+            You can share your thoughts in a #[strong side-chat] next to each document.
+        div.clearfix.visible-sm-block
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-graduation-cap] Teaching
+          div.
+            #{htmlWebpackPlugin.options.title} offers sophisticated tools for teaching.
+            Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
+            While students work on it you can assist them by jumping right into their files where they're working.
+            Later, collect, grade and re-distribute the files.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-file-text-o] Authoring
+          div.
+            Write scientific documents online in a #[strong LaTeX editor].
+            It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
+            and also supports advanced features like
+            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
+            #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
+
+  a.anchor#a-unique
+  div#unique
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Unique Features
+        div.col-md-6
+          h2 #[i.fa.fa-history] Time-Travel
+          div.
+            All your changes are recorded in fine details.
+            You can go back and forth in time across hundreds of changes to recover your previous edits!
           br/
-          | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
-    div#smc-startup-banner-status
-      | Initializing ...
+          div
+            video(loop autoplay).fit
+              source(src=require("file-loader!webapp-lib/assets/smc-time-travel-4x.webm") type="video/webm; codecs=vp9")
+              source(src=require("file-loader!webapp-lib/assets/smc-time-travel-4x.mp4") type="video/mp4")
+        div.col-md-6
+          h2 #[i.fa.fa-camera-retro] Backups
+          div.
+            Every couple of minutes, consistent read-only snapshots of all your files are created.
+            This means even when all your files got corrupted, there is still a way to recover everything.
+          br/
+          div
+            img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+      div.row
+        div.col-md-6
+          h2 #[i.fa.fa-comments-o] Chat
+          div.
+            A #[strong stand-alone] chat and #[strong side-by-side] chat for each file
+            gives you the ability to discuss any content with your collegues or to take notes.
+            Collaborators who are not online, will be notified about new messages once they sign in again.
+            It supports markdown formatting and Latex formulas.
+          br/
+          div
+            img(src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
+        div.col-md-6
+          h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
+          div.
+            This is a #[strong complete rewrite] of the classical Jupyter Notebook.
+            It is tightly integrated into #{NAME} and gives you collaboration, time-travel history
+            and #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html" target="_blank") much more].
+          br/
+          div
+            img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
 
-    //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
-    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
-    if typeof BASE_URL !== "undefined" && BASE_URL !== null
-        script(type="text/javascript").
-            window.app_base_url='#{BASE_URL}';
-    else
-        script(type="text/javascript" src="base_url.js")
+  a.anchor#a-bottom
+  div#bottom
+    div.container
+      div.row
+        a.anchor#a-included
+        div.col-md-6#included
+          h2 #[i.fa.fa-battery-three-quarters] Batteries included
+          p.
+            Out of the box hundreds of open-source tools are available for you.
+            Here is a short list of a selected few:
+          include _static_third_party_software.html
+        a.anchor#a-stats
+        div.col-md-6#stats
+          h2 #[i.fa.fa-line-chart] Statistics
+          div.
+            There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
+          div(style="margin-top: 3rem")
+            table.table.bordered.condensed.hover.cc-help-stats-table#statstable
+              thead
+                tr
+                  th past
+                  th hour
+                  th day
+                  th week
+                  th month
+              tbody
+                tr
+                  td.left(colspan="4") Loading ...
+                tr
+                tr
 
-    script(type="text/javascript").
-        function smcLoadStatus(msg) {
-        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
+  div
+    div.container
+      div.row
+        div.col-sm-12.center(style="margin-top: 6rem")
+          a.btn.btn-success.btn-lg(href="app").
+            Start #{NAME} For Free
 
-    //- if we have a GA token, insert the google analytics async script
-    - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
-    if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
-        //--- Google Analytics ---
-        script.
-            //- Instructs analytics.js to use the name `google_analytics`.
-            window.GoogleAnalyticsObject = 'google_analytics';
-            //- Creates an initial analytics() function.
-            //- The queued commands will be executed once analytics.js loads.
-            window.google_analytics = window.google_analytics || function() {
-              (google_analytics.q = google_analytics.q || []).push(arguments)
-            };
-            //- Sets the time (as an integer) this tag was executed.
-            //- Used for timing hits.
-            google_analytics.l = +new Date;
-            //- Creates a default tracker with automatic cookie domain configuration.
-            google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
-            //- Sends a pageview hit from the tracker just created.
-            google_analytics('send', 'pageview');
-
-        //- Sets the `async` attribute to load the script asynchronously.
-        script(async src='//www.google-analytics.com/analytics.js')
-        //--- End Google Analytics ---
-
-    //- Hidden div to accurately determine if page is in responsive mode
-    div.webapp-responsive-mode-test
-
-    div#smc-react-container.page-container
+  //- CSS comes at the bottom: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      div
+        img
+          width        : 100%
+          height       : auto
+        &.row
+          margin-top   : 2rem
+          margin-bottom: 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        background-color : $COL_GRAY_LL
+        div > h3
+          white-space    : nowrap
+      #included > div
+        padding        : 0
