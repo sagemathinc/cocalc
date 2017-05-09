@@ -948,9 +948,6 @@ class Client extends EventEmitter
             else
                 dbg("SUCCESS: project #{project_id}")
                 @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                push_to_clients  # push a message to all other clients logged in as this user.
-                    where : {account_id:@account_id,  exclude: [@conn.id]}
-                    mesg  : message.project_list_updated()
                 # As an optimization, we start the process of opening the project, since the user is likely
                 # to open the project soon anyways.
                 dbg("start process of opening project")

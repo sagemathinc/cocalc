@@ -15,6 +15,7 @@ util.chdir()
 ports = util.get_ports()
 base_url = util.base_url()
 hostname = socket.gethostname()
+hostname = '0.0.0.0'
 
 cmd = "service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
     hostname      = hostname,

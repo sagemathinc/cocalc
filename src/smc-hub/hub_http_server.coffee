@@ -31,6 +31,8 @@ hub_proxy    = require('./proxy')
 
 hub_projects = require('./projects')
 
+{http_message_api_v1} = require('./api/handler')
+
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe-invoice')
 
@@ -51,6 +53,7 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+    router.use(body_parser.json())
     router.use(body_parser.urlencoded({ extended: true }))
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
@@ -107,6 +110,17 @@ exports.init_express_http_server = (opts) ->
     # Return number of concurrent connections (could be useful)
     router.get '/concurrent', (req, res) ->
         res.send("#{opts.database.concurrent()}")
+
+    # HTTP API
+    router.post '/api/v1', (req, res) ->
+        api_key = req.body.api_key
+        mesg    = req.body.mesg
+        res.send("#{api_key}, '#{JSON.stringify(mesg)}'")
+        ###
+        opts.cb = (err, resp) ->
+            res.
+        http_message_api_v1(opts)
+        ###
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     if opts.stripe?
