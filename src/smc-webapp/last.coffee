@@ -62,7 +62,8 @@ if client._connected
 window.MathJax = exports.MathJaxConfig =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
-    jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+    # common html is the output default: http://docs.mathjax.org/en/latest/output.html
+    jax: ["input/TeX","input/AsciiMath", "output/CommonHTML"]
     # http://docs.mathjax.org/en/latest/options/tex2jax.html
     tex2jax:
         inlineMath: [ ['$','$'], ["\\(","\\)"] ]
@@ -72,7 +73,7 @@ window.MathJax = exports.MathJaxConfig =
         skipTags: ["script","noscript","style","textarea","pre","code"]
 
     TeX:
-        extensions: ["autoload-all.js"]
+        extensions: ["autoload-all.js", "noUndefined.js", "noErrors.js"]
         Macros:  # get these from sage/misc/latex.py
             Bold:  ["\\mathbb{#1}",1]
             ZZ:    ["\\Bold{Z}",0]
@@ -93,6 +94,22 @@ window.MathJax = exports.MathJaxConfig =
             Zp:    ["\\ZZ_{#1}",1]
             Qp:    ["\\QQ_{#1}",1]
             Zmod:  ["\\ZZ/#1\\ZZ",1]
+        noErrors:  # http://docs.mathjax.org/en/latest/tex.html#noerrors
+            inlineDelimiters : ["$","$"]
+            multiLine        : true
+            style:
+                "font-size"      : "85%"
+                "text-align"     : "left"
+                "color"          : "red"
+                "padding"        : "1px 3px"
+                "background"     : "#FFEEEE"
+                "border"         : "none"
+        noUndefined:  # http://docs.mathjax.org/en/latest/tex.html#noundefined
+            attributes:
+                mathcolor        : "red"
+                mathbackground   : "#FFEEEE"
+                mathsize         : "90%"
+
 
     # do not use "xypic.js", frequently causes crash!
     "HTML-CSS":
