@@ -526,22 +526,22 @@ class exports.JupyterActions extends Actions
         if not cur_id? or not @store.getIn(['cells', cur_id])?
             @set_cur_id(@store.get('cell_list')?.get(0))
 
-        if do_init
-            @initialize_manager()
-        else if @_state == 'init'
-            @_state = 'ready'
-
         if @_is_project
+            if do_init
+                @initialize_manager()
             @manager_run_cell_process_queue()
         else
             # client
+            if @_state == 'init'
+                @_state = 'ready'
+
             if not @store.get('kernel')
                 # kernel isn't set yet, so we set it.
                 kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
                 @set_kernel(kernel)
 
-        if @store.get("view_mode") == 'raw'
-            @set_raw_ipynb()
+            if @store.get("view_mode") == 'raw'
+                @set_raw_ipynb()
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
