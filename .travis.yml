@@ -6,8 +6,11 @@ language: python
 python:
   - '2.7'
 
+services:
+  - postgresql
+
 addons:
-  rethinkdb: '2.3.4'
+  postgresql: "9.6"
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
@@ -18,50 +21,42 @@ env:
     #- MODE=server
 
 # installation and setup
-before_script:
+before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y python-pip python-yaml
+  - wget -qO- https://deb.nodesource.com/setup_6.x | sudo bash -
+  - sudo apt-get install -y python-pip python-yaml wget nodejs git python python-yaml python-psutil make
+  - sudo npm install coffee-script -g
   - source /etc/lsb-release
-  - rethinkdb --version
   - pip -V
   - python -V
-  - nvm install v5.11
   - node --version
-  - sudo pip install pytest
+  - sudo pip install pytest psutil pyyaml
   - pytest --version
 
 # the setup & compilation of SMC
 install:
-  - cd smc/src
+  - cd src
   - source smc-env
   - npm install
   - npm run make
-  - cd smc_webapp
-  - npm install
-  - cd ../smc-util
-  - npm install
-  - cd ../smc_pyutil
-  - sudo pip install --upgrade ./
-  - cd ../smc_sagews
-  - sudo pip install --upgrade ./
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
+  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi
   - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
   - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi
+  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm run test; fi
 
 # send coverage report over to https://coveralls.io
 #after_success:
 #  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
 
 notifications:
-  slack:
-    rooms:
-      - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
+  #slack:
+  #  rooms:
+  #    - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
   email:
     recipients:
       - hsy@sagemath.com
