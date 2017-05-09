@@ -123,6 +123,9 @@ $.fn.exactly_cover = (other) ->
 
 # make all links open internally or in a new tab; etc.
 # opts={project_id:?, file_path:path that contains file}
+starts_with_cloud_url = (href) ->
+    return misc.startswith(href, document.location.origin) or (document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com"))
+
 $.fn.process_smc_links = (opts={}) ->
     @each ->
         e = $(this)
@@ -136,7 +139,7 @@ $.fn.process_smc_links = (opts={}) ->
                     continue
                 if opts.href_transform?
                     href = opts.href_transform(href)
-                if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
+                if starts_with_cloud_url(href) and href.indexOf('/projects/') != -1
                     # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
                     # link directly inside this browser tab.
                     # WARNING: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
@@ -152,7 +155,6 @@ $.fn.process_smc_links = (opts={}) ->
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
-                        {join} = require('path')
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -161,10 +163,10 @@ $.fn.process_smc_links = (opts={}) ->
                             target = decodeURI(target.slice(1))  # just get rid of leading slash
                         else if target[0] == '/' and opts.project_id
                             # absolute inside of project
-                            target = join(opts.project_id, 'files', decodeURI(target))
+                            target = misc.path_join(opts.project_id, 'files', decodeURI(target)?'')
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
-                            target = join(opts.project_id, 'files', opts.file_path, decodeURI(target))
+                            target = misc.path_join(opts.project_id, 'files', opts.file_path?'', decodeURI(target)?'')
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else
@@ -186,22 +188,21 @@ $.fn.process_smc_links = (opts={}) ->
                         # absolute path or data: url
                         new_src = src
                     else
-                        {join} = require('path')
                         i = src.indexOf('/projects/')
                         j = src.indexOf('/files/')
-                        if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
+                        if starts_with_cloud_url(href) and i != -1 and j != -1 and j > i
                             # the href is inside the app, points to the current project or another one
                             # j-i should be 36, unless we ever start to have different (vanity) project_ids
                             path = src.slice(j + '/files/'.length)
-                            project_id = src.slice(i + '/projects/'.length, j)
-                            new_src = join('/', window.app_base_url, project_id, 'raw', path)
+                            project_id = src.slice(i + '/projects/'.length, j) ? ''
+                            new_src = misc.path_join('/', window.app_base_url, project_id, 'raw', path)
                             y.attr(attr, new_src)
                             continue
                         if src.indexOf('://') != -1
                             # link points somewhere else
                             continue
                         # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
-                        new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
+                        new_src = misc.path_join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e

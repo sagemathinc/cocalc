@@ -74,10 +74,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
     if typeof(x) == "string"
-        return s.indexOf(x) == 0
+        return s?.indexOf(x) == 0
     else
         for v in x
-            if s.indexOf(v) == 0
+            if s?.indexOf(v) == 0
                 return true
         return false
 
@@ -565,6 +565,15 @@ exports.deep_copy = (obj) ->
 exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
+
+# See http://stackoverflow.com/questions/29855098/is-there-a-built-in-javascript-function-similar-to-os-path-join
+exports.path_join = (parts...) ->
+    sep = '/'
+    replace = new RegExp(sep+'{1,}', 'g')
+    s = ("#{x}" for x in parts).join(sep).replace(replace, sep)
+    console.log parts, s
+    return s
+
 
 # Takes a path string and file name and gives the full path to the file
 exports.path_to_file = (path, file) ->
