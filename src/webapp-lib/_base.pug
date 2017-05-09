@@ -1,3 +1,5 @@
+//- the main html template for the static pages (shares some _inc_* files with app.pug)
+
 doctype html
 
 -
@@ -16,25 +18,8 @@ block vars
 
 html.no-js(lang="en")
   head
-    meta(charset="utf-8")
-    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
-    meta(http-equiv="X-UA-Compatible" content="IE=edge")
-    meta(name="google"      content="notranslate")
-    meta(name="author"      content=htmlWebpackPlugin.options.title + " Authors")
-    meta(name="date"        content=htmlWebpackPlugin.options.date)
-    meta(name="version"     content=htmlWebpackPlugin.options.version)
-
+    include _inc_head.pug
     title= fulltitle
-
-    //- http://realfavicongenerator.net
-    link(rel="apple-touch-icon", sizes="180x180", href=require("!file!apple-touch-icon.png"))
-    link(rel="icon", type="image/png", href=require("!file!favicon-32x32.png"), sizes="32x32")
-    link(rel="icon", type="image/png", href=require("!file!favicon-16x16.png"), sizes="16x16")
-    link(rel="manifest", href=require("!file!manifest.json"))
-    link(rel="mask-icon", href=require("!file!safari-pinned-tab.svg"), color="#fbb635")
-    meta(name="apple-mobile-web-app-title", content="CoCalc")
-    meta(name="application-name", content="CoCalc")
-    meta(name="theme-color", content="#fbb635")
     block header
 
   body
@@ -111,26 +96,4 @@ html.no-js(lang="en")
       style.
         html.no-js { display: block; }
 
-    //- if we have a GA token, insert the google analytics async script
-    - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
-    if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
-        //--- Google Analytics ---
-        script.
-            //- Instructs analytics.js to use the name `google_analytics`.
-            window.GoogleAnalyticsObject = 'google_analytics';
-            //- Creates an initial analytics() function.
-            //- The queued commands will be executed once analytics.js loads.
-            window.google_analytics = window.google_analytics || function() {
-              (google_analytics.q = google_analytics.q || []).push(arguments)
-            };
-            //- Sets the time (as an integer) this tag was executed.
-            //- Used for timing hits.
-            google_analytics.l = +new Date;
-            //- Creates a default tracker with automatic cookie domain configuration.
-            google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
-            //- Sends a pageview hit from the tracker just created.
-            google_analytics('send', 'pageview');
-
-        //- Sets the `async` attribute to load the script asynchronously.
-        script(async src='//www.google-analytics.com/analytics.js')
-        //--- End Google Analytics ---
+    include _inc_analytics.pug
