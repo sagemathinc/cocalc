@@ -51,6 +51,7 @@ COLORS =
     GRAY_D   : '#434343'
     GRAY     : '#808080'
     GRAY_L   : '#c0c0c0'
+    GRAY_L0  : '#e0e0e0'
     GRAY_LL  : '#eeeeee'
     GRAY_LLL : '#f5f5f5'
     BS_BLUE_BGRND : "rgb(66, 139, 202)"
