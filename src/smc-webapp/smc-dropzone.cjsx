@@ -104,7 +104,7 @@ exports.SMC_Dropwrapper = rclass
 
     get_djs_config: ->
         with_defaults = misc.defaults @props.config,
-            url : @postUrl()
+            url               : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
         , true
@@ -112,7 +112,7 @@ exports.SMC_Dropwrapper = rclass
 
     postUrl: ->
         dest_dir = misc.encode_path(@props.dest_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
     componentDidMount: ->
