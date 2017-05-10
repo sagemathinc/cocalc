@@ -112,7 +112,7 @@ exports.SMC_Dropwrapper = rclass
 
     postUrl: ->
         dest_dir = misc.encode_path(@props.dest_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
     componentDidMount: ->
