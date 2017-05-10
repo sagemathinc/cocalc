@@ -41,7 +41,8 @@ templates = $("#webapp-editor-templates")
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        # window.h = @ # for debugging
+        if window.smc?
+            window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
@@ -130,10 +131,10 @@ class exports.HistoryEditor extends FileEditor
                     @element.find("a[href=\"#show-diff\"]").hide()
                 else
                     @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
-                    @element.find("a[href=\"#show-diff\"]").hide()
+                    @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
-                @element.find("a[href=\"#show-diff\"]").hide()
+                @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
@@ -162,6 +163,8 @@ class exports.HistoryEditor extends FileEditor
             @show()
             cb()
 
+        @diff_doc ?= @view_doc
+
     init_slider: =>
         @slider         = @element.find(".webapp-editor-history-slider")
         @forward_button = @element.find("a[href=\"#forward\"]")
@@ -169,9 +172,11 @@ class exports.HistoryEditor extends FileEditor
         @load_all       = @element.find("a[href=\"#all\"]")
 
         ##element.children().not(".btn-history").hide()
-        @element.find(".webapp-editor-save-group").hide()
-        @element.find(".webapp-editor-chat-title").hide()
-        @element.find(".smc-editor-file-info-dropdown").hide()
+        for e in [@view_doc, @diff_doc]
+            if e?
+                e.element.find(".webapp-editor-save-group").hide()
+                e.element.find(".webapp-editor-chat-title").hide()
+                e.element.find(".smc-editor-file-info-dropdown").hide()
 
         @slider.show()
 
@@ -229,6 +234,9 @@ class exports.HistoryEditor extends FileEditor
     diff_mode: (enabled) =>
         @_diff_mode = enabled
         if enabled
+            if @view_doc != @diff_doc
+                @element.find(".salvus-editor-history-history_editor").empty().append(@diff_doc.element)
+                @diff_doc.show?()
             @element.find("a[href=\"#hide-diff\"]").show()
             @element.find("a[href=\"#show-diff\"]").hide()
             @element.find(".webapp-editor-history-diff-mode").show()
@@ -238,11 +246,14 @@ class exports.HistoryEditor extends FileEditor
             # Switch to default theme for diff viewer, until we implement
             # red/green colors that are selected to match the user's theme
             # See https://github.com/sagemathinc/cocalc/issues/884
-            for cm in @view_doc.codemirrors()
+            for cm in @diff_doc.codemirrors()
                 @_non_diff_theme ?= cm.getOption('theme')
                 cm.setOption('theme', '')
         else
-            for cm in @view_doc.codemirrors()
+            if @view_doc != @diff_doc
+                @element.find(".salvus-editor-history-history_editor").empty().append(@view_doc.element)
+                @view_doc.show?()
+            for cm in @diff_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
                 cm.setOption('gutters', [])
                 if @_non_diff_theme?
@@ -279,8 +290,12 @@ class exports.HistoryEditor extends FileEditor
             # nothing to do if syncstring isn't opened/initialized yet.
             return
         # Set the doc to show a diff from time0 to time1
-        v0 = @syncstring.version(time0).to_str()
-        v1 = @syncstring.version(time1).to_str()
+        if @ext == 'ipynb' and not @jupyter_classic()
+            v0 = @view_doc.to_str(time0)
+            v1 = @view_doc.to_str(time1)
+        else
+            v0 = @syncstring.version(time0).to_str()
+            v1 = @syncstring.version(time1).to_str()
         {patches, to_line} = line_diff(v0, v1)
         #console.log "#{misc.to_json(patches)}"
         # [{"diffs":[[-1,"BC"],[1,"DCCCBCCECCFCGHCCICJ"]],"start1":0,"start2":0,"length1":2,"length2":19}]
@@ -318,7 +333,7 @@ class exports.HistoryEditor extends FileEditor
         s = lines.join('\n')
         line_number = (i, k) ->
             return $("<span class='smc-history-diff-number'>#{line_numbers[i][k]}</span>")[0]
-        for cm in @view_doc.codemirrors()
+        for cm in @diff_doc.codemirrors()
             cm.setValueNoJump(s)
             cm.setOption('lineNumbers', false)
             cm.setOption('gutters', ['smc-history-diff-gutter1', 'smc-history-diff-gutter2'])
