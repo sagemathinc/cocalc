@@ -81,6 +81,7 @@ setup(
             'smc-rmd2html         = smc_pyutil.rmd2html:main',
             'smc-java2html        = smc_pyutil.java2html:main',
             'smc-m2sagews         = smc_pyutil.m2sagews:main',
+            'smc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
             'smc-jupyter-ensure-nonempty = smc_pyutil.smc_jupyter_ensure_nonempty:main'
             # END deprecated smc-*
             'cc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
@@ -104,6 +105,7 @@ setup(
             'cc-java2html        = smc_pyutil.java2html:main',
             'cc-m2sagews         = smc_pyutil.m2sagews:main',
             'cc-jupyter-ensure-nonempty = smc_pyutil.smc_jupyter_ensure_nonempty:main'
+            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
         ]
     },
     include_package_data = True
