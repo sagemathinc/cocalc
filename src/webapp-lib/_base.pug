@@ -28,8 +28,8 @@ html.no-js(lang="en")
       div.container
         div.navbar-header
           a(href=PREFIX + "#a-top")
-            img.icon(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
-            img.name(alt="#{htmlWebpackPlugin.options.title}" src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
+            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
             li

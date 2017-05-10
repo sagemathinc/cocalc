@@ -108,6 +108,7 @@ OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
+CDN_BASE_URL  = process.env.CDN_BASE_URL
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
@@ -127,6 +128,7 @@ console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
+console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
 console.log "MINIFY           = #{MINIFY}"
 console.log "INPUT            = #{INPUT}"
@@ -462,14 +464,27 @@ if PRODMODE or MINIFY
 
 
 # tuning generated filenames and the configs for the aux files loader.
+# FIXME this setting isn't picked up properly
 if PRODMODE
-    hashname = '[sha256:hash:base62:33].[ext]' # don't use base64, it's not recommended for some reason.
+    hashname = '[sha256:hash:base62:33].cacheme.[ext]' # don't use base64, it's not recommended for some reason.
 else
-    hashname = '[path][name].[ext]'
+    hashname = '[path][name].nocache.[ext]'
 pngconfig   = "name=#{hashname}&limit=16000&mimetype=image/png"
 svgconfig   = "name=#{hashname}&limit=16000&mimetype=image/svg+xml"
 icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
 woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
+
+# publicPath: either locally, or a CDN, see https://github.com/webpack/docs/wiki/configuration#outputpublicpath
+# In order to use the CDN, copy all files from the `OUTPUT` directory over there.
+# Caching: files ending in .html (like index.html or those in /policies/) and those matching '*.nocache.*' shouldn't be cached
+#          all others have a hash and can be cached long-term (especially when they match '*.cacheme.*')
+if CDN_BASE_URL?
+    # CDN_BASE_URL should have a trailing slash
+    if typeof(CDN_BASE_URL) isnt 'string' or CDN_BASE_URL[-1..] isnt '/'
+        throw new Error("CDN_BASE_URL must be an URL-string ending in a '/' -- but it is #{CDN_BASE_URL}")
+    publicPath = CDN_BASE_URL
+else
+    publicPath = path.join(BASE_URL, OUTPUT) + '/'
 
 module.exports =
     cache: true
@@ -483,9 +498,9 @@ module.exports =
 
     output:
         path          : OUTPUT
-        publicPath    : path.join(BASE_URL, OUTPUT) + '/'
-        filename      : if PRODMODE then '[name]-[hash].js' else '[name].js'
-        chunkFilename : if PRODMODE then '[id]-[hash].js'   else '[id].js'
+        publicPath    : publicPath
+        filename      : if PRODMODE then '[name]-[hash].cacheme.js' else '[name].nocache.js'
+        chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
     module:
@@ -500,7 +515,7 @@ module.exports =
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
-            { test: /\.(jpg|gif)$/,    loader: "file-loader"},
+            { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
             # .html only for files in smc-webapp!
             { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
             # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
