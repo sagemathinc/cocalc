@@ -128,29 +128,6 @@ ListingHeader = rclass
     propTypes:
         active_file_sort : rtypes.object    # {column_name : string, is_descending : bool}
         sort_by          : rtypes.func      # Invoked as `sort_by(string)
-        check_all        : rtypes.bool      # String one of:
-
-    getDefaultProps: ->
-        check_all        : false
-
-    check_all_click_handler: (e) ->
-        console.log "check all clicked"
-
-    render_check_all: ->
-        if @props.checked_files.size is 0
-            button_icon = 'square-o'
-            button_text = 'Check all'
-        else
-            button_text = 'Uncheck all'
-
-            if @props.checked_files.size >= @props.listing.length
-                button_icon = 'check-square-o'
-            else
-                button_icon = 'minus-square-o'
-
-        <span onClick={@check_all_click_handler} >
-            <Icon name={button_icon} /> {button_text}
-        </span>
 
     render_sort_link: (column_name, display_name) ->
         <a href=''
@@ -172,7 +149,6 @@ ListingHeader = rclass
 
         <Row style={row_styles}>
             <Col sm=2 xs=3>
-                <Icon name={if @props.check_all then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
             </Col>
             <Col sm=1 xs=3>
                 {@render_sort_link("type", "Type")}
