@@ -2,6 +2,11 @@
 
 extends _base.pug
 
+mixin start_button
+  p
+    a.btn.btn-success.btn-xlg(href="app") Start #{NAME} For Free
+  p or #[a(href="app") sign in] with your account
+
 block header
   - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
   - var stat_times_keys = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES_KEY
@@ -20,14 +25,17 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
+      div.col-sm-12.center.alert.alert-info(role="alert").
+        Looking for #[strong SageMathCloud]? #{NAME} is a rebranding.
+        Your old account and projects are still there.
+        #[a(href="app") Sign in] with your existing account and you're ready to go.
       div.col-sm-4.col-sm-offset-4.center
         a(href="app")
           img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'))
       div.col-sm-12.center.descr.
         #{htmlWebpackPlugin.options.description}
       div.col-sm-12.center
-        a.btn.btn-success.btn-lg(href="app").
-          Start #{NAME} For Free
+        +start_button
 
     div.row
       //- div.col-md-12.center
@@ -229,8 +237,7 @@ block content
     div.container
       div.row
         div.col-sm-12.center(style="margin-top: 6rem")
-          a.btn.btn-success.btn-lg(href="app").
-            Start #{NAME} For Free
+          +start_button
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -274,4 +281,8 @@ block content
         div > h3
           white-space    : nowrap
       #included > div
-        padding        : 0
+        padding          : 0
+      .btn-xlg
+        font-size        : 24px
+        line-height      : 1.5
+        font-weight      : bold
