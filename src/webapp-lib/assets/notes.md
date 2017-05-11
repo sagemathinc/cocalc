@@ -1,0 +1,18 @@
+# Video
+
+## Recording
+
+Via "Peek", 10 FPS, 1024x600
+
+## Editing and Encoding
+
+webm to 4x speed x264 and webm:
+
+    ffmpeg -an -i smc-time-travel.webm -vcodec libx264 -pix_fmt yuv420p -profile:v baseline -level 3 -filter:v "setpts=0.25*PTS" -r 20 smc-time-travel-4x.mp4
+
+    ffmpeg -an -i smc-time-travel.webm -c:v libvpx-vp9 -filter:v "setpts=0.25*PTS" -r 20 smc-time-travel-4x.webm
+
+
+## References
+
+https://gist.github.com/Vestride/278e13915894821e1d6f
