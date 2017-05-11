@@ -1441,13 +1441,19 @@ create_project_store_def = (name, project_id) ->
             when "name" then @_sort_on_string_field("name")
             when "time" then @_sort_on_numerical_field("mtime", -1)
             when "size" then @_sort_on_numerical_field("size")
+            when "type"
+                (a, b) =>
+                    if a.isdir and not b.isdir
+                        return -1
+                    else if b.isdir and not a.isdir
+                        return 1
+                    else
+                        return misc.cmp_array(a.name.split('.').reverse(), b.name.split('.').reverse())
 
         listing.sort(sorter)
 
         if @active_file_sort.is_descending
             listing.reverse()
-
-        console.log "listing", listing
 
         map = {}
         for x in listing
