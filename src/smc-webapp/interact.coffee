@@ -482,10 +482,16 @@ interact_control = (desc, update, process_html_output) ->
         else
             throw("Unknown interact control type '#{desc.control_type}'")
 
-    # fix HTML links and <img src=...> in interacts, but not additionally in nested ones (e.g. %exercise)
-    e = $('<div>').html(desc.default)
-    process_html_output(e)
-    set(e.html())
+    if desc.control_type == 'text'
+        # Fix HTML links and <img src=...> in interacts, but not
+        # additionally in nested ones (e.g. %exercise).  E.g.,
+        #    text_control('<img src="a.png">')
+        e = $('<div>').html(desc.default)
+        process_html_output(e)
+        set(e.html())
+    else
+        set(desc.default)
+
     control.data("set", set)
     return control
 
