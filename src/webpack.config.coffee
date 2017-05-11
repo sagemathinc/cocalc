@@ -108,7 +108,7 @@ OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
-CDN_BASE_URL  = process.env.CDN_BASE_URL
+CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
@@ -136,9 +136,12 @@ console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 
 # mathjax version → symlink with version info from package.json/version
-MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
-MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
-MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
+if CDN_BASE_URL?
+    MATHJAX_URL = CDN_BASE_URL + path.join(misc_node.MATHJAX_ROOT, 'MathJax.js')
+else
+    MATHJAX_URL = misc_node.MATHJAX_URL  # from where the files are served
+MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
+MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
 console.log "MATHJAX_URL      = #{MATHJAX_URL}"
 console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
@@ -479,7 +482,7 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 # Caching: files ending in .html (like index.html or those in /policies/) and those matching '*.nocache.*' shouldn't be cached
 #          all others have a hash and can be cached long-term (especially when they match '*.cacheme.*')
 if CDN_BASE_URL?
-    # CDN_BASE_URL should have a trailing slash
+    # CDN_BASE_URL must have a trailing slash
     if typeof(CDN_BASE_URL) isnt 'string' or CDN_BASE_URL[-1..] isnt '/'
         throw new Error("CDN_BASE_URL must be an URL-string ending in a '/' -- but it is #{CDN_BASE_URL}")
     publicPath = CDN_BASE_URL
