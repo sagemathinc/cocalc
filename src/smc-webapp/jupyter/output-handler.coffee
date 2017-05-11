@@ -125,6 +125,7 @@ class exports.OutputHandler extends EventEmitter
         delete mesg.execution_state
         delete mesg.code
         delete mesg.status
+        delete mesg.source
         for k, v of mesg
             if misc.is_object(v) and misc.len(v) == 0
                 delete mesg[k]
