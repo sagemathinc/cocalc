@@ -123,7 +123,7 @@ FileCheckbox = rclass
         </span>
 
 # TODO: Something should uniformly describe how sorted table headers work.
-# 5/8/201 We have 3 right now, Course students and assignments panel and this one.
+# 5/8/2017 We have 3 right now, Course students and assignments panel and this one.
 ListingHeader = rclass
     propTypes:
         active_file_sort : rtypes.object    # {column_name : string, is_descending : bool}
@@ -131,7 +131,6 @@ ListingHeader = rclass
         check_all        : rtypes.bool      # String one of:
 
     getDefaultProps: ->
-        active_file_sort : {column_name : 'date-modified', is_descending : false}
         check_all        : false
 
     check_all_click_handler: (e) ->
@@ -176,16 +175,16 @@ ListingHeader = rclass
                 <Icon name={if @props.check_all then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
             </Col>
             <Col sm=1 xs=3>
-                {@render_sort_link("file-type", "File Type")}
+                {@render_sort_link("type", "Type")}
             </Col>
             <Col sm=4 smPush=5 xs=6>
-                {@render_sort_link("date-modified", "Date Modified")}
+                {@render_sort_link("time", "Date Modified")}
                 <span className='pull-right'>
-                    {@render_sort_link("file-size", "Size")}
+                    {@render_sort_link("size", "Size")}
                 </span>
             </Col>
             <Col sm=5 smPull=4 xs=12>
-                {@render_sort_link("file-name", "Name")}
+                {@render_sort_link("name", "Name")}
             </Col>
         </Row>
 
@@ -745,29 +744,12 @@ ProjectFilesButtons = rclass
 
     propTypes :
         show_hidden  : rtypes.bool
-        sort_by_time : rtypes.bool
-        default_sort : rtypes.string
-        current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
-
-    componentWillReceiveProps: (next) ->
-        if @props.default_sort != next.default_sort
-            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
-                @props.actions.setState(sort_by_time : next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, next.sort_by_time, next.show_hidden)
-            else
-                @props.actions.setState(sort_by_time : not next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh: (e) ->
         e.preventDefault()
         @props.actions.fetch_directory_listing()
-
-    handle_sort_method: (e) ->
-        e.preventDefault()
-        @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.fetch_directory_listing(sort_by_time : not @props.sort_by_time)
 
     handle_hidden_toggle: (e) ->
         e.preventDefault()
@@ -776,12 +758,6 @@ ProjectFilesButtons = rclass
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
-
-    render_sort_method: ->
-        if @props.sort_by_time
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-numeric-asc' /> </a>
-        else
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-alpha-asc' /> </a>
 
     render_hidden_toggle: ->
         if @props.show_hidden
@@ -800,7 +776,6 @@ ProjectFilesButtons = rclass
     render: ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
-            {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_backup()}
         </div>
@@ -1869,11 +1844,10 @@ exports.ProjectFiles = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map   : rtypes.immutable
+            project_map                       : rtypes.immutable
             date_when_course_payment_required : rtypes.func
-            get_my_group : rtypes.func
-            get_total_project_quotas : rtypes.func
-
+            get_my_group                      : rtypes.func
+            get_total_project_quotas          : rtypes.func
         account :
             other_settings : rtypes.immutable
         billing :
@@ -1887,7 +1861,6 @@ exports.ProjectFiles = rclass ({name}) ->
             file_action         : rtypes.string
             file_search         : rtypes.string
             show_hidden         : rtypes.bool
-            sort_by_time        : rtypes.bool
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
@@ -1903,12 +1876,12 @@ exports.ProjectFiles = rclass ({name}) ->
     getDefaultProps: ->
         page_number : 0
         file_search : ''
-        new_name : ''
-        actions : redux.getActions(name) # TODO: Do best practices way
-        redux   : redux
+        new_name    : ''
+        actions     : redux.getActions(name) # TODO: Do best practices way
+        redux       : redux
 
     getInitialState: ->
-        show_pay : false
+        show_pay      : false
         shift_is_down : false
 
     componentDidMount: ->
@@ -1945,7 +1918,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
@@ -1955,7 +1927,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
@@ -2176,9 +2147,6 @@ exports.ProjectFiles = rclass ({name}) ->
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
-    file_listing_default_sort: ->
-        return @props.other_settings?.get('default_file_sort') ? 'time'
-
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -2229,8 +2197,6 @@ exports.ProjectFiles = rclass ({name}) ->
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
-                        sort_by_time = {@props.sort_by_time ? true}
-                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
