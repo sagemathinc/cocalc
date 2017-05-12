@@ -137,7 +137,8 @@ console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 
 # mathjax version → symlink with version info from package.json/version
 if CDN_BASE_URL?
-    MATHJAX_URL = CDN_BASE_URL + path.join(misc_node.MATHJAX_ROOT, 'MathJax.js')
+    # the CDN url does not have the /static/... prefix!
+    MATHJAX_URL = CDN_BASE_URL + path.join(misc_node.MATHJAX_SUBDIR, 'MathJax.js')
 else
     MATHJAX_URL = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
