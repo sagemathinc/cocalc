@@ -74,6 +74,11 @@ exports.register = ->
             redux.removeActions(name)
             return name
 
+        save      : (path, redux, project_id) ->
+            name = redux_name(project_id, path)
+            actions = redux.getActions(name)
+            actions?.save()
+
 
     register_file_editor
         ext       : ['ipynb']
