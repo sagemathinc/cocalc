@@ -2,7 +2,7 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 """
 
-{Icon} = require('../r_misc')
+{Icon, Markdown} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, Modal} = require('react-bootstrap')
 
@@ -45,7 +45,7 @@ exports.ConfirmDialog = rclass
                 <Modal.Title>{@render_title_icon()} {@props.confirm_dialog?.get('title')}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                {@props.confirm_dialog?.get('body')}
+                <Markdown value={@props.confirm_dialog?.get('body')} />
             </Modal.Body>
 
             <Modal.Footer>
