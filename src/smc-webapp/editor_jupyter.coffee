@@ -809,8 +809,9 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/cocalc/issues/1537' target='_blank'>not currently supported</a> in CoCalc using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter classic does not work on Firefox; please switch to the modern Jupyter notebook server.</div>")
             @element.data("jupyter_notebook", @)
+            @modern()
             opts.cb?()
             return
         @project_id = @parent.project_id
@@ -1188,7 +1189,7 @@ class JupyterNotebook extends EventEmitter
 
     modern: () =>
         t = "<h3><i class='fa fa-exchange'></i> Switch to the Modern Notebook</a></h3>"
-        t += "<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the modern Jupyter notebook server (or use Google Chrome or Safari).<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!"
         t += "<br><hr>"
         t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to Modern Notebook</a>"
         bootbox.alert(t)
