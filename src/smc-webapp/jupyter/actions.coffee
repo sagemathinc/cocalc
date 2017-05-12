@@ -613,9 +613,9 @@ class exports.JupyterActions extends Actions
         @set_save_status?()
 
     save_asap: =>
-        @syncdb.save_asap (err) =>
+        @syncdb?.save_asap (err) =>
             if err
-                setTimeout((()=>@syncdb.save_asap()), 50)
+                setTimeout((()=>@syncdb?.save_asap()), 50)
         return
 
     _id_is_available: (id) =>
