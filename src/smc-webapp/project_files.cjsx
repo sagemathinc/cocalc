@@ -25,6 +25,7 @@
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
+{SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
@@ -84,7 +85,6 @@ PathSegmentLink = rclass
 
     handle_click: ->
         @props.actions.open_directory(@props.path)
-        @props.actions.show_upload(false)
 
     render_link: ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -224,10 +224,12 @@ FileRow = rclass
 
     handle_click: (e) ->
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
+            foreground = misc.should_open_in_foreground(e)
             @props.actions.open_file
                 path       : @fullpath()
-                foreground : misc.should_open_in_foreground(e)
-            @props.actions.set_file_search('')
+                foreground : foreground
+            if foreground
+                @props.actions.set_file_search('')
 
     handle_download_click: (e) ->
         e.preventDefault()
@@ -557,9 +559,6 @@ FileListing = rclass
         file_search : ''
         show_upload : false
 
-    componentDidUpdate: ->
-        @_show_upload_last = +new Date()
-
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
@@ -572,7 +571,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
-        apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
+        apply_border = index == @props.selected_file_index and @props.file_search[0] isnt TERM_MODE_CHAR
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -653,48 +652,13 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
-    # upload area config and handling
-    show_upload : (e, enter) ->
-        #if DEBUG
-        #    if enter
-        #        console.log "project_files/dragarea entered", e
-        #    else
-        #        console.log "project_files/dragarea left", e
-        # limit changing events, to avoid flickering during UI update
-        change = @props.show_upload != enter
-        if change and @_show_upload_last > (+new Date()) - 100
-            return
-        if e?
-            e.stopPropagation()
-            e.preventDefault()
-            # The very first time the event fires, it has a target attached and then it fires again.
-            # This filteres the very first time it is triggered to avoid double-firing.
-            if target?
-                return
-        @props.actions.show_upload(enter)
-
     render : ->
-        {SMC_Dropzone} = require('./r_misc')
-
-        dropzone_handler =
-            dragleave : (e) => @show_upload(e, false)
-            complete  : => @props.actions.fetch_directory_listing(@props.current_path)
-
-        <div>
-            {<Col sm=12 key='upload'>
-                <SMC_Dropzone
-                    dropzone_handler     = dropzone_handler
-                    project_id           = @props.project_id
-                    current_path         = @props.current_path
-                    close_button_onclick = {=>@show_upload(null, false)} />
-            </Col> if @props.show_upload}
-            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)} onDragLeave={(e) => @show_upload(e, false)}>
-                {@render_terminal_mode()}
-                {@parent_directory()}
-                {@render_rows()}
-                {@render_no_files()}
-            </Col>
-        </div>
+        <Col sm=12>
+            {@render_terminal_mode()}
+            {@parent_directory()}
+            {@render_rows()}
+            {@render_no_files()}
+        </Col>
 
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
@@ -1150,11 +1114,11 @@ ProjectFilesActionBox = rclass
 
     render_rename_or_duplicate: () ->
         single_item = @props.checked_files.first()
-        action_title = switch @props.file_action
-                            when 'rename'
-                                'Rename'
-                            when 'duplicate'
-                                'Duplicate'
+        switch @props.file_action
+            when 'rename'
+                action_title = 'Rename'
+            when 'duplicate'
+                action_title = 'Duplicate'
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1198,10 +1162,15 @@ ProjectFilesActionBox = rclass
     render_duplicate: ->
         @render_rename_or_duplicate()
 
-    submit_action_rename: () ->
+    submit_action_rename: ->
         single_item = @props.checked_files.first()
         if @valid_rename_input(single_item)
             @rename_or_duplicate_click()
+
+    # Make submit_action_duplicate an alias for submit_action_rename, due to how our
+    # dynamically generated function calls work.
+    submit_action_duplicate: ->
+        @submit_action_rename()
 
     move_click: ->
         @props.actions.move_files
@@ -1529,9 +1498,8 @@ ProjectFilesActionBox = rclass
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
-                # don't do encodeURIComponent -- strangely messes up everything for email
                 url = """mailto:?to=&subject=#{filename} on SageMathCloud&
-                body=A file is shared with you: #{file_url}"""
+                body=A file is shared with you: #{public_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
             open_popup_window(url)
@@ -1552,9 +1520,7 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     render_download_link: (single_item) ->
-        url = document.URL
-        url = url[0...url.indexOf('/projects/')]
-        target = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
+        target = @props.actions.get_store().get_raw_link(single_item)
         <pre style={@pre_styles}>
             <a href={target} target='_blank'>{target}</a>
         </pre>
@@ -1737,37 +1703,38 @@ ProjectFilesSearch = rclass
             @execute_command(command)
         else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
-            if @props.selected_file.isdir
+            opening_a_dir = @props.selected_file.isdir
+            if opening_a_dir
                 @props.actions.open_directory(new_path)
                 @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file
                     path: new_path
                     foreground : not opts.ctrl_down
-            if not opts.ctrl_down
+            if opening_a_dir or not opts.ctrl_down
                 @props.actions.set_file_search('')
-                @props.actions.reset_selected_file_index()
+                @props.actions.clear_selected_file_index()
         else if @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
                 @props.create_folder(not opts.ctrl_down)
             else
                 @props.create_file(null, not opts.ctrl_down)
-            @props.actions.reset_selected_file_index()
+            @props.actions.clear_selected_file_index()
 
-    on_up_press: () ->
+    on_up_press: ->
         if @props.selected_file_index > 0
             @props.actions.decrement_selected_file_index()
 
-    on_down_press: () ->
+    on_down_press: ->
         if @props.selected_file_index < @props.num_files_displayed - 1
             @props.actions.increment_selected_file_index()
 
     on_change: (search, opts) ->
-        if not opts.ctrl_down
-            @props.actions.reset_selected_file_index()
+        @props.actions.zero_selected_file_index()
         @props.actions.set_file_search(search)
 
-    on_escape: () ->
+    on_clear: ->
+        @props.actions.clear_selected_file_index()
         @setState(input: '', stdout:'', error:'')
 
     render: ->
@@ -1781,7 +1748,7 @@ ProjectFilesSearch = rclass
                 on_submit   = {@search_submit}
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
-                on_escape   = {@on_escape}
+                on_clear    = {@on_clear}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1834,7 +1801,7 @@ ProjectFilesNew = rclass
 
     render: ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={width:'111px', display: 'inline-block', marginRight: '20px' }>
+        <div style={whiteSpace: 'nowrap', display: 'inline-block', marginRight: '20px' }>
             <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1880,7 +1847,6 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index : rtypes.number
             file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
-            show_upload         : rtypes.bool
             new_name            : rtypes.string
 
     propTypes :
@@ -1892,7 +1858,6 @@ exports.ProjectFiles = rclass ({name}) ->
         page_number : 0
         file_search : ''
         new_name : ''
-        selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
 
@@ -2000,7 +1965,6 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        style = if @props.show_upload then 'primary' else 'default'
         <Col sm=3>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
@@ -2009,9 +1973,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
             <Button
-                bsStyle = {style}
-                onClick = {@props.actions.toggle_upload}
-                active  = {@props.show_upload}
+                className = "upload-button"
                 >
                 <Icon name='upload' /> Upload
             </Button>
@@ -2110,23 +2072,31 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Button>
             </div>
         else if listing?
-            <FileListing
-                listing             = {listing}
-                page_size           = {@file_listing_page_size()}
-                page_number         = {@props.page_number}
-                file_map            = {file_map}
-                file_search         = {@props.file_search}
-                checked_files       = {@props.checked_files}
-                current_path        = {@props.current_path}
-                public_view         = {public_view}
-                actions             = {@props.actions}
-                create_file         = {@create_file}
-                create_folder       = {@create_folder}
-                selected_file_index = {@props.selected_file_index}
-                project_id          = {@props.project_id}
-                show_upload         = {@props.show_upload}
-                shift_is_down       = {@state.shift_is_down}
-            />
+            <SMC_Dropwrapper
+                project_id     = {@props.project_id}
+                dest_path      = {@props.current_path}
+                event_handlers = {complete : => @props.actions.fetch_directory_listing()}
+                config         = {clickable : ".upload-button"}
+                disabled       = {public_view}
+            >
+                <FileListing
+                    listing             = {listing}
+                    page_size           = {@file_listing_page_size()}
+                    page_number         = {@props.page_number}
+                    file_map            = {file_map}
+                    file_search         = {@props.file_search}
+                    checked_files       = {@props.checked_files}
+                    current_path        = {@props.current_path}
+                    public_view         = {public_view}
+                    actions             = {@props.actions}
+                    create_file         = {@create_file}
+                    create_folder       = {@create_folder}
+                    selected_file_index = {@props.selected_file_index}
+                    project_id          = {@props.project_id}
+                    shift_is_down       = {@state.shift_is_down}
+                    event_handlers
+                />
+            </SMC_Dropwrapper>
         else
             @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
@@ -2180,6 +2150,7 @@ exports.ProjectFiles = rclass ({name}) ->
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
+
         <div style={padding:'15px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
@@ -2193,7 +2164,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         file_search         = {@props.file_search}
                         actions             = {@props.actions}
                         current_path        = {@props.current_path}
-                        selected_file       = {visible_listing?[@props.selected_file_index]}
+                        selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
                         selected_file_index = {@props.selected_file_index}
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}

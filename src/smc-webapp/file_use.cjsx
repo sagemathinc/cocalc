@@ -120,11 +120,7 @@ class FileUseActions extends Actions
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
             obj.last_edited = timestamp
-        table.set obj, (err)=>
-            if err
-                if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
-                    err += " (project_id=#{project_id}, path=#{path})"
-                    console.warn("FileUseActions.mark_file error: ", err)
+        table.set(obj)
 
 class FileUseStore extends Store
     get_errors: =>
@@ -520,14 +516,14 @@ FileUseViewer = rclass
 
     render_show_all: ->
         if @_num_missing
-            <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
+            <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true)}>
                 Show {@_num_missing} more
             </Button>
 
     render_show_less: ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
-            <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false); setTimeout(resize_notification_list, 1)}>
+            <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false)}>
                 Show {n} less
             </Button>
 

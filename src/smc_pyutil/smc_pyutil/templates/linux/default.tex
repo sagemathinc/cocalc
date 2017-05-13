@@ -1,6 +1,16 @@
 \documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+
+% set font encoding for PDFLaTeX or XeLaTeX
+\usepackage{ifxetex}
+\ifxetex
+  \usepackage{fontspec}
+\else
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\fi
+
+% used in maketitle
 \title{Title of Document}
 \author{Name of Author}
 

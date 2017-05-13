@@ -850,7 +850,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
-            @_syncstring.set_doc(after)
+            @_syncstring.from_str(after)
 
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")
@@ -1417,9 +1417,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         value  = raw_input.value
         if not value?
             value = ''
-        submitted = raw_input.submitted
-        if not submitted?
-            submitted = false
+        submitted = !!raw_input.submitted
         elt = templates.find(".sagews-output-raw_input").clone()
         label = elt.find(".sagews-output-raw_input-prompt")
         label.text(prompt)
@@ -1693,7 +1691,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.empty()
 
         if mesg.delete_last
-            output.find(":last").remove()
+            output.find(":last-child").remove()
 
         if mesg.done
             output.removeClass('sagews-output-running')
@@ -1722,22 +1720,21 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             when 'execute_javascript'
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
-                    (() =>
-                         code = mesg.code
-                         async.series([
-                             (cb) =>
-                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
-                                     misc_page.load_coffeescript_compiler(cb)
-                                 else
-                                     cb()
-                             (cb) =>
-                                 if mesg.coffeescript
-                                     code = CoffeeScript.compile(code)
-                                 obj = JSON.parse(mesg.obj)
-                                 sagews_eval(code, @, undefined, mesg.cell_id, obj)
-                                 cb()
-                         ])
-                    )()
+                    do () =>
+                        code = mesg.code
+                        async.series([
+                            (cb) =>
+                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
+                                    misc_page.load_coffeescript_compiler(cb)
+                                else
+                                    cb()
+                            (cb) =>
+                                if mesg.coffeescript
+                                    code = CoffeeScript.compile(code)
+                                obj = JSON.parse(mesg.obj)
+                                sagews_eval(code, @, undefined, mesg.cell_id, obj)
+                                cb()
+                        ])
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
@@ -2434,7 +2431,7 @@ class SynchronizedWorksheetCell
 
         # Input
         x = @cm.getLine(start)
-        if x[0] == MARKERS.cell
+        if x?[0] == MARKERS.cell
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[x.length-1] == MARKERS.cell
                 # valid input line
                 @_start_uuid = x.slice(1,37)
@@ -2450,7 +2447,7 @@ class SynchronizedWorksheetCell
 
         # Output
         x = @cm.getLine(end)
-        if x[0] == MARKERS.output
+        if x?[0] == MARKERS.output
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[37] == MARKERS.output
                 # valid output line
                 @_output_uuid = x.slice(1,37)

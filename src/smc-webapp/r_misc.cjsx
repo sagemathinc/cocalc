@@ -37,6 +37,8 @@ underscore  = require('underscore')
 
 markdown    = require('./markdown')
 
+{defaults, required} = misc
+
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
 
@@ -104,6 +106,7 @@ exports.Icon = Icon = rclass
         rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
         flip       : rtypes.oneOf(['horizontal', 'vertical'])
         spin       : rtypes.bool
+        pulse      : rtypes.bool
         fixedWidth : rtypes.bool
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
@@ -118,7 +121,7 @@ exports.Icon = Icon = rclass
         onClick : ->
 
     render: ->
-        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
         if name.slice(0, 3) == 'fa-'
             classNames = "fa #{name}"
@@ -134,6 +137,8 @@ exports.Icon = Icon = rclass
             classNames += ' fa-fw'
         if spin
             classNames += ' fa-spin'
+        if pulse
+            classNames += ' fa-pulse'
         if stack
             classNames += " fa-stack-#{stack}"
         if inverse
@@ -167,8 +172,13 @@ exports.Octicon = rclass
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
+    propTypes :
+        style : rtypes.object
+
     render: ->
-        <span><Icon name='circle-o-notch' spin /> Loading...</span>
+        <span style={@props.style}>
+            <Icon name='circle-o-notch' spin /> Loading...
+        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
@@ -494,12 +504,13 @@ exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
     propTypes :
-        popover     : rtypes.bool
-        placement   : rtypes.string
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
 
     getDefaultProps: ->
         popover   : true
-        minPeriod : 45000
+        minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
@@ -515,7 +526,7 @@ exports.TimeAgo = rclass
             return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
-            <Tip title={s} id={s} placement={@props.placement}>
+            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
                 {@render_timeago(d)}
             </Tip>
         else
@@ -527,23 +538,26 @@ exports.TimeAgo = rclass
 # with callbacks, and value for a controlled one!
 #    See http://facebook.github.io/react/docs/forms.html#controlled-components
 
-# Search input box with a clear button (that focuses!), enter to submit,
-# escape to also clear.
+# Search input box with the following capabilities
+# a clear button (that focuses the input)
+# `enter` to submit
+# `esc` to clear
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
     propTypes :
+        autoFocus       : rtypes.bool
+        autoSelect      : rtypes.bool
         placeholder     : rtypes.string
         default_value   : rtypes.string
         value           : rtypes.string
-        on_change       : rtypes.func    # called on_change(value, get_opts()) each time the search input changes
-        on_submit       : rtypes.func    # called on_submit(value, get_opts()) when the search input is submitted (by hitting enter)
-        on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
-        autoFocus       : rtypes.bool
-        autoSelect      : rtypes.bool
+        on_change       : rtypes.func    # invoked as on_change(value, get_opts()) each time the search input changes
+        on_submit       : rtypes.func    # invoked as on_submit(value, get_opts()) when the search input is submitted (by hitting enter)
+        on_escape       : rtypes.func    # invoked when user presses escape key; on_escape(value *before* hitting escape)
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
-        clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
+        on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
+        clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
 
     getInitialState: ->
@@ -559,10 +573,17 @@ exports.SearchInput = rclass
 
     componentDidMount: ->
         if @props.autoSelect
-            ReactDOM.findDOMNode(@refs.input).select()
+            try
+                ReactDOM.findDOMNode(@refs.input).select()
+            catch e
+                # Edge sometimes complains about 'Could not complete the operation due to error 800a025e'
+
+    clear_value: ->
+        @set_value('')
+        @props.on_clear?()
 
     clear_and_focus_search_input: ->
-        @set_value('')
+        @clear_value()
         ReactDOM.findDOMNode(@refs.input).focus()
 
     search_button: ->
@@ -580,10 +601,10 @@ exports.SearchInput = rclass
 
     submit: (e) ->
         e?.preventDefault()
-        @props.on_change?(@state.value, @get_opts())
         @props.on_submit?(@state.value, @get_opts())
         if @props.clear_on_submit
-            @setState(value:'')
+            @clear_value()
+            @props.on_change?(@state.value, @get_opts())
 
     key_down: (e) ->
         switch e.keyCode
@@ -605,7 +626,7 @@ exports.SearchInput = rclass
 
     escape: ->
         @props.on_escape?(@state.value)
-        @set_value('')
+        @clear_value()
 
     render: ->
         <FormGroup>
@@ -706,82 +727,145 @@ exports.MarkdownInput = rclass
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
-exports.Markdown = rclass
-    displayName : 'Misc-Markdown'
+exports.HTML = rclass
+    displayName : 'Misc-HTML'
 
     propTypes :
-        value      : rtypes.string
-        style      : rtypes.object
-        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path  : rtypes.string   # optional -- ...
-        className  : rtypes.string   # optional class
+        value          : rtypes.string
+        style          : rtypes.object
+        has_mathjax    : rtypes.bool
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+                                         # the jQuery wrapped set that is created (and discarded!) in the course of
+                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                         # before it is exported to text and given to react.   Obviously, you can't
+                                         # install click handlers here.
+
+    getDefaultProps: ->
+        has_mathjax : true
+        safeHTML    : true
 
     shouldComponentUpdate: (newProps) ->
-        return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
+        return @props.value != newProps.value or \
+             not underscore.isEqual(@props.style, newProps.style) or \
+             @props.safeHTML != newProps.safeHTML
 
+    ###
+    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/smc/issues/1895
     _update_escaped_chars: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         node = $(ReactDOM.findDOMNode(@))
         node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
+    ###
 
     _update_mathjax: (cb) ->
-        if not @_isMounted  # see https://github.com/sagemathinc/smc/issues/1689
+        if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
+            cb()
             return
-        #if DEBUG then console.log('Markdown._update_mathjax: @_x?.has_mathjax', @_x?.has_mathjax, @_x)
-        if @_x?.has_mathjax
+        if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 cb : () =>
-                    # Awkward code, since cb may be called more than once.
+                    # Awkward code, since cb may be called more than once if there
+                    # where more than one node.
                     cb?()
                     cb = undefined
         else
             cb()
 
     _update_links: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
-        $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
+        $(ReactDOM.findDOMNode(@)).process_smc_links
+            project_id     : @props.project_id
+            file_path      : @props.file_path
+            href_transform : @props.href_transform
+
+    _update_tables: ->
+        if not @_is_mounted
+            return
+        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     update_content: ->
-        if not @_isMounted
+        if not @_is_mounted
             return
         # orchestrates the _update_* methods
         @_update_mathjax =>
-            if not @_isMounted
+            if not @_is_mounted
                 return
-            @_update_escaped_chars()
+            #@_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+            @_update_tables()
 
     componentDidUpdate: ->
         @update_content()
 
     componentDidMount: ->
-        @_isMounted = true
+        @_is_mounted = true
         @update_content()
 
     componentWillUnmount: ->
-        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
-        # and https://github.com/sagemathinc/smc/issues/1689
-        @_isMounted = false
+        @_is_mounted = false
 
-    to_html: ->
+    render_html: ->
         if @props.value
-            # change escaped characters back for markdown processing
-            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            @_x = markdown.markdown_to_html(v)
-            html_sane = require('./misc_page').sanitize_html(@_x.s)
-            #if DEBUG then console.log('Markdown.to_html @_x', @_x)
-            {__html: html_sane}
+            if @props.safeHTML
+                html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            else
+                html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+            {__html: html}
         else
             {__html: ''}
 
     render: ->
         <span
             className               = {@props.className}
-            dangerouslySetInnerHTML = {@to_html()}
+            dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
         </span>
+
+exports.Markdown = rclass
+    displayName : 'Misc-Markdown'
+
+    propTypes :
+        value          : rtypes.string
+        style          : rtypes.object
+        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path      : rtypes.string   # optional -- ...
+        className      : rtypes.string   # optional class
+        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform : rtypes.func     # optional function used to first transform href target strings
+        post_hook      : rtypes.func     # see docs to HTML
+
+    getDefaultProps: ->
+        safeHTML : true
+
+    to_html: ->
+        if @props.value
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            return markdown.markdown_to_html(v)
+        else
+            {s: '', has_mathjax: false}
+
+    render: ->
+        HTML = exports.HTML
+        value = @to_html()
+        #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
+        <HTML
+            value          = {value.s}
+            has_mathjax    = {value.has_mathjax}
+            style          = {@props.style}
+            project_id     = {@props.project_id}
+            file_path      = {@props.file_path}
+            className      = {@props.className}
+            href_transform = {@props.href_transform}
+            post_hook      = {@props.post_hook}
+            safeHTML       = {@props.safeHTML} />
 
 activity_style =
     float           : 'right'
@@ -813,7 +897,7 @@ exports.ActivityDisplay = rclass
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
             <div key={i} style={activity_item_style} >
-                <Icon name='circle-o-notch' spin /> {trunc(desc)}
+                <Icon style={padding:'2px 1px 1px 2px'} name='circle-o-notch' spin /> {trunc(desc)}
             </div>
 
     render: ->
@@ -1606,55 +1690,3 @@ exports.UpgradeAdjustor = rclass
                     </Button>
                 </ButtonToolbar>
             </Alert>
-
-
-###
-Drag'n'Drop dropzone area
-###
-ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone       = require('react-dropzone-component')
-
-exports.SMC_Dropzone = rclass
-    displayName: 'SMC_Dropzone'
-
-    propTypes:
-        project_id           : rtypes.string.isRequired
-        current_path         : rtypes.string.isRequired
-        dropzone_handler     : rtypes.object.isRequired
-
-    dropzone_template : ->
-        <div className='dz-preview dz-file-preview'>
-            <div className='dz-details'>
-                <div className='dz-filename'><span data-dz-name></span></div>
-                <img data-dz-thumbnail />
-            </div>
-            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
-            <div className='dz-error-message'><span data-dz-errormessage></span></div>
-        </div>
-
-    postUrl : ->
-        dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
-        return postUrl
-
-    render: ->
-        <div>
-            {<div className='close-button pull-right'>
-                <span
-                    onClick={@props.close_button_onclick}
-                    className='close-button-x'
-                    style={cursor: 'pointer', fontSize: '18px', color:'gray'}><i className="fa fa-times"></i></span>
-            </div> if @props.close_button_onclick?}
-            <Tip icon='file' title='Drag and drop files' placement='top'
-                tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-            </Tip>
-            <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
-                <Dropzone
-                    config        = {postUrl: @postUrl()}
-                    eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
-            </div>
-        </div>

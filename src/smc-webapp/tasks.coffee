@@ -493,7 +493,7 @@ class TaskList
             else
                 task.desc = ''
             if not skip
-                if count < 50
+                if count < 200
                     @_visible_tasks.push(task)
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 count += 1
@@ -538,7 +538,7 @@ class TaskList
             if not current_task_is_visible and @_visible_tasks.length > 0
                 @set_current_task(@_visible_tasks[0])
             else
-                @current_task?.element?.addClass("salvus-current-task")#.scrollintoview()
+                @current_task?.element?.addClass("salvus-current-task").scrollintoview(direction:'vertical', viewPadding: { y: 50 })
 
             if focus_current
                 cm.focus()
@@ -793,9 +793,8 @@ class TaskList
         if task.deleted
             desc = "<del>#{desc}</del>"
 
+        task.element.find(".salvus-tasks-desc-column").css({fontSize: "#{@default_font_size ? 14}px"})
         e = task.element.find(".salvus-task-desc")
-        e.css({fontSize: "#{@default_font_size ? 14}px"})
-
         e.html(desc)
         if has_mathjax
             # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
@@ -861,7 +860,7 @@ class TaskList
                 # clicking when something in the task is selected -- e.g., don't scroll into view
                 scroll_into_view = false
             if scroll_into_view
-                task.element.scrollIntoView()
+                task.element.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
 
     get_task_visible_index: (task) =>
         if not task?
@@ -1463,7 +1462,7 @@ class TaskList
                 @set_clean()
             else
                 if err
-                    alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{to_json(err)} -- you may need to refresh your browser or restart your project.")
 
     show: () =>
         @element.show()

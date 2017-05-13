@@ -82,7 +82,7 @@ class SalvusThreeJS
             width           : undefined
             height          : undefined
             renderer        : undefined  # 'webgl' or 'canvas' or undefined to choose best
-            background      : "#fafafa"
+            background      : "transparent"
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
@@ -131,19 +131,22 @@ class SalvusThreeJS
         @opts.element.find(".salvus-3d-canvas").css('background':@opts.background)
 
         if not @opts.foreground?
-            c = @opts.element.find(".salvus-3d-canvas").css('background')
-            if not c? or c.indexOf(')') == -1
-                @opts.foreground = "#000"  # e.g., on firefox - this is best we can do for now
+            if @opts.background == 'transparent'
+                @opts.foreground = 'gray'
             else
-                i = c.indexOf(')')
-                z = []
-                for a in c.slice(4,i).split(',')
-                    b = parseInt(a)
-                    if b < 128
-                        z.push(255)
-                    else
-                        z.push(0)
-                @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
+                c = @opts.element.find(".salvus-3d-canvas").css('background')
+                if not c? or c.indexOf(')') == -1
+                    @opts.foreground = "#000"  # e.g., on firefox - this is best we can do for now
+                else
+                    i = c.indexOf(')')
+                    z = []
+                    for a in c.slice(4,i).split(',')
+                        b = parseInt(a)
+                        if b < 128
+                            z.push(255)
+                        else
+                            z.push(0)
+                    @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
 
     # client code should call this when done adding objects to the scene
     init_done: () =>
@@ -177,7 +180,10 @@ class SalvusThreeJS
         @renderer_type = 'dynamic'
         # place renderer in correct place in the DOM
         @opts.element.find(".salvus-3d-canvas").empty().append($(@renderer.domElement))
-        @renderer.setClearColor(@opts.background, 1)
+        if @opts.background == 'transparent'
+            @renderer.setClearColor(0x000000, 0)
+        else
+            @renderer.setClearColor(@opts.background, 1)
         @renderer.setSize(@opts.width, @opts.height)
         if @controls?
             @controls.enabled = true

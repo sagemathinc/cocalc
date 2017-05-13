@@ -332,7 +332,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.to_str()
 
     _update_unsaved_uncommitted_changes: =>
-        if not @codemirror?
+        if not @_fully_loaded or not @codemirror? or @_closed
             return
         if new Date() - (@_last_change_time ? 0) <= 1000
             # wait at least a second from when the user last changed the document, in case it's just a burst of typing.
@@ -372,7 +372,14 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         if not @_syncstring.in_undo_mode()
             return
-        value = @_syncstring.redo().to_str()
+        doc = @_syncstring.redo()
+        if not doc?
+            # can't redo if version not defined/not available.
+            return
+        if not doc.to_str?
+            # BUG -- see https://github.com/sagemathinc/smc/issues/1831
+            throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
+        value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
@@ -438,6 +445,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_render_other_cursor(account_id)
 
     get_users_cursors: (account_id) =>
+        if not @_syncstring?
+            return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.

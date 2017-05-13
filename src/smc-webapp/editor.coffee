@@ -783,7 +783,6 @@ class CodeMirrorEditor extends FileEditor
             "Shift-Ctrl-\\" : (editor)   => @action_key(execute:false, toggle_output:true)
             #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
 
-            "Ctrl-S"       : (editor)   => @click_save_button()
             "Cmd-S"        : (editor)   => @click_save_button()
 
             "Ctrl-L"       : (editor)   => @goto_line(editor)
@@ -805,6 +804,9 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-'"       : "indentAuto"
             "Cmd-'"        : "indentAuto"
 
+            "Cmd-/"        : "toggleComment"
+            "Ctrl-/"       : "toggleComment"    # shortcut chosen by jupyter project (undocumented)
+
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
@@ -814,6 +816,10 @@ class CodeMirrorEditor extends FileEditor
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
+
+        if opts.bindings != 'emacs'
+            # Emacs uses control s for find.
+            extraKeys["Ctrl-S"] = (editor) => @click_save_button()
 
         # FUTURE: We will replace this by a general framework...
         if misc.filename_extension_notilde(filename).toLowerCase() == "sagews"
@@ -1004,7 +1010,7 @@ class CodeMirrorEditor extends FileEditor
         @hide_startup_message()
         @element.find(".salvus-editor-codemirror-content").show()
         for cm in @codemirrors()
-            cm?.refresh()
+            cm.refresh()
 
     hide_startup_message: () =>
         @element.find(".salvus-editor-codemirror-startup-message").hide()
@@ -1023,23 +1029,17 @@ class CodeMirrorEditor extends FileEditor
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
-        @codemirror.setOption('theme', theme)
-        @codemirror1.setOption('theme', theme)
+        for cm in @codemirrors()
+            cm.setOption('theme', theme)
         @opts.theme = theme
 
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: (readonly=true) =>
         @opts.read_only = readonly
-        if readonly
-            @element.find(".salvus-editor-write-only").hide()
-            @element.find(".salvus-editor-read-only").show()
-            @codemirror.setOption('readOnly', true)
-            @codemirror1.setOption('readOnly', true)
-        else
-            @element.find(".salvus-editor-write-only").show()
-            @element.find(".salvus-editor-read-only").hide()
-            @codemirror.setOption('readOnly', false)
-            @codemirror1.setOption('readOnly', false)
+        @element.find(".salvus-editor-write-only").toggle(!readonly)
+        @element.find(".salvus-editor-read-only").toggle(readonly)
+        for cm in @codemirrors()
+            cm.setOption('readOnly', readonly)
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -1064,7 +1064,8 @@ class CodeMirrorEditor extends FileEditor
         cb?()
 
     codemirrors: () =>
-        return [@codemirror, @codemirror1]
+        c = [@codemirror, @codemirror1]
+        return underscore.filter(c, ((x) -> x?))
 
     focused_codemirror: () =>
         if @codemirror_with_last_focus?
@@ -1169,7 +1170,7 @@ class CodeMirrorEditor extends FileEditor
     restore_font_size: () =>
         # we set the font_size from local storage
         # or fall back to the default from the account settings
-        for i, cm of [@codemirror, @codemirror1]
+        for i, cm of @codemirrors()
             size = @local_storage("font_size#{i}")
             if size?
                 @set_font_size(cm, size)
@@ -1554,7 +1555,7 @@ class CodeMirrorEditor extends FileEditor
     # save/restore view state -- hooks used by React editor wrapper.
     save_view_state: =>
         state =
-            scroll : (cm?.getScrollInfo() for cm in @codemirrors())
+            scroll : (cm.getScrollInfo() for cm in @codemirrors())
         @_view_state = state
         return state
 
@@ -1579,7 +1580,7 @@ class CodeMirrorEditor extends FileEditor
             i += 1
 
     restore_cursor_position: () =>
-        for i, cm of [@codemirror, @codemirror1]
+        for i, cm of @codemirrors()
             if cm?
                 pos = @local_storage("cursor#{cm.name}")
                 if pos?
@@ -1605,7 +1606,7 @@ class CodeMirrorEditor extends FileEditor
             else
                 v[i] += amount
         $("body").remove("#salvus-cm-activeline")
-        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")   # this is a memory leak!
 
 
 
@@ -1692,6 +1693,7 @@ class CodeMirrorEditor extends FileEditor
     # Editor button bar support code
     ############
     textedit_command: (cm, cmd, args) =>
+        # ATTN when adding more cases, also edit textedit_only_show_known_buttons
         switch cmd
             when "link"
                 cm.insert_link(cb:() => @syncdoc?.sync())
@@ -1826,6 +1828,23 @@ class CodeMirrorEditor extends FileEditor
         @_current_mode = "sage"
         @mode_display.show()
 
+        # not all textedit buttons are known
+        textedit_only_show_known_buttons = (name) =>
+            EDIT_COMMANDS = require('./buttonbar').commands
+            {sagews_canonical_mode} = require('./misc_page')
+            default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
+            mode = sagews_canonical_mode(name, default_mode)
+            #if DEBUG then console.log "textedit_only_show_known_buttons: mode #{name} → #{mode}"
+            known_commands = misc.keys(EDIT_COMMANDS[mode] ? {})
+            # see special cases in 'textedit_command' and misc_page: 'edit_selection'
+            known_commands = known_commands.concat(['link', 'image', 'SpecialChar', 'font_size'])
+            for button in @textedit_buttons.find('a')
+                button = $(button)
+                cmd = button.attr('href').slice(1)
+                # in theory, this should also be done for html&md, but there are many more special cases
+                # therefore we just make sure they're all activated again
+                button.toggle((mode != 'tex') or (cmd in known_commands))
+
         set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
             if name?
@@ -1835,9 +1854,11 @@ class CodeMirrorEditor extends FileEditor
             mode_display.text("%" + mode)
             @_current_mode = mode
 
-        show_edit_buttons = (which_one, name) ->
+        show_edit_buttons = (which_one, name) =>
             for edit_buttons in all_edit_buttons
                 edit_buttons.toggle(edit_buttons == which_one)
+            if which_one == @textedit_buttons
+                textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
         mode_display.click(@wizard_handler)
@@ -1874,7 +1895,7 @@ class CodeMirrorEditor extends FileEditor
             else
                 show_edit_buttons(@fallback_buttons, name)
 
-        for cm in [@codemirror, @codemirror1]
+        for cm in @codemirrors()
             cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
@@ -2385,7 +2406,10 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     command: 'latexmk'
                     args   : ['-c', @base_filename]
                     cb     : (err, output) ->
-                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if output?
+                            log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if err
+                            log += "#{err}" + '\n\n'
                         cb(err)
             (cb) =>
                 # this in particular gets rid of the sagetex files
@@ -2396,7 +2420,10 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     command : "rm"
                     args    : ['-v', '-f', '--'].concat(files)
                     cb      : (err, output) ->
-                        log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if output?
+                            log += output.stdout + '\n\n' + output.stderr + '\n\n'
+                        if err
+                            log += "#{err}" + '\n\n'
                         cb(err)
         ], (err) =>
             log += 'done.'
@@ -3333,10 +3360,10 @@ exports.register_nonreact_editors = () ->
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
     register(false, TaskList,         ['tasks'])
-    register(false, JupyterNotebook,  ['ipynb'])
+    exports.switch_to_ipynb_classic = ->
+        register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
     register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
-    register(true, JupyterNBViewerEmbedded, ['ipynb'])

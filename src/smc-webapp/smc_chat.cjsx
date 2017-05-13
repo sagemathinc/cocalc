@@ -78,7 +78,7 @@ Message = rclass
             @setState(history_size:@props.message.get('history').size)
         changes = false
         if @state.edited_message == newest_content(@props.message)
-            @setState(edited_message : newProps.message.get('history')?.peek()?.get('content') ? '')
+            @setState(edited_message : newProps.message.get('history')?.first()?.get('content') ? '')
         else
             changes = true
         @setState(new_changes : changes)
@@ -163,7 +163,7 @@ Message = rclass
             name = " by #{@props.editor_name}"
             <span className="small">
                 {edit}
-                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                <TimeAgo date={new Date(@props.message.get('history').first()?.get('date'))} />
                 {name}
             </span>
         else
@@ -351,7 +351,7 @@ ChatLog = rclass
     close_edit_inputs: (current_message_date, id, saved_message) ->
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         for date in sorted_dates
-            historyContent = @props.messages.get(date).get('history').peek()?.get('content') ? ''
+            historyContent = @props.messages.get(date).get('history').first()?.get('content') ? ''
             if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
                 if historyContent != saved_message
                     @props.actions.send_edit(@props.messages.get(date), saved_message)
@@ -373,11 +373,11 @@ ChatLog = rclass
             prev_message = messages.get(dates[index - 1])
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
-        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        sorted_dates = @props.messages.keySeq().sort().toJS()
         v = []
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').first()?.get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
@@ -485,6 +485,9 @@ ChatRoom = rclass ({name}) ->
             @props.actions.set_to_last_input()
 
     on_scroll: (e) ->
+        # TODO: this is so *stupid*; the scroll state should be saved in componentWillUnmount; saving
+        # it every time there is scrolling is absurdly inefficient....  See jupyter/cell-list.cjsx for
+        # how to do this right.
         @props.actions.set_use_saved_position(true)
         #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
@@ -555,7 +558,8 @@ ChatRoom = rclass ({name}) ->
             value = misc.smiley
                 s: value
                 wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-            value = misc_page.sanitize_html(value)
+            value = misc_page.sanitize_html_safe(value)
+            file_path = if @props.path? then misc.path_split(@props.path).head
 
             <Row ref="preview" style={position:'absolute', bottom:'0px', width:'100%'}>
                 <Col xs={0} sm={2}></Col>
@@ -565,9 +569,7 @@ ChatRoom = rclass ({name}) ->
                         <div className="pull-right lighten" style={marginRight: '-8px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                             <Icon name='times'/>
                         </div>
-                        <div style={marginBottom: '-10px', wordWrap:'break-word'}>
-                            <Markdown value={value}/>
-                        </div>
+                        {render_markdown(value, @props.project_id, file_path)}
                         <span className="pull-right small lighten">
                             Preview (press Shift+Enter to send)
                         </span>

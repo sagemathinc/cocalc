@@ -400,7 +400,10 @@ class BufferedOutputStream(object):
         # This is not going to silently corrupt anything -- it's just output that
         # is destined to be *rendered* in the browser.  This is only a partial
         # solution to a more general problem, but it is safe.
-        self._buf += output.replace('\x00','')
+        try:
+            self._buf += output.replace('\x00','')
+        except UnicodeDecodeError:
+            self._buf += output.decode('utf-8').replace('\x00','')
         #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
@@ -412,7 +415,10 @@ class BufferedOutputStream(object):
         if not self._buf and not done:
             # no point in sending an empty message
             return
-        self._f(self._buf, done=done)
+        try:
+            self._f(self._buf, done=done)
+        except UnicodeDecodeError:
+            self._f(unicode(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
@@ -961,12 +967,19 @@ class Salvus(object):
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 b = block.rstrip()
+                # get rid of comments at the end of the line -- issue #1835
+                #from ushlex import shlex
+                #s = shlex(b)
+                #s.commenters = '#'
+                #s.quotes = '"\''
+                #b = ''.join(s)
+                # e.g. now a line like 'x = test?   # bar' becomes 'x=test?'
                 if b.endswith('??'):
-                    p = sage_parsing.introspect(block,
+                    p = sage_parsing.introspect(b,
                                    namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "python")
                 elif b.endswith('?'):
-                    p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
+                    p = sage_parsing.introspect(b, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()

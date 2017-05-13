@@ -346,7 +346,7 @@ class Client extends EventEmitter
             setTimeout(f, 15000) # timeout after some seconds
 
         t = new Date()
-        json = to_json(mesg)
+        json = misc.to_json_socket(mesg)
         tm = new Date() - t
         if tm > 10
             winston.debug("push_to_client: client=#{@id}, mesg.id=#{mesg.id}: time_to_json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
@@ -615,7 +615,7 @@ class Client extends EventEmitter
         if @_ignore_client
             return
         try
-            mesg = from_json(data)
+            mesg = misc.from_json_socket(data)
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
@@ -1223,7 +1223,7 @@ class Client extends EventEmitter
                             if mesg.link2proj? # make sure invitees know where to go
                                 base_url = mesg.link2proj.split("/")
                                 base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then go to <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
+                                direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
                             else # fallback for outdated clients
                                 base_url = 'https://cloud.sagemath.com/'
                                 direct_link = ''
@@ -2254,13 +2254,16 @@ init_primus_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
-        transformer : 'engine.io'    # 'websockets', 'engine.io','sockjs'
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
+
     primus_server.on "connection", (conn) ->
+        # Now handle the connection
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
+        primus_conn_sent_data = false
         f = (data) ->
+            primus_conn_sent_data = true
             id = data.toString()
             winston.debug("primus_server: got id='#{id}'")
             conn.removeListener('data',f)
@@ -2283,6 +2286,7 @@ init_primus_server = (http_server) ->
                     if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
                         old_id = C.conn.id
                         C.conn.removeAllListeners()
+                        C.conn.end()
                         C.conn = conn
                         conn.id = id
                         conn.write(conn.id)
@@ -2296,6 +2300,15 @@ init_primus_server = (http_server) ->
                 clients[conn.id] = new Client(conn)
 
         conn.on("data",f)
+
+        # Given the client up to 15s to send info about itself.  If get nothing, just
+        # end the connection.
+        no_data = ->
+            if conn? and not primus_conn_sent_data
+                winston.debug("primus_server: #{conn.id} sent no data after 15s, so closing")
+                conn.end()
+        setTimeout(no_data, 15000)
+
 
 #######################################################
 # Pushing a message to clients; querying for clients.

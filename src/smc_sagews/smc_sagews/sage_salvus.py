@@ -1463,6 +1463,7 @@ def latex0(s=None, **kwds):
         kwds['locals'] = salvus.namespace
     if 'globals' not in kwds:
         kwds['globals'] = salvus.namespace
+    sage.misc.latex.latex.add_package_to_preamble_if_available('soul')
     sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
     salvus.file(kwds['filename'], once=False)
     if delete_file:
@@ -2490,6 +2491,7 @@ def plot3d_using_matplotlib(expr, rangeX, rangeY,
 
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
+from sage.plot.plot3d.tachyon import Tachyon
 import cgi
 
 def show(*objs, **kwds):
@@ -2519,6 +2521,16 @@ def show(*objs, **kwds):
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
+
+       - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
+
+       - background: string (default: 'transparent'), specifies background color for 3d images.
+         Ignored if viewer is set to 'tachyon' or if object type is Tachyon.
+         May be 'transparent' or any valid CSS color string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
+
+       - foreground: string, specifies frame color for 3d images. Defaults to 'gray' when
+         background is 'transparent', otherwise default is computed for visibility based on canvas
+         background.
 
     ANIMATIONS:
 
@@ -2583,6 +2595,8 @@ def show(*objs, **kwds):
             else:
                 salvus.threed(obj, **kwds)
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
+        elif isinstance(obj, Tachyon):
+            show_3d_plot_using_tachyon(obj, **kwds)
         elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
             if d3:
                 show_graph_using_d3(obj, **kwds)
@@ -3547,7 +3561,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation, Tachyon)):
         show(obj)
     else:
         _system_sys_displayhook(obj)

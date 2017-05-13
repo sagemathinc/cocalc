@@ -19,8 +19,9 @@
 #
 ###############################################################################
 
-$                   = window.$
-misc                = require('misc')
+# window? is so this can be imported in the backend for testing...
+$                   = window?.$
+misc                = require('smc-util/misc')
 {defaults, to_json} = misc
 {salvus_client}     = require('./salvus_client')
 
@@ -31,7 +32,7 @@ default_timeout =
     success : 2
     info    : 3
 
-$("#alert-templates").hide()
+$?("#alert-templates").hide()
 
 last_shown = {}
 
@@ -98,8 +99,8 @@ exports.alert_message = (opts={}) ->
 check_for_clock_skew = () ->
     local_time = new Date()
     s = Math.ceil(Math.abs(salvus_client.server_time() - local_time)/1000)
-    if s > 10
-        exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly to use SageMathCloud.  Expect very serious problems until you do.")
+    if s > 30
+        exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly then refresh your browser before using SageMathCloud.  Expect nothing to work until you fix this.")
 
 # Wait until after the page is loaded and clock sync'd before checking for skew.
 setTimeout(check_for_clock_skew, 60000)

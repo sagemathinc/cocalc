@@ -618,16 +618,13 @@ class exports.PostgreSQL extends PostgreSQL
                             cb()
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
+                    dbg("excluding due to cutoff")
                     cb(); return
                 dbg("get patches")
-                @_query
-                    query : "SELECT extract(epoch from time) as epoch, * FROM patches"
-                    where : where
-                    cb    : all_results (err, x) =>
+                @export_patches
+                    string_id : opts.string_id
+                    cb        : (err, x) =>
                         patches = x
-                        for p in patches
-                            p.time = new Date(p.epoch*1000)
-                            delete p.epoch
                         cb(err)
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
@@ -637,6 +634,9 @@ class exports.PostgreSQL extends PostgreSQL
                     blob = new Buffer(JSON.stringify(patches))
                 catch err
                     # TODO: This *will* happen if the total length of all patches is too big.
+                    # need to break patches up...
+                    # This is not exactly the end of the world as the entire point of all this is to
+                    # just save some space in the database...
                     cb(err)
                     return
                 dbg('save blob')
@@ -701,34 +701,9 @@ class exports.PostgreSQL extends PostgreSQL
                         catch e
                             cb("corrupt patches blob -- #{e}")
                             return
-                        if patches.length == 0
-                            cb()
-                            return
-                        if patches[0].id?
-                            # convert from OLD RethinkDB format!
-                            v = []
-                            for x in patches
-                                patch =
-                                    string_id : x.id[0]
-                                    time      : new Date(x.id[1])
-                                    user_id   : x.user
-                                    patch     : x.patch
-                                    snapshot  : x.snapshot
-                                    sent      : x.sent
-                                    prev      : x.prev
-                                v.push(patch)
-                            patches = v
-                        dbg("insert patches into patches table")
-                        # We break into blocks since there is limit (about 65K) on
-                        # number of params that can be inserted in a single query.
-                        insert_block_size = 1000
-                        f = (i, cb) =>
-                            @_query
-                                query    : 'INSERT INTO patches'
-                                values   : patches.slice(insert_block_size*i, insert_block_size*(i+1))
-                                conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this unarchive at once -- this can and does happen sometimes.
-                                cb       : cb
-                        async.mapSeries([0...patches.length/insert_block_size], f, cb)
+                        @import_patches
+                            patches : patches
+                            cb      : cb
                     (cb) =>
                         async.parallel([
                             (cb) =>
@@ -744,6 +719,75 @@ class exports.PostgreSQL extends PostgreSQL
                                     cb   : cb
                         ], cb)
                 ], (err) => opts.cb?(err))
+
+    ###
+    Export/import of syncstring history and info.  Right now used mainly for debugging
+    purposes, but will obviously be useful for a user-facing feature involving import
+    and export (and copying) of complete edit history.
+    ###
+    export_patches: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : required   # cb(err, string)
+        @_query
+            query : "SELECT extract(epoch from time)*1000 as epoch, * FROM patches"
+            where : {"string_id = $::CHAR(40)" : opts.string_id}
+            cb    : all_results (err, patches) =>
+                if err
+                    opts.cb(err)
+                else
+                    for p in patches
+                        p.time = new Date(p.epoch)
+                        delete p.epoch
+                    opts.cb(undefined, patches)
+
+    import_patches: (opts) =>
+        opts = defaults opts,
+            patches   : required  # as exported by export_patches
+            string_id : undefined # if given, change the string_id when importing the patches to this
+            cb        : undefined
+        patches = opts.patches
+        if patches.length == 0 # easy
+            opts.cb?()
+            return
+        if patches[0].id?
+            # convert from OLD RethinkDB format!
+            v = []
+            for x in patches
+                patch =
+                    string_id : x.id[0]
+                    time      : new Date(x.id[1])
+                    user_id   : x.user
+                    patch     : x.patch
+                    snapshot  : x.snapshot
+                    sent      : x.sent
+                    prev      : x.prev
+                v.push(patch)
+            patches = v
+        # change string_id, if requested.
+        if opts.string_id?
+            for x in patches
+                x.string_id = opts.string_id
+        # We break into blocks since there is limit (about 65K) on
+        # number of params that can be inserted in a single query.
+        insert_block_size = 1000
+        f = (i, cb) =>
+            @_query
+                query    : 'INSERT INTO patches'
+                values   : patches.slice(insert_block_size*i, insert_block_size*(i+1))
+                conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this import at once -- this can and does happen sometimes.
+                cb       : cb
+        async.mapSeries([0...patches.length/insert_block_size], f, (err) => opts.cb?(err))
+
+    export_syncstring:  (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+
+    import_syncstring:  (opts) =>
+        opts = defaults opts,
+            obj : required
+            cb  : undefined
 
     delete_blob: (opts) =>
         opts = defaults opts,

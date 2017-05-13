@@ -1,3 +1,5 @@
+underscore = require('underscore')
+
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -88,7 +90,7 @@ exports.BigTime = BigTime = rclass
         if not date?
             return
         if typeof(date) == 'string'
-            return <span>{date}</span>
+            date = misc.ISO_to_Date(date)
         return <TimeAgo popover={true} date={date} />
 
 exports.StudentAssignmentInfoHeader = rclass
@@ -174,6 +176,7 @@ exports.StudentAssignmentInfo = rclass
 
     getInitialState: ->
         editing_grade : false
+        edited_grade  : ''
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -186,11 +189,11 @@ exports.StudentAssignmentInfo = rclass
 
     save_grade: (e) ->
         e?.preventDefault()
-        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_grade)
         @setState(editing_grade:false)
 
     edit_grade: ->
-        @setState(grade:@props.grade, editing_grade:true)
+        @setState(edited_grade:@props.grade ? '', editing_grade:true)
 
     render_grade_score: ->
         if @state.editing_grade
@@ -199,13 +202,13 @@ exports.StudentAssignmentInfo = rclass
                     <InputGroup>
                         <FormControl
                             autoFocus
-                            value       = {@state.grade}
+                            value       = {@state.edited_grade}
                             ref         = 'grade_input'
                             type        = 'text'
                             placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
                             onBlur      = {@save_grade}
-                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
                         />
                         <InputGroup.Button>
                             <Button bsStyle='success'>Save</Button>
@@ -367,7 +370,7 @@ exports.StudentAssignmentInfo = rclass
 exports.MultipleAddSearch = MultipleAddSearch = rclass
     propTypes :
         add_selected     : rtypes.func.isRequired   # Submit user selected results add_selected(['paths', 'of', 'folders'])
-        do_search        : rtypes.func.isRequired   # Submit search query
+        do_search        : rtypes.func.isRequired   # Submit search query, invoked as do_search(value)
         clear_search     : rtypes.func.isRequired
         is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
         search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
@@ -377,14 +380,14 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         item_name        : 'result'
 
     getInitialState: ->
-        selected_items : '' # currently selected options
-        show_selector : false
+        selected_items : [] # currently selected options
+        show_selector  : false
 
     shouldComponentUpdate: (newProps, newState) ->
         return newProps.search_results != @props.search_results or
             newProps.item_name != @props.item_name or
             newProps.is_searching != @props.is_searching or
-            newState.selected_items != @state.selected_items
+            not underscore.isEqual(newState.selected_items, @state.selected_items)
 
     componentWillReceiveProps: (newProps) ->
         @setState
@@ -392,8 +395,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     clear_and_focus_search_input: ->
         @props.clear_search()
-        @setState(selected_items:'')
-        @refs.search_input.clear_and_focus_search_input()
+        @setState(selected_items:[])
 
     search_button: ->
         if @props.is_searching
@@ -451,8 +453,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 when 0 then "Select #{@props.item_name} above"
                 when 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        disabled = @props.search_results.size == 0 or (@props.search_results.size >= 2 and num_items_selected == 0)
-        <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+        <Button disabled={num_items_selected == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
     render: ->
         <div>
@@ -462,7 +463,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 default_value = ''
                 placeholder   = "Add #{@props.item_name} by folder name (enter to see available folders)..."
                 on_submit     = {@props.do_search}
-                on_escape     = {@clear_and_focus_search_input}
+                on_clear      = {@clear_and_focus_search_input}
                 buttonAfter   = {@search_button()}
             />
             {@render_add_selector() if @state.show_selector}
@@ -532,7 +533,12 @@ exports.FoldersToolbar = rclass
         return directories
 
     submit_selected: (path_list) ->
-        @props.add_folders(path_list)
+        if path_list?
+            # If nothing is selected and the user clicks the button to "Add handout (etc)" then
+            # path_list is undefined, hence don't do this.
+            # (NOTE: I'm also going to make it so that button is disabled, which fits our
+            # UI guidelines, so there's two reasons that path_list is defined here.)
+            @props.add_folders(path_list)
         @clear_add_search()
 
     clear_add_search: ->

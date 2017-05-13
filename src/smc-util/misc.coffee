@@ -84,11 +84,18 @@ exports.startswith = (s, x) ->
 exports.endswith = (s, t) ->
     return s.slice(s.length - t.length) == t
 
-# modifies in place the object dest so that it includes all values in objs and returns dest
+# Modifies in place the object dest so that it
+# includes all values in objs and returns dest
+# Rightmost object overwrites left.
 exports.merge = (dest, objs...) ->
     for obj in objs
-        dest[k] = v for k, v of obj
+        for k, v of obj
+            dest[k] = v
     dest
+
+# Makes new object that is shallow copy merge of all objects.
+exports.merge_copy = (objs...) ->
+    return exports.merge({}, objs...)
 
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
@@ -197,7 +204,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -205,7 +212,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -215,7 +222,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.debug(err)
+                console.warn(err)
                 console.trace()
                 if DEBUG or TEST_MODE
                     throw new Error(err)
@@ -285,8 +292,46 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
             break
     return Math.ceil(i/tm)
 
-exports.to_json = (x) ->
-    JSON.stringify(x)
+exports.to_json = JSON.stringify
+
+###
+The functions to_json_socket and from_json_socket are for sending JSON data back
+and forth in serialized form over a socket connection.   They replace Date objects by the
+object {DateEpochMS:ms_since_epoch} *only* during transit.   This is much better than
+converting to ISO, then using a regexp, since then all kinds of strings will get
+converted that were never meant to be date objects at all, e.g., a filename that is
+a ISO time string.  Also, ms since epoch is less ambiguous regarding old/different
+browsers, and more compact.
+
+If you change SOCKET_DATE_KEY, then all clients and servers and projects must be
+simultaneously restarted.
+###
+SOCKET_DATE_KEY = 'DateEpochMS'
+
+socket_date_replacer = (key, value) ->
+    if this[key] instanceof Date
+        date = this[key]
+        return {"#{SOCKET_DATE_KEY}":date - 0}
+    else
+        return value
+
+exports.to_json_socket = (x) ->
+    JSON.stringify(x, socket_date_replacer)
+
+socket_date_parser = (key, value) ->
+    if value?[SOCKET_DATE_KEY]?
+        return new Date(value[SOCKET_DATE_KEY])
+    else
+        return value
+
+exports.from_json_socket = (x) ->
+    try
+        JSON.parse(x, socket_date_parser)
+    catch err
+        console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        throw err
+
+
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
 # any values that are potentially big -- this is meant to only be used for loging.
@@ -314,11 +359,22 @@ exports.to_safe_str = (x) ->
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
 #   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
-date_parser = (k, v) ->
+exports.date_parser = date_parser = (k, v) ->
     if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
-        return new Date(v)
+        return ISO_to_Date(v)
     else
         return v
+
+exports.ISO_to_Date = ISO_to_Date = (s) ->
+    if s.indexOf('Z') == -1
+        # Firefox assumes local time rather than UTC if there is no Z.   However,
+        # our backend might possibly send a timestamp with no Z and it should be
+        # interpretted as UTC anyways.
+        # That said, with the to_json_socket/from_json_socket code, the browser
+        # shouldn't be running this parser anyways.
+        s += 'Z'
+    return new Date(s)
+
 
 exports.from_json = (x) ->
     try
@@ -330,17 +386,20 @@ exports.from_json = (x) ->
 # Returns modified version of obj with any string
 # that look like ISO dates to actual Date objects.  This mutates
 # obj in place as part of the process.
-exports.fix_json_dates = fix_json_dates = (obj) ->
+# date_keys = 'all' or list of keys in nested object whose values should be considered.  Nothing else is considered!
+exports.fix_json_dates = fix_json_dates = (obj, date_keys) ->
+    if not date_keys? # nothing to do
+        return obj
     if exports.is_object(obj)
         for k, v of obj
             if typeof(v) == 'object'
-                fix_json_dates(v)
-            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
+                fix_json_dates(v, date_keys)
+            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v) and (date_keys == 'all' or k in date_keys)
                 obj[k] = new Date(v)
     else if exports.is_array(obj)
         for i, x of obj
-            obj[i] = fix_json_dates(x)
-    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj)
+            obj[i] = fix_json_dates(x, date_keys)
+    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj) and date_keys == 'all'
         return new Date(obj)
     return obj
 
@@ -544,6 +603,8 @@ ELLIPSES = "…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")
@@ -555,6 +616,8 @@ exports.trunc = (s, max_length=1024) ->
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length <= max_length
         return s
     if max_length < 1
@@ -566,6 +629,8 @@ exports.trunc_middle = (s, max_length=1024) ->
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
         if max_length < 1
             throw new Error("ValueError: max_length must be >= 1")
@@ -871,6 +936,9 @@ exports.eval_until_defined = (opts) ->
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
+
+# TODO: this is actually throttle, not debounce...
+
 exports.async_debounce = (opts) ->
     opts = defaults opts,
         f        : required   # async function f whose *only* argument is a callback
@@ -1070,15 +1138,15 @@ exports.parse_hashtags = (t) ->
                 base += i+1
                 t = t.slice(i+1)
 
-mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
-                 ['\\begin{equation}', '\\end{equation}'],
-                 ['\\begin{equation*}', '\\end{equation*}'],
-                 ['\\begin{align}', '\\end{align}'],
-                 ['\\begin{align*}', '\\end{align*}'],
-                 ['\\begin{eqnarray}', '\\end{eqnarray}'],
-                 ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
-                 ['$', '$']  # must be after $$
-                ]
+# see http://docs.mathjax.org/en/latest/tex.html#environments
+mathjax_environments = ['align', 'align*', 'alignat', 'alignat*', 'aligned', 'alignedat', 'array', \
+                        'Bmatrix', 'bmatrix', 'cases', 'CD', 'eqnarray', 'eqnarray*', 'equation', 'equation*', \
+                        'gather', 'gather*', 'gathered', 'matrix', 'multline', 'multline*', 'pmatrix', 'smallmatrix', \
+                        'split', 'subarray', 'Vmatrix', 'vmatrix']
+mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]']]
+for env in mathjax_environments
+    mathjax_delim.push(["\\begin{#{env}}", "\\end{#{env}}"])
+mathjax_delim.push(['$', '$'])  # must be after $$, best to put it at the end
 
 exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
@@ -1112,7 +1180,7 @@ exports.parse_mathjax = (t) ->
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
-                at_end_of_string = j >= t.length
+                at_end_of_string = j > t.length
                 if !(d[0] == "$" and (contains_linebreak or at_end_of_string))
                     v.push([i,j])
                 i = j
@@ -1766,10 +1834,15 @@ exports.ticket_id_to_ticket_url = (tid) ->
 
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
-        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
-        'http://nbviewer.ipython.org/urls/':'https://'
-    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
-        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+        'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.jupyter.org/url/'             :'http://'
+        'http://nbviewer.jupyter.org/urls/'            :'https://'
+    if exports.startswith(url, "https://github.com/")
+        if url.indexOf('/blob/') != -1
+            url = url.replace("https://github.com", "https://raw.githubusercontent.com").replace("/blob/","/")
+        # issue #1818: https://github.com/plotly/python-user-guide → https://github.com/plotly/python-user-guide.git
+        else if url.split('://')[1]?.split('/').length == 3
+            url += '.git'
 
     if exports.startswith(url, 'git@github.com:')
         command = 'git'  # kind of useless due to host keys...
@@ -1781,6 +1854,10 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
         # fall back
         for a,b of URL_TRANSFORMS
             url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        # special case, this is only for nbviewer.../github/ URLs
+        if exports.startswith(url, 'http://nbviewer.jupyter.org/github/')
+            url = url.replace('http://nbviewer.jupyter.org/github/', 'https://raw.githubusercontent.com/')
+            url = url.replace("/blob/","/")
         command = 'wget'
         args = [url]
 
@@ -1969,8 +2046,16 @@ exports.bind_objects = (scope, arr_objects) ->
 # Remove all whitespace from string s.
 # see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
 exports.remove_whitespace = (s) ->
-    return s.replace(/\s/g,'')
+    return s?.replace(/\s/g,'')
 
+exports.is_whitespace = (s) ->
+    return s?.trim().length == 0
+
+exports.lstrip = (s) ->
+    return s?.replace(/^\s*/g, "")
+
+exports.rstrip = (s) ->
+    return s?.replace(/\s*$/g, "")
 
 # ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
 exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']
@@ -1991,3 +2076,30 @@ exports.op_to_function = (op) ->
             return (a,b) -> a > b
         else
             throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
+
+# modify obj in place substituting keys as given.
+exports.obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            exports.obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
+
+# this is a helper for sanitizing html. It is used in
+# * smc-util-node/misc_node → sanitize_html
+# * smc-webapp/misc_page    → sanitize_html
+exports.sanitize_html_attributes = ($, node) ->
+    $.each node.attributes, ->
+        attrName  = this.name
+        attrValue = this.value
+        # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...
+        # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
+        if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
+            $(node).removeAttr(attrName)
+

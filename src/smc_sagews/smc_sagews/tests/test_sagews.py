@@ -7,6 +7,19 @@ import re
 
 from textwrap import dedent
 
+import pytest
+
+@pytest.mark.skip(reason="waiting until #1835 is fixed")
+class TestLex:
+    def test_lex_1(self, execdoc):
+        execdoc("x = random? # bar")
+    def test_lex_2(self, execdoc):
+        execdoc("x = random? # plot?")
+    def test_lex_3(self, exec2):
+        exec2("x = 1 # plot?\nx","1\n")
+    def test_lex_4(self, exec2):
+        exec2('x="random?" # plot?\nx',"'random?'\n")
+
 class TestDecorators:
     def test_simple_dec(self, exec2):
         code = dedent(r"""
@@ -25,35 +38,13 @@ class TestDecorators:
         f(2)""")
         exec2(code, "5\n")
 
-class TestErr:
-    def test_non_ascii(self, test_id, sagews):
-        # assign x to hbar to trigger non-ascii warning
-        code = ("x = " + unichr(295) + "\nx").encode('utf-8')
-        m = conftest.message.execute_code(code = code, id = test_id)
-        sagews.send_json(m)
-        # expect 3 messages from worksheet client, including final done:true
-        # 1 stderr Error in lines 1-1
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'stderr' in mesg
-        assert 'Error in lines 1-1' in mesg['stderr']
-        # 2 stderr WARNING: Code contains non-ascii characters
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'stderr' in mesg
-        assert 'WARNING: Code contains non-ascii characters' in mesg['stderr']
-        # 3 done
-        conftest.recv_til_done(sagews, test_id)
-
 class TestLinearAlgebra:
     def test_solve_right(self, exec2):
         code = dedent(r"""
         A=matrix([[1,2,6],[1,2,0],[1,-2,3]])
         b=vector([1,-1,1])
         A.solve_right(b)""")
-        exec2(code,"(-1/2, -1/4, 1/3)\n")
+        exec2(code,"(-1/2, -1/4, 1/3)")
 
     def test_kernel(self, exec2):
         code = dedent(r"""
@@ -118,19 +109,9 @@ class TestBasic:
         html = "https://www.google.com/search\?q=site%3Adoc.sagemath.org\+laurent\&oq=site%3Adoc.sagemath.org"
         exec2(code, html_pattern = html)
 
-    def test_show_doc(self, test_id, sagews):
+    def test_show_doc(self, execdoc):
         # issue 476
-        code = "show?"
-        patn = "import smc_sagews.graphics\nsmc_sagews.graphics.graph_to_d3_jsonable?"
-        m = conftest.message.execute_code(code = code, id = test_id)
-        sagews.send_json(m)
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'code' in mesg
-        assert 'source' in mesg['code']
-        assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
-        conftest.recv_til_done(sagews, test_id)
+        execdoc("show?")
 
     # https://github.com/sagemathinc/smc/issues/1107
     def test_sage_underscore_1(self, exec2):

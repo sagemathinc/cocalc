@@ -81,12 +81,17 @@ class Connection extends client.Connection
         # you have to change the context to *top*!   See
         # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
         #
-        setTimeout(@_init_idle, 15 * 1000)
         super(opts)
         @_setup_window_smc()
 
         # This is used by the base class for marking file use notifications.
         @_redux = require('./smc-react').redux
+
+        # The following two lines disable the idle timeout functionality.
+        # This is disabled since it may be causing a DOS attack
+        # by users... not 100% sure yet.
+        #@set_standby_timeout_m = ->   # make this a no-op
+        setTimeout(@_init_idle, 15 * 1000)
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
@@ -95,6 +100,7 @@ class Connection extends client.Connection
         window.smc                     ?= {}
         window.smc.client              = @
         window.smc.misc                = require('smc-util/misc')
+        window.smc.immutable           = require('immutable')
         window.smc.done                = window.smc.misc.done
         window.smc.sha1                = require('sha1')
         window.smc.schema              = require('smc-util/schema')
@@ -136,8 +142,14 @@ class Connection extends client.Connection
 
         delayed_disconnect = undefined
 
-        recconn = (=> if not @_connected then @_conn?.open())
-        disconn = (=> if @_connected then @_conn?.end())
+        reconn = =>
+            if @_connection_is_totally_dead # CRITICAL: See https://github.com/primus/primus#primusopen !!!!!
+                @_conn?.open()
+        reconn = _.throttle(reconn, 10*1000)  # never attempt to reconnect more than once per 10s, no matter what.
+
+        disconn = =>
+            if @_connected
+                @_conn?.end()
 
         @on 'idle', (state) ->
             #console.log("idle state: #{state}")
@@ -152,27 +164,28 @@ class Connection extends client.Connection
                     if delayed_disconnect?
                         clearTimeout(delayed_disconnect)
                         delayed_disconnect = undefined
-                    recconn()
-                    setTimeout(recconn, 2000) # avoid race condition???
+                    reconn()
+                    setTimeout(reconn, 5000) # avoid race condition???
 
-    # periodically check if the user hasn't been active
+    # This is called periodically. If the user hasn't been active
+    # for @_idle_timeout ms, then we emit an idle event.
     _idle_check: =>
+        if not @_idle_time?
+            return
         now = (new Date()).getTime()
         # console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
-            true
-        else
-            false
 
-    # ATTN use @reset_idle, not this one here (see constructor above)
+    # Set @_idle_time to the **moment in in the future** at which the user will be
+    # considered idle, and also emit event indicator using is currently active.
     _idle_reset: =>
-        #if DEBUG
-        #    console.log("idle: client_browser._idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
+        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
-    # called when the user configuration settings are set
+    # Change the standby timeout to a particular time in minutes.
+    # This gets called when the user configuration settings are set/loaded.
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
@@ -189,8 +202,9 @@ class Connection extends client.Connection
 
         @ondata = ondata
 
+        ###
         opts =
-            ping      : 25000   # used for maintaining the connection and deciding when to reconnect.
+            ping      : 25000  # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
@@ -198,15 +212,19 @@ class Connection extends client.Connection
                 min      : 1000
                 factor   : 1.25
                 retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
-
         conn = new Primus(url, opts)
+        ###
+
+        conn = new Primus(url)
+
         @_conn = conn
         conn.on 'open', () =>
+            @_connected = true
+            @_connection_is_totally_dead = false
             if @_conn_id?
                 conn.write(@_conn_id)
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
-            @_connected = true
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
@@ -237,12 +255,17 @@ class Connection extends client.Connection
 
         conn.on 'error', (err) =>
             log("error: ", err)
-            @emit("error", err)
+            # NOTE: we do NOT emit an error event in this case!  See
+            # https://github.com/sagemathinc/smc/issues/1819
+            # for extensive discussion.
 
         conn.on 'close', () =>
             log("closed")
             @_connected = false
             @emit("disconnected", "close")
+
+        conn.on 'end', =>
+            @_connection_is_totally_dead = true
 
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
@@ -278,6 +301,9 @@ class Connection extends client.Connection
 
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
+
+    alert_message: (args...) =>
+        require('./alerts').alert_message(args...)
 
 connection = undefined
 exports.connect = (url) ->

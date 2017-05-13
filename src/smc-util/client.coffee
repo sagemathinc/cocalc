@@ -228,7 +228,22 @@ class exports.Connection extends EventEmitter
                 setTimeout(@_ping, @_ping_interval)
 
     # Returns (approximate) time in ms since epoch on the server.
+    # NOTE:
+    #     This is guaranteed to be an *increasing* function, with an arbitrary
+    #     ms added on in case of multiple calls at once, to guarantee uniqueness.
+    #     Also, if the user changes their clock back a little, this will still
+    #     increase... very slowly until things catch up.  This avoids any
+    #     possibility of weird random re-ordering of patches within a given session.
     server_time: =>
+        t = @_server_time()
+        last = @_last_server_time
+        if last? and last >= t
+            # That's annoying -- time is not marching forward... let's fake it until it does.
+            t = new Date((last - 0) + 1)
+        @_last_server_time = t
+        return t
+
+    _server_time: =>
         # Add _clock_skew to our local time to get a better estimate of the actual time on the server.
         # This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
         # or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
@@ -238,12 +253,7 @@ class exports.Connection extends EventEmitter
             x = misc.get_local_storage('clock_skew')
             if x?
                 @_clock_skew = parseFloat(x)
-        # NOTE: We DO NOT even mess with the clock at all unless it is off by
-        # at least 15s.  Otherwise, we're going to get all kinds of subtle
-        # issues with random variation in the clock due to slight accuracy/ping issues.
-        # Being off by 15s would be basically OK -- much more, and we have to compensate
-        # and warn the user aggressively to avoid disaster.
-        if @_clock_skew? and Math.abs(@_clock_skew) > 15000
+        if @_clock_skew?
             return new Date(new Date() - @_clock_skew)
         else
             return new Date()
@@ -303,7 +313,7 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json(mesg))
+        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -335,7 +345,7 @@ class exports.Connection extends EventEmitter
     remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
 
     handle_json_data: (data) =>
-        mesg = misc.from_json(data)
+        mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
         switch mesg.event
@@ -1179,7 +1189,7 @@ class exports.Connection extends EventEmitter
                 else if output.exit_code
                     opts.cb(output.stderr)
                 else
-                    v = misc.from_json(output.stdout)
+                    v = JSON.parse(output.stdout)
                     opts.cb(err, v)
 
     project_get_state: (opts) =>
@@ -1478,8 +1488,8 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000) =>
-        return synctable.sync_table(query, options, @, debounce_interval)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1488,6 +1498,7 @@ class exports.Connection extends EventEmitter
             path              : required
             file_use_interval : 'default'
             cursors           : false
+            patch_interval    : 1000
         opts.client = @
         return new syncstring.SyncString(opts)
 
@@ -1497,8 +1508,10 @@ class exports.Connection extends EventEmitter
             path            : required
             primary_keys    : required
             string_cols     : undefined
+            cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
             save_interval   : 2000    # amount to debounce saves (in ms)
+            patch_interval  : 1000
         opts.client = @
         return new db_doc.SyncDB(opts)
 
@@ -1542,7 +1555,6 @@ class exports.Connection extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         @call
-
             message     : mesg
             error_event : true
             timeout     : opts.timeout

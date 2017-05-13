@@ -68,6 +68,7 @@ class ProjectsActions extends Actions
     save_all_files: () =>
         store.get('open_projects').filter (project_id) =>
             @redux.getProjectActions(project_id).save_all_files()
+        return
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
@@ -830,7 +831,7 @@ ProjectsFilterButtons = rclass
     render_deleted_button: ->
         style = if @props.deleted then 'warning' else "default"
         if @props.show_deleted_button
-            <Button onClick={=>redux.getActions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
+            <Button onClick={=>@actions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
                 <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
         else
@@ -839,7 +840,7 @@ ProjectsFilterButtons = rclass
     render_hidden_button: ->
         style = if @props.hidden then 'warning' else "default"
         if @props.show_hidden_button
-            <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
+            <Button onClick = {=>@actions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
 
@@ -859,26 +860,17 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
-    clear_and_focus_input: ->
-        redux.getActions('projects').setState(search: '')
+    clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
-
-    delete_search_button: ->
-        s = if @props.search?.length > 0 then 'warning' else "default"
-        <Button onClick={@clear_and_focus_input} bsStyle={s}>
-            <Icon name='times-circle' />
-        </Button>
 
     render: ->
         <SearchInput
-            ref          = 'projects_search'
-            autoFocus    = {true}
-            type         = 'search'
-            value        = {@props.search}
-            placeholder  = 'Search for projects...'
-            on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
-            on_submit    = {@props.open_first_project}
-            button_after = {@delete_search_button()}
+            ref         = 'projects_search'
+            autoFocus   = {true}
+            value       = {@props.search}
+            placeholder = 'Search for projects...'
+            on_change   = {(value)=>@actions('projects').setState(search: value)}
+            on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
         />
 
 HashtagGroup = rclass
@@ -1122,7 +1114,7 @@ ProjectList = rclass
         user_map : undefined
 
     show_all_projects: ->
-        redux.getActions('projects').setState(show_all : not @props.show_all)
+        @actions('projects').setState(show_all : not @props.show_all)
 
     render_show_all: ->
         if @props.projects.length > MAX_DEFAULT_PROJECTS
@@ -1337,10 +1329,11 @@ exports.ProjectsPage = ProjectsPage = rclass
             marginBottom : '1ex'
         <div style={projects_title_styles}><Icon name='thumb-tack' /> Projects </div>
 
-    open_first_project: ->
+    open_first_project: (switch_to=true) ->
         project = @visible_projects()[0]
         if project?
-            @actions('projects').open_project(project_id: project.project_id, switch_to: true)
+            @actions('projects').setState(search : '')
+            @actions('projects').open_project(project_id: project.project_id, switch_to: switch_to)
     ###
     # Consolidate the next two functions.
     ###
@@ -1362,7 +1355,7 @@ exports.ProjectsPage = ProjectsPage = rclass
 
     clear_filters_and_focus_search_input: ->
         @actions('projects').setState(selected_hashtags:{})
-        @refs.search.clear_and_focus_input()
+        @refs.search.clear_and_focus_search_input()
 
     render: ->
         if not @props.project_map?

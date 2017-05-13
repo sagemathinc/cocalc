@@ -4,8 +4,23 @@
 import conftest
 import time
 
+from textwrap import dedent
+
 # TODO(hal) refactor this later
 SHA_LEN = 36
+
+class TestTachyon:
+    def test_t_show0(self, exec2):
+        code = dedent(r"""t = Tachyon(xres=400,yres=400, camera_center=(2,0,0))
+        t.light((4,3,2), 0.2, (1,1,1))
+        t.sphere((0,0,0), 0.5, 't0')""")
+        exec2(code,[])
+    def test_t_show1(self, execblob):
+        execblob("t.show()", want_html = False, file_type='png', ignore_stdout = True)
+    def test_show_t(self, execblob):
+        execblob("show(t)", want_html = False, file_type='png', ignore_stdout = True)
+    def test_t(self, execblob):
+        execblob("t", want_html = False, file_type='png', ignore_stdout = True)
 
 class TestGraphics:
     def test_plot(self, execblob):

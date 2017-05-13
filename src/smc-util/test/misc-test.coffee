@@ -237,7 +237,7 @@ describe "default", ->
         global.DEBUG = @debug_orig
 
     beforeEach =>
-        @console_debug_stub = sinon.stub(global.console, "debug")
+        @console_debug_stub = sinon.stub(global.console, "warn")
         @console_trace_stub = sinon.stub(global.console, "trace")
 
     afterEach =>
@@ -1118,6 +1118,13 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm().should.eql []
     it "correctly for $", ->
         pm("foo $bar$ batz").should.eql [[4, 9]]
+    it "works regarding issue #1795", ->
+        pm("$x_{x} x_{x}$").should.eql [[0, 13]]
+    it "ignores single $", ->
+        pm("$").should.eql []
+        pm("the amount is $100").should.eql []
+        pm("a $b$ and $").should.eql [[2, 5]]
+        pm("a $b$ and $ ignored").should.eql [[2, 5]]
     it "correctly works for multiline strings", ->
         s = """
             This is a $formula$ or a huge $$formula$$
@@ -1139,6 +1146,9 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
         pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
         pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
+        pm('\\begin{bmatrix}foobar\\end{bmatrix}').should.eql [[0, 34]]
+    it "is not triggered by unknown environments", ->
+        pm('\\begin{cmatrix}foobar\\end{cmatrix}').should.eql []
 
 describe "replace_all", ->
     ra = misc.replace_all
@@ -1403,3 +1413,83 @@ describe 'bind_objects', ->
 
         expect(b_obj1.func()).toEqual("cake")
         expect(b_obj1.val).toEqual("lies")
+
+describe 'test the date parser --- ', ->
+    it 'a date with a zone', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does nothing', ->
+        expect(misc.date_parser(undefined, "cocalc")).toEqual('cocalc')
+
+describe 'test ISO_to_Date -- ', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does NaN', ->
+        expect(isNaN(misc.ISO_to_Date("cocalc"))).toEqual(true)
+
+
+describe 'test converting to and from JSON for sending over a socket -- ', ->
+    it 'converts object involving various timestamps', ->
+        obj = {first:{now:new Date()}, second:{a:new Date(0), b:'2016-12-12T02:12:03.239'}}
+        expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
+
+describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
+    turl = misc.transform_get_url
+    it 'preserves "normal" URLs', ->
+        turl('http://example.com/file.tar.gz').should.eql  {command:'wget', args:["http://example.com/file.tar.gz"]}
+        turl('https://example.com/file.tar.gz').should.eql {command:'wget', args:["https://example.com/file.tar.gz"]}
+        turl('https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb').should.eql
+            command:'wget'
+            args:['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
+    it 'handles git@github urls', ->
+        u = turl('git@github.com:sagemath/sage.git')
+        u.should.eql {command: 'git', args: ["clone", "git@github.com:sagemath/sage.git"]}
+    it 'understands github "blob" urls', ->
+        # branch
+        turl('https://github.com/sagemath/sage/blob/master/README.md').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/sagemath/sage/master/README.md']
+        # specific commit
+        turl('https://github.com/sagemath/sage/blob/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/sagemath/sage/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md']
+    it 'git-clones everything that ends with ".git"', ->
+        turl('git://trac.sagemath.org/sage.git').should.eql
+            command: 'git'
+            args: ['clone', 'git://trac.sagemath.org/sage.git']
+    it 'and also git-clonse https:// addresses', ->
+        turl('https://github.com/plotly/python-user-guide').should.eql
+            command: 'git'
+            args: ['clone', 'https://github.com/plotly/python-user-guide.git']
+    it 'also knows about some special URLs', ->
+        # github
+        turl('http://nbviewer.jupyter.org/github/lightning-viz/lightning-example-notebooks/blob/master/index.ipynb').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
+        # url → http
+        turl('http://nbviewer.jupyter.org/url/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
+            command: 'wget'
+            args: ['http://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
+        # note, this is urls → https
+        turl('http://nbviewer.jupyter.org/urls/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
+            command: 'wget'
+            args: ['https://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
+        # github gist -- no idea how to do that
+        #turl('http://nbviewer.jupyter.org/gist/darribas/4121857').should.eql
+        #    command: 'wget'
+        #    args: ['https://gist.githubusercontent.com/darribas/4121857/raw/505e030811332c78e8e50a54aca5e8034605cb4c/guardian_gaza.ipynb']
+
+
+

@@ -1,0 +1,17 @@
+#!/usr/bin/env python2
+# Wrapper for running Jupyter Kernels with expanded environment variables.
+# (c) Copyright SageMath, Inc. 2017 -- All rights reserved.
+#
+# the first argument is the actual executable for running the kernel,
+# the second to last argument are the arguments for it. This means you
+# just have to put this script in front of the usual argv definition.
+import os, sys
+env = os.environ
+for k, v in env.iteritems():
+    val = v.split(os.pathsep)
+    val = [os.path.expandvars(_) for _ in val]
+    env[k] = os.pathsep.join(val)
+
+os.system('exec ' + ' '.join(sys.argv[1:]))
+
+

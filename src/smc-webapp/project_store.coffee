@@ -38,8 +38,10 @@ misc      = require('smc-util/misc')
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
 
-project_file = require('project_file')
-wrapped_editors = require('editor_react_wrapper')
+if window?
+    # don't import in case not in browser (for testing)
+    project_file = require('./project_file')
+    wrapped_editors = require('./editor_react_wrapper')
 
 MASKED_FILE_EXTENSIONS =
     'py'   : ['pyc']
@@ -647,20 +649,24 @@ class ProjectActions extends Actions
         )
 
     # Increases the selected file index by 1
-    # Assumes undefined state to be identical to 0
+    # undefined increments to 0
     increment_selected_file_index: ->
-        current_index = @get_store().selected_file_index ? 0
+        current_index = @get_store().selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
+    # Does nothing when selected_file_index is undefined
     decrement_selected_file_index: ->
         current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
-    reset_selected_file_index: ->
+    zero_selected_file_index: ->
         @setState(selected_file_index : 0)
+
+    clear_selected_file_index: ->
+        @setState(selected_file_index : undefined)
 
     # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click: (file) =>
@@ -1066,9 +1072,10 @@ class ProjectActions extends Actions
             @setState(file_creation_error: "Cannot create a file with the #{ext} extension")
             return
         if ext == 'tex'
+            filename = misc.path_split(name).tail
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                if p.indexOf(bad_char) != -1
-                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
+                if filename.indexOf(bad_char) != -1
+                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename '#{filename}'")
                     return
         salvus_client.exec
             project_id  : @project_id
@@ -1288,12 +1295,12 @@ create_project_store_def = (name, project_id) ->
         # watch for this to change, and if it does, close the project.
         # This avoids leaving it open after we are removed, which is confusing,
         # given that all permissions have vanished.
-        projects = @redux.getStore('projects')
-        if projects.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
+        projects = @redux.getStore('projects')  # may not be available; for example when testing
+        if projects?.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
             projects.on('change', @_projects_store_collab_check)
 
     destroy: ->
-        @redux.getStore('projects').removeListener('change', @_projects_store_collab_check)
+        @redux.getStore('projects')?.removeListener('change', @_projects_store_collab_check)
 
     _projects_store_collab_check: (state) ->
         if not state.getIn(['project_map', @project_id])?
@@ -1343,7 +1350,7 @@ create_project_store_def = (name, project_id) ->
         show_hidden            : rtypes.bool
         error                  : rtypes.string
         checked_files          : rtypes.immutable
-        selected_file_index    : rtypes.number
+        selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         sort_by_time           : rtypes.bool
         most_recent_file_click : rtypes.string
@@ -1454,6 +1461,11 @@ create_project_store_def = (name, project_id) ->
         if typeof listing == 'string'   # must be an error
             return {err : listing}
         return {item : listing?.find (val) => val.get('name') == name}
+
+    get_raw_link: (path) ->
+        url = document.URL
+        url = url[0...url.indexOf('/projects/')]
+        return "#{url}/#{@project_id}/raw/#{misc.encode_path(path)}"
 
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()

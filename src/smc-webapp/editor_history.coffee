@@ -23,6 +23,9 @@
 
 $ = window.$
 
+underscore = require('underscore')
+async = require('async')
+
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -31,24 +34,34 @@ misc = require('smc-util/misc')
 
 sagews  = require('./sagews')
 jupyter = require('./editor_jupyter')
+{jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
 
 templates = $("#salvus-editor-templates")
 
-underscore = require('underscore')
-
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        # window.h = @ # for debugging
+        if window.smc?
+            window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
-        @init_view_doc opts, (err) =>
+        @element  = templates.find(".salvus-editor-history").clone()
+        async.series([
+            (cb) =>
+                @init_syncstring(cb)
+            (cb) =>
+                @init_view_doc(opts, cb)
+        ], (err) =>
             if not err
-                @init_syncstring()
                 @init_slider()
+                @init_ui()
             else
-                # FUTURE: need a better way to report this
-                console.warn("FAILED to configure view_doc")
+                alert_message(type:'error', message:"Failed to open history document -- #{err}")
+        )
+
+    jupyter_classic: ->
+        # cached so only computed once and STABLE.
+        return @_jupyter_classic ?= !!redux.getStore('account')?.getIn(['editor_settings', 'jupyter_classic'])
 
     init_paths: =>
         #   @filename = "path/to/.file.sage-history"
@@ -61,37 +74,42 @@ class exports.HistoryEditor extends FileEditor
             @_open_file_path = @_path
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
-            @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
+            if @jupyter_classic()
+                @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
+            else
+                @_path = misc.meta_file(@_path, 'jupyter2')
         if s.head
             @_path = s.head + '/' + @_path
 
-    init_syncstring: =>
+    init_syncstring: (cb) =>
         salvus_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
             cb         : (err, syncstring) =>
                 if err
-                    alert_message(type:'error', message:"Failed to open document -- #{err}")
-                    return
-                @syncstring = syncstring
-                @syncstring.once 'connected', =>
-                    @render_slider()
-                    @render_diff_slider()
-                    @syncstring.on 'change', =>
-                        if @_diff_mode
-                            @resize_diff_slider()
-                        else
-                            @resize_slider()
+                    cb?(err)
+                else
+                    @syncstring = syncstring
+                    @syncstring.once('connected', cb)
 
-                    if @syncstring.has_full_history()
-                        @load_all.hide()
-                    else
-                        @load_all.show()
+    init_ui: =>
+        @render_slider()
+        @render_diff_slider()
+        @syncstring.on 'change', =>
+            if @_diff_mode
+                @resize_diff_slider()
+            else
+                @resize_slider()
 
-                    # only show button for reverting if not read only
-                    @syncstring.wait_until_read_only_known (err) =>
-                        if not @syncstring.get_read_only()
-                            @element.find("a[href=\"#revert\"]").show()
+        if @syncstring.has_full_history()
+            @load_all.hide()
+        else
+            @load_all.show()
+
+        # only show button for reverting if not read only
+        @syncstring.wait_until_read_only_known (err) =>
+            if not @syncstring.get_read_only()
+                @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -106,14 +124,17 @@ class exports.HistoryEditor extends FileEditor
     init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
-        @element  = templates.find(".salvus-editor-history").clone()
         switch @ext
             when 'ipynb'
-                @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
-                @element.find("a[href=\"#show-diff\"]").hide()
+                if @jupyter_classic()
+                    @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
+                    @element.find("a[href=\"#show-diff\"]").hide()
+                else
+                    @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
+                    @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
-                @element.find("a[href=\"#show-diff\"]").hide()
+                @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
@@ -132,14 +153,17 @@ class exports.HistoryEditor extends FileEditor
                 read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
-        if @ext == 'ipynb'
+        if @ext == 'ipynb' and @jupyter_classic()
             @view_doc.once 'ready', =>
                 @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
                 @show()
                 cb()
             @view_doc.once('failed', => cb('failed'))
         else
+            @show()
             cb()
+
+        @diff_doc ?= @view_doc
 
     init_slider: =>
         @slider         = @element.find(".salvus-editor-history-slider")
@@ -148,9 +172,11 @@ class exports.HistoryEditor extends FileEditor
         @load_all       = @element.find("a[href=\"#all\"]")
 
         ##element.children().not(".btn-history").hide()
-        @element.find(".salvus-editor-save-group").hide()
-        @element.find(".salvus-editor-chat-title").hide()
-        @element.find(".smc-editor-file-info-dropdown").hide()
+        for e in [@view_doc, @diff_doc]
+            if e?
+                e.element.find(".salvus-editor-save-group").hide()
+                e.element.find(".salvus-editor-chat-title").hide()
+                e.element.find(".smc-editor-file-info-dropdown").hide()
 
         @slider.show()
 
@@ -208,6 +234,9 @@ class exports.HistoryEditor extends FileEditor
     diff_mode: (enabled) =>
         @_diff_mode = enabled
         if enabled
+            if @view_doc != @diff_doc
+                @element.find(".salvus-editor-history-history_editor").empty().append(@diff_doc.element)
+                @diff_doc.show?()
             @element.find("a[href=\"#hide-diff\"]").show()
             @element.find("a[href=\"#show-diff\"]").hide()
             @element.find(".salvus-editor-history-diff-mode").show()
@@ -217,18 +246,21 @@ class exports.HistoryEditor extends FileEditor
             # Switch to default theme for diff viewer, until we implement
             # red/green colors that are selected to match the user's theme
             # See https://github.com/sagemathinc/smc/issues/884
-            for cm in @view_doc.codemirrors()
+            for cm in @diff_doc.codemirrors()
                 @_non_diff_theme ?= cm.getOption('theme')
                 cm.setOption('theme', '')
         else
-            for cm in @view_doc.codemirrors()
+            if @view_doc != @diff_doc
+                @element.find(".salvus-editor-history-history_editor").empty().append(@view_doc.element)
+                @view_doc.show?()
+            for cm in @diff_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
                 cm.setOption('gutters', [])
                 if @_non_diff_theme?
                     # Set theme back to default
                     cm.setOption('theme', @_non_diff_theme)
                 cm.setValue('')
-                cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
+                cm.setValue(@syncstring.version(@goto_revision(@revision_num)).to_str())
             @element.find("a[href=\"#hide-diff\"]").hide()
             @element.find("a[href=\"#show-diff\"]").show()
             @element.find(".salvus-editor-history-diff-mode").hide()
@@ -239,20 +271,31 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        val = @syncstring.version(time).to_str()
-        switch @ext
-            when 'ipynb'
-                @view_doc.dom.set(val)
-            when 'tasks'
-                @view_doc.set_value(val)
-            else
-                @view_doc.codemirror.setValueNoJump(val)
+        if @ext == 'ipynb' and not @jupyter_classic()
+            @view_doc.set_version(time)
+        else
+            val = @syncstring.version(time).to_str()
+            switch @ext
+                when 'ipynb'  # must be classic since not handled above
+                    @view_doc.dom.set(val)
+                when 'tasks'
+                    @view_doc.set_value(val)
+                else
+                    @view_doc.codemirror.setValueNoJump(val)
+
         @process_view()
 
     set_doc_diff: (time0, time1) =>
+        if not @syncstring?
+            # nothing to do if syncstring isn't opened/initialized yet.
+            return
         # Set the doc to show a diff from time0 to time1
-        v0 = @syncstring.version(time0)
-        v1 = @syncstring.version(time1)
+        if @ext == 'ipynb' and not @jupyter_classic()
+            v0 = @view_doc.to_str(time0)
+            v1 = @view_doc.to_str(time1)
+        else
+            v0 = @syncstring.version(time0).to_str()
+            v1 = @syncstring.version(time1).to_str()
         {patches, to_line} = line_diff(v0, v1)
         #console.log "#{misc.to_json(patches)}"
         # [{"diffs":[[-1,"BC"],[1,"DCCCBCCECCFCGHCCICJ"]],"start1":0,"start2":0,"length1":2,"length2":19}]
@@ -290,7 +333,7 @@ class exports.HistoryEditor extends FileEditor
         s = lines.join('\n')
         line_number = (i, k) ->
             return $("<span class='smc-history-diff-number'>#{line_numbers[i][k]}</span>")[0]
-        for cm in @view_doc.codemirrors()
+        for cm in @diff_doc.codemirrors()
             cm.setValueNoJump(s)
             cm.setOption('lineNumbers', false)
             cm.setOption('gutters', ['smc-history-diff-gutter1', 'smc-history-diff-gutter2'])
@@ -343,7 +386,7 @@ class exports.HistoryEditor extends FileEditor
             num = @revision_num
         if not num?
             return
-        versions = @syncstring.all_versions()
+        versions = @syncstring?.all_versions()
         if not versions?
             # not yet initialized
             return
@@ -386,9 +429,9 @@ class exports.HistoryEditor extends FileEditor
             return
         if not num1?
             num1 = @revision_num1 ? Math.max(0, Math.floor(num2/2))
-        versions = @syncstring.all_versions()
+        versions = @syncstring?.all_versions()
         if not versions?
-            # not yet initialized
+            # not yet initialized or closing
             return
         time1 = versions[num1]
         if not time1?
@@ -416,6 +459,8 @@ class exports.HistoryEditor extends FileEditor
         if @revision_num == @length-1 then @forward_button.addClass("disabled") else @forward_button.removeClass("disabled")
 
     render_slider: =>
+        if not @syncstring?
+            return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
@@ -435,6 +480,8 @@ class exports.HistoryEditor extends FileEditor
         @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>
+        if not @syncstring?
+            return
         new_len = @syncstring.all_versions().length
         if new_len == @length
             return
@@ -445,6 +492,8 @@ class exports.HistoryEditor extends FileEditor
         @goto_revision()
 
     render_diff_slider: =>
+        if not @syncstring?
+            return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
         # debounce actually setting the document content just a little
@@ -464,6 +513,8 @@ class exports.HistoryEditor extends FileEditor
                     set_doc(@goto_diff(ui.values[0], ui.values[1]))
 
     resize_diff_slider: =>
+        if not @syncstring?
+            return
         new_len = @syncstring.all_versions().length
         if new_len == @length
             return
@@ -494,6 +545,8 @@ class exports.HistoryEditor extends FileEditor
         @view_doc?.hide()
 
     load_full_history: (cb) =>
+        if not @syncstring?
+            return
         n = @syncstring.all_versions().length
         @syncstring.load_full_history (err) =>
             if err

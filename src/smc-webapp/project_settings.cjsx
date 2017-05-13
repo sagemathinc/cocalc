@@ -506,6 +506,12 @@ SageWorksheetPanel = rclass
         loading : false
         message : ''
 
+    componentDidMount: ->
+        @_mounted = true
+
+    componentWillUnmount: ->
+        delete @_mounted
+
     propTypes :
         project : rtypes.object.isRequired
 
@@ -516,6 +522,8 @@ SageWorksheetPanel = rclass
             command    : 'smc-sage-server stop; smc-sage-server start'
             timeout    : 30
             cb         : (err, output) =>
+                if not @_mounted # see https://github.com/sagemathinc/smc/issues/1684
+                    return
                 @setState(loading : false)
                 if err
                     @setState(message:'Error trying to restart worksheet server. Try restarting the project server instead.')
@@ -862,8 +870,7 @@ CollaboratorsSearch = rclass
                     default_value   = {@state.search}
                     placeholder     = 'Search by name or email address...'
                     on_change       = {(value) => @setState(select:undefined)}
-                    on_escape       = {@reset}
-                    clear_on_submit = {true}
+                    on_clear        = {@reset}
                 />
             </LabeledRow>
             {@render_search()}

@@ -7,6 +7,9 @@ LICENSE   : AGPLv3
 
 MAX_CHANGEFEEDS_PER_CLIENT = 4*100
 
+# Reject all patches that have timestamp that is more than 3 minutes in the future.
+MAX_PATCH_FUTURE_MS = 1000*60*3
+
 EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
@@ -76,7 +79,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         if misc.is_object(query)
             query = misc.deep_copy(query)
-            obj_key_subs(query, subs)
+            misc.obj_key_subs(query, subs)
             if not is_set_query?
                 is_set_query = not misc.has_null_leaf(query)
             if is_set_query
@@ -339,7 +342,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         r.primary_keys = @_primary_keys(r.db_table)
 
-        r.json_fields = @_json_fields(opts.table, r.query)
+        r.json_fields = @_json_fields(r.db_table, r.query)
 
         for k, v of r.query
             if k in r.primary_keys
@@ -611,7 +614,7 @@ class exports.PostgreSQL extends PostgreSQL
         # to a Javascript Date.
         for k, v of obj
             if fields[k]
-                obj[k] = misc.fix_json_dates(v)
+                obj[k] = misc.fix_json_dates(v, fields[k])
 
     # fill in the default values for obj using the client_query spec.
     _user_get_query_set_defaults: (client_query, obj, fields) =>
@@ -640,6 +643,9 @@ class exports.PostgreSQL extends PostgreSQL
 
     _user_set_query_project_users: (obj, account_id) =>
         dbg = @_dbg("_user_set_query_project_users")
+        if not obj.users?
+            # nothing to do -- not changing users.
+            return
         ##dbg("disabled")
         ##return obj.users
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
@@ -812,9 +818,10 @@ class exports.PostgreSQL extends PostgreSQL
     # Make any functional substitutions defined by the schema.
     # This may mutate query in place.
     _user_get_query_functional_subs: (query, fields) =>
-        for field, val of fields
-            if typeof(val) == 'function'
-                query[field] = val(query, @)
+        if fields?
+            for field, val of fields
+                if typeof(val) == 'function'
+                    query[field] = val(query, @)
 
     _parse_get_query_opts: (opts) =>
         if opts.changes? and not opts.changes.cb?
@@ -886,11 +893,14 @@ class exports.PostgreSQL extends PostgreSQL
 
         return r
 
+    # _json_fields: map from field names to array of fields that should be parsed as timestamps
+    # These keys of his map are also used by _user_query_set_upsert_and_jsonb_merge to determine
+    # JSON deep merging for set queries.
     _json_fields: (table, query) =>
         json_fields = {}
         for field, info of SCHEMA[table].fields
             if (query[field]? or query[field] == null) and (info.type == 'map' or info.pg_type == 'JSONB')
-                json_fields[field] = true
+                json_fields[field] = info.date ? []
         return json_fields
 
     _user_get_query_where: (client_query, account_id, project_id, user_query, table, cb) =>
@@ -1045,7 +1055,7 @@ class exports.PostgreSQL extends PostgreSQL
                 cb(err)
             else
                 if misc.len(json_fields) > 0
-                    # Convert (likely) timestamps to Date objects.
+                    # Convert timestamps to Date objects, if **explicitly** specified in the schema
                     for obj in x
                         @_user_get_query_json_timestamps(obj, json_fields)
 
@@ -1068,8 +1078,9 @@ class exports.PostgreSQL extends PostgreSQL
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
         for field, value of obj
-            if possible_time_fields[field]
-                value = misc.fix_json_dates(value)
+            date_keys = possible_time_fields[field]
+            if date_keys
+                value = misc.fix_json_dates(value, date_keys)
             if (q = user_query[field])?
                 if (op = @_query_is_cmp(q))
                     x = q[op]
@@ -1116,12 +1127,12 @@ class exports.PostgreSQL extends PostgreSQL
         watch  = []
         select = {}
         init_tracker = tracker = undefined
-        possible_time_fields = misc.copy(json_fields)
+        possible_time_fields = misc.deep_copy(json_fields)
 
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
-                possible_time_fields[field] = true
+                possible_time_fields[field] = 'all'
             if val == null and field not in primary_keys
                 watch.push(field)
             else
@@ -1351,6 +1362,10 @@ class exports.PostgreSQL extends PostgreSQL
 
     # Verify that writing a patch is allowed.
     _user_set_query_patches_check: (obj, account_id, project_id, cb) =>
+        # Reject any patch that is too new
+        if obj.time - new Date() > MAX_PATCH_FUTURE_MS
+            cb("clock")    # this exact error is assumed in synctable!
+            return
         # Write access
         @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
@@ -1417,22 +1432,6 @@ class exports.PostgreSQL extends PostgreSQL
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("only users and projects can access syncstrings")
-
-
-# modify obj in place substituting keys as given.
-obj_key_subs = (obj, subs) ->
-    for k, v of obj
-        s = subs[k]
-        if s?
-            delete obj[k]
-            obj[s] = v
-        if typeof(v) == 'object'
-            obj_key_subs(v, subs)
-        else if typeof(v) == 'string'
-            s = subs[v]
-            if s?
-                obj[k] = s
-
 
 _last_awaken_time = {}
 awaken_project = (db, project_id) ->

@@ -18,9 +18,9 @@
     "coffeelint": "^1.13.0",
     "immutable": "^3.7.5",
     "json-stable-stringify": "^1.0.1",
-    "node-uuid": "^1.4.3",
     "sha1": "^1.1.1",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "uuid": "^3.0.1"
   },
   "repository": {
     "type": "git",

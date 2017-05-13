@@ -250,6 +250,18 @@ exports.commands =
             wrap :
                 left  : '\\underline{'
                 right : '}'
+        strikethrough :       # requires the soul package
+            wrap :
+                left  : '\\st{'
+                right : '}'
+        equation :
+            wrap :
+                left  : "$"
+                right : "$"
+        display_equation :
+            wrap :
+                left  : "$$"
+                right : "$$"
         insertunorderedlist :
             wrap :
                 left  : "\\begin{itemize}\n    \\item\n"
@@ -478,12 +490,12 @@ exports.commands =
                 right : '</pre>'
         equation :
             wrap :
-                left  : "$ "
-                right : " $"
+                left  : "$"
+                right : "$"
         display_equation :
             wrap :
-                left  : "$$ "
-                right : " $$"
+                left  : "$$"
+                right : "$$"
         table:
             wrap:
                 left  : """
@@ -1073,7 +1085,7 @@ exports.commands =
         mode_cython:
             insert : "%cython\n"
         mode_default_mode:
-            insert : "%default_mode mode_name\n"
+            insert : "%default_mode r # change r to any mode\n"
         mode_exercise:
             insert : "%exercise\n"
         mode_gap:

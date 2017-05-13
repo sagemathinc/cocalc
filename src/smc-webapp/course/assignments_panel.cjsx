@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 # SMC and course components
 course_funcs = require('./course_funcs')
 styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, SearchInput, Tip, NumberInput} = require('../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready,
     BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
@@ -20,7 +20,8 @@ exports.AssignmentsPanel = rclass ({name}) ->
 
     reduxProps :
         "#{name}":
-            expanded_assignments : rtypes.immutable.Set
+            expanded_assignments   : rtypes.immutable.Set
+            active_assignment_sort : rtypes.object
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -36,7 +37,6 @@ exports.AssignmentsPanel = rclass ({name}) ->
         search        : ''         # search query to restrict which assignments are shown.
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
-
     compute_assignment_list: ->
         list = course_funcs.immutable_to_list(@props.all_assignments, 'assignment_id')
 
@@ -45,14 +45,39 @@ exports.AssignmentsPanel = rclass ({name}) ->
             search_key  : 'path'
             search      : @state.search.trim()
 
-        f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
+        if @props.active_assignment_sort.column_name == "due_date"
+            f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
+        else if @props.active_assignment_sort.column_name == "dir_name"
+            f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
         {list, deleted, num_deleted} = course_funcs.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
+            reverse          : @props.active_assignment_sort.is_descending
             include_deleted  : @state.show_deleted
 
         return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
+
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@actions(@props.name).set_active_assignment_sort(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_assignment_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_assignment_sort.column_name == column_name}
+        </a>
+
+    render_assignment_table_header: ->
+        # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+        <Row style={marginTop:'-10px', marginBottom:'3px'}>
+            <Col md=6>
+                {@render_sort_link("dir_name", "Assignment Name")}
+            </Col>
+            <Col md=6>
+                {@render_sort_link("due_date", "Due Date")}
+            </Col>
+        </Row>
 
     render_assignments: (assignments) ->
         for x,i in assignments
@@ -106,6 +131,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             />
 
         <Panel header={header}>
+            {@render_assignment_table_header()}
             {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
@@ -141,6 +167,13 @@ Assignment = rclass
     getInitialState: ->
         confirm_delete : false
 
+    _due_date: ->
+        due_date = @props.assignment.get('due_date')  # a string
+        if not due_date?
+            return salvus_client.server_time()
+        else
+            return new Date(due_date)
+
     render_due: ->
         <Row>
             <Col xs=1 style={marginTop:'8px', color:'#666'}>
@@ -151,16 +184,15 @@ Assignment = rclass
             </Col>
             <Col xs=11>
                 <DateTimePicker
-                    value     = {@props.assignment.get('due_date') ? salvus_client.server_time()}
+                    value     = {@_due_date()}
                     on_change = {@date_change}
                 />
             </Col>
         </Row>
 
     date_change: (date) ->
-        if not date
-            date = @props.assignment.get('due_date') ? misc.server_time()
-        @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
+        date ?= @_due_date()
+        @props.redux.getActions(@props.name).set_due_date(@props.assignment, date?.toISOString())
 
     render_note: ->
         <Row key='note' style={styles.note}>
@@ -541,19 +573,25 @@ Assignment = rclass
         @props.redux.getActions(@props.name).set_peer_grade(@props.assignment, config)
 
     render_configure_peer_checkbox: (config) ->
-        <span>
-            <Checkbox checked  = {config.enabled}
+        <div>
+            <Checkbox checked  = {config.enabled ? false}
                    key      = 'peer_grade_checkbox'
                    ref      = 'peer_grade_checkbox'
                    onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
+                   style    = {display:'inline-block', verticalAlign:'middle'}
             />
             Enable Peer Grading
-        </span>
+        </div>
+
+    _peer_due: (date) ->
+        date ?= @props.assignment.getIn(['peer_grade', 'due_date'])
+        if date?
+            return new Date(date)
+        else
+            return misc.server_days_ago(-7)
 
     peer_due_change: (date) ->
-        if not date
-            date = @props.assignment.getIn(['peer_grade', 'due_date']) ? misc.server_days_ago(-7)
-        @set_peer_grade(due_date : date)
+        @set_peer_grade(due_date : @_peer_due(date)?.toISOString())
 
     render_configure_peer_due: (config) ->
         label = <Tip placement='top' title="Set the due date"
@@ -562,7 +600,7 @@ Assignment = rclass
         </Tip>
         <LabeledRow label_cols=6 label={label}>
             <DateTimePicker
-                value     = {config.due_date ? misc.server_days_ago(-7)}
+                value     = {@_peer_due(config.due_date)}
                 on_change = {@peer_due_change}
             />
         </LabeledRow>
@@ -598,11 +636,11 @@ Assignment = rclass
         <Alert bsStyle='warning'>
             <h3><Icon name="users"/> Peer grading</h3>
 
-            <span style={color:'#666'}>
+            <div style={color:'#666'}>
                 Use peer grading to randomly (and anonymously) redistribute
                 collected homework to your students, so that they can grade
                 it for you.
-            </span>
+            </div>
 
             {@render_configure_peer_checkbox(config)}
             {@render_configure_peer_number(config) if config.enabled}
