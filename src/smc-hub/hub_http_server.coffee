@@ -113,14 +113,16 @@ exports.init_express_http_server = (opts) ->
 
     # HTTP API
     router.post '/api/v1', (req, res) ->
-        api_key = req.body.api_key
+        api_key = req.body.api_key  # TODO: put this in header
         mesg    = req.body.mesg
-        res.send("#{api_key}, '#{JSON.stringify(mesg)}'")
-        ###
-        opts.cb = (err, resp) ->
-            res.
-        http_message_api_v1(opts)
-        ###
+        http_message_api_v1
+            mesg    : mesg
+            api_key : api_key
+            cb      : (err, resp) ->
+                if err
+                    res.send(error:err)
+                else
+                    res.send(resp:resp)
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     if opts.stripe?
