@@ -1,3 +1,7 @@
+###
+Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
+###
+
 path       = require('path')
 fs         = require('fs')
 async      = require('async')
@@ -8,7 +12,6 @@ misc_node  = require('smc-util-node/misc_node')
 
 WEBAPP_LIB = misc_node.WEBAPP_LIB
 
-# Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
     if not stripe?
         # stripe not available, configured or initaialized yet

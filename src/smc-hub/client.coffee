@@ -1588,7 +1588,8 @@ class exports.Client extends EventEmitter
             @error_to_client(id:id, error:err)
             cb(err)
             return
-        if not stripe?
+        @_stripe = require('./stripe/connect').get_stripe()
+        if not @_stripe?
             err = "stripe billing not configured"
             dbg(err)
             @error_to_client(id:id, error:err)
@@ -1644,7 +1645,7 @@ class exports.Client extends EventEmitter
                 cb(undefined, undefined)
                 return
             dbg("now getting stripe customer object")
-            stripe.customers.retrieve customer_id, (err, customer) =>
+            @_stripe.customers.retrieve customer_id, (err, customer) =>
                 if err
                     dbg("failed -- #{err}")
                     @error_to_client(id:id, error:err)
@@ -1669,6 +1670,7 @@ class exports.Client extends EventEmitter
     mesg_stripe_get_customer: (mesg) =>
         dbg = @dbg("mesg_stripe_get_customer")
         dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
+        stripe = require('./stripe/connect').get_stripe()
         @stripe_get_customer mesg.id, (err, customer) =>
             if err
                 return
@@ -1716,7 +1718,7 @@ class exports.Client extends EventEmitter
                             email       : email
                             metadata    :
                                 account_id : @account_id
-                        stripe.customers.create x, (err, customer) =>
+                        @_stripe.customers.create x, (err, customer) =>
                             if err
                                 cb(err)
                             else
@@ -1742,7 +1744,7 @@ class exports.Client extends EventEmitter
                 dbg("add card to existing stripe customer")
                 async.series([
                     (cb) =>
-                        stripe.customers.createCard(customer_id, {card:mesg.token}, cb)
+                        @_stripe.customers.createCard(customer_id, {card:mesg.token}, cb)
                     (cb) =>
                         dbg("success; sync user account with stripe")
                         @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id,  cb: cb)
@@ -1767,7 +1769,7 @@ class exports.Client extends EventEmitter
                 if not customer_id?
                     cb("no customer information so can't delete source")
                 else
-                    stripe.customers.deleteCard(customer_id, mesg.card_id, cb)
+                    @_stripe.customers.deleteCard(customer_id, mesg.card_id, cb)
             (cb) =>
                 @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
         ], (err) =>
@@ -1792,7 +1794,7 @@ class exports.Client extends EventEmitter
                     cb("no customer information so can't update source")
                 else
                     dbg("now setting the default source in stripe")
-                    stripe.customers.update(customer_id, {default_source:mesg.card_id}, cb)
+                    @_stripe.customers.update(customer_id, {default_source:mesg.card_id}, cb)
             (cb) =>
                 dbg("update database")
                 @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id,  cb: cb)
@@ -1822,7 +1824,7 @@ class exports.Client extends EventEmitter
                 if not customer_id?
                     cb("no customer information so can't update source")
                 else
-                    stripe.customers.updateCard(customer_id, mesg.card_id, mesg.info, cb)
+                    @_stripe.customers.updateCard(customer_id, mesg.card_id, mesg.info, cb)
             (cb) =>
                 @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
         ], (err) =>
@@ -1835,11 +1837,16 @@ class exports.Client extends EventEmitter
     mesg_stripe_get_plans: (mesg) =>
         dbg = @dbg("mesg_stripe_get_plans")
         dbg("get descriptions of the available plans that the user might subscribe to")
-        stripe.plans.list (err, plans) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
+        async.series([
+            (cb) =>
+                @stripe_get_customer_id(mesg.id, cb)   # ensures @_stripe is defined below
+            (cb) =>
+                @_stripe.plans.list (err, plans) =>
+                    if err
+                        @stripe_error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
+        ])
 
     mesg_stripe_create_subscription: (mesg) =>
         dbg = @dbg("mesg_stripe_create_subscription")
@@ -1871,7 +1878,7 @@ class exports.Client extends EventEmitter
             async.series([
                 (cb) =>
                     dbg('determine applicable tax')
-                    stripe_sales_tax
+                    require('./stripe/sales-tax').stripe_sales_tax
                         customer_id : customer_id
                         cb          : (err, rate) =>
                             tax_rate = rate
@@ -1884,7 +1891,7 @@ class exports.Client extends EventEmitter
                             cb(err)
                 (cb) =>
                     dbg("add customer subscription to stripe")
-                    stripe.customers.createSubscription customer_id, options, (err, s) =>
+                    @_stripe.customers.createSubscription customer_id, options, (err, s) =>
                         if err
                             cb(err)
                         else
@@ -1893,7 +1900,7 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if schema.cancel_at_period_end
                         dbg("Setting subscription to cancel at period end")
-                        stripe.customers.cancelSubscription(customer_id, subscription.id, {at_period_end:true}, cb)
+                        @_stripe.customers.cancelSubscription(customer_id, subscription.id, {at_period_end:true}, cb)
                     else
                         cb()
                 (cb) =>
@@ -1923,7 +1930,7 @@ class exports.Client extends EventEmitter
                     dbg("cancel the subscription at stripe")
                     # This also returns the subscription, which lets
                     # us easily get the metadata of all projects associated to this subscription.
-                    stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
+                    @_stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
@@ -1951,7 +1958,7 @@ class exports.Client extends EventEmitter
                         quantity : mesg.quantity
                         plan     : mesg.plan
                         coupon   : mesg.coupon
-                    stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
+                    @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
@@ -1971,7 +1978,7 @@ class exports.Client extends EventEmitter
                 limit          : mesg.limit
                 ending_before  : mesg.ending_before
                 starting_after : mesg.starting_after
-            stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
+            @_stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -1988,7 +1995,7 @@ class exports.Client extends EventEmitter
                 limit          : mesg.limit
                 ending_before  : mesg.ending_before
                 starting_after : mesg.starting_after
-            stripe.charges.list options, (err, charges) =>
+            @_stripe.charges.list options, (err, charges) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -2005,7 +2012,7 @@ class exports.Client extends EventEmitter
                 limit          : mesg.limit
                 ending_before  : mesg.ending_before
                 starting_after : mesg.starting_after
-            stripe.invoices.list options, (err, invoices) =>
+            @_stripe.invoices.list options, (err, invoices) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -2052,7 +2059,7 @@ class exports.Client extends EventEmitter
                         email       : email
                         metadata    :
                             account_id : mesg.account_id
-                    stripe.customers.create x, (err, customer) =>
+                    @_stripe.customers.create x, (err, customer) =>
                         if err
                             cb(err)
                         else
@@ -2073,7 +2080,7 @@ class exports.Client extends EventEmitter
                     cb()
                 else
                     dbg("now create the invoice item")
-                    stripe.invoiceItems.create
+                    @_stripe.invoiceItems.create
                         customer    : customer_id
                         amount      : mesg.amount*100
                         currency    : "usd"

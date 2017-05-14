@@ -725,51 +725,7 @@ update_primus = (cb) ->
         command : path_module.join(SMC_ROOT, WEBAPP_LIB, '/primus/update_primus')
         cb      : cb
 
-#############################################
-# Billing settings
-# Set using the admin interface in account settings of an admin user.
-#############################################
-stripe  = undefined
-# TODO: this could listen to a changefeed on the database
-# for changes to the server_settings table.
-init_stripe = (cb) ->
-    dbg = (m) -> winston.debug("init_stripe: #{m}")
-    dbg()
 
-    billing_settings = {}
-
-    async.series([
-        (cb) ->
-            database.get_server_setting
-                name : 'stripe_secret_key'
-                cb   : (err, secret_key) ->
-                    if err
-                        dbg("error getting stripe_secret_key")
-                        cb(err)
-                    else
-                        if secret_key
-                            dbg("go stripe secret_key")
-                        else
-                            dbg("invalid secret_key")
-                        stripe = require("stripe")(secret_key)
-                        cb()
-        (cb) ->
-            database.get_server_setting
-                name : 'stripe_publishable_key'
-                cb   : (err, value) ->
-                    dbg("stripe_publishable_key #{err}, #{value}")
-                    if err
-                        cb(err)
-                    else
-                        stripe.publishable_key = value
-                        cb()
-    ], (err) ->
-        if err
-            dbg("error initializing stripe: #{err}")
-        else
-            dbg("successfully initialized stripe api")
-        cb?(err)
-    )
 
 # Delete expired data from the database.
 delete_expired = (cb) ->
@@ -790,90 +746,22 @@ blob_maintenance = (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
 
+
+
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
-    users = undefined
-    target = undefined
     async.series([
         (cb) ->
             dbg("connect to the database")
             connect_to_database(error:99999, cb:cb)
         (cb) ->
-            dbg("initialize stripe")
-            init_stripe(cb)
-        (cb) ->
-            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
-            # TODO: we could make this way faster by putting an index on the stripe_customer_id field.
-            database._query
-                query : 'SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL'
-                cb    : (err, x) ->
-                    users = x?.rows
-                    cb(err)
-        (cb) ->
-            dbg("dump stripe_customer data to file for statistical analysis")
-            target = "#{process.env.HOME}/stripe/"
-            fs.exists target, (exists) ->
-                if not exists
-                    fs.mkdir(target, cb)
-                else
-                    cb()
-        (cb) ->
-            dbg('actually writing customer data')
-            # NOTE: Of coure this is potentially one step out of date -- but in theory this should always be up to date
-            dump = []
-            for x in users
-                # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
-                # and person's name/email.
-                y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
-                y.subscriptions = y.subscriptions?.data
-                y.metadata = y.metadata?.account_id?.slice(0,8)
-                dump.push(y)
-            fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
-        (cb) ->
-            if dump_only
-                cb()
-                return
-            dbg("got #{users.length} users with stripe info")
-            f = (x, cb) ->
-                dbg("updating customer #{x.account_id} data to our local database")
-                database.stripe_update_customer
-                    account_id  : x.account_id
-                    stripe      : stripe
-                    customer_id : x.stripe_customer_id
-                    cb          : cb
-            async.mapLimit(users, 3, f, cb)
-    ], (err) ->
-        if err
-            dbg("error updating customer info -- #{err}")
-        else
-            dbg("updated all customer info successfully")
-        cb?(err)
-    )
-
-
-stripe_sales_tax = (opts) ->
-    opts = defaults opts,
-        customer_id : required
-        cb          : required
-    stripe.customers.retrieve opts.customer_id, (err, customer) ->
-        if err
-            opts.cb(err)
-            return
-        if not customer.default_source?
-            opts.cb(undefined, 0)
-            return
-        zip = undefined
-        state = undefined
-        for x in customer.sources.data
-            if x.id == customer.default_source
-                zip = x.address_zip?.slice(0,5)
-                state = x.address_state
-                break
-        if not zip? or state != 'WA'
-            opts.cb(undefined, 0)
-            return
-        opts.cb(undefined, misc_node.sales_tax(zip))
+            require('./stripe/sync').stripe_sync
+                database  : database
+                dump_only : dump_only
+                logger    : winston
+                cb        : cb
+    ], cb)
 
 # real-time reporting of hub metrics
 
@@ -973,7 +861,10 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            init_stripe(cb)
+            require('./stripe/connect').init_stripe
+                database : database
+                logger   : winston
+                cb       : cb
         (cb) ->
             if not program.port
                 cb(); return
@@ -989,7 +880,6 @@ exports.start_server = start_server = (cb) ->
             x = hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
-                stripe         : stripe
                 compute_server : compute_server
                 database       : database
                 metricsRecorder: metricsRecorder
@@ -1130,13 +1020,13 @@ command_line = () ->
             database?.uncaught_exception(err)
 
         if program.passwd
-            console.log("Resetting password")
+            winston.debug("Resetting password")
             reset_password(program.passwd, (err) -> process.exit())
         else if program.stripe_sync
-            console.log("Stripe sync")
+            winston.debug("Stripe sync")
             stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
         else if program.stripe_dump
-            console.log("Stripe dump")
+            winston.debug("Stripe dump")
             stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
         else if program.delete_expired
             delete_expired (err) ->

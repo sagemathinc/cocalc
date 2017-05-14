@@ -34,7 +34,7 @@ hub_projects = require('./projects')
 {http_message_api_v1} = require('./api/handler')
 
 # Rendering stripe invoice server side to PDF in memory
-{stripe_render_invoice} = require('./stripe-invoice')
+{stripe_render_invoice} = require('./stripe/invoice')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
@@ -43,7 +43,6 @@ exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         base_url       : required
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
-        stripe         : undefined   # stripe api connection
         database       : required
         compute_server : required
         metricsRecorder: undefined
@@ -125,7 +124,8 @@ exports.init_express_http_server = (opts) ->
                     res.send(resp:resp)
 
     # stripe invoices:  /invoice/[invoice_id].pdf
-    if opts.stripe?
+    stripe_connections = require('./stripe/connect').get_stripe()
+    if stripe_connections?
         router.get '/invoice/*', (req, res) ->
             winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
             path = req.path.slice(req.path.lastIndexOf('/') + 1)
@@ -139,7 +139,7 @@ exports.init_express_http_server = (opts) ->
             invoice_id = path.slice(0,i)
             winston.debug("id='#{invoice_id}'")
 
-            stripe_render_invoice(opts.stripe, invoice_id, true, res)
+            stripe_render_invoice(stripe_connections, invoice_id, true, res)
     else
         router.get '/invoice/*', (req, res) ->
             res.status(404).send("stripe not configured")
