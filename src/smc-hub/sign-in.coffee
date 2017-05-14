@@ -12,10 +12,13 @@ for making the data structure trivial.
   * POLICY 4: A given ip address is allowed at most 50 failed login attempts per hour.
 ###
 
-misc = require('smc-util/misc')
+async                = require('async')
+
+message              = require('smc-util/message')
+misc                 = require('smc-util/misc')
 {required, defaults} = misc
 
-auth   = require('./auth')
+auth                 = require('./auth')
 
 sign_in_fails =
     email_m : {}
@@ -84,10 +87,11 @@ exports.sign_in = (opts) ->
         database : required
         host     : undefined
         port     : undefined
-        cb       : required
+        cb       : undefined
+
     if opts.logger?
         dbg = (m) ->
-            opts.logger("sign_in(#{mesg.email_address}): #{m}")
+            opts.logger.debug("sign_in(#{mesg.email_address}): #{m}")
         dbg()
     else
         dbg = ->

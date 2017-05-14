@@ -492,9 +492,9 @@ AccountSettings = rclass
                 <Col xs=12>
                     <DeleteAccount
                         style={marginTop:'1ex'}
-                        initial_click = {()=>@setState(show_delete_confirmation:true)}
+                        initial_click = {=>@setState(show_delete_confirmation:true)}
                         confirm_click = {=>@actions('account').delete_account()}
-                        cancel_click  = {()=>@setState(show_delete_confirmation:false)}
+                        cancel_click  = {=>@setState(show_delete_confirmation:false)}
                         user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
                         show_confirmation={@state.show_delete_confirmation}
                         />
@@ -518,18 +518,19 @@ DeleteAccount = rclass
         <div>
             <div style={height:'26px'}>
                 <Button
-                    disabled={@props.show_confirmation}
-                    className='pull-right'
-                    bsStyle='danger'
-                    style={@props.style}
-                    onClick=@props.initial_click>
+                    disabled  = {@props.show_confirmation}
+                    className = 'pull-right'
+                    bsStyle   = 'danger'
+                    style     = {@props.style}
+                    onClick   = @props.initial_click
+                >
                 <Icon name='trash' /> Delete Account...
                 </Button>
             </div>
             {<DeleteAccountConfirmation
-                confirm_click={@props.confirm_click}
-                cancel_click={@props.cancel_click}
-                required_text={@props.user_name}
+                confirm_click = {@props.confirm_click}
+                cancel_click  = {@props.cancel_click}
+                required_text = {@props.user_name}
              /> if @props.show_confirmation}
         </div>
 
@@ -542,9 +543,18 @@ DeleteAccountConfirmation = rclass
         cancel_click  : rtypes.func.isRequired
         required_text : rtypes.string.isRequired
 
+    reduxProps:
+        account :
+            account_deletion_error : rtypes.string
+
     # Loses state on rerender from cancel. But this is what we want.
     getInitialState: ->
         confirmation_text : ''
+
+    render_error: ->
+        if not @props.account_deletion_error?
+            return
+        <ErrorDisplay error={@props.account_deletion_error} />
 
     render: ->
         <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
@@ -557,27 +567,28 @@ DeleteAccountConfirmation = rclass
                     autoFocus
                     value       = {@state.confirmation_text}
                     type        = 'text'
-                    ref        = 'confirmation_field'
+                    ref         = 'confirmation_field'
                     onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
                     style       = {marginTop : '1ex'}
                 />
             </FormGroup>
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
-                    disabled={@state.confirmation_text != @props.required_text}
-                    bsStyle='danger'
-                    onClick={@props.confirm_click}
+                    disabled = {@state.confirmation_text != @props.required_text}
+                    bsStyle  = 'danger'
+                    onClick  = {=>@props.confirm_click()}
                 >
                     <Icon name='trash' /> Confirm Account Deletion
                 </Button>
                 <Button
-                    style={paddingRight:'8px'}
-                    bsStyle='primary'
-                    onClick={@props.cancel_click}}
+                    style   = {paddingRight:'8px'}
+                    bsStyle = 'primary'
+                    onClick = {@props.cancel_click}}
                 >
                     Cancel
                 </Button>
             </ButtonToolbar>
+            {@render_error()}
         </Well>
 
 ###

@@ -11,7 +11,7 @@ Cookies              = require('cookies')            # https://github.com/jed/co
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
-message              = require('smc-util/message')   # salvus message protocol spec
+message              = require('smc-util/message')
 
 {base_url}           = require('./base-url')
 access               = require('./access')
@@ -53,15 +53,21 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
-        {@conn, @logger, @database, @compute_server} = @_opts = defaults opts,
+        @_opts = defaults opts,
             conn           : undefined
             logger         : undefined
             database       : required
             compute_server : required
             host           : undefined
             port           : undefined
+
+        @conn            = @_opts.conn
+        @logger          = @_opts.logger
+        @database        = @_opts.database
+        @compute_server  = @_opts.compute_server
+
         @_when_connected = new Date()
-        @_data_handlers = {}
+        @_data_handlers  = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
         @_messages =

@@ -1393,14 +1393,18 @@ class exports.Connection extends EventEmitter
     stripe_get_customer: (opts) =>
         opts = defaults opts,
             cb    : required
-        @_stripe_call message.stripe_get_customer(), (err, mesg) =>
-            if err
-                opts.cb(err)
-            else
-                resp =
-                    stripe_publishable_key : mesg.stripe_publishable_key
-                    customer               : mesg.customer
-                opts.cb(undefined, resp)
+        @call
+            message     : message.stripe_get_customer()
+            error_event : false
+            timeout     : 20
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    resp =
+                        stripe_publishable_key : mesg.stripe_publishable_key
+                        customer               : mesg.customer
+                    opts.cb(undefined, resp)
 
     stripe_create_source: (opts) =>
         opts = defaults opts,
