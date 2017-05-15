@@ -27,10 +27,10 @@ class exports.IPynbImporter
         @_process_attachment = opts.process_attachment
         @_existing_ids       = opts.existing_ids  # option to re-use existing ids
 
+        @_handle_old_versions()  # must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/smc/issues/1937
         @_sanity_improvements()
         @_import_settings()
         @_import_metadata()
-        @_handle_old_versions()
         @_read_in_cells()
         return
 
@@ -75,9 +75,9 @@ class exports.IPynbImporter
         ipynb = @_ipynb
         if ipynb.nbformat >= 4
             return
-        ipynb.cells ?= {}
-        for worksheet in ipynb.worksheets
-            for cell in worksheet.cells
+        ipynb.cells ?= []
+        for worksheet in ipynb.worksheets ? []
+            for cell in worksheet.cells ? []
                 if cell.input?
                     cell.source = cell.input
                     delete cell.input
@@ -86,6 +86,24 @@ class exports.IPynbImporter
                     if misc.is_array(cell.source)
                         cell.source = cell.source.join('')
                     cell.source = '# ' + "#{cell.source}"
+
+                if cell.outputs
+                    for mesg in cell.outputs
+                        if mesg.output_type == 'pyout'
+                            for type in JUPYTER_MIMETYPES
+                                [a,b] = type.split('/')
+                                if mesg[b]?
+                                    data = {"#{type}": mesg[b]}
+                                    for k, v of mesg
+                                        delete mesg[k]
+                                    mesg.data = data
+                                    break
+                            if mesg.text?
+                                data = {"text/plain": mesg.text.join('')}
+                                for k, v of mesg
+                                    delete mesg[k]
+                                mesg.data = data
+
                 ipynb.cells.push(cell)
 
     _import_settings: =>

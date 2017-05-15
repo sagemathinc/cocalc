@@ -120,6 +120,15 @@ exports.TopButtonbar = rclass ({name}) ->
     render_uncommitted: ->
         <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
 
+    render_switch_button: ->
+        if $.browser.firefox
+            return
+        <Button
+            title   = 'Switch to classical notebook'
+            onClick = {=>@props.actions.switch_to_classical_notebook()}>
+            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
+        </Button>
+
     render_group_save_timetravel: ->
         <ButtonGroup className = 'hidden-xs'>
             <Button
@@ -136,11 +145,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
-            <Button
-                title   = 'Switch to classical notebook'
-                onClick = {=>@props.actions.switch_to_classical_notebook()}>
-                <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
-            </Button>
+            {@render_switch_button()}
         </ButtonGroup>
 
     render: ->
