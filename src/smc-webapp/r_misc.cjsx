@@ -1013,8 +1013,7 @@ exports.PathLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        path_head = 'files'
-        path_head += '/' if @props.path[0] != '/'
+        path_head = 'files/'
         @actions('projects').open_project
             project_id : @props.project_id
             target     : path_head + @props.path
