@@ -648,7 +648,7 @@ class ProjectActions extends Actions
     # Sets the active file_sort to next_column_name
     set_sorted_file_column: (column_name) =>
         current = @get_store()?.active_file_sort
-        if current.column_name == column_name
+        if current?.column_name == column_name
             is_descending = not current.is_descending
         else
             is_descending = false
