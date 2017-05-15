@@ -122,6 +122,48 @@ FileCheckbox = rclass
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
+# TODO: Something should uniformly describe how sorted table headers work.
+# 5/8/2017 We have 3 right now, Course students and assignments panel and this one.
+ListingHeader = rclass
+    propTypes:
+        active_file_sort : rtypes.object    # {column_name : string, is_descending : bool}
+        sort_by          : rtypes.func      # Invoked as `sort_by(string)
+
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@props.sort_by(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_file_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_file_sort.column_name == column_name}
+        </a>
+
+    render: ->
+        row_styles =
+            cursor          : 'pointer'
+            color           : '#666'
+            backgroundColor : '#fafafa'
+            border          : '1px solid #eee'
+            borderRadius    : '4px'
+
+        <Row style={row_styles}>
+            <Col sm=2 xs=3>
+            </Col>
+            <Col sm=1 xs=3>
+                {@render_sort_link("type", "Type")}
+            </Col>
+            <Col sm=4 smPush=5 xs=6>
+                {@render_sort_link("time", "Date Modified")}
+                <span className='pull-right'>
+                    {@render_sort_link("size", "Size")}
+                </span>
+            </Col>
+            <Col sm=5 smPull=4 xs=12>
+                {@render_sort_link("name", "Name")}
+            </Col>
+        </Row>
+
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
 
@@ -539,6 +581,7 @@ FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
+        active_file_sort    : rtypes.object
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -554,6 +597,7 @@ FileListing = rclass
         project_id          : rtypes.string
         show_upload         : rtypes.bool
         shift_is_down       : rtypes.bool
+        sort_by             : rtypes.func
 
     getDefaultProps: ->
         file_search : ''
@@ -606,34 +650,6 @@ FileListing = rclass
                 no_select    = {@props.shift_is_down}
             />
 
-    handle_parent: (e) ->
-        e.preventDefault()
-        path = misc.path_split(@props.current_path).head
-        @props.actions.open_directory(path)
-
-    parent_directory: ->
-        styles =
-            fontWeight   : 'bold'
-            whiteSpace   : 'pre-wrap'
-            wordWrap     : 'break-word'
-            overflowWrap : 'break-word'
-
-        row_styles =
-            backgroundColor : '#fafafa'
-            border          : '1px solid #eee'
-            cursor          : 'pointer'
-            borderRadius    : '4px'
-
-        if @props.current_path.length > 0
-            <Row style={row_styles} onClick={@handle_parent}>
-                <Col sm=1 smOffset=1>
-                    <a><Icon name='reply' style={fontSize:'14pt'} /></a>
-                </Col>
-                <Col sm=4 style={styles}>
-                    <a href=''>Parent Directory</a>
-                </Col>
-            </Row>
-
     render_rows: ->
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
@@ -655,7 +671,11 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode()}
-            {@parent_directory()}
+            {<ListingHeader
+                active_file_sort = {@props.active_file_sort}
+                sort_by          = {@props.sort_by}
+                check_all        = false
+                /> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
         </Col>
@@ -700,29 +720,12 @@ ProjectFilesButtons = rclass
 
     propTypes :
         show_hidden  : rtypes.bool
-        sort_by_time : rtypes.bool
-        default_sort : rtypes.string
-        current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
-
-    componentWillReceiveProps: (next) ->
-        if @props.default_sort != next.default_sort
-            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
-                @props.actions.setState(sort_by_time : next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, next.sort_by_time, next.show_hidden)
-            else
-                @props.actions.setState(sort_by_time : not next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh: (e) ->
         e.preventDefault()
         @props.actions.fetch_directory_listing()
-
-    handle_sort_method: (e) ->
-        e.preventDefault()
-        @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.fetch_directory_listing(sort_by_time : not @props.sort_by_time)
 
     handle_hidden_toggle: (e) ->
         e.preventDefault()
@@ -731,12 +734,6 @@ ProjectFilesButtons = rclass
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
-
-    render_sort_method: ->
-        if @props.sort_by_time
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-numeric-asc' /> </a>
-        else
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-alpha-asc' /> </a>
 
     render_hidden_toggle: ->
         if @props.show_hidden
@@ -755,7 +752,6 @@ ProjectFilesButtons = rclass
     render: ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
-            {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_backup()}
         </div>
@@ -1829,24 +1825,23 @@ exports.ProjectFiles = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map   : rtypes.immutable
+            project_map                       : rtypes.immutable
             date_when_course_payment_required : rtypes.func
-            get_my_group : rtypes.func
-            get_total_project_quotas : rtypes.func
-
+            get_my_group                      : rtypes.func
+            get_total_project_quotas          : rtypes.func
         account :
             other_settings : rtypes.immutable
         billing :
             customer      : rtypes.object
 
         "#{name}" :
+            active_file_sort    : rtypes.object
             current_path        : rtypes.string
             activity            : rtypes.object
             page_number         : rtypes.number
             file_action         : rtypes.string
             file_search         : rtypes.string
             show_hidden         : rtypes.bool
-            sort_by_time        : rtypes.bool
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
@@ -1862,12 +1857,12 @@ exports.ProjectFiles = rclass ({name}) ->
     getDefaultProps: ->
         page_number : 0
         file_search : ''
-        new_name : ''
-        actions : redux.getActions(name) # TODO: Do best practices way
-        redux   : redux
+        new_name    : ''
+        actions     : redux.getActions(name) # TODO: Do best practices way
+        redux       : redux
 
     getInitialState: ->
-        show_pay : false
+        show_pay      : false
         shift_is_down : false
 
     componentDidMount: ->
@@ -1904,7 +1899,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
@@ -1914,7 +1908,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
@@ -2085,6 +2078,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 disabled       = {public_view}
             >
                 <FileListing
+                    active_file_sort    = {@props.active_file_sort}
                     listing             = {listing}
                     page_size           = {@file_listing_page_size()}
                     page_number         = {@props.page_number}
@@ -2099,6 +2093,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     selected_file_index = {@props.selected_file_index}
                     project_id          = {@props.project_id}
                     shift_is_down       = {@state.shift_is_down}
+                    sort_by             = {@props.actions.set_sorted_file_column}
                     event_handlers
                 />
             </SMC_Dropwrapper>
@@ -2132,9 +2127,6 @@ exports.ProjectFiles = rclass ({name}) ->
 
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
-
-    file_listing_default_sort: ->
-        return @props.other_settings?.get('default_file_sort') ? 'time'
 
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
@@ -2186,8 +2178,6 @@ exports.ProjectFiles = rclass ({name}) ->
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
-                        sort_by_time = {@props.sort_by_time ? true}
-                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />

@@ -57,6 +57,8 @@ jupyter = require('./jupyter/jupyter')
 
 {json} = require('./common')
 
+{Watcher} = require('./watcher')
+
 {defaults, required} = misc
 
 DEBUG = false
@@ -663,36 +665,16 @@ class exports.Client extends EventEmitter
             cb : required
         jupyter.get_kernel_data(opts.cb)
 
-    # Watch for changes to the given file.  Returns obj, which
-    # is an event emitter with events:
-    #
-    #    - 'change' - when file changes or is created
-    #    - 'delete' - when file is deleted
-    #
-    # and a method .close().
+    # See the file watcher.coffee for docs
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
             interval : 3000       # polling interval in ms
+            debounce : undefined  # if given, don't fire until at least this many ms after the file has REMAINED UNCHANGED
         path = require('path').join(process.env.HOME, opts.path)
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
-        return new Watcher(path, opts.interval)
-
-
-class Watcher extends EventEmitter
-    constructor: (@path, @interval) ->
-        fs.watchFile(@path, {interval: @interval}, @listen)
-
-    close: () =>
-        @removeAllListeners()
-        fs.unwatchFile(@path, @listener)
-
-    listen: (curr, prev) =>
-        if curr.dev == 0
-            @emit 'delete'
-        else
-            @emit 'change'
+        return new Watcher(path, opts.interval, opts.debounce)
 
 
 

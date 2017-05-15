@@ -73,6 +73,7 @@ window.MathJax = exports.MathJaxConfig =
         skipTags: ["script","noscript","style","textarea","pre","code"]
 
     TeX:
+        MAXBUFFER: 100000  # see https://github.com/mathjax/MathJax/issues/910
         extensions: ["autoload-all.js", "noUndefined.js", "noErrors.js"]
         Macros:  # get these from sage/misc/latex.py
             Bold:  ["\\mathbb{#1}",1]
