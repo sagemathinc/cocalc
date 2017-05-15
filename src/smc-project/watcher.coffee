@@ -13,7 +13,7 @@ and a method .close().
 fs     = require('fs')
 {EventEmitter} = require('events')
 
-class Watcher extends EventEmitter
+class exports.Watcher extends EventEmitter
     constructor: (@path, @interval, @debounce) ->
         fs.watchFile(@path, {interval: @interval}, @listen)
 
