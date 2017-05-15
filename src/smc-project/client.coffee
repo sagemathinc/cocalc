@@ -669,8 +669,8 @@ class exports.Client extends EventEmitter
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
-            interval : 3000       # polling interval in ms
-            debounce : undefined  # if given, don't fire until at least this many ms after the file has REMAINED UNCHANGED
+            interval : 3000     # polling interval in ms
+            debounce : 1000     # don't fire until at least this many ms after the file has REMAINED UNCHANGED
         path = require('path').join(process.env.HOME, opts.path)
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")

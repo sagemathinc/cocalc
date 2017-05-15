@@ -96,7 +96,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 watcher = @_client.watch_file
                     path     : @store.get('path')
                     interval : 3000
-                    debounce : 1000
+                    debounce : 1500
                 watcher.once 'change', =>
                     dbg("file changed")
                     watcher.close()
@@ -462,7 +462,7 @@ class exports.JupyterActions extends actions.JupyterActions
         @_file_watcher = @_client.watch_file
             path     : @store.get('path')
             interval : 3000
-            debounce : 1000
+            debounce : 1500
 
         @_file_watcher.on 'change', =>
             dbg("change")
