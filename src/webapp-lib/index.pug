@@ -7,6 +7,18 @@ mixin start_button
     a.btn.btn-success.btn-xlg(href="app") Start #{NAME} For Free
   p or #[a(href="app") sign in] with your account
 
+mixin video-player
+  div.video-player.fit
+    div.video-overlay.
+      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
+      #[br/]
+      click to play
+    video(loop).fit
+      block
+
+block vars
+  - var subtitle = htmlWebpackPlugin.options.description;
+
 block header
   - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
   - var stat_times_keys = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES_KEY
@@ -38,95 +50,46 @@ block content
         +start_button
 
     div.row
-      //- div.col-md-12.center
-      //-   h1 Collaborative computing environment
+      div.col-md-12.center
+        h1 Online computing environment
       div.col-sm-6
-        img(src=require('!file!sagepreview/01-worksheet.png'))
+        img(src=require('!file-loader!sagepreview/01-worksheet.png'))
       div.col-sm-6
-        p #{NAME} is a sophisticated all-round web-service for
+        p #{NAME} is a #[strong sophisticated web-service] for online computation:
         ul
-          li #[strong Mathematical calculation]: SageMath, SymPy, Maxima;
-          li #[strong Statistical analysis]: R, Pandas, statsmodels, scikit-learn, Tensorflow; and
-          li #[strong Various other computation]: Octave, Julia, etc.
+          li.
+            #[strong Mathematical calculation]:
+            #[a(href="http://www.sagemath.org") SageMath], #[a(href="https://www.sympy.org/") SymPy], #[a(href="http://maxima.sourceforge.net/") Maxima];
+          li.
+            #[strong Statistical analysis]:
+            #[a(href="https://www.r-project.org/") R project], #[a(href="http://pandas.pydata.org/") Pandas], #[a(href="http://www.statsmodels.org/") statsmodels],
+            #[a(href="http://scikit-learn.org/") scikit-learn], #[a(href="https://www.tensorflow.org/") Tensorflow], #[a(href="http://www.nltk.org/") NLTK]; and
+          li.
+            #[strong Various other computation]:
+            #[a(href="https://www.gnu.org/software/octave/") Octave], #[a(href="https://julialang.org/") Julia], etc.
+        p #[strong Zero Setup:] getting started does not require any software setup.
+          ol
+            li First, create your personal #[strong account].
+            li Then, create a #[strong project] to instantiate your own private workspace.
+            li Finally, create a #[strong worksheet] or upload your own files: #{NAME} supports Sage Worksheets, Jupyter Notebooks, Latex files, etc.
+        p #[strong Collaborative Environment]
         p
-          strong Zero Setup
           ul
-            li.
-              Getting started #[em does not require any software installation]:
-              #[strong Create a project for free] to start working in your own private workspace.
-            li Create a worksheet or upload your own files: #{NAME} supports Sage Worksheets, Jupyter Notebooks, Latex files, etc.
-            li Share your files #[em privately] with collaborators. All files are synchronized in real-time.
-            li #[em Time-travel] is a detailed history of your edits, and everything is backed up in #[em consistent snapshots].
-            li Finally, you can publish documents, download any file or share your data publicly.
+            li Share your files #[em privately] with project collaborators &mdash; all files are synchronized in real-time.
+            li #[em Time-travel] is a detailed history of all your edits and everything is backed up in #[em consistent snapshots].
+            li Finally, you can select any document to #[em publish it online].
         p.
-          Each project initially has a quota of #{free_memory_gb} GB memory and
-          #{free_disk_gb} GB of disk space.
-        p.
-          A #[a(href="policies/pricing.html") subscription] gives you a more robust hosting and increased quotas.
+          Initially, a project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+          A #[a(href="policies/pricing.html") subscription] gives you more robust hosting and increased quotas.
         //- p.
         //-   #[a(href="app") Start #{NAME} For Free]
 
-    div.row
-      div.col-md-12.center
-        h1 #[i.fa.fa-graduation-cap] Teaching made easy
-      div.col-sm-6
-        div
-          img(src=require("webapp-lib/assets/cocalc-teaching-rendered.svg")).fit
-      div.col-sm-6
-        p.
-          Have you ever experienced the pain setting up the software environments for your students?
-          With #{NAME} #[strong no software needs to be setup] and you
-          can finally #[strong focus on your students]!
-        ol
-          li Create a course on #{NAME}
-          li Add your students
-          li Distribute assignments and handouts
-          li Jump into student's files right where they are working
-          li Collect and grade assignments
-        p.
-          Combined with #{NAME}'s other unique features you can check and retrace all steps a student takes.
-        ul
-          li Use #[em TimeTravel] to see each step a student took to get to the solution.
-          li Consistent and immutable #[em Backups] guard against losing files.
-          li Via #[em Integrated Chat] you can discuss collected files with your collegues or assistents.
-          li The project's #[em Activity Log] shows you when files were accessed.
-
-
-  a.anchor#a-testimonials
-  div#testimonials
-    div.container
-      div.row
-        div.col-md-12.center
-          h1 Testimonials
-        div.col-md-6
-          blockquote.blockquote
-            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg'))
-            p.
-              I just found out that my #{NAME} class got by far the best course evaluations
-              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
-              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
-              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
-            footer.
-              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
-        div.col-md-6
-          blockquote.blockquote
-            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
-            p.
-              #{NAME} provides a user-friendly interface.
-              Students don’t need to install any software at all.
-              They just open up a web browser and go to #{URL} and that’s it.
-              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
-              It provides immediate feedback.
-              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
-            footer.
-              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
-
   a.anchor#a-explore
-  div#explore
+  div.space#explore
     div.container
       div.row
         div.col-md-12.center
-          h1 Explore #{NAME}
+          h1 #[i.fa.fa-lightbulb-o] Explore #{NAME}
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-archive] Projects
           div.
@@ -157,12 +120,70 @@ block content
             #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
             #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
 
-  a.anchor#a-unique
-  div#unique
+  a.anchor#a-teaching
+  div.space#teaching
     div.container
       div.row
         div.col-md-12.center
-          h1 Unique Features
+          h1 #[i.fa.fa-graduation-cap] Teaching made easy
+        div.col-sm-6
+          div
+            img(src=require("webapp-lib/assets/cocalc-teaching-rendered.svg")).fit
+        div.col-sm-6
+          p.
+            Have you ever experienced the pain setting up the software environments for your students?
+            With #{NAME} #[strong no software needs to be setup] and you
+            can finally #[strong focus on your students]!
+          ol
+            li Create a course on #{NAME}
+            li Add your students
+            li Distribute assignments and handouts
+            li Jump into student's files right where they are working
+            li Collect and grade assignments
+          p.
+            Combined with #{NAME}'s other unique features you can check and retrace all steps a student takes.
+          ul
+            li Use #[em TimeTravel] to see each step a student took to get to the solution.
+            li Consistent and immutable #[em Backups] guard against losing files.
+            li Via #[em Integrated Chat] you can discuss collected files with your collegues or assistents.
+            li The project's #[em Activity Log] shows you when files were accessed.
+
+
+  a.anchor#a-testimonials
+  div#testimonials
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-commenting-o] Testimonials
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg') title="© Autor: Mathematisches Forschungsinstitut Oberwolfach gGmbH (MFO) -- Lizenz: CC BY-SA 2.0 (de)")
+            p.
+              I just found out that my #{NAME} class got by far the best course evaluations
+              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
+              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
+              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
+            footer.
+              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
+            p.
+              #{NAME} provides a user-friendly interface.
+              Students don’t need to install any software at all.
+              They just open up a web browser and go to #{URL} and that’s it.
+              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+              It provides immediate feedback.
+              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
+            footer.
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+
+  a.anchor#a-unique
+  div.space#unique
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-exclamation-circle] Unique Features
         div.col-md-6
           h2 #[i.fa.fa-history] Time-Travel
           div.
@@ -170,9 +191,9 @@ block content
             You can go back and forth in time across hundreds of changes to recover your previous edits!
           br/
           div
-            video(loop autoplay).fit
-              source(src="https://storage.googleapis.com/cocalc-extra/smc-time-travel-4x.webm" type="video/webm; codecs=vp9")
-              source(src="https://storage.googleapis.com/cocalc-extra/smc-time-travel-4x.mp4" type="video/mp4")
+            +video-player
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.webm" type="video/webm; codecs=vp9")
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
         div.col-md-6
           h2 #[i.fa.fa-camera-retro] Backups
           div.
@@ -203,7 +224,7 @@ block content
             img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
 
   a.anchor#a-bottom
-  div#bottom
+  div.space#bottom
     div.container
       div.row
         a.anchor#a-included
@@ -243,6 +264,8 @@ block content
   style
     :sass
       @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
       div#top
         margin           : 10rem 0 5rem 0
         .descr
@@ -260,13 +283,16 @@ block content
           width          : auto
           float          : left
           margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
       div
         img
-          width        : 100%
-          height       : auto
+          width             : 100%
+          height            : auto
         &.row
-          margin-top   : 2rem
-          margin-bottom: 4rem
+          margin-top        : 2rem
+          margin-bottom     : 4rem
           > div
             > h1
               margin-bottom : 4rem
@@ -286,3 +312,19 @@ block content
         font-size        : 24px
         line-height      : 1.5
         font-weight      : bold
+      .video-player
+        position         : relative
+        > .video-overlay
+          width            : 100%
+          height           : 100%
+          position         : absolute
+          top              : 0
+          left             : 0
+          color            : white
+          background-color : rgba(0, 0, 0, .7)
+          cursor           : pointer
+          z-index          : 2
+          text-align       : center
+          display          : flex
+          justify-content  : center
+          flex-direction   : column

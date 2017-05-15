@@ -49,5 +49,16 @@ get_stats = ->
     r.send()
     setTimeout(get_stats, 10 * 1000)
 
+init_video = ->
+    for vplayer in document.getElementsByClassName("video-player")
+        vplayer.onclick = (el) ->
+            t = el.target
+            p = t.parentElement
+            p.remove(t)
+            vp = p.getElementsByTagName("video")[0]
+            vp.setAttribute("controls", "true")
+            vp.play()
+
 document.addEventListener "DOMContentLoaded", ->
     get_stats()
+    init_video()
