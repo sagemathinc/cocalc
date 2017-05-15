@@ -654,7 +654,7 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render: ->
         max = PROJECT_UPGRADES.max_per_project
         <Panel
-            header = 'Maximum possible quotas per project'
+            header = {<span>Maximum possible quotas <strong>per project</strong></span>}
         >
             {@render_project_quota(name, max[name]) for name in PROJECT_UPGRADES.field_order when max[name]}
         </Panel>
@@ -679,11 +679,19 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
             </Tip>
         </div>
 
+    render_header: ->
+      <div style={paddingLeft:"10px"}>
+            <Icon name='battery-empty' />{' '}
+            <span style={fontWeight:'bold'}>Free plan</span>
+        </div>
+
     render: ->
         free = require('smc-util/schema').DEFAULT_QUOTAS
         <Panel
-            header = 'Projects start with these quotas for free'
+            header  = {@render_header()}
+            bsStyle = 'info'
         >
+            <Space/>
             <div style={marginBottom:'5px', marginLeft:'10px'}>
                 <Tip title="Free servers" tip="Many free projects are cramped together inside weaker compute machines, competing for CPU, RAM and I/O.">
                     <span style={fontWeight:'bold',color:'#666'}>low-grade</span><Space/>
@@ -697,6 +705,13 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
                 </Tip>
             </div>
             {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
+            <Space/>
+            <div style={textAlign : 'center', marginTop:'10px'}>
+                <h3 style={textAlign:'left'}>
+                    <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
+                    <span style={fontSize:'30px'}>0</span>
+                </h3>
+            </div>
         </Panel>
 
 PlanInfo = rclass
