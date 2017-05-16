@@ -8,6 +8,10 @@ misc = require('smc-util/misc')
 
 commands = require('./commands')
 
+exports.keyCode_to_chr = (keyCode) ->
+    chrCode = keyCode - (48 * Math.floor(keyCode / 48))
+    return String.fromCharCode(if 96 <= keyCode then chrCode else keyCode)
+
 is_equal = (e1, e2) ->
     for field in ['which', 'ctrl', 'shift', 'alt', 'meta']
         if e1[field] != e2[field]
@@ -52,6 +56,8 @@ exports.create_key_handler = (actions) ->
             add_shortcut(s, name, val)
 
     handler = (evt) ->
+        if actions.store.get('complete')?
+            return actions.complete_handle_key(evt)
         shortcut = evt_to_shortcut(evt, actions.store.get('mode'))
         cmd = shortcut_to_command[shortcut]
         # console.log 'shortcut', shortcut, cmd

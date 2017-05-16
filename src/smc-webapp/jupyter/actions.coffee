@@ -1137,6 +1137,7 @@ class exports.JupyterActions extends Actions
                     if complete.status != 'ok'
                         complete = {error:'completion failed'}
                     delete complete.status
+                complete.args = {code: code, pos:cursor_pos, id:id}
                 # Set the result so the UI can then react to the change.
                 if complete?.matches?.length == 0
                     # do nothing -- no completions at all
@@ -1165,6 +1166,30 @@ class exports.JupyterActions extends Actions
             # so that the editor is already in edit mode.  This way the cursor is
             # in the right position after making the change.
             setTimeout((=> @set_cell_input(id, new_input)), 0)
+
+    complete_handle_key: (evt) =>
+        ###
+        User presses a key while the completions dialog is open.
+        ###
+        if evt.which < 32  # special character, e.g., esc, backspace, etc.
+            if evt.which == 8 # backspace
+                @clear_complete()
+                @set_mode('edit')
+            return
+        args = @store.getIn(['complete', 'args'])
+        if not args?
+            return
+        code = args.get('code') ? ''
+        pos  = args.get('pos') ? code.length
+        c = keyboard.keyCode_to_chr(evt.which)?.toLowerCase()
+        if not c?
+            return
+        code = code.slice(0, pos) + c + code.slice(pos)
+        id   = args.get('id')
+        pos += 1
+        @set_cell_input(id, code)   # this is obviously NOT very multi-user friendly...!
+        @set_mode('edit')
+        @complete(code, pos, id, @store.getIn(['complete', 'offset']))
 
     introspect: (code, level, cursor_pos) =>
         req = @_introspect_request = (@_introspect_request ? 0) + 1
