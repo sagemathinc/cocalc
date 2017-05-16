@@ -1137,28 +1137,22 @@ class exports.JupyterActions extends Actions
                 if @_complete_request > req
                     # future completion or clear happened; so ignore this result.
                     return
-                if err
-                    complete = {error  : err}
-                else
-                    complete = data
-                    if complete.status != 'ok'
-                        complete = {error:'completion failed'}
-                    delete complete.status
+                if err or data?.status != 'ok'
+                    @setState(complete: {error  : err ? 'completion failed'})
+                    return
+                complete = data
+                delete complete.status
                 complete.base = code
                 complete.code = code
                 complete.pos  = cursor_pos
                 complete.id   = id
                 # Set the result so the UI can then react to the change.
-                if (complete.matches?.length ? 0) == 0
-                    # do nothing -- no completions at all
-                    return
                 if offset?
                     complete.offset = offset
                 @setState(complete: immutable.fromJS(complete))
                 if complete?.matches?.length == 1 and id?
                     # special case -- a unique completion and we know id of cell in which completing is given
                     @select_complete(id, complete.matches[0])
-                    return
         return
 
     clear_complete: =>
@@ -1169,8 +1163,10 @@ class exports.JupyterActions extends Actions
         complete = @store.get('complete')
         @clear_complete()
         @set_mode('edit')
+        if not complete?
+            return
         input = complete.get('code')
-        if complete? and input? and not complete.get('error')?
+        if input? and not complete.get('error')?
             new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
             # We don't actually make the completion until the next render loop,
             # so that the editor is already in edit mode.  This way the cursor is
@@ -1179,6 +1175,7 @@ class exports.JupyterActions extends Actions
 
     merge_cell_input: (id, base, input, save=true) =>
         remote = @store.getIn(['cells', id, 'input'])
+        # console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
         if not remote? or not base? or not input?
             return
         new_input = syncstring.three_way_merge
