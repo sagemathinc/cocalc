@@ -125,6 +125,10 @@ describe "endswith", ->
         endswith("foo", "foobar").should.be.false()
     it "doesn't work with arrays", ->
         (-> endswith("foobar", ["aa", "ab"])).should.not.throw()
+    it "is false if either argument is undefined", ->
+        endswith(undefined, '...').should.be.false()
+        endswith('...', undefined).should.be.false()
+        endswith(undefined, undefined).should.be.false()
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
