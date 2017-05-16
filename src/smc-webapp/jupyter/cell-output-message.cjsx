@@ -1,3 +1,9 @@
+###
+Handling of output messages.
+
+TODO: most components should instead be in separate files.
+###
+
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
@@ -6,6 +12,8 @@ misc = require('smc-util/misc')
 {Button} = require('react-bootstrap')
 
 Ansi = require('ansi-to-react')
+
+{IFrame} = require('./cell-output-iframe')
 
 {get_blob_url} = require('./server-urls')
 
@@ -224,6 +232,10 @@ Data = rclass
                         width      = {width}
                         height     = {height}
                         />
+
+                when 'iframe'
+                   return <IFrame sha1={value} project_id={@props.project_id}/>
+
                 when 'application'
                     switch b
                         when 'javascript'

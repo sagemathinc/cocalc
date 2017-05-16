@@ -22,6 +22,8 @@ node_cleanup = require('node-cleanup')
 
 util = require('smc-webapp/jupyter/util')
 
+iframe = require('smc-webapp/jupyter/iframe')
+
 {remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
 
 nbconvert = require('./nbconvert')
@@ -449,6 +451,13 @@ class Kernel extends EventEmitter
             if content.data[type]?
                 if type.split('/')[0] == 'image' or type == 'application/pdf'
                     content.data[type] = blob_store.save(content.data[type], type)
+                else if type == 'text/html' and iframe.is_likely_iframe(content.data[type])
+                    # Likely iframe, so we treat it as such.  This is very important, e.g.,
+                    # because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
+                    # and remove these and serve them from the backend.
+                    #  {iframe: sha1 of srcdoc}
+                    content.data['iframe'] = iframe.process(content.data[type], blob_store)
+                    delete content.data[type]
 
     # Returns a reference to the blob store.
     get_blob_store: =>
