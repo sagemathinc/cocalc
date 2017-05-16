@@ -38,7 +38,9 @@ Stdout = rclass
             </div>
         else
             <div style={STDOUT_STYLE}>
-                {value}
+                {# This span below is solely to workaround an **ancient** Firefox bug }
+                {# See https://github.com/sagemathinc/smc/issues/1958    }
+                <span>{value}</span>
             </div>
 
 Stderr = rclass
@@ -48,8 +50,8 @@ Stderr = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
-        <div style={STDERR_STYLE}>
-            {@props.message.get('text')}
+        # span below?  what? -- See https://github.com/sagemathinc/smc/issues/1958
+        <div style={STDERR_STYLE}><span>{@props.message.get('text')}</span>
         </div>
 
 Image = rclass
@@ -109,7 +111,9 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            {@props.value}
+            <span>  {# span?  what? -- See https://github.com/sagemathinc/smc/issues/1958 }
+                {@props.value}
+            </span>
         </div>
 
 UntrustedJavascript = rclass
