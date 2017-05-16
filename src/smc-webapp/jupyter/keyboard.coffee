@@ -57,7 +57,7 @@ exports.create_key_handler = (actions) ->
 
     handler = (evt) ->
         if actions.store.get('complete')?
-            return actions.complete_handle_key(evt)
+            return
         shortcut = evt_to_shortcut(evt, actions.store.get('mode'))
         cmd = shortcut_to_command[shortcut]
         # console.log 'shortcut', shortcut, cmd

@@ -1167,29 +1167,29 @@ class exports.JupyterActions extends Actions
             # in the right position after making the change.
             setTimeout((=> @set_cell_input(id, new_input)), 0)
 
-    complete_handle_key: (evt) =>
+    complete_handle_key: (keyCode) =>
         ###
         User presses a key while the completions dialog is open.
         ###
-        if evt.which < 32  # special character, e.g., esc, backspace, etc.
-            if evt.which == 8 # backspace
-                @clear_complete()
-                @set_mode('edit')
+        complete = @store.get('complete')
+        if not complete?
             return
-        args = @store.getIn(['complete', 'args'])
-        if not args?
-            return
-        code = args.get('code') ? ''
-        pos  = args.get('pos') ? code.length
-        c = keyboard.keyCode_to_chr(evt.which)?.toLowerCase()
-        if not c?
-            return
-        code = code.slice(0, pos) + c + code.slice(pos)
-        id   = args.get('id')
-        pos += 1
-        @set_cell_input(id, code)   # this is obviously NOT very multi-user friendly...!
-        @set_mode('edit')
-        @complete(code, pos, id, @store.getIn(['complete', 'offset']))
+        c                     = String.fromCharCode(keyCode)
+        complete              = complete.toJS()  # code is ugly without just doing this - doesn't matter for speed
+        code                  = complete.args.code
+        pos                   = complete.args.pos
+        complete.args.code    = code.slice(0, pos) + c + code.slice(pos)
+        complete.cursor_end  += 1
+        complete.args.pos    += 1
+        target                = complete.args.code.slice(complete.cursor_start, complete.cursor_end)
+        complete.matches      = (x for x in complete.matches when misc.startswith(x, target))
+        if complete.matches.length == 0
+            @clear_complete()
+            @set_mode('edit')
+        else
+            @set_cell_input(complete.args.id, complete.args.code)
+            @setState(complete : immutable.fromJS(complete))
+        return
 
     introspect: (code, level, cursor_pos) =>
         req = @_introspect_request = (@_introspect_request ? 0) + 1
