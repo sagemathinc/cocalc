@@ -493,7 +493,12 @@ class exports.JupyterActions extends Actions
                     if @_syncdb_cell_change(key.get('id'), record)
                         cell_list_needs_recompute = true
                 when 'fatal'
-                    @setState(fatal: record?.get('error'))
+                    error = record?.get('error')
+                    @setState(fatal: error)
+                    # This check can be deleted in a few weeks:
+                    if error? and error.indexOf('file is currently being read or written') != -1
+                        # No longer relevant -- see https://github.com/sagemathinc/smc/issues/1742
+                        @syncdb.delete(type:'fatal')
                 when 'nbconvert'
                     if @_is_project
                         # before setting in store, let backend react to change
