@@ -217,9 +217,9 @@ CONNECT_LINKS =
 THIRD_PARTY =
     sagemath :
         icon : 'cc-icon-sagemath'
-        href : 'http://www.sagemath.org/help.html'
+        href : 'http://www.sagemath.org/'
         link : 'SageMath'
-        text : <span>documentation, help, support and books</span>
+        text : <span>open-source mathematical software</span>
     r :
         icon : 'cc-icon-r'
         href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
@@ -233,7 +233,8 @@ THIRD_PARTY =
                     <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
                     <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
                     <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
-                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a> and many more
+                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a>,{' '}
+                    <a href='http://www.nltk.org/' target='_blank'>NLTK</a> and many more
                </span>
     julia :
         icon : 'cc-icon-julia'
@@ -253,12 +254,13 @@ THIRD_PARTY =
     latex :
         icon : 'cc-icon-tex-file'
         href : 'https://en.wikibooks.org/wiki/LaTeX'
-        link : 'LaTeX introduction'
+        link : 'LaTeX'
+        text : 'high-quality typesetting program'
     linux :
         icon : 'linux'
         href : 'http://ryanstutorials.net/linuxtutorial/'
         link : 'GNU/Linux'
-        text : 'introduction tutorial'
+        text : 'operating system and utility toolbox'
 
 
 ABOUT_LINKS =
