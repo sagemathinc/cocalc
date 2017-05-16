@@ -55,6 +55,9 @@ COLORS =
     GRAY_LL  : '#eeeeee'
     GRAY_LLL : '#f5f5f5'
     BS_BLUE_BGRND : "rgb(66, 139, 202)"
+    BS_GREEN      : '#5CB85C'
+    BS_GREEN_D    : '#449d44'
+    BS_GREEN_DD   : '#398439'
 
 # The definitions below add semantic meaning by using the colors
 

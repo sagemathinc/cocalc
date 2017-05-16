@@ -41,14 +41,14 @@ html.no-js(lang="en")
             img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
-            li
-              a(href=PREFIX + "#a-explore") Explore
+            //- li
+            //-   a(href=PREFIX + "#a-explore") Explore
             li
               a(href=PREFIX + "policies/index.html") Policies
             li
               a(href=PREFIX + "policies/pricing.html") Pricing
             li
-              a.active(href=PREFIX + "app") Get Started
+              a.get-started(href=PREFIX + "app") Get Started
 
     block content
 
@@ -62,6 +62,9 @@ html.no-js(lang="en")
         nav.navbar.navbar-default
           border-bottom    : 2px solid $COL_GRAY
           background-color : $COL_GRAY_LL
+          .get-started
+            color        : $COL_BS_GREEN_DD
+            font-weight  : bold
           .navbar-header
             margin-top     : 5px;
             img.icon
