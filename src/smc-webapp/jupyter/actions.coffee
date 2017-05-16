@@ -37,6 +37,8 @@ jupyter_kernels = undefined
 
 DEFAULT_KERNEL = 'python2'
 
+syncstring    = require('smc-util/syncstring')
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -1137,9 +1139,12 @@ class exports.JupyterActions extends Actions
                     if complete.status != 'ok'
                         complete = {error:'completion failed'}
                     delete complete.status
-                complete.args = {code: code, pos:cursor_pos, id:id}
+                complete.base = code
+                complete.code = code
+                complete.pos  = cursor_pos
+                complete.id   = id
                 # Set the result so the UI can then react to the change.
-                if complete?.matches?.length == 0
+                if (complete.matches?.length ? 0) == 0
                     # do nothing -- no completions at all
                     return
                 if offset?
@@ -1157,15 +1162,26 @@ class exports.JupyterActions extends Actions
 
     select_complete: (id, item) =>
         complete = @store.get('complete')
-        input    = @store.getIn(['cells', id, 'input'])
         @clear_complete()
         @set_mode('edit')
+        input = complete.get('code')
         if complete? and input? and not complete.get('error')?
             new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
             # We don't actually make the completion until the next render loop,
             # so that the editor is already in edit mode.  This way the cursor is
             # in the right position after making the change.
-            setTimeout((=> @set_cell_input(id, new_input)), 0)
+            setTimeout((=> @merge_cell_input(id, complete.get('base'), new_input)), 0)
+
+    merge_cell_input: (id, base, input, save=true) =>
+        remote = @store.getIn(['cells', id, 'input'])
+        if not remote? or not base? or not input?
+            return
+        new_input = syncstring.three_way_merge
+            base   : base
+            local  : input
+            remote : remote
+        @set_cell_input(id, new_input, save)
+        return
 
     complete_handle_key: (keyCode) =>
         ###
@@ -1176,18 +1192,19 @@ class exports.JupyterActions extends Actions
             return
         c                     = String.fromCharCode(keyCode)
         complete              = complete.toJS()  # code is ugly without just doing this - doesn't matter for speed
-        code                  = complete.args.code
-        pos                   = complete.args.pos
-        complete.args.code    = code.slice(0, pos) + c + code.slice(pos)
+        code                  = complete.code
+        pos                   = complete.pos
+        complete.code         = code.slice(0, pos) + c + code.slice(pos)
         complete.cursor_end  += 1
-        complete.args.pos    += 1
-        target                = complete.args.code.slice(complete.cursor_start, complete.cursor_end)
+        complete.pos         += 1
+        target                = complete.code.slice(complete.cursor_start, complete.cursor_end)
         complete.matches      = (x for x in complete.matches when misc.startswith(x, target))
         if complete.matches.length == 0
             @clear_complete()
             @set_mode('edit')
         else
-            @set_cell_input(complete.args.id, complete.args.code)
+            @merge_cell_input(complete.id, complete.base, complete.code)
+            complete.base = complete.code
             @setState(complete : immutable.fromJS(complete))
         return
 
