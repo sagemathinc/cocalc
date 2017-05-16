@@ -7,15 +7,6 @@ mixin start_button
     a.btn.btn-success.btn-xlg(href="app") Start #{NAME} For Free
   p or #[a(href="app") sign in] with your account
 
-mixin video-player
-  div.video-player.fit
-    div.video-overlay.
-      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
-      #[br/]
-      click to play
-    video(loop).fit
-      block
-
 block vars
   - var subtitle = htmlWebpackPlugin.options.description;
 
@@ -59,7 +50,7 @@ block content
         ul
           li.
             #[strong Mathematical calculation]:
-            #[a(href="http://www.sagemath.org") SageMath], #[a(href="https://www.sympy.org/") SymPy], #[a(href="http://maxima.sourceforge.net/") Maxima];
+            #[a(href="http://www.sagemath.org/") SageMath], #[a(href="https://www.sympy.org/") SymPy], #[a(href="http://maxima.sourceforge.net/") Maxima];
           li.
             #[strong Statistical analysis]:
             #[a(href="https://www.r-project.org/") R project], #[a(href="http://pandas.pydata.org/") Pandas], #[a(href="http://www.statsmodels.org/") statsmodels],
@@ -135,19 +126,18 @@ block content
             With #{NAME} #[strong no software needs to be setup] and you
             can finally #[strong focus on your students]!
           ol
-            li Create a course on #{NAME}
+            li Create a course file on #{NAME}
             li Add your students
             li Distribute assignments and handouts
             li Jump into student's files right where they are working
             li Collect and grade assignments
           p.
-            Combined with #{NAME}'s other unique features you can check and retrace all steps a student takes.
+            Combined with #{NAME}'s other unique features you can check, guide and retrace all steps a student takes.
           ul
-            li Use #[em TimeTravel] to see each step a student took to get to the solution.
-            li Consistent and immutable #[em Backups] guard against losing files.
-            li Via #[em Integrated Chat] you can discuss collected files with your collegues or assistents.
-            li The project's #[em Activity Log] shows you when files were accessed.
-
+            li Use #[strong TimeTravel] to see each step a student took to get to the solution.
+            li Consistent and immutable #[strong Backups] make losing files impossible.
+            li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
+            li The project's #[strong Activity Log] records exactly who and when a file was accessed.
 
   a.anchor#a-testimonials
   div#testimonials
@@ -308,23 +298,3 @@ block content
           white-space    : nowrap
       #included > div
         padding          : 0
-      .btn-xlg
-        font-size        : 24px
-        line-height      : 1.5
-        font-weight      : bold
-      .video-player
-        position         : relative
-        > .video-overlay
-          width            : 100%
-          height           : 100%
-          position         : absolute
-          top              : 0
-          left             : 0
-          color            : white
-          background-color : rgba(0, 0, 0, .7)
-          cursor           : pointer
-          z-index          : 2
-          text-align       : center
-          display          : flex
-          justify-content  : center
-          flex-direction   : column

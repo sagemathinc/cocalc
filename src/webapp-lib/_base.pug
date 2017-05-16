@@ -1,5 +1,14 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
+mixin video-player
+  div.video-player.fit
+    div.video-overlay.
+      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
+      #[br/]
+      click to play
+    video(loop).fit
+      block
+
 doctype html
 
 -
@@ -27,7 +36,7 @@ html.no-js(lang="en")
     nav.navbar.navbar-default.navbar-fixed-top
       div.container
         div.navbar-header
-          a(href=PREFIX + "#a-top")
+          a(href=PREFIX)
             img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
             img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
         div.collapse.navbar-collapse
@@ -87,6 +96,29 @@ html.no-js(lang="en")
           position       : relative
           top            : -5rem
           visibility     : hidden
+        blockquote.blockquote
+          font-size      : inherit
+        .btn-xlg
+          font-size        : 24px
+          line-height      : 1.5
+          font-weight      : bold
+        .video-player
+          position         : relative
+          > .video-overlay
+            width            : 100%
+            height           : 100%
+            position         : absolute
+            top              : 0
+            left             : 0
+            color            : white
+            background-color : rgba(0, 0, 0, .5)
+            cursor           : pointer
+            z-index          : 2
+            text-align       : center
+            display          : flex
+            justify-content  : center
+            flex-direction   : column
+
 
     script
       :coffee-script

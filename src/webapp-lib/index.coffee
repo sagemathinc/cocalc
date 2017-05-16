@@ -5,6 +5,8 @@
 # this is embedded into index.pug to do some dynamic changes.
 # the overall goal is to be slick and simple to avoid any slowdowns whatsoever...
 
+'use strict'
+
 stat_rows = [
     ['Modified projects', 'projects_edited'],
     ['Created projects', 'projects_created'],
@@ -51,13 +53,15 @@ get_stats = ->
 
 init_video = ->
     for vplayer in document.getElementsByClassName("video-player")
-        vplayer.onclick = (el) ->
-            t = el.target
-            p = t.parentElement
-            p.remove(t)
-            vp = p.getElementsByTagName("video")[0]
-            vp.setAttribute("controls", "true")
-            vp.play()
+        vid  = vplayer.getElementsByTagName("video")[0]
+        over = vplayer.getElementsByClassName("video-overlay")[0]
+        do (vplayer, vid) ->
+            vplayer.onclick = (el) ->
+                console.log vplayer, over, vid
+                vplayer.removeChild(over)
+                vid.setAttribute("controls", "true")
+                vid.setAttribute("loop", "true")
+                vid.play()
 
 document.addEventListener "DOMContentLoaded", ->
     get_stats()
