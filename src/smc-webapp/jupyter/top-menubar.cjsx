@@ -165,15 +165,14 @@ exports.TopMenubar = rclass ({name}) ->
             return
         else
             kernels = @props.kernels.toJS()
-            get_val = (x) -> (x.display_name ? x.name ? '').toUpperCase()
-            for kernel in kernels.sort((a, b) -> misc.cmp(get_val(a), get_val(b)))
+            for kernel in kernels
                 @render_kernel_item(kernel)
 
     render_kernel: ->
         items = @render_kernel_items()
         names = ["#{if @props.kernel_state != 'busy' then '<' else ''}interrupt kernel", 'confirm restart kernel', 'confirm restart kernel and clear output', \
                  'confirm restart kernel and run all cells', '', \
-                 '<Change kernel...'].concat(items)
+                 '<Change kernel...'].concat(items).concat(['', 'refresh kernels'])
 
         @render_menu
             heading : 'Kernel'

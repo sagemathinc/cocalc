@@ -185,35 +185,38 @@ class exports.JupyterActions extends Actions
         ).fail (err) => opts.cb?(err.statusText ? 'error')
         return
 
+    fetch_jupyter_kernels: =>
+        f = (cb) =>
+            if @_state == 'closed'
+                cb(); return
+            @_ajax
+                url     : server_urls.get_server_url(@store.get('project_id')) + '/kernels.json'
+                timeout : 3000
+                cb      : (err, data) =>
+                    if err
+                        cb(err)
+                        return
+                    try
+                        jupyter_kernels = immutable.fromJS(data)
+                        @setState(kernels: jupyter_kernels)
+                        # We must also update the kernel info (e.g., display name), now that we
+                        # know the kernels (e.g., maybe it changed or is now known but wasn't before).
+                        @setState(kernel_info: @store.get_kernel_info(@store.get('kernel')))
+                        cb()
+                    catch e
+                        @set_error("Error setting Jupyter kernels -- #{data} #{e}")
+
+        misc.retry_until_success
+            f           : f
+            start_delay : 1500
+            max_delay   : 15000
+            max_time    : 60000
+
     set_jupyter_kernels: =>
         if jupyter_kernels?
             @setState(kernels: jupyter_kernels)
         else
-            f = (cb) =>
-                if @_state == 'closed'
-                    cb(); return
-                @_ajax
-                    url     : server_urls.get_server_url(@store.get('project_id')) + '/kernels.json'
-                    timeout : 3000
-                    cb      : (err, data) =>
-                        if err
-                            cb(err)
-                            return
-                        try
-                            jupyter_kernels = immutable.fromJS(data)
-                            @setState(kernels: jupyter_kernels)
-                            # We must also update the kernel info (e.g., display name), now that we
-                            # know the kernels (e.g., maybe it changed or is now known but wasn't before).
-                            @setState(kernel_info: @store.get_kernel_info(@store.get('kernel')))
-                            cb()
-                        catch e
-                            @set_error("Error setting Jupyter kernels -- #{data} #{e}")
-
-            misc.retry_until_success
-                f           : f
-                start_delay : 1500
-                max_delay   : 15000
-                max_time    : 60000
+            @fetch_jupyter_kernels()
 
     set_error: (err) =>
         if not err?
