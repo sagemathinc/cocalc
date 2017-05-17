@@ -46,7 +46,7 @@ block content
       div.col-sm-6
         img(src=require('!file-loader!sagepreview/01-worksheet.png'))
       div.col-sm-6
-        p #{NAME} is a #[strong sophisticated web-service] for online computation:
+        p #{NAME} is a #[strong sophisticated web service] for online computation:
         ul
           li.
             #[strong Mathematical calculation]:
@@ -54,7 +54,7 @@ block content
           li.
             #[strong Statistical analysis]:
             #[a(href="https://www.r-project.org/") R project], #[a(href="http://pandas.pydata.org/") Pandas], #[a(href="http://www.statsmodels.org/") statsmodels],
-            #[a(href="http://scikit-learn.org/") scikit-learn], #[a(href="https://www.tensorflow.org/") Tensorflow], #[a(href="http://www.nltk.org/") NLTK]; and
+            #[a(href="http://scikit-learn.org/") scikit-learn], #[a(href="https://www.tensorflow.org/") Tensorflow], #[a(href="http://www.nltk.org/") NLTK];
           li.
             #[strong Various other computation]:
             #[a(href="https://www.gnu.org/software/octave/") Octave], #[a(href="https://julialang.org/") Julia], etc.
@@ -84,28 +84,29 @@ block content
           div.
             Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong private projects].
             They form your personal workspaces containing your files, computational worksheets, and data.
-            You run your computations through the web-interface, either via interactive worksheets, notebooks, or by executing a program in a terminal.
+            You run your computations through the web interface, via interactive worksheets and notebooks,
+            or by executing a program in a terminal.
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-users] Collaboration
           div.
             You can invite collaborators to work with you inside a project.
             Like you, they can edit the files in that project.
-            Edits are visible in #[strong real-time] for everyone online.
-            You can share your thoughts in a #[strong side-chat] next to each document.
+            Edits are visible in #[strong real time] for everyone online.
+            You can share your thoughts in a #[strong side chat] next to each document.
         div.clearfix.visible-sm-block
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-graduation-cap] Teaching
           div.
             #{htmlWebpackPlugin.options.title} offers sophisticated tools for teaching.
             Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
-            While students work on it you can assist them by jumping right into their files where they're working.
+            While students work on it, you can assist them by jumping right into their files where they're working.
             Later, collect, grade and re-distribute the files.
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-text-o] Authoring
           div.
             Write scientific documents online in a #[strong LaTeX editor].
             It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
-            and also supports advanced features like
+            also supports advanced features like
             #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
             #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
 
@@ -120,7 +121,7 @@ block content
             img(src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
         div.col-sm-6
           p.
-            Have you ever experienced the pain setting up the software environments for your students?
+            Have you experienced the pain of setting up the software environments for your students?
             With #{NAME} #[strong no software needs to be setup] and you
             can finally #[strong focus on your students]!
           ol
@@ -135,7 +136,7 @@ block content
             li Use #[strong TimeTravel] to see each step a student took to get to the solution.
             li Consistent and immutable #[strong Backups] make losing files impossible.
             li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
-            li The project's #[strong Activity Log] records exactly who and when a file was accessed.
+            li The project's #[strong Activity Log] records exactly when a file is accessed and by which user.
 
   a.anchor#a-testimonials
   div#testimonials
@@ -158,13 +159,13 @@ block content
             img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
             p.
               #{NAME} provides a user-friendly interface.
-              Students don’t need to install any software at all.
-              They just open up a web browser and go to #{URL} and that’s it.
+              Students don't need to install any software at all.
+              They just open up a web browser and go to #[a(href=URL) #{URL}] and that's it.
               They just type code directly in, hit shift+enter and it runs, and they can see if it works.
               It provides immediate feedback.
-              The #[a(href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank") course management features] work really well.
+              The #[a(href="https://mikecroucher.github.io/SMC_tutorial/") course management features] work really well.
             footer.
-              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles, Fall 2016
 
   a.anchor#a-unique
   div.space#unique
@@ -175,8 +176,8 @@ block content
         div.col-md-6
           h2 #[i.fa.fa-history] Time-Travel
           div.
-            All your changes are recorded in fine details.
-            You can go back and forth in time across hundreds of changes to recover your previous edits!
+            All your changes are recorded in fine detail.
+            You can go back and forth in time across hundreds of changes to recover your previous edits.
           br/
           div
             +video-player
@@ -197,9 +198,8 @@ block content
           div.
             A #[strong stand-alone] chat and #[strong side-by-side] chat for each file
             gives you the ability to discuss the content with your collegues.
-            Collaborators who are not online,
-            will be notified about new messages the next time they sign in.
-            It supports markdown formatting and Latex formulas.
+            Collaborators who are not online will be notified about new messages the next time they sign in.
+            Chat supports markdown formatting and Latex formulas.
           br/
           div
             img(src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
@@ -234,7 +234,7 @@ block content
           h2 #[i.fa.cc-icon-markdown] Markdown/HTML
           div.
             There is also support for editing #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] or HTML documents.
-            The live-preview supports LaTeX formulas and embedded graphics.
+            The live preview supports LaTeX formulas and embedded graphics.
           br/
           div
             img(src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
