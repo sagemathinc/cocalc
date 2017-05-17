@@ -21,14 +21,15 @@ exports.InsertCell = rclass
         new_id = @props.actions.insert_cell(if @props.position=='below' then 1 else -1)
         if e.shiftKey or e.ctrlKey or e.altKey or e.metaKey
             @props.actions.set_cell_type(new_id, "markdown")
+        @setState(hover:false)
 
     render: ->
         style = {height:'6px'}
         if @state.hover
             style.backgroundColor = '#428bca'
         <div
-            style   = {style}
-            onClick = {@click}
+            style        = {style}
+            onClick      = {@click}
             onMouseEnter = {=>@setState(hover:true)}
             onMouseLeave = {=>@setState(hover:false)}
             >
