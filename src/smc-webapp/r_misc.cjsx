@@ -1005,7 +1005,7 @@ exports.SaveButton = rclass
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}
         </Button>
 
-# Compnent to attempt opening an smc path in a project
+# Component to attempt opening an smc path in a project
 exports.PathLink = rclass
     displayName : 'Misc-PathLink'
 
@@ -1025,8 +1025,7 @@ exports.PathLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        path_head = 'files'
-        path_head += '/' if @props.path[0] != '/'
+        path_head = 'files/'
         @actions('projects').open_project
             project_id : @props.project_id
             target     : path_head + @props.path

@@ -164,8 +164,12 @@ $.fn.process_smc_links = (opts={}) ->
                             # absolute path with /projects/ omitted -- /..project_id../files/....
                             target = decodeURI(target.slice(1))  # just get rid of leading slash
                         else if target[0] == '/' and opts.project_id
-                            # absolute inside of project
-                            target = misc.path_join(opts.project_id, 'files', decodeURI(target)?'')
+                            # absolute inside of project -- we CANNOT use join here
+                            # since it is critical to **keep** the slash to get
+                            #   .../files//path/to/somewhere
+                            # Otherwise, there is now way to represent an absolute path.
+                            # A URL isn't just a unix path in general.
+                            target = opts.project_id + '/files/' + decodeURI(target)
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
                             target = misc.path_join(opts.project_id, 'files', opts.file_path?'', decodeURI(target)?'')

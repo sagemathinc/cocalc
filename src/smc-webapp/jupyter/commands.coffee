@@ -361,6 +361,10 @@ exports.commands = (actions) ->
         m : 'Print Preview...'
         f : -> actions.show_nbconvert_dialog('html')
 
+    'refresh kernels' :
+        m : 'Refresh Kernel List'
+        f : -> actions.fetch_jupyter_kernels()
+
     'rename notebook' :
         m : 'Rename...'
         f : -> actions.file_action('rename')

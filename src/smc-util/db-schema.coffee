@@ -232,7 +232,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                 other_settings  :
-                    confirm_close     : false
+                    confirm_close     : true
                     mask_files        : true
                     page_size         : 50
                     standby_timeout_m : 10

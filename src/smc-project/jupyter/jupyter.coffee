@@ -2,10 +2,11 @@
 Jupyter Backend
 ###
 
+{EventEmitter} = require('events')
+
 async = require('async')
 
-
-{EventEmitter} = require('events')
+kernelspecs = require('kernelspecs')
 
 fs = require('fs')
 
@@ -21,6 +22,8 @@ misc_node = require('smc-util-node/misc_node')
 node_cleanup = require('node-cleanup')
 
 util = require('smc-webapp/jupyter/util')
+
+iframe = require('smc-webapp/jupyter/iframe')
 
 {remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
 
@@ -77,6 +80,7 @@ node_cleanup =>
     for id, kernel of _jupyter_kernels
         kernel.close()
 
+logger = undefined
 class Kernel extends EventEmitter
     constructor : (@name, @_dbg, @_path, @_actions) ->
         @store = key_value_store()
@@ -89,6 +93,7 @@ class Kernel extends EventEmitter
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
+        logger = @dbg
         process.on('exit', @close)
         @setMaxListeners(100)
 
@@ -449,6 +454,13 @@ class Kernel extends EventEmitter
             if content.data[type]?
                 if type.split('/')[0] == 'image' or type == 'application/pdf'
                     content.data[type] = blob_store.save(content.data[type], type)
+                else if type == 'text/html' and iframe.is_likely_iframe(content.data[type])
+                    # Likely iframe, so we treat it as such.  This is very important, e.g.,
+                    # because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
+                    # and remove these and serve them from the backend.
+                    #  {iframe: sha1 of srcdoc}
+                    content.data['iframe'] = iframe.process(content.data[type], blob_store)
+                    delete content.data[type]
 
     # Returns a reference to the blob store.
     get_blob_store: =>
@@ -692,38 +704,33 @@ class Kernel extends EventEmitter
                 opts.cb("no route '#{opts.segments.join('/')}'")
 
 
-_kernel_data =
-    kernelspecs          : undefined
-    jupyter_kernels      : undefined
-    jupyter_kernels_json : undefined
+_kernel_data = undefined
 
 exports.get_kernel_data = get_kernel_data = (cb) ->
-    # TODO: move out and unit test... or switch to using https://github.com/nteract/kernelspecs
-    if _kernel_data.jupyter_kernels_json?
+    if _kernel_data?
         cb(undefined, _kernel_data)
         return
 
-    misc_node.execute_code
-        command : 'jupyter'
-        args    : ['kernelspec', 'list', '--json']
-        cb      : (err, output) =>
-            if err
-                cb(err)
-                return
-            try
-                _kernel_data.kernelspecs = JSON.parse(output.stdout).kernelspecs
-                v = []
-                for kernel, value of _kernel_data.kernelspecs
-                    v.push
-                        name         : kernel
-                        display_name : value.spec.display_name
-                        language     : value.spec.language
-                v.sort(misc.field_cmp('name'))
-                _kernel_data.jupyter_kernels = v
-                _kernel_data.jupyter_kernels_json = JSON.stringify(_kernel_data.jupyter_kernels)
-                cb(undefined, _kernel_data)
-            catch err
-                cb(err)
+    fail = (err) =>
+        cb(err ? 'fail')
+
+    success = (kernelspecs) =>
+        _kernel_data = {kernelspecs: kernelspecs}
+        v = []
+        for kernel, value of _kernel_data.kernelspecs
+            v.push
+                name         : kernel
+                display_name : value.spec.display_name
+                language     : value.spec.language
+        v.sort(misc.field_cmp('display_name'))
+        _kernel_data.jupyter_kernels = v
+        _kernel_data.jupyter_kernels_json = JSON.stringify(_kernel_data.jupyter_kernels)
+        # cache, but only for a few seconds so many requests near each other are fast.
+        setTimeout((->_kernel_data=undefined), 5000)
+        cb(undefined, _kernel_data)
+
+    # Now do it -- this takes only a few ms.
+    kernelspecs.findAll().then(success, fail)
 
 
 jupyter_kernel_info_handler = (base, router) ->
@@ -750,9 +757,12 @@ jupyter_kernel_info_handler = (base, router) ->
                 if not kernel?
                     res.send("no such kernel '#{name}'")  # todo: error?
                     return
-                path = require('path').join(kernel.resource_dir, segments.slice(1).join('/'))
+                # kernelspecs incorrectly calls it resources_dir instead of resource_dir.
+                # See https://github.com/nteract/kernelspecs/issues/25
+                resource_dir = kernel.resource_dir ? kernel.resources_dir
+                path = require('path').join(resource_dir, segments.slice(1).join('/'))
                 path = require('path').resolve(path)
-                if not misc.startswith(path, kernel.resource_dir)
+                if not misc.startswith(path, resource_dir)
                     # don't let user use .. or something to get any file on the server...!
                     # (this really can't happen due to url rules already; just being super paranoid.)
                     res.send("suspicious path '#{path}'")

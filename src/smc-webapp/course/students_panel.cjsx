@@ -32,6 +32,7 @@ misc = require('smc-util/misc')
 {User} = require('../users')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
+course_funcs = require('./course_funcs')
 
 selected_entry_style =
     border        : '1px solid #aaa'
@@ -263,20 +264,6 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_error()}
         </div>
 
-    sort_on_string_field: (field) ->
-        (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
-
-    sort_on_numerical_field: (field) ->
-        (a,b) -> misc.cmp(a[field] * -1, b[field] * -1)
-
-    pick_sorter: (sort=@props.active_student_sort) ->
-        switch sort.column_name
-            when "email" then @sort_on_string_field("email_address")
-            when "first_name" then @sort_on_string_field("first_name")
-            when "last_name" then @sort_on_string_field("last_name")
-            when "last_active" then @sort_on_numerical_field("last_active")
-            when "hosting" then @sort_on_numerical_field("hosting")
-
     compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
@@ -291,27 +278,8 @@ exports.StudentsPanel = rclass ({name}) ->
         # deleted        : False
         # note           : "Is younger sister of Abby Florence (TA)"
 
-        v = immutable_to_list(@props.students, 'student_id')
-        # Fill in values
-        # TODO: Caching
-        for x in v
-            if x.account_id?
-                user = @props.user_map.get(x.account_id)
-                x.first_name ?= user?.get('first_name') ? ''
-                x.last_name  ?= user?.get('last_name') ? ''
-                if x.project_id?
-                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime?()
-                    upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
-                    if upgrades?
-                        x.hosting = upgrades.member_host
-
-            x.first_name  ?= ""
-            x.last_name   ?= ""
-            x.last_active ?= 0
-            x.hosting ?= false
-            x.email_address ?= ""
-
-        v.sort(@pick_sorter())
+        v = course_funcs.parse_students(@props.students, @props.user_map, @props.redux)
+        v.sort(course_funcs.pick_student_sorter(@props.active_student_sort))
 
         if @props.active_student_sort.is_descending
             v.reverse()

@@ -80,7 +80,7 @@ describe 'edge cases completion tests -- ', ->
             opts.cb(undefined, resp)
         actions.complete('imasdlknaskdvnaidsfioahefhoiaioasdf')
         # it just stays undefined doing nothing
-        expect(store.get('complete')).toBe(undefined)
+        expect(store.getIn(['complete', 'matches']).size).toBe(0)
 
     it 'does a completion with 1 result, but with no id set (so nothing special happens)', ->
         resp = {"matches":['foo'],"status":"ok","cursor_start":0,"cursor_end":2}
@@ -89,7 +89,7 @@ describe 'edge cases completion tests -- ', ->
             opts.cb(undefined, resp)
         actions.complete('fo')
         # it just stays undefined doing nothing
-        expect(store.get('complete')?.toJS()).toEqual({ cursor_end: 2, cursor_start: 0, matches: [ 'foo' ]})
+        expect(store.get('complete')?.toJS()).toEqual({ base: 'fo', code: 'fo', cursor_end: 2, cursor_start: 0, id: undefined, matches: [ 'foo' ], pos: undefined })
 
     it 'does a completion with 1 result with a cell id set, and verifies that it modifies that cell', (done) ->
         id = store.get('cell_list').get(0)
@@ -98,7 +98,7 @@ describe 'edge cases completion tests -- ', ->
         actions.setState(identity:'fake')
         actions._ajax = (opts) =>
             opts.cb(undefined, resp)
-        actions.complete('fo', 6, id)
+        actions.complete('a = fo', 6, id)
         # Result should be to modify the cell, but not open completions info
         expect(store.get('complete')?.toJS()).toBe(undefined)
         # but this happens in the next time slice to avoid subtle cursor issues, so:

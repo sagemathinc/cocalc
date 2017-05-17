@@ -151,6 +151,8 @@ class ProjectActions extends Actions
             @clear_ghost_file_tabs()
         else
             @add_a_ghost_file_tab()
+        window.clearTimeout(@last_close_timer)
+        @last_close_timer = window.setTimeout(@clear_ghost_file_tabs, 5000)
         @close_file(path)
 
     # Expects one of ['files', 'new', 'log', 'search', 'settings']

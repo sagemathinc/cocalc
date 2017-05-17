@@ -43,6 +43,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
         "#{name}":
             expanded_assignments   : rtypes.immutable.Set
             active_assignment_sort : rtypes.object
+            active_student_sort    : rtypes.immutable.Map
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -102,11 +103,17 @@ exports.AssignmentsPanel = rclass ({name}) ->
 
     render_assignments: (assignments) ->
         for x,i in assignments
-            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.all_assignments.get(x.assignment_id)}
-                    project_id={@props.project_id}  redux={@props.redux}
-                    students={@props.students} user_map={@props.user_map}
-                    name={@props.name}
-                    is_expanded={@props.expanded_assignments.has(x.assignment_id)}
+            <Assignment
+                    key                 = {x.assignment_id}
+                    assignment          = {@props.all_assignments.get(x.assignment_id)}
+                    background          = {if i%2==0 then "#eee"}
+                    project_id          = {@props.project_id}
+                    redux               = {@props.redux}
+                    students            = {@props.students}
+                    user_map            = {@props.user_map}
+                    name                = {@props.name}
+                    is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
+                    active_student_sort = {@props.active_student_sort}
                     />
 
     render_show_deleted: (num_deleted) ->
@@ -173,17 +180,18 @@ Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
     propTypes :
-        name       : rtypes.string.isRequired
-        assignment : rtypes.object.isRequired
-        project_id : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-        background : rtypes.string
-        is_expanded : rtypes.bool
+        name                : rtypes.string.isRequired
+        assignment          : rtypes.object.isRequired
+        project_id          : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        background          : rtypes.string
+        is_expanded         : rtypes.bool
+        active_student_sort : rtypes.immutable.Map
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort
 
     getInitialState: ->
         confirm_delete : false
@@ -313,9 +321,14 @@ Assignment = rclass
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
-                    <StudentListForAssignment redux={@props.redux} name={@props.name}
-                        assignment={@props.assignment} students={@props.students}
-                        user_map={@props.user_map} />
+                    <StudentListForAssignment
+                        redux               = {@props.redux}
+                        name                = {@props.name}
+                        assignment          = {@props.assignment}
+                        students            = {@props.students}
+                        user_map            = {@props.user_map}
+                        active_student_sort = {@props.active_student_sort}
+                        />
                     {@render_note()}
                 </Panel>
             </Col>
@@ -725,12 +738,13 @@ StudentListForAssignment = rclass
     displayName : "CourseEditor-StudentListForAssignment"
 
     propTypes :
-        name       : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
-        assignment : rtypes.object.isRequired
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-        background : rtypes.string
+        name                : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        assignment          : rtypes.object.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        background          : rtypes.string
+        active_student_sort : rtypes.immutable.Map
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
@@ -744,21 +758,12 @@ StudentListForAssignment = rclass
               info    = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
-        v = course_funcs.immutable_to_list(@props.students, 'student_id')
+        v = course_funcs.parse_students(@props.students, @props.user_map, @props.redux)
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
-        for x in v
-            user = @props.user_map.get(x.account_id)
-            if user?
-                x.first_name = user.get('first_name')
-                x.last_name  = user.get('last_name')
-                x.name = x.first_name + ' ' + x.last_name
-                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
-            else if x.email_address?
-                x.name = x.sort = x.email_address.toLowerCase()
-
-        v.sort (a,b) ->
-            return misc.cmp(a.sort, b.sort)
+        v.sort(course_funcs.pick_student_sorter(@props.active_student_sort.toJS()))
+        if @props.active_student_sort.get('is_descending')
+            v.reverse()
 
         for x in v
             @render_student_info(x.student_id)

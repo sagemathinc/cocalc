@@ -66,7 +66,7 @@ def reload_attached_files_if_mod_smc():
     for filename, mtime in modified_file_iterator():
         basename = os.path.basename(filename)
         timestr = time.strftime('%T', mtime)
-        print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+        log('reloading attached file {0} modified at {1}'.format(basename, timestr))
         from sage_salvus import load
         load(filename)
 

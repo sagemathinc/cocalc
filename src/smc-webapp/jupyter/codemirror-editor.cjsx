@@ -150,6 +150,9 @@ exports.CodeMirrorEditor = rclass
             return
         @props.actions.redo()
 
+    shift_tab_key: ->
+        @cm?.unindent_selection()
+
     tab_key: ->
         if not @cm?
             return
@@ -234,14 +237,15 @@ exports.CodeMirrorEditor = rclass
             return
         options0 = options.toJS()
         if @props.actions?
-            options0.extraKeys            ?= {}
-            options0.extraKeys["Tab"]      = @tab_key
-            options0.extraKeys["Up"]       = @up_key
-            options0.extraKeys["Down"]     = @down_key
-            options0.extraKeys["PageUp"]   = @page_up_key
-            options0.extraKeys["PageDown"] = @page_down_key
-            options0.extraKeys["Cmd-/"]    = "toggleComment"
-            options0.extraKeys["Ctrl-/"]   = "toggleComment"
+            options0.extraKeys             ?= {}
+            options0.extraKeys["Shift-Tab"] = @shift_tab_key
+            options0.extraKeys["Tab"]       = @tab_key
+            options0.extraKeys["Up"]        = @up_key
+            options0.extraKeys["Down"]      = @down_key
+            options0.extraKeys["PageUp"]    = @page_up_key
+            options0.extraKeys["PageDown"]  = @page_down_key
+            options0.extraKeys["Cmd-/"]     = "toggleComment"
+            options0.extraKeys["Ctrl-/"]    = "toggleComment"
         else
             options0.readOnly = true
 

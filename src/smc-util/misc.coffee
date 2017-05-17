@@ -82,6 +82,8 @@ exports.startswith = (s, x) ->
         return false
 
 exports.endswith = (s, t) ->
+    if not s? or not t?
+        return false  # undefined doesn't endswith anything...
     return s.slice(s.length - t.length) == t
 
 # Modifies in place the object dest so that it
