@@ -2,15 +2,12 @@
 React component that renders the ordered list of cells
 ###
 
-immutable = require('immutable')
-
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-
-{Loading} = require('../r_misc')
-
-{Cell} = require('./cell')
-
-keyboard       = require('./keyboard')
+immutable                         = require('immutable')
+{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{Loading}                         = require('../r_misc')
+{Cell}                            = require('./cell')
+{InsertCell}                      = require('./insert-cell')
+keyboard                          = require('./keyboard')
 
 PADDING = 100
 
@@ -146,6 +143,14 @@ exports.CellList = rclass
             # See the complete component in codemirror-static.
             @props.actions.set_mode('edit')
 
+    render_insert_cell: (id, position='above') ->
+        <InsertCell
+            id       = {id}
+            key      = {id+'insert'}
+            position = {position}
+            actions  = {@props.actions}
+        />
+
     render: ->
         if not @props.cell_list?
             return @render_loading()
@@ -171,8 +176,14 @@ exports.CellList = rclass
                     cell_toolbar     = {@props.cell_toolbar}
                     trust            = {@props.trust}
                     />
+            if @props.actions?
+                v.push(@render_insert_cell(id))
             v.push(cell)
             return
+        if @props.actions? and v.length > 0
+            id = @props.cell_list.get(@props.cell_list.size-1)
+            v.push(@render_insert_cell(id, 'below'))
+
         style =
             fontSize        : "#{@props.font_size}px"
             paddingLeft     : '20px'
