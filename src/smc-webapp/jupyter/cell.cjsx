@@ -113,7 +113,7 @@ exports.Cell = rclass
         style =
             border          : "1px solid #{color1}"
             borderLeft      : "5px solid #{color2}"
-            padding         : '5px'
+            padding         : '2px 5px'
             position        : 'relative'
 
         if @props.is_selected

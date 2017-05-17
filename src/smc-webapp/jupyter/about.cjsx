@@ -46,6 +46,7 @@ exports.About = rclass
             <li> Sophisticated handling of large output: throttling, windowing, backend buffering</li>
             <li> Background capture of output even if no user has the notebook open</li>
             <li> Improved phone and tablet support</li>
+            <li> Click blue line between cells to create new cells</li>
             <li> Easily sharing your work publicly with our client-side notebook viewer</li>
             <li> Raw file edit mode: synchronized editing of underlying ipynb file</li>
             <li> Easily export notebook to LaTeX, then edit the generated LaTeX with our integrated LaTeX editor</li>
