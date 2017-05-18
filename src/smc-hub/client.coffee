@@ -67,18 +67,11 @@ class exports.Client extends EventEmitter
         @compute_server  = @_opts.compute_server
 
         @_when_connected = new Date()
-        @_data_handlers  = {}
-        @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
         @_messages =
             being_handled : {}
             total_time    : 0
             count         : 0
-
-        @ip_address = @conn.address.ip
-
-        # A unique id -- can come in handy
-        @id = @conn.id
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
@@ -86,14 +79,29 @@ class exports.Client extends EventEmitter
         # it is safe to carry out a given action.
         @account_id = undefined
 
-        # The persistent sessions that this client started.
+        if @conn?
+            # has a persistent connection, e.g., NOT just used for an API
+            @init_conn()
+        else
+            @id = misc.uuid()
+
+    init_conn: =>
+        # initialize everything related to persistent connections
+        @_data_handlers  = {}
+        @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
+
+        # The persistent sessions that this client starts.
         @compute_session_uuids = []
 
         @install_conn_handlers()
 
+        @ip_address = @conn.address.ip
+
+        # A unique id -- can come in handy
+        @id = @conn.id
+
         # Setup remember-me related cookie handling
         @cookies = {}
-
         c = new Cookies(@conn.request)
         @_remember_me_value = c.get(base_url() + 'remember_me')
 
@@ -155,7 +163,7 @@ class exports.Client extends EventEmitter
         dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
     dbg: (desc) =>
-        if @logger?
+        if @logger?.debug
             return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m...)}")
         else
             return ->
@@ -168,8 +176,8 @@ class exports.Client extends EventEmitter
         @closed = true
         @emit('close')
         @compute_session_uuids = []
-        c = clients[@conn.id]
-        delete clients[@conn.id]
+        c = clients[@id]
+        delete clients[@id]
         if c? and c.call_callbacks?
             for id,f of c.call_callbacks
                 f("connection closed")
@@ -178,10 +186,12 @@ class exports.Client extends EventEmitter
             h.free_resources_for_client_id(@id)
 
     remember_me_failed: (reason) =>
+        return if not @conn?
         @signed_out()  # so can't do anything with projects, etc.
         @push_to_client(message.remember_me_failed(reason:reason))
 
     check_for_remember_me: () =>
+        return if not @conn?
         dbg = @dbg("check_for_remember_me")
         value = @_remember_me_value
         if not value?
@@ -272,6 +282,7 @@ class exports.Client extends EventEmitter
             return
 
     push_data_to_client: (channel, data) ->
+        return if not @conn?
         if @closed
             return
         @conn.write(channel + data)
@@ -288,6 +299,7 @@ class exports.Client extends EventEmitter
         @push_to_client(message.success(id:opts.id))
 
     signed_in: (signed_in_mesg) =>
+        return if not @conn?
         # Call this method when the user has successfully signed in.
 
         @signed_in_mesg = signed_in_mesg  # save it, since the properties are handy to have.
@@ -336,34 +348,34 @@ class exports.Client extends EventEmitter
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url()+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
-        #############################################################
-        # Remember me.  There are many ways to implement
-        # "remember me" functionality in a web app. Here's how
-        # we do it with SMC:    We generate a random uuid,
-        # which along with salt, is stored in the user's
-        # browser as an httponly cookie.  We password hash the
-        # random uuid and store that in our database.  When
-        # the user later visits the SMC site, their browser
-        # sends the cookie, which the server hashes to get the
-        # key for the database table, which has corresponding
-        # value the mesg needed for sign in.  We then sign the
-        # user in using that message.
-        #
-        # The reason we use a password hash is that if
-        # somebody gains access to an entry in the key:value
-        # store of the database, we want to ensure that they
-        # can't use that information to login.  The only way
-        # they could login would be by gaining access to the
-        # cookie in the user's browser.
-        #
-        # There is no point in signing the cookie since its
-        # contents are random.
-        #
-        # Regarding ttl, we use 1 year.  The database will forget
-        # the cookie automatically at the same time that the
-        # browser invalidates it.
-        #
-        #############################################################
+        return if not @conn?
+        ###
+        Remember me.  There are many ways to implement
+        "remember me" functionality in a web app. Here's how
+        we do it with SMC:    We generate a random uuid,
+        which along with salt, is stored in the user's
+        browser as an httponly cookie.  We password hash the
+        random uuid and store that in our database.  When
+        the user later visits the SMC site, their browser
+        sends the cookie, which the server hashes to get the
+        key for the database table, which has corresponding
+        value the mesg needed for sign in.  We then sign the
+        user in using that message.
+
+        The reason we use a password hash is that if
+        somebody gains access to an entry in the key:value
+        store of the database, we want to ensure that they
+        can't use that information to login.  The only way
+        they could login would be by gaining access to the
+        cookie in the user's browser.
+
+        There is no point in signing the cookie since its
+        contents are random.
+
+        Regarding ttl, we use 1 year.  The database will forget
+        the cookie automatically at the same time that the
+        browser invalidates it.
+        ###
 
         # WARNING: The code below is somewhat replicated in
         # passport_login.
@@ -398,6 +410,8 @@ class exports.Client extends EventEmitter
             cb         : opts.cb
 
     invalidate_remember_me: (opts) ->
+        return if not @conn?
+
         opts = defaults opts,
             cb : required
 
@@ -423,6 +437,7 @@ class exports.Client extends EventEmitter
     ###
 
     handle_data_from_client: (data) =>
+        return if not @conn?
         dbg = @dbg("handle_data_from_client")
         ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
         if DEBUG2
@@ -498,6 +513,7 @@ class exports.Client extends EventEmitter
         @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
+        return if not @conn?
         # generate a channel character that isn't already taken -- if these get too large,
         # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
         # however, this is a counter for *each* individual user connection, so they won't get too big.
@@ -525,6 +541,7 @@ class exports.Client extends EventEmitter
     is used to implement the relevant functionality.
     ###
     handle_json_message_from_client: (data) =>
+        return if not @conn?
         if @_ignore_client
             return
         try
@@ -1212,7 +1229,7 @@ class exports.Client extends EventEmitter
                         @push_to_client(message.success(id:mesg.id))
 
     mesg_version: (mesg) =>
-        # The version of the running server.
+        # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
         if mesg.version < smc_version.version

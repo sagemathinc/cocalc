@@ -55,6 +55,8 @@ exports.init_express_http_server = (opts) ->
     router.use(body_parser.json())
     router.use(body_parser.urlencoded({ extended: true }))
 
+    app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
+
     # The webpack content. all files except for unhashed .html should be cached long-term ...
     cacheLongTerm = (res, path) ->
         if not opts.dev  # ... unless in dev mode
@@ -111,17 +113,20 @@ exports.init_express_http_server = (opts) ->
         res.send("#{opts.database.concurrent()}")
 
     # HTTP API
-    router.post '/api/v1', (req, res) ->
-        api_key = req.body.api_key  # TODO: put this in header
-        mesg    = req.body.mesg
+    router.post '/api/v1/*', (req, res) ->
         http_message_api_v1
-            mesg    : mesg
-            api_key : api_key
+            event          : req.path.slice(req.path.lastIndexOf('/') + 1)
+            body           : req.body
+            api_key        : 'todo'  # TODO: put api_key in header
+            logger         : winston
+            database       : opts.database
+            compute_server : opts.compute_server
+            ip_address     : req.ip
             cb      : (err, resp) ->
                 if err
-                    res.send(error:err)
+                    res.status(400).send(error:err)  # Bad Request
                 else
-                    res.send(resp:resp)
+                    res.send(resp)
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()

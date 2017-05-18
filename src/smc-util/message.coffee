@@ -38,6 +38,13 @@ message = (obj) ->
         if opts.event?
             throw Error("ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})")
         defaults(opts, obj)
+    return obj
+
+# messages that can be used by the HTTP api.   {'event':true, ...}
+exports.api_messages = {}
+
+API = (obj) ->
+    exports.api_messages[obj.event] = true
 
 ############################################
 # Compute server messages
@@ -187,7 +194,7 @@ message
 # Information about several projects or accounts
 #############################################
 
-message
+API message
     event       : 'get_usernames'
     id          : undefined
     account_ids : required
@@ -203,7 +210,7 @@ message
 #############################################
 
 # client --> hub
-message
+API message
     event          : 'create_account'
     id             : undefined
     first_name     : required
@@ -220,7 +227,7 @@ message
     reason         : required
 
 # client --> hub
-message
+API message
     event        : 'delete_account'
     id           : undefined
     account_id   : required
@@ -232,7 +239,7 @@ message
     error        : undefined
 
 # client <--> hub
-message
+API message
     event          : 'email_address_availability'
     id             : undefined
     email_address  : required
@@ -283,7 +290,7 @@ message
     id             : undefined
 
 # client --> hub
-message
+API message
     event          : 'change_password'
     id             : undefined
     email_address  : required
@@ -299,7 +306,7 @@ message
     error          : undefined
 
 # client --> hub: "please send a password reset email"
-message
+API message
     event         : "forgot_password"
     id            : undefined
     email_address : required
@@ -323,7 +330,7 @@ message
     error         : false
 
 # client --> hub
-message
+API message
     event             : 'change_email_address'
     id                : undefined
     account_id        : required
@@ -342,7 +349,7 @@ message
 
 # Unlink a passport auth for this account.
 # client --> hub
-message
+API message
     event    : 'unlink_passport'
     strategy : required
     id       : required
@@ -378,33 +385,33 @@ message
     set         : undefined  # name of a cookie to set
     value       : undefined  # value to set cookie to
 
-###################################################################################
-#
-# Project Server <---> Hub interaction
-#
-# These messages are mainly focused on working with individual projects.
-#
-# Architecture:
-#
-#   * The database stores a files object (with the file tree), logs
-#     (of each branch) and a sequence of git bundles that when
-#     combined together give the complete history of the repository.
-#     Total disk usage per project is limited by hard/soft disk quota,
-#     and includes the space taken by the revision history (the .git
-#     directory).
-#
-#   * A project should only be opened by at most one project_server at
-#     any given time (not implemented: if this is violated then we'll
-#     merge the resulting conflicting repo's.)
-#
-#   * Which project_server that has a project opened is stored in the
-#     database.  If a hub cannot connect to a given project server,
-#     the hub assigns a new project_server for the project and opens
-#     the project on the new project_server.  (The error also gets
-#     logged to the database.)  All hubs will use this new project
-#     server henceforth.
-#
-###################################################################################
+###
+
+Project Server <---> Hub interaction
+
+These messages are mainly focused on working with individual projects.
+
+Architecture:
+
+  * The database stores a files object (with the file tree), logs
+    (of each branch) and a sequence of git bundles that when
+    combined together give the complete history of the repository.
+    Total disk usage per project is limited by hard/soft disk quota,
+    and includes the space taken by the revision history (the .git
+    directory).
+
+  * A project should only be opened by at most one project_server at
+    any given time (not implemented: if this is violated then we'll
+    merge the resulting conflicting repo's.)
+
+  * Which project_server that has a project opened is stored in the
+    database.  If a hub cannot connect to a given project server,
+    the hub assigns a new project_server for the project and opens
+    the project on the new project_server.  (The error also gets
+    logged to the database.)  All hubs will use this new project
+    server henceforth.
+
+###
 
 # The open_project message causes the project_server to create a new
 # project or prepare to receive one (as a sequence of blob messages)
@@ -441,7 +448,7 @@ message
 # starting_bundle_number.
 #
 # client --> hub --> project_server
-message
+API message
     event                  : 'save_project'
     id                     : undefined
     project_id             : required    # uuid of a project
@@ -457,11 +464,11 @@ message
 
 
 ######################################################################
-# Execute a program in a given project
+# Execute a shell command in a given project
 ######################################################################
 
 # client --> project
-message
+API message
     event      : 'project_exec'
     id         : undefined
     project_id : undefined
@@ -488,7 +495,7 @@ message
 
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
-message
+API message
     event       : 'jupyter_port'
     port        : undefined  # gets set in response
     id          : undefined
@@ -532,7 +539,7 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-message
+API message
     event        : 'read_text_file_from_project'
     id           : undefined
     project_id   : required
@@ -561,7 +568,7 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-message
+API message
     event        : 'write_text_file_to_project'
     id           : undefined
     project_id   : required
@@ -580,7 +587,7 @@ message
 ############################################
 
 # client --> hub
-message
+API message
     event      : 'create_project'
     id         : undefined
     title      : required
@@ -601,7 +608,7 @@ message
 ## search ---------------------------
 
 # client --> hub
-message
+API message
     event : 'user_search'
     id    : undefined
     query : required    # searches for match in first_name or last_name.
@@ -614,24 +621,25 @@ message
     results : required  # list of {first_name:, last_name:, account_id:} objects.
 
 # hub --> client
-message
+API message
     event : 'project_users'
     id    : undefined
     users : required   # list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
 
-message
+API message
     event      : 'invite_collaborator'
     id         : undefined
     project_id : required
     account_id : required
 
-message
+API message
     event      : 'remove_collaborator'
     id         : undefined
     project_id : required
     account_id : required
 
-message
+# DANGER -- can be used to spam people.
+API message
     event         : 'invite_noncloud_collaborators'
     id            : undefined
     project_id    : required
@@ -648,16 +656,15 @@ message
     id         : undefined
     mesg       : required
 
-############################################
-# Send/receive the current webapp code version number.
-#
-# This can be used by clients to suggest a refresh/restart.
-# The client may sends their version number on connect.
-# If the client sends their version and later it is out of date
-# due to an update, the server sends a new version number update
-# message to that client.
-#
-#############################################
+###
+Send/receive the current webapp code version number.
+
+This can be used by clients to suggest a refresh/restart.
+The client may sends their version number on connect.
+If the client sends their version and later it is out of date
+due to an update, the server sends a new version number update
+message to that client.
+###
 # client <---> hub
 message
     event       : 'version'
@@ -701,12 +708,10 @@ message
     projects   : undefined   # for response
 
 
-###########################################################
-#
-# Direct messaging between browser client and local_hub,
-# forwarded on by global hub after ensuring write access.
-#
-###########################################################
+###
+Direct messaging between browser client and local_hub,
+forwarded on by global hub after ensuring write access.
+###
 message
     event          : 'local_hub'
     project_id     : required
@@ -721,7 +726,7 @@ message
 # Copy a path from one project to another.
 #
 ###########################################################
-message
+API message
     event             : 'copy_path_between_projects'
     id                : undefined
     src_project_id    : required    # id of source project
@@ -752,9 +757,9 @@ message
     network     : undefined    # 1 or 0; if 1, full access to outside network
     member_host : undefined    # 1 or 0; if 1, project will be run on a members-only machine
 
-#############################################
-# Printing Files
-#############################################
+###
+Printing Files
+###
 message
     event        : "print_to_pdf"
     id           : undefined
@@ -766,7 +771,11 @@ message
     id           : undefined
     path         : required
 
-message
+
+###
+Ping/pong -- used for clock sync, etc.
+###
+API message
     event : 'ping'
     id    : undefined
 
@@ -777,30 +786,30 @@ message
 
 
 
-#############################################
-# Reading listings and files from projects
-# without invoking the project server and
-# write auth requirement.  Instead the given
-# path in the project must be public.  These
-# functions don't even assume the client has
-# logged in.
-#############################################
+###
+Reading listings and files from projects
+without invoking the project server and
+write auth requirement.  Instead the given
+path in the project must be public.  These
+functions don't even assume the client has
+logged in.
+###
 
 # return a JSON object with all data that is
 # meant to be publically available about this project,
 # who owns it, the title/description, etc.
-message
+API message
     event         : 'public_get_project_info'
     id            : undefined
     project_id    : required
 
-message
+API message
     event         : 'public_project_info'
     id            : undefined
     info          : required
 
 # public request of listing of files in a project.
-message
+API message
     event         : 'public_get_directory_listing'
     id            : undefined
     project_id    : required
@@ -810,26 +819,24 @@ message
     start         : 0
     limit         : -1
 
-message
+API message
     event         : 'public_directory_listing'
     id            : undefined
     result        : required
 
 # public request of contents of a text file in project
-message
+API message
     event         : 'public_get_text_file'
     id            : undefined
     project_id    : required
     path          : required
 
-message
+API message
     event         : 'public_text_file_contents'
     id            : undefined
     data          : required
 
-
-
-message
+API message
     event             : 'copy_public_path_between_projects'
     id                : undefined
     src_project_id    : required    # id of source project
@@ -842,9 +849,7 @@ message
     exclude_history   : false
     backup            : false
 
-
-
-message
+API message
     event : 'log_client_error'
     error : required
 
@@ -870,18 +875,18 @@ message
     start_time   : undefined # timestamp
 
 
-#############################################
-# stripe integration
-#############################################
+###
+Stripe integration
+###
 
 # Set the stripe payment method for this user.
 
 # customer info
-message
+API message
     event   : 'stripe_get_customer'
     id      : undefined
 
-message
+API message
     event    : 'stripe_customer'
     id       : undefined
     customer : undefined                 # if user already has a stripe customer account, info about it.
@@ -889,22 +894,22 @@ message
 
 
 # card
-message
+API message
     event   : 'stripe_create_source'
     id      : undefined
     token   : required
 
-message
+API message
     event   : 'stripe_delete_source'
     card_id : required
     id      : undefined
 
-message
+API message
     event   : 'stripe_set_default_source'
     card_id : required
     id      : undefined
 
-message
+API message
     event   : 'stripe_update_source'
     card_id : required
     info    : required                  # see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
@@ -914,17 +919,17 @@ message
 # subscriptions to plans
 
 # Get a list of all currently available plans:
-message
+API message
     event    : 'stripe_get_plans'
     id       : undefined
 
-message
+API message
     event    : 'stripe_plans'
     id       : undefined
     plans    : required    # [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
 
 # Create a subscription to a plan
-message
+API message
     event    : 'stripe_create_subscription'
     id       : undefined
     plan     : required   # name of plan
@@ -932,14 +937,14 @@ message
     coupon   : undefined
 
 # Delete a subscription to a plan
-message
+API message
     event           : 'stripe_cancel_subscription'
     id              : undefined
     subscription_id : required
     at_period_end   : true
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
-message
+API message
     event           : 'stripe_update_subscription'
     id              : undefined
     subscription_id : required
@@ -948,7 +953,7 @@ message
     plan            : undefined   # change plan to this
     coupon          : undefined   # apply a coupon to this subscription
 
-message
+API message
     event          : 'stripe_get_subscriptions'
     id             : undefined
     limit          : undefined    # between 1 and 100 (default: 10)
@@ -961,7 +966,7 @@ message
     subscriptions : undefined
 
 # charges
-message
+API message
     event          : 'stripe_get_charges'
     id             : undefined
     limit          : undefined    # between 1 and 100 (default: 10)
@@ -974,7 +979,7 @@ message
     charges : undefined
 
 # invoices
-message
+API message
     event          : 'stripe_get_invoices'
     id             : undefined
     limit          : undefined    # between 1 and 100 (default: 10)
@@ -995,10 +1000,10 @@ message
     description : undefined
 
 
-#############
-# Support Tickets → right now going through Zendesk
-#############
-message # client → hub
+###
+Support Tickets → right now going through Zendesk
+###
+API message # client → hub
     event        : 'create_support_ticket'
     id           : undefined
     username     : undefined
@@ -1015,7 +1020,7 @@ message # client ← hub
     id           : undefined
     url          : required
 
-message # client → hub
+API message # client → hub
     event        : 'get_support_tickets'
     id           : undefined
     # no account_id, that's known by the hub
@@ -1025,17 +1030,17 @@ message # client ← hub
     id           : undefined
     tickets      : required  # json-list
 
-#############
-# Queries directly to the database (sort of like Facebook's GraphQL)
-#############
+###
+Queries directly to the database (sort of like Facebook's GraphQL)
+###
 
-message
-    event   : 'query'
-    id      : undefined
-    query   : required
-    changes : undefined
+API message
+    event          : 'query'
+    id             : undefined
+    query          : required
+    changes        : undefined
     multi_response : false
-    options : undefined
+    options        : undefined
 
 message
     event : 'query_cancel'
