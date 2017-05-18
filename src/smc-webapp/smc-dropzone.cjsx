@@ -54,7 +54,8 @@ exports.SMC_Dropzone = rclass
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 
-    postUrl : ->
+    postUrl: ->
+        # DANGER: code duplication with class below!
         dest_dir = misc.encode_path(@props.current_path)
         postUrl  = window.smc_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
@@ -110,8 +111,9 @@ exports.SMC_Dropwrapper = rclass
         return misc.merge(with_defaults, @props.config)
 
     postUrl: ->
+        # DANGER: code duplication with class above!
         dest_dir = misc.encode_path(@props.dest_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.smc_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
 
     componentDidMount: ->
