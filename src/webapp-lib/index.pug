@@ -1,5 +1,9 @@
 //- main landing page
 
+//- important detail: those anchor links aren't generated automatically. they need to adhere to a given pattern:
+//- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
+//- the corresponding anchor link is then a.anchor#a-name
+
 extends _base.pug
 
 mixin start_button
@@ -214,7 +218,7 @@ block content
           div
             img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
 
-  a.authoring#a-authoring
+  a.anchor#a-authoring
   div.space#authoring
     div.container
       div.row
@@ -324,3 +328,17 @@ block content
           white-space    : nowrap
       #included > div
         padding          : 0
+      a.marker
+        padding-left     : 2rem
+        padding-right    : 1rem
+        text-decoration  : none
+        color            : $COL_GRAY_L
+        top              : -.5rem
+        position         : relative
+        font-size        : 90%
+        visibility       : hidden
+      h1:hover, h2:hover
+        > a.marker
+          visibility     : visible
+          &:hover
+            color        : $COL_GRAY

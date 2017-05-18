@@ -34,7 +34,7 @@ update_stats = (stats) ->
         rowname.appendChild(document.createTextNode(name))
         cell.appendChild(rowname)
         for j in window.stat_times
-            cell   = row.insertCell()
+            cell = row.insertCell()
             cell.appendChild(document.createTextNode("#{stats[key][j]}"))
 
     document.getElementById("sum_clients").innerHTML = sum_clients(stats)
@@ -49,6 +49,7 @@ get_stats = ->
         catch e
             console.log e
     r.send()
+    # tail recursive callback
     setTimeout(get_stats, 10 * 1000)
 
 init_video = ->
@@ -63,6 +64,34 @@ init_video = ->
                 vid.setAttribute("loop", "true")
                 vid.play()
 
+find_parent = (el, matcher) ->
+    while true
+        el = el.parentElement
+        return null if not el
+        return el   if matcher(el)
+
+init_magic_anchors = ->
+    div_matcher = (el) ->
+        is_div    = el.tagName.toUpperCase() == 'DIV'
+        is_anchor = el.getAttribute("id")?
+        return is_div and is_anchor
+
+    for tag in ['h1', 'h2']
+        for header in document.getElementsByTagName(tag)
+            div = find_parent(header, div_matcher)
+            continue if not div
+            a_id   = "a-#{div.getAttribute('id')}"
+            anchor = document.querySelector("a##{a_id}")
+            continue if not anchor
+            marker = document.createElement("a")
+            marker.setAttribute("class", "marker")
+            loc    = window.location
+            marker_url = loc.href.slice(0, loc.href.length - loc.hash.length) + "##{a_id}"
+            marker.setAttribute("href", marker_url)
+            marker.appendChild(document.createTextNode('¶'))
+            header.appendChild(marker)
+
 document.addEventListener "DOMContentLoaded", ->
     get_stats()
     init_video()
+    init_magic_anchors()
