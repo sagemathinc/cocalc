@@ -123,6 +123,14 @@ GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
 
+# check and sanitiziation (e.g. an exising but empty env variable is ignored)
+# CDN_BASE_URL must have a trailing slash
+if not CDN_BASE_URL? or CDN_BASE_URL.length == 0
+    CDN_BASE_URL = null
+else
+    if CDN_BASE_URL[-1..] isnt '/'
+        throw new Error("CDN_BASE_URL must be an URL-string ending in a '/' -- but it is #{CDN_BASE_URL}")
+
 # output build environment variables of webpack
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
@@ -483,9 +491,6 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 # Caching: files ending in .html (like index.html or those in /policies/) and those matching '*.nocache.*' shouldn't be cached
 #          all others have a hash and can be cached long-term (especially when they match '*.cacheme.*')
 if CDN_BASE_URL?
-    # CDN_BASE_URL must have a trailing slash
-    if typeof(CDN_BASE_URL) isnt 'string' or CDN_BASE_URL[-1..] isnt '/'
-        throw new Error("CDN_BASE_URL must be an URL-string ending in a '/' -- but it is #{CDN_BASE_URL}")
     publicPath = CDN_BASE_URL
 else
     publicPath = path.join(BASE_URL, OUTPUT) + '/'
