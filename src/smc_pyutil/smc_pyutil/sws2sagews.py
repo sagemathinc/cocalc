@@ -55,14 +55,16 @@ DISPLAY_MATH = {'open':'<html><script type=\"math/tex; mode=display\">', 'close'
 INLINE_MATH = {'open':'<html><script type=\"math/tex\">', 'close':'</script></html>', 'display':False}
 INLINE_MATH_2009 = {'open':'<html><span class=\"math\">', 'close':'</span></html>', 'display':False}
 HTML = {'open':'<html>', 'close':'</html>'}
+mnames = ['DISPLAY_MATH', 'INLINE_MATH', 'INLINE_MATH_2009']
 def output_messages(output):
     messages = []
 
     while len(output) > 0:
         found = False
-        for marker in [DISPLAY_MATH, INLINE_MATH, INLINE_MATH_2009]:
+        for ii, marker in enumerate([DISPLAY_MATH, INLINE_MATH, INLINE_MATH_2009]):
             i = output.find(marker['open'])
             if i != -1:
+                #print('found',mnames[ii])
                 messages.extend(process_output(output[:i]))
                 j = output.find(marker['close'])
                 if j != -1:
@@ -185,6 +187,27 @@ def sws_to_sagews(filename):
 
     OUTPUT:
     - creates a file foo[-n].sagews  and returns the name of the output file
+    
+    .. NOTE::
+
+        sws files from around 2009 are bzip2 archives with the following layout:
+            19/worksheet.txt
+            19/data/
+            19/conf.sobj
+            19/snapshots/1252938265.bz2
+            19/snapshots/1252940938.bz2
+            19/snapshots/1252940986.bz2
+            19/code/
+            19/cells/
+            19/cells/13/
+            19/cells/14/
+            ...
+        sws files from 2012  and later have a layout like this:
+            sage_worksheet/worksheet_conf.pickle
+            sage_worksheet/worksheet.html
+            sage_worksheet/worksheet.txt
+            sage_worksheet/data/fcla.css 
+
     """
     out = ''
 
@@ -196,6 +219,7 @@ def sws_to_sagews(filename):
         pfx = 'sage_worksheet'
         wkfile = 'sage_worksheet/worksheet.html'
     else:
+        # older format files will not have 'sage_worksheet' at top level
         pfx = tfiles[0]
         wkfile = os.path.join(pfx,'worksheet.txt')
         if wkfile in tfiles:
@@ -209,12 +233,15 @@ def sws_to_sagews(filename):
         out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n'%data_path
     out += sws_body_to_sagews(body)
 
+    meta = {}
     if fmt_2011:
-        meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
+        try:
+            meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
+        except KeyError:
+            if INLINE_MATH['open'] in body:
+                meta['pretty_print'] = True
     else:
-        meta = {}
-        if '<html><span class=\"math\">' in body:
-            print("2009 math")
+        if INLINE_MATH_2009['open'] in body:
             meta['pretty_print'] = True
     out = extra_modes(meta) + out
 
