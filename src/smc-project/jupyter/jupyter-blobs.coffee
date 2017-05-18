@@ -14,9 +14,11 @@ class BlobStore
     constructor: ->
         @_blobs = {}
 
-    # data is a uuencoded image
-    # we return the sha1 hash of it, and store it, along with a reference count.
-    save: (data, type) =>
+    # data could, e.g., be a uuencoded image
+    # We return the sha1 hash of it, and store it, along with a reference count.
+    # ipynb = optional some original data that is also stored and will be
+    #         returned when get_ipynb is called
+    save: (data, type, ipynb) =>
         if type in BASE64_TYPES
             data = new Buffer.from(data, 'base64')
         else
@@ -24,6 +26,7 @@ class BlobStore
         sha1 = misc_node.sha1(data)
         x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
         x.ref += 1
+        x.ipynb = ipynb
         return sha1
 
     readFile: (path, type, cb) =>
@@ -52,6 +55,8 @@ class BlobStore
         x = @_blobs[sha1]
         if not x?
             return
+        if x.ipynb?
+            return x.ipynb
         if x.type in BASE64_TYPES
             return x.data.toString('base64')
         else

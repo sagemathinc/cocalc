@@ -23,8 +23,18 @@ exports.Complete = rclass
             </a>
         </li>
 
+    keypress: (evt) ->
+        @props.actions.complete_handle_key(evt.keyCode)
+
     componentDidMount: ->
+        $(window).on("keypress", @keypress)
         $(ReactDOM.findDOMNode(@)).find("a:first").focus()
+
+    componentDidUpdate: ->
+        $(ReactDOM.findDOMNode(@)).find("a:first").focus()
+
+    componentWillUnmount: ->
+        $(window).off("keypress", @keypress)
 
     key: (e) ->
         if e.keyCode == 13

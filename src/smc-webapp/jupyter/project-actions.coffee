@@ -96,6 +96,7 @@ class exports.JupyterActions extends actions.JupyterActions
                 watcher = @_client.watch_file
                     path     : @store.get('path')
                     interval : 3000
+                    debounce : 1500
                 watcher.once 'change', =>
                     dbg("file changed")
                     watcher.close()
@@ -461,6 +462,7 @@ class exports.JupyterActions extends actions.JupyterActions
         @_file_watcher = @_client.watch_file
             path     : @store.get('path')
             interval : 3000
+            debounce : 1500
 
         @_file_watcher.on 'change', =>
             dbg("change")
@@ -490,9 +492,12 @@ class exports.JupyterActions extends actions.JupyterActions
                     # this just means the file doesn't exist.
                     cb?()
                 else
-                    file_is_newer = not last_changed? or stats.ctime > last_changed
-                    dbg("disk file changed more recently than edits, so loading")
-                    @load_ipynb_file(cb, not file_is_newer)
+                    file_is_newer = stats.ctime > last_changed
+                    if file_is_newer
+                        dbg("disk file changed more recently than edits, so loading")
+                        @load_ipynb_file(cb)
+                    else
+                        cb?()
 
     set_last_load: =>
         @syncdb.set
@@ -506,7 +511,7 @@ class exports.JupyterActions extends actions.JupyterActions
         - If data_only is false (the default), fully use the ipynb file to
           set the syncdb's state.  We do this when opening a new file, or when
           the file changes on disk (e.g., a git checkout or something).
-        - If data_only is true, we load the ipynb file *only* to extra more output
+        - If data_only is true, we load the ipynb file *only* to get "more output"
           and base64 encoded (etc.) images, and store them in our in-memory
           key:value store or cache.   We do this, because the file is the only
           place that has this data (it is NOT in the syncb).

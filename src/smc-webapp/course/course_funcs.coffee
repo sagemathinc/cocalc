@@ -6,6 +6,35 @@ misc = require('smc-util/misc')
 
 immutable = require('immutable')
 
+# Takes a student immutable.Map with key 'student_id'
+# Returns a list of students `x` shaped like:
+# {
+#    first_name    : string
+#    last_name     : string
+#    last_active   : integer
+#    hosting       : bool
+#    email_address : string
+# }
+exports.parse_students = (student_map, user_map, redux) ->
+    v = exports.immutable_to_list(student_map, 'student_id')
+    for x in v
+        if x.account_id?
+            user = user_map.get(x.account_id)
+            x.first_name ?= user?.get('first_name') ? ''
+            x.last_name  ?= user?.get('last_name') ? ''
+            if x.project_id?
+                x.last_active = redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime?()
+                upgrades = redux.getStore('projects').get_total_project_quotas(x.project_id)
+                if upgrades?
+                    x.hosting = upgrades.member_host
+
+        x.first_name  ?= ""
+        x.last_name   ?= ""
+        x.last_active ?= 0
+        x.hosting ?= false
+        x.email_address ?= ""
+    return v
+
 # Transforms Iterable<K, M<i, m>> to [M<i + primary_key, m + K>] where primary_key maps to K
 # Dunno if either of these is readable...
 # Turns Map(Keys -> Objects{...}) into [Objects{primary_key : Key, ...}]
@@ -69,3 +98,17 @@ exports.order_list = (opts) ->
         list = list.concat(sorted_deleted)
 
     return {list:list, deleted:x, num_deleted:sorted_deleted.length}
+
+sort_on_string_field = (field) ->
+    (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
+
+sort_on_numerical_field = (field) ->
+    (a,b) -> misc.cmp(a[field] * -1, b[field] * -1)
+
+exports.pick_student_sorter = (sort) ->
+    switch sort.column_name
+        when "email" then sort_on_string_field("email_address")
+        when "first_name" then sort_on_string_field("first_name")
+        when "last_name" then sort_on_string_field("last_name")
+        when "last_active" then sort_on_numerical_field("last_active")
+        when "hosting" then sort_on_numerical_field("hosting")

@@ -80,7 +80,8 @@ setup(
             'smc-rmd2html         = smc_pyutil.rmd2html:main',
             'smc-java2html        = smc_pyutil.java2html:main',
             'smc-m2sagews         = smc_pyutil.m2sagews:main',
-            'smc-jupyter-ensure-nonempty = smc_pyutil.smc_jupyter_ensure_nonempty:main'
+            'smc-jupyter-ensure-nonempty = smc_pyutil.smc_jupyter_ensure_nonempty:main',
+            'smc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
         ]
     },
     include_package_data = True

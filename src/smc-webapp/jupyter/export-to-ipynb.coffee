@@ -132,6 +132,7 @@ ipynb_outputs = (output, exec_count, more_output, blob_store) ->
         for n in [0...output.size]
             output_n = output.get("#{n}")?.toJS()
             if output_n?
+
                 process_output_n(output_n, exec_count, blob_store)
                 outputs.push(output_n)
 
@@ -148,7 +149,7 @@ process_output_n = (output_n, exec_count, blob_store) ->
         for k, v of output_n.data
             if k.slice(0,5) == 'text/'
                 output_n.data[k] = diff_friendly(output_n.data[k])
-            if misc.startswith(k, 'image/') or k == 'application/pdf'
+            if misc.startswith(k, 'image/') or k == 'application/pdf' or k == 'iframe'
                 if blob_store?
                     value = blob_store.get_ipynb(v)
                     if not value?
@@ -156,6 +157,9 @@ process_output_n = (output_n, exec_count, blob_store) ->
                         # browser and there is an image in the output that was not saved in the latest version.
                         # TODO: instead return an error.
                         return
+                    if k == 'iframe'
+                        delete output_n.data[k]
+                        k = 'text/html'
                     output_n.data[k] = value
                 else
                     return  # impossible to include in the output without blob_store

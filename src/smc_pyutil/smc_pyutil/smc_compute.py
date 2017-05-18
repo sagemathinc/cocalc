@@ -626,8 +626,9 @@ class Project(object):
         except:
             # Throw away filenames that can't be json'd, since they can't be JSON'd below,
             # which would totally lock user out of their listings.
+            ld0 = listdir[:]
             listdir = []
-            for x in os.listdir('.'):
+            for x in ld0:
                 try:
                     json.dumps(x)
                     listdir.append(x)

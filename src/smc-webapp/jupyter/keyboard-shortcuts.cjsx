@@ -53,9 +53,7 @@ shortcut_to_string = (shortcut) ->
         when 38
             s += SYMBOLS.up
         else
-            chrCode = keyCode - (48 * Math.floor(keyCode / 48))
-            chr     = String.fromCharCode(if 96 <= keyCode then chrCode else keyCode)
-            s      += chr
+            s += keyboard.keyCode_to_chr(keyCode)
     if shortcut.twice
         s = s + ',' + s
     return s

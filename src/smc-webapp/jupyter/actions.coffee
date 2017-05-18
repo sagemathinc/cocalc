@@ -37,6 +37,8 @@ jupyter_kernels = undefined
 
 DEFAULT_KERNEL = 'python2'
 
+syncstring    = require('smc-util/syncstring')
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -183,35 +185,38 @@ class exports.JupyterActions extends Actions
         ).fail (err) => opts.cb?(err.statusText ? 'error')
         return
 
+    fetch_jupyter_kernels: =>
+        f = (cb) =>
+            if @_state == 'closed'
+                cb(); return
+            @_ajax
+                url     : server_urls.get_server_url(@store.get('project_id')) + '/kernels.json'
+                timeout : 3000
+                cb      : (err, data) =>
+                    if err
+                        cb(err)
+                        return
+                    try
+                        jupyter_kernels = immutable.fromJS(data)
+                        @setState(kernels: jupyter_kernels)
+                        # We must also update the kernel info (e.g., display name), now that we
+                        # know the kernels (e.g., maybe it changed or is now known but wasn't before).
+                        @setState(kernel_info: @store.get_kernel_info(@store.get('kernel')))
+                        cb()
+                    catch e
+                        @set_error("Error setting Jupyter kernels -- #{data} #{e}")
+
+        misc.retry_until_success
+            f           : f
+            start_delay : 1500
+            max_delay   : 15000
+            max_time    : 60000
+
     set_jupyter_kernels: =>
         if jupyter_kernels?
             @setState(kernels: jupyter_kernels)
         else
-            f = (cb) =>
-                if @_state == 'closed'
-                    cb(); return
-                @_ajax
-                    url     : server_urls.get_server_url(@store.get('project_id')) + '/kernels.json'
-                    timeout : 3000
-                    cb      : (err, data) =>
-                        if err
-                            cb(err)
-                            return
-                        try
-                            jupyter_kernels = immutable.fromJS(data)
-                            @setState(kernels: jupyter_kernels)
-                            # We must also update the kernel info (e.g., display name), now that we
-                            # know the kernels (e.g., maybe it changed or is now known but wasn't before).
-                            @setState(kernel_info: @store.get_kernel_info(@store.get('kernel')))
-                            cb()
-                        catch e
-                            @set_error("Error setting Jupyter kernels -- #{data} #{e}")
-
-            misc.retry_until_success
-                f           : f
-                start_delay : 1500
-                max_delay   : 15000
-                max_time    : 60000
+            @fetch_jupyter_kernels()
 
     set_error: (err) =>
         if not err?
@@ -491,7 +496,12 @@ class exports.JupyterActions extends Actions
                     if @_syncdb_cell_change(key.get('id'), record)
                         cell_list_needs_recompute = true
                 when 'fatal'
-                    @setState(fatal: record?.get('error'))
+                    error = record?.get('error')
+                    @setState(fatal: error)
+                    # This check can be deleted in a few weeks:
+                    if error? and error.indexOf('file is currently being read or written') != -1
+                        # No longer relevant -- see https://github.com/sagemathinc/smc/issues/1742
+                        @syncdb.delete(type:'fatal')
                 when 'nbconvert'
                     if @_is_project
                         # before setting in store, let backend react to change
@@ -526,22 +536,22 @@ class exports.JupyterActions extends Actions
         if not cur_id? or not @store.getIn(['cells', cur_id])?
             @set_cur_id(@store.get('cell_list')?.get(0))
 
-        if do_init
-            @initialize_manager()
-        else if @_state == 'init'
-            @_state = 'ready'
-
         if @_is_project
+            if do_init
+                @initialize_manager()
             @manager_run_cell_process_queue()
         else
             # client
+            if @_state == 'init'
+                @_state = 'ready'
+
             if not @store.get('kernel')
                 # kernel isn't set yet, so we set it.
                 kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
                 @set_kernel(kernel)
 
-        if @store.get("view_mode") == 'raw'
-            @set_raw_ipynb()
+            if @store.get("view_mode") == 'raw'
+                @set_raw_ipynb()
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
@@ -613,9 +623,9 @@ class exports.JupyterActions extends Actions
         @set_save_status?()
 
     save_asap: =>
-        @syncdb.save_asap (err) =>
+        @syncdb?.save_asap (err) =>
             if err
-                setTimeout((()=>@syncdb.save_asap()), 50)
+                setTimeout((()=>@syncdb?.save_asap()), 50)
         return
 
     _id_is_available: (id) =>
@@ -1130,24 +1140,22 @@ class exports.JupyterActions extends Actions
                 if @_complete_request > req
                     # future completion or clear happened; so ignore this result.
                     return
-                if err
-                    complete = {error  : err}
-                else
-                    complete = data
-                    if complete.status != 'ok'
-                        complete = {error:'completion failed'}
-                    delete complete.status
-                # Set the result so the UI can then react to the change.
-                if complete?.matches?.length == 0
-                    # do nothing -- no completions at all
+                if err or data?.status != 'ok'
+                    @setState(complete: {error  : err ? 'completion failed'})
                     return
+                complete = data
+                delete complete.status
+                complete.base = code
+                complete.code = code
+                complete.pos  = cursor_pos
+                complete.id   = id
+                # Set the result so the UI can then react to the change.
                 if offset?
                     complete.offset = offset
                 @setState(complete: immutable.fromJS(complete))
                 if complete?.matches?.length == 1 and id?
                     # special case -- a unique completion and we know id of cell in which completing is given
                     @select_complete(id, complete.matches[0])
-                    return
         return
 
     clear_complete: =>
@@ -1156,15 +1164,54 @@ class exports.JupyterActions extends Actions
 
     select_complete: (id, item) =>
         complete = @store.get('complete')
-        input    = @store.getIn(['cells', id, 'input'])
         @clear_complete()
         @set_mode('edit')
-        if complete? and input? and not complete.get('error')?
+        if not complete?
+            return
+        input = complete.get('code')
+        if input? and not complete.get('error')?
             new_input = input.slice(0, complete.get('cursor_start')) + item + input.slice(complete.get('cursor_end'))
             # We don't actually make the completion until the next render loop,
             # so that the editor is already in edit mode.  This way the cursor is
             # in the right position after making the change.
-            setTimeout((=> @set_cell_input(id, new_input)), 0)
+            setTimeout((=> @merge_cell_input(id, complete.get('base'), new_input)), 0)
+
+    merge_cell_input: (id, base, input, save=true) =>
+        remote = @store.getIn(['cells', id, 'input'])
+        # console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
+        if not remote? or not base? or not input?
+            return
+        new_input = syncstring.three_way_merge
+            base   : base
+            local  : input
+            remote : remote
+        @set_cell_input(id, new_input, save)
+        return
+
+    complete_handle_key: (keyCode) =>
+        ###
+        User presses a key while the completions dialog is open.
+        ###
+        complete = @store.get('complete')
+        if not complete?
+            return
+        c                     = String.fromCharCode(keyCode)
+        complete              = complete.toJS()  # code is ugly without just doing this - doesn't matter for speed
+        code                  = complete.code
+        pos                   = complete.pos
+        complete.code         = code.slice(0, pos) + c + code.slice(pos)
+        complete.cursor_end  += 1
+        complete.pos         += 1
+        target                = complete.code.slice(complete.cursor_start, complete.cursor_end)
+        complete.matches      = (x for x in complete.matches when misc.startswith(x, target))
+        if complete.matches.length == 0
+            @clear_complete()
+            @set_mode('edit')
+        else
+            @merge_cell_input(complete.id, complete.base, complete.code)
+            complete.base = complete.code
+            @setState(complete : immutable.fromJS(complete))
+        return
 
     introspect: (code, level, cursor_pos) =>
         req = @_introspect_request = (@_introspect_request ? 0) + 1
@@ -1749,8 +1796,8 @@ class exports.JupyterActions extends Actions
 
     switch_to_classical_notebook: =>
         @confirm_dialog
-            title   : 'Switch to the Classical Notebook'
-            body    : 'If you are having trouble with the new Jupyter Notebook, you can easily switch to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).  NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!'
+            title   : 'Switch to the Classical Notebook?'
+            body    : 'If you are having trouble with the new Jupyter Notebook, you can switch back to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*'
             choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using new notebook', default:true}]
             cb      : (choice) =>
                 console.log 'choice', choice
