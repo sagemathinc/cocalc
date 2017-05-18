@@ -114,10 +114,24 @@ exports.init_express_http_server = (opts) ->
 
     # HTTP API
     router.post '/api/v1/*', (req, res) ->
+        h = req.header('Authorization')
+        if not h?
+            res.status(400).send(error:'You must provide authentication via an API key.')
+            return
+        [type, user] = misc.split(h)
+        switch type
+            when "Bearer"
+                api_key = user
+            when "Basic"
+                api_key = new Buffer.from(user, 'base64').toString().split(':')[0]
+            else
+                res.status(400).send(error:"Unknown authorization type '#{type}'")
+                return
+
         http_message_api_v1
             event          : req.path.slice(req.path.lastIndexOf('/') + 1)
             body           : req.body
-            api_key        : 'todo'  # TODO: put api_key in header
+            api_key        : api_key
             logger         : winston
             database       : opts.database
             compute_server : opts.compute_server
