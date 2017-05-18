@@ -318,15 +318,17 @@ exports.init_express_http_server = (opts) ->
     if opts.dev
         # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
         # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server, so have to handle these routes.
+        # directly in the hub server (there is no separate proxy server), so have to handle these routes
+        # directly here.
 
         # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
         # This is fine in dev mode, since all as the same user anyways.
         proxy_cache = {}
 
         # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade,
-        # (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
+        # Jupyter Classical won't work: (1) the client connects to the wrong URL (no base_url),
+        # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
+        # Jupyter2 works fine though.
         dev_proxy_port = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
@@ -353,16 +355,20 @@ exports.init_express_http_server = (opts) ->
                     proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                    # also delete after a few seconds  - caching is only to optimize many requests near each other
+                    setTimeout((-> delete proxy_cache[key]), 10000)
                     proxy.web(req, res)
 
         port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-        app.get(port_regexp, dev_proxy_port)
+
+        app.get( port_regexp, dev_proxy_port)
         app.post(port_regexp, dev_proxy_port)
 
-        # The raw server fully works
-        app.get '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
+        # Also, ensure the raw server works
+        dev_proxy_raw = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
+            winston.debug("dev_proxy_raw", project_id)
             proxy = proxy_cache[key]
             if proxy?
                 proxy.web(req, res)
@@ -384,8 +390,15 @@ exports.init_express_http_server = (opts) ->
                                     target = "http://localhost:#{port}"
                                     proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                                     proxy_cache[key] = proxy
-                                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                                    # when connection dies, clear from cache
+                                    proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
+                                    # also delete after a few seconds
+                                    setTimeout((-> delete proxy_cache[key]), 10000)
+
+        raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
+        app.get( raw_regexp, dev_proxy_raw)
+        app.post(raw_regexp, dev_proxy_raw)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
