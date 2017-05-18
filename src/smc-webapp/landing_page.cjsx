@@ -40,10 +40,6 @@ images = [
 ]
 # 'static/sagepreview/04-files.png'
 
-$.get window.smc_base_url + "/registration", (obj, status) ->
-    if status == 'success'
-        redux.getActions('account').setState(token : obj.token)
-
 reset_password_key = () ->
     url_args = window.location.href.split("#")
     # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/smc/issues/294

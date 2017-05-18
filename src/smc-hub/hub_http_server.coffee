@@ -20,16 +20,12 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
-
 hub_register = require('./hub_register')
-
 auth         = require('./auth')
-
 access       = require('./access')
-
 hub_proxy    = require('./proxy')
-
 hub_projects = require('./projects')
+api          = require('./api')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe-invoice')
@@ -66,6 +62,8 @@ exports.init_express_http_server = (opts) ->
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
+
+    router.use('/api', api.init_api(base_url: opts.base_url, dev:opts.dev, database: opts.database))
 
     router.get '/', (req, res) ->
         res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
@@ -165,6 +163,7 @@ exports.init_express_http_server = (opts) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
+    # DEPRECATED -- moved to api.coffee
     router.get '/registration', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
@@ -177,6 +176,7 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.json({token:true})
 
+    # DEPRECATED -- moved to api.coffee
     router.get '/customize', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
