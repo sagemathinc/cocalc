@@ -2,8 +2,11 @@
 Upload form handler
 ###
 
-formidable  = require('formidable')
-misc = require('smc-util/misc')
+fs         = require('fs')
+async      = require('async')
+mkdirp     = require('mkdirp')
+formidable = require('formidable')
+misc       = require('smc-util/misc')
 
 exports.upload_endpoint = (express, logger) ->
     logger?.debug("upload_endpoint conf")
@@ -15,16 +18,38 @@ exports.upload_endpoint = (express, logger) ->
         res.send("hello")
 
     router.post '/.smc/upload', (req, res) ->
+        dbg = (m...) -> logger?.debug("upload POST ", m...)
         # See https://github.com/felixge/node-formidable; user uploaded a file
-        logger?.debug("upload POST")
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
-                logger?.debug(e)
-                res.status(500).send(e)
+        dbg()
+
+        # See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
+        options =
+            uploadDir      : process.env.HOME + '/' + req.query.dest_dir
+            keepExtensions : true
+        form = new formidable.IncomingForm(options)
+        async.series([
+            (cb) ->
+                # ensure target path exists
+                mkdirp(options.uploadDir, cb)
+            (cb) ->
+                form.parse req, (err, fields, files) ->
+                    if err or not files.file? or not files.file.path? or not files.file.name?
+                        cb(err)
+                        return
+                    dbg("upload of '#{files.file.name}' to '#{files.file.path}' worked")
+                    dest = process.env.HOME + '/' + (req.query.dest_dir ? '') + '/' + files.file.name
+                    dbg("now move '#{files.file.path}' to '#{dest}'")
+                    fs.rename files.file.path, dest, (err) ->
+                        if err
+                            dbg("error moving -- #{err}")
+                            cb(err)
+                        else
+                            cb()
+        ], (err) ->
+            if err
+                res.status(500).send("upload failed -- #{err}")
             else
-                logger?.debug("upload of '#{files.file.name}' to '#{files.file.path}' worked")
                 res.send('received upload:\n\n')
+        )
 
     return router

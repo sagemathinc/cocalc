@@ -26,9 +26,9 @@ render_header = ->
         icon      = 'file'
         title     = 'Drag and drop files'
         placement = 'bottom'
-        tip       = 'Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+        tip       = 'Drag and drop files from your computer into the box below to upload them into your project.'>
         <h4 style={color:"#666"}>
-            Drag and drop files. Each file must be under 30MB.
+            Drag and drop files.
         </h4>
     </Tip>
 
@@ -57,7 +57,6 @@ exports.SMC_Dropzone = rclass
     postUrl : ->
         dest_dir = misc.encode_path(@props.current_path)
         postUrl  = window.smc_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
-        console.log postUrl
         return postUrl
 
     render_close_button: ->

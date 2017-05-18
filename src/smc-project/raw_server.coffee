@@ -7,7 +7,6 @@ async          = require('async')
 express        = require('express')
 express_index  = require('serve-index')
 body_parser    = require('body-parser')
-
 misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
@@ -32,6 +31,7 @@ exports.start_raw_server = (opts) ->
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
 
+    # Needed for POST file to custom path.
     raw_server.use(body_parser.urlencoded({ extended: true }))
 
     port = opts.port # either undefined or the port number
