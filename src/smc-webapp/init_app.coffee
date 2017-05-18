@@ -153,7 +153,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
-        if redux.getStore('account')?.get_confirm_close()
+        # Returns a defined string if the user should confirm exiting the site.
+        s = redux.getStore('account')
+        if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()
             return "Changes you make may not have been saved."
         else
             return
