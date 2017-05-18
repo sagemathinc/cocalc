@@ -232,6 +232,9 @@ class exports.HistoryEditor extends FileEditor
             return false
 
     diff_mode: (enabled) =>
+        if not @syncstring?
+            # document already closed or not yet initialized
+            return
         @_diff_mode = enabled
         if enabled
             if @view_doc != @diff_doc
