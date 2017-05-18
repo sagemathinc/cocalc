@@ -40,6 +40,7 @@
     "pg": "^6.1.0",
     "pg-native": "^1.10.0",
     "primus": "^4.0.1",
+    "random-key": "^0.3.2",
     "read": "^1.0.5",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",

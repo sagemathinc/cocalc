@@ -2115,3 +2115,18 @@ class exports.Client extends EventEmitter
                 @success_to_client(id:mesg.id)
         )
 
+
+    mesg_api_key: (mesg) =>
+        api_key_action
+            database   : @database
+            account_id : @account_id
+            password   : mesg.password
+            action     : mesg.action
+            cb       : (err, api_key) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    if api_key?
+                        @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
+                    else
+                        @success_to_client(id:mesg.id)

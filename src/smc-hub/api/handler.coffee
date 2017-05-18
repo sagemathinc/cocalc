@@ -1,6 +1,5 @@
 ###
-Simplest possible implementation of a JSON API for handling the
-messages described smc-util/message.coffee.  NOTHING fancy.
+API for handling the messages described smc-util/message.coffee
 
 AGPLv3, (c) 2017, SageMath, Inc.
 ###
@@ -82,6 +81,7 @@ exports.http_message_api_v1 = (opts) ->
         opts.cb(err, resp)
     )
 
+auth_cache = {}
 get_client = (opts) ->
     opts = defaults opts,
         api_key        : required
@@ -91,17 +91,37 @@ get_client = (opts) ->
         ip_address     : required
         cb             : required
     dbg = log('get_client', opts.logger)
-    dbg('faking it regarding api key for now')
-    options =
-        logger         : opts.logger
-        database       : opts.database
-        compute_server : opts.compute_server
-    client = new APIClient(options)
-    client.ip_address = opts.ip_address
 
-    client.account_id = "4493def9-264e-4855-81b6-ea400cad6676" # TODO
-
-    opts.cb(undefined, client)
+    account_id = auth_cache[opts.api_key]
+    async.series([
+        (cb) ->
+            if account_id?
+                cb()
+            else
+                opts.database.get_account_with_api_key
+                    api_key : opts.api_key
+                    cb      : (err, a) ->
+                        if err
+                            cb(err)
+                        else
+                            account_id = a
+                            # cache api key being valid for a minute
+                            auth_cache[opts.api_key] = account_id
+                            setTimeout((->delete auth_cache[opts.api_key]), 60000)
+                            cb()
+    ], (err) ->
+        if err
+            opts.cb(err)
+            return
+        options =
+            logger         : opts.logger
+            database       : opts.database
+            compute_server : opts.compute_server
+        client = new APIClient(options)
+        client.ip_address = opts.ip_address
+        client.account_id = account_id
+        opts.cb(undefined, client)
+    )
 
 handle_message = (opts) ->
     opts = defaults opts,

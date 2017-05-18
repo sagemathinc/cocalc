@@ -667,9 +667,9 @@ exports.init_passport = (opts) ->
 
 
 
-# Password checking.  opts.cb(false, true) if the
-# password is correct, opts.cb(true) on error (e.g., loading from
-# database), and opts.cb(false, false) if password is wrong.  You must
+# Password checking.  opts.cb(undefined, true) if the
+# password is correct, opts.cb(error) on error (e.g., loading from
+# database), and opts.cb(undefined, false) if password is wrong.  You must
 # specify exactly one of password_hash, account_id, or email_address.
 # In case you specify password_hash, in addition to calling the
 # callback (if specified), this function also returns true if the
@@ -685,7 +685,7 @@ exports.is_password_correct = (opts) ->
         allow_empty_password : false  # If true and no password set in account, it matches anything.
                                       # this is only used when first changing the email address or password
                                       # in passport-only accounts.
-        cb            : required
+        cb            : required      # cb(err, true or false)
 
     if opts.password_hash?
         r = password_hash_library.verify(opts.password, opts.password_hash)

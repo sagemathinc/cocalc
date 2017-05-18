@@ -1051,3 +1051,21 @@ message
     event          : 'query_get_changefeed_ids'
     id             : undefined
     changefeed_ids : undefined
+
+###
+API Key management for an account
+###
+
+# client --> hub
+message
+    event    : 'api_key'
+    id       : undefined
+    action   : required  # 'get', 'delete', 'regenerate'
+    password : required
+
+# hub --> client
+message
+    event : 'api_key_info'
+    id    : undefined
+    api_key : required
+

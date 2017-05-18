@@ -13,6 +13,8 @@ MAP_LIMIT = 5
 
 async   = require('async')
 
+random_key = require("random-key")
+
 misc_node = require('smc-util-node/misc_node')
 
 {defaults} = misc = require('smc-util/misc')
@@ -227,6 +229,54 @@ class exports.PostgreSQL extends PostgreSQL
             where :
                 "strategy = $::TEXT" : opts.strategy
             cb    : one_result('conf', opts.cb)
+
+    ###
+    API Key Management
+    ###
+    get_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query      : 'SELECT api_key FROM accounts'
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : one_result (err, x) =>
+                opts.cb(err, x?.api_key)
+
+    get_account_with_api_key: (opts) =>
+        opts = defaults opts,
+            api_key : required
+            cb      : required   # cb(err, account_id)
+        @_query
+            query   : 'SELECT account_id FROM accounts'
+            where   :
+                "api_key = $::TEXT" : opts.api_key
+            cb      : one_result (err, x) =>
+                opts.cb(err, x?.account_id)
+
+    delete_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query      : 'UPDATE accounts SET api_key = NULL'
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : opts.cb
+
+    regenerate_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        api_key = 'sk_' + random_key.generate(24)
+        @_query
+            query      : 'UPDATE accounts'
+            set        : {api_key : api_key}
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : (err) =>
+                opts.cb(err, api_key)
 
     ###
     Account creation, deletion, existence
