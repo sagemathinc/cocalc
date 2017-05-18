@@ -238,7 +238,7 @@ exports.commands = (actions) ->
         f : -> actions.insert_cell(1)
 
     'insert image' :
-        m : 'Insert Images...'
+        m : 'Insert Images in Markdown Cell...'
         f : -> actions.insert_image()
 
     'interrupt kernel' :

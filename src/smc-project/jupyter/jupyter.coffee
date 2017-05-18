@@ -1,32 +1,24 @@
 ###
 Jupyter Backend
+
+For interactive testing:
+
+coffee> k = require('./jupyter').kernel(name:'sagemath', path:'a.ipynb'); k.execute_code(all:true, cb:console.log, code:'2+3')
 ###
 
 {EventEmitter} = require('events')
-
 async = require('async')
-
 kernelspecs = require('kernelspecs')
-
 fs = require('fs')
-
 misc = require('smc-util/misc')
 {defaults, required} = misc
-
 {key_value_store} = require('smc-util/key-value-store')
-
 misc_node = require('smc-util-node/misc_node')
-
 {blob_store} = require('./jupyter-blobs')
-
 node_cleanup = require('node-cleanup')
-
 util = require('smc-webapp/jupyter/util')
-
 iframe = require('smc-webapp/jupyter/iframe')
-
 {remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
-
 nbconvert = require('./nbconvert')
 
 exports.jupyter_backend = (syncdb, client) ->

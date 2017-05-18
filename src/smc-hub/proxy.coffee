@@ -277,15 +277,15 @@ exports.init_http_proxy_server = (opts) ->
                     t = {host:host, port:port}
                     _target_cache[key] = t
                     cb(false, t)
-                    # THIS IS NOW DISABLED.
-                    #            Instead if the proxy errors out below, then it directly invalidates this cache
-                    #            by calling invalidate_target_cache
-                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                    # but also if a new user is granted permission to the project they didn't have, or the project server
-                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
-                    # and any could cause a project restart at any time, we just timeout this info after
-                    # a few minutes.  This helps enormously when there is a burst of requests.
-                    #setTimeout((()->delete _target_cache[key]), 1000*60*3)
+                    if type == 'raw'
+                        # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                        # but also if a new user is granted permission to the project they didn't have, or the project server
+                        # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
+                        # and any could cause a project restart at any time, we just timeout this.
+                        # This helps enormously when there is a burst of requests.
+                        # Also if project restarts the raw port will change and we don't want to have
+                        # fix this via getting an error.
+                        setTimeout((->delete _target_cache[key]), 15000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)

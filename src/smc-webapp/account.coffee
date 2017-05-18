@@ -49,6 +49,10 @@ load_app = (cb) ->
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
     analytics_event('account', 'signed_in')    # user signed in
+    # the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
+    # next time the main landing page is visited, haproxy or hub will redirect to the client
+    {APP_BASE_URL} = require('./misc_page')
+    document.cookie = "#{APP_BASE_URL}has_remember_me=true"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     load_file = window.smc_target and window.smc_target != 'login'
@@ -93,7 +97,11 @@ webapp_client.on "remember_me_failed", () ->
 # check if user has a has_remember_me cookie (regardless if it is valid or not)
 # the "remember_me" is set to be http-only and hence not accessible from javascript (security)
 {get_cookie, APP_BASE_URL} = require('./misc_page')
-redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
+# for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
+if misc.server_weeks_ago(4) > new Date("2017-05-20")
+    redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
+else
+    redux.getActions('account').setState(has_remember_me : true)
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # FUTURE: make this configurable with different schemas.

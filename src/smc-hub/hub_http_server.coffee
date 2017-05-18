@@ -243,101 +243,6 @@ exports.init_express_http_server = (opts) ->
         res.send('')
     ###
 
-    router.post '/upload', (req, res) ->
-        if not hub_register.database_is_working()
-            res.status(500).send("file upload failed -- not connected to database")
-            return
-        # See https://github.com/felixge/node-formidable
-        # user uploaded a file
-        winston.debug("User uploading a file...")
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
-                winston.debug(e)
-                res.status(500).send(e)
-                return # nothing to do -- no actual file upload requested
-
-            account_id = undefined
-            project_id = undefined
-            dest_dir   = undefined
-            data       = undefined
-            async.series([
-                (cb) ->
-                    # authenticate user
-                    cookies = new Cookies(req, res)
-                    # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                    value = cookies.get(opts.base_url + 'remember_me')
-                    if not value?
-                        cb('you must enable remember_me cookies to upload files')
-                        return
-                    x    = value.split('$')
-                    hash = auth.generate_hash(x[0], x[1], x[2], x[3])
-                    opts.database.get_remember_me
-                        hash : hash
-                        cb   : (err, signed_in_mesg) =>
-                            if err or not signed_in_mesg?
-                                cb('unable to get remember_me cookie from db -- cookie invalid')
-                                return
-                            account_id = signed_in_mesg.account_id
-                            if not account_id?
-                                cb('invalid remember_me cookie')
-                                return
-                            winston.debug("Upload from: '#{account_id}'")
-                            project_id = req.query.project_id
-                            dest_dir   = req.query.dest_dir
-                            if dest_dir == ""
-                                dest_dir = '.'
-                            winston.debug("project = #{project_id}; dest_dir = '#{dest_dir}'")
-                            cb()
-                (cb) ->
-                    # auth user access to *write* to the project
-                    access.user_has_write_access_to_project
-                        database   : opts.database
-                        project_id : project_id
-                        account_id : account_id
-                        cb         : (err, result) =>
-                            #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
-                            if err
-                                cb(err)
-                            else if not result
-                                cb("User does not have write access to project.")
-                            else
-                                winston.debug("user has write access to project.")
-                                cb()
-                (cb) ->
-                    #winston.debug(misc.to_json(files))
-                    winston.debug("Reading file from disk '#{files.file.path}'")
-                    fs.readFile files.file.path, (err, _data) ->
-                        if err
-                            cb(err)
-                        else
-                            data = _data
-                            cb()
-
-                # actually send the file to the project
-                (cb) ->
-                    winston.debug("getting project...")
-                    project = hub_projects.new_project(project_id, opts.database, opts.compute_server)
-                    path = dest_dir + '/' + files.file.name
-                    winston.debug("writing file '#{path}' to project...")
-                    project.write_file
-                        path : path
-                        data : data
-                        cb   : cb
-
-            ], (err) ->
-                if err
-                    winston.debug(e)
-                    e = "file upload error -- #{misc.to_safe_str(err)}"
-                    res.status(500).send(e)
-                else
-                    res.send('received upload:\n\n')
-                # delete tmp file
-                if files?.file?.path?
-                    fs.unlink(files.file.path)
-            )
-
     # Get the http server and return it.
     if opts.base_url
         app.use(opts.base_url, router)
@@ -347,15 +252,17 @@ exports.init_express_http_server = (opts) ->
     if opts.dev
         # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
         # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server, so have to handle these routes.
+        # directly in the hub server (there is no separate proxy server), so have to handle these routes
+        # directly here.
 
         # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
         # This is fine in dev mode, since all as the same user anyways.
         proxy_cache = {}
 
         # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade,
-        # (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
+        # Jupyter Classical won't work: (1) the client connects to the wrong URL (no base_url),
+        # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
+        # Jupyter2 works fine though.
         dev_proxy_port = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
@@ -382,16 +289,20 @@ exports.init_express_http_server = (opts) ->
                     proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                    # also delete after a few seconds  - caching is only to optimize many requests near each other
+                    setTimeout((-> delete proxy_cache[key]), 10000)
                     proxy.web(req, res)
 
         port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-        app.get(port_regexp, dev_proxy_port)
+
+        app.get( port_regexp, dev_proxy_port)
         app.post(port_regexp, dev_proxy_port)
 
-        # The raw server fully works
-        app.get '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
+        # Also, ensure the raw server works
+        dev_proxy_raw = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
+            winston.debug("dev_proxy_raw", project_id)
             proxy = proxy_cache[key]
             if proxy?
                 proxy.web(req, res)
@@ -413,8 +324,15 @@ exports.init_express_http_server = (opts) ->
                                     target = "http://localhost:#{port}"
                                     proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                                     proxy_cache[key] = proxy
-                                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                                    # when connection dies, clear from cache
+                                    proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
+                                    # also delete after a few seconds
+                                    setTimeout((-> delete proxy_cache[key]), 10000)
+
+        raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
+        app.get( raw_regexp, dev_proxy_raw)
+        app.post(raw_regexp, dev_proxy_raw)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")

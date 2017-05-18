@@ -296,6 +296,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port
+                logger     : winston
                 cb         : cb
     ], (err) ->
         if err
