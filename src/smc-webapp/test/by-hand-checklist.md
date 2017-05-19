@@ -6,6 +6,8 @@ We will make all these tests be automated eventually. For now, at least figure o
 
 ### Landing page
 - open page while not logged in (say private browsing mode) and ensure that landing page appears
+  * the root page should show up if you aren't signed in and you do not have a `has_remember_me` cookie or its value isn't `true`.
+  * landing page is mainly for creating an account or signing in
 - click "Forgot password" and see a dialog
 - click "Sign in" and get "empty email address" error
 - put in a random bogus account and get ""no such account" error.

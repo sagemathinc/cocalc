@@ -3043,7 +3043,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 <div>&nbsp;</div>
                 <div style="text-align: center;">
                 <span style="font-size:12px;"><b>
-                  <a href="#{DOMAIN_NAME}#forgot-#{id}">#{DOMAIN_NAME}#forgot-#{id}</a>
+                  <a href="#{DOMAIN_NAME}/app#forgot-#{id}">#{DOMAIN_NAME}/app#forgot-#{id}</a>
                 </b></span>
                 </div>
                 <div>&nbsp;</div>
