@@ -21,6 +21,16 @@ iframe = require('smc-webapp/jupyter/iframe')
 {remove_redundant_reps} = require('smc-webapp/jupyter/import-from-ipynb')
 nbconvert = require('./nbconvert')
 
+###
+We set a few extra user-specific options for the environment in which
+Sage-based Jupyter kernels run; these are more multi-user friendly.
+###
+SAGE_JUPYTER_ENV = misc.merge misc.copy(process.env),
+    "PYTHONPATH"       : "#{process.env.HOME}/.local/lib/python2.7/site-packages:/projects/sage/sage/local/lib/python:/projects/sage/sage/local/lib/python/site_packages",
+    "PYTHONUSERBASE"   : "#{process.env.HOME}/.local",
+    "PYTHON_EGG_CACHE" : "#{process.env.HOME}/.sage/.python-eggs",
+    "R_MAKEVARS_USER"  : "#{process.env.HOME}/.sage/R/Makevars.user"
+
 exports.jupyter_backend = (syncdb, client) ->
     dbg = client.dbg("jupyter_backend")
     dbg()
@@ -164,6 +174,9 @@ class Kernel extends EventEmitter
             for cb in @_spawn_cbs
                 cb?(err)
         opts = {detached: true, stdio:'ignore'}
+        if @name.indexOf('sage')
+            # special environment for sage-based kernels
+            opts.env = SAGE_JUPYTER_ENV
         if @_directory != ''
             opts.cwd = @_directory
         require('spawnteract').launch(@name, opts).then(success, fail)
@@ -193,7 +206,10 @@ class Kernel extends EventEmitter
         if @_kernel?
             @_kernel.spawn?.removeAllListeners()
             @signal('SIGKILL')  # kill the process group
-            fs.unlink(@_kernel.connectionFile)
+            try
+                fs.unlink(@_kernel.connectionFile)
+            catch err
+                # ignore
             delete @_kernel
             delete @_channels
         if @_execute_code_queue?
