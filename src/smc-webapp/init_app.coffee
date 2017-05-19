@@ -99,7 +99,12 @@ class PageActions extends Actions
             else
                 redux.getProjectActions(key)?.push_state()
                 set_window_title("Loading Project")
-                redux.getStore('projects').wait
+                projects_store = redux.getStore('projects')
+
+                if projects_store.date_when_course_payment_required(key)
+                    redux.getActions('projects').apply_default_upgrades(project_id : key)
+
+                projects_store.wait
                     until   : (store) =>
                         title = store.getIn(['project_map', key, 'title'])
                         title ?= store.getIn(['public_project_titles', key])
