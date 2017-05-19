@@ -26,7 +26,6 @@ We set a few extra user-specific options for the environment in which
 Sage-based Jupyter kernels run; these are more multi-user friendly.
 ###
 SAGE_JUPYTER_ENV = misc.merge misc.copy(process.env),
-    "PYTHONPATH"       : "#{process.env.HOME}/.local/lib/python2.7/site-packages:/projects/sage/sage/local/lib/python:/projects/sage/sage/local/lib/python/site_packages",
     "PYTHONUSERBASE"   : "#{process.env.HOME}/.local",
     "PYTHON_EGG_CACHE" : "#{process.env.HOME}/.sage/.python-eggs",
     "R_MAKEVARS_USER"  : "#{process.env.HOME}/.sage/R/Makevars.user"
