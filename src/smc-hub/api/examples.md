@@ -1,4 +1,6 @@
-curl -X POST  http://localhost:54249/api/v1/ping
+curl -X POST -u sk_BS9fVpiEpPpJbhSZurAMSnmM: http://localhost:50195/api/v1/ping
+
+curl -X POST -d title='API project' -d description='Stuff' -u sk_BS9fVpiEpPpJbhSZurAMSnmM: http://localhost:50195/api/v1/create_project
 
 curl -d first_name=API -d last_name=gal -d email_address=a@b -d password=666 -d agreed_to_terms=true http://localhost:54249/api/v1/create_account
 
