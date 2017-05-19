@@ -131,6 +131,13 @@ class AccountActions extends Actions
     sign_out: (everywhere) =>
         misc.delete_local_storage(remember_me)
 
+        # disable redirection from main index page to landing page
+        # (existence of cookie signals this is a known client)
+        # note: similar code is in account.coffee → signed_in
+        {APP_BASE_URL} = require('./misc_page')
+        exp = misc.server_days_ago(-30).toGMTString()
+        document.cookie = "#{APP_BASE_URL}has_remember_me=false; expires=#{exp} ;path=/"
+
         # record this event
         evt = 'sign_out'
         if everywhere

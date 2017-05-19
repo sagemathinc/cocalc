@@ -51,8 +51,10 @@ signed_in = (mesg) ->
     analytics_event('account', 'signed_in')    # user signed in
     # the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
     # next time the main landing page is visited, haproxy or hub will redirect to the client
+    # note: similar code is in redux_account.coffee → AccountActions::sign_out
     {APP_BASE_URL} = require('./misc_page')
-    document.cookie = "#{APP_BASE_URL}has_remember_me=true"
+    exp = misc.server_days_ago(-30).toGMTString()
+    document.cookie = "#{APP_BASE_URL}has_remember_me=true; expires=#{exp} ;path=/"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     load_file = window.smc_target and window.smc_target != 'login'

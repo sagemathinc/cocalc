@@ -88,15 +88,19 @@ exports.init_express_http_server = (opts) ->
     router.get '/', (req, res) ->
         # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
         # that's not a security issue b/c the hub will do the heavy lifting
-        remember_me = req.cookies[opts.base_url + 'remember_me']
-        if remember_me and remember_me?.split('$').length == 4 and not req.query.signed_out?
+        # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
+        # looks for the has_remember_me value (set by the client in accounts).
+        # This could be done in different ways, it's not clear what works best.
+        #remember_me = req.cookies[opts.base_url + 'remember_me']
+        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
-            res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
+            #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
             res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
 
     router.get '/app', (req, res) ->
-        res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
+        #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.
