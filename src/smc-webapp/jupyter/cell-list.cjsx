@@ -146,7 +146,7 @@ exports.CellList = rclass
     render_insert_cell: (id, position='above') ->
         <InsertCell
             id       = {id}
-            key      = {id+'insert'}
+            key      = {id+'insert'+position}
             position = {position}
             actions  = {@props.actions}
         />

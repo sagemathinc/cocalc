@@ -26,6 +26,8 @@ os.chdir(os.environ['HOME'])
 
 SMC = os.environ['SMC']
 
+os.environ["PYTHONUSERBASE"] = os.environ['HOME'] + '/.local'
+
 DATA = os.path.join(SMC, 'jupyter')
 if not os.path.exists(DATA):
     os.makedirs(DATA)
@@ -78,18 +80,6 @@ def command():
     else:
         mathjax_url = "/static/mathjax/MathJax.js" # fallback
 
-    # We always use the system-wide version on IPython, which is much easier to keep up to date.
-    # Sage's often lags behind with bugs.  This also makes it easier for users to run their
-    # own custom IPython.   See https://github.com/sagemathinc/smc/issues/1343
-    ##ipython = "ipython"
-    # SADLY, rolling this back, since Jupyter 4.3.1 doesn't load properly and
-    # in practice turns out to be broken for us.  Oh well.  Reverting everything... :-(
-    if os.system('which sage') == 0:
-        ipython = "sage -ipython"
-    else:
-        ipython = "ipython"
-
-
     # --NotebookApp.iopub_data_rate_limit=<Float>
     #     Default: 0
     #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
@@ -98,12 +88,12 @@ def command():
     #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
     #     are limited.
 
-    cmd = ipython+ " notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password=''"%(mathjax_url, base, ip, port)
+    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password=''"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
 if '--help' in ''.join(sys.argv):
-    os.system("ipython " + ' '.join(sys.argv))
+    os.system("jupyter " + ' '.join(sys.argv))
     sys.exit(0)
 
 def is_daemon_running():
@@ -174,7 +164,7 @@ def action(mode):
                 print json.dumps({"error":"Failed to find pid of subprocess."})
                 sys.exit(1)
 
-            c = "ps -u`whoami` -o pid,cmd|grep 'ipython notebook'"
+            c = "ps -u`whoami` -o pid,cmd|grep '/usr/local/bin/jupyter-notebook'"
             for s in os.popen(c).read().splitlines():
                 v = s.split()
                 if len(v) < 2 or v[1].split('/')[-1] != 'python':

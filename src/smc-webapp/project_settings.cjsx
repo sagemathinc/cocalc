@@ -578,7 +578,9 @@ JupyterServerPanel = rclass
                 {@render_jupyter_link()}
             </div>
             <span style={color: '#666'}>
-                (If the above link doesn't work, refresh it.)
+                <b>
+                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
+                </b>
             </span>
         </ProjectSettingsPanel>
 
