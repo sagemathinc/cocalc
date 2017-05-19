@@ -809,10 +809,27 @@ class exports.Connection extends EventEmitter
             timeout : 15
             cb : opts.cb
 
+     api_key: (opts) ->
+        # getting, setting, deleting, etc., the api key for this account
+        opts = defaults opts,
+            action   : required   # 'get', 'delete', 'regenerate'
+            password : required
+            cb       : required
+        if not @account_id?
+            opts.cb?("must be logged in")
+            return
+        @call
+            message: message.api_key
+                action     : opts.action
+                password   : opts.password
+            error_event : true
+            timeout : 10
+            cb : (err, resp) ->
+                opts.cb(err, resp?.api_key)
 
-    #################################################
-    # Project Management
-    #################################################
+    ###
+    Project Management
+    ###
     create_project: (opts) =>
         opts = defaults opts,
             title       : required
@@ -1393,18 +1410,14 @@ class exports.Connection extends EventEmitter
     stripe_get_customer: (opts) =>
         opts = defaults opts,
             cb    : required
-        @call
-            message     : message.stripe_get_customer()
-            error_event : false
-            timeout     : 20
-            cb          : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else
-                    resp =
-                        stripe_publishable_key : mesg.stripe_publishable_key
-                        customer               : mesg.customer
-                    opts.cb(undefined, resp)
+        @_stripe_call message.stripe_get_customer(), (err, mesg) =>
+            if err
+                opts.cb(err)
+            else
+                resp =
+                    stripe_publishable_key : mesg.stripe_publishable_key
+                    customer               : mesg.customer
+                opts.cb(undefined, resp)
 
     stripe_create_source: (opts) =>
         opts = defaults opts,

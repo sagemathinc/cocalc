@@ -436,7 +436,7 @@ exports.LabeledRow = LabeledRow = rclass
 
     render: ->
         <Row style={@props.style}>
-            <Col xs={@props.label_cols}>
+            <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
             <Col xs={12-@props.label_cols}>

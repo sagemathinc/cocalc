@@ -242,7 +242,7 @@ class exports.PostgreSQL extends PostgreSQL
             where      :
                 "account_id = $::UUID" : opts.account_id
             cb         : one_result (err, x) =>
-                opts.cb(err, x?.api_key)
+                opts.cb(err, x?.api_key ? '')
 
     get_account_with_api_key: (opts) =>
         opts = defaults opts,

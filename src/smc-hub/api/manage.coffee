@@ -40,7 +40,7 @@ exports.api_key_action = (opts) ->
                 cb                   : (err, is_correct) ->
                     if err?  # auth failed
                         cb(err)
-                    else if not is_corret
+                    else if not is_correct
                         cb("password is invalid")
                     else
                         cb()

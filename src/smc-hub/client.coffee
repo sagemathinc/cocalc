@@ -23,6 +23,7 @@ smc_version          = require('./hub-version')
 hub_projects         = require('./projects')
 
 {create_account, delete_account} = require('./create-account')
+{api_key_action} = require('./api/manage')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -2130,3 +2131,4 @@ class exports.Client extends EventEmitter
                         @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
                     else
                         @success_to_client(id:mesg.id)
+

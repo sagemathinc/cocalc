@@ -38,6 +38,8 @@ misc       = require('smc-util/misc')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+{APIKeySetting} = require('./api-key')
+
 # Define a component for working with the user's basic
 # account information.
 
@@ -165,7 +167,7 @@ EmailAddressSetting = rclass
             <Saving />
 
     render: ->
-        <LabeledRow label='Email address'>
+        <LabeledRow label='Email address'  style={marginBottom: '15px'}>
             <div>
                 {@props.email_address}
                 <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
@@ -288,9 +290,9 @@ PasswordSetting = rclass
             <Saving />
 
     render: ->
-        <LabeledRow label='Password'>
+        <LabeledRow label='Password' style={marginBottom: '15px'}>
             <div style={height:'30px'}>
-                <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}  style={marginTop: '8px'}>
+                <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}>
                     Change password...
                 </Button>
             </div>
@@ -482,7 +484,8 @@ AccountSettings = rclass
                 ref   = 'password'
                 maxLength = 64
                 />
-            <Row style={marginTop: '1ex'}>
+            <APIKeySetting />
+            <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
                 <Col xs=12>
                     {@render_sign_out_buttons()}
                 </Col>
