@@ -126,7 +126,9 @@ $.fn.exactly_cover = (other) ->
 # make all links open internally or in a new tab; etc.
 # opts={project_id:?, file_path:path that contains file}
 starts_with_cloud_url = (href) ->
-    return misc.startswith(href, document.location.origin) or (document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com"))
+    is_samedomain = misc.startswith(href, document.location.origin)
+    is_formersmc  = document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com")
+    return is_samedomain or is_formersmc
 
 $.fn.process_smc_links = (opts={}) ->
     @each ->
@@ -157,6 +159,7 @@ $.fn.process_smc_links = (opts={}) ->
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
+                        if DEBUG then console.log "target", target
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -172,7 +175,7 @@ $.fn.process_smc_links = (opts={}) ->
                             target = opts.project_id + '/files/' + decodeURI(target)
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
-                            target = misc.path_join(opts.project_id, 'files', opts.file_path?'', decodeURI(target)?'')
+                            target = misc.path_join(opts.project_id, 'files', opts.file_path ? '', decodeURI(target) ? '')
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else

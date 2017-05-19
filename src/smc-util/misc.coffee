@@ -573,7 +573,7 @@ exports.path_join = (parts...) ->
     sep = '/'
     replace = new RegExp(sep+'{1,}', 'g')
     s = ("#{x}" for x in parts).join(sep).replace(replace, sep)
-    console.log parts, s
+    #console.log parts, s
     return s
 
 
