@@ -4,7 +4,7 @@ API Key Configuration
 
 misc = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{salvus_client} = require('./webapp_client')
 
 {React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
 
