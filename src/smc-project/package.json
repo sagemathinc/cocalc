@@ -1,5 +1,5 @@
 {
-  "name": "cocalc-project",
+  "name": "smc-project",
   "version": "1.0.0",
   "description": "CoCalc: project daemons",
   "main": "index.js",

@@ -1,5 +1,5 @@
 {
-  "name": "cocalc-hub",
+  "name": "smc-hub",
   "version": "1.0.0",
   "description": "CoCalc: Backend webserver component",
   "main": "index.js",
