@@ -88,7 +88,7 @@ smc_compute = (opts) =>
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         path = require('path')
         command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        PROJECT_PATH = process.env.COCALC_PROJECT_PATH ? path.join(process.env.SALVUS_ROOT, 'data', 'projects')
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
