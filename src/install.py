@@ -43,9 +43,9 @@ def install_project():
     # unsafe-perm below is needed so can build C code as root
     for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
-        
+
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm install --unsafe-perm=true --upgrade"%SUDO)
+    cmd("cd /usr/lib/node_modules/cocalc-project/jupyter && %s npm install --unsafe-perm=true --upgrade"%SUDO)
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
@@ -101,7 +101,7 @@ def install_all(compute=False, web=False):
         install_webapp()
 
 def main():
-    parser = argparse.ArgumentParser(description="Install components of SageMathCloud into the system")
+    parser = argparse.ArgumentParser(description="Install components of CoCalc into the system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser_pull = subparsers.add_parser('pull', help='pull latest version of code from github')

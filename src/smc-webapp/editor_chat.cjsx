@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -55,17 +55,17 @@ editing   : immutable.Map
 
 ###
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable = require('immutable')
 {IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {alert_message} = require('./alerts')
 
@@ -161,7 +161,7 @@ class ChatActions extends Actions
             # WARNING: give an error or try again later?
             return
         sender_id = @redux.getStore('account').get_account_id()
-        time_stamp = salvus_client.server_time().toISOString()
+        time_stamp = webapp_client.server_time().toISOString()
         @syncdb.set
             sender_id : sender_id
             event     : "chat"
@@ -196,7 +196,7 @@ class ChatActions extends Actions
             return
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
-        time_stamp = salvus_client.server_time().toISOString()
+        time_stamp = webapp_client.server_time().toISOString()
 
         @syncdb.set
             history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
@@ -236,7 +236,7 @@ exports.init_redux = (path, redux, project_id) ->
 
     actions._init()
 
-    syncdb = salvus_client.sync_db
+    syncdb = webapp_client.sync_db
         project_id   : project_id
         path         : path
         primary_keys : ['date']

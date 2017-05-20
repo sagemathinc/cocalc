@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
+{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
@@ -35,7 +35,7 @@ misc = require('smc-util/misc')
 account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
-{salvus_client}       = require('./salvus_client')
+{webapp_client}       = require('./webapp_client')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
@@ -286,9 +286,9 @@ FileRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
-        # See https://github.com/sagemathinc/smc/issues/1020
+        # See https://github.com/sagemathinc/cocalc/issues/1020
         # support right-click → copy url for the download button
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
@@ -399,7 +399,7 @@ DirectoryRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
         directory_styles =
             fontWeight     : 'bold'
@@ -941,6 +941,8 @@ ProjectFilesActionBox = rclass
             get_project_select_list : rtypes.func
         account :
             get_user_type : rtypes.func
+        customize :
+            site_name : rtypes.string
 
     getInitialState: ->
         copy_destination_directory  : ''
@@ -1478,23 +1480,26 @@ ProjectFilesActionBox = rclass
         return ret
 
     share_social_network: (where, single_file) ->
+        {SITE_NAME, TWITTER_HANDLE} = require('smc-util/theme')
         file_url   = @construct_public_share_url(single_file)
         public_url = encodeURIComponent(file_url)
         filename   = misc.path_split(single_file).tail
         text       = encodeURIComponent("Check out #{filename}")
+        site_name  = @props.site_name ? SITE_NAME
         switch where
             when 'facebook'
                 # https://developers.facebook.com/docs/sharing/reference/share-dialog
-                # 806558949398043 is the ID of "SageMathCloud"
+                # 806558949398043 is the ID of "SageMathcloud"
+                # TODO CoCalc
                 url = """https://www.facebook.com/dialog/share?app_id=806558949398043&display=popup&
                 href=#{public_url}&redirect_uri=https%3A%2F%2Ffacebook.com&quote=#{text}"""
             when 'twitter'
                 # https://dev.twitter.com/web/tweet-button/web-intent
-                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=sagemath"
+                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=#{TWITTER_HANDLE}"
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
-                url = """mailto:?to=&subject=#{filename} on SageMathCloud&
+                url = """mailto:?to=&subject=#{filename} on #{site_name}&
                 body=A file is shared with you: #{public_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
@@ -1619,7 +1624,7 @@ ProjectFilesSearch = rclass
 
         @_id = (@_id ? 0) + 1
         id = @_id
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
             timeout    : 10
@@ -1776,7 +1781,7 @@ ProjectFilesNew = rclass
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
         <MenuItem eventKey=i key={i} onClick={=>@on_menu_item_clicked(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
     on_menu_item_clicked: (ext) ->
@@ -2128,7 +2133,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <Loading />
 
         pay = @props.date_when_course_payment_required(@props.project_id)
-        if pay? and pay <= salvus_client.server_time()
+        if pay? and pay <= webapp_client.server_time()
             return @render_course_payment_required()
 
         public_view = @props.get_my_group(@props.project_id) == 'public'

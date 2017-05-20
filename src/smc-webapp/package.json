@@ -1,7 +1,7 @@
 {
-  "name": "smc-webapp",
+  "name": "cocalc-webapp",
   "version": "1.0.0",
-  "description": "SageMathCloud: the browser-based web application",
+  "description": "CoCalc: Collaborative Calculation in the Cloud",
   "main": "index.js",
   "directories": {},
   "dependencies": {
@@ -87,7 +87,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "keywords": [
     "python",
@@ -110,7 +110,7 @@
   ],
   "license": "GPL-3.0+",
   "bugs": {
-    "url": "https://github.com/sagemathinc/smc/issues"
+    "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/smc"
+  "homepage": "https://github.com/sagemathinc/cocalc"
 }

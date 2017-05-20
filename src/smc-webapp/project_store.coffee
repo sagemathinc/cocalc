@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -29,7 +29,7 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
 {alert_message} = require('./alerts')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {project_tasks} = require('./project_tasks')
 {defaults, required} = misc
 
@@ -239,7 +239,7 @@ class ProjectActions extends Actions
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
-        require('./salvus_client').salvus_client.query
+        require('./webapp_client').webapp_client.query
             query :
                 project_log :
                     project_id : @project_id
@@ -308,7 +308,7 @@ class ProjectActions extends Actions
 
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
                             # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
-                            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
+                            alert_message(type:"info",message:"Opening converted CoCalc worksheet file instead of '#{opts.path}...")
                             @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
@@ -474,7 +474,7 @@ class ProjectActions extends Actions
                 else
                     i = filename.length - ext.length
                     new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
-                    salvus_client.exec
+                    webapp_client.exec
                         project_id : @project_id
                         command    : "cp"
                         args       : [filename, new_filename]
@@ -485,7 +485,7 @@ class ProjectActions extends Actions
                                 filename = new_filename
                                 cb()
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id : @project_id
                     command    : "smc-sws2sagews"
                     args       : [filename]
@@ -499,7 +499,7 @@ class ProjectActions extends Actions
         )
 
     convert_docx_file: (filename, cb) =>
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : "smc-docx2txt"
             args       : [filename]
@@ -601,7 +601,7 @@ class ProjectActions extends Actions
             # Very rarely should you need something to execute exactly after this
 
         if not path?
-            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
+            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
             return
 
         if not @_set_directory_files_lock?
@@ -772,7 +772,7 @@ class ProjectActions extends Actions
 
         {command, args} = misc.transform_get_url(opts.url)
 
-        require('./salvus_client').salvus_client.exec
+        require('./webapp_client').webapp_client.exec
             project_id : @project_id
             command    : command
             timeout    : opts.timeout
@@ -786,7 +786,7 @@ class ProjectActions extends Actions
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
-    # function used internally by things that call salvus_client.exec
+    # function used internally by things that call webapp_client.exec
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
@@ -807,7 +807,7 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
             args            : args
@@ -846,7 +846,7 @@ class ProjectActions extends Actions
         if opts.only_contents
             opts.src = with_slashes
 
-        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
+        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
         deal_with_leading_dash = (src_path) ->
             if src_path[0] == '-'
                 return "./#{src_path}"
@@ -859,7 +859,7 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
             args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
@@ -900,7 +900,7 @@ class ProjectActions extends Actions
             opts0.src_path = src_path
             # we do this for consistent semantics with file copy
             opts0.target_path = misc.path_to_file(opts0.target_path, misc.path_split(src_path).tail)
-            salvus_client.copy_path_between_projects(opts0)
+            webapp_client.copy_path_between_projects(opts0)
         async.mapLimit(src, 3, f, @_finish_exec(id))
 
     _move_files: (opts) =>  #PRIVATE -- used internally to move files
@@ -913,7 +913,7 @@ class ProjectActions extends Actions
         if not opts.dest and not opts.path?
             opts.dest = '.'
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'mv'
             args            : (opts.mv_args ? []).concat(['--'], opts.src, [opts.dest])
@@ -960,7 +960,7 @@ class ProjectActions extends Actions
         else
             mesg = "#{opts.paths.length} files"
         @set_activity(id:id, status: "Deleting #{mesg}")
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : 'rm'
             timeout    : 60
@@ -1086,7 +1086,7 @@ class ProjectActions extends Actions
                 if filename.indexOf(bad_char) != -1
                     @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename '#{filename}'")
                     return
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : 'smc-new-file'
             timeout     : 10
@@ -1218,7 +1218,7 @@ class ProjectActions extends Actions
             most_recent_search : query
             most_recent_path   : store.current_path
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
             timeout         : 10   # how long grep runs on client
@@ -1634,11 +1634,11 @@ get_directory_listing = (opts) ->
         max_time_s : required
         group      : required
         cb         : required
-    {salvus_client} = require('./salvus_client')
+    {webapp_client} = require('./webapp_client')
     if opts.group in ['owner', 'collaborator', 'admin']
-        method = salvus_client.project_directory_listing
+        method = webapp_client.project_directory_listing
     else
-        method = salvus_client.public_project_directory_listing
+        method = webapp_client.public_project_directory_listing
     listing     = undefined
     listing_err = undefined
     f = (cb) ->

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -23,7 +23,7 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
@@ -137,7 +137,7 @@ class ProjectsActions extends Actions
             return
 
         # Set in the database (will get reflected in table); setting directly in the table isn't allowed (due to backend schema).
-        salvus_client.query
+        webapp_client.query
             query :
                 projects_owner :
                     project_id : project_id
@@ -149,12 +149,12 @@ class ProjectsActions extends Actions
                         email_address : email_address
 
     set_project_course_info_paying: (project_id, cb) =>
-        salvus_client.query
+        webapp_client.query
             query :
                 projects_owner :
                     project_id : project_id
                     course     :
-                        paying     : salvus_client.server_time()
+                        paying     : webapp_client.server_time()
             cb : cb
 
     # Create a new project
@@ -167,7 +167,7 @@ class ProjectsActions extends Actions
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
                 _create_project_tokens[token] = {err:err, project_id:project_id}
-        salvus_client.create_project(opts)
+        webapp_client.create_project(opts)
 
     # Open the given project
     #TODOJ: should not be in projects...
@@ -246,7 +246,7 @@ class ProjectsActions extends Actions
                         table = 'projects'
                     else
                         table = 'public_projects'
-                salvus_client.query
+                webapp_client.query
                     query :
                         "#{table}" : {project_id : project_id, title : null}
                     cb    : (err, resp) =>
@@ -266,7 +266,7 @@ class ProjectsActions extends Actions
         if @[block]
             return
         @[block] = true
-        salvus_client.find_directories
+        webapp_client.find_directories
             include_hidden : false
             project_id     : project_id
             exclusions     : opts.exclusions
@@ -287,7 +287,7 @@ class ProjectsActions extends Actions
     # Collaborators
     ###
     remove_collaborator: (project_id, account_id) =>
-        salvus_client.project_remove_collaborator
+        webapp_client.project_remove_collaborator
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
@@ -299,7 +299,7 @@ class ProjectsActions extends Actions
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
-        salvus_client.project_invite_collaborator
+        webapp_client.project_invite_collaborator
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
@@ -314,14 +314,14 @@ class ProjectsActions extends Actions
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()
-            body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
+            body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
 
         link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
 
         # convert body from markdown to html, which is what the backend expects
         body = markdown.markdown_to_html(body).s
 
-        salvus_client.invite_noncloud_collaborators
+        webapp_client.invite_noncloud_collaborators
             project_id   : project_id
             title        : title
             link2proj    : link2proj
@@ -359,27 +359,27 @@ class ProjectsActions extends Actions
     save_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'save', time:salvus_client.server_time()}
+            action_request : {action:'save', time:webapp_client.server_time()}
 
     start_project: (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'start', time:salvus_client.server_time()}
+            action_request : {action:'start', time:webapp_client.server_time()}
 
     stop_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'stop', time:salvus_client.server_time()}
+            action_request : {action:'stop', time:webapp_client.server_time()}
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'close', time:salvus_client.server_time()}
+            action_request : {action:'close', time:webapp_client.server_time()}
 
     restart_project: (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'restart', time:salvus_client.server_time()}
+            action_request : {action:'restart', time:webapp_client.server_time()}
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
@@ -473,12 +473,12 @@ class ProjectsStore extends Store
         info = @get_course_info(project_id)
         if not info?
             return
-        is_student = info?.get?('account_id') == salvus_client.account_id or info?.get?('email_address') == account.get('email_address')
+        is_student = info?.get?('account_id') == webapp_client.account_id or info?.get?('email_address') == account.get('email_address')
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
             if pay
-                if salvus_client.server_time() >= misc.months_before(-3, pay)
+                if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
                     # and we no longer require payment
                     return
@@ -500,7 +500,7 @@ class ProjectsStore extends Store
         map = @get('project_map')
         if not map?
             return
-        account_id = salvus_client.account_id
+        account_id = webapp_client.account_id
         list = []
         if current? and map.has(current)
             list.push(id:current, title:map.get(current).get('title'))
@@ -594,11 +594,11 @@ class ProjectsStore extends Store
             return
         total = {}
         @get('project_map').map (project, project_id) =>
-            total = misc.map_sum(total, project.getIn(['users', salvus_client.account_id, 'upgrades'])?.toJS())
+            total = misc.map_sum(total, project.getIn(['users', webapp_client.account_id, 'upgrades'])?.toJS())
         return total
 
     get_upgrades_you_applied_to_project: (project_id) =>
-        return @getIn(['project_map', project_id, 'users', salvus_client.account_id, 'upgrades'])?.toJS()
+        return @getIn(['project_map', project_id, 'users', webapp_client.account_id, 'upgrades'])?.toJS()
 
     # Get the individual users contributions to the project's upgrades
     get_upgrades_to_project: (project_id) =>
@@ -654,7 +654,7 @@ class ProjectsStore extends Store
     get_projects_upgraded_by: (account_id) =>
         if not @get('project_map')?
             return
-        account_id ?= salvus_client.account_id
+        account_id ?= webapp_client.account_id
         v = {}
         @get('project_map').map (project, project_id) =>
             upgrades = @getIn(['project_map', project_id, 'users', account_id, 'upgrades'])?.toJS()
@@ -741,7 +741,7 @@ NewProjectCreator = rclass
     render_info_alert: ->
         if @state.state == 'saving'
             <div style={marginTop:'30px'}>
-                <Alert bsStyle='info'>Creating project... <Icon name='circle-o-notch' spin /></Alert>
+                <Alert bsStyle='info'>Creating project... <Icon name='cc-icon-cocalc-ring' spin /></Alert>
             </div>
 
     render_error: ->
@@ -961,7 +961,7 @@ ProjectsListingDescription = rclass
 
     collab_projects: ->
         # Determine visible projects this user does NOT own.
-        return (project for project in @props.visible_projects when project.users?[salvus_client.account_id]?.group != 'owner')
+        return (project for project in @props.visible_projects when project.users?[webapp_client.account_id]?.group != 'owner')
 
     render_remove_from_all: ->
         if @props.visible_projects.length == 0
@@ -1004,7 +1004,7 @@ ProjectsListingDescription = rclass
 
     do_remove_from_all: ->
         for project in @collab_projects()
-            @actions('projects').remove_collaborator(project.project_id, salvus_client.account_id)
+            @actions('projects').remove_collaborator(project.project_id, webapp_client.account_id)
         @setState(show_remove_from_all:false)
 
     render: ->
@@ -1167,7 +1167,7 @@ parse_project_search_string = (project, user_map) ->
             tag = k.slice(1).toLowerCase()
             search += " [#{k}] "
     for account_id in misc.keys(project.users)
-        if account_id != salvus_client.account_id
+        if account_id != webapp_client.account_id
             info = user_map?.get(account_id)
             if info?
                 search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
@@ -1175,7 +1175,7 @@ parse_project_search_string = (project, user_map) ->
 
 # Returns true if the project should be visible with the given filters selected
 project_is_in_filter = (project, hidden, deleted) ->
-    account_id = salvus_client.account_id
+    account_id = webapp_client.account_id
     if not account_id?
         throw Error('project page should not get rendered until after user sign-in and account info is set')
     return !!project.deleted == deleted and !!project.users?[account_id]?.hide == hidden
@@ -1365,7 +1365,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
 
         visible_projects = @visible_projects()
-        <div className='container-content'>
+        <div className='container-content' style={overflow:'auto'}>
             <Grid fluid className='constrained' style={minHeight:"75vh"}>
                 <Well style={marginTop:'1em',overflow:'hidden'}>
                     <Row>

@@ -27,7 +27,7 @@ markdownlib = require('../markdown')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 schema = require('smc-util/schema')
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # Course Library
 {STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
@@ -398,7 +398,7 @@ exports.CourseActions = class CourseActions extends Actions
                 v[email] = student_id
                 s.push(email)
         if s.length > 0
-            salvus_client.user_search
+            webapp_client.user_search
                 query : s.join(',')
                 limit : s.length
                 cb    : (err, result) =>
@@ -469,7 +469,7 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_id = store.get_student(student).get('student_id')
         @_set
-            create_project : salvus_client.server_time()
+            create_project : webapp_client.server_time()
             table          : 'students'
             student_id     : student_id
         id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
@@ -715,7 +715,7 @@ exports.CourseActions = class CourseActions extends Actions
                 else
                     console.log("set quotas for #{project_id}")
                 cb(err)
-            salvus_client.project_set_quotas(x)
+            webapp_client.project_set_quotas(x)
         async.mapSeries store.get_student_project_ids(), f, (err) =>
             if err
                 console.warn("FAIL -- #{err}")
@@ -870,7 +870,7 @@ exports.CourseActions = class CourseActions extends Actions
             @set_activity(id:id, desc:"Copying assignment from #{student_name}")
             async.series([
                 (cb) =>
-                    salvus_client.copy_path_between_projects
+                    webapp_client.copy_path_between_projects
                         src_project_id    : student_project_id
                         src_path          : assignment.get('target_path')
                         target_project_id : store.get('course_project_id')
@@ -882,7 +882,7 @@ exports.CourseActions = class CourseActions extends Actions
                 (cb) =>
                     # write their name to a file
                     name = store.get_student_name(student, true)
-                    salvus_client.write_text_file_to_project
+                    webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : target_path + "/STUDENT - #{name.simple}.txt"
                         content    : "This student is #{name.full}."
@@ -934,13 +934,13 @@ exports.CourseActions = class CourseActions extends Actions
                     content = "Your grade on this assignment:\n\n    #{grade}"
                     if peer_graded
                         content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
-                    salvus_client.write_text_file_to_project
+                    webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : src_path + '/GRADE.txt'
                         content    : content
                         cb         : cb
                 (cb) =>
-                    salvus_client.copy_path_between_projects
+                    webapp_client.copy_path_between_projects
                         src_project_id    : store.get('course_project_id')
                         src_path          : src_path
                         target_project_id : student_project_id
@@ -952,7 +952,7 @@ exports.CourseActions = class CourseActions extends Actions
                 (cb) =>
                     if peer_graded
                         # Delete GRADER file
-                        salvus_client.exec
+                        webapp_client.exec
                             project_id : student_project_id
                             command    : 'rm ./*/GRADER*.txt'
                             timeout    : 60
@@ -1031,7 +1031,7 @@ exports.CourseActions = class CourseActions extends Actions
             obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
             x = @_get_one(obj)?[type] ? {}
             y = (x[student.get('student_id')]) ? {}
-            if y.start? and salvus_client.server_time() - y.start <= 15000
+            if y.start? and webapp_client.server_time() - y.start <= 15000
                 return true  # never retry a copy until at least 15 seconds later.
             y.start = misc.mswalltime()
             x[student.get('student_id')] = y
@@ -1111,14 +1111,14 @@ exports.CourseActions = class CourseActions extends Actions
                 due_date = store.get_due_date(assignment)
                 if not due_date?
                     cb(); return
-                salvus_client.write_text_file_to_project
+                webapp_client.write_text_file_to_project
                     project_id : store.get('course_project_id')
                     path       : src_path + '/DUE_DATE.txt'
                     content    : "This assignment is due\n\n   #{due_date.toLocaleString()}"
                     cb         : cb
             (cb) =>
                 @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
-                salvus_client.copy_path_between_projects
+                webapp_client.copy_path_between_projects
                     src_project_id    : store.get('course_project_id')
                     src_path          : src_path
                     target_project_id : student_project_id
@@ -1253,14 +1253,14 @@ exports.CourseActions = class CourseActions extends Actions
                     # delete the student's name so that grading is anonymous; also, remove original
                     # due date to avoid confusion.
                     name = store.get_student_name(student_id, true)
-                    salvus_client.exec
+                    webapp_client.exec
                         project_id : store.get('course_project_id')
                         command    : 'rm'
                         args       : ['-f', src_path + "/STUDENT - #{name.simple}.txt", src_path + "/DUE_DATE.txt", src_path + "/STUDENT - #{name.simple}.txt~", src_path + "/DUE_DATE.txt~"]
                         cb         : cb
                 (cb) =>
                     # copy the files to be peer graded into place for this student
-                    salvus_client.copy_path_between_projects
+                    webapp_client.copy_path_between_projects
                         src_project_id    : store.get('course_project_id')
                         src_path          : src_path
                         target_project_id : student_project_id
@@ -1271,7 +1271,7 @@ exports.CourseActions = class CourseActions extends Actions
             ], cb)
 
         # write instructions file to the student
-        salvus_client.write_text_file_to_project
+        webapp_client.write_text_file_to_project
             project_id : student_project_id
             path       : target_base_path + "/GRADING_GUIDE.md"
             content    : guidelines
@@ -1324,7 +1324,7 @@ exports.CourseActions = class CourseActions extends Actions
             async.series([
                 (cb) =>
                     # copy the files over from the student who did the peer grading
-                    salvus_client.copy_path_between_projects
+                    webapp_client.copy_path_between_projects
                         src_project_id    : s.get('project_id')
                         src_path          : src_path
                         target_project_id : store.get('course_project_id')
@@ -1335,7 +1335,7 @@ exports.CourseActions = class CourseActions extends Actions
                 (cb) =>
                     # write local file identifying the grader
                     name = store.get_student_name(student_id, true)
-                    salvus_client.write_text_file_to_project
+                    webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : target_path + "/GRADER - #{name.simple}.txt"
                         content    : "The student who did the peer grading is named #{name.full}."
@@ -1343,7 +1343,7 @@ exports.CourseActions = class CourseActions extends Actions
                 (cb) =>
                     # write local file identifying student being graded
                     name = store.get_student_name(student, true)
-                    salvus_client.write_text_file_to_project
+                    webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : target_path + "/STUDENT - #{name.simple}.txt"
                         content    : "This student is #{name.full}."
@@ -1469,7 +1469,7 @@ exports.CourseActions = class CourseActions extends Actions
             obj   = {table:'handouts', handout_id:handout.get('handout_id')}
             status_map = @_get_one(obj)?.status ? {}
             student_status = (status_map[student.get('student_id')]) ? {}
-            if student_status.start? and salvus_client.server_time() - student_status.start <= 15000
+            if student_status.start? and webapp_client.server_time() - student_status.start <= 15000
                 return true  # never retry a copy until at least 15 seconds later.
             student_status.start = misc.mswalltime()
             status_map[student.get('student_id')] = student_status
@@ -1547,7 +1547,7 @@ exports.CourseActions = class CourseActions extends Actions
                     cb()
             (cb) =>
                 @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
-                salvus_client.copy_path_between_projects
+                webapp_client.copy_path_between_projects
                     src_project_id    : store.get('course_project_id')
                     src_path          : src_path
                     target_project_id : student_project_id

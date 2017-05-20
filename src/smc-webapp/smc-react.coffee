@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -51,7 +51,7 @@ class Table
     constructor: (@name, @redux) ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
-        @_table = require('./salvus_client').salvus_client.sync_table(@query(), @options())
+        @_table = require('./webapp_client').webapp_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)

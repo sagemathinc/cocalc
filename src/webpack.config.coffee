@@ -1,4 +1,4 @@
-# SageMathCloud, by SageMath, Inc., (c) 2016 -- License: GPLv3
+# CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
 
 ###
 # Webpack configuration file
@@ -88,28 +88,33 @@ path          = require('path')
 fs            = require('fs')
 glob          = require('glob')
 child_process = require('child_process')
+misc          = require('smc-util/misc')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
+theme         = require('smc-util/theme')
 
 git_head      = child_process.execSync("git rev-parse HEAD")
 GIT_REV       = git_head.toString().trim()
-TITLE         = 'SageMathCloud'
-SMC_REPO      = 'https://github.com/sagemathinc/smc'
-SMC_LICENSE   = 'GPLv3'
+TITLE         = theme.SITE_NAME
+DESCRIPTION   = theme.APP_TAGLINE
+SMC_REPO      = 'https://github.com/sagemathinc/cocalc'
+SMC_LICENSE   = 'AGPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB
 INPUT         = path.resolve(__dirname, WEBAPP_LIB)
 OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
+CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
+STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
@@ -118,11 +123,20 @@ GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
 
+# check and sanitiziation (e.g. an exising but empty env variable is ignored)
+# CDN_BASE_URL must have a trailing slash
+if not CDN_BASE_URL? or CDN_BASE_URL.length == 0
+    CDN_BASE_URL = null
+else
+    if CDN_BASE_URL[-1..] isnt '/'
+        throw new Error("CDN_BASE_URL must be an URL-string ending in a '/' -- but it is #{CDN_BASE_URL}")
+
 # output build environment variables of webpack
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
+console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
 console.log "MINIFY           = #{MINIFY}"
 console.log "INPUT            = #{INPUT}"
@@ -130,9 +144,13 @@ console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 
 # mathjax version → symlink with version info from package.json/version
-MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
-MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
-MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
+if CDN_BASE_URL?
+    # the CDN url does not have the /static/... prefix!
+    MATHJAX_URL = CDN_BASE_URL + path.join(misc_node.MATHJAX_SUBDIR, 'MathJax.js')
+else
+    MATHJAX_URL = misc_node.MATHJAX_URL  # from where the files are served
+MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
+MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
 console.log "MATHJAX_URL      = #{MATHJAX_URL}"
 console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
@@ -211,47 +229,82 @@ base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
-# this is the main index.html file, which should be served without any caching
-pug2html = new HtmlWebpackPlugin
+# this is the main app.html file, which should be served without any caching
+# config: https://github.com/jantimon/html-webpack-plugin#configuration
+pug2app = new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
+                        description      : DESCRIPTION
                         BASE_URL         : base_url_html
+                        theme            : theme
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
-                        filename         : 'index.html'
+                        filename         : 'app.html'
                         chunksSortMode   : smcChunkSorter
+                        inject           : 'body'
                         hash             : PRODMODE
-                        template         : path.join(INPUT, 'index.pug')
+                        template         : path.join(INPUT, 'app.pug')
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+)
 
-# the following set of plugins renders the policy pages
-# they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
-# via lodash's template syntax. e.g.: <%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>
-policyPages = []
-for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename(x)[0] != '_')
-    policyPages.push new HtmlWebpackPlugin
-                        filename : "policies/#{path.basename(pp)}"
-                        inject   : 'head'
-                        favicon  : path.join(INPUT, 'favicon.ico')
-                        template : pp
-                        chunks   : ['css']
-                        minify   : htmlMinifyOpts
+# static html pages
+# they only depend on the css chunk
+staticPages = []
+for [fn_in, fn_out] in [['index.pug', 'index.html'], ['features.pug', 'features.html']]
+    staticPages.push(new HtmlWebpackPlugin(
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        description      : DESCRIPTION
+                        BASE_URL         : base_url_html
+                        theme            : theme
+                        git_rev          : GIT_REV
+                        mathjax          : MATHJAX_URL
+                        filename         : fn_out
+                        chunks           : ['css']
+                        inject           : 'head'
+                        hash             : PRODMODE
+                        template         : path.join(INPUT, fn_in)
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        PREFIX           : ''
+                        SCHEMA           : require('smc-util/schema')
+                        PREFIX           : if fn_in == 'index.pug' then '' else '../'
+    ))
 
-# video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
-# maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
-videoChatSide = new HtmlWebpackPlugin
-                        filename : "webrtc/group_chat_side.html"
-                        inject   : 'head'
-                        template : 'webapp-lib/webrtc/group_chat_side.html'
-                        chunks   : ['css']
-                        minify   : htmlMinifyOpts
-videoChatCell = new HtmlWebpackPlugin
-                        filename : "webrtc/group_chat_cell.html"
-                        inject   : 'head'
-                        template : 'webapp-lib/webrtc/group_chat_cell.html'
-                        chunks   : ['css']
-                        minify   : htmlMinifyOpts
+# the following renders the policy pages
+for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
+    output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        template         : pp
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
+
+#video chat is done differently, this is kept for reference.
+## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
+## maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
+#videoChatSide = new HtmlWebpackPlugin
+#                        filename : "webrtc/group_chat_side.html"
+#                        inject   : 'head'
+#                        template : 'webapp-lib/webrtc/group_chat_side.html'
+#                        chunks   : ['css']
+#                        minify   : htmlMinifyOpts
+#videoChatCell = new HtmlWebpackPlugin
+#                        filename : "webrtc/group_chat_cell.html"
+#                        inject   : 'head'
+#                        template : 'webapp-lib/webrtc/group_chat_cell.html'
+#                        chunks   : ['css']
+#                        minify   : htmlMinifyOpts
 
 # global css loader configuration
 cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
@@ -350,20 +403,34 @@ plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner,
-    pug2html,
-    #commonsChunkPlugin,
-    #extractCSS,
-    #copyWebpackPlugin
-    #webpackSHAHash,
-    #new PrintChunksPlugin(),
-    mathjaxVersionedSymlink,
-    #linkFilesIntoTargetPlugin,
+    banner
 ]
 
+if STATICPAGES
+    plugins = plugins.concat(staticPages)
+    entries =
+        css  : 'webapp-css.coffee'
+else
+    # ATTN don't alter or add names here, without changing the sorting function above!
+    entries =
+        css  : 'webapp-css.coffee'
+        lib  : 'webapp-lib.coffee'
+        smc  : 'webapp-smc.coffee'
+    plugins = plugins.concat([
+        pug2app,
+        #commonsChunkPlugin,
+        #extractCSS,
+        #copyWebpackPlugin
+        #webpackSHAHash,
+        #new PrintChunksPlugin(),
+        mathjaxVersionedSymlink,
+        #linkFilesIntoTargetPlugin,
+    ])
+
 if not QUICK_BUILD or PRODMODE
-    plugins = plugins.concat(policyPages)
-    plugins = plugins.concat([videoChatSide, videoChatCell, assetsPlugin, statsWriterPlugin])
+    plugins = plugins.concat(staticPages)
+    plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
+    # video chat plugins would be added here
 
 if PRODMODE
     console.log "production mode: enabling compression"
@@ -382,7 +449,7 @@ if PRODMODE or MINIFY
                                 sourceMap: false
                                 minimize: true
                                 output:
-                                    comments: new RegExp(TITLE,"g") # to keep the banner inserted above
+                                    comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
                                 mangle:
                                     except       : ['$super', '$', 'exports', 'require']
                                     screw_ie8    : true
@@ -409,14 +476,24 @@ if PRODMODE or MINIFY
 
 
 # tuning generated filenames and the configs for the aux files loader.
+# FIXME this setting isn't picked up properly
 if PRODMODE
-    hashname = '[sha256:hash:base62:33].[ext]' # don't use base64, it's not recommended for some reason.
+    hashname = '[sha256:hash:base62:33].cacheme.[ext]' # don't use base64, it's not recommended for some reason.
 else
-    hashname = '[path][name].[ext]'
+    hashname = '[path][name].nocache.[ext]'
 pngconfig   = "name=#{hashname}&limit=16000&mimetype=image/png"
 svgconfig   = "name=#{hashname}&limit=16000&mimetype=image/svg+xml"
 icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
 woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
+
+# publicPath: either locally, or a CDN, see https://github.com/webpack/docs/wiki/configuration#outputpublicpath
+# In order to use the CDN, copy all files from the `OUTPUT` directory over there.
+# Caching: files ending in .html (like index.html or those in /policies/) and those matching '*.nocache.*' shouldn't be cached
+#          all others have a hash and can be cached long-term (especially when they match '*.cacheme.*')
+if CDN_BASE_URL?
+    publicPath = CDN_BASE_URL
+else
+    publicPath = path.join(BASE_URL, OUTPUT) + '/'
 
 module.exports =
     cache: true
@@ -426,16 +503,13 @@ module.exports =
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
 
-    entry: # ATTN don't alter or add names here, without changing the sorting function above!
-        css  : 'webapp-css.coffee'
-        lib  : 'webapp-lib.coffee'
-        smc  : 'webapp-smc.coffee'
+    entry: entries
 
     output:
         path          : OUTPUT
-        publicPath    : path.join(BASE_URL, OUTPUT) + '/'
-        filename      : if PRODMODE then '[name]-[hash].js' else '[name].js'
-        chunkFilename : if PRODMODE then '[id]-[hash].js'   else '[id].js'
+        publicPath    : publicPath
+        filename      : if PRODMODE then '[name]-[hash].cacheme.js' else '[name].nocache.js'
+        chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
     module:
@@ -447,16 +521,17 @@ module.exports =
             { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
             { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
             { test: /\.json$/,   loaders: ['json-loader'] },
-            { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
+            { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
-            { test: /\.(jpg|gif)$/,    loader: "file-loader"},
+            { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
             # .html only for files in smc-webapp!
             { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
             # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
+            { test: /\.(ttf|eot)$/, loader: "file-loader?name=#{hashname}" },
             # { test: /\.css$/,    loader: 'style!css' },
             { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
             { test: /\.pug$/, loader: 'pug-loader' },

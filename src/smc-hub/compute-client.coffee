@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -1065,7 +1065,7 @@ class ProjectClient extends EventEmitter
                     # results in a huge number of connections from the hub to compute
                     # servers, which crashes everything.
                     if "#{err}".indexOf('error writing to socket') != -1
-                        # See https://github.com/sagemathinc/smc/issues/507
+                        # See https://github.com/sagemathinc/cocalc/issues/507
                         # Experience suggests that when we get this error, it gets stuck like this
                         # and never goes away -- in this case we want to try again with a new connection.
                         @compute_server.remove_from_cache(host:@host)

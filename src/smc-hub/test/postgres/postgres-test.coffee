@@ -14,6 +14,7 @@ async  = require('async')
 expect = require('expect')
 
 misc = require('smc-util/misc')
+{DOMAIN_NAME, SITE_NAME} = require('smc-util/theme')
 
 describe 'working with accounts: ', ->
     @timeout(5000)
@@ -102,7 +103,7 @@ describe 'working with logs: ', ->
             cb    : (err, log) -> expect(log.length).toBe(0); done(err)
 
     account_id = '4d29eec4-c126-4f06-b679-9a661fd7bcdf'
-    error = 'Your internet connection is unstable/down or SMC is temporarily not available. Therefore SMC is not working.'
+    error = "Your internet connection is unstable/down or #{SITE_NAME} is temporarily not available. Therefore #{SITE_NAME} is not working."
     event = 'test'
     it 'logs a client error', (done) ->
         db.log_client_error
@@ -270,12 +271,12 @@ describe 'testing the passport settings table: ', ->
     before(setup)
     after(teardown)
     it 'creates the site_conf passport auth', (done) ->
-        db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'},  cb: done)
+        db.set_passport_settings(strategy:'site_conf', conf:{auth:DOMAIN_NAME + '/auth'},  cb: done)
     it 'verifies that the site_conf passport was created', (done) ->
         db.get_passport_settings
             strategy : 'site_conf'
             cb       : (err, value) ->
-                expect(value).toEqual({auth:'https://cloud.sagemath.com/auth'})
+                expect(value).toEqual({auth:DOMAIN_NAME + '/auth'})
                 done(err)
 
 describe 'user enumeration functionality: ', ->

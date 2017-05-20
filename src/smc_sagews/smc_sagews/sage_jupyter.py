@@ -38,7 +38,7 @@ class JUPYTER(object):
 
     def _get_doc(self):
         ds0 = textwrap.dedent(r"""\
-        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet
+        Use the jupyter command to use any Jupyter kernel that you have installed using from your CoCalc worksheet
 
             | py3 = jupyter("python3")
 
@@ -74,7 +74,7 @@ class JUPYTER(object):
             | p2('print(a)')   # prints 10
 
         For details on supported features and known issues, see the SMC Wiki page:
-        https://github.com/sagemathinc/smc/wiki/sagejupyter
+        https://github.com/sagemathinc/cocalc/wiki/sagejupyter
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()

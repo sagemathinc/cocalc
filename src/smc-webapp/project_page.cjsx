@@ -1,3 +1,24 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 project page react component
 ###
@@ -22,7 +43,7 @@ project_file = require('./project_file')
 {file_associations} = require('./editor')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
+{Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -87,7 +108,7 @@ FileTab = rclass
         if @props.file_tab
             styles = misc.copy(DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
-                styles.backgroundColor = SAGE_LOGO_COLOR
+                styles.backgroundColor = COLORS.BLUE_BG
         else
             styles.flex = 'none'
 
@@ -203,24 +224,24 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
         styles =
-            padding      : 2
+            padding      : 3
             paddingLeft  : 7
             paddingRight : 7
-            cursor       : 'pointer'
             marginBottom : 0
             fontSize     : '13pt'
         dismiss_styles =
+            cursor     : 'pointer'
             display    : 'inline-block'
             float      : 'right'
             fontWeight : 700
-            top        : -5
-            fontSize   : 18
+            top        : -4
+            fontSize   : '18pt'
             color      : 'grey'
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
+            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
         </Alert>
@@ -521,7 +542,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
 
-        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
+        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, paddingTop: '5px', overflow:'auto'}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
@@ -636,7 +657,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
 
-        <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
+        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>

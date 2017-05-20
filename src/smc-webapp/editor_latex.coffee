@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014--2016, SageMath, Inc.
 #
@@ -37,9 +37,9 @@ misc_page       = require('./misc_page')
 editor          = require('./editor')
 printing        = require('./printing')
 {project_tasks} = require('./project_tasks')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
-templates       = $("#salvus-editor-templates")
+templates       = $("#webapp-editor-templates")
 
 # this regex matches the `@_get()` content iff it is a compileable latex document
 RE_FULL_LATEX_CODE = new RegExp('\\\\documentclass[^}]*}[^]*?\\\\begin{document}[^]*?\\\\end{document}', 'g')
@@ -66,7 +66,7 @@ class exports.LatexEditor extends editor.FileEditor
         #     * log -- log of latex command
         opts.mode = 'stex2'
 
-        @element = templates.find(".salvus-editor-latex").clone()
+        @element = templates.find(".webapp-editor-latex").clone()
 
         @_pages = {}
 
@@ -77,13 +77,13 @@ class exports.LatexEditor extends editor.FileEditor
         opts.latex_editor = true
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
-        @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
-        @element.find(".salvus-editor-codeedit-buttonbar-mode").remove()
+        @element.find(".webapp-editor-latex-latex_editor").append(@latex_editor.element)
+        @element.find(".webapp-editor-codeedit-buttonbar-mode").remove()
 
         @latex_editor.action_key = @action_key
-        @element.find(".salvus-editor-latex-buttons").show()
+        @element.find(".webapp-editor-latex-buttons").show()
 
-        latex_buttonbar = @element.find(".salvus-editor-latex-buttonbar")
+        latex_buttonbar = @element.find(".webapp-editor-latex-buttonbar")
         latex_buttonbar.show()
 
         @latex_editor.on 'saved', () =>
@@ -111,21 +111,21 @@ class exports.LatexEditor extends editor.FileEditor
 
         # The pdf preview.
         @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:@get_resolution()})
-        @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
+        @element.find(".webapp-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
         if not $.browser.firefox
-            # see https://github.com/sagemathinc/smc/issues/1313
+            # see https://github.com/sagemathinc/cocalc/issues/1313
             preview_filename = misc.change_filename_extension(@filename, 'pdf')
             @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
-            @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
-            @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+            @preview_embed.element.find(".webapp-editor-codemirror-button-row").remove()
+            @element.find(".webapp-editor-latex-pdf-preview").append(@preview_embed.element)
             @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
-        @log = @element.find(".salvus-editor-latex-log")
+        @log = @element.find(".webapp-editor-latex-log")
         @log.find("a").tooltip(TOOLTIP_CONFIG)
         @_pages['log'] = @log
         @log_input = @log.find("input")
@@ -154,9 +154,9 @@ class exports.LatexEditor extends editor.FileEditor
             cm._smc_inline_errors = {}
         @element.on 'blur', ->
             $('[data-toggle="popover"]').popover('hide')
-        @errors = @element.find(".salvus-editor-latex-errors")
+        @errors = @element.find(".webapp-editor-latex-errors")
         @_pages['errors'] = @errors
-        @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
+        @_error_message_template = @element.find(".webapp-editor-latex-mesg-template")
 
         @_init_buttons()
         @init_draggable_split()
@@ -193,7 +193,7 @@ class exports.LatexEditor extends editor.FileEditor
 
     init_draggable_split: () =>
         @_split_pos = @local_storage(LSkey.split_pos)
-        @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
+        @_dragbar = dragbar = @element.find(".webapp-editor-latex-resize-bar")
         @set_dragbar_position()
         update = =>
             misc_page.drag_stop_iframe_enable()
@@ -217,7 +217,7 @@ class exports.LatexEditor extends editor.FileEditor
     set_dragbar_position: =>
         @_split_pos ?= @local_storage(LSkey.split_pos) ? 0.5
         @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
-        @element.find(".salvus-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
+        @element.find(".webapp-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
 
 
     set_conf: (obj) =>
@@ -245,7 +245,9 @@ class exports.LatexEditor extends editor.FileEditor
         if not @latex_editor.codemirror?
             return {}
         doc = @latex_editor.codemirror.getValue()
-        i = doc.indexOf("%sagemathcloud=")
+        i_old = doc.indexOf('%sagemathcloud=')
+        i_new = doc.indexOf('%configuration=')
+        i = Math.max(i_old, i_new)
         if i == -1
             return {}
 
@@ -265,13 +267,18 @@ class exports.LatexEditor extends editor.FileEditor
         if not cm?
             return
         doc = cm.getValue()
-        i = doc.indexOf('%sagemathcloud=')
-        line = '%sagemathcloud=' + misc.to_json(conf)
+        i_old = doc.indexOf('%sagemathcloud=')
+        i_new = doc.indexOf('%configuration=')
+        i = Math.max(i_old, i_new)
+        line = '%configuration=' + misc.to_json(conf)
         if i != -1
             # find the line m where it is already
-            for n in [0..cm.doc.lastLine()]
+            for n in [cm.doc.lastLine()..0]
                 z = cm.getLine(n)
-                if z.indexOf('%sagemathcloud=') != -1
+                i2_old = z.indexOf('%sagemathcloud=')
+                i2_new = z.indexOf('%configuration=')
+                i2 = Math.max(i2_old, i2_new)
+                if i2 != -1
                     m = n
                     break
             cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})
@@ -360,7 +367,7 @@ class exports.LatexEditor extends editor.FileEditor
             return false
 
         @element.find('a[href="#pdf-preview"]').click () =>
-            # see https://github.com/sagemathinc/smc/issues/1313
+            # see https://github.com/sagemathinc/cocalc/issues/1313
             if $.browser.firefox
                 @download_pdf()
             else
@@ -379,8 +386,8 @@ class exports.LatexEditor extends editor.FileEditor
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find('a[href="#errors"]').find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find('a[href="#errors"]').find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find('a[href="#errors"]').find(".webapp-latex-errors-counter")
+        @number_of_warnings = @element.find('a[href="#errors"]').find(".webapp-latex-warnings-counter")
 
         @element.find('a[href="#pdf-download"]').click () =>
             @download_pdf()
@@ -606,13 +613,13 @@ class exports.LatexEditor extends editor.FileEditor
 
         pages = ['png-preview', 'pdf-preview', 'log', 'errors']
         for n in pages
-            @element.find(".salvus-editor-latex-#{n}").hide()
+            @element.find(".webapp-editor-latex-#{n}").hide()
 
         for n in pages
             page = @_pages[n]
             if not page?
                 continue
-            e = @element.find(".salvus-editor-latex-#{n}")
+            e = @element.find(".webapp-editor-latex-#{n}")
             button = @element.find("a[href=\"#" + n + "\"]")
             if n == name
                 e.show()
@@ -641,7 +648,7 @@ class exports.LatexEditor extends editor.FileEditor
             opts.command = @preview.pdflatex.default_tex_command()
         @log_input.val(opts.command)
 
-        build_status = button.find(".salvus-latex-build-status")
+        build_status = button.find(".webapp-latex-build-status")
         status = (mesg) =>
             if mesg.start
                 build_status.text(' - ' + mesg.start)
@@ -702,7 +709,7 @@ class exports.LatexEditor extends editor.FileEditor
             cb()
             return
 
-        elt = @errors.find(".salvus-latex-errors")
+        elt = @errors.find(".webapp-latex-errors")
         if p.errors.length == 0
             elt.html("None")
         else
@@ -715,7 +722,7 @@ class exports.LatexEditor extends editor.FileEditor
                     break
                 elt.append(@render_error_message(mesg, 'error'))
 
-        elt = @errors.find(".salvus-latex-warnings")
+        elt = @errors.find(".webapp-latex-warnings")
         if p.warnings.length == 0
             elt.html("None")
         else
@@ -728,7 +735,7 @@ class exports.LatexEditor extends editor.FileEditor
                     break
                 elt.append(@render_error_message(mesg, 'warning'))
 
-        elt = @errors.find(".salvus-latex-typesetting")
+        elt = @errors.find(".webapp-latex-typesetting")
         if p.typesetting.length == 0
             elt.html("None")
         else
@@ -872,17 +879,17 @@ class exports.LatexEditor extends editor.FileEditor
             @_show_error_in_preview(mesg)
             return false
 
-        elt.addClass("salvus-editor-latex-mesg-template-#{mesg.level}")
+        elt.addClass("webapp-editor-latex-mesg-template-#{mesg.level}")
         if mesg.line
-            elt.find(".salvus-latex-mesg-line").text("line #{mesg.line}").data('line', mesg.line)
+            elt.find(".webapp-latex-mesg-line").text("line #{mesg.line}").data('line', mesg.line)
         if mesg.page
-            elt.find(".salvus-latex-mesg-page").text("page #{mesg.page}").data('page', mesg.page)
+            elt.find(".webapp-latex-mesg-page").text("page #{mesg.page}").data('page', mesg.page)
         if mesg.file
-            elt.find(".salvus-latex-mesg-file").text(" of #{mesg.file}").data('file', mesg.file)
+            elt.find(".webapp-latex-mesg-file").text(" of #{mesg.file}").data('file', mesg.file)
         if mesg.message
-            elt.find(".salvus-latex-mesg-message").text(mesg.message)
+            elt.find(".webapp-latex-mesg-message").text(mesg.message)
         if mesg.content
-            elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
+            elt.find(".webapp-latex-mesg-content").show().text(mesg.content)
         return elt
 
     # convert line number of tex file to line number in Rnw file
@@ -902,7 +909,7 @@ class exports.LatexEditor extends editor.FileEditor
             conc_fn = @preview.pdflatex.base_filename + '-concordance.tex'
             if @_path # make relative to home directory of project
                 conc_fn = @_path + '/' + conc_fn
-            salvus_client.read_text_file_from_project
+            webapp_client.read_text_file_from_project
                 project_id : @project_id
                 path       : conc_fn
                 cb         : (err, res) =>

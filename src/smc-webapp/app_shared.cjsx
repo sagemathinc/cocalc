@@ -1,16 +1,38 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
+{COLORS} = require('smc-util/theme')
+{webapp_client} = require('./webapp_client')
+misc = require('smc-util/misc')
 
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
+ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
-
-ACTIVE_BG_COLOR = '#e7e7e7'
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -35,14 +57,15 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label          : rtypes.string
-        icon           : rtypes.oneOfType([rtypes.string, rtypes.object])
-        close          : rtypes.bool
-        on_click       : rtypes.func
-        active_top_tab : rtypes.string
-        actions        : rtypes.object
-        style          : rtypes.object
-        inner_style    : rtypes.object
+        label           : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
+        close           : rtypes.bool
+        on_click        : rtypes.func
+        active_top_tab  : rtypes.string
+        actions         : rtypes.object
+        style           : rtypes.object
+        inner_style     : rtypes.object
+        add_inner_style : rtypes.object
 
     make_icon: ->
         if typeof(@props.icon) == 'string'
@@ -79,6 +102,8 @@ exports.NavTab = rclass
         else
             inner_style =
                 padding : '10px'
+        if @props.add_inner_style
+            misc.merge(inner_style, @props.add_inner_style)
 
         <NavItem
             active = {is_active}
@@ -104,6 +129,7 @@ exports.NotificationBell = rclass
 
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
+        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     notification_count: ->
         count_styles =
@@ -115,7 +141,7 @@ exports.NotificationBell = rclass
             background : 'transparent'
         if @props.count > 9
             count_styles.left         = '15.8px'
-            count_styles.background   = 'white'
+            count_styles.background   = COLORS.GRAY_L
             count_styles.borderRadius = '50%'
             count_styles.border       = '2px solid lightgrey'
         if @props.count > 0
@@ -141,8 +167,10 @@ exports.NotificationBell = rclass
             bell_style = {color: COLOR.FG_RED}
 
         <NavItem
+            ref='bell'
             style={outer_style}
             onClick={@on_click}
+            className={'active' if @props.active}
         >
             <div style={inner_style}>
                 <Icon name='bell-o' className={clz} style={bell_style} />
@@ -187,6 +215,7 @@ exports.ConnectionIndicator = rclass
     connection_click: ->
         @props.actions.show_connection(true)
         @props.on_click?()
+        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
         outer_styles =
@@ -240,7 +269,7 @@ exports.ConnectionInfo = rclass
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
                 <Col sm=3 smOffset=1>
-                    <Button bsStyle='warning' onClick={=>salvus_client._fix_connection(true)}>
+                    <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>
@@ -281,7 +310,7 @@ exports.FullscreenButton = rclass
             top        : '1px'
             fontSize   : '13pt'
             padding    : 4
-            color      : '#666'
+            color      : COLORS.GRAY
             cursor     : 'pointer'
             borderRadius: '3px'
 
@@ -292,20 +321,21 @@ exports.FullscreenButton = rclass
 
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
-exports.SMCLogo = rclass
-    displayName : 'SMCLogo'
+exports.AppLogo = rclass
+    displayName : 'AppLogo'
 
     render: ->
-        smc_icon_url = require('salvus-icon.svg')
+        {APP_ICON} = require('./misc_page')
         styles =
             display         : 'inline-block'
-            backgroundImage : "url('#{smc_icon_url}')"
+            backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
-            backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
-            height          : 40
-            width           : 42
+            backgroundRepeat: 'no-repeat'
+            height          : 36
+            width           : 36
             position        : 'relative'
-        <div className='img-rounded' style={styles}></div>
+            margin          : '2px'
+        <div style={styles}></div>
 
 exports.VersionWarning = rclass
     displayName : 'VersionWarning'
@@ -314,7 +344,7 @@ exports.VersionWarning = rclass
         new_version : rtypes.object
 
     render_critical: ->
-        if @props.new_version.min_version > salvus_client.version()
+        if @props.new_version.min_version > webapp_client.version()
             <div>
                 <br />
                 THIS IS A CRITICAL UPDATE. YOU MUST <Space/>
@@ -325,7 +355,7 @@ exports.VersionWarning = rclass
             </div>
 
     render_close: ->
-        if not (@props.new_version.min_version > salvus_client.version())
+        if not (@props.new_version.min_version > webapp_client.version())
             <Icon
                 name = 'times'
                 className = 'pull-right'
@@ -374,7 +404,7 @@ exports.CookieWarning = rclass
 
     render: ->
         <div style={warning_styles}>
-            <Icon name='warning' /> You <em>must</em> enable cookies to sign into SageMathCloud.
+            <Icon name='warning' /> You <em>must</em> enable cookies to sign into CoCalc.
         </div>
 
 misc = require('smc-util/misc')
@@ -386,5 +416,39 @@ exports.LocalStorageWarning = rclass
 
     render: ->
         <div style={storage_warning_style}>
-            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
+            <Icon name='warning' /> You <em>must</em> enable local storage to use this website{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
+
+# This is used in the "desktop_app" to show a global announcement on top of CC
+# It was first used for a general CoCalc announcement, but it's general enough to be used later on
+# for other global announcements.
+# For now, it just has a simple dismiss button backed by the account → other_settings, though.
+exports.GlobalInformationMessage = rclass
+    displayName: 'GlobalInformationMessage'
+
+    dismiss: ->
+        redux.getTable('account').set(other_settings:{show_global_info:false})
+
+    render: ->
+        more_url = 'https://github.com/sagemathinc/smc/wiki/CoCalc'
+        bgcol = COLORS.YELL_L
+        style =
+            padding         : '5px 0 5px 5px'
+            backgroundColor : bgcol
+            fontSize        : '18px'
+            position        : 'fixed'
+            zIndex          : '101'
+            right           : 0
+            left            : 0
+            height          : '40px'
+
+        <Row style={style}>
+            <Col sm={9} style={paddingTop: 3}>
+                <p>Welcome to <strong>CoCalc</strong>! SageMathCloud outgrew itself and changed its name.
+                {' '}<a target='_blank' href={more_url}>Read more...</a></p>
+            </Col>
+            <Col sm={3}>
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                    onClick={@dismiss}>Dismiss and hide</Button>
+            </Col>
+        </Row>

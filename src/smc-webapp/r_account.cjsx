@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -34,7 +34,7 @@ md5 = require('md5')
 
 misc       = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -98,7 +98,7 @@ EmailAddressSetting = rclass
     save_editing: ->
         @setState
             state : 'saving'
-        salvus_client.change_email
+        webapp_client.change_email
             old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
@@ -208,7 +208,7 @@ PasswordSetting = rclass
     save_new_password: ->
         @setState
             state : 'saving'
-        salvus_client.change_password
+        webapp_client.change_password
             email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
@@ -343,7 +343,7 @@ AccountSettings = rclass
             login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
-                <Button href={"#{window.smc_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
+                <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
                     <Icon name="external-link" /> Link my {name} account
                 </Button>
@@ -362,7 +362,7 @@ AccountSettings = rclass
                 break
         if not id
             return
-        salvus_client.unlink_passport
+        webapp_client.unlink_passport
             strategy : strategy
             id       : id
             cb       : (err) ->
@@ -986,6 +986,7 @@ OtherSettings = rclass
                     onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                     Confirm: always ask for confirmation before closing the browser window
                 </Checkbox>
+
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
         if @props.other_settings.page_size > BIG_PAGE_SIZE
@@ -1004,6 +1005,13 @@ OtherSettings = rclass
                 onChange = {(e)=>@on_change('mask_files', e.target.checked)}
             >
                 Mask files: grey-out files in the files viewer that you probably do not want to open
+            </Checkbox>
+            <Checkbox
+                checked  = {@props.other_settings.show_global_info}
+                ref      = 'show_global_info'
+                onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
+            >
+                Show global information: if enabled, a dismissable banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
@@ -1044,7 +1052,7 @@ AccountCreationToken = rclass
     save: ->
         @setState(state:'save')
         token = @state.token
-        salvus_client.query
+        webapp_client.query
             query :
                 server_settings : {name:'account_creation_token',value:token}
             cb : (err) =>
@@ -1088,7 +1096,7 @@ AccountCreationToken = rclass
         if @state.state == 'save'
             <Saving />
 
-    render_unsupported: ->  # see https://github.com/sagemathinc/smc/issues/333
+    render_unsupported: ->  # see https://github.com/sagemathinc/cocalc/issues/333
         <div style={color:"#666"}>
             Not supported since some passport strategies are enabled.
         </div>
@@ -1119,7 +1127,7 @@ StripeKeys = rclass
         @setState(state:'save')
         f = (name, cb) =>
         query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        salvus_client.query
+        webapp_client.query
             query : query
             cb    : (err) =>
                 if err
@@ -1190,7 +1198,7 @@ SiteSettings = rclass
 
     load: ->
         @setState(state:'load')
-        salvus_client.query
+        webapp_client.query
             query :
                 site_settings : [{name:null, value:null}]
             cb : (err, result) =>
@@ -1212,7 +1220,7 @@ SiteSettings = rclass
     save: ->
         @setState(state:'save')
         f = (x, cb) =>
-            salvus_client.query
+            webapp_client.query
                 query :
                     site_settings : {name: x.name, value: x.value}
                 cb : cb
@@ -1337,7 +1345,7 @@ AddStripeUser = rclass
 
         @status_mesg("Adding #{email}...")
         @setState(email: '')
-        salvus_client.stripe_admin_create_customer
+        webapp_client.stripe_admin_create_customer
             email_address : email
             cb            : (err, mesg) =>
                 if err
@@ -1472,7 +1480,7 @@ exports.AccountSettingsTop = rclass
 
 STRATEGIES = ['email']
 f = () ->
-    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
+    $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
@@ -1492,7 +1500,7 @@ ugly_error = (err) ->
 # loaded; otherwise returns undefined and starts load
 zxcvbn = undefined
 password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/smc/issues/687
+    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
     # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
     ###
     if zxcvbn?

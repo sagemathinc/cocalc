@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -69,12 +69,12 @@ get_renderer = (scene, type) ->
             _renderer[type] = new THREE.CanvasRenderer
                 antialias : true
                 alpha     : true
-        $(_renderer[type].domElement).addClass("salvus-3d-dynamic-renderer")
+        $(_renderer[type].domElement).addClass("webapp-3d-dynamic-renderer")
     return _renderer[type]
 
 MIN_WIDTH = MIN_HEIGHT = 16
 
-class SalvusThreeJS
+class WebappThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
             element         : required
@@ -128,13 +128,13 @@ class SalvusThreeJS
         @init_light()
 
         # set background color
-        @opts.element.find(".salvus-3d-canvas").css('background':@opts.background)
+        @opts.element.find(".webapp-3d-canvas").css('background':@opts.background)
 
         if not @opts.foreground?
             if @opts.background == 'transparent'
                 @opts.foreground = 'gray'
             else
-                c = @opts.element.find(".salvus-3d-canvas").css('background')
+                c = @opts.element.find(".webapp-3d-canvas").css('background')
                 if not c? or c.indexOf(')') == -1
                     @opts.foreground = "#000"  # e.g., on firefox - this is best we can do for now
                 else
@@ -162,13 +162,13 @@ class SalvusThreeJS
 
         # possibly show the canvas warning.
         if dynamic_renderer_type == 'canvas'
-            @opts.element.find(".salvus-3d-canvas-warning").show().tooltip()
+            @opts.element.find(".webapp-3d-canvas-warning").show().tooltip()
 
     # show an "eval note" if we don't load the scene within a second.
     init_eval_note: () =>
         f = () =>
             if not @_init
-                @opts.element.find(".salvus-3d-note").show()
+                @opts.element.find(".webapp-3d-note").show()
         setTimeout(f, 1000)
 
     set_dynamic_renderer: () =>
@@ -179,7 +179,7 @@ class SalvusThreeJS
         @renderer = get_renderer(@, @opts.renderer)
         @renderer_type = 'dynamic'
         # place renderer in correct place in the DOM
-        @opts.element.find(".salvus-3d-canvas").empty().append($(@renderer.domElement))
+        @opts.element.find(".webapp-3d-canvas").empty().append($(@renderer.domElement))
         if @opts.background == 'transparent'
             @renderer.setClearColor(0x000000, 0)
         else
@@ -206,8 +206,8 @@ class SalvusThreeJS
             @controls.enabled = false
             @last_canvas_pos = @controls.object.position
             @last_canvas_target = @controls.target
-        img = $("<img class='salvus-3d-static-renderer'>").attr(src:@static_image).width(@opts.width).height(@opts.height)
-        @opts.element.find(".salvus-3d-canvas").empty().append(img)
+        img = $("<img class='webapp-3d-static-renderer'>").attr(src:@static_image).width(@opts.width).height(@opts.height)
+        @opts.element.find(".webapp-3d-canvas").empty().append(img)
 
     # On mouseover, we switch the renderer out to use webgl, if available, and also enable spin animation.
     init_on_mouseover: () =>
@@ -235,8 +235,8 @@ class SalvusThreeJS
 
     show_canvas: () =>
         @init()
-        @opts.element.find(".salvus-3d-note").hide()
-        @opts.element.find(".salvus-3d-canvas").show()
+        @opts.element.find(".webapp-3d-note").hide()
+        @opts.element.find(".webapp-3d-canvas").show()
 
     data_url: (opts) =>
         opts = defaults opts,
@@ -874,7 +874,7 @@ exports.render_3d_scene = (opts) ->
         return
 
     scene_obj = undefined
-    e = $(".salvus-3d-templates .salvus-3d-loading").clone()
+    e = $(".webapp-3d-templates .webapp-3d-loading").clone()
     opts.element.append(e)
     async.series([
         (cb) =>
@@ -919,7 +919,7 @@ exports.render_3d_scene = (opts) ->
                     cb()
             # create the 3d renderer
             opts.scene.opts.cb = init
-            opts.element.salvus_threejs(opts.scene.opts)
+            opts.element.webapp_threejs(opts.scene.opts)
     ], (err) ->
         opts.cb?(err, scene_obj)
     )
@@ -928,22 +928,22 @@ exports.render_3d_scene = (opts) ->
 
 # jQuery plugin for making a DOM object into a 3d renderer
 
-$.fn.salvus_threejs = (opts={}) ->
+$.fn.webapp_threejs = (opts={}) ->
     @each () ->
-        # console.log("applying official .salvus_threejs plugin")
+        # console.log("applying official .webapp_threejs plugin")
         elt = $(this)
-        e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
+        e = $(".webapp-3d-templates .webapp-3d-viewer").clone()
         elt.empty().append(e)
-        e.find(".salvus-3d-canvas").hide()
+        e.find(".webapp-3d-canvas").hide()
         opts.element = e
         opts.container = elt
 
         # WARNING -- this explicit reference is brittle -- it is just an animation efficiency, but still...
-        opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
+        opts.stop_when_gone = e.closest(".webapp-editor-codemirror")[0]
 
         f = () ->
-            obj = new SalvusThreeJS(opts)
-            elt.data('salvus-threejs', obj)
+            obj = new WebappThreeJS(opts)
+            elt.data('webapp-threejs', obj)
         if not THREE?
             load_threejs (err) =>
                 if not err

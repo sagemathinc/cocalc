@@ -536,7 +536,7 @@ class exports.Client extends EventEmitter
         dbg = @dbg("write_file(path='#{opts.path}')")
         dbg()
         now = new Date()
-        if now - (@_file_io_lock[path] ? 0) < 15000  # lock automatically expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock automatically expires after 15 seconds (see https://github.com/sagemathinc/cocalc/issues/1147)
             dbg("LOCK")
             # Try again in about 1s.
             setTimeout((() => @write_file(opts)), 500 + 500*Math.random())
@@ -571,7 +571,7 @@ class exports.Client extends EventEmitter
         @_file_io_lock ?= {}
 
         now = new Date()
-        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/cocalc/issues/1147)
             dbg("LOCK")
             # Try again in 1s.
             setTimeout((() => @path_read(opts)), 500 + 500*Math.random())

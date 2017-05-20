@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -32,6 +32,7 @@ smc_git_rev = SMC_GIT_REV ? 'N/A'
 Combobox    = require('react-widgets/lib/Combobox')
 
 misc        = require('smc-util/misc')
+theme       = require('smc-util/theme')
 immutable   = require('immutable')
 underscore  = require('underscore')
 
@@ -43,9 +44,10 @@ markdown    = require('./markdown')
 exports.UNIT = UNIT = 15
 
 # bootstrap blue background
-exports.BS_BLUE_BGRND = "rgb(66, 139, 202)"
+exports.BS_BLUE_BGRND = theme.COLORS.BS_BLUE_BGRND
 
-exports.SAGE_LOGO_COLOR = exports.BS_BLUE_BGRND
+# This is the applications color scheme
+exports.COLORS = theme.COLORS
 
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
@@ -123,10 +125,15 @@ exports.Icon = Icon = rclass
     render: ->
         {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'fa-'
+        if name.slice(0, 3) == 'cc-'
             classNames = "fa #{name}"
+            # the cocalc icon font can't do any extra tricks
         else
-            classNames = "fa fa-#{name}"
+            # temporary until file_associations can be changed
+            if name.slice(0, 3) == 'fa-'
+                classNames = "fa #{name}"
+            else
+                classNames = "fa fa-#{name}"
         if size
             classNames += " fa-#{size}"
         if rotate
@@ -177,14 +184,14 @@ exports.Loading = Loading = rclass
 
     render: ->
         <span style={@props.style}>
-            <Icon name='circle-o-notch' spin /> Loading...
+            <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
         </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
 
     render: ->
-        <span><Icon name='circle-o-notch' spin /> Saving...</span>
+        <span><Icon name='cc-icon-cocalc-ring' spin /> Saving...</span>
 
 closex_style =
     float      : 'right'
@@ -265,6 +272,9 @@ exports.Footer = rclass
             <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
         </footer>
 
+exports.render_static_footer = ->
+    Footer = exports.Footer
+    <Footer />
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'
@@ -809,6 +819,8 @@ exports.HTML = rclass
         @update_content()
 
     componentWillUnmount: ->
+        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
+        # and https://github.com/sagemathinc/cocalc/issues/1689
         @_is_mounted = false
 
     render_html: ->
@@ -897,7 +909,7 @@ exports.ActivityDisplay = rclass
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
             <div key={i} style={activity_item_style} >
-                <Icon style={padding:'2px 1px 1px 2px'} name='circle-o-notch' spin /> {trunc(desc)}
+                <Icon style={padding:'2px 1px 1px 2px'} name='cc-icon-cocalc-ring' spin /> {trunc(desc)}
             </div>
 
     render: ->
@@ -990,7 +1002,7 @@ exports.SaveButton = rclass
 
     render: ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
+            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}
         </Button>
 
 # Component to attempt opening an smc path in a project
@@ -1154,8 +1166,8 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    {salvus_client} = require('./salvus_client')
-    return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+    {webapp_client} = require('./webapp_client')
+    return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
     {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
@@ -1189,8 +1201,8 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    {salvus_client} = require('./salvus_client')
-    if pay > salvus_client.server_time()  # in the future
+    {webapp_client} = require('./webapp_client')
+    if pay > webapp_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else
@@ -1279,7 +1291,7 @@ exports.ProjectState = rclass
         state : 'unknown'
 
     render_spinner:  ->
-        <span>... <Icon name='circle-o-notch' spin /></span>
+        <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
 
     render: ->
         s = COMPUTE_STATES[@props.state]

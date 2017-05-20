@@ -1,10 +1,31 @@
-# standard non-SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# standard non-CoCalc libraries
 immutable = require('immutable')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 schema = require('smc-util/schema')
 
 # React libraries and Components
@@ -49,7 +70,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 bsStyle = 'info'
 
         <Alert bsStyle=bsStyle>
-            {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
+            {misc.capitalize(state_name)} all projects... <Icon name='cc-icon-cocalc-ring' spin />
         </Alert>
 
     render_confirm_stop_all_projects: ->
@@ -195,7 +216,7 @@ exports.SettingsPanel = rclass
     write_file: (path, content) ->
         actions = @actions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
-        salvus_client.write_text_file_to_project
+        webapp_client.write_text_file_to_project
             project_id : @props.project_id
             path       : path
             content    : content
@@ -212,7 +233,7 @@ exports.SettingsPanel = rclass
         students = store.get_sorted_students()
         # CSV definition: http://edoceo.com/utilitas/csv-file-format
         # i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
-        timestamp  = (salvus_client.server_time()).toISOString()
+        timestamp  = (webapp_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
         content += "Name,Email,"
@@ -236,7 +257,7 @@ exports.SettingsPanel = rclass
             {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
         ]
         ###
-        timestamp = (salvus_client.server_time()).toISOString()
+        timestamp = (webapp_client.server_time()).toISOString()
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -279,7 +300,7 @@ exports.SettingsPanel = rclass
                 <ul>
                     <li>
                         <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">
-                            A tutorial for anyone wanting to use SageMathCloud for teaching
+                            A tutorial for anyone wanting to use CoCalc for teaching
                         </a> (by Mike Croucher)
                     </li>
                     <li>
@@ -316,7 +337,7 @@ exports.SettingsPanel = rclass
             <hr/>
             <span style={color:'#666'}>
                 If you add a student to this course using their email address, and they do not
-                have a SageMathCloud account, then they will receive an email invitation. {template_instr}
+                have a CoCalc account, then they will receive an email invitation. {template_instr}
             </span>
         </Panel>
 
@@ -664,7 +685,7 @@ exports.SettingsPanel = rclass
 
     render_require_students_pay_desc: ->
         date = @props.settings.get('pay')
-        if date > salvus_client.server_time()
+        if date > webapp_client.server_time()
             <span>
                 Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
             </span>
@@ -699,7 +720,7 @@ exports.SettingsPanel = rclass
 
     render_students_pay_checkbox_label: ->
         if @props.settings.get('pay')
-            if salvus_client.server_time() >= @props.settings.get('pay')
+            if webapp_client.server_time() >= @props.settings.get('pay')
                 <span>Require that students upgrade immediately:</span>
             else
                 <span>Require that students upgrade by <TimeAgo date={@props.settings.get('pay')} />: </span>
@@ -761,7 +782,7 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
-                    {# @render_allow_any_collaborators() -- see https://github.com/sagemathinc/smc/issues/1494 }
+                    {# @render_allow_any_collaborators() -- see https://github.com/sagemathinc/cocalc/issues/1494 }
                 </Col>
             </Row>
         </div>

@@ -435,7 +435,7 @@ Terminal.prototype.open = function() {
     , div;
 
   this.element = document.createElement('div');
-  this.element.className = 'salvus-console-terminal';
+  this.element.className = 'webapp-console-terminal';
   this.element.setAttribute('spellcheck', 'false');
   this.children = [];
 
@@ -943,7 +943,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="salvus-console-cursor-focus">';
+            out += '<span class="webapp-console-cursor-focus">';
           } else {
             out += '<span style="';
 

@@ -1,4 +1,4 @@
-# SageMathCloud Travis-CI Configuration File
+# CoCalc Travis-CI Configuration File
 sudo: required
 dist: trusty
 

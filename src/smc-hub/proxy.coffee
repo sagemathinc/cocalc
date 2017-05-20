@@ -1,3 +1,24 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 HTTP Proxy Server, which passes requests directly onto http
 servers running on project vm's
@@ -14,6 +35,8 @@ ms      = require('ms')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc
+theme   = require('smc-util/theme')
+{DOMAIN_NAME} = theme
 
 hub_projects = require('./projects')
 auth = require('./auth')
@@ -291,7 +314,7 @@ exports.init_http_proxy_server = (opts) ->
             public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
-                    res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
+                    res.end("Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> with cookies enabled, then refresh this page.")
 
             return
 
@@ -302,7 +325,7 @@ exports.init_http_proxy_server = (opts) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
                         res.writeHead(500, {'Content-Type':'text/html'})
-                        res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+                        res.end("Access denied. Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
                 if proxy_cache[t]?

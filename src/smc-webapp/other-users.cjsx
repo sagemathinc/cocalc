@@ -1,7 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
-# and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -24,7 +23,7 @@ onecolor = require('onecolor')
 
 misc = require('smc-util/misc')
 
-{server_time} = require('./salvus_client').salvus_client
+{server_time} = require('./webapp_client').webapp_client
 
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')

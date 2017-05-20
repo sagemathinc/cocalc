@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -199,7 +199,7 @@ class exports.Connection extends EventEmitter
 
     constructor: (@url) ->
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
-        # The issue is https://github.com/sagemathinc/smc/issues/1098 and the errors we got are
+        # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
@@ -328,7 +328,7 @@ class exports.Connection extends EventEmitter
         Use like this in a Sage Worksheet:
 
             %coffeescript
-            s = require('salvus_client').salvus_client
+            s = require('webapp_client').webapp_client
             s.ping_test(delay_ms:100, packets:40, log:print)
         ###
         ping_times = []
@@ -400,7 +400,7 @@ class exports.Connection extends EventEmitter
 
     is_connected: => !!@_connected
 
-    remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
+    remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
         mesg = misc.from_json_socket(data)
@@ -675,11 +675,11 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the SageMathCloud Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
             return
 
         if @_create_account_lock
-            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/smc/issues/1187
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
             opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
             return
 
@@ -904,7 +904,7 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : undefined
 
-        base = window?.smc_base_url ? '' # will be defined in web browser
+        base = window?.app_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc

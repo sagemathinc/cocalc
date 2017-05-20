@@ -1,6 +1,6 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -24,27 +24,18 @@
 ###
 
 $ = window.$
-
+misc = require('smc-util/misc')
 {React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
-
-{Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
-
-{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR, Footer} = require('./r_misc')
-
+{Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
+{Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
-
-{ShowSupportLink} = require('./support')
-
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
+{COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
 
-#{SMC_ICON_URL} = require('./misc_page')
-SMC_ICON_URL = require('salvus-icon.svg')
-
-
-# CSS
+# List item style
 li_style =
-    lineHeight : 'inherit'
-    marginTop  : '0.7ex'
+    lineHeight    : 'inherit'
+    marginBottom  : '10px'
 
 exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     reduxProps :
@@ -71,32 +62,65 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
 
     render_active_users_stats: ->
         if @props.loading
-            <li style={li_style}> Live server stats <Loading /> </li>
+            <div> Live server stats <Loading /> </div>
         else
             n = @number_of_active_users()
-            <ProgressBar style={marginBottom:0} now={Math.max(n / 12 , 45 / 8) } label={"#{n} connected users"} />
+            <div style={textAlign:'center'}>
+                    Currently connected users
+                <ProgressBar style={marginBottom:10}
+                    now={Math.max(n / 12 , 45 / 8) }
+                    label={"#{n} connected users"} />
+            </div>
 
     render_active_projects_stats: ->
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
+    recent_usage_stats_rows: ->
+        stats = [
+            ['Modified projects', @props.projects_edited],
+            ['Created projects', @props.projects_created],
+            ['Created accounts', @props.accounts_created]
+        ]
+        for stat in stats
+            <tr key={stat[0]}>
+                <th style={textAlign:'left'}>{stat[0]}</th>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_hour]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_day]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_week]}
+                </td>
+                <td>
+                    {stat[1]?[RECENT_TIMES_KEY.last_month]}
+                </td>
+            </tr>
+
     render_recent_usage_stats: ->
-        if not @props.loading
-            <li style={li_style}>
-                Users modified
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_hour]  ? @props.last_hour_projects} projects</strong> in the last hour,
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_day]   ? @props.last_day_projects} projects</strong> in the last day,
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_week]  ? @props.last_week_projects} projects</strong> in the last week and
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month.
-                <Space/> <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                <Icon name='line-chart' fixedWidth /> More data...
-                </a>
-            </li>
+        if @props.loading
+            return
+        <Table bordered condensed hover className='cc-help-stats-table'>
+            <thead>
+                <tr>
+                    <th>past</th>
+                    <th>hour</th>
+                    <th>day</th>
+                    <th>week</th>
+                    <th>month</th>
+                </tr>
+            </thead>
+            <tbody>
+                {@recent_usage_stats_rows()}
+            </tbody>
+        </Table>
 
     render_historical_metrics: ->
         return  # disabled, due to being broken...
         <li key='usage_metrics' style={li_style}>
-            <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
+            <a target='_blank' href='https://cocalc.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
                 <Icon name='area-chart' fixedWidth />Historical system metrics
             </a> &mdash; CPU usage, running projects and software instances, etc
         </li>
@@ -108,27 +132,40 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             </span>
 
     render: ->
-        <div>
+        <Col sm={12} md={6}>
             <h3>
-                <Icon name='dashboard' /> Current connected users
+                <Icon name='dashboard' /> Statistics
                 {@render_when_updated()}
             </h3>
-            <ul>
+            <div>
                 {@render_active_users_stats()}
                 {# @render_active_projects_stats()}
+                <div style={marginTop: 20, textAlign:'center'}>
+                    Recent user activity
+                </div>
                 {@render_recent_usage_stats()}
+                <Icon name='line-chart' fixedWidth />{' '}
+                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                More data...
+                </a>
+                <br/>
                 {@render_historical_metrics()}
-            </ul>
-        </div>
+            </div>
+        </Col>
 
 
 SUPPORT_LINKS =
+    email_help :
+        commercial: true
+        bold : true
+        icon : 'envelope'
+        href : 'mailto:' + HELP_EMAIL
+        link : HELP_EMAIL
+        text : 'Please include the URL link to the relevant project or file!'
     teaching :
-        icon : 'users'
-        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
-        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        icon : 'graduation-cap'
         href : 'https://mikecroucher.github.io/SMC_tutorial/'
-        link : <span>Tutorial for anyone wanting to use SageMathCloud for teaching</span>
+        link : <span>How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -136,111 +173,109 @@ SUPPORT_LINKS =
         commercial: true
     frequently_asked_questions :
         icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
-        link : 'SageMathCloud documentation'
-    # commented out since link doesn't work
-    #getting_started :
-    #    icon : 'play'
-    #    href : '#help-page-getting-started'
-    #    link : <span>Getting started with <SiteName/></span>
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     courses :
-        icon : 'graduation-cap'
-        href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
-        link :  <span>Courses using SageMathCloud</span>
-    #realtime_chat :
-    #    icon : 'comments-o'
-    #    href : 'https://gitter.im/sagemath/cloud'
-    #    link : 'Realtime chat and help'
-    # removed since none of us SMC devs use ask.sagemath these days
-    #quick_question :
-    #    icon : 'question-circle'
-    #    href : 'http://ask.sagemath.org/questions/'
-    #    link : 'Ask a quick question'
+        icon : 'users'
+        href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
+        link :  <span>Courses using <SiteName/></span>
+
+CONNECT_LINKS =
     support_mailing_list :
-        icon : 'life-ring'
-        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
+        bold : true
+        icon : 'list-alt'
+        href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
         link : <span>Mailing list</span>
-    #developer_mailing_list :
-    #    icon : 'envelope-o'
-    #    href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
-    #    link : <span>Developer mailing list</span>
     sagemath_blog :
         icon : 'rss'
         href : 'http://blog.sagemath.com/'
-        link : <span>Blog</span>
-    google_plus_smc :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/117696122667171964473/posts'
-        link : <span>Google+</span>
-        text : 'updates'
-    #google_plus :
-    #    icon : 'google-plus-square'
-    #    href : 'https://plus.google.com/115360165819500279592/posts'
-    #    link : 'Google+ William Stein'
-    #    text : 'development updates'
+        link : 'News and updates on our blog'
     twitter :
         icon : 'twitter-square'
-        href : 'https://twitter.com/sagemathcloud'
-        link : 'Twitter'
-        text : 'the Twitter feed'
+        href : 'https://twitter.com/co_calc'
+        link : 'follow @co_calc on twitter'
+    facebook :
+        icon : 'facebook-square'
+        href : 'https://www.facebook.com/SageMathCloudOnline/'
+        link : 'Like our facebook page'
+    google_plus :
+        icon : 'google-plus-square'
+        href : 'https://plus.google.com/117696122667171964473/posts'
+        link : <span>+1 our Google+ page</span>
     github :
         icon : 'github-square'
-        href : 'https://github.com/sagemathinc/smc'
-        link : 'Source code'
-    github_issue_tracker :
-        icon : 'exclamation-circle'
-        href : 'https://github.com/sagemathinc/smc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked'
-        link : 'Bugs'
-    #general_sagemath :
-    #    icon : 'superscript'
-    #    href : 'http://www.sagemath.org/help.html'
-    #    link : 'SageMath help and support'
-    chrome_app :
-        icon      : 'google'
-        href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
-        link      : 'Chrome App'
-        className : 'salvus-chrome-only'
-    user_survey :
-        icon      : 'pencil-square'
-        href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
-        link      : 'User Survey'
+        href : 'https://github.com/sagemathinc/cocalc'
+        link : 'GitHub'
+        text : <span>
+                 <a href='https://github.com/sagemathinc/cocalc/src' target='_blank'>source code</a>,{' '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank'>bugs</a>
+                 {' and '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank'>issues</a>
+               </span>
 
-HelpPageSupportSection = rclass
-    displayName : 'HelpPage-HelpPageSupportSection'
+THIRD_PARTY =
+    sagemath :
+        icon : 'cc-icon-sagemath'
+        href : 'http://www.sagemath.org/'
+        link : 'SageMath'
+        text : <span>open-source mathematical software</span>
+    r :
+        icon : 'cc-icon-r'
+        href : 'https://cran.r-project.org/doc/manuals/r-release/R-intro.html'
+        link : 'R project'
+        text : 'the #1 open-source statistics software'
+    python :
+        icon : 'cc-icon-python'
+        href : 'http://www.scipy-lectures.org/'
+        link : 'Scientific Python'
+        text : <span>i.e.{' '}
+                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
+                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
+                    <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
+                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a>,{' '}
+                    <a href='http://www.nltk.org/' target='_blank'>NLTK</a> and many more
+               </span>
+    julia :
+        icon : 'cc-icon-julia'
+        href : 'http://docs.julialang.org/en/stable/manual/introduction/'
+        link : 'Julia'
+        text : 'programming language for numerical computing'
+    octave :
+        icon : 'cc-icon-octave'
+        href : 'https://www.gnu.org/software/octave/'
+        link : 'GNU Octave'
+        text : 'scientific programming language, largely compatible with MATLAB'
+    tensorflow :
+        icon : 'lightbulb-o'
+        href : 'https://www.tensorflow.org/get_started/get_started'
+        link : 'Tensorflow'
+        text : 'open-source software library for machine intelligence'
+    latex :
+        icon : 'cc-icon-tex-file'
+        href : 'https://en.wikibooks.org/wiki/LaTeX'
+        link : 'LaTeX'
+        text : 'high-quality typesetting program'
+    linux :
+        icon : 'linux'
+        href : 'http://ryanstutorials.net/linuxtutorial/'
+        link : 'GNU/Linux'
+        text : 'operating system and utility toolbox'
 
-    propTypes :
-        support_links : rtypes.object
 
-    get_support_links: ->
-        {commercial} = require('./customize')
-        for name, data of @props.support_links
-            if data.commercial and not commercial
-                continue
-            <li key={name} style={li_style} className={if data.className? then data.className}>
-                <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
-                    <Icon name={data.icon} fixedWidth /> {data.link}
-                </a> <span style={color:'#666'}>{data.text}</span>
-            </li>
-
-    render: ->
-        <div>
-            <h3> <Icon name='support' /> Support</h3>
-            <ul>
-                {@get_support_links()}
-            </ul>
-        </div>
-
-ABOUT_SECTION =
+ABOUT_LINKS =
     legal :
-        <span>
-            <a target='_blank' href='/policies/index.html'>
-                Terms of Service, Pricing, Copyright and Privacy policies
-            </a>
-        </span>
+        icon : 'cc-icon-section'
+        link : 'Terms of Service, Pricing, Copyright and Privacy policies'
+        href : '/policies/index.html'
     developers :
-        <span>
-            Core fulltime developers: John Jeng, <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>, <a target="_blank" href='https://twitter.com/haldroid?lang=en'>Hal Snyder</a>, <a target='_blank' href='http://wstein.org'>William Stein</a>
-        </span>
+        icon : 'keyboard-o'
+        text : <span>
+                Core developers: John Jeng,{' '}
+                <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
+                <a target="_blank" href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
+                <a target='_blank' href='http://wstein.org'>William Stein</a>
+               </span>
     #funding :
     #    <span>
     #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
@@ -252,268 +287,100 @@ ABOUT_SECTION =
     #        Education Grant program</a>
     #    </span>
     incorporated :
-        'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        icon : 'gavel'
+        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
 
-HelpPageAboutSection = rclass
-    displayName : 'HelpPage-HelpPageAboutSection'
 
-    get_about_section: ->
-        for name, item of ABOUT_SECTION
-            <li key={name} style={li_style}>
-                {item}
-            </li>
+LinkList = rclass
+    displayName : 'HelpPage-LinkList'
 
-    render: ->
-        <div>
-            <h3> <Icon name='info-circle' /> About </h3>
-            <ul>
-                {@get_about_section()}
-            </ul>
-        </div>
+    propTypes :
+        title : rtypes.string.isRequired
+        icon  : rtypes.string.isRequired
+        links : rtypes.object.isRequired
+        width : rtypes.number
 
-HelpPageGettingStartedSection = rclass
-    displayName : 'Help-HelpPageGettingStartedSection'
+    getDefaultProps: ->
+        width : 6
 
-    get_panel_header: (icon, header) ->
-        <div><Icon name={icon} fixedWidth /> {header}</div>
-
-    insert_sample_function: ->
-        '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
-
-    componentDidMount: ->
-        @update_mathjax()
-
-    componentDidUpdate: ->
-        @update_mathjax()
-
-    update_mathjax: ->
-        $(ReactDOM.findDOMNode(@)).mathjax()
+    render_links: ->
+        {commercial} = require('./customize')
+        for name, data of @props.links
+            if data.commercial and not commercial
+                continue
+            style = misc.copy(li_style)
+            if data.bold
+                style.fontWeight = 'bold'
+            <div key={name} style={style} className={if data.className? then data.className}>
+                <Icon name={data.icon} fixedWidth />{' '}
+                { <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
+                   {data.link}
+                </a> if data.href}
+                {<span style={color:COLORS.GRAY_D}>
+                   {<span> &mdash; </span> if data.href }
+                   {data.text}
+                </span> if data.text}
+            </div>
 
     render: ->
-        <div>
-            <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
+        <Col md={@props.width} sm={12}>
+            {<h3> <Icon name={@props.icon} /> {@props.title}</h3> if @props.title}
+            {@render_links()}
+        </Col>
 
-            <Accordion>
-                <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=eadnL5hDg9M'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        Navigate to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>.
-                        If you are already signed in, first sign out
-                        by clicking on your email address by the <Icon name='cog' /> icon
-                        in the upper right, and clicking 'Sign out'.
-                        Click on 'create an account', then agree to the terms of usage.
-                        Next either enter your name, email address, and password for
-                        the new account you would like to create, or login
-                        using your Google, Github, Facebook, etc., account.
-                        You may change your name, email address or password
-                        at any time later, and also reset your password in case you forget it.
-                    </p>
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li> Please
-                                use a strong password or login via Google, Github or another provider,
-                                especially when you start using <SiteName/> frequently.
-                            </li>
-                            <li> Only the hash of your password is stored by the server, which uses 1000 iterations
-                                of a sha-512 hash function, with a salt length of 32. This makes it more
-                                difficult for a hacker to brute-force your password, even if they have the database of
-                                password hashes, since every guess takes much more work to make.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
+exports.ThirdPartySoftware = ThirdPartySoftware = rclass
+    displayName : 'Help-ThirdPartySoftware'
+    render: ->
+        <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
 
-                <Panel header={@get_panel_header('user', 'Change your name, email address, or password')} eventKey='2'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=A9zltIsU2cM'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        Log into <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>,
-                        then click in the upper right corner on your email address by
-                        the <Icon name='cog' /> icon.
-                        Change your first or last name in the settings tab that appears, then click save.
-                    </p>
-                    <p>
-                        To change your password, click the "Change password" link, enter your old password,
-                        then enter a new password.
-                    </p>
-
-                    <p>
-                        To change the email account that is linked to your <SiteName/> account, click
-                        on the "change" link next to your email address, type in the password (to your <SiteName/>
-                        account), then enter a new email address.
-                    </p>
-
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li>Changing your first or last name at any time is pretty harmless, since it
-                                only changes the name other people see when collaborating with
-                                you on projects.
-                            </li>
-                            <li>The primary purpose of providing an email address is that you
-                                can use it to reset your password when you forget it.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
-
-                <Panel header={@get_panel_header('line-chart', 'Get a bunch of examples')} eventKey='3'>
-                    <div>
-                        You can browse and copy a <a target='blank' href="https://cloud.sagemath.com/projects/4a5f0542-5873-4eed-a85c-a18c706e8bcd/files/cloud-examples/">collection of examples</a>.
-                    </div>
-                </Panel>
-
-                <Panel header={@get_panel_header('line-chart', <span>Watch a March 2015 talk about all of the main features of <SiteName/></span>)} eventKey='4'>
-                    William Stein (lead developer of <SiteName/>) gave the following one-hour talk in March 2015 at
-                    the <a target='_blank' href='http://escience.washington.edu/'>UW eScience Institute</a>:
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=_ff2HdME8MI'><Icon name='youtube-play' /> video</a>
-                    </p>
-                </Panel>
-
-                <Panel header={@get_panel_header('pencil-square-o', <span>How to work with LaTeX</span>)} eventKey='5'>
-                    <ul>
-                        <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
-                        <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
-                        <li><a target='_blank' href='https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0'>
-                        <Icon name='youtube-play' /> Introduction to LaTeX by Vincent Knight </a></li>
-                    </ul>
-
-                    <p>
-                        <a target='_blank' href='http://www.latex-project.org/'>LaTeX</a> is a system for creating
-                        professional quality documents, with excellent support for typesetting mathematical formulas
-                        like {@insert_sample_function()}.
-                        There are two main ways to use LaTeX in <SiteName/>:
-                    </p>
-
-                    <ol>
-                        <li> In chats or in worksheet cells that start with %html or %md,
-                            enclose mathematical formulas in single or double
-                            dollar signs and they will be typeset
-                            (using <a target='_blank' href='http://www.mathjax.org/'>MathJax</a>) when
-                            you submit them.  In addition to dollar
-                            signs, you can use the other standard latex equation wrappers
-                            \­[ \] and \­(  \).
-                            In worksheets, if f is some object, you can type <span style={fontFamily:'monospace'}>show(f)</span>
-                            to see f nicely typeset using the latex generated by <span style={fontFamily:'monospace'}>latex(f)</span>.
-                            In a worksheet, type <span style={fontFamily:'monospace'}>typeset_mode(True)</span> to show the nicely
-                            typeset version of objects by default. You may also use MathJax in
-                            Markdown cells in Jupyter notebooks.
-                        </li>
-                        <li> You can edit a full LaTeX document by creating or uploading
-                            a file with an extension of .tex, then opening it.
-                            The tex file appears on the left, and there is a preview of
-                            the compiled version on the right,
-                            which is updated whenever you save the file (ctrl+s).
-                            By clicking <Icon name='film' />, you can split the tex
-                            editor so that you can see two parts of the file at once.
-                            You can also use inverse and forward search to easily move back
-                            and forth between the tex file and the preview. In addition to
-                            the preview, there is an error and warning log with buttons
-                            to jump to the corresponding issue in the tex file or preview.
-                            There is also a button to show or download the final high-quality PDF.
-                            In addition, you can see the output of running pdflatex, bibtex, and
-                            <a target='_blank' href='http://doc.sagemath.org/html/en/tutorial/sagetex.html'> use
-                            SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
-                            latex build command (e.g. using <a href="https://www.ctan.org/pkg/latexmk/" target="_blank">latexmk</a> with some extras:
-                            <code>latexmk -pdf -bibtex -pdflatex='pdflatex --interact=nonstopmode --synctex=1 %O %S' '&lt;filename.tex&gt;'</code>).
-                            If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<Icon name='plus-circle' /> New &rarr; Terminal), too.
-                        </li>
-                    </ol>
-
-                </Panel>
-
-                <Panel header={@get_panel_header('area-chart', 'Use R in SageMath worksheets')} eventKey='6'>
-                    <div>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=JtVuX4yb70A'><Icon name='youtube-play' /> video</a>
-                    </div>
-                    <div>
-                        In a project, click "<Icon name='plus-circle' /> New" then the
-                        "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
-                        then press shift+enter to evaluate it.
-                        For the rest of the worksheet, type normal R commands, followed by shift+enter.
-                        Plotting should just work as usual in R.
-                        See <a target='_blank' href='https://github.com/sagemath/cloud-examples/tree/master/r'>these
-                        example worksheets</a>.
-                    </div>
-                </Panel>
-
-
-                <Panel header={@get_panel_header('bar-chart', 'Use Jupyter notebooks')} eventKey='7'>
-                    <p>
-                        <a target='_blank' href='https://www.youtube.com/watch?v=sDBbt8U4aJw'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
-                        In a project, click <span style={color:'#08c'}><Icon name='plus-circle' /> New</span> then the
-                        "Jupyter" button, or just open an ipynb file.
-                        The notebook will be opened using Jupyter's html-based client,
-                        with support for embedded graphics.
-                        To support the collaborative nature of <SiteName/>,
-                        we've enhanced the Jupyter notebook with realtime sync,
-                        so if you open the same notebook on multiple computers (or if multiple
-                        people open the same notebook), they will stay in sync.
-                        Also, if you want to use the Sage preparser, type
-                        <span style={fontFamily:'monospace'}> %load_ext sage</span> into a notebook cell.
-                    </p>
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li>
-                                You can also run a normal version of the Jupyter notebook server
-                                (no sync, not integrated into cloud) by (1) finding your project id in project settings, then (2) visiting
-                                <span style={fontFamily:'monospace'}> https://cloud.sagemath.com/[project_id]/port/jupyter</span> (you
-                                will possibly have to refresh your browser if this takes too long the first time).
-                                Any collaborator on your project can securely use the Jupyter notebook server by visiting
-                                this link, but nobody else can.
-                            </li>
-                        </ul>
-                    </div>
-                </Panel>
-
-            </Accordion>
-        </div>
+exports.render_static_third_party_software = ->
+    <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />
 
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render: ->
-        {SmcWikiUrl} = require('./customize')
-        <Row style={padding:'10px', margin:'0px'}>
+        banner_style =
+            backgroundColor : 'white'
+            padding         : '15px'
+            border          : "1px solid #{COLORS.GRAY}"
+            borderRadius    : '5px'
+            margin          : '20px 0'
+            width           : '100%'
+            fontSize        : '115%'
+            textAlign       : 'center'
+            marginBottom    : '30px'
+
+        {SmcWikiUrl}      = require('./customize')
+        {ShowSupportLink} = require('./support')
+        {APP_LOGO}        = require('./misc_page')
+
+        <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
-                <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
+                <h3 style={textAlign: 'center', marginBottom: '30px'}>
+                <img src="#{APP_LOGO}" style={width:'33%', height:'auto'} />
+                <br/>
+                <SiteDescription/>
+                </h3>
+
+                <div style={banner_style}>
                     <Icon name='medkit'/><Space/><Space/>
                     <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
                     <br/>
                     We want to know if anything is broken!
-                    <hr/>
-                    <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
-                    <br/>
-                    In such an email, please include the URL link to the relevant project or file.
-                    <hr/>
-                    <a href="#{SmcWikiUrl}" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
-                <h3>
-                    <div style={display: 'inline-block', \
-                                backgroundImage: "url('#{SMC_ICON_URL}')", \
-                                backgroundSize: 'contain', \
-                                backgroundColor: SAGE_LOGO_COLOR}
-                          className='img-rounded pull-right help-smc-logo' ></div>
-                    <SiteName/> <SiteDescription/>
-                </h3>
-
-                <HelpPageSupportSection support_links={SUPPORT_LINKS} />
-
-                <HelpPageUsageSection />
-
-                {<HelpPageAboutSection /> if require('./customize').commercial}
-
-                {# <HelpPageGettingStartedSection /> }
+                <Row>
+                    <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+                    <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+                </Row>
+                <Row style={marginTop:'20px'}>
+                    <ThirdPartySoftware />
+                    <HelpPageUsageSection />
+                </Row>
+                <Row>
+                    {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
+                </Row>
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>
@@ -521,7 +388,21 @@ exports.HelpPage = HelpPage = rclass
             </Col>
         </Row>
 
+exports.render_static_about = ->
+    <Col>
+        <Row>
+            <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+            <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+        </Row>
+        <Row style={marginTop:'20px'}>
+            <ThirdPartySoftware />
+            <HelpPageUsageSection store={{}} />
+        </Row>
+    </Col>
+
 exports._test =
-    HelpPageSupportSection : HelpPageSupportSection
+    HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+    ConnectSection : <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
     SUPPORT_LINKS : SUPPORT_LINKS
+    CONNECT_LINKS : CONNECT_LINKS
 

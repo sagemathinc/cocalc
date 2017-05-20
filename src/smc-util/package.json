@@ -1,7 +1,7 @@
 {
-  "name": "smc-util",
+  "name": "cocalc-util",
   "version": "1.0.0",
-  "description": "SageMathCloud code shared between the frontend and the backend",
+  "description": "CoCalc code shared between the frontend and the backend",
   "main": "index.js",
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress test",
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
     "coffee-coverage": "^0.6.3",

@@ -12,20 +12,20 @@ Nothing is fully supported yet, but this is the goal.
 The directories below have scripts to enable development
 in various contexts:
 
-- src/dev/project -- for developing SMC from any project right on SageMathCloud!  This is how we do most SMC dev work and is the best supported.
+- src/dev/project -- for developing CoCalc from any project right on CoCalc!  This is how we do most CoCalc dev work and is the best supported.
 
-- src/dev/single -- for developing SMC on a single computer, e.g., a VM.   Must have sudo, and install things system-wide.  Each project is a different Linux account.
+- src/dev/single -- for developing CoCalc on a single computer, e.g., a VM.   Must have sudo, and install things system-wide.  Each project is a different Linux account.
 
-- src/dev/docker -- for running SMC in Docker.  Not really intended for development use...
+- src/dev/docker -- for running CoCalc in Docker.  Not really intended for development use...
 
 - src/dev/laptop -- for development on your personal laptop (or desktop) that is not public; zero concern about security. No sudo setup.  Works on Linux and OS X.  Currently deprecated/not updated.
 
-- src/dev/smc -- related to the actual live SMC deployment, which runs on many nodes, and uses haproxy and nginx. (Will be deprecated)
+- src/dev/smc -- related to the actual live CoCalc deployment, which runs on many nodes, and uses haproxy and nginx. (Will be deprecated)
 
 ## Issue Triage
 For the most part, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
 
-Contributors with sufficient permissions on the SMC repo can help by adding
+Contributors with sufficient permissions on the CoCalc repo can help by adding
 labels to triage issues:
 
 * Yellow, **A**-prefixed labels state which **area** of SMC the issue relates to.
@@ -48,11 +48,11 @@ labels to triage issues:
 
 If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 
-[inom]:https://github.com/sagemathinc/smc/labels/I-nominated
-[eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
+[inom]:https://github.com/sagemathinc/cocalc/labels/I-nominated
+[eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
 
 
-## The Components of SMC
+## The Components of CoCalc
 
 ### Node.js modules
 
@@ -76,7 +76,7 @@ Run whole test suite:
 `min` is the minimal reporter and
 other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](http://mochajs.org/)
 
-NOTE: There is not enough testing or coverage of smc-webapp yet.
+NOTE: There is only some of smc-webapp, look into its `test` subdirectory.
 
 NOTE: You must already be running the PostgreSQL database, setup so that
 `psql` connects to it without having to type a password, before you an

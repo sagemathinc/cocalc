@@ -1,11 +1,31 @@
+.navbar-default
+  background-color: $COL_TOP_BAR_BG
+  border-color:     $COL_TOP_BAR_BG
+  border-width:     0 0 0 0
+
 .smc-top-bar > .container
-  position : absolute
-  display  : flex
-  padding  : 0px
-  width    : 100%
+  position        : absolute
+  display         : flex
+  padding         : 0px
+  width           : 100%
+  background-color: $COL_GRAY_L0
   > ul > li > a
     padding : 0px
     +disable-user-select
+    color: $COL_TOP_BAR_TEXT
+    &:hover
+      color: $COL_TOP_BAR_TEXT
+
+.smc-top-bar.navbar-default .navbar-nav>.active>a,
+.smc-top-bar.navbar-default .navbar-nav>.active>a:focus,
+.smc-top-bar.navbar-default .navbar-nav>li>a:focus,
+.smc-top-bar.navbar-default .navbar-nav>.active>a:hover
+  background-color : $COL_TOP_BAR_ACTIVE
+  color            : $COL_TOP_BAR_TEXT_ACTIVE
+
+.smc-top-bar.navbar-default .navbar-nav>li>a:hover
+  background-color : $COL_TOP_BAR_HOVER
+  color            : $COL_TOP_BAR_TEXT
 
 .smc-project-tab-floating
   background-color    : rgb(255, 255, 255)

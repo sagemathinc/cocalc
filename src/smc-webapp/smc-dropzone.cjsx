@@ -57,7 +57,7 @@ exports.SMC_Dropzone = rclass
     postUrl: ->
         # DANGER: code duplication with class below!
         dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
 
     render_close_button: ->
@@ -83,6 +83,7 @@ exports.SMC_Dropzone = rclass
         </div>
 
 exports.SMC_Dropwrapper = rclass
+
     displayName: 'dropzone-wrapper'
 
     propTypes:
@@ -113,7 +114,7 @@ exports.SMC_Dropwrapper = rclass
     postUrl: ->
         # DANGER: code duplication with class above!
         dest_dir = misc.encode_path(@props.dest_path)
-        postUrl  = window.smc_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
 
     componentDidMount: ->

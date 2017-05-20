@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -33,7 +33,7 @@ misc                 = require('smc-util/misc')
 misc_page         = require('./misc_page')
 message           = require('smc-util/message')
 markdown          = require('./markdown')
-{salvus_client}   = require('./salvus_client')
+{webapp_client}   = require('./webapp_client')
 {redux}           = require('./smc-react')
 {alert_message}   = require('./alerts')
 
@@ -41,7 +41,7 @@ markdown          = require('./markdown')
 
 {IS_MOBILE}       = require('./feature')
 
-templates           = $("#salvus-editor-templates")
+templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
@@ -80,7 +80,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
         # We set a custom rangeFinder that is output cell marker aware.
-        # See https://github.com/sagemathinc/smc/issues/966
+        # See https://github.com/sagemathinc/cocalc/issues/966
         foldOptions =
             rangeFinder : (cm, start) ->
                 helpers = cm.getHelpers(start, "fold")
@@ -292,7 +292,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @_update_queue_stop  = undefined
 
     init_worksheet_buttons: () =>
-        buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
+        buttons = @element.find(".webapp-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=\"#execute\"]").click () =>
@@ -384,17 +384,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         selection = document.getSelection()
         displayed_text = selection+""
 
-        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         display.val(displayed_text)
 
@@ -439,22 +439,22 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     html_editor_image: () =>
         @html_editor_restore_selection()
 
-        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         submit = () =>
             dialog.modal('hide')
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
             s = "<img src='#{url.val()}'#{width}#{height}>"
@@ -494,7 +494,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @html_editor_div?.data('onchange')?()
 
     init_html_editor_buttons: () =>
-        @html_editor_bar = button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        @html_editor_bar = button_bar = @element.find(".webapp-editor-codemirror-worksheet-editable-buttons")
         @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
 
@@ -752,10 +752,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # Showing user an alert_message at this point isn't useful; but we do want to know
                     # about this.  The user is just going to see no completion or popup, which is
                     # possibly reasonable behavior from their perspective.
-                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/smc/issues/1685
+                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/cocalc/issues/1685
                     err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
                     console.log(err)  # this is intentional... -- it's may be useful to know
-                    salvus_client.log_error(err)
+                    webapp_client.log_error(err)
                     return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
@@ -1350,7 +1350,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y           = $(x)
             src         = y.attr('src')
-            # see https://github.com/sagemathinc/smc/issues/1192
+            # see https://github.com/sagemathinc/cocalc/issues/1192
             img_scaling = y.attr('smc-image-scaling')
             if img_scaling?
                 img = y.get(0)
@@ -1364,17 +1364,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 img.onload = scale_img
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
-            is_blob     = misc.startswith(src, "#{window.smc_base_url}/blobs/")
-            # see https://github.com/sagemathinc/smc/issues/651
+            is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")
+            # see https://github.com/sagemathinc/cocalc/issues/651
             is_data     = misc.startswith(src, 'data:')
             if is_fullurl or is_data or is_blob
                 continue
-            # see https://github.com/sagemathinc/smc/issues/1184
+            # see https://github.com/sagemathinc/cocalc/issues/1184
             file_path = @file_path()
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
             {join} = require('path')
-            new_src = join('/', window.smc_base_url, @project_id, 'raw', file_path, src)
+            new_src = join('/', window.app_base_url, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1404,7 +1404,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
         if uuids?
-            salvus_client.remove_blob_ttls
+            webapp_client.remove_blob_ttls
                 uuids : uuids
                 cb    : (err) =>
                     if not err
@@ -1556,7 +1556,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.smc_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
+                    target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 
@@ -1569,7 +1569,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append(video)
 
                     when 'sage3d'
-                        elt = $("<div class='salvus-3d-container'></div>")
+                        elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
                         require.ensure [], () =>   # only load 3d library if needed
@@ -1607,12 +1607,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             mark    : opts.mark
 
                             for event, function_name of mesg.events
-                                img.data("salvus-events-#{event}", function_name)
+                                img.data("webapp-events-#{event}", function_name)
                                 switch event
                                     when 'click'
                                         img.click (e) =>
                                             p = location(e)
-                                            exec("#{img.data('salvus-events-click')}('click',(#{p}))")
+                                            exec("#{img.data('webapp-events-click')}('click',(#{p}))")
                                     when 'mousemove'
                                         ignore_mouse_move = undefined
                                         last_pos = undefined
@@ -1625,7 +1625,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             if last_pos? and p[0] == last_pos[0] and p[1] == last_pos[1]
                                                 return
                                             last_pos = p
-                                            exec("#{img.data('salvus-events-mousemove')}('mousemove',(#{p}))")
+                                            exec("#{img.data('webapp-events-mousemove')}('mousemove',(#{p}))")
                                     else
                                         console.log("unknown or unimplemented event -- #{event}")
 
@@ -2294,9 +2294,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # Useful extra data about 3d plots (a png data url)
         for elt in @output_elements()
-            for e in elt.find(".salvus-3d-container")
+            for e in elt.find(".webapp-3d-container")
                 f = $(e)
-                scene = f.data('salvus-threejs')
+                scene = f.data('webapp-threejs')
                 if not scene?
                     continue
                 scene.set_static_renderer()

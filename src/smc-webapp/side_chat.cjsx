@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -19,16 +19,16 @@
 #
 ###############################################################################
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable = require('immutable')
 {IS_MOBILE} = require('./feature')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {alert_message} = require('./alerts')
 

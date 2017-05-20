@@ -1,34 +1,51 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 The Hub's HTTP Server
 ###
 
-fs          = require('fs')
-path_module = require('path')
-Cookies     = require('cookies')
-util        = require('util')
-ms          = require('ms')
+fs           = require('fs')
+path_module  = require('path')
+Cookies      = require('cookies')
+util         = require('util')
+ms           = require('ms')
 
-async       = require('async')
-body_parser = require('body-parser')
-express     = require('express')
-formidable  = require('formidable')
-http_proxy  = require('http-proxy')
-http        = require('http')
-winston     = require('winston')
+async        = require('async')
+cookieParser = require('cookie-parser')
+body_parser  = require('body-parser')
+express      = require('express')
+formidable   = require('formidable')
+http_proxy   = require('http-proxy')
+http         = require('http')
+winston      = require('winston')
 
-misc    = require('smc-util/misc')
+misc         = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
-
 hub_register = require('./hub_register')
-
 auth         = require('./auth')
-
 access       = require('./access')
-
 hub_proxy    = require('./proxy')
-
 hub_projects = require('./projects')
 
 {http_message_api_v1} = require('./api/handler')
@@ -52,6 +69,8 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+    app.use(cookieParser())
+
     router.use(body_parser.json())
     router.use(body_parser.urlencoded({ extended: true }))
 
@@ -72,11 +91,26 @@ exports.init_express_http_server = (opts) ->
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+        # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
+        # that's not a security issue b/c the hub will do the heavy lifting
+        # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
+        # looks for the has_remember_me value (set by the client in accounts).
+        # This could be done in different ways, it's not clear what works best.
+        #remember_me = req.cookies[opts.base_url + 'remember_me']
+        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
+            res.redirect(opts.base_url + '/app')
+        else
+            #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
+            res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+
+    router.get '/app', (req, res) ->
+        #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
+        res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
-        res.send("window.smc_base_url='#{opts.base_url}';")
+        res.send("window.app_base_url='#{opts.base_url}';")
 
     # used by HAPROXY for testing that this hub is OK to receive traffic
     router.get '/alive', (req, res) ->
@@ -225,7 +259,7 @@ exports.init_express_http_server = (opts) ->
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(opts.base_url + "/#" + req.path.slice(1))
+        res.redirect(opts.base_url + "/app#" + req.path.slice(1))
 
     # Return global status information about smc
     router.get '/stats', (req, res) ->

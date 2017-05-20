@@ -1,3 +1,24 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 misc = require('smc-util/misc')
 
 # Import redux_account, so the account store is initialized.
@@ -33,6 +54,7 @@ exports.AccountPage = rclass
             reset_key               : rtypes.string
             reset_password_error    : rtypes.string
             remember_me             : rtypes.bool
+            has_remember_me         : rtypes.bool
             first_name              : rtypes.string
             last_name               : rtypes.string
             email_address           : rtypes.string
@@ -109,6 +131,7 @@ exports.AccountPage = rclass
             reset_key               = {@props.reset_key}
             reset_password_error    = {@props.reset_password_error}
             remember_me             = {@props.remember_me}
+            has_remember_me         = {@props.has_remember_me}
             has_account             = {misc.local_storage_length() > 0} />
 
     render_commercial_tabs: ->
@@ -128,16 +151,18 @@ exports.AccountPage = rclass
 
     render: ->
         logged_in = @props.redux.getStore('account')?.is_logged_in()
-        <Grid className='constrained'>
-            {@render_landing_page() if not logged_in}
-            {<Row>
-                <Col md={12}>
-                    <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                        <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
-                            {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
-                        </Tab>
-                        {@render_commercial_tabs()}
-                    </Tabs>
-                </Col>
-            </Row> if logged_in}
-        </Grid>
+        <div style={overflow:'auto'}>
+            <Grid className='constrained'>
+                {@render_landing_page() if not logged_in}
+                {<Row>
+                    <Col md={12}>
+                        <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
+                            <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
+                                {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                            </Tab>
+                            {@render_commercial_tabs()}
+                        </Tabs>
+                    </Col>
+                </Row> if logged_in}
+            </Grid>
+        </div>

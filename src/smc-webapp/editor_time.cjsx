@@ -26,7 +26,7 @@ immutable = require('immutable')
 
 {Button, ButtonGroup, Well} = require('react-bootstrap')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
@@ -118,7 +118,7 @@ Stopwatch = rclass
             when 'paused'
                 amount = @props.total
             when 'running'
-                amount = @props.total + (salvus_client.server_time() - @props.time)
+                amount = @props.total + (webapp_client.server_time() - @props.time)
             else
                 return <div>Invalid state {@props.state}</div>
 
@@ -203,19 +203,19 @@ class TimeActions extends Actions
             label  : ''
             total  : 0
             state  : 'stopped'  # 'paused', 'running', 'stopped'
-            time   : salvus_client.server_time() - 0
+            time   : webapp_client.server_time() - 0
 
     stop_stopwatch: (id) =>
         @_set
             id    : id
             total : 0
             state : 'stopped'
-            time  : salvus_client.server_time() - 0
+            time  : webapp_client.server_time() - 0
 
     start_stopwatch: (id) =>
         @_set
             id    : id
-            time  : salvus_client.server_time() - 0
+            time  : webapp_client.server_time() - 0
             state : 'running'
 
     pause_stopwatch: (id) =>
@@ -225,8 +225,8 @@ class TimeActions extends Actions
             return
         @_set
             id    : id
-            time  : salvus_client.server_time() - 0
-            total : x.get('total') + (salvus_client.server_time() - x.get('time'))
+            time  : webapp_client.server_time() - 0
+            total : x.get('total') + (webapp_client.server_time() - x.get('time'))
             state : 'paused'
 
 
@@ -256,7 +256,7 @@ require('./project_file').register_file_editor
 
         actions._init()
 
-        syncdb = salvus_client.sync_db
+        syncdb = webapp_client.sync_db
             project_id   : project_id
             path         : path
             primary_keys : ['id']

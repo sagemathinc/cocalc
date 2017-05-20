@@ -1,1 +1,1 @@
-SageMathCloud code shared across backend server code.
+CoCalc code shared across backend server code.

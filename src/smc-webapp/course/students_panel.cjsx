@@ -1,13 +1,34 @@
-# SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries and components
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel, Well} = require('react-bootstrap')
 
-# SMC components
+# CoCalc components
 {User} = require('../users')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
@@ -71,7 +92,7 @@ exports.StudentsPanel = rclass ({name}) ->
             return
         @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
         add_search = @state.add_search
-        salvus_client.user_search
+        webapp_client.user_search
             query : add_search
             limit : 50
             cb    : (err, select) =>
@@ -103,7 +124,7 @@ exports.StudentsPanel = rclass ({name}) ->
                     return aa
                 select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
                 # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                # NOTE (see comment on https://github.com/sagemathinc/smc/issues/677): it is very important to pass in
+                # NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
                 # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
                 # bringing back everything in the search, which is a bug.
                 select3 = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select2)
@@ -112,7 +133,7 @@ exports.StudentsPanel = rclass ({name}) ->
 
     student_add_button: ->
         <Button onClick={@do_add_search}>
-            {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
+            {if @props.add_searching then <Icon name="cc-icon-cocalc-ring" spin /> else <Icon name="search" />}
         </Button>
 
     add_selector_clicked: ->
@@ -478,9 +499,9 @@ Student = rclass
         create = @props.student.get("create_project")
         if create?
             # if so, how long ago did it start
-            how_long = (salvus_client.server_time() - create)/1000
+            how_long = (webapp_client.server_time() - create)/1000
             if how_long < 120 # less than 2 minutes -- still hope, so render that creating
-                return <div><Icon name="circle-o-notch" spin /> Creating project... (started <TimeAgo date={create} />)</div>
+                return <div><Icon name="cc-icon-cocalc-ring" spin /> Creating project... (started <TimeAgo date={create} />)</div>
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
             # to attempt creation again by clicking the create button.
 

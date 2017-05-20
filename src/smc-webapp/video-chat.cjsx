@@ -1,7 +1,6 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
-# and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -24,7 +23,7 @@
 misc          = require('smc-util/misc')
 {Button}      = require('react-bootstrap')
 {sha1}        = require('smc-util/schema').client_db
-{server_time} = require('./salvus_client').salvus_client
+{server_time} = require('./webapp_client').webapp_client
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
@@ -100,7 +99,7 @@ class VideoChat
         chat_window_is_open()
         @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
 
-        title = "SageMathCloud Video Chat: #{misc.trunc_middle(@path, 30)}"
+        title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
         url   = "https://appear.in/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w

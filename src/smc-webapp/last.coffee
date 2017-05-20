@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -27,28 +27,28 @@
 ###############################################################################
 
 $               = window.$
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux}         = require('./smc-react')
 misc            = require('smc-util/misc')
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
 $(document).on "click", (e) ->
-    if e.button == 1 and $(e.target).hasClass("salvus-no-middle-click")
+    if e.button == 1 and $(e.target).hasClass("webapp-no-middle-click")
         e.preventDefault()
         e.stopPropagation() # ?
     # hide popover on click
     if $(e.target).data('toggle') != 'popover' and $(e.target).parents('.popover.in').length == 0
         $('[data-toggle="popover"]').popover('hide')
 
-remember_me = salvus_client.remember_me_key()
+remember_me = webapp_client.remember_me_key()
 if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
     redux.getActions('page').set_active_tab('account')
 
 
-client = salvus_client
+client = webapp_client
 if client._connected
     # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.
@@ -125,9 +125,9 @@ window.MathJax = exports.MathJaxConfig =
     showProcessingMessages: false
 
 $ = window.$
+$("#smc-startup-banner")?.remove()
+$('#smc-startup-banner-status')?.remove()
 $ ->
-    $("#smc-startup-banner")?.remove()
-    $('#smc-startup-banner-status')?.remove()
     $(parent).trigger('initialize:frame')
 
     # dynamically inserting the mathjax script URL

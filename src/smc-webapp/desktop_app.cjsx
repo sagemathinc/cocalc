@@ -1,9 +1,31 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {isMobile} = require('./feature')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
 {Loading, Icon, Tip}   = require('./r_misc')
+{COLORS} = require('smc-util/theme')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -19,7 +41,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -69,6 +91,7 @@ Page = rclass
             get_fullname : rtypes.func
             user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
+            other_settings : rtypes.object
         support :
             show : rtypes.bool
 
@@ -102,22 +125,29 @@ Page = rclass
 
     render_sign_in_tab: ->
         <NavTab
-            name           = 'account'
-            label          = 'Sign in'
-            icon           = 'sign-in'
-            on_click       = {@sign_in_tab_clicked}
-            actions        = {@actions('page')}
-            active_top_tab = {@props.active_top_tab}
+            name            = 'account'
+            label           = 'Sign in'
+            icon            = 'sign-in'
+            on_click        = {@sign_in_tab_clicked}
+            actions         = {@actions('page')}
+            active_top_tab  = {@props.active_top_tab}
+            style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
+            add_inner_style = {color: 'black'}
         />
 
     render_right_nav: ->
         logged_in = @props.is_logged_in()
-        <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            {<NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} /> if require('./customize').commercial}
+            {<NavTab
+                label='Help' icon='medkit'
+                actions={@actions('page')}
+                active_top_tab={@props.active_top_tab}
+                on_click={=>redux.getActions('support').show(true)}
+            /> if require('./customize').commercial}
             {<NotificationBell count={@props.get_notify_count()} active={@props.show_file_use} /> if @props.is_logged_in()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
@@ -127,8 +157,9 @@ Page = rclass
             whiteSpace : 'nowrap'
             float      : 'right'
             padding    : '11px 7px'
+            fontWeight : 'bold'
 
-        <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
+        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = 'projects'
                 inner_style    = {padding:'0px'}
@@ -139,7 +170,7 @@ Page = rclass
                 <div style={projects_styles}>
                     Projects
                 </div>
-                <SMCLogo />
+                <AppLogo />
             </NavTab>
         </Nav>
 
@@ -164,17 +195,22 @@ Page = rclass
             flexDirection : 'column'
             height        : '100vh'
             width         : '100vw'
-            overflow      : 'auto'
+            overflow      : 'hidden'
+
+        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen)
 
         style_top_bar =
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '42px'
+            minHeight     : '40px'
             position      : 'fixed'
-            right         : '0'
+            right         : 0
             zIndex        : '100'
-            opacity       : '0.8'
+            borderRadius  : 0
+            top           : if show_global_info then '40px' else 0
+
+        positionHackHeight = (40 + if show_global_info then 40 else 0) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
@@ -183,12 +219,13 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
+            {<GlobalInformationMessage /> if show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
-            {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}
+            {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
