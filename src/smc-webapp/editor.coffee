@@ -804,6 +804,9 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-'"       : "indentAuto"
             "Cmd-'"        : "indentAuto"
 
+            "Cmd-/"        : "toggleComment"
+            "Ctrl-/"       : "toggleComment"    # shortcut chosen by jupyter project (undocumented)
+
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
@@ -1175,16 +1178,22 @@ class CodeMirrorEditor extends FileEditor
                 @set_font_size(cm, @default_font_size)
 
     get_font_size: (cm) ->
+        if not cm?
+            return
         elt = $(cm.getWrapperElement())
-        elt.data('font-size') ? @default_font_size
+        return elt.data('font-size') ? @default_font_size
 
     set_font_size: (cm, size) =>
+        if not cm?
+            return
         if size > 1
             elt = $(cm.getWrapperElement())
             elt.css('font-size', size + 'px')
             elt.data('font-size', size)
 
     change_font_size: (cm, delta) =>
+        if not cm?
+            return
         #console.log("change_font_size #{cm.name}, #{delta}")
         scroll_before = cm.getScrollInfo()
 
@@ -1209,6 +1218,8 @@ class CodeMirrorEditor extends FileEditor
         setTimeout(f, 0)
 
     toggle_split_view: (cm) =>
+        if not cm?
+            return
         @_layout = (@_layout + 1) % 3
         @local_storage("layout", @_layout)
         @show()
@@ -1225,6 +1236,8 @@ class CodeMirrorEditor extends FileEditor
         @emit 'toggle-split-view'
 
     goto_line: (cm) =>
+        if not cm?
+            return
         focus = () =>
             @focus()
             cm.focus()
@@ -1603,7 +1616,7 @@ class CodeMirrorEditor extends FileEditor
             else
                 v[i] += amount
         $("body").remove("#salvus-cm-activeline")
-        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")   # this is a memory leak!
 
 
 
@@ -3388,10 +3401,10 @@ exports.register_nonreact_editors = () ->
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
     register(false, TaskList,         ['tasks'])
-    register(false, JupyterNotebook,  ['ipynb'])
+    exports.switch_to_ipynb_classic = ->
+        register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
     register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
-    register(true, JupyterNBViewerEmbedded, ['ipynb'])

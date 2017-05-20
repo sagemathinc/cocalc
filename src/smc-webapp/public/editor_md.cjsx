@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+misc = require('smc-util/misc')
+
 # React libraries
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
 
@@ -35,7 +37,7 @@ PublicMarkdown = rclass ({name}) ->
         "#{name}" :
             content    : rtypes.string
             project_id : rtypes.string
-            path       : rtypes.string
+            file_path  : rtypes.string
 
     render: ->
         if @props.error
@@ -44,12 +46,15 @@ PublicMarkdown = rclass ({name}) ->
             <Loading />
         else
             <div className="salvus-editor-static-html-content">
-                <Markdown project_id={@props.project_id} path={@props.path} value={@props.content} />
+                <Markdown project_id={@props.project_id} file_path={@props.file_path} value={@props.content} />
             </div>
 
 class MDActions extends Actions
     load_content: (project_id, path) =>
-        @setState(project_id:project_id, path:path)
+        @setState
+            project_id : project_id
+            file_path  : misc.path_split(path).head
+
         salvus_client.public_get_text_file
             project_id : project_id
             path       : path

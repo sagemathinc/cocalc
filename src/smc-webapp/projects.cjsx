@@ -68,6 +68,7 @@ class ProjectsActions extends Actions
     save_all_files: () =>
         store.get('open_projects').filter (project_id) =>
             @redux.getProjectActions(project_id).save_all_files()
+        return
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
@@ -1354,7 +1355,7 @@ exports.ProjectsPage = ProjectsPage = rclass
 
     clear_filters_and_focus_search_input: ->
         @actions('projects').setState(selected_hashtags:{})
-        @refs.search.clear_and_focus_input()
+        @refs.search.clear_and_focus_search_input()
 
     render: ->
         if not @props.project_map?

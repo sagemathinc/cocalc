@@ -4,7 +4,7 @@
   font-weight : normal
   src         : local("Droid Sans Mono"), local("DroidSansMono"), url('../webapp-lib/fonts/droid/DroidSansMono.ttf') format("truetype")
 
-/* I'm opposted to this; it won't work offline, and leads to a noticeable glitch when used on the landing page.  -- William*/
+/* I'm opposed to this; it won't work offline, and leads to a noticeable glitch when used on the landing page.  -- William*/
 /* @import url(https://fonts.googleapis.com/css?family=Roboto+Mono); */
 
 =user-select($val:"none")
@@ -24,6 +24,7 @@
 @import console
 @import activity
 @import projects_nav
+@import project_page
 @import projects
 @import wizard
 @import editor
@@ -32,6 +33,8 @@
 @import interact
 @import 3d
 @import d3
+@import jsoninspector
+@import jupyter/jupyter
 
 .hide
   display : none
@@ -155,6 +158,11 @@ div#smc-react-container
   border-radius    : 3px
 
 /* fix bootstrap ugliness  */
+
+code
+  color            : #333
+  background-color : rgba(0,0,0,0)
+  padding          : 0
 
 blockquote p
   font-size : 15px

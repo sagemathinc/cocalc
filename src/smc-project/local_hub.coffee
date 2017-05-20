@@ -13,6 +13,17 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
+
+require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
+
+process.addListener "uncaughtException", (err) ->
+    winston.debug("BUG ****************************************************************************")
+    winston.debug("Uncaught exception: " + err)
+    winston.debug(err.stack)
+    winston.debug("BUG ****************************************************************************")
+    if console? and console.trace?
+        console.trace()
+
 path    = require('path')
 async   = require('async')
 fs      = require('fs')
@@ -100,7 +111,7 @@ json = common.json
 
 INFO = undefined
 init_info_json = (cb) ->
-    winston.debug("writing info.json")
+    winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
     v = process.env.HOME.split('/')
     project_id = v[v.length-1]
@@ -285,6 +296,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port
+                logger     : winston
                 cb         : cb
     ], (err) ->
         if err
@@ -293,14 +305,6 @@ start_server = (tcp_port, raw_port, cb) ->
             winston.debug("Successfully started servers.")
         cb(err)
     )
-
-process.addListener "uncaughtException", (err) ->
-    winston.debug("BUG ****************************************************************************")
-    winston.debug("Uncaught exception: " + err)
-    winston.debug(err.stack)
-    winston.debug("BUG ****************************************************************************")
-    if console? and console.trace?
-        console.trace()
 
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)

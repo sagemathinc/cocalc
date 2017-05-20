@@ -809,8 +809,9 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1537' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter classic does not work on Firefox; please switch to the modern Jupyter notebook server.</div>")
             @element.data("jupyter_notebook", @)
+            @modern()
             opts.cb?()
             return
         @project_id = @parent.project_id
@@ -844,7 +845,8 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @load(opts.cb)
+        @ensure_nonempty () =>
+            @load(opts.cb)
 
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
@@ -861,6 +863,14 @@ class JupyterNotebook extends EventEmitter
         @syncstring?.close()
         delete @syncstring
         @state = 'closed'
+
+    ensure_nonempty: (cb) =>
+        salvus_client.exec
+            command    : 'smc-jupyter-ensure-nonempty'
+            project_id : @project_id
+            path       : @path
+            args       : [@file]
+            cb         : cb
 
     load: (cb) =>
         if @state != 'init' and @state != 'failed'
@@ -979,6 +989,9 @@ class JupyterNotebook extends EventEmitter
         # info button
         @element.find("a[href=\"#info\"]").click(@info)
 
+        # switch to modern button
+        @element.find("a[href=\"#modern\"]").click(@modern)
+
         # time travel/history
         @element.find("a[href=\"#history\"]").click(@show_history_viewer)
 
@@ -1066,7 +1079,7 @@ class JupyterNotebook extends EventEmitter
             if @state == 'closed'
                 return
             #console.log 'handle_syncstring_change'
-            if @dom.state != 'ready'
+            if @dom?.state != 'ready'
                 # there is nothing we can do regarding setting it if the document is broken/closed.
                 return
             live = @syncstring.live()
@@ -1172,6 +1185,22 @@ class JupyterNotebook extends EventEmitter
         #t += "<h4>Known Issues</h4>"
         #t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
+        return false
+
+    modern: () =>
+        t = "<h3><i class='fa fa-exchange'></i> Switch to the Modern Notebook</a></h3>"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the modern Jupyter notebook server (or use Google Chrome or Safari).<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!"
+        t += "<br><hr>"
+        t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to Modern Notebook</a>"
+        bootbox.alert(t)
+
+        $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
+            bootbox.hideAll()
+            @save()
+            a = redux.getProjectActions(@project_id)
+            a.close_file(@filename)
+            redux.getTable('account').set(editor_settings: {jupyter_classic : false})
+            a.open_file(path : @filename)
         return false
 
     show_history_viewer: () =>

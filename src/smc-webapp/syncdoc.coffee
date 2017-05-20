@@ -372,9 +372,14 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         if not @_syncstring.in_undo_mode()
             return
-        value = @_syncstring.redo()?.to_str()
-        if not value?  # can't redo if version not defined/not available.
+        doc = @_syncstring.redo()
+        if not doc?
+            # can't redo if version not defined/not available.
             return
+        if not doc.to_str?
+            # BUG -- see https://github.com/sagemathinc/smc/issues/1831
+            throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
+        value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()

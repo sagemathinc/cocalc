@@ -125,6 +125,10 @@ describe "endswith", ->
         endswith("foo", "foobar").should.be.false()
     it "doesn't work with arrays", ->
         (-> endswith("foobar", ["aa", "ab"])).should.not.throw()
+    it "is false if either argument is undefined", ->
+        endswith(undefined, '...').should.be.false()
+        endswith('...', undefined).should.be.false()
+        endswith(undefined, undefined).should.be.false()
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
@@ -237,7 +241,7 @@ describe "default", ->
         global.DEBUG = @debug_orig
 
     beforeEach =>
-        @console_debug_stub = sinon.stub(global.console, "debug")
+        @console_debug_stub = sinon.stub(global.console, "warn")
         @console_trace_stub = sinon.stub(global.console, "trace")
 
     afterEach =>

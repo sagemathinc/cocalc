@@ -66,7 +66,7 @@ def reload_attached_files_if_mod_smc():
     for filename, mtime in modified_file_iterator():
         basename = os.path.basename(filename)
         timestr = time.strftime('%T', mtime)
-        print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+        log('reloading attached file {0} modified at {1}'.format(basename, timestr))
         from sage_salvus import load
         load(filename)
 
@@ -400,7 +400,10 @@ class BufferedOutputStream(object):
         # This is not going to silently corrupt anything -- it's just output that
         # is destined to be *rendered* in the browser.  This is only a partial
         # solution to a more general problem, but it is safe.
-        self._buf += output.replace('\x00','')
+        try:
+            self._buf += output.replace('\x00','')
+        except UnicodeDecodeError:
+            self._buf += output.decode('utf-8').replace('\x00','')
         #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
@@ -412,7 +415,10 @@ class BufferedOutputStream(object):
         if not self._buf and not done:
             # no point in sending an empty message
             return
-        self._f(self._buf, done=done)
+        try:
+            self._f(self._buf, done=done)
+        except UnicodeDecodeError:
+            self._f(unicode(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):

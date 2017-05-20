@@ -38,8 +38,10 @@ misc      = require('smc-util/misc')
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
 
-project_file = require('project_file')
-wrapped_editors = require('editor_react_wrapper')
+if window?
+    # don't import in case not in browser (for testing)
+    project_file = require('./project_file')
+    wrapped_editors = require('./editor_react_wrapper')
 
 MASKED_FILE_EXTENSIONS =
     'py'   : ['pyc']
@@ -149,6 +151,8 @@ class ProjectActions extends Actions
             @clear_ghost_file_tabs()
         else
             @add_a_ghost_file_tab()
+        window.clearTimeout(@last_close_timer)
+        @last_close_timer = window.setTimeout(@clear_ghost_file_tabs, 5000)
         @close_file(path)
 
     # Expects one of ['files', 'new', 'log', 'search', 'settings']
@@ -589,9 +593,8 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path, sort_by_time, show_hidden} = defaults opts,
+        {path, show_hidden} = defaults opts,
             path         : @get_store()?.current_path
-            sort_by_time : undefined
             show_hidden  : undefined
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
@@ -603,7 +606,7 @@ class ProjectActions extends Actions
 
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
-        _key = "#{path}-#{sort_by_time}-#{show_hidden}"
+        _key = "#{path}-#{show_hidden}"
         if @_set_directory_files_lock[_key]  # currently doing it already
             return
         @_set_directory_files_lock[_key] = true
@@ -624,12 +627,10 @@ class ProjectActions extends Actions
                 if not store?
                     cb("store no longer defined"); return
                 path         ?= store.current_path
-                sort_by_time ?= store.sort_by_time
                 show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
-                    time       : sort_by_time
                     hidden     : show_hidden
                     max_time_s : 120  # keep trying for up to 2 minutes
                     group      : group
@@ -646,24 +647,34 @@ class ProjectActions extends Actions
             opts?.finish_cb?()
         )
 
+    # Sets the active file_sort to next_column_name
+    set_sorted_file_column: (column_name) =>
+        current = @get_store()?.active_file_sort
+        if current?.column_name == column_name
+            is_descending = not current.is_descending
+        else
+            is_descending = false
+        next_file_sort = {is_descending, column_name}
+        @setState(active_file_sort : next_file_sort)
+
     # Increases the selected file index by 1
     # undefined increments to 0
-    increment_selected_file_index: ->
+    increment_selected_file_index: =>
         current_index = @get_store().selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
     # Does nothing when selected_file_index is undefined
-    decrement_selected_file_index: ->
+    decrement_selected_file_index: =>
         current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
-    zero_selected_file_index: ->
+    zero_selected_file_index: =>
         @setState(selected_file_index : 0)
 
-    clear_selected_file_index: ->
+    clear_selected_file_index: =>
         @setState(selected_file_index : undefined)
 
     # Set the most recently clicked checkbox, expects a full/path/name
@@ -1070,9 +1081,10 @@ class ProjectActions extends Actions
             @setState(file_creation_error: "Cannot create a file with the #{ext} extension")
             return
         if ext == 'tex'
+            filename = misc.path_split(name).tail
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                if p.indexOf(bad_char) != -1
-                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
+                if filename.indexOf(bad_char) != -1
+                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename '#{filename}'")
                     return
         salvus_client.exec
             project_id  : @project_id
@@ -1292,12 +1304,12 @@ create_project_store_def = (name, project_id) ->
         # watch for this to change, and if it does, close the project.
         # This avoids leaving it open after we are removed, which is confusing,
         # given that all permissions have vanished.
-        projects = @redux.getStore('projects')
-        if projects.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
+        projects = @redux.getStore('projects')  # may not be available; for example when testing
+        if projects?.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
             projects.on('change', @_projects_store_collab_check)
 
     destroy: ->
-        @redux.getStore('projects').removeListener('change', @_projects_store_collab_check)
+        @redux.getStore('projects')?.removeListener('change', @_projects_store_collab_check)
 
     _projects_store_collab_check: (state) ->
         if not state.getIn(['project_map', @project_id])?
@@ -1306,7 +1318,6 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
-        sort_by_time       : true
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1341,6 +1352,7 @@ create_project_store_def = (name, project_id) ->
 
         # Project Files
         activity               : rtypes.immutable
+        active_file_sort       : rtypes.object     # {column_name : string, is_descending : bool}
         page_number            : rtypes.number
         file_action            : rtypes.string
         file_search            : rtypes.string
@@ -1349,7 +1361,6 @@ create_project_store_def = (name, project_id) ->
         checked_files          : rtypes.immutable
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
-        sort_by_time           : rtypes.bool
         most_recent_file_click : rtypes.string
 
         # Project Log
@@ -1386,15 +1397,19 @@ create_project_store_def = (name, project_id) ->
             {SCHEMA, client_db} = require('smc-util/schema')
             return SCHEMA.public_paths.user_query.set.fields.id({project_id:project_id, path:path}, client_db)
 
-    # TODO: Change input functions like this to use getInitialState
-    sort_by_time: ->
-        return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
+    active_file_sort: ->
+        if @get('active_file_sort')?
+            return @get('active_file_sort').toJS()
+        else
+            is_descending = false
+            column_name = @redux.getStore('account').getIn(['other_settings', 'default_file_sort'])
+            return {is_descending, column_name}
 
     # Computed values
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('directory_listings', 'current_path', 'stripped_public_paths', 'file_search', 'other_settings') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1423,6 +1438,24 @@ create_project_store_def = (name, project_id) ->
         search = @file_search?.toLowerCase()
         if search and search[0] isnt search_escape_char
             listing = @_matched_files(search, listing)
+
+        sorter = switch @active_file_sort.column_name
+            when "name" then @_sort_on_string_field("name")
+            when "time" then @_sort_on_numerical_field("mtime", -1)
+            when "size" then @_sort_on_numerical_field("size")
+            when "type"
+                (a, b) =>
+                    if a.isdir and not b.isdir
+                        return -1
+                    else if b.isdir and not a.isdir
+                        return 1
+                    else
+                        return misc.cmp_array(a.name.split('.').reverse(), b.name.split('.').reverse())
+
+        listing.sort(sorter)
+
+        if @active_file_sort.is_descending
+            listing.reverse()
 
         map = {}
         for x in listing
@@ -1458,6 +1491,11 @@ create_project_store_def = (name, project_id) ->
         if typeof listing == 'string'   # must be an error
             return {err : listing}
         return {item : listing?.find (val) => val.get('name') == name}
+
+    get_raw_link: (path) ->
+        url = document.URL
+        url = url[0...url.indexOf('/projects/')]
+        return "#{url}/#{@project_id}/raw/#{misc.encode_path(path)}"
 
     _match: (words, s, is_dir) ->
         s = s.toLowerCase()
@@ -1528,6 +1566,12 @@ create_project_store_def = (name, project_id) ->
                     pub[x.name] = map[p]
 
 
+    _sort_on_string_field: (field) =>
+        (a,b) -> misc.cmp(a[field]?.toLowerCase() ? "", b[field]?.toLowerCase() ? "")
+
+    _sort_on_numerical_field: (field, factor=1) =>
+        (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
+
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)
     name  = key(project_id)
@@ -1586,7 +1630,6 @@ get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
         path       : required
-        time       : required
         hidden     : required
         max_time_s : required
         group      : required
@@ -1602,7 +1645,6 @@ get_directory_listing = (opts) ->
         method
             project_id : opts.project_id
             path       : opts.path
-            time       : opts.time
             hidden     : opts.hidden
             timeout    : 15
             cb         : (err, x) ->
