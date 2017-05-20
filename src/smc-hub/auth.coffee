@@ -216,7 +216,7 @@ passport_login = (opts) ->
                             cb            : cb
             ], cb)
         (cb) ->
-            target = BASE_URL + "/#login"
+            target = BASE_URL + "/app#login"
 
             if has_valid_remember_me
                 opts.res.redirect(target)
