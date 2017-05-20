@@ -45,7 +45,7 @@ ARG commit=HEAD
 
 # Pull latest source code for SMC and checkout requested commit (or HEAD)
 RUN \
-  git clone https://github.com/sagemathinc/cocalc.git && \
+  git clone https://github.com/sagemathinc/smc.git && \
   cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
 
 # Build and install all deps
