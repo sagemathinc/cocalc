@@ -20,16 +20,6 @@ String::startsWith ?= (searchString, position) ->
     pos = position ? 0
     @indexOf(searchString, pos) == pos
 
-# polyfill for internet explorer's lack of String.prototype.includes
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
-String::includes ?= (search, start) ->
-    if typeof start != 'number'
-        start = 0
-    if start + search.length > @length
-        return false
-    else
-        return @indexOf(search, start) != -1
-
 # this must come before anything that touches event handling, etc.
 require('webapp-lib/webapp-error-reporter.coffee')
 
