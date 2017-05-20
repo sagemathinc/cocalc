@@ -12,7 +12,7 @@ if [ ! -f $API_KEY ]; then
 else
   echo "$0: Contacting CloudFlare servers to clear cache."
 
-  curl -X DELETE "https://api.cloudflare.com/client/v4/zones/536921d68a9bb81e6bec64603c8cc51b/purge_cache" \
+  curl -X DELETE "https://api.cloudflare.com/client/v4/zones/1f0851c75f9337545904475a1d1bbe71/purge_cache" \
      -H "X-Auth-Email: office@sagemath.com" \
      -H "X-Auth-Key: `cat $API_KEY`" \
      -H "Content-Type: application/json" \
