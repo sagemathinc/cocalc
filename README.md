@@ -1,6 +1,6 @@
-# ![logo](https://raw.githubusercontent.com/sagemathinc/cocalc/master/src/webapp-lib/favicon-32x32.png) CoCalc
+# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-32x32.png) CoCalc
 
-#### _Collaborative Calculation in the Cloud
+#### _Collaborative Calculation in the Cloud_
 
 **CoCalc** offers collaborative calculation in the cloud.
 This includes working with the full (scientific) Python stack, SageMath, Julia, R, Octave, and more.
@@ -12,9 +12,7 @@ communication tools like a chat, course management and more.
 
    * **[CoCalc](https://cocalc.com) -- the online service**
    * [Github](https://github.com/sagemathinc/cocalc)
-   * **[Mailing List](https://groups.google.com/forum/#!forum/cocalc)**
-   * [SMC mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
-   * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
+   * [Mailing List](https://groups.google.com/forum/#!forum/cocalc)
 
 ## Evaluation install
 
