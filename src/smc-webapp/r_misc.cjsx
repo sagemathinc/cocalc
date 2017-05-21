@@ -765,7 +765,7 @@ exports.HTML = rclass
              @props.safeHTML != newProps.safeHTML
 
     ###
-    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/smc/issues/1895
+    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/cocalc/issues/1895
     _update_escaped_chars: ->
         if not @_is_mounted
             return
@@ -774,7 +774,7 @@ exports.HTML = rclass
     ###
 
     _update_mathjax: (cb) ->
-        if not @_is_mounted  # see https://github.com/sagemathinc/smc/issues/1689
+        if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
             cb()
             return
         if @props.has_mathjax
@@ -808,7 +808,7 @@ exports.HTML = rclass
             if not @_is_mounted
                 return
             #@_update_escaped_chars()
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/smc/issues/1391
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
             @_update_tables()
 
     componentDidUpdate: ->

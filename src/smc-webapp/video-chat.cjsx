@@ -34,7 +34,7 @@ VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
 # The pop-up window for video chat
 video_window = (title, url, cb_closed) ->
     w = window.open(url, null, "location=yes,resizable=yes,height=640,width=800")
-    # disabled, see https://github.com/sagemathinc/smc/issues/1899
+    # disabled, see https://github.com/sagemathinc/cocalc/issues/1899
     #w.document.write """
     #<html>
     #    <head>
@@ -103,10 +103,10 @@ class VideoChat
         url   = "https://appear.in/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w
-        # disabled -- see https://github.com/sagemathinc/smc/issues/1899
+        # disabled -- see https://github.com/sagemathinc/cocalc/issues/1899
         #w.addEventListener "unload", =>
         #    @close_video_chat_window()
-        # workaround for https://github.com/sagemathinc/smc/issues/1899
+        # workaround for https://github.com/sagemathinc/cocalc/issues/1899
         poll_window = window.setInterval( =>
             if w.closed != false # != is required for compatibility with Opera
                 window.clearInterval(poll_window)

@@ -19,7 +19,7 @@ This is the foundation for a distributed synchronized database.
 
 DO **NOT** store anything that can't be converted from/to pure JSON.
 In particular, do *NOT* store Date objects -- they will come back as
-ISO strings and not be parsed.  See https://github.com/sagemathinc/smc/issues/1771
+ISO strings and not be parsed.  See https://github.com/sagemathinc/cocalc/issues/1771
 Instead use ms since epoch (or .toISOString()) for dates.  Please!!
 ###
 
@@ -597,7 +597,7 @@ class exports.SyncDB extends EventEmitter
             # even after this object is closed. (see the constructor above).
             # Not rebroadcasting such change events is fine, since the object
             # is already closed and nobody is listening.
-            # See https://github.com/sagemathinc/smc/issues/1829
+            # See https://github.com/sagemathinc/cocalc/issues/1829
             return
         db = @_doc.get_doc()._db
         if not @_last_db?

@@ -377,7 +377,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             # can't redo if version not defined/not available.
             return
         if not doc.to_str?
-            # BUG -- see https://github.com/sagemathinc/smc/issues/1831
+            # BUG -- see https://github.com/sagemathinc/cocalc/issues/1831
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)

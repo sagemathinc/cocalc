@@ -241,7 +241,7 @@ class exports.OutputHandler extends EventEmitter
             # Just handle as a normal message; and we don't show in the pager,
             # which doesn't make sense for multiple users.
             # This happens when requesting help for r:
-            # https://github.com/sagemathinc/smc/issues/1933
+            # https://github.com/sagemathinc/cocalc/issues/1933
             @message(payload)
         else
             # No idea what to do with this...

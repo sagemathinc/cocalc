@@ -86,7 +86,7 @@ if DEBUG
 
 # These checks must be **after** the above functions are defined, since showing
 # these warnings requires functions like get_browser are already defined.
-# See https://github.com/sagemathinc/smc/issues/1898
+# See https://github.com/sagemathinc/cocalc/issues/1898
 cookies_and_local_storage = ->
     if not navigator?
         return
