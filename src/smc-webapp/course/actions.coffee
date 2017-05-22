@@ -875,8 +875,8 @@ exports.CourseActions = class CourseActions extends Actions
                         src_path          : assignment.get('target_path')
                         target_project_id : store.get('course_project_id')
                         target_path       : target_path
-                        overwrite_newer   : assignment.get('collect_overwrite_newer')
-                        delete_missing    : assignment.get('collect_delete_missing')
+                        overwrite_newer   : true
+                        delete_missing    : false
                         exclude_history   : false
                         cb                : cb
                 (cb) =>
