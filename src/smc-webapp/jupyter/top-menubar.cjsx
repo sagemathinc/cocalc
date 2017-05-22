@@ -229,7 +229,7 @@ exports.TopMenubar = rclass ({name}) ->
                 disabled = {disabled}
                 >
                 <span style={style}>
-                    {s} {display ? obj.m ? name}   {# shortcut must be first! -- https://github.com/sagemathinc/smc/issues/1935 }
+                    {s} {display ? obj.m ? name}   {# shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 }
                 </span>
             </MenuItem>
         else
@@ -327,7 +327,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
-                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/smc/wiki/sagejupyter')}
+                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}

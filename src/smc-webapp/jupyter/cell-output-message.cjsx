@@ -47,7 +47,7 @@ Stdout = rclass
         else
             <div style={STDOUT_STYLE}>
                 {# This span below is solely to workaround an **ancient** Firefox bug }
-                {# See https://github.com/sagemathinc/smc/issues/1958    }
+                {# See https://github.com/sagemathinc/cocalc/issues/1958    }
                 <span>{value}</span>
             </div>
 
@@ -58,7 +58,7 @@ Stderr = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
-        # span below?  what? -- See https://github.com/sagemathinc/smc/issues/1958
+        # span below?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
         <div style={STDERR_STYLE}><span>{@props.message.get('text')}</span>
         </div>
 
@@ -119,7 +119,7 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            <span>  {# span?  what? -- See https://github.com/sagemathinc/smc/issues/1958 }
+            <span>  {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
                 {@props.value}
             </span>
         </div>

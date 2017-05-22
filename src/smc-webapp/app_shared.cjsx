@@ -430,7 +430,7 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info:false})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/smc/wiki/CoCalc'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/CoCalc'
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'

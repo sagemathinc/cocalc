@@ -642,7 +642,7 @@ class SyncDoc extends EventEmitter
 
     set_doc: (value) =>
         if not value?.apply_patch?
-            # Do a sanity check -- see https://github.com/sagemathinc/smc/issues/1831
+            # Do a sanity check -- see https://github.com/sagemathinc/cocalc/issues/1831
             throw Error("value must be a document object with apply_patch, etc., methods")
         @_doc = value
         return
@@ -1351,7 +1351,7 @@ class SyncDoc extends EventEmitter
             # unpack ISO timestamps as Date, since patch just contains the raw
             # patches from user editing.  This was done for a while, which
             # led to horrific bugs in some edge cases...
-            # See https://github.com/sagemathinc/smc/issues/1771
+            # See https://github.com/sagemathinc/cocalc/issues/1771
             patch = JSON.parse(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
@@ -1836,7 +1836,7 @@ class SyncDoc extends EventEmitter
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
 
-        # temporary hotfix for https://github.com/sagemathinc/smc/issues/1873
+        # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
         try
             changed = not @_doc?.is_equal(new_remote)
         catch

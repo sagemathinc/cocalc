@@ -500,7 +500,7 @@ class exports.JupyterActions extends Actions
                     @setState(fatal: error)
                     # This check can be deleted in a few weeks:
                     if error? and error.indexOf('file is currently being read or written') != -1
-                        # No longer relevant -- see https://github.com/sagemathinc/smc/issues/1742
+                        # No longer relevant -- see https://github.com/sagemathinc/cocalc/issues/1742
                         @syncdb.delete(type:'fatal')
                 when 'nbconvert'
                     if @_is_project

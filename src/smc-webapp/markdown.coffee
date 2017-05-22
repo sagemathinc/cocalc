@@ -18,7 +18,7 @@ marked.setOptions
     smartypants : false
 
 exports.markdown_to_html = markdown_to_html = (s) ->
-    # See https://github.com/sagemathinc/smc/issues/1801
+    # See https://github.com/sagemathinc/cocalc/issues/1801
     [text, math] = remove_math(s)
     if math.length > 0
         has_mathjax = true

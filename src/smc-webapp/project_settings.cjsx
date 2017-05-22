@@ -522,7 +522,7 @@ SageWorksheetPanel = rclass
             command    : 'smc-sage-server stop; smc-sage-server start'
             timeout    : 30
             cb         : (err, output) =>
-                if not @_mounted # see https://github.com/sagemathinc/smc/issues/1684
+                if not @_mounted # see https://github.com/sagemathinc/cocalc/issues/1684
                     return
                 @setState(loading : false)
                 if err
