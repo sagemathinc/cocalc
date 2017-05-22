@@ -4,7 +4,7 @@ API Key Configuration
 
 misc = require('smc-util/misc')
 
-{salvus_client} = require('./webapp_client')
+{webapp_client} = require('./webapp_client')
 
 {React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
 
@@ -15,7 +15,7 @@ misc = require('smc-util/misc')
 exports.APIKeySetting = rclass
     getInitialState: ->
         api_key      : undefined   # if it has been loaded
-        password     : undefined   # if it has been entered
+        password     : ''   # must be defined so that input control is controlled
         error        : undefined
         state        : 'init'
 
@@ -59,7 +59,7 @@ exports.APIKeySetting = rclass
 
     do_action: (action) ->
         @setState(state:'loading')
-        salvus_client.api_key
+        webapp_client.api_key
             action   : action
             password : @state.password
             cb       : (err, api_key) =>
