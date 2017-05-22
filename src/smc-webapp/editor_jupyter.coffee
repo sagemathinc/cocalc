@@ -845,7 +845,9 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @ensure_nonempty () =>
+        @ensure_nonempty (err) =>
+            if err
+                console.warn("Error ensuring ipynb file is nonempty -- #{err}")
             @load(opts.cb)
 
     dbg: (f) =>
@@ -866,7 +868,7 @@ class JupyterNotebook extends EventEmitter
 
     ensure_nonempty: (cb) =>
         webapp_client.exec
-            command    : 'smc-jupyter-ensure-nonempty'
+            command    : 'cc-jupyter-classic-open'
             project_id : @project_id
             path       : @path
             args       : [@file]

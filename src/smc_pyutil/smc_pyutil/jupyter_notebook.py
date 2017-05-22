@@ -3,7 +3,7 @@
 ######################################################################
 # This is a daemon-ization script for the IPython notebook, for running
 # it under a specific URL behind a given proxy server.  It is probably
-# only of use directly in https://cloud.sagemath.com.
+# only of use directly in https://cocalc.com.
 #
 # This is written in Python, but that can be any python2 on the system; not the
 # Python that the ipython command runs.
@@ -21,42 +21,47 @@
 
 import json, os, random, signal, sys, time
 
-# start from home directory, since we want daemon to serve all files in that directory tree.
-os.chdir(os.environ['HOME'])
+def server_setup():
+    global SMC, DATA, DAEMON_FILE, mode, INFO_FILE, info, project_id, base_url, ip
+    # start from home directory, since we want daemon to serve all files in that directory tree.
+    os.chdir(os.environ['HOME'])
 
-SMC = os.environ['SMC']
+    SMC = os.environ['SMC']
 
-os.environ["PYTHONUSERBASE"] = os.environ['HOME'] + '/.local'
+    os.environ["PYTHONUSERBASE"] = os.environ['HOME'] + '/.local'
 
-DATA = os.path.join(SMC, 'jupyter')
-if not os.path.exists(DATA):
-    os.makedirs(DATA)
+    DATA = os.path.join(SMC, 'jupyter')
+    if not os.path.exists(DATA):
+        os.makedirs(DATA)
 
-# When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
-# to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
-DAEMON_FILE = os.path.join(DATA, "daemon.json")
+    # When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
+    # to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
+    DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
-if len(sys.argv) == 1:
-    print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
-    print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
-    sys.exit(1)
+    if len(sys.argv) == 1:
+        print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
+        print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
+        sys.exit(1)
 
-mode = sys.argv[1]
-del sys.argv[1]
+    mode = sys.argv[1]
+    del sys.argv[1]
 
-INFO_FILE = os.path.join(SMC, 'info.json')
-if os.path.exists(INFO_FILE):
-    info = json.loads(open(INFO_FILE).read())
-    project_id = info['project_id']
-    base_url = info['base_url']
-    ip = info['location']['host']
-    if ip == 'localhost':
-        # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
+    INFO_FILE = os.path.join(SMC, 'info.json')
+    if os.path.exists(INFO_FILE):
+        info = json.loads(open(INFO_FILE).read())
+        project_id = info['project_id']
+        base_url = info['base_url']
+        ip = info['location']['host']
+        if ip == 'localhost':
+            # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
+            ip = '127.0.0.1'
+    else:
+        project_id = ''
+        base_url = ''
         ip = '127.0.0.1'
-else:
-    project_id = ''
-    base_url = ''
-    ip = '127.0.0.1'
+
+if __name__ == '__main__':
+    command_line_setup()
 
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
@@ -207,7 +212,7 @@ def action(mode):
         print cmd + '\n\n'
         print "*"*80 + '\n'
         print "  The IPython Notebook server is running at \n"
-        print "      https://cloud.sagemath.com%s\n"%base
+        print "      https://cocalc.com%s\n"%base
         print "  All collaborators on this project may access the notebook at the"
         print "  above SSL-encrypted URL, but nobody else can access it."
         print '\n\n' + "*"*80 + '\n\n'
@@ -221,4 +226,14 @@ def action(mode):
         raise RuntimeError("unknown command '%s'"%mode)
 
 def main():
+    server_setup()
     action(mode)
+
+def prepare_file_for_open():
+    # This is unrelated to running the server; instead, before opening
+    # a file, we run this to make sure there is a blank JSON template in place.
+    # This is for compatibility with "new jupyter".
+    # See https://github.com/sagemathinc/cocalc/issues/1978
+    for path in sys.argv[1:]:
+        if not os.path.exists(path) or len(open(path).read().strip()) == 0:
+            open(path,'w').write('{"cells": [{"outputs": [], "source": [], "cell_type": "code", "metadata": {"collapsed": false}, "execution_count": null}], "nbformat_minor": 0, "nbformat": 4, "metadata": {"language_info": {"mimetype": "text/x-python", "version": "2.7.8", "nbconvert_exporter": "python", "pygments_lexer": "ipython2", "codemirror_mode": {"name": "ipython", "version": 2}, "file_extension": ".py", "name": "python"}, "kernelspec": {"name": "python2", "language": "python", "display_name": "Python 2"}}}')
