@@ -521,7 +521,7 @@ class exports.JupyterActions extends actions.JupyterActions
         path = @store.get('path')
         @_client.path_read
             path       : path
-            maxsize_MB : 10
+            maxsize_MB : 50
             cb         : (err, content) =>
                 if err
                     error = "Error reading ipynb file '#{path}': #{err}.  Fix this to continue."
