@@ -238,7 +238,7 @@ class exports.HistoryEditor extends FileEditor
         @_diff_mode = enabled
         if enabled
             if @view_doc != @diff_doc
-                @element.find(".salvus-editor-history-history_editor").empty().append(@diff_doc.element)
+                @element.find(".webapp-editor-history-history_editor").empty().append(@diff_doc.element)
                 @diff_doc.show?()
             @element.find("a[href=\"#hide-diff\"]").show()
             @element.find("a[href=\"#show-diff\"]").hide()
@@ -254,7 +254,7 @@ class exports.HistoryEditor extends FileEditor
                 cm.setOption('theme', '')
         else
             if @view_doc != @diff_doc
-                @element.find(".salvus-editor-history-history_editor").empty().append(@view_doc.element)
+                @element.find(".webapp-editor-history-history_editor").empty().append(@view_doc.element)
                 @view_doc.show?()
             for cm in @diff_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
