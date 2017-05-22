@@ -7,12 +7,10 @@ Client = a client that is connected via a persistent connection to the hub
 uuid                 = require('node-uuid')
 async                = require('async')
 Cookies              = require('cookies')            # https://github.com/jed/cookies
-
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
-
 {base_url}           = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
@@ -21,9 +19,11 @@ local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 smc_version          = require('./hub-version')
 hub_projects         = require('./projects')
-
+{get_stripe}         = require('./stripe/connect')
+{get_support}        = require('./support')
+{send_email}         = require('./email')
+{api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./create-account')
-{api_key_action} = require('./api/manage')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -1553,7 +1553,7 @@ class exports.Client extends EventEmitter
         dbg("#{misc.to_json(mesg)}")
 
         m = underscore.omit(mesg, 'id', 'event')
-        support.create_ticket m, (err, url) =>
+        get_support().create_ticket m, (err, url) =>
             dbg("callback being called with #{err} and url: #{url}")
             if err?
                 @error_to_client(id:mesg.id, error:err)
@@ -1570,7 +1570,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:err)
             return
 
-        support.get_support_tickets @account_id, (err, tickets) =>
+        get_support().get_support_tickets @account_id, (err, tickets) =>
             if err?
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -1606,7 +1606,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:id, error:err)
             cb(err)
             return
-        @_stripe = require('./stripe/connect').get_stripe()
+        @_stripe = get_stripe()
         if not @_stripe?
             err = "stripe billing not configured"
             dbg(err)
@@ -1688,13 +1688,12 @@ class exports.Client extends EventEmitter
     mesg_stripe_get_customer: (mesg) =>
         dbg = @dbg("mesg_stripe_get_customer")
         dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
-        stripe = require('./stripe/connect').get_stripe()
         @stripe_get_customer mesg.id, (err, customer) =>
             if err
                 return
             resp = message.stripe_customer
                 id                     : mesg.id
-                stripe_publishable_key : stripe?.publishable_key
+                stripe_publishable_key : @_stripe?.publishable_key
                 customer               : customer
             @push_to_client(resp)
 
@@ -1750,7 +1749,7 @@ class exports.Client extends EventEmitter
                             cb          : cb
                     (cb) =>
                         dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id,  cb: cb)
+                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
                 ], (err) =>
                     if err
                         dbg("failed -- #{err}")
@@ -1765,7 +1764,7 @@ class exports.Client extends EventEmitter
                         @_stripe.customers.createCard(customer_id, {card:mesg.token}, cb)
                     (cb) =>
                         dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id,  cb: cb)
+                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
                 ], (err) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
@@ -1789,7 +1788,7 @@ class exports.Client extends EventEmitter
                 else
                     @_stripe.customers.deleteCard(customer_id, mesg.card_id, cb)
             (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
+                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
         ], (err) =>
             if err
                 @stripe_error_to_client(id:mesg.id, error:err)
@@ -1815,7 +1814,7 @@ class exports.Client extends EventEmitter
                     @_stripe.customers.update(customer_id, {default_source:mesg.card_id}, cb)
             (cb) =>
                 dbg("update database")
-                @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id,  cb: cb)
+                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
         ], (err) =>
             if err
                 dbg("failed -- #{err}")
@@ -1844,7 +1843,7 @@ class exports.Client extends EventEmitter
                 else
                     @_stripe.customers.updateCard(customer_id, mesg.card_id, mesg.info, cb)
             (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
+                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
         ], (err) =>
             if err
                 @stripe_error_to_client(id:mesg.id, error:err)
@@ -1923,7 +1922,7 @@ class exports.Client extends EventEmitter
                         cb()
                 (cb) =>
                     dbg("Successfully added subscription; now save info in our database about subscriptions....")
-                    @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
+                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
@@ -1950,7 +1949,7 @@ class exports.Client extends EventEmitter
                     # us easily get the metadata of all projects associated to this subscription.
                     @_stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
                 (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
+                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -1978,7 +1977,7 @@ class exports.Client extends EventEmitter
                         coupon   : mesg.coupon
                     @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
                 (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
+                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)

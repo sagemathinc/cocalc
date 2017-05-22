@@ -110,6 +110,8 @@ if not process.env.SMC_TEST
 # module scope variables:
 database           = null
 
+{init_support} = require('./support')
+
 # the connected clients
 clients = require('./clients').get_clients()
 
@@ -811,15 +813,6 @@ init_metrics = (cb) ->
 
 exports.record_metric = record_metric = (key, value, type) ->
     metricsRecorder?.record(key, value, type)
-
-# Support Tickets
-
-support = undefined
-init_support = (cb) ->
-    {Support} = require('./support')
-    support = new Support cb: (err, s) =>
-        support = s
-        cb(err)
 
 
 #############################################

@@ -32,8 +32,16 @@ if not SMC_TEST
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'
 
+support = undefined
+exports.init_support = (cb) ->
+    support = new Support cb: (err, s) =>
+        support = s
+        cb(err)
 
-class exports.Support
+exports.get_support = ->
+    return support
+
+class Support
     constructor: (opts={}) ->
         opts = defaults opts,
             cb       : undefined
