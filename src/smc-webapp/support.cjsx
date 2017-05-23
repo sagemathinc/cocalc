@@ -434,7 +434,7 @@ SupportFooter = rclass
             <Button
                 tabIndex  = 5
                 bsStyle   ='default'
-                onClick   = {@props.close}>Cancel</Button>
+                onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
 
 SupportForm = rclass
