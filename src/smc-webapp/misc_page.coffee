@@ -28,7 +28,7 @@ buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 
-{redux} = require('./smc-react')
+smc_react   = require('./smc-react')
 
 templates = $("#webapp-misc-templates")
 
@@ -130,6 +130,14 @@ starts_with_cloud_url = (href) ->
     is_formersmc  = document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com")
     return is_samedomain or is_formersmc
 
+load_target = (args...) ->
+    project_actions = smc_react.redux.getActions('projects')
+    if not project_actions?
+        console.warn('misc_page.load_target: project_actions is undefined; should not happen; see https://github.com/sagemathinc/cocalc/issues/1990', args...)
+        return # so opens in new tab at least; otherwise users can't even open links
+    project_actions.load_target(args...)
+    return false
+
 $.fn.process_smc_links = (opts={}) ->
     @each ->
         e = $(this)
@@ -152,14 +160,13 @@ $.fn.process_smc_links = (opts={}) ->
                         url = $(@).attr('href')
                         i = url.indexOf('/projects/')
                         target = url.slice(i + '/projects/'.length)
-                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
+                        return load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
 
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
-                        if DEBUG then console.log "target", target
+                        # if DEBUG then console.log "target", target
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -176,8 +183,7 @@ $.fn.process_smc_links = (opts={}) ->
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
                             target = misc.path_join(opts.project_id, 'files', opts.file_path ? '', decodeURI(target) ? '')
-                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
+                        return load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                 else
                     # make links open in a new tab by default
                     a.attr("target","_blank")
