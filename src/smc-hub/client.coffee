@@ -11,7 +11,7 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
-{base_url}           = require('./base-url')
+base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
 auth                 = require('./auth')
@@ -105,7 +105,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request)
-        @_remember_me_value = c.get(base_url() + 'remember_me')
+        @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
 
         @check_for_remember_me()
 
@@ -332,7 +332,7 @@ class exports.Client extends EventEmitter
             # no connection or connection died
             return
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url()+"/cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
 
     set_cookie: (opts) ->
         opts = defaults opts,
@@ -347,7 +347,7 @@ class exports.Client extends EventEmitter
         if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url()+"/cookies", value:opts.value))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         return if not @conn?
@@ -400,7 +400,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
-            name  : base_url() + 'remember_me'
+            name  : base_url_lib.base_url() + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
 
@@ -1185,7 +1185,7 @@ class exports.Client extends EventEmitter
                                 base_url = "#{base_url[0]}//#{base_url[2]}"
                                 direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
                             else # fallback for outdated clients
-                                base_url = 'https://cloud.sagemath.com/'
+                                base_url = 'https://cocalc.com/'
                                 direct_link = ''
 
                             # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
