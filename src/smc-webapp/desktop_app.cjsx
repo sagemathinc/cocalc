@@ -197,7 +197,7 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
-        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen)
+        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen) and @props.is_logged_in()
 
         style_top_bar =
             display       : 'flex'
