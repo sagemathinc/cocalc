@@ -15,6 +15,7 @@ message              = require('smc-util/message')
 access               = require('./access')
 clients              = require('./clients').get_clients()
 auth                 = require('./auth')
+password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 smc_version          = require('./hub-version')
@@ -675,23 +676,42 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.signed_out(id:mesg.id))
 
     # Messages: Password/email address management
-    mesg_password_reset: (mesg) =>
-        password_reset(mesg, @ip_address, @push_to_client)
-
     mesg_change_password: (mesg) =>
-        change_password(mesg, @ip_address, @push_to_client)
+        password.change_password
+            mesg       : mesg
+            account_id : @account_id
+            ip_address : @ip_address
+            database   : @database
+            cb         : (err) =>
+                @push_to_client(message.changed_password(id:mesg.id, error:err))
 
     mesg_forgot_password: (mesg) =>
-        forgot_password(mesg, @ip_address, @push_to_client)
+        password.forgot_password
+            mesg       : mesg
+            ip_address : @ip_address
+            database   : @database
+            cb         : (err) =>
+                @push_to_client(message.forgot_password_response(id:mesg.id, error:err))
 
     mesg_reset_forgot_password: (mesg) =>
-        reset_forgot_password(mesg, @ip_address, @push_to_client)
+        password.reset_forgot_password
+            mesg       : mesg
+            database   : @database
+            cb         : (err) =>
+                @push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
 
     mesg_change_email_address: (mesg) =>
-        change_email_address(mesg, @ip_address, @push_to_client)
+        password.change_email_address
+            mesg       : mesg
+            account_id : @account_id
+            ip_address : @ip_address
+            database   : @database
+            logger     : @logger
+            cb         : (err) =>
+                @push_to_client(message.changed_email_address(id:mesg.id, error:err))
 
     mesg_unlink_passport: (mesg) =>
-        if not @account_id
+        if not @account_id?
             @error_to_client(id:mesg.id, error:"must be logged in")
         else
             @database.delete_passport

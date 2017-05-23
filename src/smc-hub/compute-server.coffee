@@ -54,8 +54,11 @@ sqlite      = require('smc-util-node/sqlite')
 
 
 # Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+try
+    winston.remove(winston.transports.Console)
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+catch err
+    # ignore
 
 {defaults, required} = misc
 

@@ -756,7 +756,6 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
-            old_email_address : ""
             new_email_address : required
             password          : ""
             cb                : undefined
@@ -766,7 +765,6 @@ class exports.Connection extends EventEmitter
         @call
             message: message.change_email_address
                 account_id        : @account_id
-                old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
             error_event : true

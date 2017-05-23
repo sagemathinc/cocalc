@@ -9,13 +9,24 @@ async  = require('async')
 rimraf = require('rimraf')
 temp   = require('temp')
 
+# mock email sending
+email = require('../../email')
+exports.last_email = undefined
+email.send_email = (opts) ->
+    exports.last_email = opts
+    opts.cb?()
+
 pgtest = require('../postgres/pgtest')
 
 compute_client = require('../../compute-client')
+auth = require('../../auth')
 
 exports.db = exports.account_id = exports.api_key = exports.compute_server = undefined
 
 {http_message_api_v1} = require('../../api/handler')
+
+winston = require('winston')
+winston.remove(winston.transports.Console)
 
 exports.setup = (cb) ->
     async.series([
@@ -49,7 +60,7 @@ exports.setup = (cb) ->
                 last_name     : "CoCalc"
                 created_by    : "1.2.3.4"
                 email_address : "cocalc@sagemath.com"
-                password_hash : "blah"
+                password_hash : auth.password_hash('blah')
                 cb            : (err, account_id) ->
                     exports.account_id = account_id
                     cb(err)
@@ -69,7 +80,7 @@ exports.teardown = (cb) ->
             if not process.env.COCALC_PROJECT_PATH?
                 cb()
                 return
-            console.log "DELETING '#{process.env.COCALC_PROJECT_PATH}'"
+            #console.log "DELETING '#{process.env.COCALC_PROJECT_PATH}'"
             # Delete both with rimraf and also a few seconds after exit with shell, in case of processes
             # blocking delete or creating something as they exit.
             require('child_process').spawn("sleep 3; rm -rf '#{process.env.COCALC_PROJECT_PATH}' &", {shell:true})

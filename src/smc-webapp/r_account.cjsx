@@ -99,7 +99,6 @@ EmailAddressSetting = rclass
         @setState
             state : 'saving'
         webapp_client.change_email
-            old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
             cb                : (err, resp) =>
@@ -254,7 +253,7 @@ PasswordSetting = rclass
     render_edit: ->
         <Well style={marginTop:'3ex'}>
             <FormGroup>
-                Current password
+                Current password <span color='#888'>(leave blank if you have not set a password)</span>
                 <FormControl
                     autoFocus
                     type        = 'password'

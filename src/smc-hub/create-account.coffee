@@ -11,7 +11,7 @@ misc                 = require('smc-util/misc')
 
 auth                 = require('./auth')
 
-is_valid_password = (password) ->
+exports.is_valid_password = is_valid_password = (password) ->
     [valid, reason] = client_lib.is_valid_password(password)
     if not valid
         return [valid, reason]

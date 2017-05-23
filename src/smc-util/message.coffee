@@ -318,7 +318,7 @@ message
     error         : false
 
 # client --> hub: "reset a password using this id code that was sent in a password reset email"
-message
+API message
     event         : "reset_forgot_password"
     id            : undefined
     reset_code    : required
@@ -334,7 +334,7 @@ API message
     event             : 'change_email_address'
     id                : undefined
     account_id        : required
-    old_email_address : ""
+    old_email_address : ""        # ignored -- deprecated
     new_email_address : required
     password          : ""
 
