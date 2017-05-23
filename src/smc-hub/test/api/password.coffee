@@ -155,6 +155,29 @@ describe 'test changing email address -- ', ->
                 expect(resp?.query?.accounts?.email_address).toBe('cocalc+1@sagemath.com')
                 done(err)
 
+    account_id2 = undefined
+    it "create another account", (done) ->
+        api.db.create_account
+            first_name    : "Sage2"
+            last_name     : "CoCalc2"
+            created_by    : "1.2.3.5"
+            email_address : "cocalc389@sagemath.com"
+            cb            : (err, account_id) ->
+                account_id2 = account_id
+                done(err)
+
+    it 'tries to change to that email address', (done) ->
+        api.call
+            event : 'change_email_address'
+            body :
+                new_email_address : "cocalc389@sagemath.com"
+                password          : 'blah'
+                account_id        : api.account_id
+            cb    : (err, resp) ->
+                expect(resp?.error).toBe('email_already_taken')
+                done(err)
+
+
 describe 'tests sending a forgot password email --', ->
     before(setup)
     after(teardown)
@@ -202,4 +225,3 @@ describe 'tests sending a forgot password email --', ->
                 expect(is_correct).toBe(true)
                 done(err)
 
-                

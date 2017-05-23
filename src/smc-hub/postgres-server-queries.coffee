@@ -1055,11 +1055,11 @@ class exports.PostgreSQL extends PostgreSQL
                 else if exists
                     opts.cb("email_already_taken")
                 else
-                @_query
-                    query : 'UPDATE accounts'
-                    set   : {email_address: opts.email_address}
-                    where : @_account_where(opts)
-                    cb    : opts.cb
+                    @_query
+                        query : 'UPDATE accounts'
+                        set   : {email_address: opts.email_address}
+                        where : @_account_where(opts)
+                        cb    : opts.cb
 
     ###
     Password reset
