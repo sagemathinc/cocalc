@@ -246,6 +246,8 @@ class AccountStore extends Store
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
+# ... except for show_global_info
+init.other_settings.show_global_info = false
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 
