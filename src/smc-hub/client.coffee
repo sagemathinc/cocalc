@@ -26,6 +26,8 @@ hub_projects         = require('./projects')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./create-account')
 
+underscore = require('underscore')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
