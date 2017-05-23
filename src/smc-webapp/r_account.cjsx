@@ -1010,7 +1010,7 @@ OtherSettings = rclass
                 ref      = 'show_global_info'
                 onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
             >
-                Show global information: if enabled, a dismissable banner is visible on top
+                Show global information: if enabled, a dismissible banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
