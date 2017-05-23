@@ -845,7 +845,9 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @ensure_nonempty () =>
+        @ensure_nonempty (err) =>
+            if err
+                console.warn("Error ensuring ipynb file is nonempty -- #{err}")
             @load(opts.cb)
 
     dbg: (f) =>
@@ -866,7 +868,7 @@ class JupyterNotebook extends EventEmitter
 
     ensure_nonempty: (cb) =>
         webapp_client.exec
-            command    : 'smc-jupyter-ensure-nonempty'
+            command    : 'cc-jupyter-classic-open'
             project_id : @project_id
             path       : @path
             args       : [@file]
@@ -892,6 +894,7 @@ class JupyterNotebook extends EventEmitter
 
             if err
                 @state = 'failed'
+                @failed_to_load()
             else
                 if @state == 'closed'
                     # This could happen in case the user closes the tab before initialization is complete.
@@ -961,7 +964,7 @@ class JupyterNotebook extends EventEmitter
                 # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
                     f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
-                    max_time : 60*1000  # try for at most 1 minute
+                    max_time : 30*1000  # try for at most 30 seconds
                     cb       : cb
             (cb) =>
                 console.log 'Jupyter: loading iframe'
@@ -1168,6 +1171,19 @@ class JupyterNotebook extends EventEmitter
     hide: =>
         @element.hide()
         @dom?.refresh()
+
+    failed_to_load: =>
+        @element.find(".smc-jupyter-notebook-notebook").remove()
+        t = "<div style='margin:15px'><h3>Classical Jupyter is not working</h3>"
+        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the modern Jupyter notebook server</a>.</div>"
+        @element.append(t)
+        $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
+            bootbox.hideAll()
+            @save()
+            a = redux.getProjectActions(@project_id)
+            a.close_file(@filename)
+            redux.getTable('account').set(editor_settings: {jupyter_classic : false})
+            a.open_file(path : @filename)
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
