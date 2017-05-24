@@ -46,17 +46,17 @@ ARG commit=HEAD
 # Pull latest source code for SMC and checkout requested commit (or HEAD)
 RUN \
   git clone https://github.com/sagemathinc/cocalc.git && \
-  cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
+  cd /cocalc && git pull && git fetch origin && git checkout ${commit:-HEAD}
 
 # Build and install all deps
 RUN \
-  cd /smc/src && \
+  cd /cocalc/src && \
   . ./smc-env && \
   ./install.py all --compute --web && \
   rm -rf /root/.npm /root/.node-gyp/
 
 # Install code into Sage
-RUN cd /smc/src && sage -pip install --upgrade smc_sagews/
+RUN cd /cocalc/src && sage -pip install --upgrade smc_sagews/
 
 # Install sage scripts system-wide
 RUN echo "install_scripts('/usr/local/bin/')" | sage

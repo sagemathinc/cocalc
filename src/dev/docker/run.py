@@ -89,7 +89,7 @@ def root_ssh_keys():
     run("cp -v /root/.ssh/id_ecdsa.pub /root/.ssh/authorized_keys")
 
 def start_hub():
-    run(". smc-env && hub start --host=localhost --port 5000 --proxy_port 5001 --update --single --logfile /var/log/hub.log --pidfile /root/hub.pid &", path='/smc/src')
+    run(". smc-env && hub start --host=localhost --port 5000 --proxy_port 5001 --update --single --logfile /var/log/hub.log --pidfile /root/hub.pid &", path='/cocalc/src')
 
 def postgres_perms():
     run("mkdir -p /projects/postgres && chown -R sage. /projects/postgres && chmod og-rwx -R /projects/postgres")
@@ -113,13 +113,13 @@ def start_postgres():
 
 def start_compute():
     run("mkdir -p /projects/conf && chmod og-rwx -R /projects/conf")
-    run(". smc-env; compute --host=localhost --single start 1>/var/log/compute.log 2>/var/log/compute.err &", path='/smc/src')
+    run(". smc-env; compute --host=localhost --single start 1>/var/log/compute.log 2>/var/log/compute.err &", path='/cocalc/src')
     # Sleep to wait for compute server to start and write port/secret *AND* initialize the schema.
     # TODO: should really do this right -- since if the compute-client tries to initialize schema at same, time things get hosed.
-    run("""sleep 15; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee & """, path='/smc/src')
+    run("""sleep 15; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee & """, path='/cocalc/src')
 
 def tail_logs():
-    run("tail -f /var/log/compute.log /var/log/compute.err /smc/logs/*")
+    run("tail -f /var/log/compute.log /var/log/compute.err /cocalc/logs/*")
 
 def main():
     self_signed_cert('/nopassphrase.pem')
