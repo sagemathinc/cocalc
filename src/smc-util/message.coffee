@@ -834,7 +834,7 @@ example, using "uuid" shell command to create a request id:
   curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
   ==> {"event":"pong","id":"553f2815-1508-416d-8e69-2dde5af3aed8","now":"2017-05-24T13:47:21.312Z"}
 example, using JSON format for options
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H Content-Type: application/json -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
+  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 ###
 
