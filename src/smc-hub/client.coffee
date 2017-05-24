@@ -38,9 +38,9 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
-MESG_QUEUE_MAX_COUNT    = 60
+MESG_QUEUE_MAX_COUNT    = 200
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 7
+MESG_QUEUE_MAX_SIZE_MB  = 10 
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
