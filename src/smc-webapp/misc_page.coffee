@@ -130,8 +130,9 @@ starts_with_cloud_url = (href) ->
     is_formersmc  = document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com")
     return is_samedomain or is_formersmc
 
+project_actions = undefined
 load_target = (args...) ->
-    project_actions = smc_react.redux.getActions('projects')
+    project_actions ?= smc_react.redux.getActions('projects')
     if not project_actions?
         console.warn('misc_page.load_target: project_actions is undefined; should not happen; see https://github.com/sagemathinc/cocalc/issues/1990', args...)
         return # so opens in new tab at least; otherwise users can't even open links
