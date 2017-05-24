@@ -483,12 +483,6 @@ message
 # success, the project_server will respond by sending a project_saved
 # message then sending individual the bundles n.bundle for n >=
 # starting_bundle_number.
-#
-# client --> hub --> project_server
-API message
-    event                  : 'save_project'
-    id                     : undefined
-    project_id             : required    # uuid of a project
 
 # The project_saved message is sent to a hub by a project_server when
 # the project_servers creates a new snapshot of the project in
@@ -856,18 +850,8 @@ logged in.
 ###
 
 # return a JSON object with all data that is
-# meant to be publically available about this project,
+# meant to be publicly available about this project,
 # who owns it, the title/description, etc.
-API message
-    event         : 'public_get_project_info'
-    id            : undefined
-    project_id    : required
-
-API message
-    event         : 'public_project_info'
-    id            : undefined
-    info          : required
-
 # public request of listing of files in a project.
 API message
     event         : 'public_get_directory_listing'
