@@ -31,6 +31,7 @@
 misc     = require('./misc')
 defaults = misc.defaults
 required = defaults.required
+_        = require('underscore')
 
 
 message = (obj) ->
@@ -40,10 +41,43 @@ message = (obj) ->
         defaults(opts, obj)
     return obj
 
+# message2 for "version 2" of the message definitions
+# TODO document it, for now just search for "message2" to see examples
+message2 = (obj) ->
+
+    mk_desc = (val) ->
+        desc = val.desc 
+        if val.init == required
+            desc += ' (required)'
+        else if val.init?
+            desc += " (default: #{val.init})"
+        return desc
+
+    # reassembling a version 1 message from a version 2 message
+    mesg_v1       = _.mapObject(obj.fields, ((val) -> val.init))
+    mesg_v1.event = obj.event
+    # extracting description for the documentation
+    fdesc = _.mapObject(obj.fields, mk_desc)
+    exports.documentation[obj.event] =
+                                description   : obj.desc ? ''
+                                fields        : fdesc
+    # ... and the examples
+    exports.examples[obj.event] = obj.examples
+    # wrapped version 1 message
+    message(mesg_v1)
+    return obj
+
 # messages that can be used by the HTTP api.   {'event':true, ...}
 exports.api_messages = {}
 
+# this holds the documentation for the message protocol
+exports.documentation = {}
+
+# holds all the examples: list of expected in/out objects for each message
+exports.examples = {}
+
 API = (obj) ->
+    # obj could be message version 1 or 2!
     exports.api_messages[obj.event] = true
 
 ############################################
@@ -1034,13 +1068,33 @@ message # client ← hub
 Queries directly to the database (sort of like Facebook's GraphQL)
 ###
 
-API message
+API message2
     event          : 'query'
-    id             : undefined
-    query          : required
-    changes        : undefined
-    multi_response : false
-    options        : undefined
+    desc           : "This queries directly the database (sort of Facebook's GraphQL)"
+    fields:
+        id:
+             init  : undefined
+             desc  : 'A unique UUID for the query'
+        query:
+             init  : required
+             desc  : 'The actual query'
+        changes:
+             init  : undefined
+             desc  : ''
+        multi_response:
+             init  : false
+             desc  : ''
+        options:
+             init  : undefined
+             desc  : ''
+    examples: [
+        [{id: "uuid", query: 'example1-query'},
+         {id: "uuid", event: 'query', response: "..."}
+        ],
+        [{id: "uuid", query: 'example2-query'},
+         {id: "uuid", event: 'query', response: "..."}
+        ]
+    ]
 
 message
     event : 'query_cancel'
