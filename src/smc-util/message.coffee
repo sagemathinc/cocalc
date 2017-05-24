@@ -45,22 +45,26 @@ message = (obj) ->
 # TODO document it, for now just search for "message2" to see examples
 message2 = (obj) ->
 
-    mk_descr = (val) ->
-        descr = val.descr 
-        descr += ' (required)' if val.init == required
-        return descr
+    mk_desc = (val) ->
+        desc = val.desc 
+        if val.init == required
+            desc += ' (required)'
+        else if val.init?
+            desc += " (default: #{val.init})"
+        return desc
 
-    init   = _.mapObject(obj.fields, ((val) -> val.init))
-    fdescr = _.mapObject(obj.fields, mk_descr)
+    # reassembling a version 1 message from a version 2 message
+    mesg_v1       = _.mapObject(obj.fields, ((val) -> val.init))
+    mesg_v1.event = obj.event
+    # extracting description for the documentation
+    fdesc = _.mapObject(obj.fields, mk_desc)
     exports.documentation[obj.event] =
-                                descr : obj.descr ? ''
-                                fields: fdescr
-    exports.tests[obj.event] = obj.tests
-
-    exports[obj.event] = (opts={}) ->
-        if opts.event?
-            throw Error("ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})")
-        defaults(opts, init)
+                                description   : obj.desc ? ''
+                                fields        : fdesc
+    # ... and the examples
+    exports.examples[obj.event] = obj.examples
+    # wrapped version 1 message
+    message(mesg_v1)
     return obj
 
 # messages that can be used by the HTTP api.   {'event':true, ...}
@@ -69,10 +73,11 @@ exports.api_messages = {}
 # this holds the documentation for the message protocol
 exports.documentation = {}
 
-# holds all the tests
-exports.tests = {}
+# holds all the examples: list of expected in/out objects for each message
+exports.examples = {}
 
 API = (obj) ->
+    # obj could be message version 1 or 2!
     exports.api_messages[obj.event] = true
 
 ############################################
@@ -1065,26 +1070,30 @@ Queries directly to the database (sort of like Facebook's GraphQL)
 
 API message2
     event          : 'query'
-    descr          : "This queries directly the database (sort of Facebook's GraphQL)"
+    desc           : "This queries directly the database (sort of Facebook's GraphQL)"
     fields:
         id:
              init  : undefined
-             descr : 'A unique UUID for the query'
+             desc  : 'A unique UUID for the query'
         query:
              init  : required
-             descr : 'The actual query'
+             desc  : 'The actual query'
         changes:
              init  : undefined
-             descr : ''
+             desc  : ''
         multi_response:
              init  : false
-             descr : ''
+             desc  : ''
         options:
              init  : undefined
-             descr : ''
-    tests: [
-        [{query: 'test-query'}, "expected response"],
-        [{query: '2nd-query'}, "expected 2nd response"]
+             desc  : ''
+    examples: [
+        [{id: "uuid", query: 'example1-query'},
+         {id: "uuid", event: 'query', response: "..."}
+        ],
+        [{id: "uuid", query: 'example2-query'},
+         {id: "uuid", event: 'query', response: "..."}
+        ]
     ]
 
 message
