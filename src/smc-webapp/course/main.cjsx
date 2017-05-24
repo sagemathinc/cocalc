@@ -47,7 +47,7 @@ CourseSync           = require('./sync')
 {HandoutsPanel}      = require('./handouts_panel')
 {SettingsPanel}      = require('./settings_panel')
 {SharedProjectPanel} = require('./shared_project_panel')
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"

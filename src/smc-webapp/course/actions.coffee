@@ -30,7 +30,7 @@ schema = require('smc-util/schema')
 {webapp_client} = require('../webapp_client')
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 # React libraries
 {Actions, Store}  = require('../smc-react')
@@ -81,7 +81,7 @@ exports.CourseActions = class CourseActions extends Actions
     set_tab: (tab) =>
         @setState(tab:tab)
 
-    save: () =>
+    save: =>
         store = @get_store()
         return if not store?  # e.g., if the course store object already gone due to closing course.
         if store.get('saving')

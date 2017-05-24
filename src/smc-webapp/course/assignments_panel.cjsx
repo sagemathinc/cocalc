@@ -29,11 +29,11 @@ misc = require('smc-util/misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
 # CoCalc and course components
-course_funcs = require('./course_funcs')
+util = require('./util')
 styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
-{STEPS, step_direction, step_verb, step_ready,
-    BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
+{STEPS, step_direction, step_verb, step_ready} = util
+{BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
 
 exports.AssignmentsPanel = rclass ({name}) ->
@@ -60,9 +60,9 @@ exports.AssignmentsPanel = rclass ({name}) ->
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
     compute_assignment_list: ->
-        list = course_funcs.immutable_to_list(@props.all_assignments, 'assignment_id')
+        list = util.immutable_to_list(@props.all_assignments, 'assignment_id')
 
-        {list, num_omitted} = course_funcs.compute_match_list
+        {list, num_omitted} = util.compute_match_list
             list        : list
             search_key  : 'path'
             search      : @state.search.trim()
@@ -72,7 +72,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
         else if @props.active_assignment_sort.column_name == "dir_name"
             f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
-        {list, deleted, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
             reverse          : @props.active_assignment_sort.is_descending
@@ -758,10 +758,10 @@ StudentListForAssignment = rclass
               info    = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
-        v = course_funcs.parse_students(@props.students, @props.user_map, @props.redux)
+        v = util.parse_students(@props.students, @props.user_map, @props.redux)
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
-        v.sort(course_funcs.pick_student_sorter(@props.active_student_sort.toJS()))
+        v.sort(util.pick_student_sorter(@props.active_student_sort.toJS()))
         if @props.active_student_sort.get('is_descending')
             v.reverse()
 

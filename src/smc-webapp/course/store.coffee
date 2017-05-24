@@ -27,7 +27,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 exports.CourseStore = class CourseStore extends Store
     any_assignment_uses_peer_grading: =>
