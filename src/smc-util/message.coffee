@@ -46,7 +46,7 @@ message = (obj) ->
 message2 = (obj) ->
 
     mk_desc = (val) ->
-        desc = val.desc 
+        desc = val.desc
         if val.init == required
             desc += ' (required)'
         else if val.init?
@@ -1087,7 +1087,7 @@ API message2
         options:
              init  : undefined
              desc  : ''
-    examples: [
+    examples: [  # TODO: create real examples!  These are not done.
         [{id: "uuid", query: 'example1-query'},
          {id: "uuid", event: 'query', response: "..."}
         ],
