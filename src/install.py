@@ -42,14 +42,14 @@ def install_sagews():
 def install_project():
     # unsafe-perm below is needed so can build C code as root
     for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
-        cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
+        cmd(SUDO+"npm --loglevel=warn --unsafe-perm=true install --upgrade %s -g"%m)
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm install --unsafe-perm=true --upgrade"%SUDO)
+    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"%SUDO)
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
-        cmd("cd %s; npm install"%path)
+        cmd("cd %s; npm --loglevel=warn install"%path)
 
 def install_webapp(*args):
     nice()
@@ -59,7 +59,7 @@ def install_webapp(*args):
     if 'build' in action:
         cmd("cd wizard && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
-            cmd("cd %s; npm install"%path)
+            cmd("cd %s; npm --loglevel=warn install"%path)
         # react static step must come *before* webpack step
         cmd("update_react_static")
         # update primus - so client has it.
@@ -67,7 +67,7 @@ def install_webapp(*args):
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
         print("Building production webpack -- grab a coffee, this will take about 5 minutes")
-        cmd("npm run webpack-production")
+        cmd("npm --loglevel=warn run webpack-production")
         nothing = False
 
     if 'pull' == action:
@@ -88,7 +88,7 @@ def install_webapp(*args):
 
 def install_primus():
     # The rm works around a bug in npm...
-    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
+    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
