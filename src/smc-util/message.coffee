@@ -226,7 +226,7 @@ API message
 ###
 Note: Options for the 'get_usernames' API message must be sent as JSON object.
 example (reformatted for readability):
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \
     https:// cocalc.com/api/v1/get_usernames
   ==>  {"event":"usernames",
@@ -628,7 +628,7 @@ API message
 ###
 Note: Project owner is the same as the owner of the API key provided in the request.
 example:
-  curl -X POST -u sk_abcdefQWERTY090900000000: -d title='MY NEW PROJECT' -d description='sample project' https://cocalc.com/api/v1/create_project
+  curl -u sk_abcdefQWERTY090900000000: -d title='MY NEW PROJECT' -d description='sample project' https://cocalc.com/api/v1/create_project
   == > {"event":"project_created","id":"0b4df293-d518-45d0-8a3c-4281e501b85e","project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
 ###
 
@@ -825,10 +825,10 @@ example, omitting request id:
 example, using "uuid" shell command to create a request id:
   uuid
   ==> 553f2815-1508-416d-8e69-2dde5af3aed8
-  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
+  curl -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
   ==> {"event":"pong","id":"553f2815-1508-416d-8e69-2dde5af3aed8","now":"2017-05-24T13:47:21.312Z"}
 example, using JSON format for options
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 ###
 
@@ -1094,7 +1094,7 @@ A query is "get" if any query keys are null, otherwise the query is "set".
 Examples of 'get' query (reformatted for readability):
 
 Get title and description for a project, given the project id.
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","title":null,"description":null}}}' \
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
@@ -1105,7 +1105,7 @@ Get title and description for a project, given the project id.
        "multi_response":false}
 
 Get project id, given title and description.
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"query":{"projects":{"project_id":null,"title":"MY NEW PROJECT 2","description":"desc 2"}}}' \
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
@@ -1116,19 +1116,20 @@ Get project id, given title and description.
        "id":"2be22e08-f00c-4128-b112-fa8581c2d584"}
 
 Get users, given the project id.
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
        "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
                             "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{"group":"owner"},
                                      "111634c0-7048-41e7-b2d0-f87129fd409e":{"group":"collaborator"}}}},
-       "multi_response":false,"id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 
 Example of 'set' query. 
 
 Set title and description for a project, given the project id.
-  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
      -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
                                "title":"REVISED TITLE", \
                                "description":"REVISED DESC"}}}' \
