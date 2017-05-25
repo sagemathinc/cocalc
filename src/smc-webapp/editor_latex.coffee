@@ -93,7 +93,10 @@ class exports.LatexEditor extends editor.FileEditor
             @spell_check()
 
         @latex_editor.syncdoc.on 'connect', () =>
-            @preview.zoom_width = @load_conf().zoom_width
+            if @load_conf().zoom_width?
+                @preview.zoom_width = @load_conf().zoom_width
+            else
+                @preview.zoom_width = 100
             @update_preview()
             @spell_check()
 
