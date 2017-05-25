@@ -178,10 +178,10 @@ exports.VideoChatButton = rclass
 
     render: ->
         num_users_chatting = @video_chat.num_users_chatting()
+        style = {height : '31.4px'}
         if num_users_chatting > 0
-            style = {color: '#c9302c'}
-        else
-            style = {}
+            style.color = '#c9302c'
+
         <Button onClick={@click_video_button} style={style}>
             <Tip
                 title     = {<span>Toggle Video Chat</span>}
