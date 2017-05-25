@@ -66,8 +66,7 @@ exports.CourseStore = class CourseStore extends Store
         return @getIn(['settings', 'pay']) ? ''
 
     get_allow_collabs: =>
-        return true  # see https://github.com/sagemathinc/cocalc/issues/1494
-        # return @getIn(['settings', 'allow_collabs']) ? false
+        return @getIn(['settings', 'allow_collabs']) ? true
 
     get_email_invite: =>
         host = window.location.hostname

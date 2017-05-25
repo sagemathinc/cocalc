@@ -191,6 +191,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     set_allow_collabs: (allow_collabs) =>
         @_set(allow_collabs:allow_collabs, table:'settings')
+        @configure_all_projects()
 
     set_email_invite: (body) =>
         @_set(email_invite:body, table:'settings')
