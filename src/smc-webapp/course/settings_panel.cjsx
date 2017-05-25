@@ -142,6 +142,30 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
             </span>
         </Panel>
 
+DisableStudentCollaboratorsPanel = rclass ->
+    propTypes:
+        checked   : rtypes.bool
+        on_change : rtypes.func
+
+    render: ->
+        <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
+            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
+                <Checkbox
+                    checked  = {@props.checked}
+                    onChange = {(e)=>@props.on_change(e.target.checked)}>
+                    Allow arbitrary collaborators
+                </Checkbox>
+            </div>
+            <hr/>
+            <span style={color:'#666'}>
+                Every collaborator on the project that contains this course is automatically added
+                to every student project (and the shared project).   In addition, each student is
+                a collaborator on their project.   If students add additional collaborators, by default
+                they will be allowed.  If you uncheck the above box, then collaborators
+                will be automatically removed from projects; in particular, students may
+                not add arbitrary collaborators to their projects.
+            </span>
+        </Panel>
 
 exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
@@ -375,30 +399,6 @@ exports.SettingsPanel = rclass
                 If for some reason you would like to delete all the student projects
                 created for this course, you may do so by clicking below.
                 Be careful!
-            </span>
-        </Panel>
-
-    ###
-    # Allow arbitrary collaborators
-    ###
-
-    render_allow_any_collaborators: ->
-        <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
-            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
-                <Checkbox
-                    checked  = {@props.settings.get('allow_collabs')}
-                    onChange = {(e)=>@actions(@props.name).set_allow_collabs(e.target.checked)}>
-                    Allow arbitrary collaborators
-                </Checkbox>
-            </div>
-            <hr/>
-            <span style={color:'#666'}>
-                Every collaborator on the project that contains this course is automatically added
-                to every student project (and the shared project).   In addition, each student is
-                a collaborator on their project.   If students add additional collaborators, by default
-                they will be automatically removed.  If you check the above box, then collaborators
-                will never be automatically removed from projects; in particular, students may
-                add arbitrary collaborators to their projects.
             </span>
         </Panel>
 
@@ -765,9 +765,6 @@ exports.SettingsPanel = rclass
             </div>
         </Panel>
 
-    ###
-    # Top level render
-    ###
     render: ->
         <div>
             <Row>
@@ -782,7 +779,10 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
-                    {# @render_allow_any_collaborators() -- see https://github.com/sagemathinc/cocalc/issues/1494 }
+                    <DisableStudentCollaboratorsPanel
+                        checked   = {!!@props.settings.get('allow_collabs')}
+                        on_change = {@actions(@props.name).set_allow_collabs}
+                        />
                 </Col>
             </Row>
         </div>

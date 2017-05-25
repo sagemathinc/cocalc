@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 {User} = require('../users')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
-course_funcs = require('./course_funcs')
+util = require('./util')
 
 selected_entry_style =
     border        : '1px solid #aaa'
@@ -278,8 +278,8 @@ exports.StudentsPanel = rclass ({name}) ->
         # deleted        : False
         # note           : "Is younger sister of Abby Florence (TA)"
 
-        v = course_funcs.parse_students(@props.students, @props.user_map, @props.redux)
-        v.sort(course_funcs.pick_student_sorter(@props.active_student_sort))
+        v = util.parse_students(@props.students, @props.user_map, @props.redux)
+        v.sort(util.pick_student_sorter(@props.active_student_sort))
 
         if @props.active_student_sort.is_descending
             v.reverse()
