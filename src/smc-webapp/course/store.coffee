@@ -208,7 +208,7 @@ exports.CourseStore = class CourseStore extends Store
     # number of student projects that are currently running
     num_running_projects: (project_map) =>
         n = 0
-        @get_students().map (student, student_id) =>
+        @get_students()?.map (student, student_id) =>
             if not student.get('deleted')
                 if project_map.getIn([student.get('project_id'), 'state', 'state']) == 'running'
                     n += 1

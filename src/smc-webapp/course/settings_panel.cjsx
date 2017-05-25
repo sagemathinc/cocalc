@@ -780,7 +780,7 @@ exports.SettingsPanel = rclass
                     {@render_title_description()}
                     {@render_email_invite_body()}
                     <DisableStudentCollaboratorsPanel
-                        checked   = {@props.settings.get('allow_collabs')}
+                        checked   = {!!@props.settings.get('allow_collabs')}
                         on_change = {@actions(@props.name).set_allow_collabs}
                         />
                 </Col>
