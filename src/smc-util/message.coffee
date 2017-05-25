@@ -224,7 +224,7 @@ API message
     account_ids : required
 
 ###
-Note: Options for this message must be sent as JSON object.
+Note: Options for the 'get_usernames' API message must be sent as JSON object.
 example (reformatted for readability):
   curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \
@@ -1085,6 +1085,75 @@ API message
     changes        : undefined
     multi_response : false
     options        : undefined
+
+###
+Options for the 'query' API message must be sent as JSON object.
+A query is either "get" (read from database), or "set" (write to database).
+A query is "get" if any query keys are null, otherwise the query is "set".
+
+Examples of 'get' query (reformatted for readability):
+
+Get title and description for a project, given the project id.
+  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","title":null,"description":null}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "title":"MY NEW PROJECT 2",
+                            "description":"desc 2"}},
+       "multi_response":false}
+
+Get project id, given title and description.
+  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":null,"title":"MY NEW PROJECT 2","description":"desc 2"}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "title":"MY NEW PROJECT 2",
+                            "description":"desc 2"}},
+       "multi_response":false,
+       "id":"2be22e08-f00c-4128-b112-fa8581c2d584"}
+
+Get users, given the project id.
+  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{"group":"owner"},
+                                     "111634c0-7048-41e7-b2d0-f87129fd409e":{"group":"collaborator"}}}},
+       "multi_response":false,"id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
+
+Example of 'set' query. 
+
+Set title and description for a project, given the project id.
+  curl -X POST -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
+                               "title":"REVISED TITLE", \
+                               "description":"REVISED DESC"}}}' \
+     https://cocalc.com/api/v1/query
+     ==> {"event":"query",
+          "query":{},
+          "multi_response":false,
+          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+
+Information on which fields are gettable and settable in the database tables
+via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
+https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
+
+Within file 'db-schema.coffee':
+
+for project fields you can get, see the definition of
+`schema.projects.user_query.get.fields`.
+for user account fields you can set, see the definition of
+`schema.projects.user_query.set.fields`.
+
+for user account fields you can get, see the definition of
+`schema.accounts.user_query.get.fields`.
+for user account fields you can set, see the definition of
+`schema.accounts.user_query.set.fields`.
+###
 
 message
     event : 'query_cancel'
