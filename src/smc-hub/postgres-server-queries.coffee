@@ -1896,6 +1896,51 @@ class exports.PostgreSQL extends PostgreSQL
             where : where
             cb    : count_result(opts.cb)
 
+    _count_opened_files: (opts) =>
+        opts = defaults opts,
+            age_m : undefined
+            key   : required
+            data  : required
+            cb    : required
+        q =     """
+                WITH filenames AS (
+                    SELECT DISTINCT event ->> 'filename' AS fn
+                    FROM project_log
+                    WHERE time <= NOW()
+                      AND time >= $1::TIMESTAMP
+                      AND event @> '{"action" : "open"}'::jsonb
+                ), ext_count AS (
+                    SELECT COUNT(*) as num, lower(reverse(split_part(reverse(fn), '.', 1))) AS ext
+                    FROM filenames
+                    GROUP BY ext
+                )
+                SELECT ext, num
+                FROM ext_count
+                WHERE ext IN ('sagews', 'ipynb', 'tex', 'txt', 'py', 'md', 'sage', 'term')
+                ORDER BY ext
+                """
+
+        post_process = (err, rows) ->
+            if err
+                opts.cb(err); return
+            else
+                _ = require('underscore')
+                values = _.object(_.pluck(rows, 'ext'), _.pluck(rows, 'num'))
+                opts.data[opts.key] = values
+                opts.cb(undefined)
+
+        @_query
+            query : q
+            params : [misc.minutes_ago(opts.age_m)]
+            cb     : all_results(post_process)
+            #(err, result) ->
+            #    if err
+            #        opts.cb(err)
+            #    else
+            #        console.log "result:", misc.to_json(result)
+            #        freq = {}
+            #        opts.cb(undefined, freq)
+
     recent_projects: (opts) =>
         opts = defaults opts,
             age_m     : required   # return results at most this old
@@ -1961,12 +2006,17 @@ class exports.PostgreSQL extends PostgreSQL
                 if stats?
                     cb(); return
                 dbg("querying all stats from the DB")
-                stats = {time : new Date(), projects_created : {}, projects_edited: {}, accounts_created : {}}
+                stats = {time : new Date(), projects_created : {}, projects_edited: {}, accounts_created : {}, distinct_files_opened: {}}
                 R = RECENT_TIMES
                 K = RECENT_TIMES_KEY
                 async.parallelLimit([
                     (cb) => @_count_timespan(table:'accounts', cb:(err, x) => stats.accounts = x; cb(err))
                     (cb) => @_count_timespan(table:'projects', cb:(err, x) => stats.projects = x; cb(err))
+
+                    (cb) => @_count_opened_files(age_m:R.last_hour,  key:K.last_hour,  data:stats.distinct_files_opened, cb:cb)
+                    (cb) => @_count_opened_files(age_m:R.last_day,   key:K.last_day,   data:stats.distinct_files_opened, cb:cb)
+                    (cb) => @_count_opened_files(age_m:R.last_week,  key:K.last_week,  data:stats.distinct_files_opened, cb:cb)
+                    (cb) => @_count_opened_files(age_m:R.last_month, key:K.last_month, data:stats.distinct_files_opened, cb:cb)
 
                     (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.active, cb: (err, x) => stats.projects_edited[K.active] = x; cb(err))
                     (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_hour, cb: (err, x) => stats.projects_edited[K.last_hour] = x; cb(err))

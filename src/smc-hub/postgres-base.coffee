@@ -247,7 +247,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # case that key is deleted from the JSONB object fieldi.  Simple as that!  This is much, much
                                      # cleaner to use than SQL.   Also, if the value in fieldi itself is NULL, it gets
                                      # created automatically.
-            jsonb_merge : undefined  # Exactly lke jsonb_set, but when val1 (say) is an object, it merges that object in,
+            jsonb_merge : undefined  # Exactly like jsonb_set, but when val1 (say) is an object, it merges that object in,
                                      # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
