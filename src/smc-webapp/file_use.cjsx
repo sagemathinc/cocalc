@@ -62,7 +62,6 @@ sha1 = require('smc-util/schema').client_db.sha1
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
-{IS_MOBILE} = require('./feature')
 
 class FileUseActions extends Actions
     record_error: (err) =>
@@ -479,7 +478,6 @@ FileUseViewer = rclass
                 placeholder   = "Search..."
                 default_value = {@state.search}
                 on_change     = {(value)=>@setState(search:value, cursor:0, show_all:false)}
-                on_clear      = {=>@actions('page').toggle_show_file_use() if IS_MOBILE}
                 on_submit     = {@open_selected}
                 on_escape     = {(before)=>if not before then @actions('page').toggle_show_file_use();@setState(cursor:0, show_all:false)}
                 on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
