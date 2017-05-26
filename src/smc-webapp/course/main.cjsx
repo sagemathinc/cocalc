@@ -47,7 +47,7 @@ CourseSync           = require('./sync')
 {HandoutsPanel}      = require('./handouts_panel')
 {SettingsPanel}      = require('./settings_panel')
 {SharedProjectPanel} = require('./shared_project_panel')
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
@@ -68,6 +68,7 @@ init_redux = (course_filename, redux, course_project_id) ->
         expanded_handouts      : immutable.Set() # Set of handout id's (string) which should be expanded on render
         active_student_sort    : {column_name : "last_name", is_descending : false}
         active_assignment_sort : {column_name : "due_date", is_descending : false}
+        settings               : {allow_collabs : true}
 
     actions = redux.createActions(the_redux_name, CourseActions)
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)

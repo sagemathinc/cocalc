@@ -27,7 +27,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 exports.CourseStore = class CourseStore extends Store
     any_assignment_uses_peer_grading: =>
@@ -66,8 +66,7 @@ exports.CourseStore = class CourseStore extends Store
         return @getIn(['settings', 'pay']) ? ''
 
     get_allow_collabs: =>
-        return true  # see https://github.com/sagemathinc/cocalc/issues/1494
-        # return @getIn(['settings', 'allow_collabs']) ? false
+        return @getIn(['settings', 'allow_collabs']) ? true
 
     get_email_invite: =>
         host = window.location.hostname
@@ -209,7 +208,7 @@ exports.CourseStore = class CourseStore extends Store
     # number of student projects that are currently running
     num_running_projects: (project_map) =>
         n = 0
-        @get_students().map (student, student_id) =>
+        @get_students()?.map (student, student_id) =>
             if not student.get('deleted')
                 if project_map.getIn([student.get('project_id'), 'state', 'state']) == 'running'
                     n += 1

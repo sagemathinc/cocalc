@@ -57,11 +57,11 @@ exports.stripe_sync = (opts) ->
                 dump.push(y)
             fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
         (cb) ->
-            if dump_only
+            if opts.dump_only
                 cb()
                 return
             dbg("got #{users.length} users with stripe info")
-            stripe = require('connect').get_stripe()
+            stripe = require('./connect').get_stripe()
             f = (x, cb) ->
                 dbg("updating customer #{x.account_id} data to our local database")
                 opts.database.stripe_update_customer

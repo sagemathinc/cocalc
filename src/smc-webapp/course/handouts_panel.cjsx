@@ -29,7 +29,7 @@ misc = require('smc-util/misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
 
 # CoCalc and course components
-course_funcs = require('./course_funcs')
+util = require('./util')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
 {ErrorDisplay, Icon, Tip, MarkdownInput} = require('../r_misc')
@@ -102,14 +102,14 @@ exports.HandoutsPanel = rclass ({name}) ->
         return false
 
     compute_handouts_list: ->
-        list = course_funcs.immutable_to_list(@props.all_handouts, 'handout_id')
+        list = util.immutable_to_list(@props.all_handouts, 'handout_id')
 
-        {list, num_omitted} = course_funcs.compute_match_list
+        {list, num_omitted} = util.compute_match_list
             list        : list
             search_key  : 'path'
             search      : @state.search.trim()
 
-        {list, deleted, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp(a.path?.toLowerCase(), b.path?.toLowerCase())
             include_deleted  : @state.show_deleted
@@ -419,7 +419,7 @@ StudentListForHandout = rclass
         actions      : rtypes.object
 
     render_students: ->
-        v = course_funcs.immutable_to_list(@props.students, 'student_id')
+        v = util.immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v

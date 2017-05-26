@@ -99,6 +99,13 @@ please contact help@sagemath.com.
 
 ```
 
+## Acknowledgements
+
+### Browserstack
+
+We are grateful to BrowserStack for providing infrastructure to test CoCalc. 
+
+<a href="https://www.browserstack.com" target="_blank"><img src="http://i.imgur.com/VProOTR.png"></a>
 
 ## Development
 
