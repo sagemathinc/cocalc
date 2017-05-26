@@ -94,6 +94,9 @@ class PageActions extends Actions
             when 'about'
                 set_url('/help')
                 set_window_title('Help')
+            when 'file-use'
+                set_url('/file-use')
+                set_window_title('File Usage')
             when undefined
                 return
             else

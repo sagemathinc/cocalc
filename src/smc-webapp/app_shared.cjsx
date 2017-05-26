@@ -30,6 +30,7 @@ misc = require('smc-util/misc')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
+{FileUsePage} = require('./file_use')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -44,6 +45,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
             return <HelpPage />
         when 'help'
             return <div>To be implemented</div>
+        when 'file-use'
+            return <FileUsePage redux={redux} />
         when undefined
             return
         else
@@ -131,7 +134,7 @@ exports.NotificationBell = rclass
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
-        @props.on_click()
+        @props.on_click?()
 
     notification_count: ->
         count_styles =

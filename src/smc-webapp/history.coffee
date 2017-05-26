@@ -110,8 +110,10 @@ exports.load_target = load_target = (target) ->
                 redux.getActions('account').set_active_tab('upgrades')
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
-
-
+        when 'file-use'
+            if not logged_in
+                return
+            redux.getActions('page').set_active_tab('file-use')
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))

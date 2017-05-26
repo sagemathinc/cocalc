@@ -18,24 +18,6 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
-FileUsePageWrapper = (props) ->
-    styles =
-        marginLeft   : '0'
-        border       : '2px solid #ccc'
-        background   : '#fff'
-        right        : '2em'
-        overflowY    : 'auto'
-        overflowX    : 'hidden'
-        fontSize     : '10pt'
-        padding      : '4px'
-        borderRadius : '5px'
-        width        : '100%'
-        height       : '60%'
-
-    <div style={styles}>
-        {<FileUsePage redux={redux} />}
-    </div>
-
 # Project tabs's names are their project id
 Page = rclass
     displayName : "Mobile-App"
@@ -126,11 +108,11 @@ Page = rclass
                     icon           = 'medkit'
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
-                    on_click       = {=>@close_menu();redux.getActions('support').show(true)}
+                    on_click       = {=>@close_menu(); @actions('support').show(true)}
                     style          = {width:'100%'}
                 />
                 {<NotificationBell
-                    on_click = {@close_menu}
+                    on_click = {=>@close_menu(); @actions('page').set_active_tab('file-use')}
                     count    = {@props.get_notify_count()}
                     active   = {@props.show_file_use}
                 /> if @props.is_logged_in()}
@@ -182,7 +164,6 @@ Page = rclass
                 {@render_menu_button()}
             </Navbar> if not @props.fullscreen}
             {@render_menu() if @state.show_menu}
-            {<FileUsePageWrapper /> if @props.show_file_use}
             {# Children must define their own padding from navbar and screen borders}
             <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
         </div>
