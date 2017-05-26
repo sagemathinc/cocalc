@@ -39,6 +39,7 @@ MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a massive burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
 MESG_QUEUE_MAX_COUNT    = 300
+MESG_QUEUE_MAX_WARN    = 50
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 10
 
@@ -500,6 +501,9 @@ class exports.Client extends EventEmitter
                 # done doing all tasks
                 delete @_handle_data_queue_empty_function
                 return
+
+            if @_handle_data_queue.length > MESG_QUEUE_MAX_WARN
+                dbg("MESG_QUEUE_MAX_WARN(=#{MESG_QUEUE_MAX_WARN}) exceeded (=#{@_handle_data_queue.length}) -- just a warning")
 
             # drop oldest message to keep
             if @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
