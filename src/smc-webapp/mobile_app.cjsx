@@ -20,12 +20,8 @@ misc = require('smc-util/misc')
 
 FileUsePageWrapper = (props) ->
     styles =
-        zIndex       : '10'
         marginLeft   : '0'
-        position     : 'fixed'
-        boxShadow    : '0 0 15px #aaa'
         border       : '2px solid #ccc'
-        top          : '43px'
         background   : '#fff'
         right        : '2em'
         overflowY    : 'auto'
@@ -33,8 +29,8 @@ FileUsePageWrapper = (props) ->
         fontSize     : '10pt'
         padding      : '4px'
         borderRadius : '5px'
-        width        : '50%'
-        height       : '90%'
+        width        : '100%'
+        height       : '60%'
 
     <div style={styles}>
         {<FileUsePage redux={redux} />}
@@ -175,7 +171,6 @@ Page = rclass
         <div ref="page" style={style}>
             <style>{page_style}</style>
             <style>{ProjectsNav.dropdown_nav_page_styles}</style>
-            {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
@@ -187,6 +182,7 @@ Page = rclass
                 {@render_menu_button()}
             </Navbar> if not @props.fullscreen}
             {@render_menu() if @state.show_menu}
+            {<FileUsePageWrapper /> if @props.show_file_use}
             {# Children must define their own padding from navbar and screen borders}
             <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
         </div>
