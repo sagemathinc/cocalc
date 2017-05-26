@@ -36,11 +36,11 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:
 # (this even includes keystrokes when using the terminal)
 MESG_QUEUE_INTERVAL_MS  = 0
-# If a client sends a burst of messages, we discard all but the most recent this many of them:
+# If a client sends a massive burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
-MESG_QUEUE_MAX_COUNT    = 200
+MESG_QUEUE_MAX_COUNT    = 300
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 10 
+MESG_QUEUE_MAX_SIZE_MB  = 10
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
@@ -2088,7 +2088,7 @@ class exports.Client extends EventEmitter
                     dbg("already signed up for stripe -- sync local user account with stripe")
                     @database.stripe_update_customer
                         account_id  : mesg.account_id
-                        stripe      : stripe
+                        stripe      : get_stripe()
                         customer_id : customer_id
                         cb          : cb
                 else
