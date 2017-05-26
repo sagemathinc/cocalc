@@ -171,8 +171,6 @@ Page = rclass
             height        : '100vh'
             width         : '100vw'
             overflow      : 'auto'
-            display       : 'flex'
-            flexDirection : 'column'
 
         <div ref="page" style={style}>
             <style>{page_style}</style>

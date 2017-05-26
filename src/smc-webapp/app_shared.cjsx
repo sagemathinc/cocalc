@@ -121,8 +121,9 @@ exports.NotificationBell = rclass
     displayName: 'NotificationBell'
 
     propTypes :
-        count  : rtypes.number
-        active : rtypes.bool
+        count    : rtypes.number
+        active   : rtypes.bool
+        on_click : rtypes.func
 
     getDefaultProps: ->
         active : false
@@ -130,6 +131,7 @@ exports.NotificationBell = rclass
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
+        @props.on_click()
 
     notification_count: ->
         count_styles =
