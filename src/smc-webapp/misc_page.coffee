@@ -28,8 +28,6 @@ buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 
-smc_react   = require('./smc-react')
-
 templates = $("#webapp-misc-templates")
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
@@ -132,7 +130,7 @@ starts_with_cloud_url = (href) ->
 
 project_actions = undefined
 load_target = (args...) ->
-    project_actions ?= smc_react.redux.getActions('projects')
+    project_actions ?= require('./smc-react').redux.getActions('projects')
     if not project_actions?
         console.warn('misc_page.load_target: project_actions is undefined; should not happen; see https://github.com/sagemathinc/cocalc/issues/1990', args...)
         return # so opens in new tab at least; otherwise users can't even open links
