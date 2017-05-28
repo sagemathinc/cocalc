@@ -557,7 +557,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         </div>
 
 exports.MobileProjectPage = rclass ({name}) ->
-    displayName : 'MoblileProjectPage'
+    displayName : 'MobileProjectPage'
 
     reduxProps :
         projects :

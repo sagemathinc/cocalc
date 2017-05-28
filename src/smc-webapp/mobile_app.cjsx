@@ -1,3 +1,7 @@
+###
+React Component for displaying the entire page on a mobile device.
+###
+
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
@@ -149,6 +153,8 @@ Page = rclass
             height        : '100vh'
             width         : '100vw'
             overflow      : 'auto'
+            display       : 'flex'
+            flexDirection : 'column'
 
         <div ref="page" style={style}>
             <style>{page_style}</style>
