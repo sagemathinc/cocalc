@@ -268,10 +268,12 @@ exports.init_express_http_server = (opts) ->
             return
         opts.database.get_stats
             cb : (err, stats) ->
+                res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
                     res.status(500).send("internal error: #{err}")
                 else
-                    res.json(stats)
+                    res.header("Content-Type", "application/json")
+                    res.send(JSON.stringify(stats, null, 1))
 
     ###
     # Stripe webhooks -- not done

@@ -1898,34 +1898,35 @@ class exports.PostgreSQL extends PostgreSQL
 
     _count_opened_files: (opts) =>
         opts = defaults opts,
-            age_m : undefined
-            key   : required
-            data  : required
-            cb    : required
-        q =     """
-                WITH filenames AS (
-                    SELECT DISTINCT event ->> 'filename' AS fn
-                    FROM project_log
-                    WHERE time <= NOW()
-                      AND time >= $1::TIMESTAMP
-                      AND event @> '{"action" : "open"}'::jsonb
-                ), ext_count AS (
-                    SELECT COUNT(*) as num, lower(reverse(split_part(reverse(fn), '.', 1))) AS ext
-                    FROM filenames
-                    GROUP BY ext
-                )
-                SELECT ext, num
-                FROM ext_count
-                WHERE ext IN ('sagews', 'ipynb', 'tex', 'txt', 'py', 'md', 'sage', 'term')
-                ORDER BY ext
-                """
+            age_m    : undefined
+            key      : required
+            data     : required
+            distinct : required # true or false
+            cb       : required
+        q = """
+            WITH filenames AS (
+                SELECT #{if opts.distinct then 'DISTINCT' else ''} event ->> 'filename' AS fn
+                FROM project_log
+                WHERE time BETWEEN $1::TIMESTAMP AND NOW()
+                  AND event @> '{"action" : "open"}'::jsonb
+            ), ext_count AS (
+                SELECT COUNT(*) as cnt, lower(reverse(split_part(reverse(fn), '.', 1))) AS ext
+                FROM filenames
+                GROUP BY ext
+            )
+            SELECT ext, cnt
+            FROM ext_count
+            WHERE ext IN ('sagews', 'ipynb', 'tex', 'txt', 'py', 'md', 'sage', 'term', 'rnw', 'rmd', 'rst',
+                          'png', 'svg', 'jpeg', 'jpg', 'pdf', 'tasks', 'course', 'sage-chat', 'chat')
+            ORDER BY ext
+            """
 
         post_process = (err, rows) ->
             if err
                 opts.cb(err); return
             else
                 _ = require('underscore')
-                values = _.object(_.pluck(rows, 'ext'), _.pluck(rows, 'num'))
+                values = _.object(_.pluck(rows, 'ext'), _.pluck(rows, 'cnt'))
                 opts.data[opts.key] = values
                 opts.cb(undefined)
 
@@ -1933,13 +1934,6 @@ class exports.PostgreSQL extends PostgreSQL
             query : q
             params : [misc.minutes_ago(opts.age_m)]
             cb     : all_results(post_process)
-            #(err, result) ->
-            #    if err
-            #        opts.cb(err)
-            #    else
-            #        console.log "result:", misc.to_json(result)
-            #        freq = {}
-            #        opts.cb(undefined, freq)
 
     recent_projects: (opts) =>
         opts = defaults opts,
@@ -2006,33 +2000,18 @@ class exports.PostgreSQL extends PostgreSQL
                 if stats?
                     cb(); return
                 dbg("querying all stats from the DB")
-                stats = {time : new Date(), projects_created : {}, projects_edited: {}, accounts_created : {}, distinct_files_opened: {}}
+                stats =
+                    time             : new Date()
+                    projects_created : {}
+                    projects_edited  : {}
+                    accounts_created : {}
+                    files_opened     : {distinct: {}, total:{}}
                 R = RECENT_TIMES
                 K = RECENT_TIMES_KEY
-                async.parallelLimit([
+                stats_tasks = [
                     (cb) => @_count_timespan(table:'accounts', cb:(err, x) => stats.accounts = x; cb(err))
                     (cb) => @_count_timespan(table:'projects', cb:(err, x) => stats.projects = x; cb(err))
-
-                    (cb) => @_count_opened_files(age_m:R.last_hour,  key:K.last_hour,  data:stats.distinct_files_opened, cb:cb)
-                    (cb) => @_count_opened_files(age_m:R.last_day,   key:K.last_day,   data:stats.distinct_files_opened, cb:cb)
-                    (cb) => @_count_opened_files(age_m:R.last_week,  key:K.last_week,  data:stats.distinct_files_opened, cb:cb)
-                    (cb) => @_count_opened_files(age_m:R.last_month, key:K.last_month, data:stats.distinct_files_opened, cb:cb)
-
                     (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.active, cb: (err, x) => stats.projects_edited[K.active] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_hour, cb: (err, x) => stats.projects_edited[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_day, cb: (err, x) => stats.projects_edited[K.last_day]  = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_week, cb: (err, x) => stats.projects_edited[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_month, cb: (err, x) => stats.projects_edited[K.last_month]= x; cb(err))
-
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_hour, cb: (err, x) => stats.projects_created[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_day, cb: (err, x) => stats.projects_created[K.last_day] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_week, cb: (err, x) => stats.projects_created[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_month, cb: (err, x) => stats.projects_created[K.last_month] = x; cb(err))
-
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_hour,  cb: (err, x) => stats.accounts_created[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_day,   cb: (err, x) => stats.accounts_created[K.last_day] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_week,  cb: (err, x) => stats.accounts_created[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_month, cb: (err, x) => stats.accounts_created[K.last_month] = x; cb(err))
                     (cb) =>
                         @_query
                             query : 'SELECT expire, host, clients FROM hub_servers'
@@ -2047,7 +2026,16 @@ class exports.PostgreSQL extends PostgreSQL
                                             delete x.expire
                                             stats.hub_servers.push(x)
                                     cb()
-                ], MAP_LIMIT, (err) =>
+                ]
+                for tkey in ['last_month', 'last_week', 'last_day', 'last_hour']
+                    do (tkey) =>
+                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.distinct, distinct:true,  cb:cb))
+                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.total,    distinct:false, cb:cb))
+                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R[tkey], cb: (err, x) => stats.projects_edited[K[tkey]] = x; cb(err)))
+                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'created', age_m: R[tkey], cb: (err, x) => stats.projects_created[K[tkey]] = x; cb(err)))
+                        stats_tasks.push((cb) => @_count_timespan(table:'accounts', field: 'created', age_m: R[tkey], cb: (err, x) => stats.accounts_created[K[tkey]] = x; cb(err)))
+
+                async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
                     if err
                         cb(err)
                     else
