@@ -8,6 +8,8 @@ Ansi = require('ansi-to-react')
 {Button, Modal} = require('react-bootstrap')
 {Icon} = require('../r_misc')
 
+{ShowSupportLink} = require('../support')
+
 exports.About = rclass
     propTypes :
         actions             : rtypes.object.isRequired
@@ -35,6 +37,11 @@ exports.About = rclass
                     {banner}
                 </Ansi>
             </pre>
+
+    render_faq: ->
+        <span>
+            Read <a href='https://github.com/sagemathinc/cocalc/wiki/sagejupyter' target='_new'>documentation</a> or create a <ShowSupportLink />.
+        </span>
 
     render_features: ->
         <ul style={marginTop:'10px', backgroundColor: '#eee'}>
@@ -77,6 +84,9 @@ exports.About = rclass
                     something, let us know), and of course some of the above is
                     also available in classical Jupyter via extensions.
                 </div>
+
+                <h4>Questions</h4>
+                {@render_faq()}
 
                 <h4>Server Information</h4>
                 {@render_server_info()}
