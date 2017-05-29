@@ -128,7 +128,6 @@ class ProjectsActions extends Actions
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not @have_project(project_id)
             msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
-            alert_message(type:'error', message:msg)
             console.warn(msg)
             return
         course_info = store.get_course_info(project_id)?.toJS()
