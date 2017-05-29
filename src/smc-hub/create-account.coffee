@@ -32,6 +32,7 @@ exports.create_account = (opts) ->
     tm = misc.walltime()
     if opts.mesg.email_address?
         opts.mesg.email_address = misc.lower_email_address(opts.mesg.email_address)
+
     async.series([
         (cb) ->
             dbg("run tests on generic validity of input")
@@ -119,6 +120,7 @@ exports.create_account = (opts) ->
                                 email_address : opts.mesg.email_address
                                 created_by    : opts.client.ip_address
                             cb    : cb
+                        opts.client.push_to_client(message.account_created(id:id, account_id:account_id))
 
         (cb) ->
             dbg("check for account creation actions")
