@@ -143,6 +143,8 @@ SignUp = rclass
             well_style.color           = 'white'
             well_class = 'webapp-landing-sign-up-highlight'
         <Well style=well_style className={well_class}>
+            <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
+            <br />
             {@display_token_input()}
             {@display_error("token")}
             {@display_error("account_creation_failed")}   {# a generic error}
@@ -175,7 +177,6 @@ SignUp = rclass
                     {@display_error("password")}
                     <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
                 </FormGroup>
-                <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button
                     style    = {marginBottom: UNIT, marginTop: UNIT}
                     disabled = {@props.signing_up}
