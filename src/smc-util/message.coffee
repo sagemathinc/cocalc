@@ -256,6 +256,12 @@ API message
 
 # hub --> client
 message
+    event          : 'account_created'
+    id             : undefined
+    account_id     : required
+
+# hub --> client
+message
     event          : 'account_creation_failed'
     id             : undefined
     reason         : required
