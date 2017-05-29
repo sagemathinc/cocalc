@@ -108,11 +108,12 @@ SignUp = rclass
 
     make_account: (e) ->
         e.preventDefault()
-        name     = ReactDOM.findDOMNode(@refs.name).value
-        email    = ReactDOM.findDOMNode(@refs.email).value
-        password = ReactDOM.findDOMNode(@refs.password).value
-        token    = ReactDOM.findDOMNode(@refs.token)?.value
-        @actions('account').create_account(name, email, password, token)
+        first_name = ReactDOM.findDOMNode(@refs.first_name).value
+        last_name  = ReactDOM.findDOMNode(@refs.last_name).value
+        email      = ReactDOM.findDOMNode(@refs.email).value
+        password   = ReactDOM.findDOMNode(@refs.password).value
+        token      = ReactDOM.findDOMNode(@refs.token)?.value
+        @actions('account').create_account(first_name, last_name, email, password, token)
 
     display_error: (field)->
         if @props.sign_up_error?[field]?
@@ -151,11 +152,20 @@ SignUp = rclass
                 <FormGroup>
                     {@display_error("first_name")}
                     <FormControl
-                        ref         = 'name'
+                        ref         = 'first_name'
                         type        = 'text'
                         autoFocus   = {false}
-                        placeholder = 'First and last name'
-                        maxLength   = 254 />
+                        placeholder = 'First name'
+                        maxLength   = 120 />
+                </FormGroup>
+                <FormGroup>
+                    {@display_error("last_name")}
+                    <FormControl
+                        ref         = 'last_name'
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'Last name'
+                        maxLength   = 120 />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("email_address")}
