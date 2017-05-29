@@ -2025,7 +2025,7 @@ exports.ProjectFiles = rclass ({name}) ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
             if @props.redux.getStore('account')?.is_logged_in()
-                <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
+                <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
                     <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
@@ -2192,7 +2192,8 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
-            {@render_access_error() if public_view}
+            {# Only show the access error if there is not another error. }
+            {@render_access_error() if public_view and not error}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
