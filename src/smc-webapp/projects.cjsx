@@ -416,6 +416,10 @@ class ProjectsActions extends Actions
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
 
+# This require defines a jQuery plugin that depends on the above actions being defined.
+# This will go away when we get rid of use of jQuery and instead 100% use react.
+require('./process-links')
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
