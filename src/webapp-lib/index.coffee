@@ -12,6 +12,11 @@ stat_rows = [
     ['Created projects', 'projects_created'],
     ['Created accounts', 'accounts_created'],
 ]
+opened_files = [
+    ['Sage Worksheets',     'sagews'],
+    ['Jupyter Notebooks',   'ipynb'],
+    ['LaTeX Documents',     'tex']
+]
 
 sum_clients = (stats) ->
     hubs = stats?['hub_servers'] ? []
@@ -26,16 +31,38 @@ update_stats = (stats) ->
     if table.rows.length >= 2
         for i in [table.rows.length...1]
             table.deleteRow(i-1)
+
     for [name, key] in stat_rows
         row    = table.insertRow()
         cell   = row.insertCell()
         cell.className = 'left'
-        rowname = document.createElement("strong")
-        rowname.appendChild(document.createTextNode(name))
-        cell.appendChild(rowname)
+        cell.innerHTML = "<strong>#{name}</strong>"
         for j in window.stat_times
             cell = row.insertCell()
             cell.appendChild(document.createTextNode("#{stats[key][j]}"))
+
+    row   = table.insertRow()
+    delim = row.insertCell()
+    delim.innerHTML = '&nbsp;'
+    delim.setAttribute("colspan", 5)
+    row   = table.insertRow()
+    cell  = row.insertCell()
+    cell.className = 'left'
+    cell.innerHTML = '<strong>Number of files</strong>'
+    cell  = row.insertCell()
+    cell.setAttribute("colspan", 4)
+    cell.innerHTML = 'opened or edited, counting total and unique file paths'
+
+    for [name, ext] in opened_files
+        row     = table.insertRow()
+        cell    = row.insertCell()
+        cell.className = 'left'
+        cell.innerHTML = "<strong>#{name}</strong>"
+        for j in window.stat_times
+            cell       = row.insertCell()
+            total      = stats.files_opened?.total[j]?[ext] ? 0
+            distinct   = stats.files_opened?.distinct[j]?[ext] ? 0
+            cell.innerHTML = "<span title='total files opened'>#{total}</span>  (<span title='distinct files opened'>#{distinct})</span>"
 
     document.getElementById("sum_clients").innerHTML = sum_clients(stats)
 

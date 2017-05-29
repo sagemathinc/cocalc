@@ -1001,6 +1001,8 @@ schema.stats =
             pg_check : 'NOT NULL CHECK (accounts >= 0)'
         accounts_created    :
             type : 'map'
+        files_opened :
+            type : 'map'
         projects            :
             type : 'integer'
             pg_check : 'NOT NULL CHECK (projects >= 0)'
