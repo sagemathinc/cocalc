@@ -50,3 +50,16 @@ describe 'testing api calls relating to user accounts -- ', ->
                 expect(resp?.event).toBe('account_created')
                 expect(resp?.account_id.match(/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i))
                 done(err)
+
+    it "tries to create the same account again", (done) ->
+        api.call
+            event : 'create_account'
+            body  :
+                first_name      : "Sage2"
+                last_name       : "CoCalc2"
+                email_address   : "cocalc+2@sagemath.com"
+                password        : "1234qwerty"
+                agreed_to_terms : true
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('account_creation_failed')
+                done(err)
