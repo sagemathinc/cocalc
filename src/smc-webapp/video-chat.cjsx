@@ -134,6 +134,7 @@ exports.VideoChatButton = rclass
         project_id : rtypes.string.isRequired
         path       : rtypes.string.isRequired
         label      : rtypes.string
+        short      : rtypes.bool     # if true, styles button to be short
 
     mixins: [SetIntervalMixin]
 
@@ -178,7 +179,9 @@ exports.VideoChatButton = rclass
 
     render: ->
         num_users_chatting = @video_chat.num_users_chatting()
-        style = {height : '31.4px'}
+        style = {}
+        if @props.short
+            style.height = '30px'
         if num_users_chatting > 0
             style.color = '#c9302c'
 

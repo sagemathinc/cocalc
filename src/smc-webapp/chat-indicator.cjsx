@@ -78,6 +78,7 @@ exports.ChatIndicator = rclass
             <VideoChatButton
                 project_id = {@props.project_id}
                 path       = {@props.path}
+                short      = {true}
             />
         </span>
 
