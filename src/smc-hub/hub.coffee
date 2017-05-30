@@ -467,7 +467,15 @@ blob_maintenance = (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
 
-
+update_stats = (cb) ->
+    # This calculates and updates the statistics for the /stats endpoint.
+    # It's important that we call this periodically, because otherwise the /stats data is outdated.
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            database.get_stats(cb:cb)
+    ], cb)
 
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
@@ -637,15 +645,6 @@ exports.start_server = start_server = (cb) ->
                     host           : program.host
 
             if program.port
-                # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
-                # too big a problem if we call it too frequently.
-                # Randomized start to balance between all hubs.
-                # It's important that we call this periodically, or stats will only get stored to the
-                # database when somebody happens to visit /stats
-                ## DISABLED -- this should be done by another service!
-                #d = 5000 + 60 * 1000 * Math.random()
-                #setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
-
                 # Register periodically with the database.
                 hub_register.start
                     database   : database
@@ -707,6 +706,7 @@ command_line = () ->
         .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
         .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
         .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
+        .option('--update_stats', 'Calculates the statistics for the /stats endpoint and stores them in the database', String, 'yes')
         .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
@@ -747,6 +747,10 @@ command_line = () ->
                 process.exit()
         else if program.blob_maintenance
             blob_maintenance (err) ->
+                winston.debug("DONE", err)
+                process.exit()
+        else if program.update_stats
+            update_stats (err) ->
                 winston.debug("DONE", err)
                 process.exit()
         else if program.add_user_to_project
