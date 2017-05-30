@@ -4,15 +4,13 @@ Using API to interact with a project
 
 api   = require('./apitest')
 {setup, teardown} = api
-
+misc = require('smc-util/misc')
 expect = require('expect')
 
 
-describe 'testing api calls relating to user accounts -- ', ->
+describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
     after(teardown)
-
-    project_id = undefined
 
     it "gets names for empty list of users", (done) ->
         api.call
@@ -48,7 +46,7 @@ describe 'testing api calls relating to user accounts -- ', ->
                 agreed_to_terms : true
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_created')
-                expect(resp?.account_id.match(/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i))
+                expect(misc.is_valid_uuid_string(resp?.account_id)).toBe(true)
                 done(err)
 
     it "tries to create the same account again", (done) ->

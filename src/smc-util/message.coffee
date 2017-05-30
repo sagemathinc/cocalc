@@ -254,6 +254,11 @@ API message
     agreed_to_terms: required
     token          : undefined   # only required when token is set.
 
+message
+    event      : 'account_created'
+    id         : undefined
+    account_id : required
+
 # hub --> client
 message
     event          : 'account_creation_failed'

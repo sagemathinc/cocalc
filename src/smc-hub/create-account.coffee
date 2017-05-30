@@ -25,6 +25,7 @@ exports.create_account = (opts) ->
         logger   : undefined
         host     : undefined
         port     : undefined
+        sign_in  : false      # if true, the newly created user will also be signed in; only makes sense for browser clients!
         cb       : undefined
     id = opts.mesg.id
     account_id = null
@@ -32,6 +33,10 @@ exports.create_account = (opts) ->
     tm = misc.walltime()
     if opts.mesg.email_address?
         opts.mesg.email_address = misc.lower_email_address(opts.mesg.email_address)
+
+    if not opts.mesg.first_name? or not opts.mesg.last_name?
+        opts.cb?("first and last name must be defined")
+        return
     async.series([
         (cb) ->
             dbg("run tests on generic validity of input")
@@ -57,9 +62,9 @@ exports.create_account = (opts) ->
                 age_s      : 60*30
                 cb         : (err, n) ->
                     if err
-                        cb(err)
+                        cb(other:err)
                     else if n > 150
-                        cb({'other':"Too many accounts are being created from the ip address #{opts.client.ip_address}; try again later."})
+                        cb(other:"Too many accounts are being created from the ip address #{opts.client.ip_address}; try again later.")
                     else
                         cb()
         (cb) ->
@@ -68,7 +73,7 @@ exports.create_account = (opts) ->
                 email_address : opts.mesg.email_address
                 cb            : (error, not_available) ->
                     if error
-                        cb('other':"Unable to create account.  Please try later. -- #{misc.to_json(error)}")
+                        cb(other:"Unable to create account.  Please try later. -- #{misc.to_json(error)}")
                     else if not_available
                         cb(email_address:"This e-mail address is already taken.")
                     else
@@ -80,7 +85,7 @@ exports.create_account = (opts) ->
                 email_address : opts.mesg.email_address
                 cb            : (err, is_banned) ->
                     if err
-                        cb('other':"Unable to create account.  Please try later.")
+                        cb(other:"Unable to create account.  Please try later.")
                     else if is_banned
                         cb(email_address:"This e-mail address is banned.")
                     else
@@ -107,9 +112,11 @@ exports.create_account = (opts) ->
                 created_by    : opts.client.ip_address
                 cb: (error, result) ->
                     if error
-                        cb({'other':"Unable to create account right now.  Please try later."})
+                        cb(other:"Unable to create account right now.  Please try later.")
                     else
                         account_id = result
+                        cb()
+                        # log to db -- no need to make client wait for this:
                         opts.database.log
                             event : 'create_account'
                             value :
@@ -118,8 +125,6 @@ exports.create_account = (opts) ->
                                 last_name     : opts.mesg.last_name
                                 email_address : opts.mesg.email_address
                                 created_by    : opts.client.ip_address
-                            cb    : cb
-
         (cb) ->
             dbg("check for account creation actions")
             opts.database.do_account_creation_actions
@@ -127,6 +132,8 @@ exports.create_account = (opts) ->
                 account_id    : account_id
                 cb            : cb
         (cb) ->
+            if not opts.sign_in
+                cb(); return
             dbg("set remember_me cookie...")
             # so that proxy server will allow user to connect and
             # download images, etc., the very first time right after they make a new account.
@@ -134,12 +141,9 @@ exports.create_account = (opts) ->
                 email_address : opts.mesg.email_address
                 account_id    : account_id
                 cb            : cb
-    ], (reason) ->
-        if reason
-            dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
-            opts.client.push_to_client(message.account_creation_failed(id:id, reason:reason))
-            cb?("error creating account -- #{misc.to_json(reason)}")
-        else
+        (cb) ->
+            if not opts.sign_in
+                cb(); return
             dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
             mesg1 = message.signed_in
                 id            : opts.mesg.id
@@ -151,6 +155,14 @@ exports.create_account = (opts) ->
                 hub           : opts.host + ':' + opts.port
             opts.client.signed_in(mesg1)
             opts.client.push_to_client(mesg1)
+            cb()
+    ], (reason) ->
+        if reason
+            dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
+            opts.client.push_to_client(message.account_creation_failed(id:id, reason:reason))
+            cb?("error creating account -- #{misc.to_json(reason)}")
+        else
+            opts.client.push_to_client(message.account_created(id:id, account_id:account_id))
             cb?()
     )
 

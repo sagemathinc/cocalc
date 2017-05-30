@@ -645,6 +645,7 @@ class exports.Client extends EventEmitter
             logger   : @logger
             host     : @_opts.host
             port     : @_opts.port
+            sign_in  : @conn?  # browser clients have a websocket conn
 
     mesg_delete_account: (mesg) =>
         delete_account
