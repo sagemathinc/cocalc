@@ -12,12 +12,15 @@ describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
     after(teardown)
 
+    second_account_id = null
+
     it "gets names for empty list of users", (done) ->
         api.call
             event : 'get_usernames'
             body  :
                 account_ids    : []
             cb    : (err, resp) ->
+                expect(err).toEqual(null)
                 expect(resp?.event).toBe('usernames')
                 expect(resp?.usernames).toEqual({})
                 done(err)
@@ -47,6 +50,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_created')
                 expect(misc.is_valid_uuid_string(resp?.account_id)).toBe(true)
+                second_account_id = resp?.account_id
                 done(err)
 
     it "tries to create the same account again", (done) ->
@@ -61,6 +65,15 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
                 expect(resp?.reason).toEqual({"email_address":"This e-mail address is already taken."})
+                done(err)
+
+    it "deletes the second account", (done) ->
+        api.call
+            event : 'delete_account'
+            body  :
+                account_id      : second_account_id
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('account_deleted')
                 done(err)
 
 describe 'testing invalid input to creating user accounts -- ', ->
