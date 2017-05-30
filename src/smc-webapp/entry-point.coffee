@@ -5,7 +5,7 @@ Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
 # FUTURE: This is needed only for the old non-react editors; will go away.
-html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html') + require('./misc_page.html')
+html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
 $('body').append(html)
 
 # deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
