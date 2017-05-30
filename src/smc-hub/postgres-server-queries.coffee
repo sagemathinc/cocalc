@@ -1975,8 +1975,9 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             ttl : 120         # how long cached version lives (in seconds)
             cb  : undefined
-        stats = undefined
-        dbg = @_dbg('get_stats')
+        stats   = undefined
+        start_t = process.hrtime()
+        dbg     = @_dbg('get_stats')
         async.series([
             (cb) =>
                 dbg("using cached stats?")
@@ -2041,7 +2042,9 @@ class exports.PostgreSQL extends PostgreSQL
                     if err
                         cb(err)
                     else
-                        dbg("everything succeeded in parallel above -- now insert stats")
+                        elapsed_t = process.hrtime(start_t)
+                        duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4)
+                        dbg("everything succeeded in parallel above after #{duration_s} secs -- now insert stats")
                         # storing in local and db cache
                         stats.id = misc.uuid()
                         @_stats_cached = misc.deep_copy(stats)
