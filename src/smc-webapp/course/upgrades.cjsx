@@ -51,7 +51,7 @@ exports.StudentProjectUpgrades = rclass
             </Col>
             {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
             <Col md=7>
-                <b style={fontSize:'11pt'}>Distribute your quotas equally between {num_projects} student {misc.plural(num_projects, 'project')} (amounts may be fractional)</b>
+                <b style={fontSize:'11pt'}>Distribute upgrades equally to {num_projects} student {misc.plural(num_projects, 'project')} (amounts may be fractional)</b>
             </Col>
         </Row>
 
@@ -275,8 +275,6 @@ exports.StudentProjectUpgrades = rclass
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>Add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased. You will need sufficient upgrades to contribute the above amount to each student.</p>
-
-                <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
+                <p>Add or remove upgrades to student projects associated to this course, augmenting what is provided for free and what students may have purchased.</p>
             </div>
         </Panel>
