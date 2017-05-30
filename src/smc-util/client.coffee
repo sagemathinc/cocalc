@@ -1732,6 +1732,8 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 exports.is_valid_password = (password) ->
+    if typeof(password) != 'string'
+        return [false, 'Password must be specified.']
     if password.length >= 6 and password.length <= 64
         return [true, '']
     else

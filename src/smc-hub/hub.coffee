@@ -642,8 +642,9 @@ exports.start_server = start_server = (cb) ->
                 # Randomized start to balance between all hubs.
                 # It's important that we call this periodically, or stats will only get stored to the
                 # database when somebody happens to visit /stats
-                d = 5000 + 60 * 1000 * Math.random()
-                setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
+                ## DISABLED -- this should be done by another service!
+                #d = 5000 + 60 * 1000 * Math.random()
+                #setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
 
                 # Register periodically with the database.
                 hub_register.start
