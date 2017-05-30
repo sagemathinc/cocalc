@@ -61,3 +61,47 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
                 done(err)
+
+describe 'testing invalid input to creating user accounts -- ', ->
+    before(setup)
+    after(teardown)
+
+    it "leaves off the first name", (done) ->
+        api.call
+            event : 'create_account'
+            body  :
+                last_name       : "CoCalc3"
+                email_address   : "cocalc+3@sagemath.com"
+                password        : "god"
+                agreed_to_terms : true
+            cb    : (err, resp) ->
+                expect(misc.startswith(err, 'invalid parameters')).toBe(true)
+                done()
+
+    it "leaves first name blank", (done) ->
+        api.call
+            event : 'create_account'
+            body  :
+                first_name      : ""
+                last_name       : "xxxx"
+                email_address   : "cocalc+3@sagemath.com"
+                password        : "xyz123"
+                agreed_to_terms : true
+            cb    : (err, resp) ->
+                delete resp?.id
+                expect(resp).toEqual(event:'account_creation_failed', reason: { first_name: 'Enter your first name.' })
+                done(err)
+
+    it "leaves last name blank", (done) ->
+        api.call
+            event : 'create_account'
+            body  :
+                first_name      : "C"
+                last_name       : ""
+                email_address   : "cocalc+3@sagemath.com"
+                password        : "xyz123"
+                agreed_to_terms : true
+            cb    : (err, resp) ->
+                delete resp?.id
+                expect(resp).toEqual(event:'account_creation_failed', reason: { last_name: 'Enter your last name.' })
+                done(err)

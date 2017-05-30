@@ -47,7 +47,7 @@ exports.http_message_api_v1 = (opts) ->
         return
 
     try
-        mesg = f(opts.body)
+        mesg = f(opts.body, true)
     catch err
         opts.cb("invalid parameters '#{err}'")
         return

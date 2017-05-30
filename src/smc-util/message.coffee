@@ -35,10 +35,10 @@ _        = require('underscore')
 
 
 message = (obj) ->
-    exports[obj.event] = (opts={}) ->
+    exports[obj.event] = (opts={}, strict=false) ->
         if opts.event?
             throw Error("ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})")
-        defaults(opts, obj)
+        defaults(opts, obj, false, strict)
     return obj
 
 # message2 for "version 2" of the message definitions

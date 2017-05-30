@@ -177,15 +177,12 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-defaults = exports.defaults = (obj1, obj2, allow_extra) ->
+defaults = exports.defaults = (obj1, obj2, allow_extra, strict=false) ->
     if not obj1?
         obj1 = {}
     error  = () ->
         try
-            s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
-            if not TEST_MODE
-                console.log(s)
-            return s
+            return "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
         catch err
             return ""
     if not obj1?
@@ -195,39 +192,42 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
         err = "BUG -- Traceback -- misc.defaults -- TypeError: function takes inputs as an object #{error()}"
-        console.log(err)
-        console.trace()
-        if DEBUG or TEST_MODE
+        if strict or DEBUG or TEST_MODE
             throw new Error(err)
         else
+            console.log(err)
+            console.trace()
             return obj2
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.warn(err)
-                console.trace()
-                if DEBUG or TEST_MODE
+                if strict or DEBUG or TEST_MODE
                     throw new Error(err)
+                else
+                    console.warn(err)
+                    console.trace()
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.warn(err)
-                console.trace()
-                if DEBUG or TEST_MODE
+                if strict or DEBUG or TEST_MODE
                     throw new Error(err)
+                else
+                    console.warn(err)
+                    console.trace()
             else
                 r[prop] = obj2[prop]
     if not allow_extra
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.warn(err)
-                console.trace()
-                if DEBUG or TEST_MODE
+                if strict or DEBUG or TEST_MODE
                     throw new Error(err)
+                else
+                    console.warn(err)
+                    console.trace()
     return r
 
 # WARNING -- don't accidentally use this as a default:
