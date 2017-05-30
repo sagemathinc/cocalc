@@ -1,6 +1,9 @@
 ###
 Upgrading quotas for all student projects
 ###
+
+underscore = require('underscore')
+
 misc = require('smc-util/misc')
 
 schema = require('smc-util/schema')
@@ -22,7 +25,7 @@ exports.StudentProjectUpgrades = rclass
         upgrade_quotas : false
         upgrades       : undefined
 
-    save_upgrade_quotas: ->
+    get_upgrades: ->
         num_projects = @_num_projects
         upgrades = {}
         for quota, val of @state.upgrades
@@ -30,19 +33,19 @@ exports.StudentProjectUpgrades = rclass
             if val*num_projects != @_your_upgrades[quota]
                 display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
                 upgrades[quota] = val / display_factor
+        return upgrades
+
+    save_upgrade_quotas: ->
         @setState(upgrade_quotas: false)
-        if misc.len(upgrades) > 0
-            @actions(@props.name).upgrade_all_student_projects(upgrades)
+        delete @_initial_upgrades
+        @actions(@props.name).upgrade_all_student_projects(@get_upgrades())
 
     upgrade_quotas_submittable: ->
         if @_upgrade_is_invalid
             return false
-        num_projects = @_num_projects
-        for quota, val of @state.upgrades
-            val = misc.parse_number_input(val, round_number=false)
-            if val*num_projects != (@_your_upgrades[quota] ? 0)
-                changed = true
-        return changed
+        @_initial_upgrades ?= @get_upgrades()
+        console.log @get_upgrades(), @_initial_upgrades
+        return not underscore.isEqual(@get_upgrades(), @_initial_upgrades)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -255,7 +258,7 @@ exports.StudentProjectUpgrades = rclass
                 onClick  = {@save_upgrade_quotas}
                 disabled = {not @upgrade_quotas_submittable()}
             >
-                <Icon name='arrow-circle-up' /> Submit changes
+                <Icon name='arrow-circle-up' /> Save changes
             </Button>
             <Button onClick={=>@setState(upgrade_quotas:false)}>
                 Cancel
