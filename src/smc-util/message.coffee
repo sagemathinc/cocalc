@@ -252,8 +252,13 @@ message
 
 API message2
     event       : 'get_usernames'
-    id          : undefined
-    account_ids : required
+    fields:
+        id:
+             init  : undefined
+             desc  : 'A unique UUID for the query'
+        account_ids:
+             init  : required
+             desc  : 'list of account_ids'
     desc        : """
 Get first and last names for a list of account ids
 
@@ -283,13 +288,26 @@ message
 # client --> hub
 API message2
     event          : 'create_account'
-    id             : undefined
-    first_name     : required
-    last_name      : required
-    email_address  : required
-    password       : required
-    agreed_to_terms: required
-    token          : undefined   # only required when token is set.
+    fields:
+        id:
+             init  : undefined
+             desc  : 'A unique UUID for the query'
+
+        first_name:
+            init   : required
+        last_name:
+            init   : required
+        email_address:
+            init   : required
+        password:
+            init   : required
+            desc   : '6 characters or longer'
+        agreed_to_terms:
+            init   : required
+            desc   : 'must be true for request to succeed'
+        token:
+            init   : undefined   # only required when token is set.
+            desc   : 'account creation token - see src/dev/docker/README.md'
     desc           : """
 Examples:
 
@@ -332,8 +350,13 @@ message
 # client --> hub
 API message2
     event        : 'delete_account'
-    id           : undefined
-    account_id   : required
+    fields:
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
+        account_id:
+           init  : required
+           desc  : 'account_id for account to be deleted'
     desc         : """
 Example:
 
@@ -410,12 +433,28 @@ message
     id             : undefined
 
 # client --> hub
-API message
+API message2
     event          : 'change_password'
-    id             : undefined
-    email_address  : required
-    old_password   : ""
-    new_password   : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        email_address:
+            init  : required
+            desc  : 'email address for account whose password is changed'
+        old_password:
+            init  : ""
+            desc  : ''
+        new_password:
+            init  : required
+            desc  : '6 characters or longer'
+    desc           : """
+Given email address and old password for an account, set a new password.
+
+Example:
+  curl -u sk_abcdefQWERTY090900000000: -d email_address= -d old_password= -d new_password 
+
+"""
 
 # hub --> client
 # if error is true, that means the password was not changed; would
@@ -709,10 +748,19 @@ message
 # client --> hub
 API message2
     event      : 'create_project'
-    id         : undefined
-    title      : required
-    description: required
-    start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        title     :
+            init  : required
+            desc  : 'project title'
+        description:
+            init  : required
+            desc  : 'project description'
+        start     :
+            init  : false
+            desc  : 'start running the moment the project is created -- uses more resources, but possibly better user experience'
     desc       : """
 Example:
   curl -u sk_abcdefQWERTY090900000000: -d title='MY NEW PROJECT' -d description='sample project' https://cocalc.com/api/v1/create_project
@@ -902,7 +950,10 @@ Ping/pong -- used for clock sync, etc.
 ###
 API message2
     event : 'ping'
-    id    : undefined
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
     desc  : """
 Test API connection, return time as ISO string when server responds to ping.
 
