@@ -80,6 +80,28 @@ API = (obj) ->
     # obj could be message version 1 or 2!
     exports.api_messages[obj.event] = true
 
+###
+
+API messages
+
+These options appear on all API messages:
+- event: the command to be executed, for example "ping"
+- id: uuid for the API call, will be returned in response. If id not provided
+  in the API message, a random id will be generated and returned in the response
+
+Additional notes:
+- Options with default of "undefined" may be omitted.
+- A valid API key is required on all API calls, including ping.
+- The structure of the response to each API message is given in the
+  immediately following "message" object definition.
+- Some API messages, for example "query" and "get_usernames", require
+  options to be passed as a JSON object, as noted in message comments.
+- If JSON is not required for API message options, it is still valid.
+- If API message options are sent as JSON, the message must be sent with
+  a request header of "Content-Type: application/json".
+
+###
+
 ############################################
 # Compute server messages
 #############################################
@@ -228,10 +250,25 @@ message
 # Information about several projects or accounts
 #############################################
 
-API message
+API message2
     event       : 'get_usernames'
     id          : undefined
     account_ids : required
+    desc        : """
+Get first and last names for a list of account ids
+
+Note: Options for the 'get_usernames' API message must be sent as JSON object.
+
+Example:
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \
+    https:// cocalc.com/api/v1/get_usernames
+  ==>  {"event":"usernames",
+        "id":"32b485a8-f214-4fda-a622-4dbfe0db2b9c",
+        "usernames": {
+           "cc3cb7f1-14f6-4a18-a803-5034af8c0004":{"first_name":"John","last_name":"Smith"},
+           "9b896055-920a-413c-9172-dfb4007a8e7f":{"first_name":"Jane","last_name":"Doe"}}}
+"""
 
 message
     event       : 'usernames'
@@ -244,7 +281,7 @@ message
 #############################################
 
 # client --> hub
-API message
+API message2
     event          : 'create_account'
     id             : undefined
     first_name     : required
@@ -253,6 +290,33 @@ API message
     password       : required
     agreed_to_terms: required
     token          : undefined   # only required when token is set.
+    desc           : """
+Examples:
+
+Create a new account:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d first_name=John00 \
+    -d last_name=Doe00 \
+    -d email_address=jd@some_email \
+    -d password=xyzabc09090 \
+    -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+
+Option 'agreed_to_terms' must be present and specified as true.
+Account creation fails if there is already an account using the
+given email address, if 'email_address' is improperly formatted,
+and if password is fewer than 6 characters.
+
+Attempting to create the same account a second time results in an error:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d first_name=John00 \
+    -d last_name=Doe00 \
+    -d email_address=jd@some_email \
+    -d password=xyzabc09090 \
+    -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+  ==> {"event":"account_creation_failed",
+       "id":"2332be03-aa7d-49a6-933a-cd9824b7331a",
+       "reason":{"email_address":"This e-mail address is already taken."}}
+"""
 
 message
     event      : 'account_created'
@@ -266,10 +330,27 @@ message
     reason         : required
 
 # client --> hub
-API message
+API message2
     event        : 'delete_account'
     id           : undefined
     account_id   : required
+    desc         : """
+Example:
+
+Delete an existing account:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \
+    https://cocalc.com/api/v1/delete_account
+  ==> {"event":"account_deleted","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
+
+Event 'account_deleted' is also returned if the account was already
+deleted before the API call, or if the account never existed.
+
+After successful 'delete_account', the owner of the deleted account
+will not be able to login, but will still be listed as collaborator
+or owner on projects which the user collaborated on or owned
+respectively.
+"""
 
 # hub --> client
 message
@@ -626,12 +707,17 @@ message
 ############################################
 
 # client --> hub
-API message
+API message2
     event      : 'create_project'
     id         : undefined
     title      : required
     description: required
     start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
+    desc       : """
+Example:
+  curl -u sk_abcdefQWERTY090900000000: -d title='MY NEW PROJECT' -d description='sample project' https://cocalc.com/api/v1/create_project
+  == > {"event":"project_created","id":"0b4df293-d518-45d0-8a3c-4281e501b85e","project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
+"""
 
 # hub --> client
 message
@@ -814,9 +900,29 @@ message
 ###
 Ping/pong -- used for clock sync, etc.
 ###
-API message
+API message2
     event : 'ping'
     id    : undefined
+    desc  : """
+Test API connection, return time as ISO string when server responds to ping.
+
+Examples:
+
+Omitting request id:
+  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping
+  ==> {"event":"pong","id":"c74afb40-d89b-430f-836a-1d889484c794","now":"2017-05-24T13:29:11.742Z"}
+
+Using "uuid" shell command to create a request id:
+  uuid
+  ==> 553f2815-1508-416d-8e69-2dde5af3aed8
+  curl -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
+  ==> {"event":"pong","id":"553f2815-1508-416d-8e69-2dde5af3aed8","now":"2017-05-24T13:47:21.312Z"}
+
+Using JSON format to provide request id:
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
+  ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
+"""
 
 message
     event : 'pong'
@@ -1075,7 +1181,6 @@ Queries directly to the database (sort of like Facebook's GraphQL)
 
 API message2
     event          : 'query'
-    desc           : "This queries directly the database (sort of Facebook's GraphQL)"
     fields:
         id:
              init  : undefined
@@ -1092,6 +1197,76 @@ API message2
         options:
              init  : undefined
              desc  : ''
+    desc           : """
+This queries directly the database (sort of Facebook's GraphQL)
+Options for the 'query' API message must be sent as JSON object.
+A query is either "get" (read from database), or "set" (write to database).
+A query is "get" if any query keys are null, otherwise the query is "set".
+
+Examples of 'get' query:
+
+Get title and description for a project, given the project id.
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","title":null,"description":null}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "title":"MY NEW PROJECT 2",
+                            "description":"desc 2"}},
+       "multi_response":false}
+
+Get project id, given title and description.
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":null,"title":"MY NEW PROJECT 2","description":"desc 2"}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "title":"MY NEW PROJECT 2",
+                            "description":"desc 2"}},
+       "multi_response":false,
+       "id":"2be22e08-f00c-4128-b112-fa8581c2d584"}
+
+Get users, given the project id.
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{"group":"owner"},
+                                     "111634c0-7048-41e7-b2d0-f87129fd409e":{"group":"collaborator"}}}},
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
+
+Example of 'set' query.
+
+Set title and description for a project, given the project id.
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
+                               "title":"REVISED TITLE", \
+                               "description":"REVISED DESC"}}}' \
+     https://cocalc.com/api/v1/query
+     ==> {"event":"query",
+          "query":{},
+          "multi_response":false,
+          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+
+Information on which fields are gettable and settable in the database tables
+via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
+https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
+
+Within file 'db-schema.coffee':
+
+for project fields you can get, see the definition of
+`schema.projects.user_query.get.fields`.
+for user account fields you can set, see the definition of
+`schema.projects.user_query.set.fields`.
+
+for user account fields you can get, see the definition of
+`schema.accounts.user_query.get.fields`.
+for user account fields you can set, see the definition of
+`schema.accounts.user_query.set.fields`.
+"""
     examples: [  # TODO: create real examples!  These are not done.
         [{id: "uuid", query: 'example1-query'},
          {id: "uuid", event: 'query', response: "..."}
