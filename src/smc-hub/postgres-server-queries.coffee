@@ -1973,7 +1973,7 @@ class exports.PostgreSQL extends PostgreSQL
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 60         # how long cached version lives (in seconds)
+            ttl : 120         # how long cached version lives (in seconds)
             cb  : undefined
         stats = undefined
         dbg = @_dbg('get_stats')
@@ -2035,7 +2035,9 @@ class exports.PostgreSQL extends PostgreSQL
                         stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'created', age_m: R[tkey], cb: (err, x) => stats.projects_created[K[tkey]] = x; cb(err)))
                         stats_tasks.push((cb) => @_count_timespan(table:'accounts', field: 'created', age_m: R[tkey], cb: (err, x) => stats.accounts_created[K[tkey]] = x; cb(err)))
 
-                async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
+                # this was running in parallel, but there is no hurry updating the stats...
+                # async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
+                async.series(stats_tasks, (err) =>
                     if err
                         cb(err)
                     else
