@@ -256,6 +256,35 @@ API message
     password       : required
     agreed_to_terms: required
     token          : undefined   # only required when token is set.
+###
+
+Examples:
+
+Create a new account:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d first_name=John00 \
+    -d last_name=Doe00 \
+    -d email_address=jd@some_email \
+    -d password=xyzabc09090 \
+    -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+
+Option 'agreed_to_terms' must be present and specified as true.
+Account creation fails if there is already an account using the
+given email address, if 'email_address' is improperly formatted,
+and if password is fewer than 6 characters.
+
+Attempting to create the same account a second time results in an error:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d first_name=John00 \
+    -d last_name=Doe00 \
+    -d email_address=jd@some_email \
+    -d password=xyzabc09090 \
+    -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+  ==> {"event":"account_creation_failed",
+       "id":"2332be03-aa7d-49a6-933a-cd9824b7331a",
+       "reason":{"email_address":"This e-mail address is already taken."}}
+
+###
 
 # hub --> client
 message
@@ -269,18 +298,30 @@ API message
     id           : undefined
     account_id   : required
 
+###
+Examples:
+
+Delete an existing account:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \
+    https://cocalc.com/api/v1/delete_account
+  ==> {"event":"account_deleted","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
+
+Event 'account_deleted' is also returned if the account was already
+deleted before the API call, or if the account never existed.
+
+After successful 'delete_account', the owner of the deleted account
+will not be able to login, but will still be listed as collaborator
+or owner on projects which the user collaborated on or owned
+respectively.
+
+###
+
 # hub --> client
 message
     event        : 'account_deleted'
     id           : undefined
     error        : undefined
-
-# client <--> hub
-API message
-    event          : 'email_address_availability'
-    id             : undefined
-    email_address  : required
-    is_available   : undefined
 
 # client --> hub
 message
@@ -819,15 +860,19 @@ API message
     id    : undefined
 
 ###
-example, omitting request id:
+Examples:
+
+Omitting request id:
   curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"c74afb40-d89b-430f-836a-1d889484c794","now":"2017-05-24T13:29:11.742Z"}
-example, using "uuid" shell command to create a request id:
+
+Using "uuid" shell command to create a request id:
   uuid
   ==> 553f2815-1508-416d-8e69-2dde5af3aed8
   curl -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
   ==> {"event":"pong","id":"553f2815-1508-416d-8e69-2dde5af3aed8","now":"2017-05-24T13:47:21.312Z"}
-example, using JSON format for options
+
+Using JSON format to provide request id:
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 ###
