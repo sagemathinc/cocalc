@@ -12,7 +12,6 @@ describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
     after(teardown)
 
-    second_account_id = null
 
     it "gets names for empty list of users", (done) ->
         api.call
@@ -38,6 +37,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         last_name: 'CoCalc'
                 done(err)
 
+    account_id2 = undefined
     it "uses api call to create a second account", (done) ->
         api.call
             event : 'create_account'
@@ -50,7 +50,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_created')
                 expect(misc.is_valid_uuid_string(resp?.account_id)).toBe(true)
-                second_account_id = resp?.account_id
+                account_id2 = resp?.account_id
                 done(err)
 
     it "tries to create the same account again", (done) ->
@@ -71,7 +71,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
         api.call
             event : 'delete_account'
             body  :
-                account_id      : second_account_id
+                account_id      : account_id2
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_deleted')
                 done(err)
