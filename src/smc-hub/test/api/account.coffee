@@ -60,6 +60,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                 agreed_to_terms : true
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
+                expect(resp?.reason).toEqual({"email_address":"This e-mail address is already taken."})
                 done(err)
 
 describe 'testing invalid input to creating user accounts -- ', ->
