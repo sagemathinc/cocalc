@@ -28,7 +28,46 @@ buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 
-templates = $("#webapp-misc-templates")
+get_inspect_dialog = (editor) ->
+    dialog = $('''
+    <div class="webapp-codemirror-introspect modal"
+         data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width:90%">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h4><div class="webapp-codemirror-introspect-title"></div></h4>
+                </div>
+
+                <div class="webapp-codemirror-introspect-content-source-code cm-s-default">
+                </div>
+                <div class="webapp-codemirror-introspect-content-docstring cm-s-default">
+                </div>
+
+
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    ''')
+    dialog.modal()
+    dialog.data('editor', editor)
+
+    dialog.find("button").click () ->
+        dialog.modal('hide')
+        dialog.remove() # also removing, we no longer have any use for this element!
+
+    # see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
+    dialog.on 'hidden.bs.modal', () ->
+        dialog.data('editor').focus?()
+        dialog.data('editor', 0)
+
+    return dialog
+
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
@@ -855,12 +894,9 @@ exports.define_codemirror_extensions = () ->
             # If for some reason the content isn't a string (e.g., undefined or an object or something else),
             # convert it a string, which will display fine.
             opts.content = "#{JSON.stringify(opts.content)}"
-        element = templates.find(".webapp-codemirror-introspect")
+        element = get_inspect_dialog(@)
         element.find(".webapp-codemirror-introspect-title").text(opts.target)
-        element.modal()
-        element.find(".webapp-codemirror-introspect-content-docstring").text('')
-        element.find(".webapp-codemirror-introspect-content-source-code").text('')
-        element.data('editor', @)
+        element.show()
         if opts.type == 'source-code'
             CodeMirror.runMode(opts.content, 'python', element.find(".webapp-codemirror-introspect-content-source-code")[0])
         else
@@ -1543,16 +1579,6 @@ cm_start_end = (selection) ->
     if end_line < start_line
         end_line = start_line
     return {start_line:start_line, end_line:end_line}
-
-codemirror_introspect_modal = templates.find(".webapp-codemirror-introspect")
-
-codemirror_introspect_modal.find("button").click () ->
-    codemirror_introspect_modal.modal('hide')
-
-# see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
-codemirror_introspect_modal.on 'hidden.bs.modal', () ->
-    codemirror_introspect_modal.data('editor').focus?()
-    codemirror_introspect_modal.data('editor',0)
 
 exports.download_file = (url) ->
     #console.log("download_file(#{url})")
