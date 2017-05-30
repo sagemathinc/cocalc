@@ -1973,10 +1973,11 @@ class exports.PostgreSQL extends PostgreSQL
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 60         # how long cached version lives (in seconds)
+            ttl : 120         # how long cached version lives (in seconds)
             cb  : undefined
-        stats = undefined
-        dbg = @_dbg('get_stats')
+        stats   = undefined
+        start_t = process.hrtime()
+        dbg     = @_dbg('get_stats')
         async.series([
             (cb) =>
                 dbg("using cached stats?")
@@ -2035,11 +2036,15 @@ class exports.PostgreSQL extends PostgreSQL
                         stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'created', age_m: R[tkey], cb: (err, x) => stats.projects_created[K[tkey]] = x; cb(err)))
                         stats_tasks.push((cb) => @_count_timespan(table:'accounts', field: 'created', age_m: R[tkey], cb: (err, x) => stats.accounts_created[K[tkey]] = x; cb(err)))
 
-                async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
+                # this was running in parallel, but there is no hurry updating the stats...
+                # async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
+                async.series(stats_tasks, (err) =>
                     if err
                         cb(err)
                     else
-                        dbg("everything succeeded in parallel above -- now insert stats")
+                        elapsed_t = process.hrtime(start_t)
+                        duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4)
+                        dbg("everything succeeded in parallel above after #{duration_s} secs -- now insert stats")
                         # storing in local and db cache
                         stats.id = misc.uuid()
                         @_stats_cached = misc.deep_copy(stats)
