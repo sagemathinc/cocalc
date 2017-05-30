@@ -2044,7 +2044,7 @@ class exports.PostgreSQL extends PostgreSQL
                     else
                         elapsed_t = process.hrtime(start_t)
                         duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4)
-                        dbg("everything succeeded in parallel above after #{duration_s} secs -- now insert stats")
+                        dbg("everything succeeded above after #{duration_s} secs -- now insert stats")
                         # storing in local and db cache
                         stats.id = misc.uuid()
                         @_stats_cached = misc.deep_copy(stats)
