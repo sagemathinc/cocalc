@@ -267,7 +267,7 @@ Note: Options for the 'get_usernames' API message must be sent as JSON object.
 Example:
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
     -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \
-    https:// cocalc.com/api/v1/get_usernames
+    https://cocalc.com/api/v1/get_usernames
   ==>  {"event":"usernames",
         "id":"32b485a8-f214-4fda-a622-4dbfe0db2b9c",
         "usernames": {
@@ -301,7 +301,7 @@ API message2
             init   : required
         password:
             init   : required
-            desc   : '6 characters or longer'
+            desc   : 'must be between 6 and 64 characters in length'
         agreed_to_terms:
             init   : required
             desc   : 'must be true for request to succeed'
@@ -322,7 +322,7 @@ Create a new account:
 Option 'agreed_to_terms' must be present and specified as true.
 Account creation fails if there is already an account using the
 given email address, if 'email_address' is improperly formatted,
-and if password is fewer than 6 characters.
+and if password is fewer than 6 or more than 64 characters.
 
 Attempting to create the same account a second time results in an error:
   curl -u sk_abcdefQWERTY090900000000: \
@@ -447,13 +447,13 @@ API message2
             desc  : ''
         new_password:
             init  : required
-            desc  : '6 characters or longer'
+            desc  : 'must be between 6 and 64 characters in length'
     desc           : """
 Given email address and old password for an account, set a new password.
 
 Example:
   curl -u sk_abcdefQWERTY090900000000: -d email_address= -d old_password= -d new_password 
-
+  ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
 """
 
 # hub --> client
@@ -465,10 +465,22 @@ message
     error          : undefined
 
 # client --> hub: "please send a password reset email"
-API message
+API message2
     event         : "forgot_password"
-    id            : undefined
-    email_address : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        email_address:
+            init  : required
+            desc  : 'email address for account requesting password reset'
+    desc          : """
+Given the email address of an existing account, send password reset email.
+
+Example:
+  curl -u sk_abcdefQWERTY090900000000: -d email_address=... https://cocalc.com/api/v1/forgot_password
+  ==> {"event":"forgot_password_response","id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558","error":false}
+"""
 
 # hub --> client  "a password reset email was sent, or there was an error"
 message
@@ -477,11 +489,28 @@ message
     error         : false
 
 # client --> hub: "reset a password using this id code that was sent in a password reset email"
-API message
+API message2
     event         : "reset_forgot_password"
-    id            : undefined
-    reset_code    : required
-    new_password  : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        reset_code:
+            init  : required
+            desc  : 'id code that was sent in a password reset email'
+        new_password:
+            init  : required
+            desc  : 'must be between 6 and 64 characters in length'
+    desc          : """
+Reset password, given reset code.
+
+Example:
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d reset_code=35a0eea6-370a-45c3-ab2f-3210df68748f \
+    -d new_password=qjqhddfsfj \
+    https://cocalc.com/api/v1/reset_forgot_password
+  ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
+"""
 
 message
     event         : "reset_forgot_password_response"
@@ -489,13 +518,28 @@ message
     error         : false
 
 # client --> hub
-API message
+API message2
     event             : 'change_email_address'
-    id                : undefined
-    account_id        : required
-    old_email_address : ""        # ignored -- deprecated
-    new_email_address : required
-    password          : ""
+    fields:
+        id:
+            init      : undefined
+            desc      : 'A unique UUID for the query'
+        account_id:
+            init      : required
+            desc      :  'account_id for account whose email address is changed'
+        old_email_address:
+            init      : ""
+            desc      : 'ignored -- deprecated'
+        new_email_address:
+            init      : required
+            desc      : ''
+        password:
+            init      :""
+            desc      : ''
+    desc:"""
+Given the account_id for an account, set a new email address.
+Note: account_id must match the id of the current login.
+"""
 
 # hub --> client
 message
