@@ -367,6 +367,7 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         return if not store?
         student = store.get_student(student)
+        @redux.getActions('projects').clear_project_upgrades(student.get('project_id'))
         @_set
             deleted    : true
             student_id : student.get('student_id')
