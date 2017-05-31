@@ -10,9 +10,13 @@ Explicitly start each of the following scripts in their own terminal session (th
 
 - `./start_postgres.py`
 
+- `./start_webpack.py`
+
 - `./start_hub.py`
 
-- `./start_webpack.py`
+## Docker-only special instructions
+
+If you're using the [CoCalc Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md), run the script `./start_hub_in_docker.py` instead.  This is the same except that it listens on localhost instead.  (It's also critical that you're using Docker via https, not http.)
 
 ## Information
 
