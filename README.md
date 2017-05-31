@@ -14,9 +14,9 @@ communication tools like a chat, course management and more.
    * [Github](https://github.com/sagemathinc/cocalc)
    * [Mailing List](https://groups.google.com/forum/#!forum/cocalc)
 
-## Evaluation install
+## Very easy install of CoCalc on your computer
 
-To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+You can easily use CoCalc on your own computer for free by **[running a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
 
 ## History
 
@@ -26,19 +26,19 @@ The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
-### Current very active contributors
+### Current highly active contributors
 
-   * Tim Clemans
    * John Jeng
-   * William Stein
    * Harald Schilly
    * Hal Snyder
+   * William Stein
 
 ### Past contributors
 
    * Greg Bard
    * Rob Beezer
    * Keith Clawson
+   * Tim Clemans
    * Andy Huchala
    * Jon Lee
    * Simon Luu
