@@ -119,3 +119,44 @@ describe 'testing invalid input to creating user accounts -- ', ->
                 delete resp?.id
                 expect(resp).toEqual(event:'account_creation_failed', reason: { last_name: 'Enter your last name.' })
                 done(err)
+
+describe 'testing user_search -- ', ->
+    before(setup)
+    after(teardown)
+
+    it "searches by email", (done) ->
+        api.call
+            event : 'user_search'
+            body  :
+                query : 'cocalc@sagemath.com'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('user_search_results')
+                expect(resp?.results?.length).toBe(1)
+                expect(resp?.results?[0].first_name).toBe('Sage')
+                expect(resp?.results?[0].last_name).toBe('CoCalc')
+                expect(resp?.results?[0].email_address).toBe('cocalc@sagemath.com')
+                done(err)
+
+
+    it "searches by first and last name prefixes", (done) ->
+        api.call
+            event : 'user_search'
+            body  :
+                query : 'coc sag'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('user_search_results')
+                expect(resp?.results?.length).toBe(1)
+                expect(resp?.results?[0].first_name).toBe('Sage')
+                expect(resp?.results?[0].last_name).toBe('CoCalc')
+                expect(resp?.results?[0]).toExcludeKey('email_address')
+                done(err)
+
+    it "searches by email and first and last name prefixes", (done) ->
+        api.call
+            event : 'user_search'
+            body  :
+                query : 'coc sag,cocalc@sagemath.com'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('user_search_results')
+                expect(resp?.results?.length).toBe(2)
+                done(err)
