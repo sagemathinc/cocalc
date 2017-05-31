@@ -176,6 +176,10 @@ SUPPORT_LINKS =
         bold : true
         href : WIKI_URL
         link : <span><SiteName/> documentation</span>
+    docker_image:
+        icon : 'window-maximize'
+        href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
+        link : <span>Docker image for offline usage</span>
     courses :
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
@@ -208,7 +212,7 @@ CONNECT_LINKS =
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
         text : <span>
-                 <a href='https://github.com/sagemathinc/cocalc/src' target='_blank'>source code</a>,{' '}
+                 <a href='https://github.com/sagemathinc/cocalc/tree/master/src' target='_blank'>source code</a>,{' '}
                  <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank'>bugs</a>
                  {' and '}
                  <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank'>issues</a>
