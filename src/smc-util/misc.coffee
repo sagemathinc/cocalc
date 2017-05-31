@@ -52,6 +52,7 @@
 
 
 _ = underscore = require('underscore')
+PropTypes = require('prop-types')
 
 if process?.env?.DEVEL and not process?.env?.SMC_TEST
     # Running on node and DEVEL is set and not running under test suite
@@ -170,6 +171,17 @@ exports.min_object = (target, upper_bounds) ->
         target = {}
     for prop, val of upper_bounds
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
+
+# Checks property types on a target object with checkers in a declaration.
+# Declarations should return an Error for mismatches and undefined if OK.
+types = exports.types = (target, declaration, identifier="misc.types") ->
+    if typeof target != 'object'
+        throw new Error("Types was given a non-object to check")
+
+    if typeof declaration != 'object'
+        throw new Error("Types was given a #{typeof declaration} as a declaration instead of an object")
+
+    PropTypes.checkPropTypes(declaration, target, 'checking a', identifier)
 
 # Returns a new object with properties determined by those of obj1 and
 # obj2.  The properties in obj1 *must* all also appear in obj2.  If an
