@@ -98,7 +98,7 @@ exports.create_account = (opts) ->
                     if not token
                         cb()
                     else
-                        if token != mesg.token
+                        if token != opts.mesg.token
                             cb(token:"Incorrect registration token.")
                         else
                             cb()
