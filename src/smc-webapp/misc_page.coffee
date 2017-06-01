@@ -1799,3 +1799,23 @@ exports.clear_selection = ->
         window.getSelection().removeAllRanges() # firefox
     else
         document.selection?.empty?()
+
+# read the query string of the URL and transform it to a key/value map
+# based on: https://stackoverflow.com/a/4656873/54236
+# the main difference is that multiple identical keys are collected in an array
+# test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
+exports.get_query_params = ->
+    vars = {}
+    href = window.location.href
+    for part in href.slice(href.indexOf('?') + 1).split('&')
+        [k, v] = part.split('=')
+        if vars[k]?
+            if not Array.isArray(vars[k])
+                vars[k] = [vars[k]]
+            vars[k] = vars[k].concat(v)
+        else
+            vars[k] = v ? true
+    return vars
+
+exports.get_query_param = (p) ->
+    return exports.get_query_params()[p]
