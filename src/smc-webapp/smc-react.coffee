@@ -456,16 +456,27 @@ connect_component = (spec) =>
     return connect(map_state_to_props)
 
 ###
+Takes an object to create a reactClass or a function which returns such an object.
+
+Objects should be shaped like a react class save for a few exceptions:
+x.reduxProps =
+    redux_store_name :
+        fields : value_type
+        name   : type
+
+x.actions must not be defined.
 
 ###
 react_component = (x) ->
     if typeof x == 'function'
-        # Enhance the return value of x with an HOC
+        # Creates a react class that wraps the eventual component.
+        # It calls the generator function with props as a parameter
+        # and caches the result based on reduxProps
         cached = React.createClass
             # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
-                # OPTIMIZATION: check for cached the keys in props
+                # OPTIMIZATION: Cache props before generating a new key.
                 # currently assumes making a new object is fast enough
                 definition = x(@props)
                 key = misc.keys(definition.reduxProps).sort().join('')

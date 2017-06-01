@@ -27,4 +27,3 @@ describe 'test a basic type check -- ', ->
         warn.should.have.callCount(1)
         warn.getCall(0).args[0].should.match('Warning: Failed checking a type: Invalid checking a `a` of type `number` supplied to `check.types`, expected `string`.')
 
-    
