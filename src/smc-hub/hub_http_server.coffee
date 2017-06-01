@@ -259,7 +259,9 @@ exports.init_express_http_server = (opts) ->
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(opts.base_url + "/app#" + req.path.slice(1))
+        url = require('url')
+        q = url.parse(req.url, true).search # gives exactly "?key=value,key=..."
+        res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
 
     # Return global status information about smc
     router.get '/stats', (req, res) ->

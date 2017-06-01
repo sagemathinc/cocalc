@@ -292,3 +292,8 @@ webapp_client.on "connecting", () ->
 
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
+
+# enable fullscreen mode upon a URL like /app?fullscreen
+misc_page = require('./misc_page')
+if misc_page.get_query_param('fullscreen')
+    redux.getActions('page').set_fullscreen(true)
