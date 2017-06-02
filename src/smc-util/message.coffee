@@ -1144,19 +1144,6 @@ functions don't even assume the client has
 logged in.
 ###
 
-# return a JSON object with all data that is
-# meant to be publically available about this project,
-# who owns it, the title/description, etc.
-API message
-    event         : 'public_get_project_info'
-    id            : undefined
-    project_id    : required
-
-API message
-    event         : 'public_project_info'
-    id            : undefined
-    info          : required
-
 # public request of listing of files in a project.
 API message
     event         : 'public_get_directory_listing'
