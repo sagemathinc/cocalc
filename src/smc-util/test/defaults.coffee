@@ -1,3 +1,11 @@
+###############################################################################
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
+###############################################################################
+
 ###
 Test opts defaults handling code
 ###
@@ -30,7 +38,6 @@ describe "default", ->
         global.DEBUG = @debug_orig
 
     beforeEach =>
-        console.log 'he'
         @console_debug_stub = sinon.stub(global.console, "warn")
         @console_trace_stub = sinon.stub(global.console, "trace")
 

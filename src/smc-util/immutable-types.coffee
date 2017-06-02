@@ -1,3 +1,11 @@
+###############################################################################
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
+###############################################################################
+
 ###
 Custom Prop Validation for immutable.js types, so they work just like other
 React prop-types.
@@ -32,9 +40,9 @@ check_is_immutable = (props, propName, componentName="ANONYMOUS", location, prop
     else
         type = typeof props[propName]
         return new Error(
-            "Invalid prop '#{propName}' of" +
+            "Invalid prop `#{propName}` of" +
             " type #{type} supplied to" +
-            " '#{componentName}', expected an immutable collection or frozen object."
+            " `#{componentName}`, expected an immutable collection or frozen object."
         )
 
 allow_isRequired = (validate) ->
@@ -60,7 +68,7 @@ create_immutable_type_required_chain = (validate) ->
                 return null
             else
                 return new Error(
-                    "Component '#{componentName}'" +
+                    "Component `#{componentName}`" +
                     " expected #{propName} to be an immutable.#{T}" +
                     " but was supplied #{props[propName]}"
                 )
