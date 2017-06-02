@@ -745,11 +745,34 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-API message
+API message2
     event        : 'read_text_file_from_project'
-    id           : undefined
-    project_id   : required
-    path         : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing file to be read'
+        path:
+            init  : required
+            desc  : 'path to file to be read in target project'
+    desc: """
+Read a text file in the project whose id is supplied.
+User must be owner or collaborator in the target project.
+Argument 'path' is relative to home directory in target project.
+Unix user in the target project must have permissions to read file
+and containing directories if they do not already exist.
+
+Example:
+
+Read a text file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Assignments/A1/h1.txt \
+    https://cocalc.com/api/v1/read_text_file_from_project
+  ==> {"event":"text_file_read_from_project","id":"481d6055-5609-450f-a229-480e518b2f84","content":"hello"}
+"""
 
 # hub --> client
 message
