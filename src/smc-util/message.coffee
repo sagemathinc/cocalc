@@ -100,6 +100,9 @@ Additional notes:
 - If API message options are sent as JSON, the message must be sent with
   a request header of "Content-Type: application/json".
 
+- See also: API mocha test suite:
+  https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api
+
 ###
 
 ############################################
@@ -771,12 +774,38 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-API message
+API message2
     event        : 'write_text_file_to_project'
-    id           : undefined
-    project_id   : required
-    path         : required
-    content      : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project where file is created'
+        path:
+            init  : required
+            desc  : 'path to file, relative to home directory in destination project'
+        content:
+            init  : required
+            desc  : 'contents of the text file to be written'
+    desc:"""
+Create a text file in the target project.
+User must be owner or collaborator in the target project.
+Directories containing the file are created if they do not exist already.
+Unix user in the target project must have permissions to create file
+and containing directories if they do not already exist.
+If a file already exists at the destination path, it is overwritten.
+
+Example:
+
+Create a text file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d "content=hello$'\n'world" \
+    -d path=Assignments/A1/h1.txt \
+    https://cocalc.com/api/v1/write_text_file_to_project
+"""
 
 # The file_written_to_project message is sent by a project_server to
 # confirm successful write of the file to the project.
@@ -1394,14 +1423,14 @@ Example of 'set' query.
 
 Set title and description for a project, given the project id.
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
-                               "title":"REVISED TITLE", \
-                               "description":"REVISED DESC"}}}' \
-     https://cocalc.com/api/v1/query
-     ==> {"event":"query",
-          "query":{},
-          "multi_response":false,
-          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
+                              "title":"REVISED TITLE", \
+                              "description":"REVISED DESC"}}}' \
+    https://cocalc.com/api/v1/query
+    ==> {"event":"query",
+         "query":{},
+         "multi_response":false,
+         "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
 
 Information on which fields are gettable and settable in the database tables
 via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
