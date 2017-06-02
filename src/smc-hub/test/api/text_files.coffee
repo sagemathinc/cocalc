@@ -25,6 +25,7 @@ describe 'testing text file operations -- ', ->
                 done(err)
 
     it "creates a text file", (done) ->
+        @timeout 10000
         api.call
             event : 'write_text_file_to_project'
             body  :
