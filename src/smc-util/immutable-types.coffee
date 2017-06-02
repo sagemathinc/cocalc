@@ -27,7 +27,6 @@ Check React lib to see if this has changed.
 ###
 
 check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
-#    locationName = ReactPropTypeLocationNames[location]
     if not props[propName]? or props[propName].toJS?
         return null
     else
@@ -41,7 +40,7 @@ check_is_immutable = (props, propName, componentName="ANONYMOUS", location, prop
 allow_isRequired = (validate) ->
     check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
         if not props[propName]? and isRequired
-            return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
+            return new Error("Required prop `#{propName}` was not specified in `#{componentName}`")
         return validate(props, propName, componentName, location)
 
     chainedCheckType = check_type.bind(null, false)
