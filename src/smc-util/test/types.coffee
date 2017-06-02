@@ -11,6 +11,9 @@ Test type checking functionality
 
 NOTE: You can't use `mocha -w` to work on this file, because it doesn't reset the warnings
 internally between runs.
+
+NOTE2: Some object key names are slightly different from others due to working around
+https://github.com/facebook/react/issues/6293
 ###
 
 {types} = require('../opts')
