@@ -1,5 +1,5 @@
 ###
-Using API to interact with a project
+Testing API functions relating to users and user accounts
 ###
 
 api   = require('./apitest')
