@@ -100,6 +100,9 @@ Additional notes:
 - If API message options are sent as JSON, the message must be sent with
   a request header of "Content-Type: application/json".
 
+- See also: API mocha test suite:
+  https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api
+
 ###
 
 ############################################
@@ -742,11 +745,34 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-API message
+API message2
     event        : 'read_text_file_from_project'
-    id           : undefined
-    project_id   : required
-    path         : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing file to be read'
+        path:
+            init  : required
+            desc  : 'path to file to be read in target project'
+    desc: """
+Read a text file in the project whose id is supplied.
+User must be owner or collaborator in the target project.
+Argument 'path' is relative to home directory in target project.
+Unix user in the target project must have permissions to read file
+and containing directories if they do not already exist.
+
+Example:
+
+Read a text file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Assignments/A1/h1.txt \
+    https://cocalc.com/api/v1/read_text_file_from_project
+  ==> {"event":"text_file_read_from_project","id":"481d6055-5609-450f-a229-480e518b2f84","content":"hello"}
+"""
 
 # hub --> client
 message
@@ -771,12 +797,38 @@ message
 # create) a plain text file (binary files not allowed, since sending
 # them via JSON makes no sense).
 # client --> hub
-API message
+API message2
     event        : 'write_text_file_to_project'
-    id           : undefined
-    project_id   : required
-    path         : required
-    content      : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project where file is created'
+        path:
+            init  : required
+            desc  : 'path to file, relative to home directory in destination project'
+        content:
+            init  : required
+            desc  : 'contents of the text file to be written'
+    desc:"""
+Create a text file in the target project.
+User must be owner or collaborator in the target project.
+Directories containing the file are created if they do not exist already.
+Unix user in the target project must have permissions to create file
+and containing directories if they do not already exist.
+If a file already exists at the destination path, it is overwritten.
+
+Example:
+
+Create a text file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d "content=hello$'\n'world" \
+    -d path=Assignments/A1/h1.txt \
+    https://cocalc.com/api/v1/write_text_file_to_project
+"""
 
 # The file_written_to_project message is sent by a project_server to
 # confirm successful write of the file to the project.
@@ -1092,43 +1144,87 @@ functions don't even assume the client has
 logged in.
 ###
 
-# return a JSON object with all data that is
-# meant to be publically available about this project,
-# who owns it, the title/description, etc.
-API message
-    event         : 'public_get_project_info'
-    id            : undefined
-    project_id    : required
-
-API message
-    event         : 'public_project_info'
-    id            : undefined
-    info          : required
-
 # public request of listing of files in a project.
-API message
+API message2
     event         : 'public_get_directory_listing'
-    id            : undefined
-    project_id    : required
-    path          : required
-    hidden        : false   # show hidden files
-    time          : false   # sort by timestamp, with newest first?
-    start         : 0
-    limit         : -1
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing public file to be read'
+        path:
+            init  : required
+            desc  : 'path of directory in target project'
+        hidden:
+            init  : false
+            desc  : 'show hidden files'
+        time:
+            init  : false
+            desc  : 'sort by timestamp, with newest first'
+        start:
+            init  : 0
+            desc  : ''
+        limit:
+            init  : -1
+            desc  : ''
+    desc:"""
+Given a project id and relative path (i.e. not beginning with a slash),
+list all public files and subdirectories under that path.
+Path is required, but may be the empty string, in which case
+a public listing of the home directory in the target project is
+returned.
 
-API message
+Examples:
+
+Get
+"""
+
+message
     event         : 'public_directory_listing'
     id            : undefined
     result        : required
 
 # public request of contents of a text file in project
-API message
+API message2
     event         : 'public_get_text_file'
-    id            : undefined
-    project_id    : required
-    path          : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing public file to be read'
+        path:
+            init  : required
+            desc  : 'path to file to be read in target project'
+    desc: """
+Read a public (shared) text file in the project whose id is supplied.
+User does not need to be owner or collaborator in the target project
+and does not need to be logged into CoCalc.
+Argument 'path' is relative to home directory in target project.
 
-API message
+Examples
+
+Read a public file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Public/hello.txt
+    https://cocalc.com/api/v1/public_get_text_file
+  ==> {"event":"public_text_file_contents","id":"2d0e2faa-893a-44c1-9f64-59203bbbb017","data":"hello world\nToday is Friday\n"}
+
+Attempt to read a file which is not public.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Private/hello.txt
+    https://cocalc.com/api/v1/public_get_text_file
+  ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
+       "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}+
+
+"""
+
+message
     event         : 'public_text_file_contents'
     id            : undefined
     data          : required
@@ -1394,14 +1490,14 @@ Example of 'set' query.
 
 Set title and description for a project, given the project id.
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
-                               "title":"REVISED TITLE", \
-                               "description":"REVISED DESC"}}}' \
-     https://cocalc.com/api/v1/query
-     ==> {"event":"query",
-          "query":{},
-          "multi_response":false,
-          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
+                              "title":"REVISED TITLE", \
+                              "description":"REVISED DESC"}}}' \
+    https://cocalc.com/api/v1/query
+    ==> {"event":"query",
+         "query":{},
+         "multi_response":false,
+         "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
 
 Information on which fields are gettable and settable in the database tables
 via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
