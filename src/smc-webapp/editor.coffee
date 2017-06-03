@@ -150,12 +150,12 @@ for ext, mode of codemirror_associations
         name = name.slice(i+2)
     name = name.replace('src','')
     icon = switch mode
-                when 'python'
-                    'cc-icon-python'
-                when 'coffeescript'
-                    'fa-coffee'
-                else
-                    'fa-file-code-o'
+        when 'python'
+            'cc-icon-python'
+        when 'coffeescript'
+            'fa-coffee'
+        else
+            'fa-file-code-o'
     if ext in ['r', 'rmd']
         icon = 'cc-icon-r'
     file_associations[ext] =
@@ -512,8 +512,16 @@ exports.file_options = (filename, content) ->   # content may be undefined
         x = file_associations[ext]
     if not x?
         x = file_associations['']
+        # Don't use the icon for this fallback, to give the icon selection below a chance to work;
+        # we do this so new react editors work.  All this code will go away someday.
+        delete x.icon
     if not x.icon?
-        x.icon = 'fa-file-o'
+        # Use the new react editor icons first, if they exist...
+        icon = require('./project_file').icon(ext)
+        if icon?
+            x.icon = 'fa-' + icon
+        else
+            x.icon = 'fa-file-code-o'
     return x
 
 SEP = "\uFE10"
