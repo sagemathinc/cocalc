@@ -49,3 +49,65 @@ describe 'testing text file operations -- ', ->
                 expect(resp?.event).toBe('text_file_read_from_project')
                 expect(resp?.content).toBe(content)
                 done(err)
+
+    it "tries to read a private file as public and fails", (done) ->
+        api.call
+            event : 'public_get_text_file'
+            body  :
+                project_id: project_id
+                path      : 'A1/h1.txt'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('error')
+                expect(resp?.error).toInclude('is not public')
+                done(err)
+
+    it "tries to read a nonexistent public file and fails", (done) ->
+        api.call
+            event : 'public_get_text_file'
+            body  :
+                project_id: project_id
+                path      : 'nonexistent.txt'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('error')
+                expect(resp?.error).toInclude('is not public')
+                done(err)
+
+    it "tries to list public files in a private project and fails", (done) ->
+        api.call
+            event : 'public_get_directory_listing'
+            body  :
+                project_id: project_id
+                path      : 'A1'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('error')
+                expect(resp?.error).toBe('not_public')
+                done(err)
+
+    it "uses the database to make a file public", (done) ->
+        api.db.user_query
+            account_id : api.account_id
+            query      : {public_paths:{project_id:project_id, path:'A1/h1.txt', description:'Handout #1'}}
+            cb         : done
+
+    it "reads a public text file in a project", (done) ->
+        api.call
+            event : 'public_get_text_file'
+            body  :
+                project_id: project_id
+                path      : 'A1/h1.txt'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('public_text_file_contents')
+                expect(resp?.data).toBe(content)
+                done(err)
+
+    it "lists public files in a public project", (done) ->
+        api.call
+            event : 'public_get_directory_listing'
+            body  :
+                project_id: project_id
+                path      : 'A1'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('public_directory_listing')
+                expect(resp?.result?.files?.length).toBe(1)
+                expect(resp?.result?.files?[0]).toIncludeKeys(['mtime','name','size'])
+                done(err)
