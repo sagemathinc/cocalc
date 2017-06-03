@@ -1145,29 +1145,86 @@ logged in.
 ###
 
 # public request of listing of files in a project.
-API message
+API message2
     event         : 'public_get_directory_listing'
-    id            : undefined
-    project_id    : required
-    path          : required
-    hidden        : false   # show hidden files
-    time          : false   # sort by timestamp, with newest first?
-    start         : 0
-    limit         : -1
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing public file to be read'
+        path:
+            init  : required
+            desc  : 'path of directory in target project'
+        hidden:
+            init  : false
+            desc  : 'show hidden files'
+        time:
+            init  : false
+            desc  : 'sort by timestamp, with newest first'
+        start:
+            init  : 0
+            desc  : ''
+        limit:
+            init  : -1
+            desc  : ''
+    desc:"""
+Given a project id and relative path (i.e. not beginning with a slash),
+list all public files and subdirectories under that path.
+Path is required, but may be the empty string, in which case
+a public listing of the home directory in the target project is
+returned.
 
-API message
+Examples:
+
+Get
+"""
+
+message
     event         : 'public_directory_listing'
     id            : undefined
     result        : required
 
 # public request of contents of a text file in project
-API message
+API message2
     event         : 'public_get_text_file'
-    id            : undefined
-    project_id    : required
-    path          : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project containing public file to be read'
+        path:
+            init  : required
+            desc  : 'path to file to be read in target project'
+    desc: """
+Read a public (shared) text file in the project whose id is supplied.
+User does not need to be owner or collaborator in the target project
+and does not need to be logged into CoCalc.
+Argument 'path' is relative to home directory in target project.
 
-API message
+Examples
+
+Read a public file.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Public/hello.txt
+    https://cocalc.com/api/v1/public_get_text_file
+  ==> {"event":"public_text_file_contents","id":"2d0e2faa-893a-44c1-9f64-59203bbbb017","data":"hello world\nToday is Friday\n"}
+
+Attempt to read a file which is not public.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    -d path=Private/hello.txt
+    https://cocalc.com/api/v1/public_get_text_file
+  ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
+       "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}+
+
+"""
+
+message
     event         : 'public_text_file_contents'
     id            : undefined
     data          : required
