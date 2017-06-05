@@ -24,6 +24,7 @@ exports.StudentProjectUpgrades = rclass
     getInitialState: ->
         upgrade_quotas : false
         upgrades       : undefined
+        upgrade_plan   : undefined
 
     get_upgrades: ->
         num_projects = @_num_projects
@@ -39,13 +40,6 @@ exports.StudentProjectUpgrades = rclass
         @setState(upgrade_quotas: false)
         delete @_initial_upgrades
         @actions(@props.name).upgrade_all_student_projects(@get_upgrades())
-
-    upgrade_quotas_submittable: ->
-        if @_upgrade_is_invalid
-            return false
-        @_initial_upgrades ?= @get_upgrades()
-        console.log @get_upgrades(), @_initial_upgrades
-        return not underscore.isEqual(@get_upgrades(), @_initial_upgrades)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -88,7 +82,7 @@ exports.StudentProjectUpgrades = rclass
                     ref        = {ref}
                     value      = {val}
                     bsStyle    = {bs_style}
-                    onChange   = {=>u=@state.upgrades; u[quota] = ReactDOM.findDOMNode(@refs[ref]).value; @setState(upgrades:u)}
+                    onChange   = {=>u=@state.upgrades; u[quota] = ReactDOM.findDOMNode(@refs[ref]).value; @setState(upgrades:u); @update_plan()}
                 />
                 {label}
             </FormGroup>
@@ -104,7 +98,7 @@ exports.StudentProjectUpgrades = rclass
                 <Checkbox
                     ref      = {ref}
                     checked  = {val > 0}
-                    onChange = {(e)=>u=@state.upgrades; u[quota] = (if e.target.checked then 1 else 0); @setState(upgrades:u)}
+                    onChange = {(e)=>u=@state.upgrades; u[quota] = (if e.target.checked then 1 else 0); @setState(upgrades:u); @update_plan()}
                     />
                 {label}
             </form>
@@ -223,6 +217,9 @@ exports.StudentProjectUpgrades = rclass
             <hr/>
             {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
             {@render_upgrade_submit_buttons()}
+            <div style={marginTop:'15px'}>
+                {@render_upgrade_plan()}
+            </div>
             {@render_admin_upgrade() if redux.getStore('account').get('groups')?.contains('admin')}
         </Alert>
 
@@ -256,9 +253,9 @@ exports.StudentProjectUpgrades = rclass
             <Button
                 bsStyle  = 'primary'
                 onClick  = {@save_upgrade_quotas}
-                disabled = {not @upgrade_quotas_submittable()}
+                disabled = {not @state.upgrade_plan? or misc.len(@state.upgrade_plan) == 0}
             >
-                <Icon name='arrow-circle-up' /> Save changes
+                <Icon name='arrow-circle-up' /> Apply changes
             </Button>
             <Button onClick={=>@setState(upgrade_quotas:false)}>
                 Cancel
@@ -267,6 +264,24 @@ exports.StudentProjectUpgrades = rclass
 
     adjust_quotas: ->
         @setState(upgrade_quotas:true, upgrades:{})
+
+    update_plan: ->
+        # TODO: do we need to debounce?
+        plan = @props.redux.getStore(@props.name).get_upgrade_plan(@state.upgrades)
+        @setState(upgrade_plan: plan)
+
+    render_upgrade_plan: ->
+        if not @state.upgrade_plan?
+            return
+        n = misc.len(@state.upgrade_plan)
+        if n == 0
+            <span>
+                The upgrade requested above are already applied to all student projects.
+            </span>
+        else
+            <span>
+                 {n} of the student projects will have their upgrades changed when you click the Apply button.
+            </span>
 
     render_upgrade_quotas_button: ->
         <Button bsStyle='primary' onClick={@adjust_quotas}>

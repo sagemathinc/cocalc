@@ -342,6 +342,7 @@ class ProjectsActions extends Actions
     # - upgrades is a map from upgrade parameters to integer values.
     # - The upgrades get merged into any other upgrades this user may have already applied.
     apply_upgrades_to_project: (project_id, upgrades) =>
+        misc.assert_uuid(project_id)
         @redux.getTable('projects').set
             project_id : project_id
             users      :
@@ -353,6 +354,7 @@ class ProjectsActions extends Actions
             upgrades : upgrades
 
     clear_project_upgrades: (project_id) =>
+        misc.assert_uuid(project_id)
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     save_project: (project_id) =>
@@ -1469,3 +1471,4 @@ exports.ProjectTitleAuto = rclass
         <Redux redux={redux}>
             <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
         </Redux>
+

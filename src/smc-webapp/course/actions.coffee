@@ -685,14 +685,19 @@ exports.CourseActions = class CourseActions extends Actions
             @delete_project(student_id)
         @set_activity(id:id)
 
-    # upgrades is a map from the quota type to the new quota to be applied by the instructor.
-    upgrade_all_student_projects: (upgrades) =>
-        id = @set_activity(desc:"Upgrading all student projects...")
+    # upgrade_goal is a map from the quota type to the goal quota the instructor wishes
+    # to get all the students to.
+    upgrade_all_student_projects: (upgrade_goal) =>
         store = @get_store()
         if not store?
-            @set_activity(id:id)
             return
-        for project_id in store.get_student_project_ids()
+        plan = store.get_upgrade_plan(upgrade_goal)
+        if misc.len(plan) == 0
+            # nothing to do
+            return
+        id = @set_activity(desc:"Adjusting upgrades on #{misc.len(plan)} student projects...")
+        for project_id, upgrades of plan
+            @redux.getActions('projects').clear_project_upgrades(project_id)
             @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
         @set_activity(id:id)
 
