@@ -51,10 +51,15 @@ exports.current_student_project_upgrades = (opts) ->
         users = opts.project_map.getIn([project_id, 'users'])
         if not users?
             continue
-        x = {}
-        users.forEach (upgrades, user_id) ->
+        x = undefined
+        users.forEach (info, user_id) ->
             if user_id == opts.account_id
                 return
-            x = misc.map_sum(upgrades.toJS(), x)
+            upgrades = info.get('upgrades')?.toJS()
+            if not upgrades?
+                return
+            x = misc.map_sum(upgrades, x ? {})
+            return
         if x?
             other[project_id] = x
+    return other
