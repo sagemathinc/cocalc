@@ -1,3 +1,11 @@
+###############################################################################
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
+###############################################################################
+
 ###
 Handling of input opts to functions and type checking.
 ###

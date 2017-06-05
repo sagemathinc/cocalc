@@ -34,6 +34,11 @@ file_editors =
     true  : {}    # true = is_public
     false : {}    # false = not public
 
+exports.icon = (ext) ->
+    # Return the icon for the given extension, if it is defined here,
+    # with preference for non-public icon; returns undefined otherwise.
+    return (file_editors[false] ? file_editors[true])?[ext]?.icon
+
 ###
 ext       : string|array[string] to associate the editor with
 component : rclass|function

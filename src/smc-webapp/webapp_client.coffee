@@ -30,7 +30,12 @@ if window?
         window.app_base_url = ""
 
     if window.location.hash.length > 1
-        window.smc_target = decodeURIComponent(window.location.hash.slice(1))
+        q = decodeURIComponent(window.location.hash.slice(1))
+        # the location hash could again contain a query param, hence this
+        i = q.indexOf('?')
+        if i >= 0
+            q = q.slice(0, i)
+        window.smc_target = q
 
     client_browser = require('client_browser')
     exports.webapp_client = client_browser.connect()

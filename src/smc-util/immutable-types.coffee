@@ -1,3 +1,11 @@
+###############################################################################
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
+###############################################################################
+
 ###
 Custom Prop Validation for immutable.js types, so they work just like other
 React prop-types.
@@ -27,21 +35,20 @@ Check React lib to see if this has changed.
 ###
 
 check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
-#    locationName = ReactPropTypeLocationNames[location]
     if not props[propName]? or props[propName].toJS?
         return null
     else
         type = typeof props[propName]
         return new Error(
-            "Invalid prop '#{propName}' of" +
+            "Invalid prop `#{propName}` of" +
             " type #{type} supplied to" +
-            " '#{componentName}', expected an immutable collection or frozen object."
+            " `#{componentName}`, expected an immutable collection or frozen object."
         )
 
 allow_isRequired = (validate) ->
     check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
         if not props[propName]? and isRequired
-            return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
+            return new Error("Required prop `#{propName}` was not specified in `#{componentName}`")
         return validate(props, propName, componentName, location)
 
     chainedCheckType = check_type.bind(null, false)
@@ -61,7 +68,7 @@ create_immutable_type_required_chain = (validate) ->
                 return null
             else
                 return new Error(
-                    "Component '#{componentName}'" +
+                    "Component `#{componentName}`" +
                     " expected #{propName} to be an immutable.#{T}" +
                     " but was supplied #{props[propName]}"
                 )
