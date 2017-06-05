@@ -198,10 +198,10 @@ CONNECT_LINKS =
     twitter :
         icon : 'twitter-square'
         href : 'https://twitter.com/co_calc'
-        link : 'follow @co_calc on twitter'
+        link : 'Follow @co_calc on twitter'
     facebook :
         icon : 'facebook-square'
-        href : 'https://www.facebook.com/SageMathCloudOnline/'
+        href : 'https://www.facebook.com/CoCalcOnline/'
         link : 'Like our facebook page'
     google_plus :
         icon : 'google-plus-square'
