@@ -173,3 +173,16 @@ describe 'test the upgrade_plan -- ', ->
             upgrade_goal        : {quota0:4, quota1:3}
         expect(plan).toEqual("#{project_id}": {quota0:4, quota1:3}, "#{project_id2}": {quota0:1, quota1:1})
 
+
+    it 'with two student projects but one is already upgraded by account_id', ->
+        project_id = '0' + misc.uuid().slice(1)
+        project_id2 = '1' + misc.uuid().slice(1)
+        plan = upgrade_plan
+            account_id          : account_id
+            purchased_upgrades  : {quota0:5, quota1:4}
+            project_map         : immutable.fromJS({"#{project_id}": {users:{"#{account_id}":{upgrades:{quota0:1,quota1:2}}}, "#{project_id2}": {users:{}}}})
+            student_project_ids : {"#{project_id}": true, "#{project_id2}": true}
+            deleted_project_ids : {}
+            upgrade_goal        : {quota0:1, quota1:2}
+        expect(plan).toEqual("#{project_id2}": {quota0:1, quota1:2})
+

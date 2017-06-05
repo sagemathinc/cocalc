@@ -88,6 +88,10 @@ exports.upgrade_plan = (opts) ->
 
     If a student_project_id is missing from the output the contribution is 0; if a quota is
     missing, the contribution is 0.
+
+    The keys of the output map are **exactly** the ids of the projects where the current
+    allocation should be *changed*.   That said, we only consider quotas explicitly given
+    in the upgrade_goal map.
     ###
     # upgrades, etc., that student projects already have (which account_id did not provide)
     cur = exports.current_student_project_upgrades
@@ -116,7 +120,15 @@ exports.upgrade_plan = (opts) ->
                 have = Math.min(need, available[quota])
                 plan[project_id][quota] = have
                 available[quota] -= have
-
+        # is there an actual allocation change?  if not, we do not include this key.
+        alloc = opts.project_map.getIn([project_id, 'users', opts.account_id, 'upgrades'])?.toJS() ? {}
+        change = false
+        for quota, _ of opts.upgrade_goal
+            if (alloc[quota] ? 0) != (plan[project_id][quota] ? 0)
+                change = true
+                break
+        if not change
+            delete plan[project_id]
     return plan
 
 
