@@ -2994,6 +2994,12 @@ Terminal.prototype.insertChars = function(params) {
     // if (this.lines.length <= row) {
     //     continue;
     // }
+    // Question: How can you possibly have a problem because of running that code? It seems
+    // like if you don't have that commented out code, then the next line would
+    // cause a traceback? Answer: well, those tracebacks are there right now.
+    // With this code there, the output started to do weird things, repeating
+    // parts of the text, etc. So, I know this is a problem, but I don't
+    // want to fix it by making it worse.
     this.lines[row].splice(j++, 0, ch);
     this.lines[row].pop();
   }
