@@ -35,12 +35,26 @@ exports.available_upgrades = (opts) ->
 
 
 exports.current_student_project_upgrades = (opts) ->
-    opts = defaults opts,
-        account_id : required
+    types opts,
+        account_id          : types.string.isRequired         # id of a user
+        project_map         : types.immutable.Map.isRequired  # immutable.js map of data about projects
+        student_project_ids : types.object.isRequired         # map project_id:true with keys *all* student
     ###
     Return the total upgrades currently applied to each student project from
-    everybody except the user with given account_id.
+    everybody else except the user with given account_id.
 
-    This is a map {project_id:{quota0:x, quota1:y, ...}, ...}
+    This output is a map {project_id:{quota0:x, quota1:y, ...}, ...}; only projects with
+    actual upgrades are included.
     ###
-
+    other = {}
+    for project_id of opts.student_project_ids
+        users = opts.project_map.getIn([project_id, 'users'])
+        if not users?
+            continue
+        x = {}
+        users.forEach (upgrades, user_id) ->
+            if user_id == opts.account_id
+                return
+            x = misc.map_sum(upgrades.toJS(), x)
+        if x?
+            other[project_id] = x
