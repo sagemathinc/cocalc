@@ -656,12 +656,17 @@ exports.SearchInput = rclass
                 </InputGroup.Button>
             </InputGroup>
         </FormGroup>
+# Important:
+# Can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
+# with callbacks, and value for a controlled one!
+#    See http://facebook.github.io/react/docs/forms.html#controlled-components
 
 exports.MarkdownInput = rclass
     displayName : 'Misc-MarkdownInput'
 
     propTypes :
         default_value : rtypes.string
+        value         : rtypes.string
         on_change     : rtypes.func
         on_save       : rtypes.func   # called when saving from editing and switching back
         on_edit       : rtypes.func   # called when editing starts
@@ -699,19 +704,10 @@ exports.MarkdownInput = rclass
 
     render: ->
         if @state.editing
-
             tip = <span>
                 You may enter (Github flavored) markdown here.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.
             </span>
-
             <div>
-                <ButtonToolbar style={paddingBottom:'5px'}>
-                    <Button key='save' bsStyle='success' onClick={@save}
-                            disabled={@state.value == @props.default_value}>
-                        <Icon name='edit' /> Save
-                    </Button>
-                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
-                </ButtonToolbar>
                 <form onSubmit={@save} style={marginBottom: '-20px'}>
                     <FormGroup>
                         <FormControl autoFocus
@@ -730,11 +726,18 @@ exports.MarkdownInput = rclass
                         Format using <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>
                     </Tip>
                 </div>
+                <ButtonToolbar style={paddingBottom:'5px'}>
+                    <Button key='save' bsStyle='success' onClick={@save}
+                            disabled={@state.value == @props.default_value}>
+                        <Icon name='edit' /> Save
+                    </Button>
+                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
+                </ButtonToolbar>
             </div>
         else
             <div>
-                {<Button onClick={@edit}>Edit</Button>}
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
+                <Button onClick={@edit}>Edit</Button>
             </div>
 
 exports.HTML = rclass
