@@ -11,7 +11,7 @@ def pytest_generate_tests(metafunc):
     # nsk = list of available non-sage kernel names
     # skip first line of command output, "Available kernels"
     else:
-        v = map(str.strip, os.popen("jupyter kernelspec list").readlines())
+        v = [x.strip() for x in os.popen("jupyter kernelspec list").readlines()]
         nsk = [x.split()[0] for x in v[1:] if not x.startswith('sage')]
         metafunc.parametrize("kname", nsk)
 
