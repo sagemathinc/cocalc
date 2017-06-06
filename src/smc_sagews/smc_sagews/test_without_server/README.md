@@ -12,10 +12,10 @@
 ```
 cd cocalc/src/smc_sagews/smc_sagews/test_without_server
 
-# test all jupyter_client launch of all 15 non-sage kernels
+# test jupyter_client launch of all 15 non-sage kernels
 python -m pytest
 
-# test all jupyter_client launch of selected kernels
+# test selected kernels
 python -m pytest --kname=anaconda3,singular
 
 # look for failed tests
