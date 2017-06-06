@@ -27,7 +27,7 @@ misc = require('smc-util/misc')
 {webapp_client} = require('../webapp_client')
 
 # React libraries and Components
-{React, rclass, rtypes, ReactDOM}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, Row, Col,
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
@@ -36,6 +36,8 @@ misc = require('smc-util/misc')
      Space, TextInput, TimeAgo, Tip} = require('../r_misc')
 
 {StudentProjectUpgrades} = require('./upgrades')
+{HelpBox} = require('./help_box')
+{DeleteStudentsPanel} = require('./delete_students')
 
 StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
@@ -177,7 +179,6 @@ exports.SettingsPanel = rclass
         project_map : rtypes.immutable.Map.isRequired
 
     getInitialState: ->
-        delete_student_projects_confirm : false
         show_students_pay_dialog        : false
 
     ###
@@ -313,34 +314,6 @@ exports.SettingsPanel = rclass
         </Panel>
 
     ###
-    # Help box
-    ###
-    render_help: ->
-        <Panel header={<h4><Icon name='question-circle' />  Help</h4>}>
-            <span style={color:"#666"}>
-                <ul>
-                    <li>
-                        <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">
-                            A tutorial for anyone wanting to use CoCalc for teaching
-                        </a> (by Mike Croucher)
-                    </li>
-                    <li>
-                        <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
-                            Grading Courses <Icon name='external-link'/></a> (by Rob Beezer)
-                    </li>
-                    <li>
-                        <a href="http://www.beezers.org/blog/bb/2016/01/pennies-a-day-for-sagemathcloud/" target="_blank">
-                            Course Plans and teaching experiences <Icon name='external-link'/></a> (by Rob Beezer)
-                    </li>
-                    <li>
-                        <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
-                            Course Management and collaborative Jupyter Notebooks <Icon name='external-link'/></a> (by Tony Hirst)
-                    </li>
-                </ul>
-            </span>
-        </Panel>
-
-    ###
     # Custom invitation email body
     ###
 
@@ -362,22 +335,6 @@ exports.SettingsPanel = rclass
             </span>
         </Panel>
 
-    ###
-    # Deleting student projects
-    ###
-
-    delete_all_student_projects: ->
-        @actions(@props.name).delete_all_student_projects()
-
-    render_confirm_delete_student_projects: ->
-        <Well style={marginTop:'10px'}>
-            All student projects will be deleted.  Are you absolutely sure?
-            <ButtonToolbar style={marginTop:'10px'}>
-                <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:false); @delete_all_student_projects()}>YES, DELETE all Student Projects</Button>
-                <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>
-            </ButtonToolbar>
-        </Well>
-
     render_start_all_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
@@ -386,18 +343,6 @@ exports.SettingsPanel = rclass
             num_running_projects = {r}
             num_students         = {n}
         />
-
-    render_delete_all_projects: ->
-        <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
-            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}><Icon name="trash"/> Delete all Student Projects...</Button>
-            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
-            <hr/>
-            <span style={color:'#666'}>
-                If for some reason you would like to delete all the student projects
-                created for this course, you may do so by clicking below.
-                Be careful!
-            </span>
-        </Panel>
 
     ###
     Students pay
@@ -507,10 +452,12 @@ exports.SettingsPanel = rclass
                     <StudentProjectUpgrades name={@props.name} redux={@props.redux} upgrade_goal={@props.settings?.get('upgrade_goal')} />
                     {@render_save_grades()}
                     {@render_start_all_projects()}
-                    {@render_delete_all_projects()}
+                    <DeleteStudentsPanel
+                        delete = {@actions(@props.name).delete_all_student_projects}
+                        />
                 </Col>
                 <Col md=6>
-                    {@render_help()}
+                    <HelpBox/>
                     {@render_title_description()}
                     {@render_email_invite_body()}
                     <DisableStudentCollaboratorsPanel

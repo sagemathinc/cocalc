@@ -30,13 +30,11 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../smc-react')
 
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, Row, Col, Panel, Tabs, Tab} = require('react-bootstrap')
 
-{ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SelectorInput, Space, TimeAgo, NumberInput} = require('../r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SaveButton} = require('../r_misc')
 
 # Course components
 {CourseStore}        = require('./store')
