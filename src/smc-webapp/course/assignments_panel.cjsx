@@ -159,7 +159,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             />
 
         <Panel header={header}>
-            {@render_assignment_table_header()}
+            {@render_assignment_table_header() if shown_assignments.length > 0}
             {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>

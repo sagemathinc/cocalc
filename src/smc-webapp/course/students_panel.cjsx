@@ -371,7 +371,7 @@ exports.StudentsPanel = rclass ({name}) ->
     render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
-            {@render_student_table_header()}
+            {@render_student_table_header() if students.length > 0}
             {@render_students(students)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
