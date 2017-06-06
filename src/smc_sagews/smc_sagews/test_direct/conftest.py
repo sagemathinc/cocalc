@@ -26,8 +26,8 @@ import pytest
 import time
 from datetime import datetime
 
-report_json = os.path.expanduser('~/jclient-test-report.json')
-report_prom = os.path.expanduser('~/jclient-test-report.prom')
+report_json = os.path.expanduser('~/sagews-direct-test-report.json')
+report_prom = os.path.expanduser('~/sagews-direct-test-report.prom')
 results = []
 start_time = None
 
@@ -44,7 +44,7 @@ def pytest_unconfigure(config):
             with open(f2, 'r') as inf2:
                 outf1.write(inf2.read())
     data = {
-        'name'     : 'smc_sagews_jclient.test',
+        'name'     : 'sagews_direct.test',
         'version'  : 1,
         'start'    : str(start_time),
         'end'      : str(datetime.utcnow()),
@@ -63,7 +63,7 @@ def pytest_unconfigure(config):
     with open(report_prom_tmp, 'w') as prom:
         for (name, outcome, duration) in results:
             labels = 'name="{name}",outcome="{outcome}"'.format(**locals())
-            line = 'sagews_jclient_test{{{labels}}} {duration} {ts}'.format(**locals())
+            line = 'sagews_direct_test{{{labels}}} {duration} {ts}'.format(**locals())
             prom.write(line + '\n')
     # ... then atomically overwrite the real one
     os.rename(report_prom_tmp, report_prom)

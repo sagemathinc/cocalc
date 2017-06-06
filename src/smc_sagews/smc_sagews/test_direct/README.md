@@ -19,41 +19,33 @@ python -m pytest
 
 # test selected kernels
 python -m pytest --kname=anaconda3,singular
-
-# look for failed tests
-grep fail ~/jclient-test-report.prom
-
-# output:
-# sagews_jclient_test{name="compute[apache_toree_scala]",outcome="failed"} 16.109400034 1496753157000
 ```
 
 ### Test Results
 
-The test results will be stored in a machine-readable json file in `~/jclient-test-report.json`:
+Test results will be stored in machine-readable file `~/sagews-direct-test-report.json`:
 
 Example:
 
 ```
 {
- "start": "2017-06-05 12:50:09.620189", 
+ "start": "2017-06-06 14:40:43.066034",
+ "end": "2017-06-06 14:41:29.976735",
  "version": 1,
- "end": "2017-06-05 12:53:00.064441", 
- "name": "smc_sagews_jclient.test", 
+ "name": "sagews_direct.test",
  "fields": [
-  "name", 
-  "outcome", 
+  "name",
+  "outcome",
   "duration"
- ], 
+ ],
  "results": [
   [
-   "basic_timing", 
-   "passed", 
-   1.0065569877624512
-  ], 
+   "start_new_kernel[anaconda3]",
+   "passed",
+   2.9162349700927734
+  ],
   ...
-  ]
- }
 ```
 
-and `~/jclient-test-report.prom` for ingestion by Prometheus' node exporter.
+and `~/sagews-direct-test-report.prom` for ingestion by Prometheus' node exporter.
 
