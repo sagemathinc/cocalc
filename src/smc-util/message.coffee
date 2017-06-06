@@ -384,13 +384,6 @@ message
     id           : undefined
     error        : undefined
 
-# client <--> hub
-API message
-    event          : 'email_address_availability'
-    id             : undefined
-    email_address  : required
-    is_available   : undefined
-
 # client --> hub
 message
     id             : undefined
