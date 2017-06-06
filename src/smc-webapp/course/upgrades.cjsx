@@ -17,29 +17,30 @@ schema = require('smc-util/schema')
 
 
 exports.StudentProjectUpgrades = rclass
-    getDefaultProps: ->
-        name  : rtypes.string.isRequired
-        redux : rtypes.object.isRequired
+    propTypes: ->
+        name         : rtypes.string.isRequired
+        redux        : rtypes.object.isRequired
+        upgrade_goal : rtypes.immutable.Map
 
     getInitialState: ->
-        upgrade_quotas : false
+        upgrade_quotas : false       # true if display the quota upgrade panel
         upgrades       : undefined
         upgrade_plan   : undefined
 
-    get_upgrades: ->
-        num_projects = @_num_projects
-        upgrades = {}
+    upgrade_goal: ->
+        goal = {}
         for quota, val of @state.upgrades
             val = misc.parse_number_input(val, round_number=false)
-            if val*num_projects != @_your_upgrades[quota]
-                display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
-                upgrades[quota] = val / display_factor
-        return upgrades
+            display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
+            goal[quota] = val / display_factor
+        return goal
 
     save_upgrade_quotas: ->
         @setState(upgrade_quotas: false)
-        delete @_initial_upgrades
-        @actions(@props.name).upgrade_all_student_projects(@get_upgrades())
+        a = @actions(@props.name)
+        upgrade_goal = @upgrade_goal()
+        a.set_upgrade_goal(upgrade_goal)
+        a.upgrade_all_student_projects(upgrade_goal)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -48,7 +49,7 @@ exports.StudentProjectUpgrades = rclass
             </Col>
             {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
             <Col md=7>
-                <b style={fontSize:'11pt'}>Distribute upgrades equally to {num_projects} student {misc.plural(num_projects, 'project')} (amounts may be fractional)</b>
+                <b style={fontSize:'11pt'}>Distribute upgrades to your {num_projects} student {misc.plural(num_projects, 'project')} to get quota to the amount in this column (amounts may be decimals)</b>
             </Col>
         </Row>
 
@@ -206,9 +207,6 @@ exports.StudentProjectUpgrades = rclass
         for project_id in project_ids
             your_upgrades  = misc.map_sum(your_upgrades, projects_store.get_upgrades_you_applied_to_project(project_id))
             total_upgrades = misc.map_sum(total_upgrades, projects_store.get_total_project_upgrades(project_id))
-        # save for when we do the save
-        @_your_upgrades = your_upgrades
-        @_num_projects = num_projects
 
         <Alert bsStyle='warning'>
             <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
@@ -217,7 +215,7 @@ exports.StudentProjectUpgrades = rclass
             <hr/>
             {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
             {@render_upgrade_submit_buttons()}
-            <div style={marginTop:'15px'}>
+            <div style={marginTop:'15px', color: '#333'}>
                 {@render_upgrade_plan()}
             </div>
             {@render_admin_upgrade() if redux.getStore('account').get('groups')?.contains('admin')}
@@ -262,12 +260,19 @@ exports.StudentProjectUpgrades = rclass
             </Button>
         </ButtonToolbar>
 
+    # call this function to switch state from not viewing the upgrader to viewing the upgrader.
     adjust_quotas: ->
-        @setState(upgrade_quotas:true, upgrades:{})
+        upgrades     = @props.upgrade_goal?.toJS() ? {}
+        upgrade_plan = @props.redux.getStore(@props.name).get_upgrade_plan(upgrades)
+        for quota, val of upgrades
+            upgrades[quota] = val * schema.PROJECT_UPGRADES.params[quota].display_factor
+        @setState
+            upgrade_quotas : true
+            upgrades       : upgrades
+            upgrade_plan   : upgrade_plan
 
     update_plan: ->
-        # TODO: do we need to debounce?
-        plan = @props.redux.getStore(@props.name).get_upgrade_plan(@state.upgrades)
+        plan = @props.redux.getStore(@props.name).get_upgrade_plan(@upgrade_goal())
         @setState(upgrade_plan: plan)
 
     render_upgrade_plan: ->
@@ -276,7 +281,7 @@ exports.StudentProjectUpgrades = rclass
         n = misc.len(@state.upgrade_plan)
         if n == 0
             <span>
-                The upgrade requested above are already applied to all student projects.
+                The upgrades requested above are already applied to all student projects.
             </span>
         else
             <span>

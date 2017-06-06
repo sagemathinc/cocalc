@@ -340,9 +340,15 @@ class ProjectsActions extends Actions
     # Upgrades
     ###
     # - upgrades is a map from upgrade parameters to integer values.
-    # - The upgrades get merged into any other upgrades this user may have already applied.
-    apply_upgrades_to_project: (project_id, upgrades) =>
+    # - The upgrades get merged into any other upgrades this user may have already applied,
+    #   unless merge=false (the third option)
+    apply_upgrades_to_project: (project_id, upgrades, merge=true) =>
         misc.assert_uuid(project_id)
+        if not merge
+            # explicitly set every field not specified to 0
+            upgrades = misc.copy(upgrades)
+            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+                upgrades[quota] ?= 0
         @redux.getTable('projects').set
             project_id : project_id
             users      :

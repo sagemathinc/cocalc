@@ -189,6 +189,9 @@ exports.CourseActions = class CourseActions extends Actions
         @set_all_student_project_descriptions(description)
         @set_shared_project_description()
 
+    set_upgrade_goal: (upgrade_goal) =>
+        @_set(upgrade_goal:upgrade_goal, table:'settings')
+
     set_allow_collabs: (allow_collabs) =>
         @_set(allow_collabs:allow_collabs, table:'settings')
         @configure_all_projects()
@@ -355,7 +358,7 @@ exports.CourseActions = class CourseActions extends Actions
                         cb      : cb
             ], cb)
         id = @set_activity(desc:"Creating #{students.length} student projects (do not close this until done)")
-        async.mapLimit student_ids, 1, f, (err) =>
+        async.mapLimit student_ids, PARALLEL_LIMIT, f, (err) =>
             @set_activity(id:id)
             if err
                 @set_error("error creating student projects -- #{err}")
@@ -697,9 +700,8 @@ exports.CourseActions = class CourseActions extends Actions
             return
         id = @set_activity(desc:"Adjusting upgrades on #{misc.len(plan)} student projects...")
         for project_id, upgrades of plan
-            @redux.getActions('projects').clear_project_upgrades(project_id)
-            @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
-        @set_activity(id:id)
+            @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
+        setTimeout((=>@set_activity(id:id)), 5000)
 
     # Do an admin upgrade to all student projects.  This changes the base quotas for every student
     # project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do

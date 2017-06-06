@@ -504,7 +504,7 @@ exports.SettingsPanel = rclass
             <Row>
                 <Col md=6>
                     {@render_require_students_pay()}
-                    <StudentProjectUpgrades name={@props.name} redux={@props.redux} />
+                    <StudentProjectUpgrades name={@props.name} redux={@props.redux} upgrade_goal={@props.settings?.get('upgrade_goal')} />
                     {@render_save_grades()}
                     {@render_start_all_projects()}
                     {@render_delete_all_projects()}
