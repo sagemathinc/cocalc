@@ -100,7 +100,8 @@ webapp_client.on "remember_me_failed", () ->
 # the "remember_me" is set to be http-only and hence not accessible from javascript (security)
 {get_cookie, APP_BASE_URL} = require('./misc_page')
 # for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
-if misc.server_weeks_ago(4) > new Date("2017-05-20")
+# TODO the following is disabled -- https://github.com/sagemathinc/cocalc/issues/2051
+if false # misc.server_weeks_ago(4) > new Date("2017-05-20")
     redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 else
     redux.getActions('account').setState(has_remember_me : true)
