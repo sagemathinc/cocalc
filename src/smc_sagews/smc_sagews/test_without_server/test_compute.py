@@ -1,6 +1,7 @@
 import jupyter_client
 
 def test_compute(kname):
+    """try to launch one jupyter kernel"""
     try:
         km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kname, startup_timeout=10)
         assert km is not None

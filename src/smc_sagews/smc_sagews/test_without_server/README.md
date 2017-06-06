@@ -10,7 +10,7 @@
 ### Running the Tests
 
 ```
-cd smc/src/smc_sagews/smc_sagews/test_without_server
+cd cocalc/src/smc_sagews/smc_sagews/test_without_server
 
 # test all jupyter_client launch of all 15 non-sage kernels
 python -m pytest

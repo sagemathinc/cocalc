@@ -1,7 +1,9 @@
 def pytest_addoption(parser):
+    """specify comma-delimited list of kernel names to limit test"""
     parser.addoption("--kname", action="store", help="kernel name")
 
 def pytest_generate_tests(metafunc):
+    """default is to test all non-sage kernels listed with `jupyter kernelspec list`"""
     option_value = metafunc.config.option.kname
     if 'kname' in metafunc.fixturenames and option_value is not None:
         knames = option_value.split(',')
