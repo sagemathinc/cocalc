@@ -108,6 +108,7 @@ exports.SMC_Dropwrapper = rclass
             url : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
+            maxFilesize       : 10000
         , true
         return misc.merge(with_defaults, @props.config)
 
