@@ -33,23 +33,7 @@ misc = require('smc-util/misc')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 util = require('./util')
-
-selected_entry_style =
-    border        : '1px solid #aaa'
-    boxShadow     : '5px 5px 5px #999'
-    borderRadius  : '3px'
-    marginBottom  : '10px'
-    paddingBottom : '5px'
-    paddingTop    : '5px'
-
-note_style =
-    borderTop  : '3px solid #aaa'
-    marginTop  : '10px'
-    paddingTop : '5px'
-
-show_hide_deleted_style =
-    marginTop  : '20px'
-    float      : 'right'
+styles = require('./styles')
 
 exports.StudentsPanel = rclass ({name}) ->
     displayName: "CourseEditorStudents"
@@ -354,15 +338,15 @@ exports.StudentsPanel = rclass ({name}) ->
                      display_account_name={true}
                      />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted: (num_deleted, shown_students) ->
         if @state.show_deleted
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : shown_students.length > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
                     Hide {num_deleted} deleted students
                 </Tip>
             </Button>
         else
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : shown_students.length > 0)} onClick={=>@setState(show_deleted:true,search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Students are not deleted forever, even after you delete them.  Click this button to show any deleted students at the bottom of the list.  You can then click on the student and click undelete to bring the assignment back.">
                     Show {num_deleted} deleted students
                 </Tip>
@@ -371,9 +355,9 @@ exports.StudentsPanel = rclass ({name}) ->
     render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
-            {@render_student_table_header()}
+            {@render_student_table_header() if students.length > 0}
             {@render_students(students)}
-            {@render_show_deleted(num_deleted) if num_deleted}
+            {@render_show_deleted(num_deleted, students) if num_deleted}
         </Panel>
 
 exports.StudentsPanel.Header = rclass
@@ -630,7 +614,7 @@ Student = rclass
         return [header, @render_assignments_info_rows()]
 
     render_note: ->
-        <Row key='note' style={note_style}>
+        <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
                     Notes
@@ -752,7 +736,7 @@ Student = rclass
         </Row>
 
     render: ->
-        <Row style={if @state.more then selected_entry_style}>
+        <Row style={if @state.more then styles.selected_entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}
