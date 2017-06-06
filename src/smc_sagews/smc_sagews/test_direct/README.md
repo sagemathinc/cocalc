@@ -1,4 +1,6 @@
-# Unit test sagews without sage_server
+# Unit test sagews features directly
+
+(without sage_server)
 
 ## Goals
 
@@ -10,9 +12,9 @@
 ### Running the Tests
 
 ```
-cd cocalc/src/smc_sagews/smc_sagews/test_without_server
+cd cocalc/src/smc_sagews/smc_sagews/test_direct
 
-# test jupyter_client launch of all 15 non-sage kernels
+# test jupyter_client launch of all non-sage kernels
 python -m pytest
 
 # test selected kernels
