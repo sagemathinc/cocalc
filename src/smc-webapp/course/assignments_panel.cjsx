@@ -116,15 +116,15 @@ exports.AssignmentsPanel = rclass ({name}) ->
                     active_student_sort = {@props.active_student_sort}
                     />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted: (num_deleted, num_shown) ->
         if @state.show_deleted
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
                     Hide {num_deleted} deleted assignments
                 </Tip>
             </Button>
         else
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:true,search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:true,search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Assignments are not deleted forever even after you delete them.  Click this button to show any deleted assignments at the bottom of the list of assignments.  You can then click on the assignment and click undelete to bring the assignment back.">
                     Show {num_deleted} deleted assignments
                 </Tip>
@@ -161,7 +161,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
         <Panel header={header}>
             {@render_assignment_table_header() if shown_assignments.length > 0}
             {@render_assignments(shown_assignments)}
-            {@render_show_deleted(num_deleted) if num_deleted}
+            {@render_show_deleted(num_deleted, shown_assignments.length) if num_deleted}
         </Panel>
 
 exports.AssignmentsPanel.Header = rclass
