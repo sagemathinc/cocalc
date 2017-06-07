@@ -1,26 +1,14 @@
 ###############################################################################
-#                                                                             #
-#    SageMathCloud: A collaborative web-based interface to                    #
-#                   Sage, IPython, LaTeX and the Terminal.                    #
-#                                                                             #
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.                               #
-#                                                                             #
-#    This program is free software: you can redistribute it and/or modify     #
-#    it under the terms of the GNU General Public License as published by     #
-#    the Free Software Foundation, either version 3 of the License, or        #
-#    (at your option) any later version.                                      #
-#                                                                             #
-#    This program is distributed in the hope that it will be useful,          #
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
-#    GNU General Public License for more details.                             #
-#                                                                             #
-#    You should have received a copy of the GNU General Public License        #
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.    #
-#                                                                             #
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
 ###############################################################################
 
-misc = require('../misc.coffee')
+require('coffee-cache')
+
+misc = require('../misc')
 underscore = require('underscore')
 
 # ATTN: the order of these require statements is important,
@@ -123,6 +111,10 @@ describe "endswith", ->
         endswith("foo", "foobar").should.be.false()
     it "doesn't work with arrays", ->
         (-> endswith("foobar", ["aa", "ab"])).should.not.throw()
+    it "is false if either argument is undefined", ->
+        endswith(undefined, '...').should.be.false()
+        endswith('...', undefined).should.be.false()
+        endswith(undefined, undefined).should.be.false()
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
@@ -214,87 +206,6 @@ describe "min_object of target and upper_bound", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
         mo().should.be.eql []
-
-
-# Returns a new object with properties determined by those of obj1 and
-# obj2.  The properties in obj1 *must* all also appear in obj2.  If an
-# obj2 property has value "defaults.required", then it must appear in
-# obj1.  For each property P of obj2 not specified in obj1, the
-# corresponding value obj1[P] is set (all in a new copy of obj1) to
-# be obj2[P].
-
-describe "default", ->
-    d = misc.defaults
-    required = misc.required
-
-    before =>
-        @debug_orig = global.DEBUG
-        global.DEBUG = true
-
-    after =>
-        global.DEBUG = @debug_orig
-
-    beforeEach =>
-        @console_debug_stub = sinon.stub(global.console, "debug")
-        @console_trace_stub = sinon.stub(global.console, "trace")
-
-    afterEach =>
-        @console_trace_stub.restore()
-        @console_debug_stub.restore()
-
-    it "returns a new object", ->
-        o1 = {}; o2 = {}
-        d(o1, o2).should.not.be.exactly(o1).and.not.exactly(o2)
-
-    it "properties of obj1 must appear in obj2", ->
-        obj1 =
-            foo: 1
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        obj2 =
-            foo: 2
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        exp =
-            foo: 1
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        d(obj1, obj2).should.be.eql exp
-
-    it "raises exception for extra arguments", =>
-        obj1 = extra: true
-        obj2 = {}
-        (-> d(obj1, obj2)).should.throw /got an unexpected argument 'extra'/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={"extra":true}, obj2={})/
-
-    it "doesn't raises exception if extra arguments are allowed", =>
-        obj1 = extra: true
-        obj2 = {}
-        d(obj1, obj2, true)
-        @console_trace_stub.should.have.callCount 0
-        @console_debug_stub.should.have.callCount 0
-
-    it "raises an exception if obj2 has a `required` property but nothing in obj1", =>
-        obj1 = {}
-        obj2 =
-            r: required
-        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
-
-    it "raises an exception if obj2 has a `required` property but is undefined in obj1", =>
-        obj1 =
-            r: undefined
-        obj2 =
-            r: required
-        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
-
 
 describe 'merge', ->
     merge = misc.merge
@@ -635,14 +546,14 @@ describe "trunc", ->
     t = misc.trunc
     input = "abcdefghijk"
     it "shortens a string", ->
-        exp = "abcde..."
+        exp = "abcdefg…"
         t(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        t(input, 3).should.be.eql "..."
-        (-> t(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length below 1", ->
+        t(input, 1).should.be.eql "…"
+        (-> t(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        t(long).should.endWith("...").and.has.length 1024
+        t(long).should.endWith("…").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
     it "handles missing argument", ->
@@ -652,18 +563,31 @@ describe "trunc_left", ->
     tl = misc.trunc_left
     input = "abcdefghijk"
     it "shortens a string from the left", ->
-        exp = "...ghijk"
+        exp = "…efghijk"
         tl(input, 8).should.be.eql exp
-    it "raises an error when requested length below 3", ->
-        tl(input, 3).should.be.eql "..."
-        (-> tl(input, 2)).should.throw /must be >= 3/
-    it "defaults to lenght 1024", ->
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
+    it "defaults to length 1024", ->
         long = ("x" for [1..10000]).join("")
-        tl(long).should.startWith("...").and.has.length 1024
+        tl(long).should.startWith("…").and.has.length 1024
     it "handles empty strings", ->
         tl("").should.be.eql ""
     it "handles missing argument", ->
         should(tl()).be.eql undefined
+
+describe "trunc_middle", ->
+    tl = misc.trunc_middle
+    input = "abcdefghijk"
+    it "shortens a string in middle (even)", ->
+        exp = 'abc…hijk'
+        tl(input, 8).should.be.eql exp
+    it "shortens a string in middle (odd)", ->
+        exp = 'abc…ijk'
+        tl(input, 7).should.be.eql exp
+    it "raises an error when requested length less than 1", ->
+        tl(input, 1).should.be.eql "…"
+        (-> tl(input, 0)).should.throw /must be >= 1/
 
 describe "git_author", ->
     it "correctly formats the author tag", ->
@@ -729,6 +653,9 @@ describe "filename_extension", ->
     it "and an empty string if there is no extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
+    it "does not get confused by dots in the path", ->
+        fe('foo.bar/baz').should.be.exactly ''
+        fe('foo.bar/baz.ext').should.be.exactly 'ext'
 
 # TODO not really sure what retry_until_success should actually take care of
 # at least: the `done` callback of the mocha framework is called inside a passed in cb inside the function f
@@ -1100,6 +1027,13 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm().should.eql []
     it "correctly for $", ->
         pm("foo $bar$ batz").should.eql [[4, 9]]
+    it "works regarding issue #1795", ->
+        pm("$x_{x} x_{x}$").should.eql [[0, 13]]
+    it "ignores single $", ->
+        pm("$").should.eql []
+        pm("the amount is $100").should.eql []
+        pm("a $b$ and $").should.eql [[2, 5]]
+        pm("a $b$ and $ ignored").should.eql [[2, 5]]
     it "correctly works for multiline strings", ->
         s = """
             This is a $formula$ or a huge $$formula$$
@@ -1121,6 +1055,9 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
         pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
         pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
+        pm('\\begin{bmatrix}foobar\\end{bmatrix}').should.eql [[0, 34]]
+    it "is not triggered by unknown environments", ->
+        pm('\\begin{cmatrix}foobar\\end{cmatrix}').should.eql []
 
 describe "replace_all", ->
     ra = misc.replace_all
@@ -1238,6 +1175,37 @@ describe 'is_valid_email_address is', ->
     it "false for blabla", ->
         valid('blabla').should.be.false()
 
+describe 'separate_file_extension', ->
+    sfe = misc.separate_file_extension
+    it "splits filename.ext accordingly", ->
+        {name, ext} = sfe('foobar/filename.ext')
+        name.should.be.eql "foobar/filename"
+        ext.should.be.eql "ext"
+    it "ignores missing extensions", ->
+        {name, ext} = sfe('foo.bar/baz')
+        name.should.be.eql 'foo.bar/baz'
+        ext.should.be.eql ''
+
+describe 'change_filename_extension', ->
+    cfe = misc.change_filename_extension
+    it "changes a tex to pdf", ->
+        cfe('filename.tex', 'pdf').should.be.exactly 'filename.pdf'
+        cfe('/bar/baz/foo.png', 'gif').should.be.exactly '/bar/baz/foo.gif'
+    it "deals with missing extensions", ->
+        cfe('filename', 'tex').should.be.exactly 'filename.tex'
+
+describe 'path_to_tab', ->
+    it "appends editor- to the front of the string", ->
+        misc.path_to_tab('str').should.be.exactly 'editor-str'
+
+describe 'tab_to_path', ->
+    it "returns undefined if given undefined", ->
+        should(misc.tab_to_path()).be.undefined()
+    it "returns undefined if given a non-editor name", ->
+        should(misc.tab_to_path("non-editor")).be.undefined()
+    it "returns the string truncating editor-", ->
+        misc.tab_to_path("editor-path/name.thing").should.be.exactly "path/name.thing"
+
 describe 'suggest_duplicate_filename', ->
     dup = misc.suggest_duplicate_filename
     it "works with numbers", ->
@@ -1252,3 +1220,185 @@ describe 'suggest_duplicate_filename', ->
         dup('foo.bar').should.be.eql 'foo-1.bar'
     it "also works with weird corner cases", ->
         dup('asdf-').should.be.eql 'asdf--1'
+
+describe 'top_sort', ->
+    # Initialize DAG
+    DAG =
+        node1 : []
+        node0 : []
+        node2 : ["node1"]
+        node3 : ["node1", "node2"]
+    old_DAG_string = JSON.stringify(DAG)
+
+    it 'Returns a valid ordering', ->
+        expect misc.top_sort(DAG)
+        .toEqual ['node1', 'node0', 'node2', 'node3'] or
+            ['node0', 'node1', 'node2', 'node3']
+
+    it 'Omits graph sources when omit_sources:true', ->
+        expect misc.top_sort(DAG, omit_sources:true)
+        .toEqual ['node2', 'node3']
+
+    it 'Leaves the original DAG the same afterwards', ->
+        misc.top_sort(DAG)
+        expect JSON.stringify(DAG)
+        .toEqual old_DAG_string
+
+    DAG2 =
+        node0 : []
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects cycles and throws an error', ->
+        expect(() => misc.top_sort(DAG2)).toThrow("Store has a cycle in its computed values")
+
+    DAG3 =
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects a lack of sources and throws an error', ->
+        expect () => misc.top_sort(DAG3)
+        .toThrow("No sources were detected")
+
+describe 'create_dependency_graph', ->
+    store_def =
+        first_name : => "Joe"
+        last_name  : => "Smith"
+        full_name  : (first_name, last_name) => "#{@first_name} #{@last_name}"
+        short_name : (full_name) => @full_name.slice(0,5)
+
+    store_def.full_name.dependency_names = ['first_name', 'last_name']
+    store_def.short_name.dependency_names = ['full_name']
+
+    DAG_string = JSON.stringify
+        first_name : []
+        last_name  : []
+        full_name  : ["first_name", "last_name"]
+        short_name : ["full_name"]
+
+    it 'Creates a DAG with the right structure', ->
+        expect JSON.stringify(misc.create_dependency_graph(store_def))
+        .toEqual DAG_string
+
+describe 'bind_objects', ->
+    scope =
+        get   : () -> "cake"
+        value : "cake"
+
+    obj1 =
+        func11: () -> @get()
+        func12: () -> @value
+
+    obj2 =
+        func21: () -> @get()
+        func22: () -> @value
+
+    obj1.func11.prop = "cake"
+
+    result = misc.bind_objects(scope, [obj1, obj2])
+
+    it 'Binds all functions in a list of objects of functions to a scope', ->
+        for obj in result
+            for key, val of obj
+                expect(val()).toEqual("cake")
+
+    it 'Leaves the original object unchanged', ->
+        expect(=> obj1.func11()).toThrow(/get is not a function/)
+
+    it 'Preserves the toString of the original function', ->
+        expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
+
+    it 'Preserves properties of the original function', ->
+        expect(result[0].func11.prop).toEqual(obj1.func11.prop)
+
+    it 'Ignores non-function values', ->
+        scope =
+            value : "cake"
+
+        obj1 =
+            val : "lies"
+            func: () -> @value
+        [b_obj1] = misc.bind_objects(scope, [obj1])
+
+        expect(b_obj1.func()).toEqual("cake")
+        expect(b_obj1.val).toEqual("lies")
+
+describe 'test the date parser --- ', ->
+    it 'a date with a zone', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does nothing', ->
+        expect(misc.date_parser(undefined, "cocalc")).toEqual('cocalc')
+
+describe 'test ISO_to_Date -- ', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239") - 0).toEqual(1481508723239)
+
+    it 'a date without a zone and more digits (should default to utc)', ->
+        expect(misc.ISO_to_Date("2016-12-12T02:12:03.239417") - 0).toEqual(1481508723239)
+
+    it 'a non-date does NaN', ->
+        expect(isNaN(misc.ISO_to_Date("cocalc"))).toEqual(true)
+
+
+describe 'test converting to and from JSON for sending over a socket -- ', ->
+    it 'converts object involving various timestamps', ->
+        obj = {first:{now:new Date()}, second:{a:new Date(0), b:'2016-12-12T02:12:03.239'}}
+        expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
+
+describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
+    turl = misc.transform_get_url
+    it 'preserves "normal" URLs', ->
+        turl('http://example.com/file.tar.gz').should.eql  {command:'wget', args:["http://example.com/file.tar.gz"]}
+        turl('https://example.com/file.tar.gz').should.eql {command:'wget', args:["https://example.com/file.tar.gz"]}
+        turl('https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb').should.eql
+            command:'wget'
+            args:['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
+    it 'handles git@github urls', ->
+        u = turl('git@github.com:sagemath/sage.git')
+        u.should.eql {command: 'git', args: ["clone", "git@github.com:sagemath/sage.git"]}
+    it 'understands github "blob" urls', ->
+        # branch
+        turl('https://github.com/sagemath/sage/blob/master/README.md').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/sagemath/sage/master/README.md']
+        # specific commit
+        turl('https://github.com/sagemath/sage/blob/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/sagemath/sage/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md']
+    it 'git-clones everything that ends with ".git"', ->
+        turl('git://trac.sagemath.org/sage.git').should.eql
+            command: 'git'
+            args: ['clone', 'git://trac.sagemath.org/sage.git']
+    it 'and also git-clonse https:// addresses', ->
+        turl('https://github.com/plotly/python-user-guide').should.eql
+            command: 'git'
+            args: ['clone', 'https://github.com/plotly/python-user-guide.git']
+    it 'also knows about some special URLs', ->
+        # github
+        turl('http://nbviewer.jupyter.org/github/lightning-viz/lightning-example-notebooks/blob/master/index.ipynb').should.eql
+            command: 'wget'
+            args: ['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
+        # url → http
+        turl('http://nbviewer.jupyter.org/url/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
+            command: 'wget'
+            args: ['http://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
+        # note, this is urls → https
+        turl('http://nbviewer.jupyter.org/urls/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
+            command: 'wget'
+            args: ['https://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
+        # github gist -- no idea how to do that
+        #turl('http://nbviewer.jupyter.org/gist/darribas/4121857').should.eql
+        #    command: 'wget'
+        #    args: ['https://gist.githubusercontent.com/darribas/4121857/raw/505e030811332c78e8e50a54aca5e8034605cb4c/guardian_gaza.ipynb']
+
+
+

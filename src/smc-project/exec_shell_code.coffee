@@ -1,5 +1,5 @@
 ###
-SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 
 Execute a command line or block of BASH code
@@ -12,7 +12,7 @@ misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
 
 exports.exec_shell_code = (socket, mesg) ->
-    winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
+    #winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
     if mesg.command == "smc-jupyter"
         socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
         return
@@ -30,8 +30,9 @@ exports.exec_shell_code = (socket, mesg) ->
                 error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 if error.indexOf("Connection refused") != -1
                     error += "-- Email help@sagemath.com if you need full internet access, which is disabled by default."
-                if error.indexOf("=") != -1
-                    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
+                # Too annoying and doesn't work.
+                #if error.indexOf("=") != -1
+                #    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
                 err_mesg = message.error
                     id    : mesg.id
                     error : error

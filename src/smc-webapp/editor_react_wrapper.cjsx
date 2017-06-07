@@ -1,37 +1,50 @@
-###
-Wrapper in a React component of a non-react editor, so that we can fully rewrite
-the UI using React without having to rewrite all the editors.
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+# Wrapper in a React component of a non-react editor, so that we can fully rewrite
+# the UI using React without having to rewrite all the editors.
+##############################################################################
 
-(c) SageMath, Inc.
+{NotifyResize} = require('react-notify-resize')
 
-AUTHORS:
-   - William Stein, 2016
-   - John Jeng, 2016
-###
+{debounce} = require('underscore')
 
 {rclass, rtypes, ReactDOM, React} = require('./smc-react')
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
-    reduxProps :
-        "#{project_name}":
-            editor_top_position : rtypes.number
-
     propTypes :
         editor : rtypes.object.isRequired
 
     componentDidMount: ->
-        # Use for any (god forbid..) future Iframe editors..
+        # Use for any future Iframe editors...
+        #   (Actually, see how editor_pdf and edtor_jupyter done for the right way to do this -- wstein)
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
-        mounted = @props.editor.mount?()
-        if not mounted
-            span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
-            if span.length > 0
-                span.replaceWith(@props.editor.element[0])
+        span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
+        if span.length > 0
+            span.replaceWith(@props.editor.element[0])
 
         @props.editor.show()
         @props.editor.focus?()
+        @props.editor.restore_view_state?()
         window.addEventListener('resize', @refresh)
 
     componentDidUpdate: ->
@@ -39,19 +52,22 @@ WrappedEditor = rclass ({project_name}) ->
 
     componentWillUnmount: ->
         window.removeEventListener('resize', @refresh)
-        # These cover all cases for jquery type overrides.
+        # These cover all cases for jQuery type overrides.
+        @props.editor.save_view_state?()
         @props.editor.blur?()
         @props.editor.hide()
 
-    # Refreshes the editor to resize itself
+    # Refreshes -- cause the editor to resize itself
     refresh: ->
         if not @props.editor.show?
-            @props.editor._show()
+            @props.editor._show?()
         else
             @props.editor.show()
 
-    render : ->
-        <div>
+    render: ->
+        # position relative is required by NotifyResize
+        <div className='smc-vfill' style={position:'relative'}>
+            <NotifyResize onResize={debounce(@refresh, 350)}/>
             <span className="smc-editor-react-wrapper"></span>
         </div>
 
@@ -60,6 +76,9 @@ editors = {}
 
 get_key = (project_id, path) ->
     return "#{project_id}-#{path}"
+
+exports.get_editor = (project_id, path) ->
+    return editors[get_key(project_id, path)]
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
@@ -103,4 +122,5 @@ exports.register_nonreact_editor = (opts) ->
                 (e.click_save_button ? e.save)?()
 
 
-
+if DEBUG
+    smc.editors = editors

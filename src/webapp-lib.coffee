@@ -1,3 +1,5 @@
+# Library file for SMC webapp
+
 # These old-school JS files need to be on top, otherwise dependency issues arise
 # (e.g. minified jquery isn't properly being detected, etc.)
 
@@ -8,14 +10,37 @@
 
 require("script!primus/primus-engine.min.js")
 
+# polyfill Number.isNaN for IE
+# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
+Number.isNaN = Number.isNaN || (value) ->
+    typeof value == "number" and isNaN(value)
+
+# polyfill for internet explorer's lack of String.prototype.startswith
+String::startsWith ?= (searchString, position) ->
+    pos = position ? 0
+    @indexOf(searchString, pos) == pos
+
+# polyfill for internet explorer's lack of String.prototype.includes
+# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
+String::includes ?= (search, start) ->
+    if typeof start != 'number'
+        start = 0
+    if start + search.length > @length
+        return false
+    else
+        return @indexOf(search, start) != -1
+
+# this must come before anything that touches event handling, etc.
+require('webapp-lib/webapp-error-reporter.coffee')
+
 # require("script!jquery/jquery.min.js")
 $ = jQuery = window.$ = window.jQuery = require('jquery')
 #require('jquery-ui')
 # explicit jQuery UI widgets that we use -- no need to load the entire library
-require("node_modules/jquery-ui/ui/widgets/draggable")
-require("node_modules/jquery-ui/ui/widgets/sortable")
+require("node_modules/jquery-ui/ui/widgets/draggable") # TODO: do we use?
+require("node_modules/jquery-ui/ui/widgets/sortable")  # TODO: do we use?
 require("node_modules/jquery-ui/ui/widgets/slider")
-require("node_modules/jquery-ui/ui/widgets/resizable")
+require("node_modules/jquery-ui/ui/widgets/resizable") # TODO: do we use?
 
 # $.tooltip() setup
 require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.
@@ -36,8 +61,7 @@ require("./webapp-lib/jquery/plugins/bootstrap_hide_show.js")
 require('timeago')
 
 # Scroll into view plugin
-# require("script!jquery/plugins/jquery.scrollintoview.min.js")
-require("jquery-scrollintoview/jquery.scrollintoview.js")
+require("jquery.scrollintoview/jquery.scrollintoview.js")
 
 #  Highlight jQuery plugin: http://bartaz.github.io/sandbox.js/jquery.highlight.html
 # require("script!jquery/plugins/jquery.highlight.min.js")
@@ -47,16 +71,13 @@ require('jquery-highlight')
 #require("script!jquery/plugins/caret/jquery.caret.js")
 require('jquery-caret')
 
-# Activity spinner
-require("script!spin/spin.min.js")
-
 # Bootstrap
 # require("script!bootstrap-3.3.0/js/bootstrap.min.js")
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
-require("script!bootbox/bootbox.min.js")
-# require('bootbox')
+require("script!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
+# require('bootbox') # this doesn't work, sadly (jquery initializiation with "modal" from bootstrap doesn't happen properly)
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
 #require("script!bootstrap-switch/bootstrap-switch.min.js")
@@ -81,9 +102,6 @@ require("script!datetimepicker/bootstrap-datetimepicker.min.js")
 # XTerm terminal emulator
 require("script!term/term.js")
 require("script!term/color_themes.js")
-
-# LaTeX log parser
-require("script!latex/latex-log-parser.js")
 
 # Make html look nice
 require("script!jsbeautify/beautify-html.min.js")

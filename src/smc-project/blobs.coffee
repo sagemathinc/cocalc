@@ -1,7 +1,7 @@
 ###
 Saving blobs to hub
 
-SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 ###
 

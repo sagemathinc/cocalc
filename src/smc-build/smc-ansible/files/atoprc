@@ -1,8 +1,0 @@
-flags         ao
-interval      15
-maxlinecpu    0
-maxlinedisk   1
-maxlinelvm    1
-maxlineintf   0
-maxlinemdd    0
-ownprocline   PID:20 ST:8 EXC:7 S:11 PRI:13 POLI:12 SYSCPU:15 USRCPU:16 VSIZE:15 RSIZE:16 RDDSK:14 WRDSK:14 SORTITEM:18 CMD:20

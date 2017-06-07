@@ -1,3 +1,24 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
 # External Libraries
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 {Button, Nav, NavDropdown, MenuItem, NavItem} = require('react-bootstrap')
@@ -6,6 +27,7 @@
 misc = require('smc-util/misc')
 {isMobile} = require('./feature')
 {set_window_title} = require('./browser')
+{COLORS} = require('smc-util/theme')
 
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
@@ -20,7 +42,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style = {flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
+        style = {flexShrink:'1', width:'200px', height:'40px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -36,24 +58,24 @@ ProjectTab = rclass
         project_id     : rtypes.string
         active_top_tab : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         x_hovered : false
 
-    componentDidMount : ->
+    componentDidMount: ->
         @strip_href()
 
-    componentDidUpdate : () ->
+    componentDidUpdate: () ->
         @strip_href()
 
-    strip_href : ->
+    strip_href: ->
         @refs.tab?.node.children[0].removeAttribute('href')
 
-    close_tab : (e) ->
+    close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    render : ->
+    render: ->
         title = @props.get_title(@props.project_id)
         title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
@@ -74,20 +96,22 @@ ProjectTab = rclass
             textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
+            text_color = COLORS.TOP_BAR.TEXT_ACTIVE
 
         if @state.x_hovered
-            x_color = "white"
+            x_color = COLORS.TOP_BAR.X_HOVER
+        else
+            x_color = COLORS.TOP_BAR.X
 
         <SortableNavTab
             index={@props.index}
             name={@props.project_id}
             actions={@actions('page')}
             active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'41px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref='tab'
         >
-            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}>
+            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
                 <Icon
                     name = 'times'
                     onClick = {@close_tab}
@@ -98,7 +122,7 @@ ProjectTab = rclass
             <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                     <Icon name={icon} style={fontSize:'20px'} />
-                    <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
             </div>
         </SortableNavTab>
@@ -113,13 +137,13 @@ FullProjectsNav = rclass
             active_top_tab    : rtypes.string    # key of the active tab
             num_ghost_tabs    : rtypes.number
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         num_ghost_tabs : 0
 
-    on_sort_end : ({oldIndex, newIndex}) ->
+    on_sort_end: ({oldIndex, newIndex}) ->
         @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
 
-    project_tabs : ->
+    project_tabs: ->
         v = []
         if not @props.open_projects?
             return
@@ -135,7 +159,7 @@ FullProjectsNav = rclass
             v.push(<GhostTab index={index} key={index}/>)
         return v
 
-    project_tab : (project_id, index) ->
+    project_tab: (project_id, index) ->
         <ProjectTab
             index          = {index}
             key            = {project_id}
@@ -145,7 +169,7 @@ FullProjectsNav = rclass
             public_project_titles = {@props.public_project_titles}
         />
 
-    render : ->
+    render: ->
         shim_style =
             position    : 'absolute'
             left        : '0'
@@ -155,13 +179,16 @@ FullProjectsNav = rclass
             width       : '100%'
             display     : 'flex'
 
-        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', height:'41px', margin:'0'}
-            helperClass={'smc-project-tab-floating'}
-            onSortEnd={@on_sort_end}
-            axis={'x'}
-            lockAxis={'x'}
-            lockToContainerEdges={true}
-            distance={3 if not isMobile.tablet()}
+        <SortableNav
+            className            = "smc-project-tab-sorter"
+            style                = {display:'flex', flex:'1', overflow: 'hidden', height:'40px', margin:'0'}
+            helperClass          = {'smc-project-tab-floating'}
+            onSortEnd            = {@on_sort_end}
+            axis                 = {'x'}
+            lockAxis             = {'x'}
+            lockToContainerEdges = {true}
+            distance             = {3 if not isMobile.tablet()}
+            shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-project-tab-sorter')}
         >
             {@project_tabs()}
         </SortableNav>
@@ -175,20 +202,20 @@ OpenProjectMenuItem = rclass
         project_id            : rtypes.string
         active_top_tab        : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         x_hovered : false
 
-    close_tab : (e) ->
+    close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    open_project : (e) ->
+    open_project: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').set_active_tab(@props.project_id)
 
-    render : ->
+    render: ->
         title = @props.project?.get('title')
         title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
@@ -206,21 +233,23 @@ OpenProjectMenuItem = rclass
             textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
+            text_color = COLORS.TOP_BAR.TEXT_ACTIVE
 
         if @state.x_hovered
-            x_color = "white"
+            x_color = COLORS.TOP_BAR.X_HOVER
+        else
+            x_color = COLORS.TOP_BAR.X
 
         <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color}>
             <Button
                 bsStyle="warning"
                 onClick={@close_tab}
-                style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}
+                style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
             >
                 <Icon name='times'/>
             </Button>
             <Tip style={project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                <div style={height: '36px', padding: '7px 5px', fontSize: '18px'}>
+                <div style={height: '36px', padding: [7, 5], fontSize: '18px'}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
@@ -237,13 +266,13 @@ DropdownProjectsNav = rclass
         page :
             active_top_tab    : rtypes.string    # key of the active tab
 
-    project_menu_items : ->
+    project_menu_items: ->
         v = []
         @props.open_projects.map (project_id, index) =>
             v.push(@project_tab(project_id, index))
         return v
 
-    project_tab : (project_id, index) ->
+    project_tab: (project_id, index) ->
         <OpenProjectMenuItem
             index          = {index}
             key            = {project_id}
@@ -254,7 +283,7 @@ DropdownProjectsNav = rclass
             public_project_titles = {@props.public_project_titles}
         />
 
-    render_projects_dropdown : ->
+    render_projects_dropdown: ->
         if @props.open_projects.includes(@props.active_top_tab)
             project_id = @props.active_top_tab
 
@@ -265,17 +294,25 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title className="smc-projects-tabs" style={flex:'1'}>
+        <Nav
+            className = 'smc-dropdown-projects'
+            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}
+            >
+            <NavDropdown
+                id        = "smc-top-project-nav-dropdown"
+                title     = {title}
+                className = "smc-projects-tabs"
+                style     = {flex:'1'}
+            >
                 {@project_menu_items()}
             </NavDropdown>
         </Nav>
 
-    render_one_project_item : (project_id) ->
+    render_one_project_item: (project_id) ->
         project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
         title = @props.get_title(project_id)
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
@@ -296,7 +333,7 @@ DropdownProjectsNav = rclass
             </NavItem>
         </Nav>
 
-    render : ->
+    render: ->
         switch @props.open_projects.size
             when 0
                 <div style={flex:'1'}> </div>

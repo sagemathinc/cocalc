@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, 2015, 2016 William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Gener@al Public License as published by
@@ -31,12 +31,12 @@ markdown = require('./markdown')
 # Define interact jQuery plugins - used only by sage worksheets
 require('./interact')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 
 async = require('async')
 
-templates = $("#salvus-editor-templates")
+templates = $("#webapp-editor-templates")
 
 account = require('./account')
 
@@ -44,9 +44,9 @@ account = require('./account')
 
 {EventEmitter} = require('events')
 
-side_chat = require('./side_chat')
-
 {IS_MOBILE} = require('./feature')
+
+syncstring = require('smc-util/syncstring')
 
 class AbstractSynchronizedDoc extends EventEmitter
     file_path: () =>
@@ -61,8 +61,10 @@ exports.synchronized_string = synchronized_string
 
 class SynchronizedDocument extends AbstractSynchronizedDoc
     codemirrors: () =>
+        if @_closed
+            return []
         v = [@codemirror]
-        if @editor._split_view
+        if @editor._layout > 0
             v.push(@codemirror1)
         return v
 
@@ -76,115 +78,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             delay : opts?.delay
             f     : @sync
 
-    ###
-    The rest of this class is chat functionality.  This will, of course, be factored out.
-    ###
-    init_chat: () =>
-        chat = @element.find(".salvus-editor-codemirror-chat")
-        input = chat.find(".salvus-editor-codemirror-chat-input")
-
-        # # send chat message
-        # input.keydown (evt) =>
-        #     if evt.which == 13 # enter
-        #         content = $.trim(input.val())
-        #         if content != ""
-        #             input.val("")
-        #             @write_chat_message
-        #                 event_type : "chat"
-        #                 payload    : {content : content}
-        #         return false
-
-        #@chat_session.on('sync', (=>@render_chat_log()))
-
-        #@render_chat_log()  # first time
-        @init_chat_toggle()
-        @init_video_toggle()
-
-
-    # This is an interface that allows messages to be passed between connected
-    # clients via a log in the filesystem. These messages are handled on all
-    # clients through the render_chat_log() method, which listens to the 'sync'
-    # event emitted by the chat_session object.
-
-    init_chat_toggle: () =>
-        title = @element.find(".salvus-editor-chat-title-text")
-        title.click () =>
-            if @editor._chat_is_hidden? and @editor._chat_is_hidden
-                @show_chat_window()
-            else
-                @hide_chat_window()
-        if @editor._chat_is_hidden
-            @hide_chat_window()
-        else
-            @show_chat_window()
-
-    show_chat_window: () =>
-        # SHOW the chat window
-        @editor._chat_is_hidden = false
-        @editor.local_storage("chat_is_hidden", false)
-        @element.find(".salvus-editor-chat-show").hide()
-        @element.find(".salvus-editor-chat-hide").show()
-        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
-        @element.find(".salvus-editor-codemirror-chat-column").show()
-        # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
-        # if you want to try to make this resizable
-        @editor.show()  # updates editor width
-        @editor.emit 'show-chat'
-        #@render_chat_log()
-        chat_height = @element.height() + 2 - @element.find(".salvus-editor-codemirror-button-row").height() - 70
-
-        @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-
-        height_resize = () =>
-            chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
-            side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-        $(window).on("resize", height_resize)
-
-    hide_chat_window: () =>
-        # HIDE the chat window
-        @editor._chat_is_hidden = true
-        @editor.local_storage("chat_is_hidden", true)
-        @element.find(".salvus-editor-chat-hide").hide()
-        @element.find(".salvus-editor-chat-show").show()
-        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
-        @element.find(".salvus-editor-codemirror-chat-column").hide()
-        @editor.show()  # update size/display of editor (especially the width)
-        @editor.emit('hide-chat')
-
-    init_video_toggle: () =>
-        video_on_button  = @element.find(".salvus-editor-chat-video-is-off")
-        video_off_button = @element.find(".salvus-editor-chat-video-is-on")
-
-        video_on_button.click () =>
-            actions = redux.getActions(@_chat_redux_name)
-            actions.open_video_chat_window()
-            @element.find(".salvus-editor-chat-video-is-off").hide()
-            @element.find(".salvus-editor-chat-video-is-on").show()
-            actions._video_window.addEventListener "unload", () =>
-                @element.find(".salvus-editor-chat-video-is-off").show()
-                @element.find(".salvus-editor-chat-video-is-on").hide()
-
-        video_off_button.click () =>
-            actions = redux.getActions(@_chat_redux_name)
-            actions.close_video_chat_window()
-            @element.find(".salvus-editor-chat-video-is-off").show()
-            @element.find(".salvus-editor-chat-video-is-on").hide()
-
-    search_message_log: =>
-        messages = @chat_session.live()
-        messages = messages.split('\n')
-        all_messages = []
-        for m in messages
-            if $.trim(m) == ""
-                continue
-            try
-                new_message = JSON.parse(m)
-            catch e
-                continue # skip
-
-            all_messages.push(new_message)
-        return all_messages
-
 underscore = require('underscore')
 
 class SynchronizedString extends AbstractSynchronizedDoc
@@ -195,10 +88,11 @@ class SynchronizedString extends AbstractSynchronizedDoc
             sync_interval     : 1000       # TODO: ignored right now -- no matter what, we won't send sync messages back to the server more frequently than this (in ms)
             cursors           : false
             cb                : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying
+        # window.w = @
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        @_syncstring = salvus_client.sync_string
+        @_syncstring = webapp_client.sync_string
             project_id    : @project_id
             path          : @filename
             cursors       : opts.cursors
@@ -206,6 +100,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring.once 'init', =>
             @emit('connect')   # successful connection
             @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
+                @_fully_loaded = true
                 opts.cb(err, @)
 
         @_syncstring.on 'change', => # only when change is external
@@ -218,12 +113,13 @@ class SynchronizedString extends AbstractSynchronizedDoc
             redux.getProjectActions(@project_id).close_tab(@filename)
 
     live: (s) =>
-        if s? and s != @_syncstring.get()
+        cur = @_syncstring.to_str()
+        if s? and s != cur
             @_syncstring.exit_undo_mode()
-            @_syncstring.set(s)
+            @_syncstring.from_str(s)
             @emit('sync')
         else
-            return @_syncstring.get()
+            return cur
 
     sync: (cb) =>
         @_syncstring.save(cb)
@@ -233,13 +129,16 @@ class SynchronizedString extends AbstractSynchronizedDoc
         cb?()
 
     _save: (cb) =>
+        if not @_fully_loaded
+            cb?()
+            return
         async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     save: (cb) =>
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
-            max_time    : 30000
+            max_tries   : 4
             max_delay   : 10000
             cb          : cb
 
@@ -262,12 +161,12 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     # per-session sync-aware undo
     undo: () =>
-        @_syncstring.set(@_syncstring.undo())
+        @_syncstring.set_doc(@_syncstring.undo())
         @emit('sync')
 
     # per-session sync-aware redo
     redo: () =>
-        @_syncstring.set(@_syncstring.redo())
+        @_syncstring.set_doc(@_syncstring.redo())
         @emit('sync')
 
     in_undo_mode: () =>
@@ -282,8 +181,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
 
-        ## window.cm = @  ## DEBUGGING
-
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -292,20 +189,26 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
+        # window.w = @
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
             cm.undo = @undo
             cm.redo = @redo
 
-        @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users = redux.getStore('users')  # TODO -- obviously not like this...
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+
+        if @filename[0] == '/'
+            # uses symlink to '/', which is created by start_smc
+            @filename = '.smc/root' + @filename
+
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = salvus_client.sync_string
+        @_syncstring = webapp_client.sync_string
             id         : id
             project_id : @project_id
             path       : @filename
@@ -321,20 +224,24 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 setTimeout(f, 5000)
         update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
-        #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
+        #dbg = webapp_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
 
         @_syncstring.once 'init', (err) =>
+            if @_closed
+                return
             if err
-                window.err = err
                 if err.code == 'EACCES'
                     err = "You do not have permission to read '#{@filename}'."
                 @editor.show_startup_message(err, 'danger')
                 return
             # Now wait until read_only is *defined*, so backend file has been opened.
             @_syncstring.wait_until_read_only_known (err) =>
+                if @_closed
+                    return
                 @editor.show_content()
-                @editor._set(@_syncstring.get())
+                @editor._set(@_syncstring.to_str())
+                @_fully_loaded = true
                 @codemirror.setOption('readOnly', false)
                 @codemirror1.setOption('readOnly', false)
                 @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
@@ -346,19 +253,27 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_init_cursor_activity()
 
                 @_syncstring.on 'change', =>
-                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
-                    @codemirror.setValueNoJump(@_syncstring.get())
+                    if @_closed
+                        return
+                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
+                    @_set_codemirror_to_syncstring()
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
+                    if @_closed
+                        return
                     update_unsaved_uncommitted_changes()
                     @_update_read_only()
 
                 @_syncstring.on 'before-change', =>
+                    if @_closed
+                        return
                     #console.log("syncstring before change")
-                    @_syncstring.set(@codemirror.getValue())
+                    @_set_syncstring_to_codemirror()
 
                 @_syncstring.on 'deleted', =>
+                    if @_closed
+                        return
                     redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
@@ -368,6 +283,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
                 @codemirror.on 'change', (instance, changeObj) =>
+                    if @_closed
+                        return
                     #console.log("change event when live='#{@live().string()}'")
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
@@ -383,13 +300,26 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
-        synchronized_string
-            project_id    : @project_id
-            filename      : misc.meta_file(@filename, 'chat')
-            cb            : (err, chat_session) =>
-                if not err  # err actually can't happen, since we retry until success...
-                    @chat_session = chat_session
-                    @init_chat()
+    _set_syncstring_to_codemirror: =>
+        @_last_val = val = @codemirror.getValue()
+        @_syncstring.from_str(val)
+
+    _set_codemirror_to_syncstring: =>
+        val     = @_syncstring.to_str()
+        cur_val = @codemirror.getValue()
+
+        if @_last_val? and cur_val != @_last_val
+            # We *MERGE* the changes in since, we made changes between when we last set
+            # the syncstrind and now.  This can perhaps sometimes happen in rare cases
+            # due to async save debouncing.  (Honestly, I don't know how this case could
+            # possibly happen.)
+            patch = syncstring.dmp.patch_make(@_last_val, cur_val)
+            val = syncstring.dmp.patch_apply(patch, val)[0]
+        else
+            patch = undefined
+        @codemirror.setValueNoJump(val)
+        if patch?
+            @_set_syncstring_to_codemirror()
 
     has_unsaved_changes: =>
         if not @codemirror?
@@ -399,17 +329,17 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     has_uncommitted_changes: =>
         # WARNING: potentially expensive to do @codemirror.getValue().
-        return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.get()
+        return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.to_str()
 
     _update_unsaved_uncommitted_changes: =>
-        if not @codemirror?
+        if not @_fully_loaded or not @codemirror? or @_closed
             return
         if new Date() - (@_last_change_time ? 0) <= 1000
             # wait at least a second from when the user last changed the document, in case it's just a burst of typing.
             return
         x = @codemirror.getValue()
         @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(x))
-        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.get()
+        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.to_str()
         @editor.has_uncommitted_changes(uncommitted_changes)
         return uncommitted_changes
 
@@ -418,7 +348,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     _sync: (cb) =>
         if @codemirror?  # need not be defined, right when user closes the editor instance
-            @_syncstring.set(@codemirror.getValue())
+            @_set_syncstring_to_codemirror()
         @_syncstring.save(cb)
 
     sync: (cb) =>
@@ -428,10 +358,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
     undo: () =>
         if not @codemirror?
             return
+        cm = @focused_codemirror()  # see https://github.com/sagemathinc/cocalc/issues/1161
         if not @_syncstring.in_undo_mode()
-            @_syncstring.set(@codemirror.getValue())
-        value = @_syncstring.undo()
-        @codemirror.setValueNoJump(value, true)
+            @_set_syncstring_to_codemirror()
+        value = @_syncstring.undo().to_str()
+        cm.setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
@@ -441,8 +372,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         if not @_syncstring.in_undo_mode()
             return
-        value = @_syncstring.redo()
-        @codemirror.setValueNoJump(value, true)
+        doc = @_syncstring.redo()
+        if not doc?
+            # can't redo if version not defined/not available.
+            return
+        if not doc.to_str?
+            # BUG -- see https://github.com/sagemathinc/cocalc/issues/1831
+            throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
+        value = doc.to_str()
+        @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
@@ -451,10 +389,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
 
     _save: (cb) =>
-        if not @codemirror?
-            cb() # nothing to do -- not initialized yet...
+        if not @codemirror? or not @_fully_loaded
+            cb() # nothing to do -- not initialized/loaded yet...
             return
-        @_syncstring.set(@codemirror.getValue())
+        @_set_syncstring_to_codemirror()
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
             @_update_unsaved_uncommitted_changes()
             if err
@@ -464,6 +402,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 cb()
 
     save: (cb) =>
+        if @_closed
+            cb?()
+            return
         # This first call immediately sets saved button to disabled to make it feel like instant save.
         @editor.has_unsaved_changes(false)
         # We then simply ensure the save state is valid 5s later (in case save fails, say).
@@ -481,7 +422,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
-            max_time    : 30000
+            max_tries   : 4
             max_delay   : 10000
             cb          : cb
 
@@ -504,21 +445,23 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_render_other_cursor(account_id)
 
     get_users_cursors: (account_id) =>
+        if not @_syncstring?
+            return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             return locs
 
     _render_other_cursor: (account_id) =>
-        if account_id == salvus_client.account_id
+        if account_id == webapp_client.account_id
             # nothing to do -- we don't draw our own cursor via this
             return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
                 #console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
@@ -552,10 +495,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
-            # LABEL: first fade the label out over 6s
-            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
-            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+            # LABEL: first fade the label out over 15s
+            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:15000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 25s.
+            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:25000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
@@ -572,7 +515,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if @_closed
             return
         @_syncstring?.close()
-        @chat_session?.close()
         # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
             cm.setOption("mode", "text/x-csrc")

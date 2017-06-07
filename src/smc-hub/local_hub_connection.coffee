@@ -1,3 +1,24 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 LocalHub
 ###
@@ -215,6 +236,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if result?.action == 'close'
+                    err = 'close'
                 if err
                     dbg("project_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
@@ -411,7 +434,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
-            @_local_hub_socket_queue = []
+            if @_local_hub_socket_queue?
+                @dbg("local_hub_socket: cancelled due to timeout")
+                for c in @_local_hub_socket_queue
+                    c?('timeout')
+                delete @_local_hub_socket_queue
             clearTimeout(connecting_timer)
 
         # If below fails for 20s for some reason, cancel everything to allow for future attempt.
@@ -419,11 +446,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
+            if not @_local_hub_socket_queue?
+                # already gave up.
+                return
             @_local_hub_socket_connecting = false
             @dbg("local_hub_socket: new_socket returned #{err}")
             if err
                 for c in @_local_hub_socket_queue
-                    c(err)
+                    c?(err)
+                delete @_local_hub_socket_queue
             else
                 socket.on 'mesg', (type, mesg) =>
                     switch type
@@ -441,7 +472,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 socket.write_mesg('json', {event:'hello'})
 
                 for c in @_local_hub_socket_queue
-                    c(undefined, socket)
+                    c?(undefined, socket)
+                delete @_local_hub_socket_queue
 
                 @_socket = socket
 
@@ -506,7 +538,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 if not socket?
                     @dbg("still don't have our connection -- try again")
                     f (err, _socket) =>
-                       socket = _socket; cb(err)
+                        socket = _socket; cb(err)
                 else
                     cb()
         ], (err) =>
@@ -642,7 +674,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         opts = defaults opts,
             client       : required
             project_id   : required
-            params       : {command: 'bash'}
+            params       : required
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
         @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
@@ -662,6 +694,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 if err
                     opts.cb(err)
                     return
+
+                # In case it was already setup to listen before... (and client is reconnecting)
+                console_socket.removeAllListeners()
 
                 console_socket._ignore = false
                 console_socket.on 'end', () =>
@@ -697,7 +732,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     data_channel : channel
                     history      : console_socket.history
 
-                #delete console_socket.history  # free memory occupied by history, which we won't need again.
                 opts.cb(false, mesg)
 
                 # console --> client:
@@ -710,7 +744,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     #winston.debug("push_data_to_client('#{data}')")
                     opts.client.push_data_to_client(channel, data)
                     console_socket.history += data
-                    if console_socket.history.length > 100000
+                    if console_socket.history.length > 150000
                         console_socket.history = console_socket.history.slice(console_socket.history.length - 100000)
                 console_socket.on('data', f)
 

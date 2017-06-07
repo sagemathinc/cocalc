@@ -1,6 +1,25 @@
-#############################################
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2014--2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
 # Editor for HTML/Markdown/ReST documents
-#############################################
+##############################################################################
 
 _               = require('underscore')
 async           = require('async')
@@ -13,26 +32,28 @@ misc_page       = require('../misc_page')
 editor          = require('../editor')
 
 {alert_message} = require('../alerts')
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 {IS_MOBILE}     = require('../feature')
 
 {redux}         = require('../smc-react')
+printing        = require('../printing')
 
-
-templates       = $("#salvus-editor-templates")
+templates       = $("#webapp-editor-templates")
 
 
 class exports.HTML_MD_Editor extends editor.FileEditor
+
     constructor: (@project_id, @filename, content, @opts) ->
+        super(@project_id, @filename)
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = misc.filename_extension_notilde(@filename).toLowerCase()   #'html' or 'md'
         # console.log("HTML_MD_editor", @)
-
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
         else if @ext == 'md'
+            @opts.mode = 'gfm'
+        else if @ext == 'rmd'
             @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
@@ -40,10 +61,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else if @ext == 'tex'  # for testing/experimentation
-            @opts.mode = 'stex2'
-        else
-            throw Error('file must have extension md or html or rst or wiki or tex')
+        else if @ext != 'java'
+            throw Error('file must have extension md, html, rmd, rst, tex, java, or wiki')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'
@@ -53,27 +72,34 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # reasonable default more generally.
             @disable_preview = true
 
-        @element = templates.find(".salvus-editor-html-md").clone()
+        @element = templates.find(".webapp-editor-html-md").clone()
 
         # create the textedit button bar.
-        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
-        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+        @edit_buttons = templates.find(".webapp-editor-textedit-buttonbar").clone()
+        @element.find(".webapp-editor-html-md-textedit-buttonbar").append(@edit_buttons)
 
-        @preview = @element.find(".salvus-editor-html-md-preview")
-        @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+        if @ext == 'java'
+            @element.find(".webapp-editor-html-md-textedit-buttonbar").hide()
+
+        @preview = @element.find(".webapp-editor-html-md-preview")
+        @preview_content = @preview.find(".webapp-editor-html-md-preview-content")
         @preview.on 'scroll', =>
             @preview_scroll_position = @preview.scrollTop()
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
-        @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
+        @element.find(".webapp-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
+        if @ext == 'java' and not @disable_preview
+            @update_preview()
 
         @spell_check()
 
         cm = @cm()
-        cm.on('change', _.debounce(@update_preview,500))
-        #cm.on 'cursorActivity', @update_preview
+        if @ext == 'java'
+            @source_editor.on 'saved', _.debounce(@update_preview,500)
+        else
+            cm.on 'change', _.debounce(@update_preview,500)
 
         @init_buttons()
         @init_draggable_split()
@@ -82,14 +108,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @init_keybindings()
 
-        # this is entirely because of the chat
-        # currently being part of @source_editor, and
-        # only calling the show for that; once chat
-        # is refactored out, delete this.
-        @source_editor.on 'show-chat', () =>
-            @show()
-        @source_editor.on 'hide-chat', () =>
-            @show()
+    remove: =>
+        @source_editor?.remove?()
 
     cm: () =>
         return @source_editor.syncdoc.focused_codemirror()
@@ -118,24 +138,26 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
-        @_dragbar = dragbar = @element.find(".salvus-editor-html-md-resize-bar")
-        dragbar.css(position:'absolute')
+        @_dragbar = dragbar = @element.find(".webapp-editor-html-md-resize-bar")
+        elt = @element.find(".webapp-editor-html-md-content")
+        @set_split_pos(@local_storage('split_pos'))
         dragbar.draggable
-            axis : 'x'
+            axis        : 'x'
             containment : @element
             zIndex      : 100
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
+                misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1
-                left  = @element.offset().left
-                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-                if chat_pos.left
-                    width = chat_pos.left - left
-                else
-                    width = @element.width()
-                p     = dragbar.offset().left
-                @_split_pos = (p - left) / width
-                @local_storage('split_pos', @_split_pos)
-                @show()
+                p = (dragbar.offset().left - elt.offset().left) / elt.width()
+                if p < 0.05 then p = 0.03
+                if p > 0.95 then p = 0.97
+                @set_split_pos(p)
+                @local_storage('split_pos', p)
+
+    set_split_pos: (p) =>
+        @element.find(".webapp-editor-html-md-source-editor").css('flex-basis', "#{100*p}%")
+        @_dragbar.css('left', 0)
 
     inverse_search: (cb) =>
 
@@ -146,7 +168,10 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
         @element.find("a[href=\"#save\"]").click(@click_save_button)
-        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
+        if printing.can_print(@ext)
+            @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
+        else
+            @element.find("a[href=\"#print\"]").remove()
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -266,62 +291,13 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             return
         @_printing = true
         @print_button.icon_spin(start:true, delay:0).addClass("disabled")
-        @convert_to_pdf (err, output) =>
+        printer = printing.Printer(@, @filename + '.pdf')
+        printer.print (err) =>
             @_printing = false
             @print_button.removeClass('disabled')
             @print_button.icon_spin(false)
             if err
                 alert_message(type:"error", message:"Printing error -- #{err}")
-            else
-                salvus_client.read_file_from_project
-                    project_id : @project_id
-                    path       : output.filename
-                    cb         : (err, mesg) =>
-                        if err
-                            cb(err)
-                        else
-                            url = mesg.url + "?nocache=#{Math.random()}"
-                            window.open(url,'_blank')
-
-    convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
-        s = misc.path_split(@filename)
-        target = s.tail + '.pdf'
-        if @ext in ['md', 'html', 'rst', 'mediawiki']
-            # pandoc --latex-engine=xelatex a.wiki -o a.pdf
-            command = 'pandoc'
-            args    = ['--latex-engine=xelatex', s.tail, '-o', target]
-            bash = false
-        else if @ext == 'tex'
-            t = "." + misc.uuid()
-            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{s.tail}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
-            bash = true
-
-        target = @filename + ".pdf"
-        output = undefined
-        async.series([
-            (cb) =>
-                @save(cb)
-            (cb) =>
-                salvus_client.exec
-                    project_id  : @project_id
-                    command     : command
-                    args        : args
-                    err_on_exit : true
-                    bash        : bash
-                    path        : s.head
-                    cb          : (err, o) =>
-                        if err
-                            cb(err)
-                        else
-                            output = o
-                            cb()
-        ], (err) =>
-            if err
-                cb?(err)
-            else
-                output.filename = @filename + ".pdf"
-                cb?(undefined, output)
-        )
 
     misspelled_words: (opts) =>
         opts = defaults opts,
@@ -339,7 +315,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         else
             mode = 'none'
         #t0 = misc.mswalltime()
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
             bash        : true
@@ -359,6 +335,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                     return
                 else
                     for cm in @source_editor.codemirrors()
+                        if not cm
+                            return
                         cm.spellcheck_highlight(words)
 
     has_unsaved_changes: () =>
@@ -396,7 +374,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     html_to_html: (cb) =>   # cb(error, source)
         # add in cursor(s)
-        source = @source_editor._get()
+        source = @_get()
         cm = @source_editor.syncdoc.focused_codemirror()
         # figure out where pos is in the source and put HTML cursor there
         lines = source.split('\n')
@@ -458,9 +436,23 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         cb(undefined, source)
 
     md_to_html: (cb) =>
-        source = @source_editor._get()
+        source = @_get()
         m = require('../markdown').markdown_to_html(source)
         cb(undefined, m.s)
+
+    rmd_to_html: (cb) =>
+        split_path = misc.path_split(@filename)
+        @to_html_via_exec
+            command     : "smc-rmd2html"
+            args        : [split_path.tail]
+            path        : split_path.head
+            cb          : cb
+
+    java_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "smc-java2html"
+            args        : [@filename]
+            cb          : cb
 
     rst_to_html: (cb) =>
         @to_html_via_exec
@@ -478,6 +470,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             command     : required
             args        : required
             postprocess : undefined
+            path        : undefined  # if set, change working directory to path
             cb          : required   # cb(error, html, warnings)
         html = undefined
         warnings = undefined
@@ -485,17 +478,18 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             (cb) =>
                 @save(cb)
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id  : @project_id
                     command     : opts.command
                     args        : opts.args
+                    path        : opts.path
                     err_on_exit : false
                     cb          : (err, output) =>
-                        #console.log("salvus_client.exec ", err, output)
+                        #console.log("webapp_client.exec ", err, output)
                         if err
                             cb(err)
                         else
-                            html = output.stdout
+                            html     = output.stdout
                             warnings = output.stderr
                             cb()
         ], (err) =>
@@ -518,7 +512,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         t0 = misc.mswalltime()
         @_update_preview_lock = true
         #console.log("update_preview")
-        @to_html (err, source) =>
+        @to_html (err, source, warnings) =>
             @_update_preview_lock = false
             if err
                 console.log("failed to render preview: #{err}")
@@ -530,45 +524,28 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             elt.find('link').remove()
             source = elt.html()
 
-            # finally set html in the live DOM
-            @preview_content.html(source)
+            if warnings
+                @preview_content.html("<pre><code>#{warnings}</code></pre>")
+            else
+                # finally set html in the live DOM
+                @preview_content.html(source)
 
-            @localize_image_links(@preview_content)
+                @preview_content.process_smc_links(
+                    project_id  : @project_id
+                    file_path   : @file_path()
+                )
 
-            ## this would disable clickable links...
-            #@preview.find("a").click () =>
-            #    return false
-            # Make it so preview links can be clicked, don't close SMC page.
-            @preview_content.find("a").attr("target","_blank")
-            @preview_content.find("table").addClass('table')  # bootstrap table
+                @preview_content.find("table").addClass('table')  # bootstrap table
 
-            @preview_content.mathjax()
+                @preview_content.mathjax()
 
-            #@preview_content.find(".smc-html-cursor").scrollintoview()
-            #@preview_content.find(".smc-html-cursor").remove()
+                #@preview_content.find(".smc-html-cursor").scrollintoview()
+                #@preview_content.find(".smc-html-cursor").remove()
 
             #console.log("update_preview time=#{misc.mswalltime(t0)}ms")
             if @_update_preview_redo
                 @_update_preview_redo = false
                 @update_preview()
-
-    localize_image_links: (e) =>
-        # make relative links to images use the raw server
-        for x in e.find("img")
-            y = $(x)
-            src = y.attr('src')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('src', new_src)
-        # make relative links to objects use the raw server
-        for x in e.find("object")
-            y = $(x)
-            src = y.attr('data')
-            if not src? or src[0] == '/' or src.indexOf('://') != -1
-                continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-            y.attr('data', new_src)
 
     init_preview_select: () =>
         @preview_content.click (evt) =>
@@ -599,52 +576,15 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             @cm().focus()
 
     _get: () =>
-        return @source_editor._get()
+        return @source_editor._get() ? ''  # empty string if not yet initialized
 
     _set: (content) =>
         @source_editor._set(content)
 
-    _show: (opts={}) =>
-        if not @_split_pos?
-            @_split_pos = .5
-        @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
-        @element.css(left:0, top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
-        @element.width($(window).width())
-
-        width = @element.width()
-        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-        if chat_pos.left
-            width = chat_pos.left
-
-        {top, left} = @element.offset()
-        editor_width = (width - left)*@_split_pos
-
-        @_dragbar.css('left',editor_width+left)
-
-        # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
-
-        @source_editor.show
-            width : editor_width
-            top   : top + @edit_buttons.height()
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
-        @element.maxheight(offset:button_bar_height)
-        @preview.maxheight(offset:button_bar_height)
-
-        @_dragbar.height(@source_editor.element.height())
-        @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
-        @_dragbar.css('top', "#{@edit_buttons.height() + button_bar_height + 9}px") # +9 is not good
-
-        # position the preview
-        @preview.offset
-            top: @source_editor.element.offset() + button_bar_height
-
-        @preview.css
-            left  : editor_width + left + 7
-            width : width - (editor_width + left + 7)
-            top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
-
-        @preview.scrollTop(@preview_scroll_position)
+    _show: =>
+        if $.browser.safari  # safari flex bug: https://github.com/philipwalton/flexbugs/issues/132
+            @element.make_height_defined()
+        return
 
     focus: () =>
         @source_editor?.focus()

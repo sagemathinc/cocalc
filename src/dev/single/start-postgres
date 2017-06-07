@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+export USER=wstein
+
+cd $HOME
+export PG_DATA=$HOME/postgres_data
+ 
+/usr/local/bin/postgres -D $PG_DATA 2> $HOME/logs/postgres.log &

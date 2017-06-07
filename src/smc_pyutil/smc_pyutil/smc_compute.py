@@ -2,9 +2,9 @@
 
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -411,18 +411,33 @@ class Project(object):
         pid = os.fork()
         if pid == 0:
             try:
+                os.nice(-os.nice(0))  # Reset nice-ness to 0
+                os.setgroups([])      # Drops other groups, like root or sudoers
+                os.setsid()           # Make it a session leader
                 os.setgid(self.uid)
                 os.setuid(self.uid)
-                os.environ['HOME'] = self.project_path
-                os.environ['SMC'] = self.smc_path
-                os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
-                os.environ['MAIL'] = '/var/mail/%s'%self.username
-                if self._single:
-                    # In single-machine mode, everything is on localhost.
-                    os.environ['SMC_HOST'] = 'localhost'
-                del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
-                os.chdir(self.project_path)
-                self.cmd("smc-start")
+
+                try:
+                    # Fork a second child and exit immediately to prevent zombies.  This
+                    # causes the second child process to be orphaned, making the init
+                    # process responsible for its cleanup.
+                    pid = os.fork()
+                except OSError, e:
+                    raise Exception, "%s [%d]" % (e.strerror, e.errno)
+
+                if pid == 0:
+                    os.environ['HOME'] = self.project_path
+                    os.environ['SMC'] = self.smc_path
+                    os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
+                    os.environ['MAIL'] = '/var/mail/%s'%self.username
+                    if self._single:
+                        # In single-machine mode, everything is on localhost.
+                        os.environ['SMC_HOST'] = 'localhost'
+                    del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
+                    os.chdir(self.project_path)
+                    self.cmd("smc-start")
+                else:
+                    os._exit(0)
             finally:
                 os._exit(0)
         else:
@@ -611,8 +626,9 @@ class Project(object):
         except:
             # Throw away filenames that can't be json'd, since they can't be JSON'd below,
             # which would totally lock user out of their listings.
+            ld0 = listdir[:]
             listdir = []
-            for x in os.listdir('.'):
+            for x in ld0:
                 try:
                     json.dumps(x)
                     listdir.append(x)

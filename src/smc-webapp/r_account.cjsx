@@ -1,8 +1,8 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,20 +23,22 @@
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
 {SiteName} = require('./customize')
 
 {ColorPicker} = require('./colorpicker')
-{Avatar} = require('./profile')
+{Avatar} = require('./other-users')
 
 md5 = require('md5')
 
 misc       = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{APIKeySetting} = require('./api-key')
 
 # Define a component for working with the user's basic
 # account information.
@@ -46,15 +48,16 @@ TextSetting = rclass
     displayName : 'Account-TextSetting'
 
     propTypes :
-        label    : rtypes.string.isRequired
-        value    : rtypes.string
-        onChange : rtypes.func.isRequired
-        onBlur   : rtypes.func
+        label     : rtypes.string.isRequired
+        value     : rtypes.string
+        onChange  : rtypes.func.isRequired
+        onBlur    : rtypes.func
+        maxLength : rtypes.number
 
-    getValue : ->
+    getValue: ->
         ReactDOM.findDOMNode(@refs.input).value
 
-    render : ->
+    render: ->
         <LabeledRow label={@props.label}>
             <FormGroup>
                 <FormControl
@@ -63,6 +66,7 @@ TextSetting = rclass
                     value    = {@props.value}
                     onChange = {@props.onChange}
                     onBlur   = {@props.onBlur}
+                    maxLength= {@props.maxLength}
                 />
             </FormGroup>
         </LabeledRow>
@@ -74,28 +78,27 @@ EmailAddressSetting = rclass
         email_address : rtypes.string
         redux         : rtypes.object
 
-    getInitialState : ->
+    getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
         password   : ''
         email_address : ''    # The new email address
 
-    start_editing : ->
+    start_editing: ->
         @setState
             state    : 'edit'
             email_address : @props.email_address
             error    : ''
             password : ''
 
-    cancel_editing : ->
+    cancel_editing: ->
         @setState
             state    : 'view'
             password : ''  # more secure...
 
-    save_editing : ->
+    save_editing: ->
         @setState
             state : 'saving'
-        salvus_client.change_email
-            old_email_address : @props.email_address
+        webapp_client.change_email
             new_email_address : @state.email_address
             password          : @state.password
             cb                : (err, resp) =>
@@ -114,17 +117,17 @@ EmailAddressSetting = rclass
     is_submittable: ->
         return @state.password and @state.email_address != @props.email_address
 
-    change_button : ->
+    change_button: ->
         if @is_submittable()
             <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
         else
             <Button disabled bsStyle='success'>Change email address</Button>
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
-    render_edit : ->
+    render_edit: ->
         <Well style={marginTop: '3ex'}>
             <FormGroup>
                 New email address
@@ -135,6 +138,7 @@ EmailAddressSetting = rclass
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
+                    maxLength   = 254
                 />
             </FormGroup>
             Current password
@@ -157,12 +161,12 @@ EmailAddressSetting = rclass
             {@render_saving()}
         </Well>
 
-    render_saving : ->
+    render_saving: ->
         if @state.state == 'saving'
             <Saving />
 
-    render : ->
-        <LabeledRow label='Email address'>
+    render: ->
+        <LabeledRow label='Email address'  style={marginBottom: '15px'}>
             <div>
                 {@props.email_address}
                 <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
@@ -176,14 +180,14 @@ PasswordSetting = rclass
     propTypes :
         email_address : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         state        : 'view'   # view --> edit --> saving --> view
         old_password : ''
         new_password : ''
         strength     : 0
         error        : ''
 
-    change_password : ->
+    change_password: ->
         @setState
             state    : 'edit'
             error    : ''
@@ -192,7 +196,7 @@ PasswordSetting = rclass
             new_password : ''
             strength     : 0
 
-    cancel_editing : ->
+    cancel_editing: ->
         @setState
             state    : 'view'
             old_password : ''
@@ -200,10 +204,10 @@ PasswordSetting = rclass
             zxcvbn   : undefined
             strength     : 0
 
-    save_new_password : ->
+    save_new_password: ->
         @setState
             state : 'saving'
-        salvus_client.change_password
+        webapp_client.change_password
             email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
@@ -225,7 +229,7 @@ PasswordSetting = rclass
     is_submittable: ->
         return @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
 
-    change_button : ->
+    change_button: ->
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
@@ -233,11 +237,11 @@ PasswordSetting = rclass
         else
             <Button disabled bsStyle='success'>Change password</Button>
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
 
-    password_meter : ->
+    password_meter: ->
         result = @state.zxcvbn
         if result?
             score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
@@ -246,10 +250,10 @@ PasswordSetting = rclass
                 {score[result.score]} (crack time: {result.crack_time_display})
             </div>
 
-    render_edit : ->
+    render_edit: ->
         <Well style={marginTop:'3ex'}>
             <FormGroup>
-                Current password
+                Current password <span color='#888'>(leave blank if you have not set a password)</span>
                 <FormControl
                     autoFocus
                     type        = 'password'
@@ -280,14 +284,14 @@ PasswordSetting = rclass
             {@render_saving()}
         </Well>
 
-    render_saving : ->
+    render_saving: ->
         if @state.state == 'saving'
             <Saving />
 
-    render : ->
-        <LabeledRow label='Password'>
+    render: ->
+        <LabeledRow label='Password' style={marginBottom: '15px'}>
             <div style={height:'30px'}>
-                <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}  style={marginTop: '8px'}>
+                <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}>
                     Change password...
                 </Button>
             </div>
@@ -315,15 +319,15 @@ AccountSettings = rclass
         add_strategy_link      : undefined
         remote_strategy_button : undefined
 
-    handle_change : (evt, field) ->
+    handle_change: (evt, field) ->
         # value = ReactDOM.findDOMNode(@refs[field]).value
         value = evt.target.value
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
-        @props.redux.getActions('account').setState("#{field}": value)
+        @actions('account').setState("#{field}": value)
 
-    save_change : (evt, field) ->
+    save_change: (evt, field) ->
         value = evt.target.value
         @props.redux.getTable('account').set("#{field}": value)
 
@@ -338,7 +342,7 @@ AccountSettings = rclass
             login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
-                <Button href={"#{window.smc_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
+                <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
                     <Icon name="external-link" /> Link my {name} account
                 </Button>
@@ -357,7 +361,7 @@ AccountSettings = rclass
                 break
         if not id
             return
-        salvus_client.unlink_passport
+        webapp_client.unlink_passport
             strategy : strategy
             id       : id
             cb       : (err) ->
@@ -394,7 +398,7 @@ AccountSettings = rclass
                 </ButtonToolbar>
             </Well>
 
-    render_strategy : (strategy, strategies) ->
+    render_strategy: (strategy, strategies) ->
         if strategy != 'email'
             <Button
                 onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
@@ -403,10 +407,10 @@ AccountSettings = rclass
                 <Icon name={strategy} /> {misc.capitalize(strategy)}...
             </Button>
 
-    render_sign_out_error : ->
-        <ErrorDisplay error={@props.sign_out_error} onClose={=>@props.redux.getActions('account').setState(sign_out_error : '')} />
+    render_sign_out_error: ->
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>@actions('account').setState(sign_out_error : '')} />
 
-    render_sign_out_confirm : ->
+    render_sign_out_confirm: ->
         if @props.everywhere
             text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
         else
@@ -414,29 +418,29 @@ AccountSettings = rclass
         <Well style={marginTop: '15px'}>
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>@props.redux.getActions('account').sign_out(@props.everywhere)}>
+                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>@props.redux.getActions('account').setState(show_sign_out : false)}} >
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
                     Cancel
                 </Button>
             </ButtonToolbar>
-            {render_sign_out_error() if @props.sign_out_error}
+            {@render_sign_out_error() if @props.sign_out_error}
         </Well>
 
-    render_sign_out_buttons : ->
+    render_sign_out_buttons: ->
         <ButtonToolbar className='pull-right'>
             <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
-                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false, sign_out_error:undefined)}>
                 <Icon name='sign-out'/> Sign out...
             </Button>
             <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
-                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
+                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true, sign_out_error:undefined)}>
                 <Icon name='sign-out'/> Sign out everywhere...
             </Button>
         </ButtonToolbar>
 
-    render_sign_in_strategies : ->
+    render_sign_in_strategies: ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
         strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports ? {}))
@@ -450,14 +454,15 @@ AccountSettings = rclass
             {@render_remove_strategy_button()}
         </div>
 
-    render : ->
+    render: ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
-                label    = 'First name'
-                value    = {@props.first_name}
-                ref      = 'first_name'
-                onChange = {(e)=>@handle_change(e, 'first_name')}
-                onBlur   = {(e)=>@save_change(e, 'first_name')}
+                label     = 'First name'
+                value     = {@props.first_name}
+                ref       = 'first_name'
+                onChange  = {(e)=>@handle_change(e, 'first_name')}
+                onBlur    = {(e)=>@save_change(e, 'first_name')}
+                maxLength = 254
                 />
             <TextSetting
                 label    = 'Last name'
@@ -465,17 +470,21 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
+                maxLength = 254
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
-                redux      = {@props.redux}
-                ref        = 'email_address'
+                redux         = {@props.redux}
+                ref           = 'email_address'
+                maxLength     = 254
                 />
             <PasswordSetting
                 email_address = {@props.email_address}
                 ref   = 'password'
+                maxLength = 64
                 />
-            <Row style={marginTop: '1ex'}>
+            <APIKeySetting />
+            <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
                 <Col xs=12>
                     {@render_sign_out_buttons()}
                 </Col>
@@ -485,10 +494,10 @@ AccountSettings = rclass
                 <Col xs=12>
                     <DeleteAccount
                         style={marginTop:'1ex'}
-                        initial_click = {()=>@setState(show_delete_confirmation:true)}
-                        confirm_click = {=>@props.redux.getActions('account').delete_account()}
-                        cancel_click  = {()=>@setState(show_delete_confirmation:false)}
-                        user_name     = {@props.first_name + ' ' + @props.last_name}
+                        initial_click = {=>@setState(show_delete_confirmation:true)}
+                        confirm_click = {=>@actions('account').delete_account()}
+                        cancel_click  = {=>@setState(show_delete_confirmation:false)}
+                        user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
                         show_confirmation={@state.show_delete_confirmation}
                         />
                 </Col>
@@ -507,22 +516,23 @@ DeleteAccount = rclass
         show_confirmation : rtypes.bool
         style             : rtypes.object
 
-    render : ->
+    render: ->
         <div>
             <div style={height:'26px'}>
                 <Button
-                    disabled={@props.show_confirmation}
-                    className='pull-right'
-                    bsStyle='danger'
-                    style={@props.style}
-                    onClick=@props.initial_click>
+                    disabled  = {@props.show_confirmation}
+                    className = 'pull-right'
+                    bsStyle   = 'danger'
+                    style     = {@props.style}
+                    onClick   = @props.initial_click
+                >
                 <Icon name='trash' /> Delete Account...
                 </Button>
             </div>
             {<DeleteAccountConfirmation
-                confirm_click={@props.confirm_click}
-                cancel_click={@props.cancel_click}
-                required_text={@props.user_name}
+                confirm_click = {@props.confirm_click}
+                cancel_click  = {@props.cancel_click}
+                required_text = {@props.user_name}
              /> if @props.show_confirmation}
         </div>
 
@@ -535,42 +545,52 @@ DeleteAccountConfirmation = rclass
         cancel_click  : rtypes.func.isRequired
         required_text : rtypes.string.isRequired
 
+    reduxProps:
+        account :
+            account_deletion_error : rtypes.string
+
     # Loses state on rerender from cancel. But this is what we want.
     getInitialState: ->
         confirmation_text : ''
 
-    render : ->
-        <Well style={marginTop: '26px', textAlign:'center'}>
-            Are you sure you want to do this?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+    render_error: ->
+        if not @props.account_deletion_error?
+            return
+        <ErrorDisplay error={@props.account_deletion_error} />
+
+    render: ->
+        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
+            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
+            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To proceed, enter your first and last name below.
+            To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
                     autoFocus
                     value       = {@state.confirmation_text}
                     type        = 'text'
-                    ref        = 'confirmation_field'
+                    ref         = 'confirmation_field'
                     onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
                     style       = {marginTop : '1ex'}
                 />
             </FormGroup>
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
-                    disabled={@state.confirmation_text != @props.required_text}
-                    bsStyle='danger'
-                    onClick={@props.confirm_click}
+                    disabled = {@state.confirmation_text != @props.required_text}
+                    bsStyle  = 'danger'
+                    onClick  = {=>@props.confirm_click()}
                 >
-                    <Icon name='trash' /> Confirm Deletion
+                    <Icon name='trash' /> Confirm Account Deletion
                 </Button>
                 <Button
-                    style={paddingRight:'8px'}
-                    bsStyle='primary'
-                    onClick={@props.cancel_click}}
+                    style   = {paddingRight:'8px'}
+                    bsStyle = 'primary'
+                    onClick = {@props.cancel_click}}
                 >
                     Cancel
                 </Button>
             </ButtonToolbar>
+            {@render_error()}
         </Well>
 
 ###
@@ -594,17 +614,21 @@ ProfileSettings = rclass
     propTypes :
         redux         : rtypes.object
         email_address : rtypes.string
-        profile       : rtypes.object
         first_name    : rtypes.string
         last_name     : rtypes.string
+
+    reduxProps:
+        account :
+            account_id : rtypes.string
+            profile    : rtypes.immutable
 
     getInitialState: ->
         show_instructions : false
 
-    onColorChange : (value) ->
+    onColorChange: (value) ->
         @props.redux.getTable('account').set(profile : {color: value})
 
-    onGravatarSelect : (e) ->
+    onGravatarSelect: (e) ->
         if e.target.checked
             email = @props.email_address
             gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
@@ -628,13 +652,20 @@ ProfileSettings = rclass
             </Button>
         </Well>
 
+    render_gravatar_needs_email: ->
+        <div className="lighten">
+            Gravatar only available if you set an email address in the account settings panel above.
+        </div>
+
     render_set_gravatar: ->
+        if not @props.email_address
+            return @render_gravatar_needs_email()
         <Row>
             <Col md=6 key='checkbox'>
                 <Checkbox
-                    ref="checkbox"
-                    checked={@props.profile?.image? and (@props.profile.image isnt "")}
-                    onChange={@onGravatarSelect}>
+                    ref      = "checkbox"
+                    checked  = {!!@props.profile.get('image')}
+                    onChange = {@onGravatarSelect}>
                     Use gravatar
                 </Checkbox>
             </Col>
@@ -643,12 +674,25 @@ ProfileSettings = rclass
             </Col>
         </Row>
 
-    render : ->
-        <Panel header={<h2> <Avatar size=30 account={@props} /> Profile </h2>}>
+    render_header: ->
+        <h2>
+            <Avatar
+                account_id = {@props.account_id}
+                size       = 40
+            />
+            <Space />
+            <Space />
+            Profile
+        </h2>
+
+    render: ->
+        if not @props.account_id? or not @props.profile?
+            return <Loading />
+        <Panel header={@render_header()}>
             <LabeledRow label='Color'>
-                <ColorPicker color={@props.profile?.color} style={maxWidth:"150px"} onChange={@onColorChange}/>
+                <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
-            <LabeledRow label='Color'>
+            <LabeledRow label='Picture'>
                 {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
              </LabeledRow>
         </Panel>
@@ -665,7 +709,7 @@ TerminalSettings = rclass
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
 
-    render : ->
+    render: ->
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
@@ -715,10 +759,10 @@ EditorSettingsCheckboxes = rclass
         editor_settings : rtypes.object.isRequired
         on_change       : rtypes.func.isRequired
 
-    label_checkbox : (name, desc) ->
+    label_checkbox: (name, desc) ->
         return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
 
-    render_checkbox : (name, desc) ->
+    render_checkbox: (name, desc) ->
         <Checkbox checked  = {@props.editor_settings[name]}
                key      = {name}
                ref      = {name}
@@ -726,7 +770,7 @@ EditorSettingsCheckboxes = rclass
             {@label_checkbox(name, desc)}
         </Checkbox>
 
-    render : ->
+    render: ->
         <span>
             {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
         </span>
@@ -738,7 +782,7 @@ EditorSettingsAutosaveInterval = rclass
         autosave  : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
 
-    render : ->
+    render: ->
         <LabeledRow label='Autosave interval'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
@@ -755,7 +799,7 @@ EditorSettingsFontSize = rclass
         font_size : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
 
-    render : ->
+    render: ->
         <LabeledRow label='Font Size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
@@ -803,7 +847,7 @@ EditorSettingsColorScheme = rclass
         theme     : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
 
-    render : ->
+    render: ->
         <LabeledRow label='Editor color scheme'>
             <SelectorInput
                 options   = {EDITOR_COLOR_SCHEMES}
@@ -825,7 +869,7 @@ EditorSettingsKeyboardBindings = rclass
         bindings  : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
 
-    render : ->
+    render: ->
         <LabeledRow label='Editor keyboard bindings'>
             <SelectorInput
                 options   = {EDITOR_BINDINGS}
@@ -843,7 +887,7 @@ EditorSettings = rclass
         font_size: rtypes.number
         editor_settings : rtypes.object
 
-    on_change : (name, val) ->
+    on_change: (name, val) ->
         if name == 'autosave'
             @props.redux.getTable('account').set(autosave : val)
         else if name == 'font_size'
@@ -851,7 +895,7 @@ EditorSettings = rclass
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 
-    render : ->
+    render: ->
         if not @props.editor_settings?
             return <Loading />
         <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
@@ -872,6 +916,7 @@ KEYBOARD_SHORTCUTS =
     #'Previous file tab'            : 'control+['
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
+    'Toggle comment'               : 'control+/'
     'Go to line'                   : 'control+L'
     'Find'                         : 'control+F'
     'Find next'                    : 'control+G'
@@ -879,7 +924,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
     'Split view in any editor'     : 'control+I'
-    'Autoindent selection'         : 'control+'
+    'Autoindent selection'         : "control+'"
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
@@ -896,16 +941,16 @@ KeyboardSettings = rclass
         redux        : rtypes.object
         evaluate_key : rtypes.string
 
-    render_keyboard_shortcuts : ->
+    render_keyboard_shortcuts: ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
             <LabeledRow key={desc} label={desc}>
                 {shortcut}
             </LabeledRow>
 
-    eval_change : (value) ->
+    eval_change: (value) ->
         @props.redux.getTable('account').set(evaluate_key : value)
 
-    render_eval_shortcut : ->
+    render_eval_shortcut: ->
         if not @props.evaluate_key?
             return <Loading />
         <LabeledRow label='Sage Worksheet evaluate key'>
@@ -916,7 +961,7 @@ KeyboardSettings = rclass
             />
         </LabeledRow>
 
-    render : ->
+    render: ->
         <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard shortcuts</h2>}>
             {@render_keyboard_shortcuts()}
             {@render_eval_shortcut()}
@@ -929,10 +974,10 @@ OtherSettings = rclass
         other_settings : rtypes.object
         redux          : rtypes.object
 
-    on_change : (name, value) ->
+    on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
-    render_confirm : ->
+    render_confirm: ->
         if not require('./feature').IS_MOBILE
                 <Checkbox
                     checked  = {@props.other_settings.confirm_close}
@@ -940,14 +985,15 @@ OtherSettings = rclass
                     onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                     Confirm: always ask for confirmation before closing the browser window
                 </Checkbox>
-    render_page_size_warning : ->
+
+    render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
         if @props.other_settings.page_size > BIG_PAGE_SIZE
             <Alert bsStyle='warning'>
                 Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
             </Alert>
 
-    render : ->
+    render: ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
@@ -958,6 +1004,13 @@ OtherSettings = rclass
                 onChange = {(e)=>@on_change('mask_files', e.target.checked)}
             >
                 Mask files: grey-out files in the files viewer that you probably do not want to open
+            </Checkbox>
+            <Checkbox
+                checked  = {@props.other_settings.show_global_info}
+                ref      = 'show_global_info'
+                onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
+            >
+                Show global information: if enabled, a dismissible banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
@@ -987,18 +1040,18 @@ OtherSettings = rclass
 AccountCreationToken = rclass
     displayName : 'AccountCreationToken'
 
-    getInitialState : ->
+    getInitialState: ->
         state : 'view'   # view --> edit --> save --> view
         token : ''
         error : ''
 
-    edit : ->
+    edit: ->
         @setState(state:'edit')
 
-    save : ->
+    save: ->
         @setState(state:'save')
         token = @state.token
-        salvus_client.query
+        webapp_client.query
             query :
                 server_settings : {name:'account_creation_token',value:token}
             cb : (err) =>
@@ -1007,10 +1060,10 @@ AccountCreationToken = rclass
                 else
                     @setState(state:'view', error:'', token:'')
 
-    render_save_button : ->
+    render_save_button: ->
         <Button style={marginRight:'1ex'} onClick={@save} bsStyle='success'>Save token</Button>
 
-    render_control : ->
+    render_control: ->
         switch @state.state
             when 'view'
                 <Button onClick={@edit} bsStyle='warning'>Change token...</Button>
@@ -1034,15 +1087,22 @@ AccountCreationToken = rclass
                     (Set to empty to not require a token.)
                 </Well>
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render_save : ->
+    render_save: ->
         if @state.state == 'save'
             <Saving />
 
-    render : ->
+    render_unsupported: ->  # see https://github.com/sagemathinc/cocalc/issues/333
+        <div style={color:"#666"}>
+            Not supported since some passport strategies are enabled.
+        </div>
+
+    render: ->
+        if STRATEGIES.length > 1
+            return @render_unsupported()
         <div>
              {@render_control()}
              {@render_save()}
@@ -1053,20 +1113,20 @@ AccountCreationToken = rclass
 StripeKeys = rclass
     displayName : 'Account-StripeKeys'
 
-    getInitialState : ->
+    getInitialState: ->
         state           : 'view'   # view --> edit --> save --> saved
         secret_key      : ''
         publishable_key : ''
         error           : undefined
 
-    edit : ->
+    edit: ->
         @setState(state:'edit')
 
-    save : ->
+    save: ->
         @setState(state:'save')
         f = (name, cb) =>
         query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        salvus_client.query
+        webapp_client.query
             query : query
             cb    : (err) =>
                 if err
@@ -1074,16 +1134,16 @@ StripeKeys = rclass
                 else
                     @setState(state:'saved', error:'', secret_key:'', publishable_key:'')
 
-    cancel : ->
+    cancel: ->
         @setState(state:'view', error:'', secret_key:'', publishable_key:'')
 
-    render : ->
+    render: ->
         <div>
             {@render_main()}
             {@render_error()}
         </div>
 
-    render_main :->
+    render_main:->
         switch @state.state
             when 'view', 'saved'
                 <div>
@@ -1112,7 +1172,7 @@ StripeKeys = rclass
                     </ButtonToolbar>
                 </Well>
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
@@ -1122,14 +1182,14 @@ underscore = require('underscore')
 SiteSettings = rclass
     displayName : 'Account-SiteSettings'
 
-    getInitialState : ->
+    getInitialState: ->
         return {state :'view'}  # view --> load --> edit --> save --> view, and error
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render : ->
+    render: ->
         <div>
             {@render_main()}
             {@render_error()}
@@ -1137,7 +1197,7 @@ SiteSettings = rclass
 
     load: ->
         @setState(state:'load')
-        salvus_client.query
+        webapp_client.query
             query :
                 site_settings : [{name:null, value:null}]
             cb : (err, result) =>
@@ -1159,7 +1219,7 @@ SiteSettings = rclass
     save: ->
         @setState(state:'save')
         f = (x, cb) =>
-            salvus_client.query
+            webapp_client.query
                 query :
                     site_settings : {name: x.name, value: x.value}
                 cb : cb
@@ -1192,7 +1252,7 @@ SiteSettings = rclass
         for name in misc.keys(site_settings_conf)
             @render_row(name, @state.edited[name])
 
-    render_main : ->
+    render_main: ->
         switch @state.state
             when 'view'
                 @render_edit_button()
@@ -1213,7 +1273,7 @@ SystemMessage = rclass
         system_notifications :
             notifications : rtypes.immutable
 
-    getInitialState : ->
+    getInitialState: ->
         return {state :'view'}  # view <--> edit
 
     render_buttons: ->
@@ -1257,7 +1317,7 @@ SystemMessage = rclass
     mark_all_done: ->
         redux.getActions('system_notifications').mark_all_done()
 
-    render : ->
+    render: ->
         if not @props.notifications?
             return <Loading/>
         switch @state.state
@@ -1269,11 +1329,11 @@ SystemMessage = rclass
 AddStripeUser = rclass
     displayName : 'Account-AddStripeUser'
 
-    getInitialState : ->
+    getInitialState: ->
         email : ''
         status: ''
 
-    status_mesg : (s) ->
+    status_mesg: (s) ->
         @setState(status:@state.status + (if @state.status then '\n' else '') + s.trim())
 
     add_stripe_user: ->
@@ -1284,7 +1344,7 @@ AddStripeUser = rclass
 
         @status_mesg("Adding #{email}...")
         @setState(email: '')
-        salvus_client.stripe_admin_create_customer
+        webapp_client.stripe_admin_create_customer
             email_address : email
             cb            : (err, mesg) =>
                 if err
@@ -1322,7 +1382,7 @@ AddStripeUser = rclass
             <Button onClick={=>@setState(status:'')}>Clear</Button>
         </div>
 
-    render : ->
+    render: ->
         <div>
             {@render_form()}
             {@render_status()}
@@ -1332,7 +1392,7 @@ AdminSettings = rclass
     propTypes :
         groups : rtypes.array
 
-    render : ->
+    render: ->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
 
@@ -1375,10 +1435,9 @@ exports.AccountSettingsTop = rclass
         font_size       : rtypes.number
         editor_settings : rtypes.object
         other_settings  : rtypes.object
-        profile         : rtypes.object
         groups          : rtypes.array
 
-    render : ->
+    render: ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col xs=12 md=6>
@@ -1409,7 +1468,6 @@ exports.AccountSettingsTop = rclass
                         redux           = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}
-                        profile       = {@props.profile}
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
@@ -1421,7 +1479,7 @@ exports.AccountSettingsTop = rclass
 
 STRATEGIES = ['email']
 f = () ->
-    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
+    $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
@@ -1441,8 +1499,9 @@ ugly_error = (err) ->
 # loaded; otherwise returns undefined and starts load
 zxcvbn = undefined
 password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/smc/issues/687
+    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
     # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
+    ###
     if zxcvbn?
         if zxcvbn != 'loading'
             # explicitly ban some words.
@@ -1454,3 +1513,4 @@ password_score = (password) ->
             # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             #    zxcvbn = window.zxcvbn
     return
+    ###

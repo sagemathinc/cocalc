@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -26,7 +26,7 @@
 ##########################################################################
 #
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (C) 2016, Sagemath Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,44 +50,42 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+
 _ = underscore = require('underscore')
 
-if process?.env?.DEVEL and not process?.env?.SMC_TEST
-    # Running on node and DEVEL is set and not running under test suite
-    DEBUG = true
-else
-    DEBUG = false
-
-# console.debug only logs if DEBUG is true
-if DEBUG
-    console.debug = console.log
-else
-    console.debug = ->
-
-if process?.env?.SMC_TEST
-    # in test mode we *do* want exception to get thrown below when type checks fails
-    TEST_MODE = true
-
 exports.RUNNING_IN_NODE = process?.title == 'node'
+
+{required, defaults, types} = require('./opts')
+# We explicitly export these again for backwards compatibility
+exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
     if typeof(x) == "string"
-        return s.indexOf(x) == 0
+        return s?.indexOf(x) == 0
     else
         for v in x
-            if s.indexOf(v) == 0
+            if s?.indexOf(v) == 0
                 return true
         return false
 
 exports.endswith = (s, t) ->
+    if not s? or not t?
+        return false  # undefined doesn't endswith anything...
     return s.slice(s.length - t.length) == t
 
-# modifies in place the object dest so that it includes all values in objs and returns dest
+# Modifies in place the object dest so that it
+# includes all values in objs and returns dest
+# Rightmost object overwrites left.
 exports.merge = (dest, objs...) ->
     for obj in objs
-        dest[k] = v for k, v of obj
+        for k, v of obj
+            dest[k] = v
     dest
+
+# Makes new object that is shallow copy merge of all objects.
+exports.merge_copy = (objs...) ->
+    return exports.merge({}, objs...)
 
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
@@ -161,68 +159,6 @@ exports.min_object = (target, upper_bounds) ->
     for prop, val of upper_bounds
         target[prop] = if target.hasOwnProperty(prop) then target[prop] = Math.min(target[prop], upper_bounds[prop]) else upper_bounds[prop]
 
-# Returns a new object with properties determined by those of obj1 and
-# obj2.  The properties in obj1 *must* all also appear in obj2.  If an
-# obj2 property has value "defaults.required", then it must appear in
-# obj1.  For each property P of obj2 not specified in obj1, the
-# corresponding value obj1[P] is set (all in a new copy of obj1) to
-# be obj2[P].
-defaults = exports.defaults = (obj1, obj2, allow_extra) ->
-    if not obj1?
-        obj1 = {}
-    error  = () ->
-        try
-            s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
-            if not TEST_MODE
-                console.log(s)
-            return s
-        catch err
-            return ""
-    if not obj1?
-        # useful special case
-        obj1 = {}
-    if typeof(obj1) != 'object'
-        # We put explicit traces before the errors in this function,
-        # since otherwise they can be very hard to debug.
-        err = "BUG -- Traceback -- misc.defaults -- TypeError: function takes inputs as an object #{error()}"
-        console.log(err)
-        console.trace()
-        if DEBUG or TEST_MODE
-            throw new Error(err)
-        else
-            return obj2
-    r = {}
-    for prop, val of obj2
-        if obj1.hasOwnProperty(prop) and obj1[prop]?
-            if obj2[prop] == exports.defaults.required and not obj1[prop]?
-                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
-                console.trace()
-                if DEBUG or TEST_MODE
-                    throw new Error(err)
-            r[prop] = obj1[prop]
-        else if obj2[prop]?  # only record not undefined properties
-            if obj2[prop] == exports.defaults.required
-                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.debug(err)
-                console.trace()
-                if DEBUG or TEST_MODE
-                    throw new Error(err)
-            else
-                r[prop] = obj2[prop]
-    if not allow_extra
-        for prop, val of obj1
-            if not obj2.hasOwnProperty(prop)
-                err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.debug(err)
-                console.trace()
-                if DEBUG or TEST_MODE
-                    throw new Error(err)
-    return r
-
-# WARNING -- don't accidentally use this as a default:
-required = exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
-
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->
     if t?
@@ -248,6 +184,11 @@ exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
+exports.assert_uuid = (uuid) =>
+    if not exports.is_valid_uuid_string(uuid)
+        throw Error("invalid uuid='#{uuid}'")
+    return
+
 exports.is_valid_sha1_string = (s) ->
     return typeof(s) == 'string' and s.length == 40 and /[a-fA-F0-9]{40}/i.test(s)
 
@@ -267,7 +208,6 @@ exports.uuidsha1 = (data) ->
                 return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
     )
 
-
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
@@ -285,8 +225,46 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
             break
     return Math.ceil(i/tm)
 
-exports.to_json = (x) ->
-    JSON.stringify(x)
+exports.to_json = JSON.stringify
+
+###
+The functions to_json_socket and from_json_socket are for sending JSON data back
+and forth in serialized form over a socket connection.   They replace Date objects by the
+object {DateEpochMS:ms_since_epoch} *only* during transit.   This is much better than
+converting to ISO, then using a regexp, since then all kinds of strings will get
+converted that were never meant to be date objects at all, e.g., a filename that is
+a ISO time string.  Also, ms since epoch is less ambiguous regarding old/different
+browsers, and more compact.
+
+If you change SOCKET_DATE_KEY, then all clients and servers and projects must be
+simultaneously restarted.
+###
+SOCKET_DATE_KEY = 'DateEpochMS'
+
+socket_date_replacer = (key, value) ->
+    if this[key] instanceof Date
+        date = this[key]
+        return {"#{SOCKET_DATE_KEY}":date - 0}
+    else
+        return value
+
+exports.to_json_socket = (x) ->
+    JSON.stringify(x, socket_date_replacer)
+
+socket_date_parser = (key, value) ->
+    if value?[SOCKET_DATE_KEY]?
+        return new Date(value[SOCKET_DATE_KEY])
+    else
+        return value
+
+exports.from_json_socket = (x) ->
+    try
+        JSON.parse(x, socket_date_parser)
+    catch err
+        console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        throw err
+
+
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
 # any values that are potentially big -- this is meant to only be used for loging.
@@ -312,13 +290,24 @@ exports.to_safe_str = (x) ->
     x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
+#   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
-date_parser = (k, v) ->
-    # TODO shouldn't be the length 26?
-    if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
-        return new Date(v)
+exports.date_parser = date_parser = (k, v) ->
+    if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v)
+        return ISO_to_Date(v)
     else
         return v
+
+exports.ISO_to_Date = ISO_to_Date = (s) ->
+    if s.indexOf('Z') == -1
+        # Firefox assumes local time rather than UTC if there is no Z.   However,
+        # our backend might possibly send a timestamp with no Z and it should be
+        # interpretted as UTC anyways.
+        # That said, with the to_json_socket/from_json_socket code, the browser
+        # shouldn't be running this parser anyways.
+        s += 'Z'
+    return new Date(s)
+
 
 exports.from_json = (x) ->
     try
@@ -326,6 +315,26 @@ exports.from_json = (x) ->
     catch err
         console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
+
+# Returns modified version of obj with any string
+# that look like ISO dates to actual Date objects.  This mutates
+# obj in place as part of the process.
+# date_keys = 'all' or list of keys in nested object whose values should be considered.  Nothing else is considered!
+exports.fix_json_dates = fix_json_dates = (obj, date_keys) ->
+    if not date_keys? # nothing to do
+        return obj
+    if exports.is_object(obj)
+        for k, v of obj
+            if typeof(v) == 'object'
+                fix_json_dates(v, date_keys)
+            else if typeof(v) == 'string' and v.length >= 20 and reISO.exec(v) and (date_keys == 'all' or k in date_keys)
+                obj[k] = new Date(v)
+    else if exports.is_array(obj)
+        for i, x of obj
+            obj[i] = fix_json_dates(x, date_keys)
+    else if typeof(obj) == 'string' and obj.length >= 20 and reISO.exec(obj) and date_keys == 'all'
+        return new Date(obj)
+    return obj
 
 # converts a Date object to an ISO string in UTC.
 # NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
@@ -345,7 +354,7 @@ exports.len = (obj) ->
     a = obj.length
     if a?
         return a
-    Object.keys(obj).length
+    underscore.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
@@ -403,6 +412,7 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
+    filename = exports.path_split(filename).tail
     return filename_extension_re.exec(filename)[1] ? ''
 
 exports.filename_extension_notilde = (filename) ->
@@ -418,6 +428,12 @@ exports.separate_file_extension = (name) ->
     if ext isnt ''
         name = name[0...name.length - ext.length - 1] # remove the ext and the .
     return {name: name, ext: ext}
+
+# change the filename's extension to the new one.
+# if there is no extension, add it.
+exports.change_filename_extension = (name, new_ext) ->
+    {name, ext} = exports.separate_file_extension(name)
+    return "#{name}.#{new_ext}"
 
 # shallow copy of a map
 exports.copy = (obj) ->
@@ -466,10 +482,13 @@ exports.deep_copy = (obj) ->
         flags += 'y' if obj.sticky?
         return new RegExp(obj.source, flags)
 
-    newInstance = new obj.constructor()
+    try
+        newInstance = new obj.constructor()
+    catch
+        newInstance = {}
 
-    for key of obj
-        newInstance[key] = exports.deep_copy(obj[key])
+    for key, val of obj
+        newInstance[key] = exports.deep_copy(val)
 
     return newInstance
 
@@ -480,6 +499,15 @@ exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
+# See http://stackoverflow.com/questions/29855098/is-there-a-built-in-javascript-function-similar-to-os-path-join
+exports.path_join = (parts...) ->
+    sep = '/'
+    replace = new RegExp(sep+'{1,}', 'g')
+    s = ("#{x}" for x in parts).join(sep).replace(replace, sep)
+    #console.log parts, s
+    return s
+
+
 # Takes a path string and file name and gives the full path to the file
 exports.path_to_file = (path, file) ->
     if path == ''
@@ -487,6 +515,8 @@ exports.path_to_file = (path, file) ->
     return path + '/' + file
 
 exports.meta_file = (path, ext) ->
+    if not path?
+        return
     p = exports.path_split(path)
     path = p.head
     if p.head != ''
@@ -510,35 +540,43 @@ exports.original_path = (path) ->
         x = s.head + '/' + x
     return x
 
-
-# "foobar" --> "foo..."
+ELLIPSES = "…"
+# "foobar" --> "foo…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return s.slice(0,max_length-3) + "..."
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return s.slice(0,max_length-1) + ELLIPSES
     else
         return s
 
-# "foobar" --> "fo...ar"
+# "foobar" --> "fo…ar"
 exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length <= max_length
         return s
+    if max_length < 1
+        throw new Error("ValueError: max_length must be >= 1")
     n = Math.floor(max_length/2)
-    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
+    return s.slice(0, n - 1 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-n)
 
-# "foobar" --> "...bar"
+# "foobar" --> "…bar"
 exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
+    if typeof(s) != 'string'
+        s = "#{s}"
     if s.length > max_length
-        if max_length < 3
-            throw new Error("ValueError: max_length must be >= 3")
-        return "..." + s.slice(s.length-max_length+3)
+        if max_length < 1
+            throw new Error("ValueError: max_length must be >= 1")
+        return ELLIPSES + s.slice(s.length-max_length+1)
     else
         return s
 
@@ -560,7 +598,7 @@ exports.pad_right = (s, n) ->
 exports.plural = (number, singular, plural="#{singular}s") ->
     if singular in ['GB', 'MB']
         return singular
-    if number is 1 then singular else plural
+    if number == 1 then singular else plural
 
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
@@ -696,6 +734,9 @@ exports.retry_until_success = (opts) ->
                 opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if err == "not_public"
+                    opts.cb?("not_public")
+                    return
                 if err and opts.warn?
                     opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.log?
@@ -837,6 +878,9 @@ exports.eval_until_defined = (opts) ->
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
+
+# TODO: this is actually throttle, not debounce...
+
 exports.async_debounce = (opts) ->
     opts = defaults opts,
         f        : required   # async function f whose *only* argument is a callback
@@ -868,7 +912,7 @@ exports.async_debounce = (opts) ->
     if cb?
         callbacks.push(cb)
     # Reset next callbacks
-    state.next_callbacks = []
+    delete state.next_callbacks
     #console.log("doing run with #{callbacks.length} callbacks")
 
     f (err) =>
@@ -878,8 +922,8 @@ exports.async_debounce = (opts) ->
             cb?(err)
         callbacks = []  # ensure these callbacks don't get called again
         #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
-        if state.next_callbacks.length > 0 and not state.timer?
-            # new cb requests came in since when we started, so call when we next can.
+        if state.next_callbacks? and not state.timer?
+            # new calls came in since when we started, so call when we next can.
             #console.log("new callbacks came in #{state.next_callbacks.length}")
             call_again()
 
@@ -1036,15 +1080,15 @@ exports.parse_hashtags = (t) ->
                 base += i+1
                 t = t.slice(i+1)
 
-mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
-                 ['\\begin{equation}', '\\end{equation}'],
-                 ['\\begin{equation*}', '\\end{equation*}'],
-                 ['\\begin{align}', '\\end{align}'],
-                 ['\\begin{align*}', '\\end{align*}'],
-                 ['\\begin{eqnarray}', '\\end{eqnarray}'],
-                 ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
-                 ['$', '$']  # must be after $$
-                ]
+# see http://docs.mathjax.org/en/latest/tex.html#environments
+mathjax_environments = ['align', 'align*', 'alignat', 'alignat*', 'aligned', 'alignedat', 'array', \
+                        'Bmatrix', 'bmatrix', 'cases', 'CD', 'eqnarray', 'eqnarray*', 'equation', 'equation*', \
+                        'gather', 'gather*', 'gathered', 'matrix', 'multline', 'multline*', 'pmatrix', 'smallmatrix', \
+                        'split', 'subarray', 'Vmatrix', 'vmatrix']
+mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]']]
+for env in mathjax_environments
+    mathjax_delim.push(["\\begin{#{env}}", "\\end{#{env}}"])
+mathjax_delim.push(['$', '$'])  # must be after $$, best to put it at the end
 
 exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
@@ -1078,7 +1122,7 @@ exports.parse_mathjax = (t) ->
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
-                at_end_of_string = j >= t.length
+                at_end_of_string = j > t.length
                 if !(d[0] == "$" and (contains_linebreak or at_end_of_string))
                     v.push([i,j])
                 i = j
@@ -1191,6 +1235,9 @@ exports.timestamp_cmp = (a,b,field='timestamp') ->
 
 timestamp_cmp0 = (a,b,field='timestamp') ->
     return exports.cmp_Date(a[field], b[field])
+
+exports.field_cmp = (field) ->
+    return (a, b) -> exports.cmp(a[field], b[field])
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1318,9 +1365,22 @@ exports.capitalize = (s) ->
         return s.charAt(0).toUpperCase() + s.slice(1)
 
 exports.is_array = is_array = (obj) ->
-    Object.prototype.toString.call(obj) == "[object Array]"
+    return Object.prototype.toString.call(obj) == "[object Array]"
 
-exports.is_date = (obj) -> obj instanceof Date
+exports.is_integer = Number.isInteger
+if not exports.is_integer?
+    exports.is_integer = (n) -> typeof(n)=='number' and (n % 1) == 0
+
+exports.is_string = (obj) ->
+    return typeof(obj) == 'string'
+
+# An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
+# NOT include Date.
+exports.is_object = is_object = (obj) ->
+    return Object.prototype.toString.call(obj) == "[object Object]"
+
+exports.is_date = is_date = (obj) ->
+    return obj instanceof Date
 
 # get a subarray of all values between the two given values inclusive, provided in either order
 exports.get_array_range = (arr, value1, value2) ->
@@ -1340,11 +1400,11 @@ exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 exports.weeks_ago        = (w)  -> exports.days_ago(7*w)
 exports.months_ago       = (m)  -> exports.days_ago(30.5*m)
 
-if localStorage?
-    # Versions of the above, but give the relevant point in time but
+if window?
+    # BROWSER Versions of the above, but give the relevant point in time but
     # on the *server*.  These are only available in the web browser.
-    exports.server_time             = ()   -> new Date(new Date() - (parseFloat(localStorage.clock_skew) ? 0))
-    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - (parseFloat(localStorage.clock_skew) ? 0))
+    exports.server_time             = ()   -> new Date(new Date() - parseFloat(exports.get_local_storage('clock_skew') ? 0))
+    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - parseFloat(exports.get_local_storage('clock_skew') ? 0))
     exports.server_seconds_ago      = (s)  -> exports.server_milliseconds_ago(1000*s)
     exports.server_minutes_ago      = (m)  -> exports.server_seconds_ago(60*m)
     exports.server_hours_ago        = (h)  -> exports.server_minutes_ago(60*h)
@@ -1509,8 +1569,15 @@ exports.map_without_undefined = map_without_undefined = (map) ->
         if not v?
             continue
         else
-            new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
+            new_map[k] = if is_object(v) then map_without_undefined(v) else v
     return new_map
+
+exports.map_mutate_out_undefined = (map) ->
+    for k, v of map
+        if not v?
+            delete map[k]
+
+
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
@@ -1596,16 +1663,32 @@ exports.history_path = (path) ->
     return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
 
 # This is a convenience function to provide as a callback when working interactively.
-exports.done = () ->
+_done = (n, args...) ->
     start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+    f = (args...) ->
+        if n != 1
+            try
+                args = [JSON.stringify(args, null, n)]
+            catch
+                # do nothing
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args...)
+    if args.length > 0
+        f(args...)
+    else
+        return f
+
+exports.done = (args...) -> _done(0, args...)
+exports.done1 = (args...) -> _done(1, args...)
+exports.done2 = (args...) -> _done(2, args...)
+
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
+
+exports.get_start_time_ts = ->
+    return new Date(smc_start_time * 1000)
+
+exports.get_uptime = ->
+    return seconds2hms((new Date().getTime() / 1000.0) - smc_start_time)
 
 exports.log = () ->
     smc_logger_timestamp = new Date().getTime() / 1000.0
@@ -1621,9 +1704,14 @@ exports.log = () ->
         console.log_original(prompt, msg, args...)
     smc_logger_timestamp_last = smc_logger_timestamp
 
-if not exports.RUNNING_IN_NODE and window?
-    window.console.log_original = window.console.log
-    window.console.log = exports.log
+exports.wrap_log = () ->
+    if not exports.RUNNING_IN_NODE and window?
+        window.console.log_original = window.console.log
+        window.console.log = exports.log
+
+# to test exception handling
+exports.this_fails = ->
+    return exports.op_to_function('noop')
 
 # derive the console initialization filename from the console's filename
 # used in webapp and console_server_child
@@ -1633,7 +1721,6 @@ exports.console_init_filename = (fn) ->
     if x.head == ''
         return x.tail
     return [x.head, x.tail].join("/")
-
 
 exports.has_null_leaf = has_null_leaf = (obj) ->
     for k, v of obj
@@ -1689,10 +1776,15 @@ exports.ticket_id_to_ticket_url = (tid) ->
 
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
-        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
-        'http://nbviewer.ipython.org/urls/':'https://'
-    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
-        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+        'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.jupyter.org/url/'             :'http://'
+        'http://nbviewer.jupyter.org/urls/'            :'https://'
+    if exports.startswith(url, "https://github.com/")
+        if url.indexOf('/blob/') != -1
+            url = url.replace("https://github.com", "https://raw.githubusercontent.com").replace("/blob/","/")
+        # issue #1818: https://github.com/plotly/python-user-guide → https://github.com/plotly/python-user-guide.git
+        else if url.split('://')[1]?.split('/').length == 3
+            url += '.git'
 
     if exports.startswith(url, 'git@github.com:')
         command = 'git'  # kind of useless due to host keys...
@@ -1704,10 +1796,19 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
         # fall back
         for a,b of URL_TRANSFORMS
             url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        # special case, this is only for nbviewer.../github/ URLs
+        if exports.startswith(url, 'http://nbviewer.jupyter.org/github/')
+            url = url.replace('http://nbviewer.jupyter.org/github/', 'https://raw.githubusercontent.com/')
+            url = url.replace("/blob/","/")
         command = 'wget'
         args = [url]
 
     return {command:command, args:args}
+
+exports.ensure_bound = (x, min, max) ->
+    return min if x < min
+    return max if x > max
+    return x
 
 # convert a file path to the "name" of the underlying editor tab.
 # needed because otherwise filenames like 'log' would cause problems
@@ -1715,8 +1816,10 @@ exports.path_to_tab = (name) ->
     "editor-#{name}"
 
 # assumes a valid editor tab name...
+# If invalid or undefined, returns undefined
 exports.tab_to_path = (name) ->
-    name.substring(7)
+    if name? and name.substring(0, 7) == "editor-"
+        name.substring(7)
 
 # suggest a new filename when duplicating it
 # 1. strip extension, split at '_' or '-' if it exists
@@ -1736,3 +1839,209 @@ exports.suggest_duplicate_filename = (name) ->
     if ext?.length > 0
         new_name += ".#{ext}"
     return new_name
+
+
+# Wrapper around localStorage, so we can safely touch it without raising an
+# exception if it is banned (like in some browser modes) or doesn't exist.
+# See https://github.com/sagemathinc/cocalc/issues/237
+
+exports.set_local_storage = (key, val) ->
+    try
+        localStorage[key] = val
+    catch e
+        console.warn("localStorage set error -- #{e}")
+
+exports.get_local_storage = (key) ->
+    try
+        return localStorage[key]
+    catch e
+        console.warn("localStorage get error -- #{e}")
+
+
+exports.delete_local_storage = (key) ->
+    try
+        delete localStorage[key]
+    catch e
+        console.warn("localStorage delete error -- #{e}")
+
+
+exports.has_local_storage = () ->
+    try
+        TEST = '__smc_test__'
+        localStorage[TEST] = 'x'
+        delete localStorage[TEST]
+        return true
+    catch e
+        return false
+
+exports.local_storage_length = () ->
+    try
+        return localStorage.length
+    catch e
+        return 0
+
+# Takes an object representing a directed graph shaped as follows:
+# DAG =
+#     node1 : []
+#     node2 : ["node1"]
+#     node3 : ["node1", "node2"]
+#
+# Which represents the following graph:
+#   node1 ----> node2
+#     |           |
+#    \|/          |
+#   node3 <-------|
+#
+# Returns a topological ordering of the DAG
+#     object = ["node1", "node2", "node3"]
+#
+# Throws an error if cyclic
+# Runs in O(N + E) where N is the number of nodes and E the number of edges
+# Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
+exports.top_sort = (DAG, opts={omit_sources:false}) ->
+    {omit_sources} = opts
+    source_names = []
+    num_edges    = 0
+    data         = {}
+
+    # Ready the data for top sort
+    for name, parents of DAG
+        data[name] ?= {}
+        node = data[name]
+        node.name = name
+        node.children ?= []
+        node.parent_set = {}
+        for parent_name in parents
+            node.parent_set[parent_name] = true  # include element in "parent_set" (see https://github.com/sagemathinc/cocalc/issues/1710)
+            data[parent_name] ?= {}
+            data[parent_name].children ?= []
+            data[parent_name].children.push(node)
+        if parents.length == 0
+            source_names.push(name)
+        else
+            num_edges += parents.length
+
+    # Top sort! Non-recursive method since recursion is way slow in javascript
+    path = []
+    num_sources = source_names.length
+    while source_names.length > 0
+        curr_name = source_names.shift()
+        path.push(curr_name)
+        for child in data[curr_name].children
+            delete child.parent_set[curr_name]
+            num_edges -= 1
+            if exports.len(child.parent_set) == 0
+                source_names.push(child.name)
+
+    # Detect lack of sources
+    if num_sources == 0
+        throw new Error "No sources were detected"
+
+    # Detect cycles
+    if num_edges != 0
+        window?._DAG = DAG  # so it's possible to debug in browser
+        throw new Error "Store has a cycle in its computed values"
+
+    if omit_sources
+        return path.slice(num_sources)
+    else
+        return path
+
+# Takes an object with keys and values where
+# the values are functions and keys are the names
+# of the functions.
+# Dependency graph is created from the property
+# `dependency_names` found on the values
+# Returns an object shaped
+# DAG =
+#     func_name1 : []
+#     func_name2 : ["func_name1"]
+#     func_name3 : ["func_name1", "func_name2"]
+#
+# Which represents the following graph:
+#   func_name1 ----> func_name2
+#     |                |
+#    \|/               |
+#   func_name3 <-------|
+exports.create_dependency_graph = (object) =>
+    DAG = {}
+    for name, written_func of object
+        DAG[name] = written_func.dependency_names ? []
+    return DAG
+
+# Binds all functions in objects of 'arr_objects' to 'scope'
+# Preserves all properties and the toString of these functions
+# Returns a new array of objects in the same order given
+# Leaves arr_objects unaltered.
+exports.bind_objects = (scope, arr_objects) ->
+    return underscore.map arr_objects, (object) =>
+        return underscore.mapObject object, (val) =>
+            if typeof val == 'function'
+                original_toString = val.toString()
+                bound_func = val.bind(scope)
+                bound_func.toString = () => original_toString
+                Object.assign(bound_func, val)
+                return bound_func
+            else
+                return val
+
+# Remove all whitespace from string s.
+# see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
+exports.remove_whitespace = (s) ->
+    return s?.replace(/\s/g,'')
+
+exports.is_whitespace = (s) ->
+    return s?.trim().length == 0
+
+exports.lstrip = (s) ->
+    return s?.replace(/^\s*/g, "")
+
+exports.rstrip = (s) ->
+    return s?.replace(/\s*$/g, "")
+
+# ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
+exports.operators = ['!=', '<>', '<=', '>=', '==', '<', '>', '=']
+
+exports.op_to_function = (op) ->
+    switch op
+        when '=', '=='
+            return (a,b) -> a == b
+        when '!=', '<>'
+            return (a,b) -> a != b
+        when '<='
+            return (a,b) -> a <= b
+        when '>='
+            return (a,b) -> a >= b
+        when '<'
+            return (a,b) -> a < b
+        when '>'
+            return (a,b) -> a > b
+        else
+            throw Error("operator must be one of '#{JSON.stringify(exports.operators)}'")
+
+# modify obj in place substituting keys as given.
+exports.obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            exports.obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
+
+# this is a helper for sanitizing html. It is used in
+# * smc-util-node/misc_node → sanitize_html
+# * smc-webapp/misc_page    → sanitize_html
+exports.sanitize_html_attributes = ($, node) ->
+    $.each node.attributes, ->
+        attrName  = this.name
+        attrValue = this.value
+        # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...
+        # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
+        if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
+            $(node).removeAttr(attrName)
+

@@ -1,6 +1,6 @@
 ###
-SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-Copyright (C) 2015, William Stein, GPL v3.
+CoCalc: Collaborative Calculation in the Cloud
+Copyright (C) 2016, Sagemath Inc.
 ---
 
 Site Customize -- dynamically customize the look of SMC for the client.
@@ -11,6 +11,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 {Loading} = require('./r_misc')
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
+theme  = require('smc-util/theme')
 
 actions  = redux.createActions('customize')
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
@@ -18,7 +19,7 @@ store    = redux.createStore('customize', defaults)
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
-$?.get (window.smc_base_url + "/customize"), (obj, status) ->
+$?.get (window.app_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
         actions.setState(obj)
@@ -30,7 +31,7 @@ HelpEmailLink = rclass
             help_email : rtypes.string
     propTypes :
         text : rtypes.string
-    render : ->
+    render: ->
         if @props.help_email
             <a href={"mailto:#{@props.help_email}"} target='_blank'>{@props.text ? @props.help_email}</a>
         else
@@ -40,7 +41,7 @@ exports.HelpEmailLink = rclass
     displayName : 'HelpEmailLink-redux'
     propTypes :
         text : rtypes.string
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <HelpEmailLink text={@props.text} />
         </Redux>
@@ -50,7 +51,7 @@ SiteName = rclass
     reduxProps :
         customize :
             site_name : rtypes.string
-    render : ->
+    render: ->
         if @props.site_name
             <span>{@props.site_name}</span>
         else
@@ -58,7 +59,7 @@ SiteName = rclass
 
 exports.SiteName = rclass
     displayName : 'SiteName-redux'
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <SiteName />
         </Redux>
@@ -70,7 +71,7 @@ SiteDescription = rclass
     reduxProps :
         customize :
             site_description : rtypes.string
-    render : ->
+    render: ->
         style = @props.style ? {color:'#666', fontSize:'16px'}
         if @props.site_description?
             <span style={style}>{@props.site_description}</span>
@@ -81,7 +82,7 @@ exports.SiteDescription = rclass
     displayName : 'SiteDescription-redux'
     propTypes :
         style : rtypes.object
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <SiteDescription style={@props.style}/>
         </Redux>
@@ -89,7 +90,7 @@ exports.SiteDescription = rclass
 # TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 exports.CompanyName = rclass
     displayName : 'CompanyName'
-    render :->
+    render:->
         <span>SageMath, Inc.</span>
 
 TermsOfService = rclass
@@ -102,7 +103,7 @@ TermsOfService = rclass
     propTypes :
         style : rtypes.object
 
-    render : ->
+    render: ->
         if not @props.terms_of_service?
             return <div></div>
         return <div style={@props.style} dangerouslySetInnerHTML={__html: @props.terms_of_service}></div>
@@ -113,7 +114,7 @@ exports.TermsOfService = rclass
     propTypes :
         style : rtypes.object
 
-    render : ->
+    render: ->
         <Redux redux={redux}>
             <TermsOfService style={@props.style} />
         </Redux>
@@ -125,13 +126,13 @@ AccountCreationEmailInstructions = rclass
         customize :
             account_creation_email_instructions : rtypes.string
 
-    render : ->
+    render: ->
         <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
 
 exports.AccountCreationEmailInstructions = rclass
     displayName : 'AccountCreationEmailInstructions'
 
-    render : ->
+    render: ->
         <Redux redux={redux}>
             <AccountCreationEmailInstructions />
         </Redux>
@@ -139,9 +140,10 @@ exports.AccountCreationEmailInstructions = rclass
 # first step of centralizing these URLs in one place → collecting all such pages into one
 # react-class with a 'type' prop is the next step (TODO)
 # then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-smc_base_url = window?.smc_base_url ? ''  # fallback for react-static
-exports.PolicyIndexPageUrl     = smc_base_url + '/policies/index.html'
-exports.PolicyPricingPageUrl   = smc_base_url + '/policies/pricing.html'
-exports.PolicyPrivacyPageUrl   = smc_base_url + '/policies/privacy.html'
-exports.PolicyCopyrightPageUrl = smc_base_url + '/policies/copyright.html'
-exports.PolicyTOSPageUrl       = smc_base_url + '/policies/terms.html'
+app_base_url = window?.app_base_url ? ''  # fallback for react-static
+exports.PolicyIndexPageUrl     = app_base_url + '/policies/index.html'
+exports.PolicyPricingPageUrl   = app_base_url + '/policies/pricing.html'
+exports.PolicyPrivacyPageUrl   = app_base_url + '/policies/privacy.html'
+exports.PolicyCopyrightPageUrl = app_base_url + '/policies/copyright.html'
+exports.PolicyTOSPageUrl       = app_base_url + '/policies/terms.html'
+exports.SmcWikiUrl             = theme.WIKI_URL

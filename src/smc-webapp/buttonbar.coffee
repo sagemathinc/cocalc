@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -47,9 +47,11 @@ exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier 
 exports.commands =
     shell :
         comment :
-            wrap :      # FUTURE: multi-line
-                left  : '# '
+            wrap :
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         set_name_and_email :
                 insert:
                         """
@@ -82,7 +84,7 @@ exports.commands =
         clone_remote_repo :
                 insert:
                         """
-                        git clone https://github.com/sagemathinc/smc.git
+                        git clone https://github.com/sagemathinc/cocalc.git
                         """
         add_file_to_repo :
                 insert:
@@ -248,6 +250,18 @@ exports.commands =
             wrap :
                 left  : '\\underline{'
                 right : '}'
+        strikethrough :       # requires the soul package
+            wrap :
+                left  : '\\st{'
+                right : '}'
+        equation :
+            wrap :
+                left  : "$"
+                right : "$"
+        display_equation :
+            wrap :
+                left  : "$$"
+                right : "$$"
         insertunorderedlist :
             wrap :
                 left  : "\\begin{itemize}\n    \\item\n"
@@ -293,9 +307,11 @@ exports.commands =
                 left  : '^{'
                 right : '}'
         comment :
-            wrap :      # FUTURE: multi-line
-                left  : '% '
+            wrap :
+                left  : '%'
                 right : ''
+                multi : true
+                space : true
         horizontalRule:
             wrap:
                 left  : "\\hrulefill"
@@ -321,12 +337,20 @@ exports.commands =
                 right : '~~'
         insertunorderedlist :
             wrap :
-                left  : "\n - "
-                right : "\n"
+                left    : " - "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         insertorderedlist :
             wrap :
-                left  : "\n 1. "
-                right : "\n"
+                left    : "1. "
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
@@ -347,14 +371,22 @@ exports.commands =
             wrap :
                 left  : "\n#### "
                 right : ""
-        format_code :  # FUTURE: I think indentation is probably nicer?  on single line ` is nicer.
+        format_code :
             wrap :
-                left  : '\n```'
-                right : '\n```\n'
+                left    : '    '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         indent :
             wrap :
-                left  : "\n> "
-                right : ""
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
                 left  : "\n------------------\n"
@@ -363,10 +395,10 @@ exports.commands =
             wrap:
                 left : """
                        | Left-Aligned  | Center Aligned  | Right Aligned |
-                       | :------------ |:---------------:| -----:|
-                       | col 3 is      | some wordy text | 1600 |
-                       | col 2 is      | centered        |  12 |
-                       | zebra stripes | and math       |  $\\pi^3$ |
+                       | :------------ |:---------------:| -------------:|
+                       | col 3 is      | some wordy text |          1600 |
+                       | col 2 is      |    centered     |            12 |
+                       | zebra stripes |    and math     |      $\\pi^3$ |
                        """
                 right : ""
 
@@ -397,8 +429,9 @@ exports.commands =
                 right : '</sup>'
         comment :
             wrap :
-                left  : '<!-- '
+                left  : '<!--'
                 right : ' -->'
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n<ul>\n    <li> "
@@ -457,12 +490,12 @@ exports.commands =
                 right : '</pre>'
         equation :
             wrap :
-                left  : "$ "
-                right : " $"
+                left  : "$"
+                right : "$"
         display_equation :
             wrap :
-                left  : "$$ "
-                right : " $$"
+                left  : "$$"
+                right : "$$"
         table:
             wrap:
                 left  : """
@@ -507,8 +540,10 @@ exports.commands =
                 right : '` '
         comment :
             wrap :
-                left  : '\n.. '
+                left  : '\n..'
                 right : ''
+                multi : true
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n  - "
@@ -638,8 +673,9 @@ exports.commands =
                 right : "\n"
         comment :
             wrap :
-                left  : '\n<!-- '
+                left  : '\n<!--'
                 right : ' -->\n'
+                space : true
         indent: # pre tag is more for code, but makes more sense than a dysfunctional ":"
             wrap:
                 left  : "\n<pre>"
@@ -693,8 +729,10 @@ exports.commands =
     python:
         comment :
             wrap :
-                left  : '# '
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         len :
             insert : "len([1, 2, 5, 6, 10])"
         list :
@@ -739,105 +777,116 @@ exports.commands =
         tuple :
             insert : "(2, 3, 7)"
         forloop :
-            insert: '\nfor i in range(5):\n    print i\n'
+            insert: """
+                    for i in range(5):
+                        print i
+                    """
         forlistloop:
             insert: """
-                        l = [1, 2, 5, 8, 10]
-                        for i in l:
-                            print i
-                        """
+                    l = [1, 2, 5, 8, 10]
+                    for i in l:
+                        print i
+                    """
         forelseloop:
             insert: """
-                        for k in [1, 2, 5, 10]:
-                            if k == 3:
-                                print "found k, returning"
-                                break
-                        else:
-                            print "Haven't found k == 3"
-                        """
+                    for k in [1, 2, 5, 10]:
+                        if k == 3:
+                            print "found k, returning"
+                            break
+                    else:
+                        print "Haven't found k == 3"
+                    """
         whileloop:
             insert: """
-                        n = 0
-                        while n < 5:
-                            print n
-                            n += 1
-                        """
+                    n = 0
+                    while n < 5:
+                        print n
+                        n += 1
+                    """
         "if":
-            insert: "\nif i == 1:\n    print 'i equals 1'\n"
+            insert: """
+                    if i == 1:
+                        print 'i equals 1'
+                    """
         ifelse:
-            insert: "\nif i == 1:\n    print 'i equals 1'\nelse:\n    print 'i is not 1'\n"
+            insert: """
+                    if i == 1:
+                        print 'i equals 1'
+                    else:
+                        print 'i is not 1'
+                    """
         cases:
             insert: """
-                        if i == 0:
-                            print "i is zero"
-                        elif i == 1:
-                            print "i is one"
-                        else:
-                            print "i is neither zero or one"
-                        """
+                    if i == 0:
+                        print "i is zero"
+                    elif i == 1:
+                        print "i is one"
+                    else:
+                        print "i is neither zero or one"
+                    """
         function:
             insert: """
-                        def f(a, b=0):
-                            \"\"\"
-                            This function returns the sum of a and b.
-                            \"\"\"
-                            return a + b
-                        """
+                    def f(a, b=0):
+                        \"\"\"
+                        This function returns the sum of a and b.
+                        \"\"\"
+                        return a + b
+                    """
         lambda :
             insert: """f = lambda a, b: a + b"""
         simple_class :
             insert: """
-                        class MyClass(object):
-                            \"\"\"
-                            This is a simple class.
-                            \"\"\"
-                            def __init__(self, a):
-                                self.a = a
-                            def __repr__(self):
-                                return "Instance of MyClass with a = %s"%self.a
+                    class MyClass(object):
+                        \"\"\"
+                        This is a simple class.
+                        \"\"\"
+                        def __init__(self, a):
+                            self.a = a
+                        def __repr__(self):
+                            return "Instance of MyClass with a = %s"%self.a
 
-                        print(MyClass(5))
-                        """
+                    print(MyClass(5))
+                    """
         class_inheritence :
             insert: """
-                        class A(object):
-                            def __repr__(self):
-                                return "instance of A"
-                            def foo(self):
-                                return "foo"
+                    class A(object):
+                        def __repr__(self):
+                            return "instance of A"
+                        def foo(self):
+                            return "foo"
 
-                        class B(object):
-                            def __repr__(self):
-                                return "instance of B"
-                            def bar(self):
-                                return "bar"
+                    class B(object):
+                        def __repr__(self):
+                            return "instance of B"
+                        def bar(self):
+                            return "bar"
 
-                        class C(A, B):
-                            \"\"\"
-                            This is a class that inerits from classes A and B.
-                            \"\"\"
-                            def __repr__(self):
-                                return "instance of C"
+                    class C(A, B):
+                        \"\"\"
+                        This is a class that inerits from classes A and B.
+                        \"\"\"
+                        def __repr__(self):
+                            return "instance of C"
 
-                        # Both foo and bar are defined on instances of C.
-                        c = C()
-                        print(c.foo(), c.bar())
-                        """
+                    # Both foo and bar are defined on instances of C.
+                    c = C()
+                    print(c.foo(), c.bar())
+                    """
     cython:
         cython_class :
             insert: """
-                        cdef class MyClass:
-                            \"\"\"
-                            This is a Cython class.
-                            \"\"\"
-                            cdef int a
-                            def __init__(self, int a):
-                                self.a = a
-                            def __repr__(self):
-                                return "Instance of MyClass with a = %s"%self.a
+                    cdef class MyClass:
+                        \"\"\"
+                        This is a Cython class.
+                        \"\"\"
+                        cdef int a
+                        def __init__(self, int a):
+                            self.a = a
+                        def __repr__(self):
+                            return "Instance of MyClass with a = %s"%self.a
 
-                        print(MyClass(5))
-                        """
+                    print(MyClass(5))
+                    """
     sage:
         sagemathdoc:
             url: 'http://doc.sagemath.org/'
@@ -880,7 +929,10 @@ exports.commands =
         plot_points:
             insert : "show(points([(1,0), (sqrt(2)/2,sqrt(2)/2), (0,1), (1/2,1/2)], color='darkgreen', pointsize=50), aspect_ratio=1)"
         plot3d:
-            insert : "\n%var x y\nplot3d(x * sin(y), (x, -5, 5), (y, -5, 5))"
+            insert : """
+                    %var x y
+                    plot3d(x * sin(y), (x, -5, 5), (y, -5, 5))
+                    """
         plot_torus:
             insert : """
                     from sage.plot.plot3d.shapes import Torus
@@ -1027,45 +1079,45 @@ exports.commands =
         jupyterkernels:
             insert : "print(jupyter.available_kernels())"
         mode_typeset:
-            insert : "%typeset_mode True"
+            insert : "%typeset_mode True\n"
         mode_auto:
             insert : "%auto"
         mode_cython:
-            insert : "%cython"
+            insert : "%cython\n"
         mode_default_mode:
-            insert : "%default_mode mode_name"
+            insert : "%default_mode r # change r to any mode\n"
         mode_exercise:
-            insert : "%exercise"
+            insert : "%exercise\n"
         mode_gap:
-            insert : "%gap"
+            insert : "%gap\n"
         mode_gp:
-            insert : "%gp"
+            insert : "%gp\n"
         mode_hide:
-            insert : "%hide"
+            insert : "%hide\n"
         mode_html:
-            insert : "%html"
+            insert : "%html\n"
         mode_julia:
-            insert : "%julia"
+            insert : "%julia\n"
         mode_javascript:
             insert : "%javascript\n/* Use print(...) for output */"
         mode_jupyter_bridge:
             insert : """
-                    a3 = jupyter("anaconda3")
-                    # start new cells with %a3
-                    # or set %default_mode a3
+                     a3 = jupyter("anaconda3")
+                     # start new cells with %a3
+                     # or set %default_mode a3
                      """
         mode_md:
-            insert : "%md"
+            insert : "%md\n"
+        mode_octave:
+            insert : "%octave\n"
         mode_python:
-            insert : "%python"
+            insert : "%python\n"
         mode_r:
-            insert : "%r"
+            insert : "%r\n"
         mode_scilab:
-            insert : "%scilab"
+            insert : "%scilab\n"
         mode_sh:
-            wrap:
-                left  : "%sh "
-                right : ""
+            insert : "%sh\n"
         mode_time:
             wrap:
                 left  : "%time "
@@ -1076,8 +1128,10 @@ exports.commands =
                 right : ""
         comment:
             wrap:
-                left : "# "
-                right: ""
+                left  : "# "
+                right : ""
+                multi : true
+                space : true
         assign:
             insert : "a = 5"
         forloop:
@@ -1111,16 +1165,18 @@ exports.commands =
     r:                 # http://cran.r-project.org/doc/manuals/r-release/R-intro.html
         comment:
             wrap:
-                left  : "# "
+                left  : "#"
+                right : ''
+                multi : true
+                space : true
         vector:
             insert : "v <- c(1,1,2,3,5,8,13)"
         forloop:
-            wrap:
-                left  : """
-                        for (i in seq(1, 10, by=2)) {
-                            print(sprintf("i = %s", i));
-                        """
-                right : "\n}\n"
+            insert  : """
+                      for (i in seq(1, 10, by=2)) {
+                          print(sprintf("i = %s", i));
+                      }
+                      """
         ifelse:
             insert: """
                     k <- 10
@@ -1135,7 +1191,7 @@ exports.commands =
                 left  : "summary("
                 right : ")"
         plot:
-            insert: "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
+            insert: "plot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
         seq:
             insert: "-5:5"
         seq_by:
@@ -1309,8 +1365,10 @@ exports.commands =
             insert : "Polynomial Integer"
         comment:
             wrap:
-                left : "-- "
+                left : "--"
                 right: ""
+                multi : true
+                space : true
         assign:
             insert : "a: = 5"
         forloop:
@@ -1358,7 +1416,7 @@ add_menu = (bar, entries) ->
     dropdown = $("<span class='btn-group'></span>")
     dropdown.append($("""
     <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="#{entries[1]}">
-     <i class="fa">#{entries[0]}</i> <b class="caret"></b>
+     #{entries[0]} <b class="caret"></b>
     </span>
     """))
 
@@ -1393,12 +1451,12 @@ add_icon = (bar, inner, href, comment) ->
 
 #
 # initializing and creating the menus
-# this works in conjuntion with editor.html
+# this works in conjunction with editor.html
 #
 
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->
-    bar = $(".salvus-editor-codemirror-worksheet-editable-buttons")
+    bar = $(".webapp-editor-codemirror-worksheet-editable-buttons")
     elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu")
     for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
         item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
@@ -1427,13 +1485,10 @@ initialize_sagews_editor = () ->
 Normal</a></li>")
     elt.prepend(item)
 
-initialize_sagews_editor()
-
-
 
 # Initialize fonts for the editor
 initialize_md_html_editor = () ->
-    bar = $(".salvus-editor-textedit-buttonbar")
+    bar = $(".webapp-editor-textedit-buttonbar")
     elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu")
     for font in FONT_FACES
         item = $("<li><a href='#font_face' data-args='#{font}'>#{font}</a></li>")
@@ -1452,9 +1507,6 @@ initialize_md_html_editor = () ->
         elt.append($("<li><a href='#format_heading_#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>"))
     elt.append('<li role="presentation" class="divider"></li>')
     elt.append($("<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>"))
-
-
-initialize_md_html_editor()
 
 # adding Python & Sage menu entries programmatically (editing HTML directly is too painful)
 # FUTURE: make a general class for menu entries and hence use these functions for all menu entries?
@@ -1483,10 +1535,10 @@ initialize_sage_python_r_toolbar = () ->
         </span>
     """
 
-    codebar  = $(".salvus-editor-codeedit-buttonbar")
+    codebar  = $(".webapp-editor-codeedit-buttonbar")
 
     # -- modes (this isn't really code so weird to put here)
-    system_bar = make_bar("salvus-editor-codeedit-buttonbar-system")
+    system_bar = make_bar("webapp-editor-codeedit-buttonbar-system")
 
     mode_list = ["Modes", "Sage Worksheet Modes",
         [
@@ -1507,8 +1559,10 @@ initialize_sage_python_r_toolbar = () ->
             ["Julia", "#mode_julia"],
             ["Jupyter bridge", "#mode_jupyter_bridge"],
             ["Markdown", "#mode_md"],
+            ["Octave", "#mode_octave"],
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
+            ["Shell", "#mode_sh"],
 
         ]]
     add_menu(system_bar, mode_list)
@@ -1568,7 +1622,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(system_bar)
 
     # -- python specific --
-    pybar    = make_bar("salvus-editor-codeedit-buttonbar-python")
+    pybar    = make_bar("webapp-editor-codeedit-buttonbar-python")
     add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
@@ -1616,7 +1670,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(pybar)
 
     # -- Cython specific
-    cythonbar  = make_bar("salvus-editor-codeedit-buttonbar-cython")
+    cythonbar  = make_bar("webapp-editor-codeedit-buttonbar-cython")
     cython_classes = ["Cython Classes", "Define cdef'd Classes",
            [
             ["cdef Class", "#cython_class", "Define a Cython class"],
@@ -1626,7 +1680,7 @@ initialize_sage_python_r_toolbar = () ->
     cythonbar.append(cythonbar)
 
     # -- sage specific --
-    sagebar  = make_bar("salvus-editor-codeedit-buttonbar-sage")
+    sagebar  = make_bar("webapp-editor-codeedit-buttonbar-sage")
 
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
@@ -1730,7 +1784,7 @@ initialize_sage_python_r_toolbar = () ->
     codebar.append(sagebar)
 
     # -- r specific --
-    rbar = $(".salvus-editor-redit-buttonbar")
+    rbar = $(".webapp-editor-redit-buttonbar")
 
     r_basic = make_bar()
     add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
@@ -1803,7 +1857,7 @@ initialize_sage_python_r_toolbar = () ->
     rbar.append(r_plot)
 
     # -- Julia specific --
-    julia_bar = $(".salvus-editor-julia-edit-buttonbar")
+    julia_bar = $(".webapp-editor-julia-edit-buttonbar")
 
     julia_basic = make_bar()
     add_icon(julia_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
@@ -1821,7 +1875,7 @@ initialize_sage_python_r_toolbar = () ->
     julia_bar.append(julia_control)
 
     # -- sh specific --
-    sh_bar = $(".salvus-editor-sh-edit-buttonbar")
+    sh_bar = $(".webapp-editor-sh-edit-buttonbar")
 
     sh_git = make_bar()
     sh_git_entries = ["Git", "Basic Git commands",
@@ -1858,8 +1912,6 @@ initialize_sage_python_r_toolbar = () ->
     sh_bar.append(sh_git)
 
 
-initialize_sage_python_r_toolbar()
-
 initialize_latex_buttonbar = () ->
     latexbar = make_bar()
     add_icon(latexbar, "<i class='fa fa-comment'></i>", "#comment", "Comment selected text")
@@ -1883,7 +1935,7 @@ initialize_latex_buttonbar = () ->
      <i class="fa">Format</i> <b class="caret"></b>
     </span>
     """))
-    format_buttons = $(".salvus-editor-codemirror-worksheet-editable-buttons").clone()
+    format_buttons = $(".webapp-editor-codemirror-worksheet-editable-buttons").clone()
     format_buttons.addClass("dropdown-menu")
     format_buttons.removeClass("hide")
     format_buttons.css("min-width", 300)
@@ -1900,8 +1952,14 @@ initialize_latex_buttonbar = () ->
                ]]
     add_menu(latexbar, formulas)
 
-    bb = $(".salvus-editor-latex-buttonbar")
+    bb = $(".webapp-editor-latex-buttonbar")
     bb.append(latexbar)
 
 # NOT READY YET.
 #initialize_latex_buttonbar()
+
+# used in entry-point
+exports.init_buttonbars = ->
+    initialize_sagews_editor()
+    initialize_md_html_editor()
+    initialize_sage_python_r_toolbar()

@@ -1,0 +1,134 @@
+//- the main html template for the static pages (shares some _inc_* files with app.pug)
+
+mixin video-player
+  div.video-player.fit
+    div.video-overlay.
+      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
+      #[br/]
+      click to play
+    video(loop).fit
+      block
+
+doctype html
+
+-
+  var NAME          = htmlWebpackPlugin.options.title;
+  var URL           = htmlWebpackPlugin.options.theme.DOMAIN_NAME;
+  var COMPANY_NAME  = htmlWebpackPlugin.options.theme.COMPANY_NAME;
+  var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
+  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
+  var subtitle      = null;
+
+block vars
+
+-
+  var fulltitle = htmlWebpackPlugin.options.title;
+  if (subtitle) {fulltitle += " - " + subtitle};
+
+html.no-js(lang="en")
+  head
+    include _inc_head.pug
+    title= fulltitle
+    block header
+
+  body
+
+    nav.navbar.navbar-default.navbar-fixed-top
+      div.container
+        div.navbar-header
+          a(href=PREFIX)
+            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
+            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+        div.collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            //- li
+            //-   a(href=PREFIX + "#a-explore") Explore
+            li
+              a(href=PREFIX + "policies/index.html") Policies
+            li
+              a(href=PREFIX + "policies/pricing.html") Pricing
+            li
+              a.get-started(href=PREFIX + "app") Get Started
+
+    block content
+
+    include _footer.pug
+
+    style
+      :sass
+        @import "smc-webapp/_colors.sass"
+        html.no-js
+          display          : none
+        nav.navbar.navbar-default
+          border-bottom    : 2px solid $COL_GRAY
+          background-color : $COL_GRAY_LL
+          .get-started
+            color        : $COL_BS_GREEN_DD
+            font-weight  : bold
+          .navbar-header
+            margin-top     : 5px;
+            img.icon
+              height       : 4rem
+              width        : auto
+              margin-right : 2rem
+            img.name
+              height       : 3rem
+              width        : auto
+              margin-right : 2rem
+          .navbar-nav>li>a
+            font-size      : 2rem
+        div.jumbotron
+          padding-top      : 10rem
+          background-color : $COL_GRAY_LL
+        .center
+          text-align     : center
+        .right
+          text-align     : right
+        .vertical-expand
+          min-height     : 50vw
+        .uppercase
+          text-transform : uppercase
+        .fit
+          width          : 100%
+          heigh          : auto
+        body > div.container > footer
+          margin-top     : 6rem
+        /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
+        a.anchor
+          display        : block
+          position       : relative
+          top            : -5rem
+          visibility     : hidden
+        blockquote.blockquote
+          font-size      : inherit
+        .btn-xlg
+          font-size        : 24px
+          line-height      : 1.5
+          font-weight      : bold
+        .video-player
+          position         : relative
+          > .video-overlay
+            width            : 100%
+            height           : 100%
+            position         : absolute
+            top              : 0
+            left             : 0
+            color            : white
+            background-color : rgba(0, 0, 0, .5)
+            cursor           : pointer
+            z-index          : 2
+            text-align       : center
+            display          : flex
+            justify-content  : center
+            flex-direction   : column
+
+
+    script
+      :coffee-script
+        html = document.documentElement
+        html.className = html.className.replace(/\bno-js\b/, 'js')
+    noscript
+      style.
+        html.no-js { display: block; }
+
+    include _inc_analytics.pug

@@ -18,7 +18,13 @@ npm install
 cd $SMC_ROOT/smc-project
 npm install
 
+cd $SMC_ROOT/smc-project/jupyter
+npm install
+
 cd $SMC_ROOT/smc-webapp
+npm install
+
+cd $SMC_ROOT/smc-webapp/jupyter
 npm install
 
 cd $SMC_ROOT/smc-hub
@@ -26,6 +32,10 @@ npm install
 
 cd $SMC_ROOT/wizard
 make
+
+# generating color scheme
+cd $SMC_ROOT
+scripts/update_color_scheme.coffee
 
 # static react pages update must come *before* webpack
 cd $SMC_ROOT

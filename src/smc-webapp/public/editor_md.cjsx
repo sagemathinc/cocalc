@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -19,12 +19,14 @@
 #
 ###############################################################################
 
+misc = require('smc-util/misc')
+
 # React libraries
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
 
 {ErrorDisplay, Loading, Markdown} = require('../r_misc')
 
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
@@ -35,22 +37,25 @@ PublicMarkdown = rclass ({name}) ->
         "#{name}" :
             content    : rtypes.string
             project_id : rtypes.string
-            path       : rtypes.string
+            file_path  : rtypes.string
 
-    render : ->
+    render: ->
         if @props.error
             <ErrorDisplay error={@props.error}/>
         else if not @props.content?
             <Loading />
         else
-            <div className="salvus-editor-static-html-content">
-                <Markdown project_id={@props.project_id} path={@props.path} value={@props.content} />
+            <div className="webapp-editor-static-html-content">
+                <Markdown project_id={@props.project_id} file_path={@props.file_path} value={@props.content} />
             </div>
 
 class MDActions extends Actions
     load_content: (project_id, path) =>
-        @setState(project_id:project_id, path:path)
-        salvus_client.public_get_text_file
+        @setState
+            project_id : project_id
+            file_path  : misc.path_split(path).head
+
+        webapp_client.public_get_text_file
             project_id : project_id
             path       : path
             timeout    : 60
@@ -65,7 +70,7 @@ require('../project_file').register_file_editor
     is_public : true
     icon      : 'file-code-o'
 
-    init      : (path, redux, project_id) ->
+    init: (path, redux, project_id) ->
         name = redux_name(project_id, path)
         if redux.getActions(name)?
             return name
@@ -76,7 +81,7 @@ require('../project_file').register_file_editor
 
     component : PublicMarkdown
 
-    remove    : (path, redux, project_id) ->
+    remove: (path, redux, project_id) ->
         name = redux_name(project_id, path)
         redux.removeStore(name)
         redux.removeActions(name)

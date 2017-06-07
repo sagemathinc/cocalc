@@ -14,11 +14,12 @@ https://github.com/blakmatrix/node-zendesk
 # if true, no real tickets are created
 DEBUG   = process.env.SMC_TEST_ZENDESK ? false
 
-async   = require 'async'
-fs      = require 'fs'
-path    = require 'path'
-misc    = require 'smc-util/misc'
-_       = require 'underscore'
+async   = require('async')
+fs      = require('fs')
+path    = require('path')
+misc    = require('smc-util/misc')
+theme   = require('smc-util/theme')
+_       = require('underscore')
 {defaults, required} = misc
 
 winston    = require 'winston'
@@ -31,8 +32,16 @@ if not SMC_TEST
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'
 
+support = undefined
+exports.init_support = (cb) ->
+    support = new Support cb: (err, s) =>
+        support = s
+        cb(err)
 
-class exports.Support
+exports.get_support = ->
+    return support
+
+class Support
     constructor: (opts={}) ->
         opts = defaults opts,
             cb       : undefined
@@ -74,7 +83,7 @@ class exports.Support
 
         ], (err, zendesk_client) =>
             if err
-                dbg("error initializing zendesk -- #{to_json(err)}")
+                dbg("error initializing zendesk -- #{misc.to_json(err)}")
             else
                 dbg("successfully initialized zendesk")
                 @_zd = zendesk_client
@@ -207,13 +216,13 @@ class exports.Support
         # below the body message, add a link to the location
         # TODO fix hardcoded URL
         if opts.location?
-            url  = "https://" + path.join('cloud.sagemath.com/', opts.location)
+            url  = "https://" + path.join(theme.DNS, opts.location)
             body = opts.body + "\n\n#{url}"
         else
             body = opts.body + "\n\nNo location provided."
 
         if misc.is_valid_uuid_string(opts.info.course)
-            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{opts.info.course}"
+            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}"
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =

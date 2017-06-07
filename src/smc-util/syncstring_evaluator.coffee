@@ -1,3 +1,24 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 Evaluation of code with streaming output built on both the clients and
 server (local hub) using a sync_table.  This evaluator is associated
@@ -5,32 +26,45 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 ###
 
+async     = require('async')
 stringify = require('json-stable-stringify')
 
-sagews = require('./sagews')
-misc   = require('./misc')
+sagews    = require('./sagews')
+misc      = require('./misc')
 
 {defaults, required} = misc
 
 class exports.Evaluator
     constructor: (@string, cb) ->
+        @_init_sync_tables (err) =>
+            if err
+                cb?(err)
+            else
+                if @string._client.is_project()
+                    @_init_project_evaluator()
+                cb?()
+
+    _init_sync_tables: (cb) =>
+        async.parallel([@_init_eval_inputs, @_init_eval_outputs], (err) => cb(err))
+
+    _init_eval_inputs: (cb) =>
         query =
             eval_inputs :
-                id    : [@string._string_id, misc.server_seconds_ago(30)]
-                input : null
+                string_id : @string._string_id
+                time      : {'>=': misc.server_seconds_ago(30)}
+                input     : null
         @_inputs = @string._client.sync_table(query, undefined, 500)
+        @_inputs.once('connected', =>cb())
 
+    _init_eval_outputs: (cb) =>
         query =
             eval_outputs :
-                id    : [@string._string_id, misc.server_seconds_ago(30)]
-                output : null
+                string_id : @string._string_id
+                time      : {'>=': misc.server_seconds_ago(30)}
+                output    : null
         @_outputs = @string._client.sync_table(query, undefined, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
-
-        if @string._client.is_project()
-            @_init_project_evaluator()
-
-        cb?()  # not really async for now.
+        @_outputs.once('connected', =>cb())
 
     close: () =>
         @_closed = true
@@ -55,12 +89,15 @@ class exports.Evaluator
         # TODO: This is NOT 100% yet, due to multiple clients possibly starting
         # different evaluations simultaneously.
         if @_last_time? and time <= @_last_time
-            time = @_last_time + 1
+            time = new Date(@_last_time - 0 + 1)  # one millesecond later
         @_last_time = time
 
         @_inputs.set
-            id    : [@string._string_id, time, 0]
-            input : misc.copy_without(opts, 'cb')
+            string_id : @string._string_id
+            time      : time
+            user_id   : 0
+            input     : misc.copy_without(opts, 'cb')
+        @_inputs.save()  # root cause of https://github.com/sagemathinc/cocalc/issues/1589
         if opts.cb?
             # Listen for output until we receive a message with mesg.done true.
             messages = {}
@@ -81,9 +118,13 @@ class exports.Evaluator
                         mesg = @_outputs.get(key)?.get('output')?.toJS()
                         if mesg?
                             delete mesg.id # waste of space
-                            # Message may arrive in somewhat random order -- RethinkDB doesn't guarantee
-                            # anything about the order of writes versus when changes get pushed out!  E.g. this
-                            # in a Sage worksheet:
+                            # This code is written under the assumption that messages may
+                            # arrive in somewhat random order.  We did this since RethinkDB
+                            # doesn't guarantee anything about the order of writes versus
+                            # when changes get pushed out.  That said, PostgreSQL **does** make
+                            # clear guarantees about when things happen, so this may
+                            # no longer be a problem.... (TODO).
+                            # E.g. this in a Sage worksheet:
                             #    for i in range(20): print i; sys.stdout.flush()
                             if t[2] == mesg_number     # t[2] is the sequence number of the message
                                 # Inform caller of result
@@ -110,7 +151,7 @@ class exports.Evaluator
         output_line = sagews.MARKERS.output
         process = (mesg) =>
             dbg("processing mesg '#{misc.to_json(mesg)}'")
-            content = @string.get()
+            content = @string.to_str()
             i = content.indexOf(sagews.MARKERS.output + output_uuid)
             if i == -1
                 # no cell anymore -- do nothing further
@@ -137,7 +178,7 @@ class exports.Evaluator
                         S.set_cell_flag(cell_id, sagews.FLAGS.this_session)
                         content = S.content
                         #dbg("removing a cell flag: after='#{content}'")
-                @string.set(content)
+                @string.from_str(content)
                 @string.save()
 
         hook = (mesg) =>
@@ -151,7 +192,7 @@ class exports.Evaluator
             dbg("closed")
             return
         t = misc.from_json(key)
-        id = [t[0], t[1], 0]
+        id = [string_id, time, number] = [t[0], t[1], 0]
         if not @_outputs.get(JSON.stringify(id))?
             dbg("no outputs with key #{misc.to_json(id)}")
             x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
@@ -167,13 +208,15 @@ class exports.Evaluator
                             return
                         #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
                         hook?(output)
-                        @_outputs.set({id:id, output:output})
-                        id[2] += 1
+                        @_outputs.set({string_id:string_id, time:time, number:number, output:output})
+                        @_outputs.save()
+                        number += 1
                 else
-                    @_outputs.set({id:id, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
+                    @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
+                    @_outputs.save()
             else
-                @_outputs.set({id:id, output:misc.to_json({error:"must specify program and input", done:true})})
-
+                @_outputs.set({string_id:string_id, time:time, number:number, output:misc.to_json({error:"must specify program and input", done:true})})
+                @_outputs.save()
 
     # Runs only in the project
     _init_project_evaluator: () =>

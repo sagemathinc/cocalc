@@ -1,8 +1,8 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -21,14 +21,14 @@
 
 $ = window.$
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable  = require('immutable')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {synchronized_string} = require('./syncdoc')
 
@@ -73,7 +73,6 @@ default_store_state =
 
 init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
-    console.log("store=smc.redux.getStore('#{name}');actions=smc.redux.getActions('#{name}');")
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, CodemirrorActions)
@@ -178,7 +177,7 @@ CodemirrorEditor = rclass ({name}) ->
         if @props.value?
             <span>Buffer length: {@props.value.length}</span>
 
-    render : ->
+    render: ->
         <div>
             <h4>A React/Redux/Codemirror Editor</h4>
             {@render_info()}
@@ -188,6 +187,6 @@ CodemirrorEditor = rclass ({name}) ->
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
-    init      : init_redux
-    component : CodemirrorEditor
-    remove    : remove_redux
+    init        : init_redux
+    component   : CodemirrorEditor
+    remove      : remove_redux

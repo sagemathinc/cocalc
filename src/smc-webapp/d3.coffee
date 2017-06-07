@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 d3 = require('d3/d3')
 
 # Make d3 available to users in general.
-window?.smc?.d3 = d3
+window?.d3 = d3
 
 $.fn.extend
     d3: (opts={}) ->

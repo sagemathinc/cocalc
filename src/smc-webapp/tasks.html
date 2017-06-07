@@ -1,152 +1,150 @@
 <!--
-SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
+CoCalc: Collaborative Calculation in the Cloud
 
-    Copyright (C) 2014, William Stein
+Copyright (C) 2016, Sagemath Inc.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 
-<div class="salvus-tasks-templates hide">
+<div class="webapp-tasks-templates hide">
 
-    <div class="salvus-tasks-editor" style="left:0px">
-        <div class="row">
-            <div class="col-sm-12" style="margin-left:3px; padding-right:21px">
-
-                <div class="salvus-tasks-hashtags-row row">
+    <div class="smc-vfill webapp-tasks-editor" style="left:0px">
+        <div class="smc-vfill row">
+            <div class="smc-vfill col-sm-12 webapp-tasks-content" style="margin-left:3px; padding-right:21px; display:flex; flex-direction:column">
+                <div class="webapp-tasks-hashtags-row row">
                     <div class="col-sm-12">
-                        <div class="well salvus-tasks-hashtags">
-                            <span class="btn-group salvus-tasks-hashtag-bar" style="white-space: normal">
+                        <div class="well webapp-tasks-hashtags">
+                            <span class="btn-group webapp-tasks-hashtag-bar" style="white-space: normal">
                             </span>
                         </div>
                     </div>
-            </div>
+                </div>
 
                 <div class="row" style="padding-top: 0.5ex;">
-                    <div class="lighten salvus-tasks-header col-sm-4">
+                    <div class="lighten webapp-tasks-header col-sm-4">
                         <div class="input-group">
-                            <input class="salvus-tasks-search search-query form-control" type="search" placeholder="Find task...">
+                            <input class="webapp-tasks-search search-query form-control" type="search" placeholder="Find task...">
                             <span class="input-group-btn">
-                                <button class="btn btn-default salvus-tasks-search-clear" type="button">
+                                <button class="btn btn-default webapp-tasks-search-clear" type="button">
                                     <i class="fa fa-times-circle"></i>
                                 </button>
                             </span>
                         </div>
                     </div>
                     <div class="lighten col-sm-2">
-                        <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
-                        <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-done hide"> </i>
+                        <i class="fa fa-square-o webapp-task-icon-done-box webapp-task-search-done-icon webapp-task-search-not-done"> </i>
+                        <i class="fa fa-check-square-o webapp-task-icon-done-box webapp-task-search-done-icon webapp-task-search-done hide"> </i>
                         Done&nbsp;&nbsp;&nbsp;
-                        <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
-                        <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
+                        <i class="fa fa-square-o webapp-task-icon-done-box webapp-task-search-deleted-icon webapp-task-search-not-deleted"> </i>
+                        <i class="fa fa-check-square-o webapp-task-icon-done-box webapp-task-search-deleted-icon webapp-task-search-deleted hide"> </i>
                         Deleted<br>
-                        <a class="btn btn-danger salvus-task-empty-trash"><i class="fa fa-trash-o"> </i> Empty Trash</a>
+                        <a class="btn btn-danger webapp-task-empty-trash"><i class="fa fa-trash-o"> </i> Empty Trash</a>
                     </div>
-                    <div class="lighten salvus-tasks-search-describe col-sm-6">
-                        Showing <span class="salvus-tasks-count">0 tasks</span>.
-                        <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
-                        <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
-                        <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
-                        <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
+                    <div class="lighten webapp-tasks-search-describe col-sm-6">
+                        Showing <span class="webapp-tasks-count">0 tasks</span>.&nbsp;&nbsp;
+                        <h4 class="webapp-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
+                        <span class="webapp-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="webapp-tasks-search-query"></span></i></b>. </span>
+                        <span class="webapp-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
+                        <span class="webapp-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
                     </div>
                 </div>
 
-                <div class="salvus-tasks-list-heading row" style="padding-top: 0.5ex;">
+                <div class="webapp-tasks-list-heading row" style="padding-top: 0.5ex;">
                     <div class="col-sm-6" style="margin-right: 5em;">  <!-- TODO: fix; this is very hackish for now -->
-                        <span class="btn-group salvus-tasks-action-buttons">
+                        <span class="btn-group webapp-tasks-action-buttons">
                             <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
-                            <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
-                            <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
+                            <a class="btn webapp-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
+                            <a class="btn webapp-tasks-buttons-pos-move btn-default" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
                             <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> <span class="hidden-sm">Delete</span></a>
-                            <a class="btn btn-info salvus-tasks-info"><i class="fa fa-question-circle"> </i> Help</a>
+                            <a class="btn btn-info webapp-tasks-info"><i class="fa fa-question-circle"> </i> Help</a>
                         </span>
-                        <span class="btn-group salvus-tasks-action-buttons" style="margin-left: 0px;">  <!-- margin left so looks better on mobile when responsively scrolls around -->
+                        <span class="btn-group webapp-tasks-action-buttons" style="margin-left: 0px;">  <!-- margin left so looks better on mobile when responsively scrolls around -->
                             <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
-                            <a class="btn btn-info salvus-editor-history-button hide" href="#history">
+                            <a class="btn btn-info webapp-editor-history-button hide" href="#history">
                                 <i class="fa fa-history"></i> <span class="hidden-sm">TimeTravel</span>
                             </a>
 
                         </span>
                     </div>
 
-                    <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-3">
+                    <div class="lighten webapp-tasks-header  webapp-task-sort-custom col-sm-3">
                         Custom Order
-                        <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                        <i class="fa fa-sort-desc pull-right hide webapp-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  webapp-task-sort-icon"> </i>
                     </div>
-                    <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-1">
-                        Due <span class="salvus-tasks-show-done hide"> / Done</span>
-                        <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    <div class="lighten webapp-tasks-header  webapp-task-sort-due col-sm-1">
+                        Due <span class="webapp-tasks-show-done hide"> / Done</span>
+                        <i class="fa fa-sort-desc pull-right hide  webapp-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  webapp-task-sort-icon"> </i>
                     </div>
-                    <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-1">
-                        Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    <div class="lighten webapp-tasks-header  webapp-task-sort-last-edited col-sm-1">
+                        Changed <i class="fa fa-sort-desc pull-right hide  webapp-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  webapp-task-sort-icon"> </i>
                     </div>
 
                 </div>
 
-                <div class="well salvus-tasks-list">
-                    <div class="salvus-tasks-listing">
+                <div class="webapp-tasks-list smc-vfill">
+                    <div class="webapp-tasks-listing">
                     </div>
-                    <h3 class="salvus-tasks-list-none hide">
+                    <h3 class="webapp-tasks-list-none hide">
                         <a href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
                     </h3>
-                    <div style="height:5em"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="salvus-task row">
-        <div class="col-sm-1 salvus-task-sort">
-            <span class="salvus-task-toggle-icons">
-                <i class="fa fa-caret-right salvus-task-toggle-icon pull-right hide"> </i>
-                <i class="fa fa-caret-down salvus-task-toggle-icon pull-right"> </i>
+    <div class="webapp-task row">
+        <div class="col-sm-1 webapp-task-sort">
+            <span class="webapp-task-toggle-icons">
+                <i class="fa fa-caret-right webapp-task-toggle-icon pull-right hide"> </i>
+                <i class="fa fa-caret-down webapp-task-toggle-icon pull-right"> </i>
             </span>
-            <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
-            <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
-            <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
-            <a class="btn btn-danger salvus-task-undelete hide btn-ms">Undelete</a>
+            <i class="fa fa-reorder webapp-task-reorder-handle"> </i>
+            <i class="fa fa-check-square-o webapp-task-viewer-done  webapp-task-icon-done-box hide"> </i>
+            <i class="fa fa-square-o webapp-task-viewer-not-done webapp-task-icon-done-box"> </i>
+            <a class="btn btn-danger webapp-task-undelete hide btn-ms">Undelete</a>
         </div>
-        <div class="salvus-tasks-desc-column col-sm-9">
-            <div class="salvus-task-desc"></div>
+        <div class="webapp-tasks-desc-column col-sm-9">
+            <div class="webapp-task-desc"></div>
         </div>
 
-        <div class="salvus-task-due-div col-sm-1">
-            <span class="salvus-task-due">none</span>
-            <i class="fa fa-times salvus-task-icon salvus-task-due-clear hide"> </i>
-            <span class="salvus-task-done hide"><br>completed <span></span></span>
+        <div class="webapp-task-due-div col-sm-1">
+            <span class="webapp-task-due">none</span>
+            <i class="fa fa-times webapp-task-icon webapp-task-due-clear hide"> </i>
+            <span class="webapp-task-done hide"><br>completed <span></span></span>
         </div>
         <div class="col-sm-1">
-            <span class="salvus-task-last-edited"></span>
+            <span class="webapp-task-last-edited"></span>
         </div>
     </div>
 
-    <div class="salvus-task-editor">
+    <div class="webapp-task-editor">
 
-        <div class="salvus-tasks-desc-edit">
+        <div class="webapp-tasks-desc-edit">
             <textarea></textarea>
             <div class="row">
                 <div class="col-sm-6">
                     <a class="btn btn-default" style="margin-bottom:1ex" href="#close" data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
                 </div>
                 <!--<div class="col-sm-8">
-<span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
+<span style="color:#999">Use <a href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
 </div>
 -->
             </div>
         </div>
 
-        <div class="input-group salvus-tasks-due-edit pull-right">
+        <div class="input-group webapp-tasks-due-edit pull-right">
             <input data-format="MM/dd/yyyy HH:mm:ss PP" type="text" value="" class="form-control">
             <span class="input-group-addon" style="cursor:pointer">
                 <i class="fa fa-calendar-o">
@@ -155,9 +153,9 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
         </div>
     </div>
 
-    <button class="btn btn-info salvus-tasks-hashtag-button btn-ms"></button>
+    <button class="btn btn-info webapp-tasks-hashtag-button btn-ms"></button>
 
-    <div class="modal salvus-tasks-help-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal webapp-tasks-help-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -167,11 +165,11 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     <h3><i class="fa fa-question-circle"> </i>  Task Lists</h3>
                 </div>
                 <div class="modal-body">
-                    Use task lists to help organize your work on a SageMathCloud project.
+                    Use task lists to help organize your work on a CoCalc project.
 
                     <h4>Editing the Description (Markdown)</h4>
                     Click or use the cursor keys (and press enter) to edit a task, or create a new task.
-                    Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
+                    Use <a href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/" target="_blank">Github style markdown</a>
                     to describe your task, use LaTeX to typeset mathematics (use <code>\$</code> for a dollar sign),
                     use <code>[ ]</code> and <code>[x]</code> to create checklists, and
                     press shift+enter to save your changes.
@@ -182,7 +180,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     Of course simultaneous synchronized editing of tasks by multiple clients is fully supported.
 
                     <h4>Moving tasks</h4>
-                    In custom order (the default) click and drag <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
+                    In custom order (the default) click and drag <i class="fa fa-reorder webapp-task-reorder-handle"> </i>
                     to change the order of the tasks.  You can also click <i class="fa fa-hand-o-up"> </i>
                     and <i class="fa fa-hand-o-down"> </i> to move
                     the currently selected task to the top or bottom of the currently visible task.
@@ -194,7 +192,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     View finished tasks by selecting the done checkbox.
 
                     <h4>Hashtags</h4>
-                    Put <span class="salvus-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with
+                    Put <span class="webapp-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with
                     <i>no space</i> between the hash symbol and the tag identifier.  A corresponding button
                     will appear at the top of the screen. Click
                     on the bottom or the hashtag in  a task to toggle showing only tasks with that hashtag.

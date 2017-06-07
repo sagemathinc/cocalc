@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,21 +23,23 @@ misc = require('smc-util/misc')
 
 {React, Actions, Store, Table, redux, rtypes, rclass}  = require('./smc-react')
 
-{TimeAgo} = require('./r_misc')
+{TimeAgo, Tip} = require('./r_misc')
 
-{salvus_client} = require('./salvus_client')   # needed for getting non-collaborator user names
+{webapp_client} = require('./webapp_client')   # needed for getting non-collaborator user names
 
 immutable = require('immutable')
 
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
-        salvus_client.get_usernames
+        if not account_id
+            return
+        webapp_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
             cb          : (err, x) =>
                 if err
-                    console.warn("ERROR getting username for account with id '#{account_id}'")
+                    console.warn("WARNING: unable to get username for account with id '#{account_id}'")
                 else
                     obj = x[account_id]
                     if obj?
@@ -57,8 +59,13 @@ class UsersStore extends Store
     get_last_name: (account_id) =>
         return @getIn(['user_map', account_id, 'last_name']) ? 'User'
 
+    # URL of color (defaults to rgb(170,170,170))
     get_color: (account_id) =>
-        return @getIn(['user_map', account_id, 'profile', 'color']) ? '#aaa'
+        return @getIn(['user_map', account_id, 'profile', 'color']) ? 'rgb(170,170,170)'
+
+    # URL of image or undefined if none
+    get_image: (account_id) =>
+        return @getIn(['user_map', account_id, 'profile', 'image'])
 
     get_name: (account_id) =>
         user_map = @get('user_map')
@@ -126,7 +133,7 @@ exports.User = User = rclass
         last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
         name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id
             return true
         n = nextProps.user_map?.get(@props.account_id)
@@ -136,16 +143,38 @@ exports.User = User = rclass
             return true   # something about the user changed in the user_map, so updated.
         if @props.last_active != nextProps.last_active
             return true   # last active time changed, so update
+        if @props.show_original != nextProps.show_original
+            return true
+        if @props.name != nextProps.name
+            return true
         return false  # same so don't update
 
-    render_last_active : ->
+    render_last_active: ->
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
-    name : (info) ->
+    render_original: (info) ->
+        if info.first_name and info.last_name
+            full_name = info.first_name + ' ' + info.last_name
+        else if info.first_name
+            full_name = info.first_name
+        else if info.last_name
+            full_name = info.last_name
+        else
+            full_name = ''
+
+        if @props.show_original and full_name != @props.name
+            <Tip placement='top'
+                 title='User Name'
+                 tip='The name this user has given their account.'
+            >
+                <span style={color:"#666"}> ({full_name})</span>
+            </Tip>
+
+    name: (info) ->
         return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
 
-    render : ->
+    render: ->
         if not @props.user_map? or @props.user_map.size == 0
             return <span>Loading...</span>
         info = @props.user_map?.get(@props.account_id)
@@ -156,5 +185,5 @@ exports.User = User = rclass
             return <span>Loading...</span>
         else
             info = info.toJS()
-            return <span>{@name(info)}{@render_last_active()}</span>
+            return <span>{@name(info)}{@render_original(info)}{@render_last_active()}</span>
 

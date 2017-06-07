@@ -1,7 +1,7 @@
 {
-  "name": "sagemathcloud",
+  "name": "cocalc",
   "version": "1.0.0",
-  "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
+  "description": "Collaborative Calculation in the Cloud",
   "main": "index.js",
   "directories": {
     "doc": "doc"
@@ -27,14 +27,17 @@
     "html-minify-loader": "^1.1.0",
     "html-webpack-plugin": "^2.10.0",
     "imports-loader": "^0.6.5",
-    "jade": "^1.11.0",
-    "jade-loader": "^0.8.0",
     "json-loader": "^0.5.4",
+    "jstransformer-coffee-script": "^1.1.0",
+    "jstransformer-markdown-it": "^2.0.0",
+    "jstransformer-sass": "^0.1.1",
     "less": "^2.7.1",
     "less-loader": "^2.2.3",
     "node-cjsx": "^1.0.0",
     "node-glob": "^1.2.0",
     "node-sass": "^3.7.0",
+    "pug": "^2.0.0-rc.1",
+    "pug-loader": "^2.3.0",
     "sass-loader": "^3.2.0",
     "script-loader": "^0.7.0",
     "style-loader": "^0.13.1",
@@ -50,20 +53,24 @@
     "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
-    "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
-    "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-watch-quick": "cd $SALVUS_ROOT; SMC_WEBPACK_QUICK=true webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-watch-map": "cd $SALVUS_ROOT; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-watch-quick-map": "cd $SALVUS_ROOT; SMC_WEBPACK_QUICK=true SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack --progress --colors",
+    "webpack": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webpack -d --progress --colors",
+    "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-quick": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SMC_WEBPACK_QUICK=true webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-map": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-quick-map": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee;  SMC_WEBPACK_QUICK=true SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-minify-map": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SMC_WEBPACK_QUICK=true SOURCE_MAP=true WP_MINIFY=true webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-production": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; NODE_ENV=production webpack --progress --colors",
+    "webpack-watch-production": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; NODE_ENV=production webpack --progress --watch --colors",
+    "webpack-staticpages": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors",
+    "webpack-watch-staticpages": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
-    "clean": "rm -rf node_modules */node_modules static/webpack"
+    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "keywords": [
     "python",
@@ -85,7 +92,10 @@
   ],
   "license": "GPL-3.0+",
   "bugs": {
-    "url": "https://github.com/sagemathinc/smc/issues"
+    "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/smc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "devDependencies": {
+    "file-loader": "^0.8.5"
+  }
 }

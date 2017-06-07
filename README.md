@@ -1,98 +1,84 @@
-# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-48.png) SageMathCloud (SMC)
+# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-32x32.png) CoCalc
 
-#### _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
+#### _Collaborative Calculation in the Cloud_
+
+**CoCalc** offers collaborative calculation in the cloud.
+This includes working with the full (scientific) Python stack, SageMath, Julia, R, Octave, and more.
+It also offers capabilities to author documents in LaTeX, R/knitr or Markdown,
+storing and organizing files, a web-based Linux Terminal,
+communication tools like a chat, course management and more.
 
 ## Website
 
-   * [SageMathCloud](https://cloud.sagemath.com)
-   * [Github](https://github.com/sagemathinc/smc)
-   * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
+   * **[CoCalc](https://cocalc.com) -- the online service**
+   * [Github](https://github.com/sagemathinc/cocalc)
+   * [Mailing List](https://groups.google.com/forum/#!forum/cocalc)
 
-## Development/install
+## Very easy install of CoCalc on your computer
 
-   * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `cd smc/src`
-   * `npm run install-all` -- build
-   * `npm test` -- run test suite (expected failures if your clock is not UTC)
-   * `install.py all --compute --web` -- build and install some parts system-wide for development use
-   * See `INSTALL.md` for more details.
-   * Docker: https://github.com/sagemathinc/smc/tree/master/src/dev/docker
+You can easily use CoCalc on your own computer for free by **[running a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+
+## History
+
+*CoCalc* was formerly called *SageMathCloud*.
+It started to offer way more than just SageMath and hence outgrew itself.
+The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
-### Active contributors
+### Current highly active contributors
 
-   * William Stein, SageMath Inc and University of Washington -- founder; everything
-   * Harald Schilly, Vienna, Austria -- everything
-   * Tim Clemans -- fontend work
-   * John Jeng -- frontend work
-   * Hal Snyder -- backend Python-related work
-   * Simon Luu -- frontend work (chat)
-   * Todd Zimmerman -- screencasts
-   * Greg Bard -- updating the FAQ; documentation
+   * John Jeng
+   * Harald Schilly
+   * Hal Snyder
+   * William Stein
 
 ### Past contributors
 
-   * Jon Lee, University of Washington -- frontend work, history viewer
-   * Rob Beezer, University of Puget Sound -- design, maintenance
-   * Nicholas Ruhland, University of Washington -- frontend work, tab reordering and resizing
-   * Keith Clawson -- hardware/infrastructure
-   * Andy Huchala, University of Washington -- frontend work, bug finding
+   * Greg Bard
+   * Rob Beezer
+   * Keith Clawson
+   * Tim Clemans
+   * Andy Huchala
+   * Jon Lee
+   * Simon Luu
+   * Nicholas Ruhland
+   * Todd Zimmerman
+
+... and *many* others: See https://github.com/sagemathinc/cocalc/graphs/contributors
 
 ## Copyright/License
 
-SMC is 100% open source, released under the GNU General Public License version 3+:
+The copyright of CoCalc is owned by SageMath, Inc., and the source code
+here is released under the GNU Affero General Public License version 3+.
+See the included file LICENSE.md.
 
-    Copyright (C) 2014 -- 2016, SageMath, Inc.
+None of the frontend or server dependencies of SMC are themselves GPL
+licensed; they all have non-viral liberal licenses.   If want to host
+your own SMC at a company, and need a different AGPL-free license,
+please contact help@sagemath.com.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+## Trademark
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-## Build Status: Testing and Coverage
-
-We test SMC via [Travis CI](https://travis-ci.org).
-Here are the results:
-
-* [master](https://github.com/sagemathinc/smc/):
-  [![Build Status](https://travis-ci.org/sagemathinc/smc.svg?branch=master)](https://travis-ci.org/sagemathinc/smc)
-  [![Coverage Status](https://coveralls.io/repos/sagemathinc/smc/badge.svg)](https://coveralls.io/r/sagemathinc/smc)
-
-DevOps note: The relevant files are:
-
-* .travis.yml - to tell travis-ci what to do (two modes: client and server)
-* smc/*/test/mocha.opts - defaults for running mocha
-* smc/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` when on travis-ci, etc.)
+"CoCalc" is a registered trademark.
 
 ## ARCHITECTURE
 
   * Client       -- javascript client library that runs in web browser
   * Load balancer/ssl -- HAproxy
-  * Database     -- RethinkDB
+  * Database     -- PostgreSQL
   * Compute      -- VM's running TCP servers (e.g., sage, console, projects, python3, R, etc.)
   * Hub          -- written in Node.js; primus server; connects with *everything* -- compute servers, database, other hubs, and clients.
   * Storage      -- Snapshots of project data
   * HTTP server  -- Nginx
-  * admin.py     -- Python program that uses the paramiko library to start/stop everything
-  * The Cloud   -- Google Compute Engine
 
 ### Architectural Diagram
-<pre>
+```
 
    Client    Client    Client   Client  ...
      /|\
       |
-   https://cloud.sagemath.com (primus)
+   https://cocalc.com (primus)
       |
       |
      \|/
@@ -102,18 +88,42 @@ DevOps note: The relevant files are:
   |http1.1  |        |        |
   |         |        |        |
  \|/       \|/      \|/      \|/
- Hub<----> Hub<---->Hub<---> Hub  <-----------> RethinkDB <--> RethinkDB  <--> RethinkDB ...
+ Hub<----> Hub<---->Hub<---> Hub  <-----------> PostgreSQL <--> PostgreSQL  <--> PostgreSQL ...
            /|\      /|\      /|\
             |        |        |
    ---------|        |        | (tcp)
    |                 |        |
    |                 |        |
   \|/               \|/      \|/
- Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has BTRFS snapshots
+ Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has ZFS snapshots
 
-</pre>
+```
 
+## Acknowledgements
 
+### Browserstack
 
+We are grateful to BrowserStack for providing infrastructure to test CoCalc. 
 
+<a href="https://www.browserstack.com" target="_blank"><img src="http://i.imgur.com/VProOTR.png"></a>
 
+## Development
+
+### Prerequisites
+
+* node
+* Postgres
+* `pip install pyyaml`
+
+## Installation
+
+The following instruction **don't** install SMC. They're for development purposes only!
+
+   * `git clone https://github.com/sagemathinc/cocalc` -- copy repo
+   * `cd cocalc/src`
+   * `npm run install-all` -- build
+   * `npm test` -- run test suite (expected failures if your clock is not UTC)
+   * `install.py all --compute --web` -- build and install some parts system-wide for development use
+   * See `INSTALL.md` for more details.
+
+For further options please [go here](https://github.com/sagemathinc/cocalc/tree/master/src/dev).

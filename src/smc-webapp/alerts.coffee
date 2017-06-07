@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,9 +19,11 @@
 #
 ###############################################################################
 
-$                   = window.$
-{defaults, to_json} = require("misc")
-{salvus_client}     = require('./salvus_client')
+# window? is so this can be imported in the backend for testing...
+$                   = window?.$
+misc                = require('smc-util/misc')
+{defaults, to_json} = misc
+{webapp_client}     = require('./webapp_client')
 
 types = ['error', 'default', 'success', 'info']
 default_timeout =
@@ -30,11 +32,14 @@ default_timeout =
     success : 2
     info    : 3
 
-$("#alert-templates").hide()
+$?("#alert-templates").hide()
+
+last_shown = {}
 
 exports.alert_message = (opts={}) ->
     opts = defaults opts,
         type    : 'default'
+        title   : undefined
         message : defaults.required
         block   : undefined
         timeout : undefined  # time in seconds
@@ -43,6 +48,14 @@ exports.alert_message = (opts={}) ->
 
     if typeof opts.message != "string"
         opts.message = to_json(opts.message)
+
+    # Don't show the exact same alert message more than once per 5s.
+    # This prevents a screenful of identical useless messages, which
+    # is just annoying and useless.
+    hash = misc.hash_string(opts.message + opts.type)
+    if last_shown[hash] >= misc.server_seconds_ago(5)
+        return
+    last_shown[hash] = misc.server_time()
 
     if not opts.block?
         if opts.type == 'error'
@@ -55,7 +68,7 @@ exports.alert_message = (opts={}) ->
         return
 
     $.pnotify
-        title           : ""
+        title           : opts.title ? ''
         type            : opts.type
         text            : opts.message
         nonblock        : false
@@ -69,7 +82,7 @@ exports.alert_message = (opts={}) ->
         # that us developers know what errors people are hitting.
         # There really should be no situation where users *regularly*
         # get error alert messages.
-        salvus_client.log_error(opts.message)
+        webapp_client.log_error(opts.message)
 
     return
 
@@ -85,8 +98,9 @@ exports.alert_message = (opts={}) ->
 
 check_for_clock_skew = () ->
     local_time = new Date()
-    if Math.abs(salvus_client.server_time() - local_time) > 60000
-        exports.alert_message(type:'error', timeout:30,  message:"Your computer's clock is off by over a minute.  Please set it correctly.")
+    s = Math.ceil(Math.abs(webapp_client.server_time() - local_time)/1000)
+    if s > 30
+        exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.")
 
 # Wait until after the page is loaded and clock sync'd before checking for skew.
 setTimeout(check_for_clock_skew, 60000)
@@ -96,3 +110,6 @@ setTimeout(check_for_clock_skew, 60000)
 # alert_message(type:'default', message:"This is a default alert")
 # alert_message(type:'success', message:"This is a success alert")
 # alert_message(type:'info',    message:"This is an info alert")
+
+# Make it so alert_message can be used by user code, e.g., in sage worksheets.
+window?.alert_message = exports.alert_message

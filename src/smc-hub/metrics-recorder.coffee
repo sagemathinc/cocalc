@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -172,8 +172,8 @@ class exports.MetricsRecorder
 
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
-    _update : ->
-        @_collect()
+    _update: ->
+        @collect?()
 
         smooth = (new_value, arr) ->
             arr ?= []
@@ -233,16 +233,16 @@ class exports.MetricsRecorder
             @_stats[key] = []
 
     # the periodically called publication step
-    _publish : (cb) =>
+    _publish: (cb) =>
         @record("timestamp", new Date(), TYPE.LAST)
-        # also record system metrics like cpu, memory, ... ?
+        # also record system metrics like cpu, memory, ... ?>>
         @_update()
         # only if we have a @filename, save it there
         if @filename?
             json = JSON.stringify(@_data, null, 2)
             fs.writeFile(@filename, json, cb?())
 
-    record : (key, value, type = TYPE.CONT) =>
+    record: (key, value, type = TYPE.CONT) =>
         # store in @_stats a key → bounded array
         if (@_types[key] ? type) != type
             @dbg("WARNING: you are switching types from #{@_types[key]} to #{type} -- IGNORED")

@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-# these times in minutes are used for active/recently edited projects and accounts in rethink.coffee's get_stats
+# these times in minutes are used for active/recently edited projects and accounts in postgres-server-queries.coffee's get_stats
 exports.RECENT_TIMES =
     active     : 5
     last_hour  : 60

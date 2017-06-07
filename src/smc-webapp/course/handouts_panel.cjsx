@@ -1,17 +1,38 @@
-# SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React Libraries
 {React, rclass, rtypes} = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
 
-# SMC and course components
-course_funcs = require('./course_funcs')
+# CoCalc and course components
+util = require('./util')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
-{ErrorDisplay, Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
+{ErrorDisplay, Icon, Tip, MarkdownInput} = require('../r_misc')
 
 # Could be merged with steps system of assignments.
 # Probably not a good idea mixing the two.
@@ -68,34 +89,34 @@ exports.HandoutsPanel = rclass ({name}) ->
         store_object : rtypes.object
         project_actions : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         show_deleted : false
         search          : ''      # Search value for filtering handouts
 
     # Update on different students, handouts, or filter parameters
-    shouldComponentUpdate : (nextProps, nextState) ->
+    shouldComponentUpdate: (nextProps, nextState) ->
         if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students or @props.expanded_handouts != nextProps.expanded_handouts
             return true
         if nextState.search != @state.search or nextState.show_deleted != @state.show_deleted
             return true
         return false
 
-    compute_handouts_list : ->
-        list = course_funcs.immutable_to_list(@props.all_handouts, 'handout_id')
+    compute_handouts_list: ->
+        list = util.immutable_to_list(@props.all_handouts, 'handout_id')
 
-        {list, num_omitted} = course_funcs.compute_match_list
+        {list, num_omitted} = util.compute_match_list
             list        : list
             search_key  : 'path'
             search      : @state.search.trim()
 
-        {list, deleted, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp(a.path?.toLowerCase(), b.path?.toLowerCase())
             include_deleted  : @state.show_deleted
 
         return {shown_handouts:list, deleted_handouts:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_show_deleted_button : (num_deleted) ->
+    render_show_deleted_button: (num_deleted) ->
         if @state.show_deleted
             <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list.">
@@ -109,7 +130,7 @@ exports.HandoutsPanel = rclass ({name}) ->
                 </Tip>
             </Button>
 
-    yield_adder : (deleted_handouts) ->
+    yield_adder: (deleted_handouts) ->
         deleted_paths = {}
         deleted_handouts.map (obj) =>
             if obj.path
@@ -121,7 +142,7 @@ exports.HandoutsPanel = rclass ({name}) ->
             else
                 @props.actions.add_handout(path)
 
-    render : ->
+    render: ->
         # Computed data from state changes have to go in render
         {shown_handouts, deleted_handouts, num_omitted, num_deleted} = @compute_handouts_list()
         add_handout = @yield_adder(deleted_handouts)
@@ -173,24 +194,27 @@ Handout = rclass
         open_directory      : rtypes.func     # open_directory(path)
         is_expanded         : rtypes.bool
 
-    getInitialState : ->
+    getInitialState: ->
         confirm_delete : false
 
-    open_handout_path : (e)->
+    open_handout_path: (e)->
         e.preventDefault()
         @props.open_directory(@props.handout.get('path'))
 
-    copy_handout_to_all : (step, new_only) ->
+    copy_handout_to_all: (step, new_only) ->
         @props.actions.copy_handout_to_all_students(@props.handout, new_only)
 
-    render_more_header : ->
+    render_more_header: ->
         <div>
+            <div style={fontSize:'15pt', marginBottom:'5px'} >
+                {@props.handout.get('path')}
+            </div>
             <Button onClick={@open_handout_path}>
                 <Icon name="folder-open-o" /> Edit Handout
             </Button>
         </div>
 
-    render_handout_notes : ->
+    render_handout_notes: ->
         <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this handout" tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout.">
@@ -207,24 +231,24 @@ Handout = rclass
             </Col>
         </Row>
 
-    render_copy_all : (status) ->
+    render_copy_all: (status) ->
         steps = STEPS()
         for step in steps
             if @state["copy_confirm_#{step}"]
                 @render_copy_confirm(step, status)
 
-    render_copy_confirm : (step, status) ->
+    render_copy_confirm: (step, status) ->
         <span key="copy_confirm_#{step}">
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
 
-    render_copy_cancel : (step) ->
+    render_copy_cancel: (step) ->
         cancel = =>
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_handout : (step, new_only) ->
+    copy_handout: (step, new_only) ->
         # handout to all (non-deleted) students
         switch step
             when 'handout'
@@ -233,7 +257,7 @@ Handout = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
-    render_copy_confirm_to_all : (step, status) ->
+    render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
@@ -245,12 +269,12 @@ Handout = rclass
             </ButtonToolbar>
         </Alert>
 
-    copy_confirm_all_caution : (step) ->
+    copy_confirm_all_caution: (step) ->
         switch step
             when 'handout'
                 return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
 
-    render_copy_confirm_overwrite_all : (step, status) ->
+    render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {@copy_confirm_all_caution(step)}
@@ -261,7 +285,7 @@ Handout = rclass
             </ButtonToolbar>
         </div>
 
-    render_copy_confirm_to_all_or_new : (step, status) ->
+    render_copy_confirm_to_all_or_new: (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
@@ -279,7 +303,7 @@ Handout = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    render_handout_button : (handout_count) ->
+    render_handout_button: (handout_count) ->
         bsStyle = if handout_count == 0 then "primary" else "warning"
         <Button key='handout'
                 bsStyle  = {bsStyle}
@@ -292,14 +316,14 @@ Handout = rclass
             </Tip>
         </Button>
 
-    delete_handout : ->
+    delete_handout: ->
         @props.actions.delete_handout(@props.handout)
         @setState(confirm_delete:false)
 
-    undelete_handout : ->
+    undelete_handout: ->
         @props.actions.undelete_handout(@props.handout)
 
-    render_confirm_delete : ->
+    render_confirm_delete: ->
         <Alert bsStyle='warning' key='confirm_delete'>
             Are you sure you want to delete this handout (you can undelete it later)?
             <br/> <br/>
@@ -313,7 +337,7 @@ Handout = rclass
             </ButtonToolbar>
         </Alert>
 
-    render_delete_button : ->
+    render_delete_button: ->
         if @props.handout.get('deleted')
             <Tip key='delete' placement='left' title="Undelete handout" tip="Make the handout visible again in the handout list and in student grade lists.">
                 <Button onClick={@undelete_handout} style={@outside_button_style}>
@@ -327,7 +351,7 @@ Handout = rclass
                 </Button>
             </Tip>
 
-    render_more : ->
+    render_more: ->
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
@@ -343,7 +367,7 @@ Handout = rclass
         paddingTop    : '6px'
         paddingBottom : '4px'
 
-    render : ->
+    render: ->
         status = @props.store_object.get_handout_status(@props.handout)
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
             <Col xs=12>
@@ -351,12 +375,12 @@ Handout = rclass
                     <Col md=2 style={paddingRight:'0px'}>
                         <h5>
                             <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('handout', @props.handout.get('handout_id'))}>
-                                <Icon style={marginRight:'10px'}
+                                <Icon style={marginRight:'10px', float:'left'}
                                       name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
-                                <span>
-                                    {misc.trunc_middle(@props.handout.get('path'), 80)}
+                                <div>
+                                    {misc.trunc_middle(@props.handout.get('path'), 24)}
                                     {<b> (deleted)</b> if @props.handout.get('deleted')}
-                                </span>
+                                </div>
                             </a>
                         </h5>
                     </Col>
@@ -394,8 +418,8 @@ StudentListForHandout = rclass
         store_object : rtypes.object
         actions      : rtypes.object
 
-    render_students : ->
-        v = course_funcs.immutable_to_list(@props.students, 'student_id')
+    render_students: ->
+        v = util.immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v
@@ -414,7 +438,7 @@ StudentListForHandout = rclass
         for x in v
             @render_student_info(x.student_id, x)
 
-    render_student_info : (id, student) ->
+    render_student_info: (id, student) ->
         <StudentHandoutInfo
             key = {id}
             actions = {@props.actions}
@@ -424,7 +448,7 @@ StudentListForHandout = rclass
             handout = {@props.handout}
         />
 
-    render : ->
+    render: ->
         <div>
             <StudentHandoutInfoHeader
                 key        = 'header'
@@ -457,7 +481,7 @@ StudentHandoutInfoHeader = rclass
             {@render_col(1, 'last_handout', w)}
         </Row>
 
-    render : ->
+    render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Handout" then "This column gives the directory name of the handout." else "This column gives the name of the student."}>
@@ -479,24 +503,24 @@ StudentHandoutInfo = rclass
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         handout    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (handout_id) or handout immutable js object
 
-    getInitialState : ->
+    getInitialState: ->
         {}
 
-    open : (handout_id, student_id) ->
+    open: (handout_id, student_id) ->
         @props.actions.open_handout(handout_id, student_id)
 
-    copy : (handout_id, student_id) ->
+    copy: (handout_id, student_id) ->
         @props.actions.copy_handout_to_student(handout_id, student_id)
 
-    stop : (handout_id, student_id) ->
+    stop: (handout_id, student_id) ->
         @props.actions.stop_copying_handout(handout_id, student_id)
 
-    render_last_time : (name, time) ->
+    render_last_time: (name, time) ->
         <div key='time' style={color:"#666"}>
             (<BigTime date={time} />)
         </div>
 
-    render_open_recopy_confirm : (name, open, copy, copy_tip, open_tip) ->
+    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip) ->
         key = "recopy_#{name}"
         if @state[key]
             v = []
@@ -515,7 +539,7 @@ StudentHandoutInfo = rclass
                 </Tip>
             </Button>
 
-    render_open_recopy : (name, open, copy, copy_tip, open_tip) ->
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
         <ButtonToolbar key='open_recopy'>
             {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip)}
             <Button key='open'  onClick={open}>
@@ -525,10 +549,10 @@ StudentHandoutInfo = rclass
             </Button>
         </ButtonToolbar>
 
-    render_open_copying : (name, open, stop) ->
+    render_open_copying: (name, open, stop) ->
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> Working...
+                <Icon name="cc-icon-cocalc-ring" spin /> Working...
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />
@@ -538,14 +562,14 @@ StudentHandoutInfo = rclass
             </Button>
         </ButtonGroup>
 
-    render_copy : (name, copy, copy_tip) ->
+    render_copy: (name, copy, copy_tip) ->
         <Tip key="copy" title={name} tip={copy_tip} >
             <Button onClick={copy} bsStyle={'primary'}>
                 <Icon name="share-square-o" /> {name}
             </Button>
         </Tip>
 
-    render_error : (name, error) ->
+    render_error: (name, error) ->
         if typeof(error) != 'string'
             error = misc.to_json(error)
         if error.indexOf('No such file or directory') != -1
@@ -554,7 +578,7 @@ StudentHandoutInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last : (name, obj, info, enable_copy, copy_tip, open_tip) ->
+    render_last: (name, obj, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(info.handout_id, info.student_id)
         copy = => @copy(info.handout_id, info.student_id)
         stop = => @stop(info.handout_id, info.student_id)
@@ -573,7 +597,7 @@ StudentHandoutInfo = rclass
             v.push(@render_error(name, obj.error))
         return v
 
-    render : ->
+    render: ->
         width = 12
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">

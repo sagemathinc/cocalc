@@ -1,7 +1,29 @@
-# SMC libraries
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+underscore = require('underscore')
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
@@ -12,83 +34,15 @@ misc = require('smc-util/misc')
 
 immutable = require('immutable')
 
-# Move these to funcs file
-exports.STEPS = (peer) ->
-    if peer
-        return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'return_graded']
-    else
-        return ['assignment', 'collect', 'return_graded']
-
-exports.previous_step = (step, peer) ->
-    switch step
-        when 'collect'
-            return 'assignment'
-        when 'return_graded'
-            if peer
-                return 'peer_collect'
-            else
-                return 'collect'
-        when 'assignment'
-            return
-        when 'peer_assignment'
-            return 'collect'
-        when 'peer_collect'
-            return 'peer_assignment'
-        else
-            console.warn("BUG! previous_step('#{step}')")
-
-exports.step_direction = (step) ->
-    switch step
-        when 'assignment'
-            return 'to'
-        when 'collect'
-            return 'from'
-        when 'return_graded'
-            return 'to'
-        when 'peer_assignment'
-            return 'to'
-        when 'peer_collect'
-            return 'from'
-        else
-            console.warn("BUG! step_direction('#{step}')")
-
-exports.step_verb = (step) ->
-    switch step
-        when 'assignment'
-            return 'assign'
-        when 'collect'
-            return 'collect'
-        when 'return_graded'
-            return 'return'
-        when 'peer_assignment'
-            return 'assign'
-        when 'peer_collect'
-            return 'collect'
-        else
-            console.warn("BUG! step_verb('#{step}')")
-
-exports.step_ready = (step, n) ->
-    switch step
-        when 'assignment'
-            return ''
-        when 'collect'
-            return if n >1 then ' who have already received it' else ' who has already received it'
-        when 'return_graded'
-            return ' whose work you have graded'
-        when 'peer_assignment'
-            return ' for peer grading'
-        when 'peer_collect'
-            return ' who should have peer graded it'
-
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
 
-    render : ->
+    render: ->
         date = @props.date
         if not date?
             return
         if typeof(date) == 'string'
-            return <span>{date}</span>
+            date = misc.ISO_to_Date(date)
         return <TimeAgo popover={true} date={date} />
 
 exports.StudentAssignmentInfoHeader = rclass
@@ -149,7 +103,7 @@ exports.StudentAssignmentInfoHeader = rclass
             {@render_col(6, 'return_graded', w)}
         </Row>
 
-    render : ->
+    render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
@@ -166,46 +120,47 @@ exports.StudentAssignmentInfo = rclass
 
     propTypes :
         name       : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
         title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
+        info       : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         editing_grade : false
+        edited_grade  : ''
 
-    open : (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
+    open: (type, assignment_id, student_id) ->
+        @actions(@props.name).open_assignment(type, assignment_id, student_id)
 
-    copy : (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
+    copy: (type, assignment_id, student_id) ->
+        @actions(@props.name).copy_assignment(type, assignment_id, student_id)
 
-    stop : (type, assignment_id, student_id) ->
-        @props.redux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
+    stop: (type, assignment_id, student_id) ->
+        @actions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
-    save_grade : (e) ->
+    save_grade: (e) ->
         e?.preventDefault()
-        @props.redux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_grade)
         @setState(editing_grade:false)
 
-    edit_grade : ->
-        @setState(grade:@props.grade, editing_grade:true)
+    edit_grade: ->
+        @setState(edited_grade:@props.grade ? '', editing_grade:true)
 
-    render_grade_score : ->
+    render_grade_score: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
                     <InputGroup>
                         <FormControl
                             autoFocus
-                            value       = {@state.grade}
+                            value       = {@state.edited_grade}
                             ref         = 'grade_input'
                             type        = 'text'
                             placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
                             onBlur      = {@save_grade}
-                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
                         />
                         <InputGroup.Button>
                             <Button bsStyle='success'>Save</Button>
@@ -219,7 +174,7 @@ exports.StudentAssignmentInfo = rclass
                     Grade: {@props.grade}
                 </div>
 
-    render_grade : (info, width) ->
+    render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
@@ -228,12 +183,12 @@ exports.StudentAssignmentInfo = rclass
             {@render_grade_score()}
         </Col>
 
-    render_last_time : (name, time) ->
+    render_last_time: (name, time) ->
         <div key='time' style={color:"#666"}>
             (<BigTime date={time} />)
         </div>
 
-    render_open_recopy_confirm : (name, open, copy, copy_tip, open_tip, placement) ->
+    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip, placement) ->
         key = "recopy_#{name}"
         if @state[key]
             v = []
@@ -252,7 +207,7 @@ exports.StudentAssignmentInfo = rclass
                 </Tip>
             </Button>
 
-    render_open_recopy : (name, open, copy, copy_tip, open_tip) ->
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
         placement = if name == 'Return' then 'left' else 'right'
         <ButtonToolbar key='open_recopy'>
             {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
@@ -263,12 +218,12 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </ButtonToolbar>
 
-    render_open_copying : (name, open, stop) ->
+    render_open_copying: (name, open, stop) ->
         if name == "Return"
             placement = 'left'
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> {name}ing
+                <Icon name="cc-icon-cocalc-ring" spin /> {name}ing
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />
@@ -278,7 +233,7 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </ButtonGroup>
 
-    render_copy : (name, copy, copy_tip) ->
+    render_copy: (name, copy, copy_tip) ->
         if name == "Return"
             placement = 'left'
         <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
@@ -287,7 +242,7 @@ exports.StudentAssignmentInfo = rclass
             </Button>
         </Tip>
 
-    render_error : (name, error) ->
+    render_error: (name, error) ->
         if typeof(error) != 'string'
             error = misc.to_json(error)
         if error.indexOf('No such file or directory') != -1
@@ -296,10 +251,10 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last : (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
-        open = => @open(type, info.assignment_id, info.student_id)
-        copy = => @copy(type, info.assignment_id, info.student_id)
-        stop = => @stop(type, info.assignment_id, info.student_id)
+    render_last: (name, obj, type, enable_copy, copy_tip, open_tip) ->
+        open = => @open(type, @props.info.assignment_id, @props.info.student_id)
+        copy = => @copy(type, @props.info.assignment_id, @props.info.student_id)
+        stop = => @stop(type, @props.info.assignment_id, @props.info.student_id)
         obj ?= {}
         v = []
         if enable_copy
@@ -315,24 +270,23 @@ exports.StudentAssignmentInfo = rclass
             v.push(@render_error(name, obj.error))
         return v
 
-    render_peer_assign: (info) ->
+    render_peer_assign: ->
         <Col md={2} key='peer-assign'>
-            {@render_last('Peer Assign', info.last_peer_assignment, 'peer-assigned', info, info.last_collect?,
+            {@render_last('Peer Assign', @props.info.last_peer_assignment, 'peer-assigned', @props.info.last_collect?,
                "Copy collected assignments from your project to this student's project so they can grade them.",
                "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
         </Col>
 
-    render_peer_collect: (info) ->
+    render_peer_collect: ->
         <Col md={2} key='peer-collect'>
-            {@render_last('Peer Collect', info.last_peer_collect, 'peer-collected', info, info.last_peer_assignment?,
+            {@render_last('Peer Collect', @props.info.last_peer_collect, 'peer-collected', @props.info.last_peer_assignment?,
                "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
         </Col>
 
-    render : ->
-        info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
+    render: ->
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
-        show_grade_col = (peer_grade and info.last_peer_collect) or (not peer_grade and info.last_collect)
+        show_grade_col = (peer_grade and @props.info.last_peer_collect) or (not peer_grade and @props.info.last_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
@@ -341,20 +295,20 @@ exports.StudentAssignmentInfo = rclass
             <Col md=10 key="rest">
                 <Row>
                     <Col md={width} key='last_assignment'>
-                        {@render_last('Assign', info.last_assignment, 'assigned', info, true,
+                        {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
                            "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
                     <Col md={width} key='collect'>
-                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
+                        {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment?,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
                            "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
-                    {@render_peer_assign(info)  if peer_grade and info.peer_assignment}
-                    {@render_peer_collect(info) if peer_grade and info.peer_collect}
-                    {if show_grade_col then @render_grade(info, width) else <Col md={width} key='grade'></Col>}
+                    {@render_peer_assign()  if peer_grade and @props.info.peer_assignment}
+                    {@render_peer_collect() if peer_grade and @props.info.peer_collect}
+                    {if show_grade_col then @render_grade(width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
-                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
+                        {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
                            "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
                     </Col>
@@ -368,39 +322,38 @@ exports.StudentAssignmentInfo = rclass
 exports.MultipleAddSearch = MultipleAddSearch = rclass
     propTypes :
         add_selected     : rtypes.func.isRequired   # Submit user selected results add_selected(['paths', 'of', 'folders'])
-        do_search        : rtypes.func.isRequired   # Submit search query
+        do_search        : rtypes.func.isRequired   # Submit search query, invoked as do_search(value)
         clear_search     : rtypes.func.isRequired
         is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
         search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
         item_name        : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         item_name        : 'result'
 
-    getInitialState : ->
-        selected_items : '' # currently selected options
-        show_selector : false
+    getInitialState: ->
+        selected_items : [] # currently selected options
+        show_selector  : false
 
-    shouldComponentUpdate : (newProps, newState) ->
+    shouldComponentUpdate: (newProps, newState) ->
         return newProps.search_results != @props.search_results or
             newProps.item_name != @props.item_name or
             newProps.is_searching != @props.is_searching or
-            newState.selected_items != @state.selected_items
+            not underscore.isEqual(newState.selected_items, @state.selected_items)
 
-    componentWillReceiveProps : (newProps) ->
+    componentWillReceiveProps: (newProps) ->
         @setState
             show_selector : newProps.search_results? and newProps.search_results.size > 0
 
-    clear_and_focus_search_input : ->
+    clear_and_focus_search_input: ->
         @props.clear_search()
-        @setState(selected_items:'')
-        @refs.search_input.clear_and_focus_search_input()
+        @setState(selected_items:[])
 
-    search_button : ->
+    search_button: ->
         if @props.is_searching
             # Currently doing a search, so show a spinner
             <Button>
-                <Icon name="circle-o-notch" spin />
+                <Icon name="cc-icon-cocalc-ring" spin />
             </Button>
         else if @state.show_selector
             # There is something in the selection box -- so only action is to clear the search box.
@@ -413,24 +366,24 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 <Icon name="search" />
             </Button>
 
-    add_button_clicked : (e) ->
+    add_button_clicked: (e) ->
         e.preventDefault()
         @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
-    change_selection : (e) ->
+    change_selection: (e) ->
         v = []
         for option in e.target.selectedOptions
             v.push(option.label)
         @setState(selected_items : v)
 
-    render_results_list : ->
+    render_results_list: ->
         v = []
         @props.search_results.map (item) =>
             v.push(<option key={item} value={item} label={item}>{item}</option>)
         return v
 
-    render_add_selector : ->
+    render_add_selector: ->
         <FormGroup>
             <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={@change_selection}>
                 {@render_results_list()}
@@ -443,7 +396,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             </ButtonToolbar>
         </FormGroup>
 
-    render_add_selector_button : ->
+    render_add_selector_button: ->
         num_items_selected = @state.selected_items.length ? 0
         btn_text = switch @props.search_results.size
             when 0 then "No #{@props.item_name} found"
@@ -452,10 +405,9 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 when 0 then "Select #{@props.item_name} above"
                 when 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        disabled = @props.search_results.size == 0 or (@props.search_results.size >= 2 and num_items_selected == 0)
-        <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+        <Button disabled={num_items_selected == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
-    render : ->
+    render: ->
         <div>
             <SearchInput
                 autoFocus     = {true}
@@ -463,7 +415,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
                 default_value = ''
                 placeholder   = "Add #{@props.item_name} by folder name (enter to see available folders)..."
                 on_submit     = {@props.do_search}
-                on_escape     = {@clear_and_focus_search_input}
+                on_clear      = {@clear_and_focus_search_input}
                 buttonAfter   = {@search_button()}
             />
             {@render_add_selector() if @state.show_selector}
@@ -483,19 +435,19 @@ exports.FoldersToolbar = rclass
         item_name     : rtypes.string
         plural_item_name : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         item_name : "item"
         plural_item_name : "items"
 
-    getInitialState : ->
+    getInitialState: ->
         add_is_searching : false
         add_search_results : immutable.List([])
 
-    do_add_search : (search) ->
+    do_add_search: (search) ->
         if @state.add_is_searching
             return
         @setState(add_is_searching:true)
-        salvus_client.find_directories
+        webapp_client.find_directories
             project_id : @props.project_id
             query      : "*#{search.trim()}*"
             cb         : (err, resp) =>
@@ -510,7 +462,7 @@ exports.FoldersToolbar = rclass
                     @setState(add_is_searching:false, add_search_results:merged)
 
     # Filter directories based on contents of all_items
-    filter_results : (directories, search, all_items) ->
+    filter_results: (directories, search, all_items) ->
         if directories.length > 0
             # Omit any -collect directory (unless explicitly searched for).
             # Omit any currently assigned directory
@@ -532,15 +484,20 @@ exports.FoldersToolbar = rclass
             directories.sort()
         return directories
 
-    submit_selected : (path_list) ->
-        @props.add_folders(path_list)
+    submit_selected: (path_list) ->
+        if path_list?
+            # If nothing is selected and the user clicks the button to "Add handout (etc)" then
+            # path_list is undefined, hence don't do this.
+            # (NOTE: I'm also going to make it so that button is disabled, which fits our
+            # UI guidelines, so there's two reasons that path_list is defined here.)
+            @props.add_folders(path_list)
         @clear_add_search()
 
-    clear_add_search : ->
+    clear_add_search: ->
         @setState(add_search_results:immutable.List([]))
 
-    render : ->
-        <Row>
+    render: ->
+        <Row style={marginBottom:'-15px'}>
             <Col md=3>
                 <SearchInput
                     placeholder   = {"Find #{@props.plural_item_name}..."}

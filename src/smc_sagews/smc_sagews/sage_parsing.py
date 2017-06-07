@@ -5,7 +5,7 @@ Code for parsing Sage code blocks sensibly.
 """
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -253,7 +253,7 @@ def divide_into_blocks(code):
             merge()
 
         # function definitions
-        elif s.startswith('def') and blocks[i-1][-1].splitlines()[-1].lstrip().startswith('@'):
+        elif (s.startswith('def') or s.startswith('@')) and blocks[i-1][-1].splitlines()[-1].lstrip().startswith('@'):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
@@ -371,10 +371,11 @@ def introspect(code, namespace, preparse=True):
                 get_help = False; get_completions = True; get_source = False
                 i      = expr.rfind('.')
                 target = expr[i+1:]
-                if target == '' or is_valid_identifier(target) or '*' in expr:
-                    # this case includes list.*end<tab>
+                if target == '' or is_valid_identifier(target) or '*' in expr and '* ' not in expr:
+                    # this case includes list.*end[tab]
                     obj    = expr[:i]
                 else:
+                    # this case includes aaa=...;3 * aa[tab]
                     expr = guess_last_expression(target)
                     i = expr.rfind('.')
                     if i != -1:
@@ -386,15 +387,29 @@ def introspect(code, namespace, preparse=True):
         if get_completions and target == expr:
             j      = len(expr)
             if '*' in expr:
-                # this case includes *_factors<TAB>
+                # this case includes *_factors<TAB> and abc =...;3 * ab[tab]
                 try:
                     pattern = expr.replace("*",".*").replace("?",".")
                     reg = re.compile(pattern+"$")
                     v = filter(reg.match, namespace.keys() + _builtin_completions)
+                    # for 2*sq[tab]
+                    if len(v) == 0:
+                        gle = guess_last_expression(expr)
+                        j = len(gle)
+                        if j > 0:
+                            target = gle
+                            v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(gle)]
                 except:
                     pass
             else:
                 v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+                # for 2+sqr[tab]
+                if len(v) == 0:
+                    gle = guess_last_expression(expr)
+                    j = len(gle)
+                    if j > 0 and j < len(expr):
+                        target = gle
+                        v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(gle)]
         else:
 
             # We will try to evaluate
@@ -445,11 +460,11 @@ def introspect(code, namespace, preparse=True):
                 import sage.misc.sageinspect
                 result = get_file()
                 try:
-                    def f(s):
+                    def our_getdoc(s):
                         try:
                             x = sage.misc.sageinspect.sage_getargspec(s)
                             defaults = list(x.defaults) if x.defaults else []
-                            args = list(x.args) if x.defaults else []
+                            args = list(x.args) if x.args else []
                             v = []
                             if x.keywords:
                                 v.insert(0,'**kwds')
@@ -460,15 +475,16 @@ def introspect(code, namespace, preparse=True):
                                 k = args.pop()
                                 v.insert(0,'%s=%r'%(k,d))
                             v = args + v
-                            t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
+                            t = u"   Signature : %s(%s)\n"%(obj, ', '.join(v))
                         except:
-                            t = ""
+                            t = u""
                         try:
-                            t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
-                        except:
+                            t += u"   Docstring :\n%s" % sage.misc.sageinspect.sage_getdoc(s).decode('utf-8').strip()
+                        except Exception as ex:
+                            # print ex  # issue 1780: 'ascii' codec can't decode byte 0xc3 in position 3719: ordinal not in range(128)
                             pass
                         return t
-                    result += eval('getdoc(O)', {'getdoc':f, 'O':O})
+                    result += eval('getdoc(O)', {'getdoc':our_getdoc, 'O':O})
                 except Exception, err:
                     result += "Unable to read docstring (%s)"%err
                 result = result.lstrip().replace('\n   ','\n')  # Get rid of the 3 spaces in front of everything.
@@ -488,7 +504,8 @@ def introspect(code, namespace, preparse=True):
                         v += O.trait_names()
                     if not target.startswith('_'):
                         v = [x for x in v if x and not x.startswith('_')]
-                    if '*' in expr:
+                    # this case excludes abc = ...;for a in ab[tab]
+                    if '*' in expr and '* ' not in expr:
                         try:
                             pattern = target.replace("*",".*").replace("?",".")
                             reg = re.compile(pattern+"$")

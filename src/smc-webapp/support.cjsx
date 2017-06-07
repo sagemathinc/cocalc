@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -22,13 +22,13 @@ $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
-{Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
+{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -74,19 +74,33 @@ class SupportActions extends Actions
         if u.intersection(u.keys(update), fields).length > 0
             @check_valid()
 
-    load_support_tickets : () ->
-        salvus_client.get_support_tickets (err, tickets) =>
-            # console.log("tickets: #{misc.to_json(tickets)}")
-            # sort by .updated_at
-            if err?
-                @setState
-                    support_ticket_error : err
-                    support_tickets      : []
-            else
-                tickets = tickets.sort(cmp_tickets)
-                @setState
-                    support_ticket_error : err
-                    support_tickets      : tickets
+    load_support_tickets: () ->
+        # mockup for testing -- set it to "true" to see some tickets
+        if DEBUG and false
+            @setState
+                support_tickets : [
+                    id : 123
+                    status: 'open'
+                    description: 'test ticket 123'
+                ,
+                    id : 456
+                    status : 'open'
+                    description: 'test ticket 456'
+                ]
+                support_ticket_error : null
+        else
+            webapp_client.get_support_tickets (err, tickets) =>
+                # console.log("tickets: #{misc.to_json(tickets)}")
+                # sort by .updated_at
+                if err?
+                    @setState
+                        support_ticket_error : err
+                        support_tickets      : []
+                else
+                    tickets = tickets.sort(cmp_tickets)
+                    @setState
+                        support_ticket_error : err
+                        support_tickets      : tickets
 
     reset: =>
         @init_email_address()
@@ -128,24 +142,24 @@ class SupportActions extends Actions
         # console.log("support/actions/check_valid: #{v} (s: #{s}, b: #{b}, e: #{e})")
         @set(valid: v)
 
-    project_id : ->
+    project_id: ->
         pid = @redux.getStore('page').get('active_top_tab')
         if misc.is_valid_uuid_string(pid)
             return pid
         else
             return null
 
-    projects : =>
+    projects: =>
         @redux.getStore("projects")
 
-    project_title : ->
+    project_title: ->
         if @project_id()?
             return @projects().get_title(@project_id())
         else
             return null
 
-    location : ->
-        window.location.pathname.slice(window.smc_base_url.length)
+    location: ->
+        window.location.pathname.slice(window.app_base_url.length)
 
     # sends off the support request
     support: () =>
@@ -187,7 +201,7 @@ class SupportActions extends Actions
         info =  # additional data dict, like browser/OS
             project_id : project_id
             browser    : feature.get_browser()
-            user_agent : navigator.userAgent
+            user_agent : navigator?.userAgent
             mobile     : feature.get_mobile() ? false
             internet   : (quotas?.network ? 0) > 0
             hostname   : project?.host?.host ? 'unknown'
@@ -196,7 +210,7 @@ class SupportActions extends Actions
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        salvus_client.create_support_ticket
+        webapp_client.create_support_ticket
             opts:
                 username     : name
                 email_address: @get('email')
@@ -228,51 +242,53 @@ exports.SupportPage = rclass
             support_tickets      : rtypes.array
             support_ticket_error : rtypes.string
 
-    render_header : ->
+    render_header: ->
         <tr style={fontWeight:"bold"}>
             <th>Ticket</th>
             <th>Status</th>
         </tr>
 
-    open : (ticket_id) ->
+    open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
         tab = window.open(url, '_blank')
         tab.focus()
 
-    render_body : ->
+    render_body: ->
         for i, ticket of @props.support_tickets
-            style = switch ticket.status
-                when 'open', 'new'
-                    'danger'
-                when 'closed'
-                    'info'
-                when 'solved'
-                    'success'
-                else
-                    'info'
+            do (ticket, i) =>
+                style = switch ticket.status
+                    when 'open', 'new'
+                        'danger'
+                    when 'closed'
+                        'info'
+                    when 'solved'
+                        'success'
+                    else
+                        'info'
 
-            <tr key={i} className="#{style}">
-                <td><h4>{ticket.subject}</h4>
-                    <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
-                        created: {date2str(ticket.created_at)},
-                        {' '}
-                        last update: {date2str(ticket.updated_at)}
-                    </div>
-                    <div style={maxHeight:"10em", "overflowY":"auto"}>
-                        <Markdown value={ticket.description} />
-                    </div>
-                </td>
-                <td>
-                    <br/>
-                    <Button bsStyle="#{style}" onClick={=> @open(ticket.id)}>
-                        {ticket.status.toUpperCase()}
+                <tr key={i} className="#{style}">
+                    <td><h4>{ticket.subject}</h4>
+                        <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
+                            created: {date2str(ticket.created_at)},
+                            {' '}
+                            last update: {date2str(ticket.updated_at)}
+                        </div>
+                        <div style={maxHeight:"10em", "overflowY":"auto"}>
+                            <Markdown value={ticket.description} />
+                        </div>
+                    </td>
+                    <td>
                         <br/>
-                        Go to {ticket.id}
-                    </Button>
-                </td>
-            </tr>
+                        <Button bsStyle="#{style}"
+                            onClick={=> @open(ticket.id)}>
+                            {ticket.status.toUpperCase()}
+                            <br/>
+                            Go to {ticket.id}
+                        </Button>
+                    </td>
+                </tr>
 
-    render_table : ->
+    render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
 
         if not @props.support_tickets?
@@ -290,7 +306,7 @@ exports.SupportPage = rclass
                 No support tickets found.
             </div>
 
-    render : ->
+    render: ->
         if @props.support_ticket_error?.length > 0
             content = <Alert bsStyle='danger'>
                           Error retriving tickets: {@props.support_ticket_error}
@@ -322,7 +338,7 @@ SupportInfo = rclass
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
 
-    error : () ->
+    error: () ->
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
@@ -333,7 +349,7 @@ SupportInfo = rclass
             <pre>{@props.err}</pre>
         </Alert>
 
-    created : () ->
+    created: () ->
         if @props.url?.length > 1
             url = <a href={@props.url} target='_blank'>{@props.url}</a>
         else
@@ -351,7 +367,7 @@ SupportInfo = rclass
               onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
-    default : () ->
+    default: () ->
         title = @props.actions.project_title()
         if title?
             loc  = @props.actions.location()
@@ -371,6 +387,10 @@ SupportInfo = rclass
         <div>
             {what}
             <p>
+                Looking for documentation and help? Go to
+                the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
+            </p>
+            <p>
                 After submitting a ticket, you{"'"}ll get a link, which you may
                 want to save until you receive a confirmation email.
                 You can also check the status of your ticket under "Support"
@@ -378,7 +398,7 @@ SupportInfo = rclass
             </p>
         </div>
 
-    render : ->
+    render: ->
         switch @props.state
             when STATE.ERROR
                 return @error()
@@ -398,7 +418,7 @@ SupportFooter = rclass
         show_form: rtypes.bool.isRequired
         valid    : rtypes.bool.isRequired
 
-    render : ->
+    render: ->
         if @props.show_form
             btn = <Button bsStyle  = 'primary'
                           tabIndex = 4
@@ -414,7 +434,7 @@ SupportFooter = rclass
             <Button
                 tabIndex  = 5
                 bsStyle   ='default'
-                onClick   = {@props.close}>Cancel</Button>
+                onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
 
 SupportForm = rclass
@@ -429,15 +449,15 @@ SupportForm = rclass
         submit    : rtypes.func.isRequired
         actions   : rtypes.object.isRequired
 
-    email_change  : ->
+    email_change: ->
         @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
 
-    data_change : ->
+    data_change: ->
         @props.actions.set
             body     : ReactDOM.findDOMNode(@refs.body).value
             subject  : ReactDOM.findDOMNode(@refs.subject).value
 
-    render : ->
+    render: ->
         if not @props.show
             return <div />
 
@@ -475,6 +495,9 @@ SupportForm = rclass
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
+            <div style={margin:'10px', color:'#666'}>
+                1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
+            </div>
             <FormGroup>
                 <FormControl
                     componentClass = "textarea"
@@ -494,7 +517,7 @@ exports.Support = rclass
     propTypes :
         actions : rtypes.object.isRequired
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         show        : false
         email       : ''
         subject     : ''
@@ -517,26 +540,26 @@ exports.Support = rclass
             email_err    : rtypes.string
             valid        : rtypes.bool
 
-    componentWillReceiveProps : (newProps) ->
+    componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
 
-    open : ->
+    open: ->
         @props.actions.show(true)
 
-    close : ->
+    close: ->
         @props.actions.show(false)
 
-    submit : (event) ->
+    submit: (event) ->
         event?.preventDefault()
         @props.actions.support()
 
-    render : () ->
+    render: () ->
         show_form = false
 
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
 
-        <Modal show={@props.show} onHide={@close} animation={false}>
+        <Modal bsSize={"large"} show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>Support Ticket</Modal.Title>
             </Modal.Header>
@@ -578,14 +601,14 @@ exports.ShowSupportLink = rclass
     propTypes :
         text : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         text : 'support ticket'
 
     show: (evt) ->
         evt.preventDefault()
         redux.getActions('support').show(true)
 
-    render : ->
+    render: ->
         <a onClick={@show} href='#' style={cursor: 'pointer'}>
             {@props.text}
         </a>

@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ $.fn.extend
             desc                : required
             execute_code        : required
             process_output_mesg : required
+            process_html_output : required
             start               : undefined
             stop                : undefined
 
@@ -50,7 +51,7 @@ $.fn.extend
             elt.data("interact", interact)
             return interact.element
 
-templates = $(".salvus-interact-templates")
+templates = $(".webapp-interact-templates")
 
 class Interact
     constructor: (opts) ->
@@ -70,13 +71,14 @@ class Interact
             #           process_output_mesg(element:jQuery wrapped output DOM element, mesg:message output from execute_code)
 
             process_output_mesg : required
+            process_html_output : required
 
             # start(@) called when execution of code starts due to user manipulating a control
             start : undefined
             # stop(@) called when execution stops
             stop : undefined
 
-        @element = templates.find(".salvus-interact-container").clone()
+        @element = templates.find(".webapp-interact-container").clone()
         @element.attr('id', opts.desc.id).data('interact', @)
         @opts.elt.replaceWith(@element)
         @initialize_interact()
@@ -84,7 +86,7 @@ class Interact
     set_interact_var: (control_desc) =>
         var0 = control_desc.var
 
-        controls = @element.find(".salvus-interact-var-#{var0}")
+        controls = @element.find(".webapp-interact-var-#{var0}")
         if controls.length > 0
             # There is already (at least) one control location with this name
             for C in controls
@@ -93,22 +95,22 @@ class Interact
                     control.data("set")(control_desc.default)
                 else
                     # No control yet, so make one.
-                    new_control = interact_control(control_desc, @element.data('update'))
+                    new_control = interact_control(control_desc, @element.data('update'), @opts.process_html_output)
                     $(C).append(new_control)
                     new_control.data('refresh')?()
         else
             # No controls with this name or even place to put it.
             row       = $("<div class='row'></div>")
-            container = $("<div class='salvus-interact-var-#{var0}'></div>")
+            container = $("<div class='webapp-interact-var-#{var0}'></div>")
             row.append(container)
-            new_control = interact_control(control_desc, @element.data('update'))
+            new_control = interact_control(control_desc, @element.data('update'), @opts.process_html_output)
             if new_control?
                 container.append(new_control)
                 @element.append(row)
                 new_control.data('refresh')?()
 
     del_interact_var: (arg) =>
-        @element.find(".salvus-interact-var-#{arg}").remove()
+        @element.find(".webapp-interact-var-#{arg}").remove()
 
     initialize_interact: () =>
         desc = @opts.desc
@@ -127,12 +129,12 @@ class Interact
                     arg = x[0]; span = x[1]; label = x[2]
                     if label?
                         labels[arg] = label
-                    t = $("<div class='col-sm-#{span} salvus-interact-var-#{arg}'></div>")
+                    t = $("<div class='col-sm-#{span} webapp-interact-var-#{arg}'></div>")
                     fluid_row.append(t)
             @element.append(fluid_row)
 
         # Create cell for the output stream from the function to appear in, if it is defined above
-        output = @element.find(".salvus-interact-var-")   # empty string is output
+        output = @element.find(".webapp-interact-var-")   # empty string is output
 
         # Define the update function, which communicates with the server.
         done = true
@@ -166,11 +168,11 @@ class Interact
         # Define the controls.
         created_controls = []
         for control_desc in desc.controls
-            containing_div = @element.find(".salvus-interact-var-#{control_desc.var}")
+            containing_div = @element.find(".webapp-interact-var-#{control_desc.var}")
             if labels[control_desc.var]?
                 control_desc.label = labels[control_desc.var]
             for X in containing_div
-                c = interact_control(control_desc, update)
+                c = interact_control(control_desc, update, @opts.process_html_output)
                 created_controls.push(c)
                 $(X).append(c)
 
@@ -193,22 +195,22 @@ parse_width = (width) ->
         if typeof width == 'number'
             return "#{width}ex"
         else
-            return width1
+            return width
 
-interact_control = (desc, update) ->
+interact_control = (desc, update, process_html_output) ->
     # Create and return a detached DOM element elt that represents
     # the interact control described by desc.  It will call update
     # when it changes.  If @element.data('refresh') is defined, it will
     # be called after the control is inserted into the DOM.
 
     # Generic initialization code
-    control = templates.find(".salvus-interact-control-#{desc.control_type}").clone()
+    control = templates.find(".webapp-interact-control-#{desc.control_type}").clone()
     if control.length == 0
         # nothing to do -- the control no longer exists (deprecated?)
         # WARNING: we should probably send a message somewhere saying this no longer exists.
         return
     if desc.label?
-        control.find(".salvus-interact-label").html(desc.label).mathjax()
+        control.find(".webapp-interact-label").html(desc.label).mathjax()
 
     # Initialization specific to each control type
     set = undefined
@@ -242,13 +244,14 @@ interact_control = (desc, update) ->
 
             set = (val) ->
                 input.val(val)
+                process_html_output(input)
 
             input.on 'blur', () ->
                 if input.val() != last_sent_val
                     do_send()
 
             if desc.submit_button
-                submit = control.find(".salvus-interact-control-input-box-submit-button").show()
+                submit = control.find(".webapp-interact-control-input-box-submit-button").show()
                 submit.find("a").click(() -> send(input.val()))
 
             if desc.readonly
@@ -281,7 +284,7 @@ interact_control = (desc, update) ->
                 button.find("span").html(val).mathjax()
 
         when 'text'
-            text = control.find(".salvus-interact-control-content")
+            text = control.find(".webapp-interact-control-content")
             if desc.classes
                 for cls in desc.classes.split(/\s+/g)
                     text.addClass(cls)
@@ -291,7 +294,9 @@ interact_control = (desc, update) ->
             set = (val) ->
                 if text.data('val')?
                     # it has already appeared, so safe to mathjax immediately
-                    text.html(val).mathjax()
+                    text.html(val)
+                    process_html_output(text)
+                    text.mathjax()
 
                 text.data('val', val)
 
@@ -299,7 +304,7 @@ interact_control = (desc, update) ->
                 text.mathjax(tex:text.data('val'))
 
         when 'input-grid'
-            grid = control.find(".salvus-interact-control-grid")
+            grid = control.find(".webapp-interact-control-grid")
 
             entries = []
             for i in [0...desc.nrows]
@@ -348,9 +353,9 @@ interact_control = (desc, update) ->
                 input.parent().width('9em')
 
         when 'slider'
-            content = control.find(".salvus-interact-control-content")
-            slider  = content.find(".salvus-interact-control-slider")
-            value   = control.find(".salvus-interact-control-value")
+            content = control.find(".webapp-interact-control-content")
+            slider  = content.find(".webapp-interact-control-slider")
+            value   = control.find(".webapp-interact-control-value")
             if desc.width?
                 slider.width(desc.width)
             slider.slider
@@ -370,9 +375,9 @@ interact_control = (desc, update) ->
                 slider.slider('value', val)
 
         when 'range-slider'
-            content = control.find(".salvus-interact-control-content")
-            slider  = content.find(".salvus-interact-control-slider")
-            value   = control.find(".salvus-interact-control-value")
+            content = control.find(".webapp-interact-control-content")
+            slider  = content.find(".webapp-interact-control-slider")
+            value   = control.find(".webapp-interact-control-value")
             if desc.width
                 content.width(desc.width)
             slider.slider
@@ -394,9 +399,9 @@ interact_control = (desc, update) ->
                 slider.slider('values', val)
 
         when 'selector'
-            content = control.find(".salvus-interact-control-content")
+            content = control.find(".webapp-interact-control-content")
             if desc.buttons or desc.nrows != null or desc.ncols != null
-                content.addClass('salvus-interact-control-selector-buttonbox')
+                content.addClass('webapp-interact-control-selector-buttonbox')
                 ########################
                 # Buttons.
                 ########################
@@ -471,12 +476,22 @@ interact_control = (desc, update) ->
                     else
                         val = String(val)
                         for opt in select.find("option")
+                            opt = $(opt)
                             if opt.attr("value") == val
                                 opt.attr("selected", true)
         else
             throw("Unknown interact control type '#{desc.control_type}'")
 
-    set(desc.default)
+    if desc.control_type == 'text'
+        # Fix HTML links and <img src=...> in interacts, but not
+        # additionally in nested ones (e.g. %exercise).  E.g.,
+        #    text_control('<img src="a.png">')
+        e = $('<div>').html(desc.default)
+        process_html_output(e)
+        set(e.html())
+    else
+        set(desc.default)
+
     control.data("set", set)
     return control
 

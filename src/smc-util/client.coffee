@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,10 +23,12 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-async       = require('async')
+async = require('async')
+_     = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
+db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
 
@@ -68,6 +70,9 @@ class Session extends EventEmitter
         @start_time   = misc.walltime()
         @conn         = opts.conn
         @params       = opts.params
+        if @type() == 'console'
+            if not @params?.path? or not @params?.filename?
+                throw Error("params must be specified with path and filename")
         @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
@@ -89,9 +94,9 @@ class Session extends EventEmitter
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
-        if not @conn._signed_in? or not @conn._signed_in
-            setTimeout(@reconnect, 500)
-            return  # do *NOT* do cb?() yet!
+        if not @conn._signed_in
+            setTimeout((()=>@reconnect(cb)), 500)
+            return
 
         if @_reconnect_lock
             #console.warn('reconnect: lock')
@@ -108,7 +113,7 @@ class Session extends EventEmitter
                     type         : @type()
                     project_id   : @project_id
                     params       : @params
-                timeout : 7
+                timeout : 30
                 cb      : (err, reply) =>
                     if err
                         cb(err); return
@@ -116,7 +121,7 @@ class Session extends EventEmitter
                         when 'error'
                             cb(reply.error)
                         when 'session_connected'
-                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
+                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS", reply)
                             if @data_channel != reply.data_channel
                                 @conn.change_data_channel
                                     prev_channel : @data_channel
@@ -124,7 +129,6 @@ class Session extends EventEmitter
                                     session      : @
                             @data_channel = reply.data_channel
                             @init_history = reply.history
-                            @emit("reconnect")
                             cb()
                         else
                             cb("bug in hub")
@@ -135,6 +139,8 @@ class Session extends EventEmitter
             cb       : (err) =>
                 #console.log("reconnect('#{@session_uuid}'): finished #{err}")
                 delete @_reconnect_lock
+                if not err
+                    @emit("reconnect")
                 cb?(err)
 
     terminate_session: (cb) =>
@@ -192,7 +198,11 @@ class exports.Connection extends EventEmitter
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
     constructor: (@url) ->
-        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
+        # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
+        # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
+        # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
+        @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
+
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -202,6 +212,7 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
+        @_redux = undefined # set this if you want to be able to use mark_file
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -270,22 +281,40 @@ class exports.Connection extends EventEmitter
                     # See the function server_time below; subtract @_clock_skew from local time to get a better
                     # estimate for server time.
                     @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    localStorage.clock_skew = @_clock_skew
+                    misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
     # Returns (approximate) time in ms since epoch on the server.
+    # NOTE:
+    #     This is guaranteed to be an *increasing* function, with an arbitrary
+    #     ms added on in case of multiple calls at once, to guarantee uniqueness.
+    #     Also, if the user changes their clock back a little, this will still
+    #     increase... very slowly until things catch up.  This avoids any
+    #     possibility of weird random re-ordering of patches within a given session.
     server_time: =>
+        t = @_server_time()
+        last = @_last_server_time
+        if last? and last >= t
+            # That's annoying -- time is not marching forward... let's fake it until it does.
+            t = new Date((last - 0) + 1)
+        @_last_server_time = t
+        return t
+
+    _server_time: =>
         # Add _clock_skew to our local time to get a better estimate of the actual time on the server.
         # This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
         # or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
         # some algorithms including sync which uses time.  Getting the clock right up to a small multiple
         # of ping times is fine for our application.
         if not @_clock_skew?
-            # try localStorage
-            if localStorage.clock_skew?
-                @_clock_skew = parseFloat(localStorage.clock_skew)
-        return new Date(new Date() - (@_clock_skew ? 0))
+            x = misc.get_local_storage('clock_skew')
+            if x?
+                @_clock_skew = parseFloat(x)
+        if @_clock_skew?
+            return new Date(new Date() - @_clock_skew)
+        else
+            return new Date()
 
     ping_test: (opts) =>
         opts = defaults opts,
@@ -299,7 +328,7 @@ class exports.Connection extends EventEmitter
         Use like this in a Sage Worksheet:
 
             %coffeescript
-            s = require('salvus_client').salvus_client
+            s = require('webapp_client').webapp_client
             s.ping_test(delay_ms:100, packets:40, log:print)
         ###
         ping_times = []
@@ -342,7 +371,7 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json(mesg))
+        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -354,7 +383,8 @@ class exports.Connection extends EventEmitter
             # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
-    is_signed_in: => !!@_signed_in
+    is_signed_in: =>
+        return @is_connected() and !!@_signed_in
 
     # account_id or project_id of this client
     client_id: () =>
@@ -370,10 +400,10 @@ class exports.Connection extends EventEmitter
 
     is_connected: => !!@_connected
 
-    remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
+    remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
-        mesg = misc.from_json(data)
+        mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
         switch mesg.event
@@ -405,14 +435,12 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
-                if localStorage?
-                    localStorage[@remember_me_key()] = true
+                misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 @emit("signed_in", mesg)
 
             when "remember_me_failed"
-                if localStorage?
-                    delete localStorage[@remember_me_key()]
+                misc.delete_local_storage(@remember_me_key())
                 @emit(mesg.event, mesg)
 
             when "project_list_updated", 'project_data_changed'
@@ -470,7 +498,7 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : DEFAULT_TIMEOUT
-            params       : undefined   # extra params relevant to the session (in case we need to restart it)
+            params       : required  # must include {path:?, filename:?}
             cb           : required
         @call
             message : message.connect_to_session
@@ -503,7 +531,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             timeout    : DEFAULT_TIMEOUT # how long until give up on getting a new session
             type       : "console"   # only "console" supported
-            params     : undefined   # extra params relevant to the session
+            params     : required    # must include {path:?, filename:?}
             project_id : required
             cb         : required    # cb(error, session)  if error is defined it is a string
 
@@ -527,6 +555,7 @@ class exports.Connection extends EventEmitter
                             project_id   : opts.project_id
                             session_uuid : reply.session_uuid
                             data_channel : reply.data_channel
+                            params       : opts.params
                             cb           : opts.cb
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
@@ -646,9 +675,15 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the Salvus Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
             return
 
+        if @_create_account_lock
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
+            opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
+            return
+
+        @_create_account_lock = true
         @call
             message : message.create_account
                 first_name      : opts.first_name
@@ -658,7 +693,9 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 token           : opts.token
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) =>
+                setTimeout((() => delete @_create_account_lock), 1500)
+                opts.cb(err, resp)
 
     delete_account: (opts) =>
         opts = defaults opts,
@@ -719,7 +756,6 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
-            old_email_address : ""
             new_email_address : required
             password          : ""
             cb                : undefined
@@ -729,7 +765,6 @@ class exports.Connection extends EventEmitter
         @call
             message: message.change_email_address
                 account_id        : @account_id
-                old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
             error_event : true
@@ -772,10 +807,27 @@ class exports.Connection extends EventEmitter
             timeout : 15
             cb : opts.cb
 
+     api_key: (opts) ->
+        # getting, setting, deleting, etc., the api key for this account
+        opts = defaults opts,
+            action   : required   # 'get', 'delete', 'regenerate'
+            password : required
+            cb       : required
+        if not @account_id?
+            opts.cb?("must be logged in")
+            return
+        @call
+            message: message.api_key
+                action     : opts.action
+                password   : opts.password
+            error_event : true
+            timeout : 10
+            cb : (err, resp) ->
+                opts.cb(err, resp?.api_key)
 
-    #################################################
-    # Project Management
-    #################################################
+    ###
+    Project Management
+    ###
     create_project: (opts) =>
         opts = defaults opts,
             title       : required
@@ -850,7 +902,7 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : undefined
 
-        base = window?.smc_base_url ? '' # will be defined in web browser
+        base = window?.app_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
@@ -886,22 +938,26 @@ class exports.Connection extends EventEmitter
 
     invite_noncloud_collaborators: (opts) =>
         opts = defaults opts,
-            project_id : required
-            title      : required
-            link2proj  : required
-            to         : required
-            email      : required   # body in HTML format
-            subject    : undefined
-            cb         : required
+            project_id   : required
+            title        : required
+            link2proj    : required
+            replyto      : undefined
+            replyto_name : undefined
+            to           : required
+            email        : required   # body in HTML format
+            subject      : undefined
+            cb           : required
 
         @call
             message: message.invite_noncloud_collaborators
-                project_id : opts.project_id
-                title      : opts.title
-                link2proj  : opts.link2proj
-                email      : opts.email
-                to         : opts.to
-                subject    : opts.subject
+                project_id    : opts.project_id
+                title         : opts.title
+                link2proj     : opts.link2proj
+                email         : opts.email
+                replyto       : opts.replyto
+                replyto_name  : opts.replyto_name
+                to            : opts.to
+                subject       : opts.subject
             cb : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1106,17 +1162,27 @@ class exports.Connection extends EventEmitter
     find_directories: (opts) =>
         opts = defaults opts,
             project_id     : required
-            query          : '*'   # see the -iname option to the UNIX find command.
-            path           : '.'
+            query          : '*'       # see the -iname option to the UNIX find command.
+            path           : '.'       # Root path to find directories from
+            exclusions     : undefined # Array<String> Paths relative to `opts.path`. Skips whole sub-trees
             include_hidden : false
-            cb             : required      # cb(err, object describing result (see code below))
+            cb             : required  # cb(err, object describing result (see code below))
+
+        args = [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', "'#{opts.query}'", '-readable']
+        tail_args = ['-print']
+
+        if opts.exclusions?
+            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+                "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
+            args = args.concat(exclusion_args)
+
+        args = args.concat(tail_args)
+        command = "find #{args.join(' ')}"
 
         @exec
             project_id : opts.project_id
-            command    : "find"
+            command    : command
             timeout    : 15
-            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
-            bash       : false
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return
@@ -1267,7 +1333,7 @@ class exports.Connection extends EventEmitter
                 else if output.exit_code
                     opts.cb(output.stderr)
                 else
-                    v = misc.from_json(output.stdout)
+                    v = JSON.parse(output.stdout)
                     opts.cb(err, v)
 
     project_get_state: (opts) =>
@@ -1322,6 +1388,9 @@ class exports.Connection extends EventEmitter
     #################################################
     log_error: (error) =>
         @call(message : message.log_client_error(error:error))
+
+    webapp_error: (opts) =>
+        @call(message : message.webapp_error(opts))
 
 
     ######################################################################
@@ -1529,7 +1598,7 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp.url)
 
-    get_support_tickets : (cb) =>
+    get_support_tickets: (cb) =>
         @call
             message      : message.get_support_tickets()
             timeout      : 20
@@ -1563,41 +1632,58 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000) =>
-        return synctable.sync_table(query, options, @, debounce_interval)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
     sync_string: (opts) =>
         opts = defaults opts,
             id                : undefined
-            project_id        : undefined
-            path              : undefined
-            default           : ''
+            project_id        : required
+            path              : required
             file_use_interval : 'default'
             cursors           : false
+            patch_interval    : 1000
         opts.client = @
         return new syncstring.SyncString(opts)
 
-    sync_object: (opts) =>
+    sync_db: (opts) =>
         opts = defaults opts,
-            id      : required
-            default : {}
+            project_id      : required
+            path            : required
+            primary_keys    : required
+            string_cols     : undefined
+            cursors         : false
+            change_throttle : 500     # amount to throttle change events (in ms)
+            save_interval   : 2000    # amount to debounce saves (in ms)
+            patch_interval  : 1000
         opts.client = @
-        return new syncstring.SyncObject(opts)
+        return new db_doc.SyncDB(opts)
 
+    open_existing_sync_document: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required  # cb(err, document)
+        opts.client = @
+        db_doc.open_existing_sync_document(opts)
+        return
+
+    # If called on the fronted, will make the given file with the given action.
+    # Does nothing on the backend.
     mark_file: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
             action     : required
             ttl        : 120
-        # TODO: this is bad. Really client should have a reference to redux...
-        window?.smc?.redux.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        # Will only do something if @_redux has been set.
+        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     query: (opts) =>
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
@@ -1646,6 +1732,8 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 exports.is_valid_password = (password) ->
+    if typeof(password) != 'string'
+        return [false, 'Password must be specified.']
     if password.length >= 6 and password.length <= 64
         return [true, '']
     else
@@ -1656,7 +1744,9 @@ exports.issues_with_create_account = (mesg) ->
     if not mesg.agreed_to_terms
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
-        issues.first_name = 'Enter your name.'
+        issues.first_name = 'Enter your first name.'
+    if mesg.last_name == ''
+        issues.last_name = 'Enter your last name.'
     if not misc.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     [valid, reason] = exports.is_valid_password(mesg.password)

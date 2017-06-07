@@ -1,22 +1,44 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 The Hub's HTTP Server
 ###
 
-fs          = require('fs')
-path_module = require('path')
-Cookies     = require('cookies')
-util        = require('util')
-ms          = require("ms")
+fs           = require('fs')
+path_module  = require('path')
+Cookies      = require('cookies')
+util         = require('util')
+ms           = require('ms')
 
-async       = require('async')
-body_parser = require('body-parser')
-express     = require('express')
-formidable  = require('formidable')
-http_proxy  = require('http-proxy')
-http        = require('http')
-winston     = require('winston')
+async        = require('async')
+cookieParser = require('cookie-parser')
+body_parser  = require('body-parser')
+express      = require('express')
+formidable   = require('formidable')
+http_proxy   = require('http-proxy')
+http         = require('http')
+winston      = require('winston')
 
-misc    = require('smc-util/misc')
+misc         = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
@@ -27,8 +49,10 @@ hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
+{http_message_api_v1} = require('./api/handler')
+
 # Rendering stripe invoice server side to PDF in memory
-{stripe_render_invoice} = require('./stripe-invoice')
+{stripe_render_invoice} = require('./stripe/invoice')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
@@ -36,8 +60,7 @@ STATIC_PATH = path_module.join(SMC_ROOT, 'static')
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         base_url       : required
-        dev            : false  # if true, serve additional dev stuff, e.g., a proxyserver.
-        stripe         : undefined   # stripe api connection
+        dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
         metricsRecorder: undefined
@@ -47,6 +70,9 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+    app.use(cookieParser())
+
+    router.use(body_parser.json())
     router.use(body_parser.urlencoded({ extended: true }))
 
     # initialize metrics
@@ -71,26 +97,43 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({method:req.method, code:res.statusCode})
         next()
 
+    app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
+
     # The webpack content. all files except for unhashed .html should be cached long-term ...
-    webpackHeaderControl = (res, path) ->
+    cacheLongTerm = (res, path) ->
         if not opts.dev  # ... unless in dev mode
             timeout = ms('100 days') # more than a year would be invalid
             res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
-            res.setHeader("Expires", new Date(Date.now() + timeout).toUTCString());
+            res.setHeader('Expires', new Date(Date.now() + timeout).toUTCString());
 
     # The /static content
     router.use '/static',
-        express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
+        express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+        # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
+        # that's not a security issue b/c the hub will do the heavy lifting
+        # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
+        # looks for the has_remember_me value (set by the client in accounts).
+        # This could be done in different ways, it's not clear what works best.
+        #remember_me = req.cookies[opts.base_url + 'remember_me']
+        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
+            res.redirect(opts.base_url + '/app')
+        else
+            #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
+            res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+
+    router.get '/app', (req, res) ->
+        #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
+        res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
-        res.send("window.smc_base_url='#{opts.base_url}';")
+        res.send("window.app_base_url='#{opts.base_url}';")
 
     # used by HAPROXY for testing that this hub is OK to receive traffic
     router.get '/alive', (req, res) ->
@@ -127,8 +170,39 @@ exports.init_express_http_server = (opts) ->
     router.get '/concurrent', (req, res) ->
         res.send("#{opts.database.concurrent()}")
 
+    # HTTP API
+    router.post '/api/v1/*', (req, res) ->
+        h = req.header('Authorization')
+        if not h?
+            res.status(400).send(error:'You must provide authentication via an API key.')
+            return
+        [type, user] = misc.split(h)
+        switch type
+            when "Bearer"
+                api_key = user
+            when "Basic"
+                api_key = new Buffer.from(user, 'base64').toString().split(':')[0]
+            else
+                res.status(400).send(error:"Unknown authorization type '#{type}'")
+                return
+
+        http_message_api_v1
+            event          : req.path.slice(req.path.lastIndexOf('/') + 1)
+            body           : req.body
+            api_key        : api_key
+            logger         : winston
+            database       : opts.database
+            compute_server : opts.compute_server
+            ip_address     : req.ip
+            cb      : (err, resp) ->
+                if err
+                    res.status(400).send(error:err)  # Bad Request
+                else
+                    res.send(resp)
+
     # stripe invoices:  /invoice/[invoice_id].pdf
-    if opts.stripe?
+    stripe_connections = require('./stripe/connect').get_stripe()
+    if stripe_connections?
         router.get '/invoice/*', (req, res) ->
             winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
             path = req.path.slice(req.path.lastIndexOf('/') + 1)
@@ -142,7 +216,7 @@ exports.init_express_http_server = (opts) ->
             invoice_id = path.slice(0,i)
             winston.debug("id='#{invoice_id}'")
 
-            stripe_render_invoice(opts.stripe, invoice_id, true, res)
+            stripe_render_invoice(stripe_connections, invoice_id, true, res)
     else
         router.get '/invoice/*', (req, res) ->
             res.status(404).send("stripe not configured")
@@ -177,7 +251,7 @@ exports.init_express_http_server = (opts) ->
     router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
+            expires = new Date(new Date().getTime() + 1000*24*3600*30*36) # 3 years -- this is fine now since we support "sign out everywhere"
             cookies = new Cookies(req, res)
             cookies.set(req.query.set, req.query.value, {expires:expires})
         res.end()
@@ -209,7 +283,9 @@ exports.init_express_http_server = (opts) ->
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(opts.base_url + "/#" + req.path.slice(1))
+        url = require('url')
+        q = url.parse(req.url, true).search # gives exactly "?key=value,key=..."
+        res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
 
     # Return global status information about smc
     router.get '/stats', (req, res) ->
@@ -217,11 +293,14 @@ exports.init_express_http_server = (opts) ->
             res.json({error:"not connected to database"})
             return
         opts.database.get_stats
+            ttl: 3600*24*180   # basically never update in hub -- too slow
             cb : (err, stats) ->
+                res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
                     res.status(500).send("internal error: #{err}")
                 else
-                    res.json(stats)
+                    res.header("Content-Type", "application/json")
+                    res.send(JSON.stringify(stats, null, 1))
 
     ###
     # Stripe webhooks -- not done
@@ -233,101 +312,6 @@ exports.init_express_http_server = (opts) ->
         res.send('')
     ###
 
-    router.post '/upload', (req, res) ->
-        if not hub_register.database_is_working()
-            res.status(500).send("file upload failed -- not connected to database")
-            return
-        # See https://github.com/felixge/node-formidable
-        # user uploaded a file
-        winston.debug("User uploading a file...")
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
-                winston.debug(e)
-                res.status(500).send(e)
-                return # nothing to do -- no actual file upload requested
-
-            account_id = undefined
-            project_id = undefined
-            dest_dir   = undefined
-            data       = undefined
-            async.series([
-                (cb) ->
-                    # authenticate user
-                    cookies = new Cookies(req, res)
-                    # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                    value = cookies.get(opts.base_url + 'remember_me')
-                    if not value?
-                        cb('you must enable remember_me cookies to upload files')
-                        return
-                    x    = value.split('$')
-                    hash = auth.generate_hash(x[0], x[1], x[2], x[3])
-                    opts.database.get_remember_me
-                        hash : hash
-                        cb   : (err, signed_in_mesg) =>
-                            if err or not signed_in_mesg?
-                                cb('unable to get remember_me cookie from db -- cookie invalid')
-                                return
-                            account_id = signed_in_mesg.account_id
-                            if not account_id?
-                                cb('invalid remember_me cookie')
-                                return
-                            winston.debug("Upload from: '#{account_id}'")
-                            project_id = req.query.project_id
-                            dest_dir   = req.query.dest_dir
-                            if dest_dir == ""
-                                dest_dir = '.'
-                            winston.debug("project = #{project_id}; dest_dir = '#{dest_dir}'")
-                            cb()
-                (cb) ->
-                    # auth user access to *write* to the project
-                    access.user_has_write_access_to_project
-                        database   : opts.database
-                        project_id : project_id
-                        account_id : account_id
-                        cb         : (err, result) =>
-                            #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
-                            if err
-                                cb(err)
-                            else if not result
-                                cb("User does not have write access to project.")
-                            else
-                                winston.debug("user has write access to project.")
-                                cb()
-                (cb) ->
-                    #winston.debug(misc.to_json(files))
-                    winston.debug("Reading file from disk '#{files.file.path}'")
-                    fs.readFile files.file.path, (err, _data) ->
-                        if err
-                            cb(err)
-                        else
-                            data = _data
-                            cb()
-
-                # actually send the file to the project
-                (cb) ->
-                    winston.debug("getting project...")
-                    project = hub_projects.new_project(project_id, opts.database, opts.compute_server)
-                    path = dest_dir + '/' + files.file.name
-                    winston.debug("writing file '#{path}' to project...")
-                    project.write_file
-                        path : path
-                        data : data
-                        cb   : cb
-
-            ], (err) ->
-                if err
-                    winston.debug(e)
-                    e = "file upload error -- #{misc.to_safe_str(err)}"
-                    res.status(500).send(e)
-                else
-                    res.send('received upload:\n\n')
-                # delete tmp file
-                if files?.file?.path?
-                    fs.unlink(files.file.path)
-            )
-
     # Get the http server and return it.
     if opts.base_url
         app.use(opts.base_url, router)
@@ -337,15 +321,17 @@ exports.init_express_http_server = (opts) ->
     if opts.dev
         # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
         # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server, so have to handle these routes.
+        # directly in the hub server (there is no separate proxy server), so have to handle these routes
+        # directly here.
 
         # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
         # This is fine in dev mode, since all as the same user anyways.
         proxy_cache = {}
 
         # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade,
-        # (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
+        # Jupyter Classical won't work: (1) the client connects to the wrong URL (no base_url),
+        # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
+        # Jupyter2 works fine though.
         dev_proxy_port = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
@@ -372,16 +358,20 @@ exports.init_express_http_server = (opts) ->
                     proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                    # also delete after a few seconds  - caching is only to optimize many requests near each other
+                    setTimeout((-> delete proxy_cache[key]), 10000)
                     proxy.web(req, res)
 
         port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-        app.get(port_regexp, dev_proxy_port)
+
+        app.get( port_regexp, dev_proxy_port)
         app.post(port_regexp, dev_proxy_port)
 
-        # The raw server fully works
-        app.get '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
+        # Also, ensure the raw server works
+        dev_proxy_raw = (req, res) ->
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
+            winston.debug("dev_proxy_raw", project_id)
             proxy = proxy_cache[key]
             if proxy?
                 proxy.web(req, res)
@@ -403,8 +393,15 @@ exports.init_express_http_server = (opts) ->
                                     target = "http://localhost:#{port}"
                                     proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
                                     proxy_cache[key] = proxy
-                                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                                    # when connection dies, clear from cache
+                                    proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
+                                    # also delete after a few seconds
+                                    setTimeout((-> delete proxy_cache[key]), 10000)
+
+        raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
+        app.get( raw_regexp, dev_proxy_raw)
+        app.post(raw_regexp, dev_proxy_raw)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")

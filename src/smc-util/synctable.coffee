@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2015, William Stein
+CoCalc, Copyright (C) 2016, Sagemath Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,7 +10,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 SYNCHRONIZED TABLE -- defined by an object query
 
-    - Do a query against a RethinkDB table using our object query description.
+    - Do a query against a PostgreSQL table using our object query description.
     - Synchronization with the backend database is done automatically.
 
    Methods:
@@ -89,23 +89,20 @@ exports.set_debug = (x) ->
     DEBUG = !!x
 
 {EventEmitter} = require('events')
+immutable      = require('immutable')
+async          = require('async')
+underscore     = require('underscore')
 
-immutable = require('immutable')
-async     = require('async')
-
-misc      = require('./misc')
-schema    = require('./schema')
+misc           = require('./misc')
+schema         = require('./schema')
 
 {defaults, required} = misc
 
 # We represent synchronized tables by an immutable.js mapping from the primary
-# key to the object.  Since RethinkDB primary keys can be more than just strings,
-# e.g., they can be arrays, so we convert complicated keys to their
-# JSON representation.  According to RethinkdB: "The data type of a primary
-# key is usually a string (like a UUID) or a number, but it can also be a
-# time, binary object, boolean or an array."
-# (see https://rethinkdb.com/api/javascript/table_create/)
-# A binary object doesn't make sense here in pure javascript, but these do:
+# key to the object.  Since PostgresQL primary keys can be compound (more than
+# just strings), e.g., they can be arrays, so we convert complicated keys to their
+# JSON representation.  A binary object doesn't make sense here in pure javascript,
+# but these do:
 #       string, number, time, boolean, or array
 # Everything automatically converts fine to a string except array, which is the
 # main thing this function deals with below.
@@ -128,32 +125,78 @@ to_key = (x) ->
     else
         return x
 
+# Plug: Class to ensure that the SyncTable stays "plugged" into the hub, if at all possible.
+# NOTE: I implemented this outside of SyncTable so that it would be much easier
+#       to reason about, and be sure the code is right.
+class Plug
+    constructor : (opts) ->
+        @_opts = defaults opts,
+            name       : 'plug'     # Used only for debug logging
+            no_sign_in : required   # True if sign is isn't required before connecting, e.g., anonymous synctable and project.
+            client     : required   # The client object, which provides:
+                                    #   'connected' and 'signed_in' events, and
+                                    #   is_connected() and is_signed_in() functions.
+            connect    : required   # A function to call to create a connection; it should run as
+                                    # quickly as it can and call it's callback with an error if
+                                    # and only if it fails.  It will definitely only be called
+                                    # once at a time, so no need to put in any sort of block.
+        @connect()
+
+    dbg: (f) =>
+        #return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+        return =>
+
+    # Keep trying until we connect - always succeeds if it terminates
+    connect: (cb) =>
+        dbg = @dbg('connect')
+        if @_is_connecting
+            dbg("already connecting")
+            return
+        @_is_connecting = true
+        dbg('')
+        misc.retry_until_success
+            f           : @__try_to_connect_once
+            log         : dbg
+            start_delay : 4000
+            max_delay   : 20000
+            cb          : =>
+                delete @_is_connecting
+                dbg("success!")
+                cb?()
+
+    # Try to connect exactly once.  cb gets error if and only if fails to connect.
+    __try_to_connect_once: (cb) =>
+        # timer for giving up on waiting to try to connect
+        give_up_timer = undefined
+
+        # actually try to connect
+        do_connect = =>
+            if give_up_timer
+                clearInterval(give_up_timer)
+            @_opts.connect(cb)
+
+        # Which event/condition has too be true before we even try to connect.
+        if @_opts.no_sign_in
+            event = 'connected'
+        else
+            event = 'signed_in'
+
+        if @_opts.client["is_#{event}"]()
+            # The condition is satisfied, so try once to connect.
+            do_connect()
+        else
+            # Wait until condition is satisfied...
+            @_opts.client.once(event, do_connect)
+            # ... but don't wait forever, in case for some reason we miss
+            # the event (this can maybe rarely happen).
+            give_up = =>
+                @_opts.client.removeListener(event, do_connect)
+                cb("timeout")
+            timer = setTimeout(give_up, 5000+Math.random()*10000)
+
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_key) ->
+    constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
         @_init_query()
-        @_init()
-        @_created = new Date()
-        @_init_heartbeat()
-
-    # Return string key used in the immutable map in which this table is stored.
-    to_key: (x) =>
-        if immutable.Map.isMap(x)
-            x = x.get(@_primary_key).toJS()
-        return to_key(x)
-
-    # Return true if there are changes to this synctable that
-    # have NOT been confirmed as saved to the backend database.
-    has_uncommitted_changes: () =>
-        if not @_value_server? and not @_value_local?
-            return false
-        if @_value_local? and not @_value_server?
-            return true
-        return not @_value_server.equals(@_value_local)
-
-    _init: () =>
-        # Any listeners on the client that we should remove when closing this table.
-        @_client_listeners = {}
-
         # The value of this query locally.
         @_value_local = undefined
 
@@ -165,92 +208,145 @@ class SyncTable extends EventEmitter
         @_id = undefined
 
         # Not connected yet
-        @_state = 'disconnected'
+        @_state = 'disconnected'   # disconnected <--> connected --> closed
+        @_created = new Date()
 
-        #dbg = @_client.dbg("_init('#{@_table}')")
-        #dbg()
-        dbg = ->
+        @_plug = new Plug
+            name       : @_table
+            client     : @_client
+            connect    : @_connect
+            no_sign_in : @_schema.anonymous or @_client.is_project()  # note: projects don't have to authenticate
 
-        @_connect = () =>
-            dbg("connect #{misc.to_json(@_query)}, state=#{@_state}")
-            if @_state == 'closed'
-                return
-            if @_state != 'disconnected'
-                # only try to connect if currently 'disconnected'
-                return
-            if @_id?
-                @_client.query_cancel(id:@_id)
-                @_id = undefined
-            # First save, in case we have any local unsaved changes, then sync with upstream.
-            @_save () =>
-                @_reconnect()
+        @_client.on('disconnected', (=>@_disconnected('client disconnect')))
 
-        if @_schema.anonymous or @_client.is_project()
-            # just need to be connected; also projects don't have to authenticate
-            if @_client.is_connected()
-                @_connect() # first time
-            else
-                @_client.once('connected', @_connect)
-                @_client_listeners.connected = @_connect
+        # No throttling of change events unless explicitly requested *or* part of the schema.
+        @_throttle_changes ?= schema.SCHEMA[@_table]?.user_query?.get?.throttle_changes
+
+        if not @_throttle_changes
+            @emit_change = (changed_keys) => @emit('change', changed_keys)
         else
-            # need to be signed in
-            if @_client.is_signed_in()
-                @_connect() # first time
-            else
-                @_client.once('signed_in', @_connect)
-                @_client_listeners.signed_in = @_connect
+            # throttle emitting of change events
+            all_changed_keys = {}
+            do_emit_changes = =>
+                #console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
+                # CRITICAL: some code depends on emitting change even for the *empty* list of keys!
+                # E.g., projects page won't load for new users.  This is the *change* from not
+                # loaded to being loaded, which does make sense.
+                @emit('change', misc.keys(all_changed_keys))
+                all_changed_keys = {}
+            do_emit_changes = underscore.throttle(do_emit_changes, @_throttle_changes)
+            @emit_change = (changed_keys) =>
+                #console.log("#{@_table} -- queue changes", changed_keys)
+                for key in changed_keys
+                    all_changed_keys[key] = true
+                do_emit_changes()
 
-        disconnected = () =>
-            if @_state != 'disconnected'
-                dbg("disconnected -- #{misc.to_json(@_query)}")
-                @_state = 'disconnected'
-                @emit('disconnected')   # tell any listeners that we're disconnected now.
-                @_client.once('connected', @_connect)
-                @_client_listeners.connected = @_connect
+    dbg: (f) =>
+        #return @_client.dbg("SyncTable('#{@_table}').#{f}")
+        return =>
 
-        @_client.on('disconnected', disconnected)
-        @_client_listeners.disconnected = disconnected
-
-        return
-
-    _init_heartbeat: () =>
-        if not @_options?
+    _connect: (cb) =>
+        dbg = @dbg("connect")
+        dbg()
+        if @_state == 'closed'
+            cb?('closed')
             return
-        heartbeat = undefined
-        for x in @_options
-            if x.heartbeat
-                heartbeat = x.heartbeat
-                break
-        if not heartbeat
+        if @_state == 'connected'
+            cb?()
             return
+        if @_id?
+            @_client.query_cancel(id:@_id)
+            @_id = undefined
 
-        # While connected, we expect to get at least one update from the
-        # backend (possibly empty) every heartbeat minutes.  If we don't
-        # this strongly suggests a message saying that the changefeed is
-        # broken somehow got dropped/ignored/lost.   This heartbeat
-        # entirely *supposed* to be a backup in case of lost messages.
-        # However, until everything is perfect, it is critical that
-        # we have this!
-        INTERVAL_MS = 60*1000*heartbeat
+        async.series([
+            (cb) =>
+                # 1. save, in case we have any local unsaved changes, then sync with upstream.
+                if @_value_local? and @_value_server?
+                    @_save(cb)
+                else
+                    cb()
+            (cb) =>
+                # 2. Now actually do the changefeed query.
+                @_reconnect(cb)
+        ], cb)
 
-        last_changefeed_update = new Date()
-        @on 'before-change', () ->
-            last_changefeed_update = new Date()
-            #@_client.dbg("changfeed('#{@_table}')")("last_changefeed_update=#{last_changefeed_update}")
+    _reconnect: (cb) =>
+        dbg = @dbg("_run")
+        if @_state == 'closed'
+            dbg("closed so don't do anything ever again")
+            cb?()
+            return
+        first_resp = true
+        this_query_id = undefined
+        dbg("do the query")
+        @_client.query
+            query   : @_query
+            changes : true
+            timeout : 30
+            options : @_options
+            cb      : (err, resp) =>
 
-        check_for_heartbeat = () =>
-            if @_state != 'connected'
-                # nothing to do -- we don't expect to get heartbeats when not connected
-                return
-            #@_client.dbg("changfeed('#{@_table}')")("checking heartbeat")
-            if new Date() - last_changefeed_update > 1.5*INTERVAL_MS
-                # we should have got something from the server, but didn't.
-                @_client.dbg("changfeed('#{@_table}')")("no heartbeats -- reconnecting")
-                @_client.query_cancel(id:@_id) # just in case
-                delete @_state
-                @_reconnect()
+                if @_state == 'closed'
+                    # already closed so ignore anything else.
+                    return
 
-        @_heartbeat_interval = setInterval(check_for_heartbeat, INTERVAL_MS)
+                if first_resp
+                    dbg("query got ", err, resp)
+                    first_resp = false
+                    if @_state == 'closed'
+                        cb?("closed")
+                    else if resp?.event == 'query_cancel'
+                        cb?("query-cancel")
+                    else if err
+                        cb?(err)
+                    else if not resp?.query?[@_table]?
+                        cb?("got no data")
+                    else
+                        # Successfully completed query
+                        this_query_id = @_id = resp.id
+                        @_state = 'connected'
+                        @_update_all(resp.query[@_table])
+                        @emit("connected", resp.query[@_table])  # ready to use!
+                        cb?()
+                        # Do any pending saves
+                        for cb in @_connected_save_cbs ? []
+                            @save(cb)
+                        delete @_connected_save_cbs
+                else
+                    if @_state != 'connected'
+                        dbg("nothing to do -- ignore these, and make sure they stop")
+                        if this_query_id?
+                            @_client.query_cancel(id:this_query_id)
+                        return
+                    if err or resp?.event == 'query_cancel'
+                        @_disconnected("err=#{err}, resp?.event=#{resp?.event}")
+                    else
+                        # Handle the update
+                        @_update_change(resp)
+
+    _disconnected: (why) =>
+        dbg = @dbg("_disconnected")
+        dbg("why=#{why}")
+        if @_state == 'disconnected'
+            dbg("already disconnected")
+            return
+        if @_id
+            @_client.query_cancel(id:@_id)
+        @_state = 'disconnected'
+        @_plug.connect()  # start trying to connect again
+
+    # Return string key used in the immutable map in which this table is stored.
+    key: (obj) =>
+        return @_key(obj)
+
+    # Return true if there are changes to this synctable that
+    # have NOT been confirmed as saved to the backend database.
+    has_uncommitted_changes: () =>
+        if not @_value_server? and not @_value_local?
+            return false
+        if @_value_local? and not @_value_server?
+            return true
+        return not @_value_server.equals(@_value_local)
 
     get: (arg) =>
         if not @_value_local?
@@ -307,11 +403,42 @@ class SyncTable extends EventEmitter
         @_schema = schema.SCHEMA[@_table]
         if not @_schema?
             throw Error("unknown schema for table #{@_table}")
-        @_primary_key = @_schema.primary_key ? "id"
+        @_primary_keys = schema.client_db.primary_keys(@_table)
         # TODO: could put in more checks on validity of query here, using schema...
-        if not @_query[@_table][0][@_primary_key]?
-            # must include primary key in query
-            @_query[@_table][0][@_primary_key] = null
+        for primary_key in @_primary_keys
+            if not @_query[@_table][0][primary_key]?
+                # must include each primary key in query
+                @_query[@_table][0][primary_key] = null
+        # Function @_to_key to extract primary key from object
+        if @_primary_keys.length == 1
+            # very common case
+            pk = @_primary_keys[0]
+            @_key = (obj) =>
+                if not obj?
+                    return
+                if immutable.Map.isMap(obj)
+                    return to_key(obj.get(pk))
+                else
+                    return to_key(obj[pk])
+        else
+            # compound primary key
+            @_key = (obj) =>
+                if not obj?
+                    return
+                v = []
+                if immutable.Map.isMap(obj)
+                    for pk in @_primary_keys
+                        a = obj.get(pk)
+                        if not a?
+                            return
+                        v.push(a)
+                else
+                    for pk in @_primary_keys
+                        a = obj[pk]
+                        if not a?
+                            return
+                        v.push(a)
+                return to_key(v)
 
         # Which fields the user is allowed to set.
         @_set_fields = []
@@ -326,122 +453,6 @@ class SyncTable extends EventEmitter
         # Is anonymous access to this table allowed?
         @_anonymous = !!@_schema.anonymous
 
-    _reconnect: =>
-        if @_state == 'closed'
-            # nothing to do
-            return
-        #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
-        dbg = =>
-        dbg()
-        if not @_client._connected
-            # nothing to do -- not connected to server; connecting to server triggers another reconnect later
-            dbg("not connected to server")
-            return
-        if @_state == 'connected'
-            dbg("already connected")
-            return
-        if not @_anonymous and not @_client.is_signed_in()
-            dbg("waiting for sign in before connecting")
-            @_state = 'reconnecting'
-            f = =>
-                dbg("sign in triggered connecting")
-                @_state = 'disconnected'
-                @_reconnect()
-            @_client.once('signed_in', f)
-            @_client_listeners.signed_in = f
-            return
-        @_state = 'reconnecting'
-        dbg("running query...")
-        @_run (err) =>
-            dbg("running query returned -- #{err}")
-            if @_state != 'connected'
-                if not @_reconnect_timeout?
-                    @_reconnect_timeout = 3
-                else
-                    @_reconnect_timeout = Math.max(5, Math.min(120+Math.random(), 1.4*@_reconnect_timeout))
-                dbg("didn't work -- try again in #{@_reconnect_timeout} seconds")
-                @_waiting_to_reconnect = true
-                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), @_reconnect_timeout*1000 )
-            else
-                delete @_reconnect_timeout
-                for cb in @_connected_save_cbs ? []
-                    @save(cb)
-
-    _run: (cb) =>
-        if @_state == 'closed'
-            # closed so don't do anything ever again
-            cb?("closed")
-            return
-        first_resp = true
-        query_id = misc.uuid()
-        @_query_id = query_id
-        #console.log("#{this_id} -- query #{@_table}: _run")
-        @_client.query
-            query   : @_query
-            changes : true
-            timeout : 30
-            options : @_options
-            cb      : (err, resp) =>
-                if @_query_id != query_id
-                    # ignore any potential output from past attempts to query.
-                    return
-                if @_state == 'closed'
-                    # already closed so ignore anything else.
-                    return
-                if err == 'socket-end' and @_client.is_project()
-                    # This is a synctable in a project and the socket that it was
-                    # using for getting changefeed updates from a hub ended.
-                    # There may be other sockets that this project can use
-                    # to maintain this changefeed: if so, we connect immediately,
-                    # and if not, we wait until the next connection.
-                    #console.warn("query #{@_table}: _run: socket-end ")
-                    @emit('disconnected')
-                    @_state = 'disconnected'
-                    if @_client.is_connected()
-                        @_connect()
-                    else
-                        @_client.once('connected', @_connect)
-                        @_client_listeners.connected = @_connect
-                    return
-
-                @_last_err = err
-                if first_resp and resp?.event != 'query_cancel'
-                    first_resp = false
-                    if @_state == 'closed'
-                        cb?("closed")
-                    else if err
-                        #console.warn("query '#{misc.to_json(@_query)}': _run: first error ", err)
-                        cb?(err)
-                    else if not resp?.query?[@_table]?
-                        #console.warn("query on '#{misc.to_json(@_query)}' returned undefined")
-                        cb?("got no data")
-                    else
-                        # Successfully completed a query
-                        @_id = resp.id
-                        @_state = 'connected'
-                        #console.log("query #{@_table}: query resp = ", resp)
-                        @_update_all(resp.query[@_table])
-                        @emit("connected", resp.query[@_table])  # ready to use!
-                        cb?()
-                else
-                    if @_state == 'closed'
-                        # nothing to do
-                        return
-                    # console.log("changefeed '#{@_table}' produced: #{err}, #{misc.to_json(resp)}")
-                    # changefeed
-                    if err
-                        # were connected, but got an error, e.g., disconnect from server, so switch
-                        # to reconnect state.
-                        if err != 'killfeed' and err?.msg != 'Connection is closed.'   # killfeed is expected and happens regularly (right now)
-                            console.warn("query #{@_table}: _run: not first error -- #{misc.to_json(err)}")
-                        delete @_state  # undefined until @_reconnect sets it (in same tick)
-                        @_reconnect()
-                    else
-                        if resp?.event != 'query_cancel' and @_state == 'connected'
-                            @_update_change(resp)
-                        #else
-                        #    console.log("#{this_id} -- query_cancel")
-
     # Return map from keys that have changed along with how they changed, or undefined
     # if the value of local or the server hasn't been initialized
     _changes: =>
@@ -455,11 +466,17 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
+        if @__is_saving
+            cb?("already saving")
+        else
+            @__is_saving = true
+            @__save (err) =>
+                @__is_saving = false
+                cb?(err)
+
+    __save: (cb) =>
         if @_state == 'closed'
             cb?("closed")
-            return
-        if @_state != 'connected'
-            cb?("not connected")    # do not change this error message; it is assumed elsewhere.
             return
         # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
@@ -484,10 +501,22 @@ class SyncTable extends EventEmitter
         # Send our changes to the server.
         query = []
         saved_objs = []
-        # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        # sort so that behavior is more predictable = faster (e.g., sync patches are in
+        # order); the keys are strings so default sort is fine
         for key in misc.keys(changed).sort()
             c = changed[key]
-            obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
+            obj = {}
+            # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
+            if @_primary_keys.length == 1
+                obj[@_primary_keys[0]] = key
+            else
+                # unwrap compound primary key
+                v = JSON.parse(key)
+                i = 0
+                for primary_key in @_primary_keys
+                    obj[primary_key] = v[i]
+                    i += 1
+
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
@@ -511,14 +540,25 @@ class SyncTable extends EventEmitter
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
+            timeout : 30
             cb      : (err) =>
                 if err
-                    console.warn("_save('#{@_table}') error: #{err}")
+                    console.warn("_save('#{@_table}') error:", err)
+                    if err == 'clock'
+                        @_client.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is or was off!  Fix it and **refresh your browser**.")
                     cb?(err)
                 else
                     if @_state == 'closed'
                         # this can happen in case synctable is closed after _save is called but before returning from this query.
                         cb?("closed")
+                        return
+                    if not @_value_server? or not @_value_local?
+                        # There is absolutely no possible way this can happen, since it was
+                        # checked for above before the call, and these can only get set by
+                        # the close method to undefined, which also sets the @_state to closed,
+                        # so would get caught above.  However, evidently this **does happen**:
+                        #   https://github.com/sagemathinc/cocalc/issues/1870
+                        cb?("value_server and value_local must be set")
                         return
                     @emit('saved', saved_objs)
                     # success: each change in the query what committed successfully to the database; we can
@@ -533,47 +573,6 @@ class SyncTable extends EventEmitter
                         @_save(cb)
                     else
                         cb?()
-
-    ###
-    Disabled --
-
-    # We call _fix_if_no_update_soon whenever we successfully saved something
-    # since we must get back some
-    # update from the server via the changfeed within a reasonable
-    # amount of time.  If we don't, then something weird happened,
-    # and we kill the connection and reconnect.  There's no "normal"
-    # known case -- except very slow network -- where this should happen,
-    # but due to vagaries of the internet it will sometimes.
-    # Instead of periodically checking for validity of all changefeeds
-    # via heartbeat with the hub, we do something caused by activity
-    # instead (or maybe -- later -- in addition).
-    _fix_if_no_update_soon: () =>
-        if @_state != 'connected'
-            # If not connected, no point in doing this check.
-            return
-        # This fix_broken gets called in case no changes come back from the server
-        # within the given wait period.
-        fix_broken = () =>
-            @removeListener('before-change', cancel)  # stop listening for a change -- we already gave up
-            if @_state != 'connected'  # if not connected, something is already trying to fix the problem
-                return
-            # OK, let's do it:
-            console.warn("FIXING broken changefeed('#{@_table}')")
-            if @_id?
-                # cancel any outstanding changefeed for this table, if possible.
-                @_client.query_cancel(id:@_id)
-                delete @_id
-            # Now try to reconnect.
-            delete @_state
-            @_reconnect()
-        # Try to fix broken changefeed if we don't get anything new in 20s.
-        broken_timer = setTimeout(fix_broken, 20000)
-        cancel = =>
-            # Received something from changefeed -- no need to fix anything.
-            clearTimeout(broken_timer)
-        # If we get anything from changfeed, call cancel.
-        @once('before-change', cancel)
-    ###
 
     save: (cb) =>
         if @_state == 'closed'
@@ -592,7 +591,12 @@ class SyncTable extends EventEmitter
             return
 
         misc.async_debounce
-            f        : @_save
+            f        : (cb) =>
+                misc.retry_until_success
+                    f         : @_save
+                    max_delay : 5000
+                    max_time  : 30000
+                    cb        : cb
             interval : @_debounce_interval
             state    : @_save_debounce
             cb       : cb
@@ -600,8 +604,7 @@ class SyncTable extends EventEmitter
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
-        #dbg = (m) => console.log("_update_all(table='#{@_table}'): #{m}")
-        dbg = =>
+        dbg = @dbg("_update_all")
 
         if @_state == 'closed'
             # nothing to do -- just ignore updates from db
@@ -616,7 +619,7 @@ class SyncTable extends EventEmitter
         # to the corresponding record.
         x = {}
         for y in v
-            x[to_key(y[@_primary_key])] = y
+            x[@_key(y)] = y
 
         conflict = false
 
@@ -681,10 +684,10 @@ class SyncTable extends EventEmitter
         #console.log("update_all: changed_keys=", changed_keys)
         if changed_keys.length != 0
             @_value_server = immutable.fromJS(x)
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
         else if first_connect
             # First connection and table is empty.
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
         if conflict
             @save()
 
@@ -710,9 +713,9 @@ class SyncTable extends EventEmitter
         if change.new_val?
             conflict = @_handle_new_val(change.new_val, changed_keys)
 
-        if change.old_val? and to_key(change.old_val[@_primary_key]) != to_key(change.new_val?[@_primary_key])
+        if change.old_val? and @_key(change.old_val) != @_key(change.new_val)
             # Delete a record (TODO: untested)
-            key = to_key(change.old_val[@_primary_key])
+            key = @_key(change.old_val)
             @_value_local = @_value_local.delete(key)
             @_value_server = @_value_server.delete(key)
             changed_keys.push(key)
@@ -720,12 +723,12 @@ class SyncTable extends EventEmitter
         #console.log("update_change: changed_keys=", changed_keys)
         if changed_keys.length > 0
             #console.log("_update_change: change")
-            @emit('change', changed_keys)
+            @emit_change(changed_keys)
             if conflict
                 @save()
 
     _handle_new_val: (val, changed_keys) =>
-        key       = to_key(val[@_primary_key])
+        key       = @_key(val)
         new_val   = immutable.fromJS(val)
         local_val = @_value_local.get(key)
         conflict  = false
@@ -762,12 +765,24 @@ class SyncTable extends EventEmitter
     # This function returns the computed primary key if it works,
     # and returns undefined otherwise.
     _computed_primary_key: (obj) =>
-        f = @_client_query.set.fields[@_primary_key]
-        if typeof(f) == 'function'
-            return f(obj.toJS(), schema.client_db)
+        if @_primary_keys.length == 1
+            f = @_client_query.set.fields[@_primary_keys[0]]
+            if typeof(f) == 'function'
+                return f(obj.toJS(), schema.client_db)
+            else
+                return
+        else
+            v = []
+            for pk in @_primary_keys
+                f = @_client_query.set.fields[pk]
+                if typeof(f) == 'function'
+                    v.push(f(obj.toJS(), schema.client_db))
+                else
+                    return
+            return v
 
     # Changes (or creates) one entry in the table.
-    # The input changes is either an Immutable.js Map or a JS Object map.
+    # The input field changes is either an Immutable.js Map or a JS Object map.
     # If changes does not have the primary key then a random record is updated,
     # and there *must* be at least one record.  Exception: computed primary
     # keys will be computed (see stuff about computed primary keys above).
@@ -815,18 +830,25 @@ class SyncTable extends EventEmitter
             return
 
         # Determine the primary key's value
-        id = to_key(changes.get(@_primary_key))
+        id = @_key(changes)
         if not id?
             # attempt to compute primary key if it is a computed primary key
-            id = to_key(@_computed_primary_key(changes))
-            if not id?
+            id0 = @_computed_primary_key(changes)
+            id = to_key(id0)
+            if not id? and @_primary_keys.length == 1
                 # use a "random" primary key from existing data
-                id = @_value_local.keySeq().first()
+                id0 = id = @_value_local.keySeq().first()
             if not id?
-                cb?("must specify primary key #{@_primary_key}, have at least one record, or have a computed primary key")
+                cb?("must specify primary key #{@_primary_keys.join(',')}, have at least one record, or have a computed primary key")
                 return
             # Now id is defined
-            changes = changes.set(@_primary_key, id)
+            if @_primary_keys.length == 1
+                changes = changes.set(@_primary_keys[0], id0)
+            else
+                i = 0
+                for pk in @_primary_keys
+                    changes = changes.set(pk, id0[i])
+                    i += 1
 
         # Get the current value
         cur  = @_value_local.get(id)
@@ -850,12 +872,16 @@ class SyncTable extends EventEmitter
                 when 'none'
                     new_val = changes
                 else
-                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+                    cb?("merge must be one of 'deep', 'shallow', 'none'")
+                    return
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
-            @emit('change', [id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+            @emit_change([id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+        else
+            cb?()
+
         return new_val
 
     close: =>
@@ -864,8 +890,9 @@ class SyncTable extends EventEmitter
             return
         # decrement the reference to this synctable
         if global_cache_decref(@)
-            # not zero -- so don't close it yet -- still in use by multiple clients.
+            # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
+        @_client.removeListener('disconnected', @_disconnected)
         # do a last attempt at a save (so we don't lose data), then really close.
         @_save()  # this will synchronously construct the last save and send it
         # The moment the sync part of @_save is done, we remove listeners and clear
@@ -876,18 +903,12 @@ class SyncTable extends EventEmitter
         if @_id?
             @_client.query_cancel(id:@_id)
             delete @_id
+        @_state = 'closed'
         delete @_value_local
         delete @_value_server
-        for e, f of @_client_listeners
-            @_client.removeListener(e, f)
-        @_client_listeners = {}
-        @_state = 'closed'
-        if @_heartbeat_interval?
-            clearInterval(@_heartbeat_interval)
-            delete @_heartbeat_interval
 
     # wait until some function of this synctable is truthy
-    # (this is exactly the same code as in the rethink.coffee SyncTable!)
+    # (this might be exactly the same code as in the postgres-synctable.coffee SyncTable....)
     wait: (opts) =>
         opts = defaults opts,
             until   : required     # waits until "until(@)" evaluates to something truthy
@@ -918,24 +939,16 @@ class SyncTable extends EventEmitter
 
 synctables = {}
 
-exports.sync_table = (query, options, client, debounce_interval=2000) ->
+# for debugging; in particular, verify that synctables are freed.
+# Do not leave in production; could be slight security risk.
+## window?.synctables = synctables
 
-    if options?
-        h = undefined
-        for x in options
-            if x.heartbeat?
-                h = x.heartbeat
-        if not h?
-            if not options.push?
-                console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
-                options = []
-            options.push({heartbeat:if client.is_project() then 5 else 10})
-    else
-        options = [{heartbeat:if client.is_project() then 5 else 10}]
+exports.sync_table = (query, options, client, debounce_interval=2000, throttle_changes=undefined, use_cache=true) ->
+    cache_key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval, throttle_changes:throttle_changes)
+    if not use_cache
+        return new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)
 
-    key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
-    #console.log("sync_table #{key}")
-    S = synctables[key]
+    S = synctables[cache_key]
     if S?
         if S._state == 'connected'
             # same behavior as newly created synctable
@@ -943,11 +956,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
                 if S._state == 'connected'
                     S.emit('connected')
         S._reference_count += 1
-        #console.log("sync_table: using cache")
         return S
     else
-        #console.log("sync_table: making new one")
-        S = synctables[key] = new SyncTable(query, options, client, debounce_interval, key)
+        S = synctables[cache_key] = new SyncTable(query, options, client, debounce_interval, throttle_changes, cache_key)
         S._reference_count = 1
         return S
 
@@ -955,30 +966,46 @@ global_cache_decref = (S) ->
     if S._reference_count?
         S._reference_count -= 1
         if S._reference_count <= 0
-            delete synctables[S._key]
+            delete synctables[S._cache_key]
             return false  # not in use
         else
             return true   # still in use
 
-#window.synctables = synctables
+#if window?
+#    window.synctables = synctables
+
 
 
 ###
-# Do a three-way merge.  The situation is that some immutable.js object
-# called "last" was converted locally to "local", and we **assume** that local
-# is not equal to last.  In the meantime, the remove server wants us to
-# change this to "upstream".
-{diff_match_patch} = require('./dmp')
-dmp = new diff_match_patch()
-dmp.Diff_Timeout = 0.1
-threeway_merge = (last, local, upstream) ->
-    switch typeof(last)
-        when 'string'
-            # It's a string, so a reasonable default is to compute a patch and apply it to upstream.
-            merge = dmp.patch_apply(dmp.patch_make(last, local), upstream)[0]
-            console.log("'#{last}', '#{local}', '#{upstream}' --> '#{merge}'")
-            return merge
-        else
-            # A generic simple way to resolve the conflict is in favor of our local version.
-            return local
+Various mock clients for unit testing
+
+Events:
+    - disconnected
+    - connected
 ###
+
+class exports.TestBrowserClient1 extends EventEmitter
+
+    is_project: =>
+        return false
+
+    is_connected: =>
+        return true
+
+    is_signed_in: =>
+        return true
+
+    dbg: =>
+        return =>
+
+    query_cancel: =>
+
+    query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            timeout : 30
+            cb      : undefined
+        @emit 'query', opts
+

@@ -1,10 +1,13 @@
 # Authors
 
-William Stein ([wstein@sagemath.com](mailto:wstein@sagemath.com)) wrote most of SageMathCloud.  See the git history, which as of Oct 30, 2015, has 96% commits by him.  This needs to change.
+William Stein ([wstein@sagemath.com](mailto:wstein@sagemath.com)) wrote most of CoCalc (formally called "SageMathCloud").  See the git history, which as of Oct 30, 2015, has 96% commits by him.
+
+For a recent breakdown, run `git shortlog -sn --no-merges`.
 
 Everytime the GPL licensing note refers to the _"Authors of SageMathCloud"_, the following  (maybe incomplete) list is meant.
 
 * Keith Clawson
+* Tim Clemans
 * Russ Hensel
 * Jonathan Lee
 * Andrew Ohana
@@ -12,6 +15,7 @@ Everytime the GPL licensing note refers to the _"Authors of SageMathCloud"_, the
 * Issa Rice
 * Nicholas Ruhland
 * Harald Schilly
+* Hal Snyder
 * William Stein
 * Christopher Swenson
 * Vivek Venkatachalam

@@ -1,3 +1,24 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 Define upgrades to projects.
 ###
@@ -8,11 +29,12 @@ Define upgrades to projects.
 
 upgrades = exports.upgrades = {}
 
-# these are the base quotas
+# these are the base quotas -- keep req_* commented out until they are also in params below.
+# They are for future use for k8s
 exports.DEFAULT_QUOTAS =
     disk_quota  : 3000
-    req_cores   : 0.01
-    req_memory  : 160
+    #req_cores   : 0.01
+    #req_memory  : 160
     cores       : 1
     memory      : 1000
     cpu_shares  : 256
@@ -22,8 +44,8 @@ exports.DEFAULT_QUOTAS =
 
 upgrades.max_per_project =
     disk_quota : 50000
-    req_cores  : 1
-    req_memory : 4000
+    #req_cores  : 1
+    #req_memory : 4000
     memory     : 8000
     cores      : 4
     network    : 1
@@ -88,7 +110,7 @@ upgrades.params =
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Full internet access enables a project to connect to the computers outside of SageMathCloud, download software packages, etc.'
+        desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
         display        : 'Member hosting'
         unit           : 'upgrade'

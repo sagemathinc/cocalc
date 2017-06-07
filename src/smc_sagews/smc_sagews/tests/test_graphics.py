@@ -4,17 +4,44 @@
 import conftest
 import time
 
+from textwrap import dedent
+
 # TODO(hal) refactor this later
 SHA_LEN = 36
 
+class TestTachyon:
+    def test_t_show0(self, exec2):
+        code = dedent(r"""t = Tachyon(xres=400,yres=400, camera_center=(2,0,0))
+        t.light((4,3,2), 0.2, (1,1,1))
+        t.sphere((0,0,0), 0.5, 't0')""")
+        exec2(code,[])
+    def test_t_show1(self, execblob):
+        execblob("t.show()", want_html = False, file_type='png', ignore_stdout = True)
+    def test_show_t(self, execblob):
+        execblob("show(t)", want_html = False, file_type='png', ignore_stdout = True)
+    def test_t(self, execblob):
+        execblob("t", want_html = False, file_type='png', ignore_stdout = True)
+
 class TestGraphics:
     def test_plot(self, execblob):
-        execblob("plot(cos(x),x,0,pi)", want_html=False)
+        execblob("plot(cos(x),x,0,pi)", want_html = False, file_type = 'svg')
 
 class TestOctavePlot:
-    def test_plot(self,execblob):
+    def test_octave_plot(self,execblob):
         # assume octave kernel not running at start of test
-        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", want_html=False)
+        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", file_type = 'png', ignore_stdout = True)
+
+class TestRPlot:
+    def test_r_smallplot(self,execblob):
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'png')
+    def test_r_bigplot(self,execblob):
+        "lots of points, do not overrun blob size limit"
+        code = """%r
+N <- 100000
+xx <- rnorm(N, 5) + 3
+yy <- rnorm(N, 3) - 1
+plot(xx, yy, cex=.1)"""
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'png')
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):

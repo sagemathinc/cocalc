@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -53,15 +53,18 @@ def process_output(s):
 
 DISPLAY_MATH = {'open':'<html><script type=\"math/tex; mode=display\">', 'close':'</script></html>', 'display':True}
 INLINE_MATH = {'open':'<html><script type=\"math/tex\">', 'close':'</script></html>', 'display':False}
+INLINE_MATH_2009 = {'open':'<html><span class=\"math\">', 'close':'</span></html>', 'display':False}
 HTML = {'open':'<html>', 'close':'</html>'}
+mnames = ['DISPLAY_MATH', 'INLINE_MATH', 'INLINE_MATH_2009']
 def output_messages(output):
     messages = []
 
     while len(output) > 0:
         found = False
-        for marker in [DISPLAY_MATH, INLINE_MATH]:
+        for ii, marker in enumerate([DISPLAY_MATH, INLINE_MATH, INLINE_MATH_2009]):
             i = output.find(marker['open'])
             if i != -1:
+                #print('found',mnames[ii])
                 messages.extend(process_output(output[:i]))
                 j = output.find(marker['close'])
                 if j != -1:
@@ -152,18 +155,18 @@ def sws_body_to_sagews(body):
 
 def extra_modes(meta):
     s = ''
-    if meta['pretty_print']:
+    if 'pretty_print' in meta:
         s += u'typeset_mode(True, display=False)\n'
-    if meta['system'] != 'sage':
+    if 'system' in meta and meta['system'] != 'sage':
         s += u'%%default_mode %s\n'%meta['system']
     if not s:
         return ''
     # The 'a' means "auto".
     return MARKERS['cell'] + uuid() + 'a' + MARKERS['cell'] + u'\n%auto\n' + s
 
-def write_data_files(t):
-    prefix = 'sage_worksheet/data/'
-    data = [p.path for p in t if p.path.startswith(prefix)]
+def write_data_files(t, pfx = 'sage_worksheet'):
+    prefix = '{}/data/'.format(pfx)
+    data = [p for p in t if p.startswith(prefix)]
     out = []
     target = "foo.data"
     if data:
@@ -184,20 +187,62 @@ def sws_to_sagews(filename):
 
     OUTPUT:
     - creates a file foo[-n].sagews  and returns the name of the output file
+    
+    .. NOTE::
+
+        sws files from around 2009 are bzip2 archives with the following layout:
+            19/worksheet.txt
+            19/data/
+            19/conf.sobj
+            19/snapshots/1252938265.bz2
+            19/snapshots/1252940938.bz2
+            19/snapshots/1252940986.bz2
+            19/code/
+            19/cells/
+            19/cells/13/
+            19/cells/14/
+            ...
+        sws files from 2012  and later have a layout like this:
+            sage_worksheet/worksheet_conf.pickle
+            sage_worksheet/worksheet.html
+            sage_worksheet/worksheet.txt
+            sage_worksheet/data/fcla.css 
+
     """
     out = ''
 
     import os, tarfile
     t = tarfile.open(name=filename, mode='r:bz2', bufsize=10240)
-    body = t.extractfile('sage_worksheet/worksheet.html').read()
+    tfiles = t.getnames()
+    fmt_2011 = True
+    if 'sage_worksheet/worksheet.html' in tfiles:
+        pfx = 'sage_worksheet'
+        wkfile = 'sage_worksheet/worksheet.html'
+    else:
+        # older format files will not have 'sage_worksheet' at top level
+        pfx = tfiles[0]
+        wkfile = os.path.join(pfx,'worksheet.txt')
+        if wkfile in tfiles:
+            fmt_2011 = False # 2009 format
+        else:
+            raise ValueError('could not find sage_worksheet/worksheet.html or {} in {}'.format(wkfile, filename))
 
-    data_files, data_path = write_data_files(t)
+    body = t.extractfile(wkfile).read()
+    data_files, data_path = write_data_files(pfx, t)
     if data_files:
         out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n'%data_path
-
-    meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
-
     out += sws_body_to_sagews(body)
+
+    meta = {}
+    if fmt_2011:
+        try:
+            meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
+        except KeyError:
+            if INLINE_MATH['open'] in body:
+                meta['pretty_print'] = True
+    else:
+        if INLINE_MATH_2009['open'] in body:
+            meta['pretty_print'] = True
     out = extra_modes(meta) + out
 
     base = os.path.splitext(filename)[0]

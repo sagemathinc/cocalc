@@ -1,12 +1,33 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 # Terminal panel for .term files.
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable  = require('immutable')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 {defaults, path_split, required} = require('smc-util/misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {synchronized_string} = require('./syncdoc')
 
@@ -68,11 +89,11 @@ remove_redux = (path, redux, project_id) ->
 
 # Putting client -> server actions here as well as action -> state
 class DevTerminalActions extends Actions
-    get_store : =>
+    get_store: =>
         return @redux.getStore(@name)
 
     # Probably not the best way to handle this
-    connect_terminal : (cb) =>
+    connect_terminal: (cb) =>
         store = @get_store()
         if store.get('session')
             return # Session already exists
@@ -80,7 +101,7 @@ class DevTerminalActions extends Actions
         session_uuid = store.get('session_uuid')
         filename = store.get('filename')
 
-        salvus_client.read_text_file_from_project
+        webapp_client.read_text_file_from_project
             project_id : project_id
             path       : filename
             cb         : (err, result) =>
@@ -95,7 +116,7 @@ class DevTerminalActions extends Actions
                         session_uuid : result.content
                     @connect_to_server(cb)
 
-    connect_to_server : (cb) =>
+    connect_to_server: (cb) =>
         store = @get_store()
         project_id = store.get('project_id')
         session_uuid = store.get('session_uuid')
@@ -125,11 +146,11 @@ class DevTerminalActions extends Actions
 
         if session_uuid?
             mesg.session_uuid = session_uuid
-            salvus_client.connect_to_session(mesg)
+            webapp_client.connect_to_session(mesg)
         else
-            salvus_client.new_session(mesg)
+            webapp_client.new_session(mesg)
 
-    report_error : (err) ->
+    report_error: (err) ->
         console.log("Error in DevTerminalActions: ", err)
 
     sync: =>
@@ -139,7 +160,7 @@ class DevTerminalActions extends Actions
         console.log('increment_font_size being called')
         @setState('font_size':(@get_store().get('font_size') + 1))
 
-    set_title : (title) =>
+    set_title: (title) =>
       @setState(title:title)
 
     set_value: (value) =>
@@ -170,17 +191,17 @@ exports.TerminalEditor = rclass ({name}) ->
         actions    : rtypes.object.isRequired
         editor     : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
       font_size : 12
       title : 'Terminal'
       rows : 30
       cols : 80
 
-    getInitialState : ->
+    getInitialState: ->
         paused : false
         reconnecting : false
 
-    _init_terminal : ->
+    _init_terminal: ->
         # Find the DOM node
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
 
@@ -200,7 +221,7 @@ exports.TerminalEditor = rclass ({name}) ->
             font :
                 size    : @props.font_size
 
-    componentDidMount : ->
+    componentDidMount: ->
         console.log("terminal didMount")
         @_init_terminal()
 
@@ -211,11 +232,11 @@ exports.TerminalEditor = rclass ({name}) ->
         if @props.value
             @_terminal.value = @props.value
 
-    componentWillReceiveProps : (newProps) ->
+    componentWillReceiveProps: (newProps) ->
         console.log("NEW PROPS: ", newProps)
         console.log("OLD PROPS: ", @props)
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         console.log("terminal willUnmount")
         if @_terminal?
             console.log("TERMINAL VALUE:", @_terminal.value)
@@ -223,34 +244,34 @@ exports.TerminalEditor = rclass ({name}) ->
                 @props.actions.set_value(@_terminal.value)
             @_terminal.remove()
 
-    increase_font_size : ->
+    increase_font_size: ->
         console.log("Increase font size")
         @_terminal._increase_font_size()
 
-    decrease_font_size : ->
+    decrease_font_size: ->
         console.log("Decrease font size")
         @_terminal._decrease_font_size()
 
-    reconnect : ->
+    reconnect: ->
         console.log("Reconnecting")
         @_terminal.session?.reconnect()
 
-    toggle_pause : (e) ->
+    toggle_pause: (e) ->
         console.log("Pausing Terminal")
         if e   # Was triggered from button, not from @_terminal
             @_terminal._on_pause_button_clicked(e)
         @setState
             paused : not @state.paused
 
-    open_history_file : ->
+    open_history_file: ->
         console.log("Opening history file")
         @_terminal.open_copyable_history()
 
-    open_init_file : ->
+    open_init_file: ->
         console.log("opening Init file")
         @_terminal.open_init_file()
 
-    header : ->
+    header: ->
         <Row style={padding:'0px'}>
             <Col sm=2>
                 <ButtonToolbar style={marginLeft:'2px'}>
@@ -294,7 +315,7 @@ exports.TerminalEditor = rclass ({name}) ->
 
     # This is an interesting way to change Panel's internal css
     # Not sure if there's a better way
-    style_injection : ->
+    style_injection: ->
         <style type="text/css">
             {"\
                 .panel-heading {\
@@ -306,7 +327,7 @@ exports.TerminalEditor = rclass ({name}) ->
             "}
         </style>
 
-    render : ->
+    render: ->
         <div>
             {@style_injection()}
             <Panel header={@header()} >

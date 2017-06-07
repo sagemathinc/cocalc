@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-SAGEDIR=$(dirname $(readlink -f $(which sage)))
-exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"

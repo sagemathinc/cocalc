@@ -15,11 +15,11 @@ For debugging, this may help:
 
 # NOTE: This file is GPL'd
 # because it imports the Sage library.  This file is not directly
-# imported by anything else in Salvus; the Python process it runs is
+# imported by anything else in CoCalc; the Python process it runs is
 # used over a TCP connection.
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -43,10 +43,6 @@ MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_CODE_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE 
 
 MAX_OUTPUT = 150000
 
-# We import the notebook interact, which we will monkey patch below,
-# first, since importing later causes trouble in sage>=5.6.
-import sagenb.notebook.interact
-
 # Standard imports.
 import json, resource, shutil, signal, socket, struct, \
        tempfile, time, traceback, pwd
@@ -55,20 +51,24 @@ import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
-try:
-    from sage.repl.attach import load_attach_path, modified_file_iterator
-    def reload_attached_files_if_mod_smc():
-        # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
-        for filename, mtime in modified_file_iterator():
-            basename = os.path.basename(filename)
-            timestr = time.strftime('%T', mtime)
-            print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
-            from sage_salvus import load
-            load(filename)
-except:
-    print("sage_server: attach not available")
-    def reload_attached_files_if_mod_smc():
-        pass
+reload_attached_files_if_mod_smc_available = True
+def reload_attached_files_if_mod_smc():
+    global reload_attached_files_if_mod_smc_available
+    if not reload_attached_files_if_mod_smc_available:
+        return
+    try:
+        from sage.repl.attach import load_attach_path, modified_file_iterator
+    except:
+        print("sage_server: attach not available")
+        reload_attached_files_if_mod_smc_available = False
+        return
+    # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+    for filename, mtime in modified_file_iterator():
+        basename = os.path.basename(filename)
+        timestr = time.strftime('%T', mtime)
+        log('reloading attached file {0} modified at {1}'.format(basename, timestr))
+        from sage_salvus import load
+        load(filename)
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -91,8 +91,8 @@ def log(*args):
         mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
-    except:
-        log("an error writing a log message (ignoring)")
+    except Exception, err:
+        print("an error writing a log message (ignoring) -- %s"%err, args)
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
@@ -144,6 +144,8 @@ class ConnectionJSON(object):
 
     def send_json(self, m):
         m = json.dumps(m)
+        if '\\u0000' in m:
+            raise RuntimeError("NULL bytes not allowed")
         log(u"sending message '", truncate_text(m, 256), u"'")
         self._send('j' + m)
         return len(m)
@@ -394,7 +396,14 @@ class BufferedOutputStream(object):
         return 0
 
     def write(self, output):
-        self._buf += output
+        # CRITICAL: we need output to valid PostgreSQL TEXT, so no null bytes
+        # This is not going to silently corrupt anything -- it's just output that
+        # is destined to be *rendered* in the browser.  This is only a partial
+        # solution to a more general problem, but it is safe.
+        try:
+            self._buf += output.replace('\x00','')
+        except UnicodeDecodeError:
+            self._buf += output.decode('utf-8').replace('\x00','')
         #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
@@ -406,7 +415,10 @@ class BufferedOutputStream(object):
         if not self._buf and not done:
             # no point in sending an empty message
             return
-        self._f(self._buf, done=done)
+        try:
+            self._f(self._buf, done=done)
+        except UnicodeDecodeError:
+            self._f(unicode(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
@@ -494,7 +506,7 @@ namespace = Namespace({})
 
 class Salvus(object):
     """
-    Cell execution state object and wrapper for access to special SageMathCloud functionality.
+    Cell execution state object and wrapper for access to special CoCalc Server functionality.
 
     An instance of this object is created each time you execute a cell.  It has various methods
     for sending different types of output messages, links to files, etc.   Type 'help(smc)' for
@@ -919,6 +931,14 @@ class Salvus(object):
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
 
+        ascii_warn = False
+        code_error = False
+        if sys.getdefaultencoding() == 'ascii':
+            for c in code:
+                if ord(c) >= 128:
+                    ascii_warn = True
+                    break
+
         if namespace is None:
             namespace = self.namespace
 
@@ -947,12 +967,19 @@ class Salvus(object):
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 b = block.rstrip()
+                # get rid of comments at the end of the line -- issue #1835
+                #from ushlex import shlex
+                #s = shlex(b)
+                #s.commenters = '#'
+                #s.quotes = '"\''
+                #b = ''.join(s)
+                # e.g. now a line like 'x = test?   # bar' becomes 'x=test?'
                 if b.endswith('??'):
-                    p = sage_parsing.introspect(block,
+                    p = sage_parsing.introspect(b,
                                    namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "python")
                 elif b.endswith('?'):
-                    p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
+                    p = sage_parsing.introspect(b, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()
@@ -962,18 +989,22 @@ class Salvus(object):
                             # this fixup has to happen after first block has executed (os.chdir etc)
                             # but before user assigns any variable in worksheet
                             # sage.misc.session.init() is not called until first call of show_identifiers
-                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
-                            block2 = "sage.misc.session._dummy=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
+                            block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
+                code_error = True
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
                 traceback.print_exc()
                 sys.stderr.flush()
                 break
+        if code_error and ascii_warn:
+            sys.stderr.write('*** WARNING: Code contains non-ascii characters ***\n')
+            sys.stderr.flush()
 
     def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
         """
@@ -1180,7 +1211,7 @@ class Salvus(object):
             m['placeholder'] = unicode8(placeholder)
         self._send_output(raw_input=m, id=self._id)
         typ, mesg = self.message_queue.next_mesg()
-        #log("raw_input got message typ='%s', mesg='%s'"%(typ, mesg))
+        log("handling raw input message ", truncate_text(unicode8(mesg), 400))
         if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
@@ -1775,12 +1806,12 @@ def serve(port, host, extra_imports=False):
 
         for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
                      'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
-                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
                      'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
-                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
-                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
-                     'timeit', 'typeset_mode', 'var', 'wiki']:
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
+                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'singular_kernel',
+                     'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself

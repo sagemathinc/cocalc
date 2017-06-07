@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:sketch="http://www.bohemiancoding.com/sketch/ns"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="300"
+   height="300"
+   viewBox="0 0 300 300"
+   version="1.1"
+   id="svg2"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="python.svg">
+  <metadata
+     id="metadata30">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>frameworks/logo_python</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1056"
+     id="namedview28"
+     showgrid="false"
+     inkscape:snap-bbox="true"
+     inkscape:bbox-nodes="true"
+     inkscape:snap-page="true"
+     inkscape:zoom="0.921875"
+     inkscape:cx="-1.6271186"
+     inkscape:cy="128"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g1894" />
+  <!-- Generator: Sketch 3.5.1 (25234) - http://www.bohemiancoding.com/sketch -->
+  <title
+     id="title4">frameworks/logo_python</title>
+  <desc
+     id="desc6">Created with Sketch.</desc>
+  <defs
+     id="defs8" />
+  <g
+     id="Page-1"
+     sketch:type="MSPage"
+     style="fill:none;fill-rule:evenodd;stroke:none;stroke-width:1"
+     transform="matrix(2.2123104,0,0,2.2123104,-133.74775,-133.24765)">
+    <g
+       transform="translate(58,59)"
+       sketch:type="MSLayerGroup"
+       id="logo_python">
+      <g
+         transform="translate(1.304824,0.653485)"
+         id="g1894">
+        <path
+           style="fill:#000000;fill-opacity:1"
+           inkscape:connector-curvature="0"
+           id="path8615"
+           d="M 68.464912,0.57660398 C 34.039978,0.57660644 36.189693,15.529867 36.189693,15.529867 l 0.03838,15.491427 32.850877,0 0,4.651272 -45.899122,0 c 0,0 -22.0285092,-2.502339 -22.0285092,32.289823 -2.5e-6,34.792151 19.2269732,33.558351 19.2269732,33.558351 l 11.474781,0 0,-16.14491 c 0,0 -0.61852,-19.258573 18.919956,-19.258573 l 32.582237,0 c 0,0 18.305914,0.296402 18.305914,-17.720963 l 0,-29.791206 c 0,-2e-6 2.77935,-18.02848402 -33.196265,-18.02848402 l 0,0 z M 50.350877,10.993916 c 3.268422,-2e-6 5.910088,2.646008 5.910088,5.919801 2e-6,3.273793 -2.641666,5.919801 -5.910088,5.919801 -3.268421,2e-6 -5.910088,-2.646008 -5.910088,-5.919801 -2e-6,-3.273793 2.641667,-5.919801 5.910088,-5.919801 l 0,0 z" />
+        <path
+           style="fill:#000000;fill-opacity:1"
+           inkscape:connector-curvature="0"
+           id="path8620"
+           d="m 69.442579,135.69703 c 34.424941,0 32.275221,-14.95327 32.275221,-14.95327 l -0.0384,-15.49142 -32.850876,0 0,-4.65127 45.899126,0 c 0,0 22.02851,2.50233 22.02851,-32.28984 1e-5,-34.792151 -19.22698,-33.558348 -19.22698,-33.558348 l -11.47478,0 0,16.144908 c 0,0 0.61853,19.258573 -18.919955,19.258573 l -32.582239,0 c 0,0 -18.305921,-0.296402 -18.305921,17.720975 l 0,29.791202 c 0,0 -2.779344,18.02849 33.196274,18.02849 l 0,0 z m 18.114035,-10.41731 c -3.268423,0 -5.910088,-2.64601 -5.910088,-5.9198 0,-3.2738 2.641665,-5.91981 5.910088,-5.91981 3.268423,0 5.910088,2.64601 5.910088,5.91981 1.2e-5,3.27379 -2.641665,5.9198 -5.910088,5.9198 l 0,0 z" />
+      </g>
+    </g>
+  </g>
+</svg>

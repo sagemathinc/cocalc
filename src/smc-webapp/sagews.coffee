@@ -1,3 +1,24 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
@@ -12,13 +33,15 @@ misc                 = require('smc-util/misc')
 misc_page         = require('./misc_page')
 message           = require('smc-util/message')
 markdown          = require('./markdown')
-{salvus_client}   = require('./salvus_client')
+{webapp_client}   = require('./webapp_client')
 {redux}           = require('./smc-react')
 {alert_message}   = require('./alerts')
 
+{sagews_eval}     = require('./sagews-eval')
+
 {IS_MOBILE}       = require('./feature')
 
-templates           = $("#salvus-editor-templates")
+templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
@@ -53,6 +76,28 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
+        # Code execution queue.
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+
+        # We set a custom rangeFinder that is output cell marker aware.
+        # See https://github.com/sagemathinc/cocalc/issues/966
+        foldOptions =
+            rangeFinder : (cm, start) ->
+                helpers = cm.getHelpers(start, "fold")
+                for h in helpers
+                    cur = h(cm, start)
+                    if cur
+                        i = start.line
+                        while i < cur.to.line and cm.getLine(i+1)?[0] != MARKERS.output
+                            i += 1
+                        if cm.getLine(i+1)?[0] == MARKERS.output
+                            cur.to.line = i
+                            cur.to.ch = cm.getLine(i).length
+                        return cur
+
+        for cm in @codemirrors()
+            cm.setOption('foldOptions', foldOptions)
+
         if @opts.static_viewer
             @readonly   = true
             @project_id = @editor.project_id
@@ -63,15 +108,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : @opts.cursor_interval
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
+
             @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+
             @init_hide_show_gutter()  # must be after @readonly set
+
             @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
-            @status cb: (err, status) =>
-                if not status?.running
-                    @execute_auto_cells()
-
-            @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+            if not @readonly
+                @status cb: (err, status) =>
+                    if not status?.running
+                        @execute_auto_cells()
+                    else
+                        # Kick the worksheet process into gear if it isn't running already
+                        @introspect_line
+                            line     : "return?"
+                            timeout  : 30
+                            preparse : false
+                            cb       : (err) =>
 
             @on 'sync', () =>
                 #console.log("sync")
@@ -139,7 +193,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         @_update_queue_stop = stop
                     @process_sage_update_queue()
 
-
     close: =>
         @execution_queue?.close()
         super()
@@ -154,6 +207,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if gutter != 'smc-sagews-gutter-hide-show'
             return
         x = cm.getLine(line)
+        if not x?
+            return
         switch x[0]
             when MARKERS.cell
                 @action(pos:{line:line, ch:0}, toggle_input:true)
@@ -165,8 +220,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
 
-    cell: (line) ->
-        return new SynchronizedWorksheetCell(@, line)
+    # Get cell at current line or return undefined if create=false
+    # and there is no complete cell with input and output.
+    cell: (line, create=true) =>
+        {start, end} = @current_input_block(line)
+        if not create
+            cm = @focused_codemirror()
+            if cm.getLine(start)?[0] != MARKERS.cell or cm.getLine(end)?[0] != MARKERS.output
+                return
+        return new SynchronizedWorksheetCell(@, start, end)
         # CRITICAL: We do **NOT** cache cells.  The reason is that client code should create
         # a cell for a specific purpose then forget about it as soon as that is done!!!
         # The reason is that at any time new input cell lines can be added in the
@@ -177,16 +239,18 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     # Return list of all cells that are touched by the current selection
     # or contain any cursors.
-    get_current_cells: =>
+    get_current_cells: (create=true) =>
         cm = @focused_codemirror()
         cells = []
         top = undefined
         process_line = (n) =>
             if not top? or n < top
-                cell = @cell(n)
-                cells.push(cell)
-                top = cell.start_line()
-        for sel in cm.listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
+                cell = @cell(n, create)
+                if cell?
+                    cells.push(cell)
+                    top = cell.start_line()
+        # "These [selections] will always be sorted, and never overlap (overlapping selections are merged)."
+        for sel in cm.listSelections().reverse()
             n = sel.anchor.line; m = sel.head.line
             if n == m
                 process_line(n)
@@ -228,7 +292,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @_update_queue_stop  = undefined
 
     init_worksheet_buttons: () =>
-        buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
+        buttons = @element.find(".webapp-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=\"#execute\"]").click () =>
@@ -320,17 +384,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         selection = document.getSelection()
         displayed_text = selection+""
 
-        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         display.val(displayed_text)
 
@@ -375,22 +439,22 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     html_editor_image: () =>
         @html_editor_restore_selection()
 
-        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog = templates.find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         submit = () =>
             dialog.modal('hide')
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
             s = "<img src='#{url.val()}'#{width}#{height}>"
@@ -430,7 +494,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @html_editor_div?.data('onchange')?()
 
     init_html_editor_buttons: () =>
-        @html_editor_bar = button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        @html_editor_bar = button_bar = @element.find(".webapp-editor-codemirror-worksheet-editable-buttons")
         @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
 
@@ -613,7 +677,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         f = (cb) =>
             timeout = Math.min(10, 1.4*timeout)
             @introspect_line
-                line     : "open?"
+                line     : "return?"
                 timeout  : timeout
                 preparse : false
                 cb       : (resp) =>
@@ -682,10 +746,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             line : line
             top  : topline
             cb   : (mesg) =>
-                if mesg.event == "error"
-                    # showing user an alert_message at this point isn't usable; but do want to know
-                    # about this.
-                    salvus_client.log_error("Unable to instrospect -- #{err}, #{mesg?.error}")
+                if mesg.event == "error" or not mesg?.target?  # some other sort of error, e.g., mesg = 'some error' ?
+                    # First, there is no situation I can think of where this happens... though
+                    # of course it does.
+                    # Showing user an alert_message at this point isn't useful; but we do want to know
+                    # about this.  The user is just going to see no completion or popup, which is
+                    # possibly reasonable behavior from their perspective.
+                    # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/cocalc/issues/1685
+                    err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
+                    console.log(err)  # this is intentional... -- it's may be useful to know
+                    webapp_client.log_error(err)
+                    return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
                     elt = undefined
@@ -754,6 +825,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cm            : undefined    # only markup changes, etc., using the given editor (uses all visible ones by default)
             pad_bottom    : 10           # ensure there are this many blank lines at bottom of document
             caller        : undefined
+        if @_closed
+            return
         #console.log("process_sage_updates", @readonly, opts.caller)
         # For each line in the editor (or starting at line start), check if the line
         # starts with a cell or output marker and is not already marked.
@@ -766,7 +839,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         try
             if not opts.cm?
                 @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-                if @editor._split_view
+                if @editor._layout > 0
                     @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
             else
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
@@ -777,11 +850,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
-            @_syncstring.set(after)
+            @_syncstring.from_str(after)
 
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")
         #dbg("start=#{start}, stop=#{stop}")
+        if @_closed
+            return
         if not cm?
             cm = @focused_codemirror()
         if not start?
@@ -839,9 +914,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     return
                 # New gutter element
                 elt = line_number_elt.clone().text(relative_line)[0]
-        elt.smc_cur = want  # elt will have this mode/line
-        # Now set it.
-        cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
+            else
+                console.warn("sagews unknown mode '#{mode}'")
+        if elt?
+            elt.smc_cur = want  # elt will have this mode/line
+            # Now set it.
+            cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
 
     _process_line: (cm, line, context) =>
         ###
@@ -1143,6 +1221,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if @readonly
             opts.cb?({done:true, error:'readonly'})
         else
+            if not @_syncstring?._evaluator?
+                opts.cb?({done:true, error:'closed'})
+                return
             @_syncstring._evaluator.call
                 program : 'sage'
                 input   : opts.input
@@ -1154,7 +1235,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb : required
         @sage_call
             input :
-                event:'status'
+                event : 'status'
             cb    : (resp) =>
                 if resp.event == 'error'
                     opts.cb(resp.error)
@@ -1199,7 +1280,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @process_output_mesg(opts)
 
         # Call jQuery plugin to make it all happen.
-        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:f)
+        interact_elt.sage_interact
+            desc                : desc
+            execute_code        : @execute_code
+            process_output_mesg : f
+            process_html_output : @process_html_output
 
     jump_to_output_matching_jquery_selector: (selector) =>
         cm = @focused_codemirror()
@@ -1217,9 +1302,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # handle a links
         a = e.find('a')
-
-        # make links open in a new tab
-        a.attr("target","_blank")
 
         that = @
         for x in a
@@ -1244,6 +1326,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
+                        {join} = require('path')
                         if target.indexOf('/projects/') == 0
                             # fully absolute (but without https://...)
                             target = decodeURI(target.slice('/projects/'.length))
@@ -1252,21 +1335,46 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             target = decodeURI(target.slice(1))  # just get rid of leading slash
                         else if target[0] == '/'
                             # absolute inside of project
-                            target = "#{that.project_id}/files#{decodeURI(target)}"
+                            target = join(that.project_id, 'files', decodeURI(target))
                         else
                             # relative to current path
-                            target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
+                            target = join(that.project_id, 'files', that.file_path(), decodeURI(target))
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
+                else
+                    # make links open in a new tab
+                    a.attr("target","_blank")
 
         # make relative links to images use the raw server
         a = e.find("img")
         for x in a
-            y = $(x)
-            src = y.attr('src')
-            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
+            y           = $(x)
+            src         = y.attr('src')
+            # see https://github.com/sagemathinc/cocalc/issues/1192
+            img_scaling = y.attr('smc-image-scaling')
+            if img_scaling?
+                img = y.get(0)
+                scale_img = ->
+                    width  = img.naturalWidth
+                    factor = parseFloat(img_scaling)
+                    if not isNaN(factor)
+                        new_width = width * factor
+                        y.css('width', "#{new_width}px")
+                scale_img()
+                img.onload = scale_img
+            # checking, if we need to fix the src path
+            is_fullurl  = src.indexOf('://') != -1
+            is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")
+            # see https://github.com/sagemathinc/cocalc/issues/651
+            is_data     = misc.startswith(src, 'data:')
+            if is_fullurl or is_data or is_blob
                 continue
-            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
+            # see https://github.com/sagemathinc/cocalc/issues/1184
+            file_path = @file_path()
+            if misc.startswith(src, '/')
+                file_path = ".smc/root/#{file_path}"
+            {join} = require('path')
+            new_src = join('/', window.app_base_url, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1296,7 +1404,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
         if uuids?
-            salvus_client.remove_blob_ttls
+            webapp_client.remove_blob_ttls
                 uuids : uuids
                 cb    : (err) =>
                     if not err
@@ -1309,9 +1417,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         value  = raw_input.value
         if not value?
             value = ''
-        submitted = raw_input.submitted
-        if not submitted?
-            submitted = false
+        submitted = !!raw_input.submitted
         elt = templates.find(".sagews-output-raw_input").clone()
         label = elt.find(".sagews-output-raw_input-prompt")
         label.text(prompt)
@@ -1375,7 +1481,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: running this cell again, restarting your project,\nclosing and opening this file, refreshing your browser,\nor deleting the contents of ~/.local"
             output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
@@ -1387,7 +1493,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 x.text(mesg.code.source)
 
         if mesg.html?
-            e = $("<span class='sagews-output-html'>")
+            e = $("<div class='sagews-output-html'>")
             if @editor.opts.allow_javascript_eval
                 e.html(mesg.html)
             else
@@ -1400,7 +1506,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @interact(output, mesg.interact, opts.mark)
 
         if mesg.d3?
-            e = $("<span>")
+            e = $("<div>")
             output.append(e)
             require.ensure [], () =>
                 require('./d3')  # install the d3 plugin
@@ -1411,7 +1517,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.md?
             # markdown
             x = markdown.markdown_to_html(mesg.md)
-            t = $('<span class="sagews-output-md">')
+            t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(x.s)
             else
@@ -1450,7 +1556,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.smc_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
+                    target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 
@@ -1463,7 +1569,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append(video)
 
                     when 'sage3d'
-                        elt = $("<span class='salvus-3d-container'></span>")
+                        elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
                         require.ensure [], () =>   # only load 3d library if needed
@@ -1478,7 +1584,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                         elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg', 'jpeg'
-                        img = $("<img src='#{target}' class='sagews-output-image'>")
+                        img = $("<div class='sagews-output-image'><img src='#{target}'></div>")
                         output.append(img)
 
                         if mesg.events?
@@ -1501,12 +1607,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             mark    : opts.mark
 
                             for event, function_name of mesg.events
-                                img.data("salvus-events-#{event}", function_name)
+                                img.data("webapp-events-#{event}", function_name)
                                 switch event
                                     when 'click'
                                         img.click (e) =>
                                             p = location(e)
-                                            exec("#{img.data('salvus-events-click')}('click',(#{p}))")
+                                            exec("#{img.data('webapp-events-click')}('click',(#{p}))")
                                     when 'mousemove'
                                         ignore_mouse_move = undefined
                                         last_pos = undefined
@@ -1519,7 +1625,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                             if last_pos? and p[0] == last_pos[0] and p[1] == last_pos[1]
                                                 return
                                             last_pos = p
-                                            exec("#{img.data('salvus-events-mousemove')}('mousemove',(#{p}))")
+                                            exec("#{img.data('webapp-events-mousemove')}('mousemove',(#{p}))")
                                     else
                                         console.log("unknown or unimplemented event -- #{event}")
 
@@ -1531,10 +1637,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{text}</a> "))
 
         if mesg.javascript? and @allow_javascript_eval()
-            cell      = new Cell(output : opts.element)
-            worksheet = new Worksheet(@)
-            print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
-
             code = mesg.javascript.code
             if mesg.obj?
                 obj  = JSON.parse(mesg.obj)
@@ -1544,15 +1646,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        eval(CoffeeScript?.compile(code))
+                        sagews_eval(CoffeeScript?.compile(code), @, opts.element)
                 else
-                    eval(CoffeeScript?.compile(code))
+                    # DANGER: this is the only async code in process_output_mesg
+                    sagews_eval(CoffeeScript?.compile(code), @, opts.element)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.
                 # Note that there is an allow_javascript document option, which (at some point) users
                 # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-                eval(code)
+                sagews_eval(code, @, opts.element, undefined, obj)
 
         if mesg.show?
             if opts.mark?
@@ -1585,15 +1688,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # (or something similar) it is basically impossible.  When sage worksheets are rewritten
         # using react, this will change.
         if mesg.clear
-            line = opts.mark.find()?.from.line
-            if line?
-                @cell(line)?.set_output()
+            output.empty()
 
         if mesg.delete_last
-            line = opts.mark.find()?.from.line
-            if line?
-                # we pass in 2 to delete the delete_last message itself.
-                @cell(line)?.delete_last_output(2)
+            output.find(":last-child").remove()
 
         if mesg.done
             output.removeClass('sagews-output-running')
@@ -1622,25 +1720,21 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             when 'execute_javascript'
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
-                    (() =>
-                         worksheet = new Worksheet(@)
-                         cell      = new Cell(cell_id : mesg.cell_id)
-                         print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
-                         code = mesg.code
-                         async.series([
-                             (cb) =>
-                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
-                                     misc_page.load_coffeescript_compiler(cb)
-                                 else
-                                     cb()
-                             (cb) =>
-                                 if mesg.coffeescript
-                                     code = CoffeeScript.compile(code)
-                                 obj = JSON.parse(mesg.obj)
-                                 eval(code)
-                                 cb()
-                         ])
-                    )()
+                    do () =>
+                        code = mesg.code
+                        async.series([
+                            (cb) =>
+                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
+                                    misc_page.load_coffeescript_compiler(cb)
+                                else
+                                    cb()
+                            (cb) =>
+                                if mesg.coffeescript
+                                    code = CoffeeScript.compile(code)
+                                obj = JSON.parse(mesg.obj)
+                                sagews_eval(code, @, undefined, mesg.cell_id, obj)
+                                cb()
+                        ])
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
@@ -1869,7 +1963,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if opts.pos?
                 cells = [@cell(opts.pos.line)]
             else
-                cells = @get_current_cells()
+                create = opts.execute
+                cells = @get_current_cells(create)
             for cell in cells
                 cell.action
                     execute       : opts.execute
@@ -2024,6 +2119,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return ''
         cm = @focused_codemirror()
         x = cm.getLine(line)
+        if not x?
+            return ''
         if not misc.is_valid_uuid_string(x.slice(1,37))
             # worksheet is somehow corrupt
             # TODO: should fix things at this point, or make sure this is never hit; could be caused by
@@ -2042,13 +2139,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     set_input_line_flagstring: (line, value) =>
         cm = @focused_codemirror()
         x = cm.getLine(line)
-        cm.replaceRange(value, {line:line, ch:37}, {line:line, ch:x.length-1})
+        if x?
+            cm.replaceRange(value, {line:line, ch:37}, {line:line, ch:x.length-1})
 
     set_cell_flagstring: (marker, value) =>
         if not marker?
             return
         pos = marker.find()
-        @focused_codemirror().replaceRange(value, {line:pos.from.line, ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
+        if pos?
+            @focused_codemirror().replaceRange(value, {line:pos.from.line, ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
         if not marker?
@@ -2089,6 +2188,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             throw Error("cell_start_marker: line must be defined")
         cm = @focused_codemirror()
         current_line = cm.getLine(line)
+        if not current_line?
+            # line no longer exists (got removed)
+            return
         if current_line.length < 38 or current_line[0] != MARKERS.cell or current_line[current_line.length-1] != MARKERS.cell
             # insert marker uuid text, since it isn't there already
             uuid = misc.uuid()
@@ -2098,7 +2200,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             x = cm.findMarksAt(line:line, ch:0)
             if x.length > 0 and x[0].type == MARKERS.cell
                 # already properly marked
-                return {marker:x[0], created:false, uuid:uuid}
+                return
         if cm.lineCount() < line + 2
             # insert a newline
             cm.replaceRange('\n',{line:line+1,ch:0})
@@ -2107,10 +2209,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         x = cm.findMarksAt(line:line, ch:0)
         if x.length > 0 and x[0].type == MARKERS.cell
             # now properly marked
-            return {marker:x[0], created:true, uuid:uuid}
+            return
         else
             # didn't get marked for some reason
-            return {marker:undefined, created:true, uuid:uuid}
+            return
 
     # map from uuids in document to true.
     doc_uuids: () =>
@@ -2192,11 +2294,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # Useful extra data about 3d plots (a png data url)
         for elt in @output_elements()
-            for e in elt.find(".salvus-3d-container")
+            for e in elt.find(".webapp-3d-container")
                 f = $(e)
-                scene = $(e).data('salvus-threejs')
+                scene = f.data('webapp-threejs')
+                if not scene?
+                    continue
                 scene.set_static_renderer()
-                data_url  = scene.static_image
+                data_url = scene.static_image
                 if data_url?
                     uuid = f.data('uuid')
                     if not sage3d[uuid]?
@@ -2237,7 +2341,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 class ExecutionQueue
     constructor: (@_exec, @worksheet) ->
         if not @_exec
-            throw "BUG: execution function must be provided"
+            throw Error("BUG: execution function must be provided")
         @_queue   = []
         @_state   = 'ready'
 
@@ -2320,15 +2424,14 @@ class ExecutionQueue
         @_exec(x)
 
 class SynchronizedWorksheetCell
-    constructor: (@doc, line) ->
+    constructor: (@doc, start, end) ->
         # Determine input and end lines of the cell that contains the given line, and
         # the corresponding uuid's.
-        {start, end} = @doc.current_input_block(line)
         @cm = @doc.focused_codemirror()
 
         # Input
         x = @cm.getLine(start)
-        if x[0] == MARKERS.cell
+        if x?[0] == MARKERS.cell
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[x.length-1] == MARKERS.cell
                 # valid input line
                 @_start_uuid = x.slice(1,37)
@@ -2344,7 +2447,7 @@ class SynchronizedWorksheetCell
 
         # Output
         x = @cm.getLine(end)
-        if x[0] == MARKERS.output
+        if x?[0] == MARKERS.output
             if misc.is_valid_uuid_string(x.slice(1,37)) and x[37] == MARKERS.output
                 # valid output line
                 @_output_uuid = x.slice(1,37)
@@ -2585,53 +2688,5 @@ class SynchronizedWorksheetCell
                 return x
         return false
 
-###
-Cell and Worksheet below are used when eval'ing %javascript blocks.
-###
-
-class Cell
-    constructor : (opts) ->
-        @opts = defaults opts,
-            output  : undefined # jquery wrapped output area
-            cell_id : undefined
-        @output = opts.output
-        @cell_id = opts.cell_id
-
-class Worksheet
-    constructor : (@worksheet) ->
-        @editor = @worksheet.editor.editor
-
-    execute_code: (opts) =>
-        if typeof opts == "string"
-            opts = {code:opts}
-        @worksheet.execute_code(opts)
-
-    interrupt: () =>
-        @worksheet.interrupt()
-
-    kill: () =>
-        @worksheet.kill()
-
-    set_interact_var : (opts) =>
-        elt = @worksheet.element.find("#" + opts.id)
-        if elt.length == 0
-            log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
-        else
-            i = elt.data('interact')
-            if not i?
-                log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
-            else
-                i.set_interact_var(opts)
-
-    del_interact_var : (opts) =>
-        elt = @worksheet.element.find("#" + opts.id)
-        if elt.length == 0
-            log("BUG: Attempt to del var of interact with id #{opts.id} failed since no such interact known.")
-        else
-            i = elt.data('interact')
-            if not i?
-                log("BUG: interact with id #{opts.id} doesn't have corresponding data object del.", elt)
-            else
-                i.del_interact_var(opts.name)
 
 exports.SynchronizedWorksheet = SynchronizedWorksheet

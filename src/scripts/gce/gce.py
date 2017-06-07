@@ -15,8 +15,8 @@ from pprint import pprint
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
 import locale
-locale.setlocale( locale.LC_ALL, '' )
 def money(s):
+    locale.setlocale( locale.LC_ALL,  'en_US.UTF-8' )
     return locale.currency(s)
 
 from pricing import PRICING
@@ -179,6 +179,8 @@ class GCE(object):
 
         v.append(('kubectl', ''))
 
+        v.append(('postgres', 0))
+
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))
 
@@ -246,7 +248,7 @@ class GCE(object):
             raise Exception("Errors %s"%errors)
 
     def compute_nodes(self, zone='us-central1-c'):
-        # names of the compute nodes in the given zone, with the zone postfix and compue prefix removed.
+        # names of the compute nodes in the given zone, with the zone postfix and compute prefix removed.
         n = len("compute")
         def f(name):
             return name[n:name.rfind('-')]
@@ -256,6 +258,9 @@ class GCE(object):
     def create_all_data_snapshots(self, zone='us-central1-c'):
         # database backup disk
         #self.create_data_snapshot(node='-backup', prefix='db', zone=zone, devel=False)
+
+        log("snapshotting postgres0 data")
+        self.create_data_snapshot(node=0, prefix='postgres', zone=zone, devel=False)
 
         for i in range(6):
             log("snapshotting storage%s storage data"%i)
@@ -633,9 +638,9 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
-        log("GOLD SUPPORT : %8s/month ", money(400))
-        total_lower += 400
-        total_upper += 400
+        log("SILVER SUPPORT : %8s/month ", money(150))
+        total_lower += 150
+        total_upper += 150
         log("SALES TAX    : %8s/month -- 9.5%% WA+Seattle sales tax", money(total_lower*0.095))
         total_lower *= 1.095
         total_upper *= 1.095

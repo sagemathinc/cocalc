@@ -3,7 +3,7 @@ Supplies the interface for creating file editors in the webapp
 
 ---
 
- SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+ CoCalc: Collaborative Calculation in the Cloud
 
     Copyright (C) 2016, SageMath, Inc.
 
@@ -22,16 +22,22 @@ Supplies the interface for creating file editors in the webapp
 
 ###
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 
 {filename_extension, defaults, required} = require('smc-util/misc')
+{file_associations} = require('./editor')
 
 # Map of extensions to the appropriate structures below
 file_editors =
     true  : {}    # true = is_public
     false : {}    # false = not public
 
-window.file_editors = file_editors
+exports.icon = (ext) ->
+    # Return the icon for the given extension, if it is defined here,
+    # with preference for non-public icon; returns undefined otherwise.
+    return (file_editors[false] ? file_editors[true])?[ext]?.icon
 
 ###
 ext       : string|array[string] to associate the editor with
@@ -53,7 +59,7 @@ exports.register_file_editor = (opts) ->
         is_public : false
         component : undefined # rclass
         generator : undefined # function
-        init      : undefined  # function
+        init      : undefined # function
         remove    : undefined
         icon      : 'file-o'
         save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
@@ -86,10 +92,7 @@ exports.initialize = (path, redux, project_id, is_public) ->
 exports.generate = (path, redux, project_id, is_public) ->
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
-    e = file_editors[is_public][ext]
-    if not e?
-        # fallback
-        e = file_editors[is_public]['']
+    e = file_editors[is_public][ext] ? file_editors[is_public]['']
     generator = e.generator
     if generator?
         return generator(path, redux, project_id)
@@ -100,22 +103,36 @@ exports.generate = (path, redux, project_id, is_public) ->
 
 # Actually remove the given editor
 exports.remove = (path, redux, project_id, is_public) ->
+    if not path?
+        return
+    if typeof(path) != 'string'
+        console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
+        # see https://github.com/sagemathinc/cocalc/issues/1275
+        return
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
     # Use specific one for the given extension, or a fallback.
     remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)
     remove?(path, redux, project_id)
 
+    # Also free the corresponding side chat, if it was created.
+    require('./editor_chat').remove_redux(misc.meta_file(path, 'chat'), redux, project_id)
+
 # The save function may be called to request to save contents to disk.
 # It does not take a callback.  It's a non-op if no save function is registered
 # or the file isn't open.
 exports.save = (path, redux, project_id, is_public) ->
+    if not path?
+        console.warn("WARNING: save(undefined path)")
+        return
     is_public = !!is_public
     ext       = filename_extension(path).toLowerCase()
     # either use the one given by ext, or if there isn't one, use the '' fallback.
     save = (file_editors[is_public][ext]?.save) ? (file_editors[is_public]['']?.save)
     save?(path, redux, project_id)
 
+exports.special_filenames_with_no_extension = () ->
+    (name.slice(6) for name in Object.keys(file_associations) when name.slice(0,6) == 'noext-')
 
 # Require each module, which loads a file editor.  These call register_file_editor.
 # This should be a comprehensive list of all React editors
@@ -124,11 +141,13 @@ exports.save = (path, redux, project_id, is_public) ->
 require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
+require('./editor_pdf')
+require('./editor_time')
+require('./jupyter/register')
 
 # Public editors
 require('./public/editor_md')
 require('./public/editor_image')
-require('./public/editor_pdf')
 
 # require('./editor_codemirror')
 

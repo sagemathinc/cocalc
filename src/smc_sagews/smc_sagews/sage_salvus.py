@@ -5,7 +5,7 @@
 ##################################################################################
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -13,15 +13,21 @@
 #########################################################################################
 
 
-import copy, os, sys, types
+import copy, os, sys, types, re
 
-try:
-    from pandas import DataFrame
-    def is_dataframe(obj):
-        return isinstance(obj, DataFrame)
-except:
-    def is_dataframe(obj):
+import sage.all
+
+
+def is_dataframe(obj):
+    if 'pandas' not in str(type(obj)):
+        # avoid having to import pandas unless it's really likely to be necessary.
+        return
+    # CRITICAL: do not import pandas at the top level since it can take up to 3s -- it's **HORRIBLE**.
+    try:
+        from pandas import DataFrame
+    except:
         return False
+    return isinstance(obj, DataFrame)
 
 # This reduces a lot of confusion for Sage worksheets -- people expect
 # to be able to import from the current working directory.
@@ -558,7 +564,7 @@ class control:
             X[k] = jsonable(v)
         return X
 
-import types
+import types, inspect
 
 def list_of_first_n(v, n):
     """Given an iterator v, return first n elements it produces as a list."""
@@ -582,7 +588,7 @@ def automatic_control(default):
     for _ in range(2):
         if isinstance(default, tuple) and len(default) == 2 and isinstance(default[0], str):
             label, default = default
-        if isinstance(default, tuple) and len(default) == 2 and isinstance(default[1], (tuple, list, types.GeneratorType)):
+        if isinstance(default, tuple) and len(default) == 2 and hasattr(default[1],'__iter__'):
             default_value, default = default
 
     if isinstance(default, control):
@@ -597,8 +603,6 @@ def automatic_control(default):
         return checkbox(default, label=label)
     elif isinstance(default, list):
         return selector(default, default=default_value, label=label, buttons=len(default) <= 5)
-    elif isinstance(default, types.GeneratorType):
-        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
     elif isinstance(default, Color):
         return color_selector(default=default, label=label)
     elif isinstance(default, tuple):
@@ -610,6 +614,8 @@ def automatic_control(default):
             return slider(list(default), default=default_value, label=label)
     elif is_Matrix(default):
         return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent(), label=label)
+    elif hasattr(default, '__iter__'):
+        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
     else:
         return input_box(default, label=label)
 
@@ -1457,6 +1463,7 @@ def latex0(s=None, **kwds):
         kwds['locals'] = salvus.namespace
     if 'globals' not in kwds:
         kwds['globals'] = salvus.namespace
+    sage.misc.latex.latex.add_package_to_preamble_if_available('soul')
     sage.misc.latex.Latex.eval(sage.misc.latex.latex, s, **kwds)
     salvus.file(kwds['filename'], once=False)
     if delete_file:
@@ -1488,7 +1495,7 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print("CPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
+        print("\nCPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -1667,7 +1674,7 @@ import sage.misc.cython
 
 def cython(code=None, **kwds):
     """
-    Block decorator to easily include Cython code in SageMathCloud worksheets.
+    Block decorator to easily include Cython code in CoCalc worksheets.
 
     Put %cython at the top of a cell, and the rest of that cell is compiled as
     Cython code and made directly available to use in other cells.
@@ -1798,7 +1805,7 @@ def python(code):
     """
     salvus.execute(code, preparse=False)
 
-def python3(code):
+def python3(code=None,**kwargs):
     """
     Block decorator to run code in a pure Python3 mode session.
 
@@ -1817,9 +1824,40 @@ def python3(code):
     Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
     in the controlling Sage session is in no way impacted.
 
-    NOTE: No state is preserved between calls.  Each call is a separate process.
+    .. note::
+
+        State is preserved between cells.
+        SMC %python3 mode uses the jupyter `anaconda3` kernel.
     """
-    script('sage-native-execute python3 -E')(code)
+    if python3.jupyter_kernel is None:
+        python3.jupyter_kernel = jupyter("anaconda3")
+    return python3.jupyter_kernel(code,**kwargs)
+python3.jupyter_kernel = None
+
+def singular_kernel(code=None,**kwargs):
+    """
+    Block decorator to run code in a Singular mode session.
+
+    To use this, put %singular_kernel by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using singular_kernel.
+
+    State is preserved between cells.
+
+    This is completely different than the singular command in Sage itself, which
+    supports things like x = singular(sage_object), and *also* provides a way
+    to execute code by beginning cells with %singular. The singular interface in
+    Sage uses pexpect, so might be less robust than singular_kernel.
+
+    .. note::
+
+        SMC %singular_kernel mode uses the jupyter `singular` kernel:
+        https://github.com/sebasguts/jupyter_kernel_singular
+    """
+    if singular_kernel.jupyter_kernel is None:
+        singular_kernel.jupyter_kernel = jupyter("singular")
+    return singular_kernel.jupyter_kernel(code,**kwargs)
+singular_kernel.jupyter_kernel = None
 
 def perl(code):
     """
@@ -2064,72 +2102,76 @@ sh.jupyter_kernel = None
 
 # use jupyter kernel for GNU octave instead of sage interpreter interface
 def octave(code=None,**kwargs):
+    r"""
+    Run GNU Octave code in a sage worksheet.
+
+    INPUT:
+
+    - ``code`` -- a string containing code
+
+    Use as a decorator. For example, put this in a cell and evaluate it::
+
+        %octave
+        x = -10:0.1:10;
+        plot (x, sin (x))
+
+    .. note::
+
+        SMC %octave mode uses the jupyter `octave` kernel.
+    """
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
+        octave.jupyter_kernel.smc_image_scaling = 1
     return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
 # jupyter kernel for %ir mode
 def r(code=None,**kwargs):
+    r"""
+    Run R code in a sage worksheet.
+
+    INPUT:
+
+    - ``code`` -- a string containing code
+
+    Use as a decorator. For example, put this in a cell and evaluate it to see a scatter plot
+    of built-in mtcars dataframe variables `mpg` vs `wt`::
+
+        %r
+        with(mtcars,plot(wt,mpg))
+
+    .. note::
+
+        SMC %r mode uses the jupyter `ir` kernel.
+    """
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
+        r.jupyter_kernel('options(repr.plot.res = 240)')
+        r.jupyter_kernel.smc_image_scaling = .5
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 
-## Monkey patch the R interpreter interface to support graphics, when
-## used as a decorator.
+# jupyter kernel for %scala mode
+def scala211(code=None,**kwargs):
+    r"""
+    Run scala code in a sage worksheet.
 
-#import sage.interfaces.r
-#def r_eval0(*args, **kwds):
-#    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
+    INPUT:
 
-#_r_plot_options = ''
-#def set_r_plot_options(width=7, height=7):
-#    global _r_plot_options
-#    _r_plot_options = ", width=%s, height=%s"%(width, height)
+    - ``code`` -- a string containing code
 
-#r_dev_on = False
-#def r_eval(code, *args, **kwds):
-#    """
-#    Run a block of R code.
+    Use as a decorator.
 
-#    EXAMPLES::
+    .. note::
 
-#         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
-#         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-#         1.00    2.00    3.00   12.55    3.50  111.00
-
-#    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
-#    a cell to set the whole worksheet to r mode.
-
-#    NOTE: Any plots drawn using the plot command should "just work", without having
-#    to mess with special devices, etc.
-#    """
-#    # Only use special graphics support when using r as a cell decorator, since it has
-#    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
-#    # a lot if one had a loop with r.eval in it.
-#    if sage.interfaces.r.r not in salvus.code_decorators:
-#        return r_eval0(code, *args, **kwds)
-
-#    global r_dev_on
-#    if r_dev_on:
-#        return r_eval0(code, *args, **kwds)
-#    try:
-#        r_dev_on = True
-#        tmp = '/tmp/' + uuid() + '.svg'
-#        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-#        s = r_eval0(code, *args, **kwds)
-#        r_eval0('dev.off()')
-#        return s
-#    finally:
-#        r_dev_on = False
-#        if os.path.exists(tmp):
-#            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-#            os.unlink(tmp)
-
-#sage.interfaces.r.r.eval = r_eval
-#sage.interfaces.r.r.set_plot_options = set_r_plot_options
-
+        SMC %scala211 mode uses the jupyter `scala211` kernel.
+    """
+    if scala211.jupyter_kernel is None:
+        scala211.jupyter_kernel = jupyter("scala211")
+    return scala211.jupyter_kernel(code,**kwargs)
+scala211.jupyter_kernel = None
+# add alias for generic scala
+scala = scala211
 
 def prun(code):
     """
@@ -2449,6 +2491,7 @@ def plot3d_using_matplotlib(expr, rangeX, rangeY,
 
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
+from sage.plot.plot3d.tachyon import Tachyon
 import cgi
 
 def show(*objs, **kwds):
@@ -2478,6 +2521,16 @@ def show(*objs, **kwds):
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
+
+       - viewer: optional string, set to "tachyon" for static ray-tracing view of 3d image
+
+       - background: string (default: 'transparent'), specifies background color for 3d images.
+         Ignored if viewer is set to 'tachyon' or if object type is Tachyon.
+         May be 'transparent' or any valid CSS color string, e.g.: 'red', '#00ff00', 'rgb(0,0,255)'.
+
+       - foreground: string, specifies frame color for 3d images. Defaults to 'gray' when
+         background is 'transparent', otherwise default is computed for visibility based on canvas
+         background.
 
     ANIMATIONS:
 
@@ -2542,6 +2595,8 @@ def show(*objs, **kwds):
             else:
                 salvus.threed(obj, **kwds)
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
+        elif isinstance(obj, Tachyon):
+            show_3d_plot_using_tachyon(obj, **kwds)
         elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
             if d3:
                 show_graph_using_d3(obj, **kwds)
@@ -2950,7 +3005,7 @@ def var(*args, **kwds):
     """
     Create symbolic variables and inject them into the global namespace.
 
-    NOTE: In SageMathCloud, you can use var as a line decorator::
+    NOTE: In CoCalc, you can use var as a line decorator::
 
         %var x
         %var a,b,theta          # separate with commas
@@ -2997,7 +3052,7 @@ import sage.misc.reset
 def reset(vars=None, attached=False):
     """
     If vars is specified, just restore the value of vars and leave
-    all other variables alone.   In SageMathCloud, you can also use
+    all other variables alone.   In CoCalc, you can also use
     reset as a line decorator::
 
          %reset x, pi, sin   # comma-separated
@@ -3313,53 +3368,49 @@ def load_html_resource(filename):
     if ext == "css":
         salvus.javascript('''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''%url)
     elif ext == "html":
-        # TODO: opts.element should change to cell.element when more canonical (need to finish some code in syncdoc)!
-        salvus.javascript('opts.element.append($("<div>").load("%s"))'%url)
+        salvus.javascript('element.append($("<div>").load("%s"))'%url)
     elif ext == "coffee":
-        salvus.javascript('$.ajax({url:"%s"}).done(function(data) { eval(CoffeeScript.compile(data)); })'%url)
+        salvus.coffeescript('$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'%url)
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
-try:
-    from sage.repl.attach import load_attach_path, modified_file_iterator
-    def attach(*args):
-        r"""
-        Load file(s) into the Sage worksheet process and add to list of attached files.
-        All attached files that have changed since they were last loaded are reloaded
-        the next time a worksheet cell is executed.
+def attach(*args):
+    r"""
+    Load file(s) into the Sage worksheet process and add to list of attached files.
+    All attached files that have changed since they were last loaded are reloaded
+    the next time a worksheet cell is executed.
 
-        INPUT:
+    INPUT:
 
-        - ``files`` - list of strings, filenames to attach
+    - ``files`` - list of strings, filenames to attach
 
-        .. SEEALSO::
+    .. SEEALSO::
 
-            :meth:`sage.repl.attach.attach` docstring has details on how attached files
-            are handled
-        """
-        # can't (yet) pass "attach = True" to load(), so do this
+        :meth:`sage.repl.attach.attach` docstring has details on how attached files
+        are handled
+    """
+    # can't (yet) pass "attach = True" to load(), so do this
 
-        if len(args) == 1:
-            if isinstance(args[0], (unicode,str)):
-                args = tuple(args[0].replace(',',' ').split())
-            if isinstance(args[0], (list, tuple)):
-                args = args[0]
+    if len(args) == 1:
+        if isinstance(args[0], (unicode,str)):
+            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (list, tuple)):
+            args = args[0]
+    try:
+        from sage.repl.attach import load_attach_path
+    except ImportError:
+        raise NotImplementedError("sage_salvus: attach not available")
 
-        for fname in args:
-            for path in load_attach_path():
-                fpath = os.path.join(path, fname)
-                fpath = os.path.expanduser(fpath)
-                if os.path.isfile(fpath):
-                    load(fname)
-                    sage.repl.attach.add_attached_file(fpath)
-                    break
-            else:
-                raise IOError('did not find file %r to attach' % fname)
-except ImportError:
-    print("sage_salvus: attach not available")
-    def attach(*args):
-        sys.stderr.write("Error: The 'attach' functionality is not available.\n")
-        sys.stderr.flush()
+    for fname in args:
+        for path in load_attach_path():
+            fpath = os.path.join(path, fname)
+            fpath = os.path.expanduser(fpath)
+            if os.path.isfile(fpath):
+                load(fname)
+                sage.repl.attach.add_attached_file(fpath)
+                break
+        else:
+            raise IOError('did not find file %r to attach' % fname)
 
 
 # Monkey-patched the load command
@@ -3390,7 +3441,7 @@ def load(*args, **kwds):
     If you load a pdf, it is displayed in the output of the worksheet.  The extra
     options are passed to smc.pdf -- see the docstring for that.
 
-    In SageMathCloud you may also use load as a decorator, with exactly one filename as input::
+    In CoCalc you may also use load as a decorator, with exactly one filename as input::
 
         %load foo.sage
 
@@ -3510,7 +3561,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation, Tachyon)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
@@ -3721,7 +3772,58 @@ def go(s):
         except:
             pass
 
+########################################################
+# Java mode
+########################################################
+def java(s):
+    """
+    Run a Java program.  For example,
 
+        %java
+        public class YourName { public static void main(String[] args) { System.out.println("Hello world"); } }
+
+    You can set the whole worksheet to be in java mode by typing
+
+        %default_mode java
+
+    NOTE:
+
+    - There is no relation between one cell and the next.  Each is a separate
+      self-contained java program, which gets compiled and run, with the only
+      side effects being changes to the filesystem.  The program itself is
+      stored in a file named as the public class that is deleted after it is run.
+    """
+    name = re.search('public class (?P<name>[a-zA-Z0-9]+)', s)
+    if name:
+        name = name.group('name')
+    else:
+        print 'error public class name not found'
+        return
+    try:
+        open(name +'.java','w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout, child_stderr) = os.popen3('javac %s.java'%name)
+        err = child_stderr.read()
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if not os.path.exists(name+'.class'): # failed to produce executable
+            return
+        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write('\n'+child_stderr.read())
+        sys.stdout.flush()
+        sys.stderr.flush()
+    finally:
+        pass
+        try:
+            os.unlink(name+'.java')
+        except:
+            pass
+        try:
+            os.unlink(name+'.class')
+        except:
+            pass
 
 # Julia pexepect interface support
 import julia
@@ -3736,6 +3838,7 @@ sage.interfaces.all.julia = julia
 # Help command
 import sage.misc.sagedoc
 import sage.version
+import sage.misc.sagedoc
 def help(*args, **kwds):
     if len(args) > 0 or len(kwds) > 0:
         sage.misc.sagedoc.help(*args, **kwds)

@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,16 +19,19 @@
 #
 ###############################################################################
 
-#################################################################
-#
-# compute-server -- a node.js server that provides a TCP server
-# that is used by the hubs to organize projects.
-#
-#################################################################
+require('coffee-cache')
+
+###
+
+compute-server -- runs on the compute nodes; is also imported as a module
+
+###
 
 CONF = '/projects/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
+
+START_TIME = new Date().getTime() # milliseconds
 
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
@@ -39,7 +42,6 @@ fs          = require('fs')
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
-daemon      = require('start-stop-daemon')
 
 uuid        = require('node-uuid')
 
@@ -52,8 +54,11 @@ sqlite      = require('smc-util-node/sqlite')
 
 
 # Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+try
+    winston.remove(winston.transports.Console)
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+catch err
+    # ignore
 
 {defaults, required} = misc
 
@@ -86,7 +91,7 @@ smc_compute = (opts) =>
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         path = require('path')
         command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        PROJECT_PATH = process.env.COCALC_PROJECT_PATH ? path.join(process.env.SALVUS_ROOT, 'data', 'projects')
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
@@ -983,7 +988,7 @@ get_whitelisted_users = (opts) ->
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, ['root','salvus','dd-agent'].concat((x.project_id.replace(/-/g,'') for x in results)))
+                opts.cb(undefined, ['root','salvus','monitoring','_apt'].concat((x.project_id.replace(/-/g,'') for x in results)))
 
 NO_OUTGOING_FIREWALL = false
 firewall = (opts) ->
@@ -1135,9 +1140,12 @@ update_states = (cb) ->
                                 cb(err)
                             else
                                 project.state(update:true, cb:cb)
-            async.mapLimit(projects, 20, f, cb)
+            async.mapLimit(projects, 8, f, cb)
         ], (err) ->
-            setTimeout(update_states, 2*60*1000)
+            # slow down during the first 10 minutes after startup
+            startup = ((new Date().getTime()) - START_TIME) < 10*60*1000
+            delay_s = if startup then 10 else 2
+            setTimeout(update_states, delay_s * 60 * 1000)
             cb?(err)
         )
 
@@ -1189,7 +1197,7 @@ class FakeDevSocketFromCompute extends EventEmitter
             cb      : required
 
 class FakeDevSocketFromHub extends EventEmitter
-    constructor : ->
+    constructor: ->
         @_socket = new FakeDevSocketFromCompute(@)
 
     write_mesg: (type, mesg, cb) =>
@@ -1232,17 +1240,21 @@ exports.fake_dev_socket = (cb) ->
 # Command line interface
 ###########################
 
-program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
-    .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-    .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-    .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-    .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-    .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-    .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-    .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-    .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
-    .parse(process.argv)
+try
+    program.usage('[start/stop/restart/status] [options]')
+        .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
+        .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
+        .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
+        .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
+        .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
+        .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
+        .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
+        .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
+        .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .parse(process.argv)
+catch e
+    # Stupid bug in the command module when loaded as a module.
+    program._name = 'xxx'
 
 program.port = parseInt(program.port)
 
@@ -1267,6 +1279,7 @@ main = () ->
         if exists
             fs.chmod(CONF, 0o700)     # just in case...
 
+    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
 if program._name.split('.')[0] == 'compute'

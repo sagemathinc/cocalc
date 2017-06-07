@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+set -v
+
+# Ensure that the environment is setup; in particular, SMC_DB_HOSTS is defined
+. $HOME/.smc-conf
+
+# This is what might go in crontab:
+# 30 */12 * * * /home/salvus/smc/src/scripts/postgresql/smc-blob-maintenance > /home/salvus/.smc-blob-maintenance.log 2>/home/salvus/.smc-blob-maintenance.err
+
+cd $HOME/smc/src
+. smc-env
+hub --blob_maintenance

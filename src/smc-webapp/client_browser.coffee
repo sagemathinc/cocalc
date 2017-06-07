@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,26 +19,26 @@
 #
 ###############################################################################
 
+if not Primus?
+    alert("Library not fully built (Primus not defined) -- refresh your browser")
+    window.location.reload()
+
 $ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')
 
-# Primus = require('webapp-lib/primus/primus-engine.js')
-
-#{SMC_ICON_URL} = require('./misc_page')
-SMC_ICON_URL = require('salvus-icon.svg')
+{APP_LOGO_WHITE} = require('./misc_page')
 
 # these idle notifications were in misc_page, but importing it here failed
 
 idle_notification_html = ->
     {redux}   = require('./smc-react')
     customize = redux.getStore('customize')
-    site_name = customize?.get('site_name') ? "SageMathCloud"
     """
     <div>
-    <img src="#{SMC_ICON_URL}">
-    <h1>#{site_name}<br> is on standby</h1>
+    <img src="#{APP_LOGO_WHITE}">
+    <h1>... is on standby</h1>
     &mdash; click to resume &mdash;
     </div>
     """
@@ -79,15 +79,41 @@ class Connection extends client.Connection
         # you have to change the context to *top*!   See
         # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
         #
-        window.smc = {}
-        window.smc.client = @
-        window.smc.misc = require('smc-util/misc')
-        window.smc.done = window.smc.misc.done  # useful for debugging
-        window.smc.sha1 = require('sha1')       # used only for debugging
-        window.smc.schema = require('smc-util/schema')  # only for debugging
-        window.smc.synctable_debug = require('smc-util/synctable').set_debug  # use to enable/disable verbose synctable logging
-        setTimeout(@_init_idle, 15 * 1000)
         super(opts)
+        @_setup_window_smc()
+
+        # This is used by the base class for marking file use notifications.
+        @_redux = require('./smc-react').redux
+
+        # The following two lines disable the idle timeout functionality.
+        # This is disabled since it may be causing a DOS attack
+        # by users... not 100% sure yet.
+        #@set_standby_timeout_m = ->   # make this a no-op
+        setTimeout(@_init_idle, 15 * 1000)
+
+    _setup_window_smc: () =>
+        # if we are in DEBUG mode, inject the client into the global window object
+        if not DEBUG
+            return
+        window.smc                     ?= {}
+        window.smc.client              = @
+        window.smc.misc                = require('smc-util/misc')
+        window.smc.immutable           = require('immutable')
+        window.smc.done                = window.smc.misc.done
+        window.smc.sha1                = require('sha1')
+        window.smc.schema              = require('smc-util/schema')
+        # use to enable/disable verbose synctable logging
+        window.smc.synctable_debug     = require('smc-util/synctable').set_debug
+        window.smc.idle_trigger        = => @emit('idle', 'away')
+
+        # Client-side testing code -- we use require.ensure so this stuff only
+        # ever gets loaded by the browser if actually used.
+        window.smc.test = (modules) ->
+            require.ensure ['./test-client/init'], ->
+                require('./test-client/init').run(modules)
+        window.smc.test_clear = () ->
+            require.ensure ['./test-client/init'], ->
+                require('./test-client/init').clear()
 
     _init_idle: () =>
         ###
@@ -95,7 +121,7 @@ class Connection extends client.Connection
         It is pushed forward each time @_idle_reset is called.
         The setInterval timer checks every minute, if the current time is past this @_init_time.
         If so, the user is 'idle'.
-        To keep 'active', call smc.client.idle_reset as often as you like:
+        To keep 'active', call webapp_client.idle_reset as often as you like:
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
@@ -105,16 +131,23 @@ class Connection extends client.Connection
         setInterval(@_idle_check, 60 * 1000)
 
         # call this idle_reset like a function
-        # will reset timer on *first* call and then every 10secs while being called
-        @idle_reset = _.throttle(smc.client._idle_reset, 15 * 1000)
+        # will reset timer on *first* call and then every 15secs while being called
+        @idle_reset = _.throttle(@_idle_reset, 15 * 1000)
 
         # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
-        $(document).on("click mousemove keydown focusin", "body", smc.client.idle_reset)
+        $(document).on('click mousemove keydown focusin touchstart', @idle_reset)
+        $('#smc-idle-notification').on('click mousemove keydown focusin touchstart', @_idle_reset)
 
         delayed_disconnect = undefined
 
-        recconn = (=> if not @_connected then @_conn?.open())
-        disconn = (=> if @_connected then @_conn?.end())
+        reconn = =>
+            if @_connection_is_totally_dead # CRITICAL: See https://github.com/primus/primus#primusopen !!!!!
+                @_conn?.open()
+        reconn = _.throttle(reconn, 10*1000)  # never attempt to reconnect more than once per 10s, no matter what.
+
+        disconn = =>
+            if @_connected
+                @_conn?.end()
 
         @on 'idle', (state) ->
             #console.log("idle state: #{state}")
@@ -129,32 +162,36 @@ class Connection extends client.Connection
                     if delayed_disconnect?
                         clearTimeout(delayed_disconnect)
                         delayed_disconnect = undefined
-                    recconn()
-                    setTimeout(recconn, 2000) # avoid race condition???
+                    reconn()
+                    setTimeout(reconn, 5000) # avoid race condition???
 
-    # periodically check if the user hasn't been active
+    # This is called periodically. If the user hasn't been active
+    # for @_idle_timeout ms, then we emit an idle event.
     _idle_check: =>
+        if not @_idle_time?
+            return
         now = (new Date()).getTime()
         # console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
-            true
-        else
-            false
 
-    # ATTN use @reset_idle, not this one here (see constructor above)
+    # Set @_idle_time to the **moment in in the future** at which the user will be
+    # considered idle, and also emit event indicator using is currently active.
     _idle_reset: =>
-        # console.log("idle: _idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
+        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
-    # called when the user configuration settings are set
+    # Change the standby timeout to a particular time in minutes.
+    # This gets called when the user configuration settings are set/loaded.
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
 
     _connect: (url, ondata) ->
-        console.log("client_browser -- _connect")
+        log = (mesg) ->
+            console.log("websocket -", mesg)
+        log("connect")
 
         @url = url
         if @ondata?
@@ -163,8 +200,9 @@ class Connection extends client.Connection
 
         @ondata = ondata
 
+        ###
         opts =
-            ping      : 25000   # used for maintaining the connection and deciding when to reconnect.
+            ping      : 25000  # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
@@ -172,22 +210,24 @@ class Connection extends client.Connection
                 min      : 1000
                 factor   : 1.25
                 retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
-
         conn = new Primus(url, opts)
+        ###
+
+        conn = new Primus(url)
+
         @_conn = conn
         conn.on 'open', () =>
+            @_connected = true
+            @_connection_is_totally_dead = false
             if @_conn_id?
                 conn.write(@_conn_id)
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
-            @_connected = true
-
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
-            console.log("websocket -- connected #{protocol}")
+            log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
-            #console.log("installing ondata handler")
             conn.removeAllListeners('data')
             f = (data) =>
                 @_conn_id = data.toString()
@@ -195,46 +235,51 @@ class Connection extends client.Connection
                 conn.on('data', ondata)
             conn.on("data", f)
 
+
         conn.on 'outgoing::open', (evt) =>
-            console.log("websocket -- connecting")
+            log("connecting")
             @emit("connecting")
 
         conn.on 'offline', (evt) =>
-            console.log("websocket -- offline (no internet connection)")
+            log("offline")
+            @_connected = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
-            console.log("websocket -- online (regaining internet connection)")
+            log("online")
 
         conn.on 'message', (evt) =>
-            #console.log("websocket -- message: ", evt)
             ondata(evt.data)
 
         conn.on 'error', (err) =>
-            console.log("websocket -- error: ", err)
-            @emit("error", err)
+            log("error: ", err)
+            # NOTE: we do NOT emit an error event in this case!  See
+            # https://github.com/sagemathinc/cocalc/issues/1819
+            # for extensive discussion.
 
         conn.on 'close', () =>
-            console.log("websocket -- closed")
+            log("closed")
             @_connected = false
-            conn.removeAllListeners('data')
-            @emit("disconnected", "disconnected")
+            @emit("disconnected", "close")
+
+        conn.on 'end', =>
+            @_connection_is_totally_dead = true
 
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
+            @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
             @emit("connecting")
             conn.removeAllListeners('data')
-            console.log("websocket -- reconnecting in #{opts.scheduled} ms")
-            console.log("websocket -- this is attempt #{opts.attempt} out of #{opts.retries}")
+            log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
 
         conn.on 'incoming::pong', (time) =>
-            #console.log("pong latency=#{conn.latency}")
+            #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>
-        #    console.log(new Date() - 0, "sending a ping")
+        #    log(new Date() - 0, "sending a ping")
 
         @_write = (data) =>
             conn.write(data)
@@ -255,6 +300,9 @@ class Connection extends client.Connection
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
 
+    alert_message: (args...) =>
+        require('./alerts').alert_message(args...)
+
 connection = undefined
 exports.connect = (url) ->
     if connection?
@@ -263,4 +311,3 @@ exports.connect = (url) ->
         return connection = new Connection(url)
 
 exports.connect()
-

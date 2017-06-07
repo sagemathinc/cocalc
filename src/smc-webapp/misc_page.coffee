@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -26,15 +26,64 @@ misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
+theme       = require('smc-util/theme')
 
-{redux} = require('./smc-react')
+get_inspect_dialog = (editor) ->
+    dialog = $('''
+    <div class="webapp-codemirror-introspect modal"
+         data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width:90%">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h4><div class="webapp-codemirror-introspect-title"></div></h4>
+                </div>
 
-templates = $("#salvus-misc-templates")
+                <div class="webapp-codemirror-introspect-content-source-code cm-s-default">
+                </div>
+                <div class="webapp-codemirror-introspect-content-docstring cm-s-default">
+                </div>
+
+
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    ''')
+    dialog.modal()
+    dialog.data('editor', editor)
+
+    dialog.find("button").click () ->
+        dialog.modal('hide')
+        dialog.remove() # also removing, we no longer have any use for this element!
+
+    # see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
+    dialog.on 'hidden.bs.modal', () ->
+        dialog.data('editor').focus?()
+        dialog.data('editor', 0)
+
+    return dialog
+
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
+
+exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
+exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
+exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
+exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
+exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
+
+{join} = require('path')
+exports.APP_BASE_URL = window?.app_base_url ? ''
+exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -98,64 +147,18 @@ $.fn.spin = (opts) ->
             data.spinner.stop()
             delete data.spinner
         if opts isnt false
+            Spinner = require("spin/spin.min.js")
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
-    this
+    return this
 
-# make all links open internally or in a new tab; etc.
-# opts={project_id:?, file_path:path that contains file}
-$.fn.process_smc_links = (opts={}) ->
+# jQuery plugin for spinner (/spin/spin.min.js)
+$.fn.exactly_cover = (other) ->
     @each ->
-        e = $(this)
-        a = e.find('a')
-        # make links open in a new tab by default
-        a.attr("target","_blank")
-        for x in a
-            y = $(x)
-            href = y.attr('href')
-            if href?
-                if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
-                    # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
-                    # link directly inside this browser tab.
-                    # WARNING: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
-                    # to have /projects/ in it -- deal with them someday...
-                    y.click (e) ->
-                        url = $(@).attr('href')
-                        i = url.indexOf('/projects/')
-                        target = url.slice(i + '/projects/'.length)
-                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
-                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
-                    # internal link
-                    y.click (e) ->
-                        target = $(@).attr('href')
-                        if target.indexOf('/projects/') == 0
-                            # fully absolute (but without https://...)
-                            target = decodeURI(target.slice('/projects/'.length))
-                        else if target[0] == '/' and target[37] == '/' and misc.is_valid_uuid_string(target.slice(1,37))
-                            # absolute path with /projects/ omitted -- /..project_id../files/....
-                            target = decodeURI(target.slice(1))  # just get rid of leading slash
-                        else if target[0] == '/' and opts.project_id
-                            # absolute inside of project
-                            target = "#{opts.project_id}/files#{decodeURI(target)}"
-                        else if opts.project_id and opts.file_path?
-                            # realtive to current path
-                            target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
-                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
-
-        # make relative links to images use the raw server
-        if opts.project_id and opts.file_path?
-            a = e.find("img")
-            for x in a
-                y = $(x)
-                src = y.attr('src')
-                if src.indexOf('://') != -1
-                    continue
-                new_src = "/#{opts.project_id}/raw/#{opts.file_path}/#{src}"
-                y.attr('src', new_src)
-
-        return e
-
+        elt = $(this)
+        elt.offset(other.offset())
+        elt.width(other.width())
+        elt.height(other.height())
+    return this
 
 # Easily enable toggling details of some elements...
 # (grep code for usage examples)
@@ -205,9 +208,10 @@ mathjax_enqueue = (x) ->
         mathjax_queue.push(x)
 
 exports.mathjax_finish_startup = ->
-    console.log 'finishing mathjax startup'
     for x in mathjax_queue
         mathjax_enqueue(x)
+    if DEBUG
+        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
@@ -226,8 +230,9 @@ $.fn.extend
             if not opts.tex? and not opts.display and not opts.inline
                 # Doing this test is still much better than calling mathjax below, since I guess
                 # it doesn't do a simple test first... and mathjax is painful.
-                html = t.html()
-                if html.indexOf('$') == -1 and html.indexOf('\\') == -1
+                html = t.html().toLowerCase()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1 and html.indexOf('math/tex') == -1
+                    opts.cb?()
                     return t
                 # this is a common special case - the code below would work, but would be
                 # stupid, since it involves converting back and forth between html
@@ -536,6 +541,27 @@ exports.cm_define_testbot = (cm) ->
                 setTimeout(f, opts.delay)
         f()
 
+exports.sagews_canonical_mode = (name, default_mode) ->
+    switch name
+        when 'markdown'
+            return 'md'
+        when 'xml'
+            return 'html'
+        when 'mediawiki'
+            return 'mediawiki'
+        when 'stex'
+            return 'tex'
+        when 'python'
+            return 'python'
+        when 'r'
+            return 'r'
+        when 'sagews'
+            return 'sage'
+        when 'shell'
+            return 'shell'
+        else
+            return default_mode
+
 exports.define_codemirror_extensions = () ->
 
     # LaTeX code folding (isn't included in CodeMirror)
@@ -551,7 +577,8 @@ exports.define_codemirror_extensions = () ->
     startswith = misc.startswith
 
     CodeMirror.registerHelper "fold", "stex", (cm, start) ->
-        line = cm.getLine(start.line).trimLeft()
+        trimStart = require('lodash/trimStart')
+        line = trimStart(cm.getLine(start.line))
         find_close = () ->
             BEGIN = "\\begin"
             if startswith(line, BEGIN)
@@ -576,61 +603,65 @@ exports.define_codemirror_extensions = () ->
                     if j != -1
                         level -= 1
                         if level == 0
-                            return [i, j + END.length]
+                            return [i, j + END.length - 1]
 
             else if startswith(line, "\\[")
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\]")
+                    if startswith(trimStart(cm.getLine(i)), "\\]")
                         return [i, 0]
 
             else if startswith(line, "\\(")
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\)")
+                    if startswith(trimStart(cm.getLine(i)), "\\)")
                         return [i, 0]
 
             else if startswith(line, "\\documentclass")
                 # pre-amble
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "\\begin{document}")
+                    if startswith(trimStart(cm.getLine(i)), "\\begin{document}")
                         return [i - 1, 0]
 
             else if startswith(line, "\\chapter")
                 # book chapter
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
+                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
                 return cm.lastLine()
+
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
                 for i in [start.line+1..cm.lastLine()]
-                    if startswith(cm.getLine(i).trimLeft(), "%\\end{}")
+                    if startswith(trimStart(cm.getLine(i)), "%\\end{}")
                         return [i, 0]
+
             return [undefined, undefined]  # no folding here...
 
         [i, j] = find_close()
@@ -713,6 +744,17 @@ exports.define_codemirror_extensions = () ->
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
+        if not value?
+            # Special case -- trying to set to value=undefined.  This is the sort of thing
+            # that might rarely happen right as the document opens or closes, for which
+            # there is no meaningful thing to do but "do nothing".  We detected this periodically
+            # by catching user stacktraces in production...  See https://github.com/sagemathinc/cocalc/issues/1768
+            return
+        current_value = @getValue()
+        if value == current_value
+            # Nothing to do
+            return
+
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -725,7 +767,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(current_value, value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -782,7 +824,7 @@ exports.define_codemirror_extensions = () ->
             return
 
         sel = $("<select>").css('width','auto')
-        complete = $("<div>").addClass("salvus-completions").append(sel)
+        complete = $("<div>").addClass("webapp-completions").append(sel)
         for c in completions
             # do not include target in appended completion if it has a '*'
             if target.indexOf('*') == -1
@@ -848,16 +890,17 @@ exports.define_codemirror_extensions = () ->
             content   : required
             type      : required   # 'docstring', 'source-code' -- FUTURE:
             target    : required
-        element = templates.find(".salvus-codemirror-introspect")
-        element.find(".salvus-codemirror-introspect-title").text(opts.target)
-        element.modal()
-        element.find(".salvus-codemirror-introspect-content-docstring").text('')
-        element.find(".salvus-codemirror-introspect-content-source-code").text('')
-        element.data('editor', @)
+        if typeof(opts.content) != 'string'
+            # If for some reason the content isn't a string (e.g., undefined or an object or something else),
+            # convert it a string, which will display fine.
+            opts.content = "#{JSON.stringify(opts.content)}"
+        element = get_inspect_dialog(@)
+        element.find(".webapp-codemirror-introspect-title").text(opts.target)
+        element.show()
         if opts.type == 'source-code'
-            CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
+            CodeMirror.runMode(opts.content, 'python', element.find(".webapp-codemirror-introspect-content-source-code")[0])
         else
-            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
+            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".webapp-codemirror-introspect-content-docstring")[0])
 
     # Codemirror extension that takes as input an arrow of words (or undefined)
     # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
@@ -973,25 +1016,7 @@ exports.define_codemirror_extensions = () ->
             default_mode = cm.get_edit_mode()
 
         canonical_mode = (name) ->
-            switch name
-                when 'markdown'
-                    return 'md'
-                when 'xml'
-                    return 'html'
-                when 'mediawiki'
-                    return 'mediawiki'
-                when 'stex'
-                    return 'tex'
-                when 'python'
-                    return 'python'
-                when 'r'
-                    return 'r'
-                when 'sagews'
-                    return 'sage'
-                when 'shell'
-                    return 'shell'
-                else
-                    return default_mode
+            exports.sagews_canonical_mode(name, default_mode)
 
         args = opts.args
         cmd = opts.cmd
@@ -1002,9 +1027,9 @@ exports.define_codemirror_extensions = () ->
         # deal with nesting.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
-            left  = left.trim().toLowerCase()
-            right = right.trim().toLowerCase()
-            src0   = src.toLowerCase()
+            left  = left.toLowerCase()
+            right = right.toLowerCase()
+            src0  = src.toLowerCase()
             i = src0.indexOf(left)
             if i != -1
                 j = src0.lastIndexOf(right)
@@ -1020,18 +1045,8 @@ exports.define_codemirror_extensions = () ->
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)
-            # trim whitespace
-            i = 0
-            while i<src.length and /\s/.test(src[i])
-                i += 1
-            j = src.length-1
-            while j > 0 and /\s/.test(src[j])
-                j -= 1
-            j += 1
-            left_white = src.slice(0,i)
-            right_white = src.slice(j)
-            src = src.slice(i,j)
-            src0 = src
+            start_line_beginning = from.ch == 0
+            until_line_ending    = cm.getLine(to.line).length == to.ch
 
             mode1 = mode
             data_for_mode = EDIT_COMMANDS[mode1]
@@ -1048,6 +1063,23 @@ exports.define_codemirror_extensions = () ->
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
 
+            if DEBUG and not how?
+                console.warn("CodeMirror/edit_selection: unknown 'how' for mode1='#{mode1}' and cmd='#{cmd}'")
+
+            # trim whitespace
+            i = 0
+            j = src.length-1
+            if how? and (if how.trim? then how.trim else true)
+                while i < src.length and /\s/.test(src[i])
+                    i += 1
+                while j > 0 and /\s/.test(src[j])
+                    j -= 1
+            j += 1
+            left_white  = src.slice(0,i)
+            right_white = src.slice(j)
+            src         = src.slice(i,j)
+            src0        = src
+
             done = false
 
             # this is an abuse, but having external links to the documentation is good
@@ -1057,31 +1089,52 @@ exports.define_codemirror_extensions = () ->
                 done = true
 
             if how?.wrap?
-                if how.strip?
-                    # Strip out any tags/wrapping from conflicting modes.
-                    for c in how.strip
-                        wrap = EDIT_COMMANDS[mode1][c].wrap
-                        if wrap?
-                            {left, right} = wrap
-                            src1 = strip(src, left, right)
-                            if src1?
-                                src = src1
+                space = how.wrap.space
+                left  = how.wrap.left  ? ""
+                right = how.wrap.right ? ""
+                process = (src) ->
+                    if how.strip?
+                        # Strip out any tags/wrapping from conflicting modes.
+                        for c in how.strip
+                            wrap = EDIT_COMMANDS[mode1][c].wrap
+                            if wrap?
+                                src1 = strip(src, wrap.left ? '', wrap.right ? '')
+                                if src1?
+                                    src = src1
+                                    if space and src[0] == ' '
+                                        src = src.slice(1)
 
-                left  = if how.wrap.left?  then how.wrap.left else ""
-                right = if how.wrap.right? then how.wrap.right else ""
-                src1 = strip(src, left, right)
-                if src1
-                    # strip the wrapping
-                    src = src1
+                    src1  = strip(src, left, right)
+                    if src1
+                        # strip the wrapping
+                        src = src1
+                        if space and src[0] == ' '
+                            src = src.slice(1)
+                    else
+                        # do the wrapping
+                        src = "#{left}#{if space then ' ' else ''}#{src}#{right}"
+                    return src
+
+                if how.wrap.multi
+                    src = (process(x) for x in src.split('\n')).join('\n')
                 else
-                    # do the wrapping
-                    src = "#{left}#{src}#{right}"
+                    src = process(src)
+                if how.wrap.newline
+                    src = '\n' + src + '\n'
+                    if not start_line_beginning
+                        src = '\n' + src
+                    if not until_line_ending
+                        src += '\n'
                 done = true
 
             if how?.insert? # to insert the code snippet right below, next line
                 # SMELL: no idea what the strip(...) above is actually doing
-                # if text is selected (is that src?) then there is only some new stuff below it. that's it.
-                src = "#{src}\n#{how.insert}"
+                # no additional newline, if nothing is selected and at start of line
+                if selection.empty() and from.ch == 0
+                    src = how.insert
+                else
+                    # this also inserts a new line, if cursor is inside/end of line
+                    src = "#{src}\n#{how.insert}"
                 done = true
 
             if cmd == 'font_size'
@@ -1092,6 +1145,13 @@ exports.define_codemirror_extensions = () ->
                             src = src1
                     if args != '3'
                         src = "<font size=#{args}>#{src}</font>"
+                else if mode == 'tex'
+                    # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                    latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                    i = parseInt(args)
+                    if i in [1..7]
+                        size = latex_sizes[i - 1]
+                        src = "{\\#{size} #{src}}"
 
             if cmd == 'color'
                 if mode in ['html', 'md', 'mediawiki']
@@ -1139,35 +1199,38 @@ exports.define_codemirror_extensions = () ->
             if src == src0
                 continue
 
+            cm.focus()
             cm.replaceRange(left_white + src + right_white, from, to)
-            if selection.empty()
-                # restore cursor
-                if left?
-                    delta = left.length
+
+            if not how?.insert? and not how?.wrap?
+                if selection.empty()
+                    # restore cursor
+                    if left?
+                        delta = left.length
+                    else
+                        delta = 0
+                    cm.setCursor({line:from.line, ch:to.ch+delta})
                 else
-                    delta = 0
-                cm.setCursor({line:from.line, ch:to.ch+delta})
-            else
-                # now select the new range
-                delta = src.length - src0.length
-                cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+                    # now select the new range
+                    delta = src.length - src0.length
+                    cm.extendSelection(from, {line:to.line, ch:to.ch+delta})
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
         opts = defaults opts,
             cb : undefined
         cm = @
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         selected_text = cm.getSelection()
         display.val(selected_text)
@@ -1175,7 +1238,7 @@ exports.define_codemirror_extensions = () ->
         mode = cm.get_edit_mode()
 
         if mode in ['md', 'rst', 'tex']
-            dialog.find(".salvus-html-editor-target-row").hide()
+            dialog.find(".webapp-html-editor-target-row").hide()
 
         submit = () =>
             dialog.modal('hide')
@@ -1276,31 +1339,31 @@ exports.define_codemirror_extensions = () ->
             cb : undefined
         cm = @
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         mode = cm.get_edit_mode()
 
         if mode == "tex"
             # different units and don't let user specify the height
-            dialog.find(".salvus-html-editor-height-row").hide()
-            dialog.find(".salvus-html-editor-image-width-header-tex").show()
-            dialog.find(".salvus-html-editor-image-width-header-default").hide()
-            dialog.find(".salvus-html-editor-width").val('80')
+            dialog.find(".webapp-html-editor-height-row").hide()
+            dialog.find(".webapp-html-editor-image-width-header-tex").show()
+            dialog.find(".webapp-html-editor-image-width-header-default").hide()
+            dialog.find(".webapp-html-editor-width").val('80')
 
         submit = () =>
             dialog.modal('hide')
-            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            title  = dialog.find(".webapp-html-editor-title").val().trim()
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
 
@@ -1311,10 +1374,10 @@ exports.define_codemirror_extensions = () ->
                 #    :alt: alternate text
                 #    :align: right
                 s = "\n.. image:: #{url.val()}\n"
-                height = dialog.find(".salvus-html-editor-height").val().trim()
+                height = dialog.find(".webapp-html-editor-height").val().trim()
                 if height.length > 0
                     s += "   :height: #{height}px\n"
-                width = dialog.find(".salvus-html-editor-width").val().trim()
+                width = dialog.find(".webapp-html-editor-width").val().trim()
                 if width.length > 0
                     s += "   :width: #{width}px\n"
                 if title.length > 0
@@ -1328,7 +1391,7 @@ exports.define_codemirror_extensions = () ->
 
             else if mode == "tex"
                 cm.tex_ensure_preamble("\\usepackage{graphicx}")
-                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                width = parseInt(dialog.find(".webapp-html-editor-width").val(), 10)
                 if "#{width}" == "NaN"
                     width = "0.8"
                 else
@@ -1385,7 +1448,7 @@ exports.define_codemirror_extensions = () ->
             bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
             return
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-symbols-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
@@ -1408,7 +1471,7 @@ exports.define_codemirror_extensions = () ->
                 cm.replaceRange(s, sel.head)
             opts.cb?()
 
-        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.find(".webapp-html-editor-symbols-dialog-table").off("click").click(selected)
         dialog.keydown (evt) =>
             if evt.which == 13 # enter
                 submit()
@@ -1517,16 +1580,6 @@ cm_start_end = (selection) ->
         end_line = start_line
     return {start_line:start_line, end_line:end_line}
 
-codemirror_introspect_modal = templates.find(".salvus-codemirror-introspect")
-
-codemirror_introspect_modal.find("button").click () ->
-    codemirror_introspect_modal.modal('hide')
-
-# see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
-codemirror_introspect_modal.on 'hidden.bs.modal', () ->
-    codemirror_introspect_modal.data('editor').focus?()
-    codemirror_introspect_modal.data('editor',0)
-
 exports.download_file = (url) ->
     #console.log("download_file(#{url})")
     ## NOTE: the file has to be served with
@@ -1592,22 +1645,20 @@ $("body").on "show.bs.tooltip", (e) ->
 
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
-        cb()
+        cb?()
     else
         require.ensure [], =>
+            # this should define window.CoffeeScript as the compiler instance.
             require("script!coffeescript/coffee-script.js")
-            console.log("loaded CoffeeScript via reqire.ensure")
-            cb()
-            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            #    console.log("loaded CoffeeScript -- #{status}")
-            #    cb()
+            console.log("loaded CoffeeScript via require.ensure")
+            cb?()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
-    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
 
 # get the currently selected html
@@ -1653,6 +1704,19 @@ exports.restore_selection = (selected_range) ->
 exports.sanitize_html = (html) ->
     return jQuery("<div>").html(html).html()
 
+# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
+exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true, post_hook = undefined) ->
+    {sanitize_html_attributes} = require('smc-util/misc')
+    sani = jQuery(jQuery.parseHTML('<div>' + html + '</div>', null, keepScripts))
+    if not keepUnsafeAttributes
+        sani.find('*').each ->
+            sanitize_html_attributes(jQuery, this)
+    if post_hook?
+        post_hook(sani)
+    return sani.html()
+
+exports.sanitize_html_safe = (html, post_hook=undefined) ->
+    exports.sanitize_html(html, false, false, post_hook)
 
 ###
 _sanitize_html_lib = require('sanitize-html')
@@ -1693,3 +1757,65 @@ exports.analytics_pageview = (args...) ->
 
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
+
+# These are used to disable pointer events for iframes when dragging something that may move over an iframe.
+# See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
+exports.drag_start_iframe_disable = ->
+    $("iframe:visible").css('pointer-events', 'none')
+
+exports.drag_stop_iframe_enable = ->
+    $("iframe:visible").css('pointer-events', 'auto')
+
+exports.open_popup_window = (url) ->
+    exports.open_new_tab(url, popup=true)
+
+# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
+exports.open_new_tab = (url, popup=false) ->
+    # if popup=true, it opens a small overlay window instead of a new tab
+    if popup
+        tab = window.open(url, '', 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=400,width=600')
+    else
+        tab = window.open(url)
+    if(!tab || tab.closed || typeof tab.closed=='undefined')
+        {alert_message} = require('./alerts')
+        alert_message
+            title   : "Pop-ups blocked."
+            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+            type    : 'error'
+            timeout : 10
+        return null
+    return tab
+
+exports.get_cookie = (name) ->
+    value = "; " + document.cookie
+    parts = value.split("; " + name + "=")
+    return parts.pop().split(";").shift() if (parts.length == 2)
+
+# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
+exports.clear_selection = ->
+    if window.getSelection?().empty?
+        window.getSelection().empty() # chrome
+    else if window.getSelection?().removeAllRanges?
+        window.getSelection().removeAllRanges() # firefox
+    else
+        document.selection?.empty?()
+
+# read the query string of the URL and transform it to a key/value map
+# based on: https://stackoverflow.com/a/4656873/54236
+# the main difference is that multiple identical keys are collected in an array
+# test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
+exports.get_query_params = ->
+    vars = {}
+    href = window.location.href
+    for part in href.slice(href.indexOf('?') + 1).split('&')
+        [k, v] = part.split('=')
+        if vars[k]?
+            if not Array.isArray(vars[k])
+                vars[k] = [vars[k]]
+            vars[k] = vars[k].concat(v)
+        else
+            vars[k] = v ? true
+    return vars
+
+exports.get_query_param = (p) ->
+    return exports.get_query_params()[p]

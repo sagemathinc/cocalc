@@ -1,4 +1,5 @@
 misc = require('smc-util/misc')
+{types} = misc
 
 exports.entry_style =
     paddingTop    : '5px'
@@ -16,6 +17,9 @@ exports.note =
     marginTop  : '10px'
     paddingTop : '5px'
 
-exports.show_hide_deleted =
-    marginTop  : '20px'
+exports.show_hide_deleted = (opts) ->
+    types opts,
+        needs_margin : types.bool.isRequired
+
+    marginTop  : if opts.needs_margin then '15px' else '0px'
     float      : 'right'

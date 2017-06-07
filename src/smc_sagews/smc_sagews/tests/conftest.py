@@ -6,8 +6,8 @@ import json
 import signal
 import struct
 import hashlib
-
-# import sys
+import time
+from datetime import datetime
 
 ###
 # much of the code here is copied from sage_server.py
@@ -373,18 +373,44 @@ def data_path(tmpdir_factory):
     return path
 
 @pytest.fixture()
+def execdoc(request, sagews, test_id):
+    r"""
+    Fixture function execdoc. Depends on two other fixtures, sagews and test_id.
+
+    EXAMPLES:
+
+    ::
+
+        def test_assg(execdoc):
+            execdoc("random?")
+    """
+    def execfn(code, pattern='Docstring'):
+        m = message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'code' in mesg
+        assert 'source' in mesg['code']
+        assert re.sub('\s+','',pattern) in re.sub('\s+','',mesg['code']['source'])
+
+    def fin():
+        recv_til_done(sagews, test_id)
+
+    request.addfinalizer(fin)
+    return execfn
+
+
+@pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
-    Fixture for worksheet cell test. Depends on two other fixtures,
-    sagews and test_id.
-    - `` code `` -- string of code block to run
+    Fixture function exec2. Depends on two other fixtures, sagews and test_id.
+    If output & patterns are omitted, the cell is not expected to produce a
+    stdout result. All arguments after 'code' are optional.
 
-    Fixture function exec2. If output & patterns are omitted, the cell is not
-    expected to produce a stdout result. Arguments after 'code' are optional.
+    - `` code `` -- string of code to run
 
-    - `` code `` -- string of code block to run
-
-    - `` output `` -- string of expected output, to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -410,6 +436,10 @@ def exec2(request, sagews, test_id):
         def test_sh(exec2):
             exec2("sh('date +%Y-%m-%d')", pattern = '^\d{4}-\d{2}-\d{2}$')
 
+    .. NOTE::
+
+        If `output` is a list of strings, `pattern` and `html_pattern` are ignored
+
     """
     def execfn(code, output = None, pattern = None, html_pattern = None):
         m = message.execute_code(code = code, id = test_id)
@@ -418,15 +448,23 @@ def exec2(request, sagews, test_id):
         sagews.send_json(m)
 
         # check stdout
-        if output or pattern:
+        if isinstance(output, list):
+            for o in output:
+                typ, mesg = sagews.recv()
+                assert typ == 'json'
+                assert mesg['id'] == test_id
+                assert 'stdout' in mesg
+                assert o.strip() in (mesg['stdout']).strip()
+        elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
             assert 'stdout' in mesg
+            mout = mesg['stdout']
             if output is not None:
-                assert mesg['stdout'] == output
+                assert output in mout
             elif pattern is not None:
-                assert re.search(pattern, mesg['stdout']) is not None
+                assert re.search(pattern, mout) is not None
         elif html_pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
@@ -461,7 +499,7 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code, want_name=True, want_html=True):
+    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png', ignore_stdout=False):
 
         SHA_LEN = 36
 
@@ -469,9 +507,10 @@ def execblob(request, sagews, test_id):
         m = message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
 
-        # expect 3 responses before "done", but order may vary
+        # expect several responses before "done", but order may vary
         want_blob = True
-        while want_blob or want_name or want_html:
+        want_name = True
+        while any([want_blob, want_name, want_html, want_javascript]):
             typ, mesg = sagews.recv()
             if typ == 'blob':
                 assert want_blob
@@ -490,11 +529,18 @@ def execblob(request, sagews, test_id):
                     assert want_html
                     want_html = False
                     print('got html')
+                elif 'javascript' in mesg:
+                    assert want_javascript
+                    want_javascript = False
+                    print('got javascript')
+                elif ignore_stdout and 'stdout' in mesg:
+                    pass
                 else:
                     assert want_name
                     want_name = False
                     assert 'file' in mesg
                     print('got file name')
+                    assert file_type in mesg['file']['filename']
 
         # final response is json "done" message
         typ, mesg = sagews.recv()
@@ -502,6 +548,23 @@ def execblob(request, sagews, test_id):
         assert mesg['done'] == True
 
     return execblobfn
+
+@pytest.fixture()
+def execintrospect(request, sagews, test_id):
+    def execfn(line, completions, target, top=None):
+        if top is None:
+            top = line
+        m = message.introspect(test_id, line=line, top=top)
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == completions
+        assert mesg['target'] == target
+
+    return execfn
 
 @pytest.fixture(scope = "class")
 def sagews(request):
@@ -515,7 +578,7 @@ def sagews(request):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(15)
+    sock.settimeout(45)
     print("connected to socket")
 
     # unlock
@@ -525,7 +588,7 @@ def sagews(request):
     c_ack = conn._recv(1)
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
-    # start session
+    # open connection with sage_server and run tests
     msg = message.start_session()
     msg['type'] = 'sage'
     conn.send_json(msg)
@@ -570,3 +633,72 @@ def own_sage_server(request):
         print("killing all sage_server processes")
         os.system("pkill -f sage_server_command_line")
     request.addfinalizer(fin)
+
+@pytest.fixture(scope = "class")
+def test_ro_data_dir(request):
+    """
+    Return the directory containing the test file.
+    Used for tests which have read-only data files in the test dir.
+    """
+    return os.path.dirname(request.module.__file__)
+
+#
+# Write machine-readable report files into the $HOME directory
+# http://doc.pytest.org/en/latest/example/simple.html#post-process-test-reports-failures
+#
+import os
+report_json = os.path.expanduser('~/sagews-test-report.json')
+report_prom = os.path.expanduser('~/sagews-test-report.prom')
+results = []
+start_time = None
+
+@pytest.hookimpl
+def pytest_configure(config):
+    global start_time
+    start_time = datetime.utcnow()
+
+@pytest.hookimpl
+def pytest_unconfigure(config):
+    global start_time
+    data = {
+        'name'     : 'smc_sagews.test',
+        'version'  : 1,
+        'start'    : str(start_time),
+        'end'      : str(datetime.utcnow()),
+        'fields'   : ['name', 'outcome', 'duration'],
+        'results'  : results,
+    }
+    with open(report_json, 'w') as out:
+        json.dump(data, out, indent=1)
+    # this is a plain text prometheus report
+    # https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
+    # timestamp milliseconds since epoch
+    ts = int(1000 * time.mktime(start_time.timetuple()))
+    # first write to temp file ...
+    report_prom_tmp = report_prom + '~'
+    with open(report_prom_tmp, 'w') as prom:
+        for (name, outcome, duration) in results:
+            labels = 'name="{name}",outcome="{outcome}"'.format(**locals())
+            line = 'sagews_test{{{labels}}} {duration} {ts}'.format(**locals())
+            prom.write(line + '\n')
+    # ... then atomically overwrite the real one
+    os.rename(report_prom_tmp, report_prom)
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    if rep.when != "call":
+        return
+
+    #import pdb; pdb.set_trace() # uncomment to inspect item and rep objects
+    # the following `res` should match the `fields` above
+    # parent: item.parent.name could be interesting, but just () for auto discovery
+    name = item.name
+    test_ = 'test_'
+    if name.startswith(test_):
+        name = name[len(test_):]
+    res = [name, rep.outcome, rep.duration]
+    results.append(res)

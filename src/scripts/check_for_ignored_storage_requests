@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cd $HOME/smc/src
+. smc-env
+cd $SMC_ROOT
+if [ `coffee -e "require('smc-hub/storage').ignored_storage_requests(age_m:10, all:false, cb:(e,t)->console.log(t.length);process.exit(e))"` -ne "0" ]; then
+    echo "ignored storage requests for too long -- restarting!"
+    sudo /root/restart_storage
+fi

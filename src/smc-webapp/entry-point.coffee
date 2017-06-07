@@ -8,6 +8,10 @@ Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
 $('body').append(html)
 
+# deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
+{init_buttonbars} = require('./buttonbar')
+init_buttonbars()
+
 # Load/initialize Redux-based react functionality
 {redux} = require('./smc-react')
 
@@ -23,23 +27,20 @@ require('./jquery_plugins')
 # Initializes app stores, actions, etc.
 require('./init_app')
 
-{IS_MOBILE, isMobile} = require('./feature')
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
 
-# Is this terrible for performance? I don't know.
-render = () =>
-    if not isMobile.tablet() and IS_MOBILE or $(window).width() < 770
-        mobile.render()
-        # This is a hack for now until we figure out how to get the flex box model
-        # to work on mobile. The problem is setting the flex styles on Sidebar in mobile_app.cjsx.
-        setTimeout((()->$(".container-content").maxheight()), 1)
-    else
-        desktop.render()
+# Feature must be loaded before account and anything that might use cookies or localStorage,
+# but after smc-react and the basic app definition.
+{IS_MOBILE, isMobile} = require('./feature')
 
-render()
+if IS_MOBILE and not isMobile.tablet()
+    # Cell-phone version of site, with different
+    # navigation system for selecting projects and files.
+    mobile.render()
+else
+    desktop.render()
 
-$(window).on('resize', render)
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.

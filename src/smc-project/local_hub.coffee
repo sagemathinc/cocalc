@@ -1,6 +1,6 @@
 ###
 
-SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 
 local_hub -- a node.js program that runs as a regular user, and
@@ -13,12 +13,23 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
+
+require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
+
+process.addListener "uncaughtException", (err) ->
+    winston.debug("BUG ****************************************************************************")
+    winston.debug("Uncaught exception: " + err)
+    winston.debug(err.stack)
+    winston.debug("BUG ****************************************************************************")
+    if console? and console.trace?
+        console.trace()
+
 path    = require('path')
 async   = require('async')
 fs      = require('fs')
 os      = require('os')
 net     = require('net')
-uuid    = require('node-uuid')
+uuid    = require('uuid')
 winston = require('winston')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
@@ -83,10 +94,15 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-if not fs.existsSync(SMC)
-    fs.mkdirSync(SMC)
-if not fs.existsSync(DATA)
-    fs.mkdirSync(DATA)
+# See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
+# code sometimes assumes this exists, and it's not so hard to just ensure
+# it does, rather than fixing any such code.
+SAGE = path.join(process.env.HOME, '.sage')
+
+for directory in [SMC, DATA, SAGE]
+    if not fs.existsSync(directory)
+        fs.mkdirSync(directory)
+
 
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 
@@ -95,7 +111,7 @@ json = common.json
 
 INFO = undefined
 init_info_json = (cb) ->
-    winston.debug("writing info.json")
+    winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
     v = process.env.HOME.split('/')
     project_id = v[v.length-1]
@@ -107,7 +123,10 @@ init_info_json = (cb) ->
         host = 'localhost'
     else
         # what we want for the Google Compute engine deployment
-        host = require('os').networkInterfaces().eth0?[0].address
+        # earlier, there was eth0, but newer Ubuntu's on GCP have ens4
+        nics = require('os').networkInterfaces()
+        mynic = nics.eth0 ? nics.ens4
+        host = mynic?[0].address
     base_url = process.env.SMC_BASE_URL ? ''
     port     = 22
     INFO =
@@ -221,6 +240,8 @@ start_tcp_server = (secret_token, port, cb) ->
     winston.info("starting tcp server: project <--> hub...")
     server = net.createServer (socket) ->
         winston.debug("received new connection")
+        socket.on 'error', (err) ->
+            winston.debug("socket error - #{err}")
 
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err
@@ -271,10 +292,11 @@ start_server = (tcp_port, raw_port, cb) ->
             raw_server.start_raw_server
                 project_id : INFO.project_id
                 base_url   : INFO.base_url
-                host       : process.env.SMC_PROXY_HOST ? INFO.location.host
+                host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port
+                logger     : winston
                 cb         : cb
     ], (err) ->
         if err
@@ -284,17 +306,9 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
-process.addListener "uncaughtException", (err) ->
-    winston.debug("BUG ****************************************************************************")
-    winston.debug("Uncaught exception: " + err)
-    winston.debug(err.stack)
-    winston.debug("BUG ****************************************************************************")
-    if console? and console.trace?
-        console.trace()
-
 program.usage('[?] [options]')
-    .option('--tcp_port <n>', 'TCP server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
-    .option('--raw_port <n>', 'RAW server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
+    .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .parse(process.argv)
 
 start_server program.tcp_port, program.raw_port, (err) ->

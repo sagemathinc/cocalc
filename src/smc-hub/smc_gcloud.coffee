@@ -1,6 +1,8 @@
 ###
 
-g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:'db0', pool:1))
+** Deprecated: THIS WAS tons of work, but really Kubernetes is the way to go... **
+
+---
 
 This uses the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
@@ -29,7 +31,11 @@ Rules we care about are:
      stop the VM and recreate and start it as prempt.
 
 ###
+fs = require('fs')
+
+
 winston     = require('winston')
+
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
@@ -1118,11 +1124,23 @@ class GoogleCloud
             name : required
         return new Bucket(@, opts.name)
 
+gcloud_bucket_cache = {}
+
 class Bucket
     constructor: (@gcloud, @name) ->
-        @_bucket = @gcloud._gcloud.storage().bucket(@name)
+        @_bucket = gcloud_bucket_cache[@name]
+        # if not defined, define it:
+        @_bucket ?= gcloud_bucket_cache[@name] = @gcloud._gcloud.storage().bucket(@name)
 
     dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
+
+    delete: (opts) =>
+        opts = defaults opts,
+            name    : required
+            cb      : undefined
+        dbg = @dbg("delete(name='#{opts.name}')")
+        dbg()
+        @_bucket.file(opts.name).delete (err) => opts.cb?(err)
 
     write: (opts) =>
         opts = defaults opts,
@@ -1139,7 +1157,7 @@ class Bucket
             opts.cb?()
             delete opts.cb
         stream.on 'error', (err) =>
-            dbg("err = '#{err}'")
+            dbg("err = '#{JSON.stringify(err)}'")
             if err
                 @_write_using_gsutil(opts)
         return

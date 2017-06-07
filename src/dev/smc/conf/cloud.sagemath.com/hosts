@@ -26,21 +26,9 @@ compute6-us us-central1-c compute
 compute7-us us-central1-c compute
 compute8-us us-central1-c compute
 
-# web server nodes
-#web0 gce hub nginx haproxy web
-#web1 gce hub nginx haproxy web
-#web2 gce hub nginx haproxy web
-#web3 gce hub nginx
-#web4 gce hub nginx
-
 # database nodes
 
-db0 database
-db1 database
-db2 database
-db3 database
-db4 database
-db5 database
+postgres0 database
 
 # admin nodes
 admin0 admin

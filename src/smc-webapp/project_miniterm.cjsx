@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ IDEAS FOR LATER:
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
-{salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
+{webapp_client} = require('./webapp_client')  # used to run the command -- could change to use an action and the store.
 
 output_style =
     position  : 'absolute'
@@ -45,6 +45,17 @@ output_style =
     maxHeight : '450px'
     overflow  : 'auto'
 
+BAD_COMMANDS =
+    sage    : "Create a Sage worksheet instead,\nor type 'sage' in a full terminal."
+    ipython : "Create a Jupyter notebook instead,\nor type 'ipython' in a full terminal."
+    gp      : "Create a Sage worksheet in GP mode\nor type 'gp' in a full terminal."
+    vi      : "Type vi in a full terminal instead,\nor just click on the file in the listing."
+    vim     : "Type vim in a full terminal instead,\nor just click on the file in the listing."
+    emacs   : "Type emacs in a full terminal instead,\nor just click on the file in the listing."
+    open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230"
+
+EXEC_TIMEOUT = 10 # in seconds
+
 exports.MiniTerminal = MiniTerminal = rclass
     displayName : 'MiniTerminal'
 
@@ -53,26 +64,34 @@ exports.MiniTerminal = MiniTerminal = rclass
         current_path : rtypes.string  # provided by the project store; undefined = HOME
         actions      : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         input  : ''
         stdout : undefined
         state  : 'edit'   # 'edit' --> 'run' --> 'edit'
         error  : undefined
 
-    execute_command : ->
+    execute_command: ->
         @setState(stdout:'', error:'')
         input = @state.input.trim()
         if not input
             return
+        error = BAD_COMMANDS[input.split(' ')[0]]
+        if error
+            @setState
+                state : 'edit'
+                error : error
+            return
+
         input0 = input + '\necho $HOME "`pwd`"'
         @setState(state:'run')
 
         @_id = (@_id ? 0) + 1
         id = @_id
-        salvus_client.exec
+        start_time = new Date()
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
-            timeout    : 10
+            timeout    : EXEC_TIMEOUT
             max_output : 100000
             bash       : true
             path       : @props.current_path
@@ -83,6 +102,11 @@ exports.MiniTerminal = MiniTerminal = rclass
                     return
                 if err
                     @setState(error:err, state:'edit')
+                else if output.exit_code != 0 and new Date() - start_time >= .98*EXEC_TIMEOUT
+                    # we get no other error except it takes a long time and the exit_code isn't 0.
+                    @setState
+                        state : 'edit'
+                        error : "Miniterminal commands are limited to #{EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal."
                 else
                     if output.stdout
                         # Find the current path
@@ -104,11 +128,12 @@ exports.MiniTerminal = MiniTerminal = rclass
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
+                    @props.actions.fetch_directory_listing()  # update directory listing (command may change files)
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')
 
-    render_button : ->
+    render_button: ->
         switch @state.state
             when 'edit'
                 <Button onClick={@execute_command}>
@@ -116,10 +141,10 @@ exports.MiniTerminal = MiniTerminal = rclass
                 </Button>
             when 'run'
                 <Button onClick={@execute_command}>
-                    <Icon name='circle-o-notch' spin  />
+                    <Icon name='cc-icon-cocalc-ring' spin  />
                 </Button>
 
-    render_output : (x, style) ->
+    render_output: (x, style) ->
         if x
             <pre style=style>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
@@ -130,7 +155,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                 {x}
             </pre>
 
-    keydown : (e) ->
+    keydown: (e) ->
         # IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
         # all null right now -- see
         #     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
@@ -138,7 +163,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         if e.keyCode == 27
             @setState(input: '', stdout:'', error:'')
 
-    render : ->
+    render: ->
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
         <div>

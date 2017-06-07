@@ -11,7 +11,7 @@ exports.SharedProjectPanel = rclass
         redux             : rtypes.object.isRequired
         name              : rtypes.string.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         confirm_create : false
 
     panel_header_text: ->
@@ -20,7 +20,7 @@ exports.SharedProjectPanel = rclass
         else
             "Optionally create a shared project for everybody"
 
-    render : ->
+    render: ->
         <Row>
             <Col md=6>
                  <Panel header={<h4><Icon name='users' />  {@panel_header_text()} </h4>}>
@@ -58,7 +58,7 @@ exports.SharedProjectPanel = rclass
             </Button>
         </div>
 
-    open_project : ->
+    open_project: ->
         @props.redux.getActions('projects').open_project(project_id:@props.shared_project_id)
 
     render_no_shared_project: ->
@@ -109,7 +109,7 @@ exports.SharedProjectPanel.Header = rclass
     propTypes :
         project_exists : rtypes.bool
 
-    render : ->
+    render: ->
         if @props.project_exists
             tip = "Shared project that everybody involved in this course may use."
         else
