@@ -670,7 +670,7 @@ message
 API message
     event      : 'project_exec'
     id         : undefined
-    project_id : undefined
+    project_id : required
     path       : ''   # if relative, is a path under home; if absolute is what it is.
     command    : required
     args       : []
