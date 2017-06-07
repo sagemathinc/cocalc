@@ -89,6 +89,8 @@ exports.init_express_http_server = (opts) ->
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
+    router.use '/doc',
+        express.static(path_module.join(STATIC_PATH, 'doc'), {maxAge: 0})
 
     router.get '/', (req, res) ->
         # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie

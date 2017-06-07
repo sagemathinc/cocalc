@@ -263,19 +263,21 @@ API message2
              init  : required
              desc  : 'list of account_ids'
     desc        : """
-Get first and last names for a list of account ids
+Get first and last names for a list of account ids.
 
-Note: Options for the 'get_usernames' API message must be sent as JSON object.
+Note: Options for the `get_usernames` API message must be sent as JSON object.
 
 Example:
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-    -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \\
     https://cocalc.com/api/v1/get_usernames
   ==>  {"event":"usernames",
         "id":"32b485a8-f214-4fda-a622-4dbfe0db2b9c",
         "usernames": {
            "cc3cb7f1-14f6-4a18-a803-5034af8c0004":{"first_name":"John","last_name":"Smith"},
            "9b896055-920a-413c-9172-dfb4007a8e7f":{"first_name":"Jane","last_name":"Doe"}}}
+```
 """
 
 message
@@ -315,28 +317,32 @@ API message2
 Examples:
 
 Create a new account:
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d first_name=John00 \
-    -d last_name=Doe00 \
-    -d email_address=jd@some_email \
-    -d password=xyzabc09090 \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d first_name=John00 \\
+    -d last_name=Doe00 \\
+    -d email_address=jd@some_email \\
+    -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+```
 
-Option 'agreed_to_terms' must be present and specified as true.
+Option `agreed_to_terms` must be present and specified as true.
 Account creation fails if there is already an account using the
-given email address, if 'email_address' is improperly formatted,
+given email address, if `email_address` is improperly formatted,
 and if password is fewer than 6 or more than 64 characters.
 
 Attempting to create the same account a second time results in an error:
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d first_name=John00 \
-    -d last_name=Doe00 \
-    -d email_address=jd@some_email \
-    -d password=xyzabc09090 \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d first_name=John00 \\
+    -d last_name=Doe00 \\
+    -d email_address=jd@some_email \\
+    -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
   ==> {"event":"account_creation_failed",
        "id":"2332be03-aa7d-49a6-933a-cd9824b7331a",
        "reason":{"email_address":"This e-mail address is already taken."}}
+```
 """
 
 message
@@ -364,18 +370,21 @@ API message2
 Example:
 
 Delete an existing account:
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
     https://cocalc.com/api/v1/delete_account
   ==> {"event":"account_deleted","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
+```
 
-Event 'account_deleted' is also returned if the account was already
+Event `account_deleted` is also returned if the account was already
 deleted before the API call, or if the account never existed.
 
-After successful 'delete_account', the owner of the deleted account
+After successful `delete_account`, the owner of the deleted account
 will not be able to login, but will still be listed as collaborator
 or owner on projects which the user collaborated on or owned
 respectively.
+```
 """
 
 # hub --> client
@@ -448,8 +457,14 @@ API message2
 Given email address and old password for an account, set a new password.
 
 Example:
-  curl -u sk_abcdefQWERTY090900000000: -d email_address= -d old_password= -d new_password 
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d email_address=... \\
+    -d old_password=... \\
+    -d new_password=... \\
+    https://cocalc.com/api/v1/change_password
   ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
+```
 """
 
 # hub --> client
@@ -474,8 +489,14 @@ API message2
 Given the email address of an existing account, send password reset email.
 
 Example:
-  curl -u sk_abcdefQWERTY090900000000: -d email_address=... https://cocalc.com/api/v1/forgot_password
-  ==> {"event":"forgot_password_response","id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558","error":false}
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d email_address=... \\
+    https://cocalc.com/api/v1/forgot_password
+  ==> {"event":"forgot_password_response",
+       "id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558",
+       "error":false}
+```
 """
 
 # hub --> client  "a password reset email was sent, or there was an error"
@@ -501,11 +522,13 @@ API message2
 Reset password, given reset code.
 
 Example:
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d reset_code=35a0eea6-370a-45c3-ab2f-3210df68748f \
-    -d new_password=qjqhddfsfj \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d reset_code=35a0eea6-370a-45c3-ab2f-3210df68748f \\
+    -d new_password=qjqhddfsfj \\
     https://cocalc.com/api/v1/reset_forgot_password
   ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
+```
 """
 
 message
@@ -533,8 +556,9 @@ API message2
             init      :""
             desc      : ''
     desc:"""
-Given the account_id for an account, set a new email address.
-Note: account_id must match the id of the current login.
+Given the `account_id` for an account, set a new email address.
+
+**Note:** `account_id` must match the `id` of the current login.
 """
 
 # hub --> client
@@ -681,52 +705,70 @@ Execute a shell command in a given project.
 Examples:
 
 Simple built-in shell command.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d command=pwd \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d command=pwd \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     https://cocalc.com/api/v1/project_exec
   ==> {"event":"project_exec_output",
        "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
-       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba\n","stderr":"","exit_code":0}
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba\\n","stderr":"","exit_code":0}
+```
 
 Shell command with different working directory.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d command=pwd \
-    -d path=Private \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d command=pwd \\
+    -d path=Private \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     https://cocalc.com/api/v1/project_exec
   ==> {"event":"project_exec_output",
        "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
-       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba/Private\n","stderr":"","exit_code":0}
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba/Private\\n","stderr":"","exit_code":0}
+```
 
 Command line arguments specified by 'args' option. Note JSON format for request parameters.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -H 'Content-Type: application/json' \
-    -d '{"command":"echo","args":["xyz","abc"],"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H 'Content-Type: application/json' \\
+    -d '{"command":"echo","args":["xyz","abc"],"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \\
     https://cocalc.com/api/v1/project_exec
-  ==> {"event":"project_exec_output","id":"39289ba7-0333-48ad-984e-b25c8b8ffa0e","stdout":"xyz abc\n","stderr":"","exit_code":0}
+  ==> {"event":"project_exec_output",
+       "id":"39289ba7-0333-48ad-984e-b25c8b8ffa0e",
+       "stdout":"xyz abc\\n",
+       "stderr":"",
+       "exit_code":0}
+```
 
 Limiting output of the command to 3 characters.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -H 'Content-Type: application/json' \
-    -d '{"command":"echo","args":["xyz","abc"],"max_output":3,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H 'Content-Type: application/json' \\
+    -d '{"command":"echo","args":["xyz","abc"],"max_output":3,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \\
     https://cocalc.com/api/v1/project_exec
-  ==> {"event":"project_exec_output","id":"02feab6c-a743-411a-afca-8a23b58988a9","stdout":"xyz (truncated at 3 characters)","stderr":"","exit_code":0}+ echo
+  ==> {"event":"project_exec_output",
+       "id":"02feab6c-a743-411a-afca-8a23b58988a9",
+       "stdout":"xyz (truncated at 3 characters)",
+       "stderr":"",
+       "exit_code":0}
+```
 
 Setting a timeout for the command.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -H 'Content-Type: application/json' \
-    -d '{"command":"sleep 5","timeout":2,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H 'Content-Type: application/json' \\
+    -d '{"command":"sleep 5","timeout":2,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \\
     https://cocalc.com/api/v1/project_exec
   ==>  {"event":"error",
         "id":"86fea3f0-6a90-495b-a541-9c14a25fbe58",
         "error":"Error executing command 'sleep 5' with args '' -- killed command 'bash /tmp/f-11757-1677-8ei2z0.t4fex0qkt9', , "}
+```
 
 Notes:
-- Argument 'command' may invoke an executable file or a built-in shell command. It may include
+- Argument `command` may invoke an executable file or a built-in shell command. It may include
   a path and command line arguments.
-- If option 'args' is provided, options must be sent as a JSON object.
-- Argument 'path' is optional. When provided, 'path' is relative to home directory in target project
+- If option `args` is provided, options must be sent as a JSON object.
+- Argument `path` is optional. When provided, `path` is relative to home directory in target project
   and specifies the working directory in which the command will be run.
 """
 
@@ -811,11 +853,15 @@ and containing directories if they do not already exist.
 Example:
 
 Read a text file.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
-    -d path=Assignments/A1/h1.txt \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d path=Assignments/A1/h1.txt \\
     https://cocalc.com/api/v1/read_text_file_from_project
-  ==> {"event":"text_file_read_from_project","id":"481d6055-5609-450f-a229-480e518b2f84","content":"hello"}
+  ==> {"event":"text_file_read_from_project",
+       "id":"481d6055-5609-450f-a229-480e518b2f84",
+       "content":"hello"}
+```
 """
 
 # hub --> client
@@ -867,11 +913,13 @@ If a file already exists at the destination path, it is overwritten.
 Example:
 
 Create a text file.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
-    -d "content=hello$'\n'world" \
-    -d path=Assignments/A1/h1.txt \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d "content=hello$'\\n'world" \\
+    -d path=Assignments/A1/h1.txt \\
     https://cocalc.com/api/v1/write_text_file_to_project
+```
 """
 
 # The file_written_to_project message is sent by a project_server to
@@ -903,8 +951,15 @@ API message2
             desc  : 'start running the moment the project is created -- uses more resources, but possibly better user experience'
     desc       : """
 Example:
-  curl -u sk_abcdefQWERTY090900000000: -d title='MY NEW PROJECT' -d description='sample project' https://cocalc.com/api/v1/create_project
-  == > {"event":"project_created","id":"0b4df293-d518-45d0-8a3c-4281e501b85e","project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d title='MY NEW PROJECT' \\
+    -d description='sample project' \\
+    https://cocalc.com/api/v1/create_project
+  == > {"event":"project_created",
+        "id":"0b4df293-d518-45d0-8a3c-4281e501b85e",
+        "project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
+```
 """
 
 # hub --> client
@@ -939,7 +994,10 @@ and strings that are not email addresses. An email query item will return
 account id, first name, last name, and email address for the unique
 account with that email address, if there is one. A string query item
 will return account id, first name, and last name for all matching
-accounts. We do not reveal email addresses of users queried by name.
+accounts.
+
+We do not reveal email addresses of users queried by name.
+
 String query matches first and last names that start with the given string.
 If a string query item consists of two strings separated by space,
 the search will return accounts in which the first name begins with one
@@ -952,16 +1010,24 @@ Note: there is a hard limit of 50 returned items in the results.
 Examples:
 
 Search for account by email.
-  curl -u sk_abcdefQWERTY090900000000: -d query=jd@m.local https://cocalc.com/api/v1/user_search
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d query=jd@m.local \\
+    https://cocalc.com/api/v1/user_search
   ==> {"event":"user_search_results",
        "id":"3818fa50-b892-4167-b9d9-d22d521b36af",
        "results":[{"account_id":"96c523b8-321e-41a3-9523-39fde95dc71d",
                    "first_name":"John",
                    "last_name":"Doe",
                    "email_address":"jd@m.local"}
+```
 
 Search for at most 3 accounts where first and last name begin with 'foo' or 'bar'.
-  curl -u sk_abcdefQWERTY090900000000: -d 'query=foo bar' -d limit=3 https://cocalc.com/api/v1/user_search
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d 'query=foo bar'\\
+    -d limit=3 \\
+    https://cocalc.com/api/v1/user_search
   ==> {"event":"user_search_results",
        "id":"fd9b025b-25d0-4e27-97f4-2c080bb07155",
        "results":[{"account_id":"1a842a67-eed3-405d-a222-2f23a33f675e",
@@ -973,15 +1039,21 @@ Search for at most 3 accounts where first and last name begin with 'foo' or 'bar
                   {"account_id":"93f8131c-6c21-401a-897d-d4abd9c6c225",
                    "first_name":"Foo",
                    "last_name":"Bar"}]}
-  The same result would be returned with a search string of 'bar foo'.
-  A name of "Xfoo YBar" would not match.
-  Note that email addresses are not returned for string search items.
+```
+
+The same result as the last example above would be returned with a
+search string of 'bar foo'.
+A name of "Xfoo YBar" would not match.
+
+Note that email addresses are not returned for string search items.
 
 Email and string search types may be mixed in a single query:
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d 'query=foo bar,jd@m.local' \
-    -d limit=4 \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d 'query=foo bar,jd@m.local' \\
+    -d limit=4 \\
     https://cocalc.com/api/v1/user_search
+```
 """
 
 # hub --> client
@@ -1157,19 +1229,25 @@ Test API connection, return time as ISO string when server responds to ping.
 Examples:
 
 Omitting request id:
+```
   curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"c74afb40-d89b-430f-836a-1d889484c794","now":"2017-05-24T13:29:11.742Z"}
+```
 
-Using "uuid" shell command to create a request id:
+Using `uuid` shell command to create a request id:
+```
   uuid
   ==> 553f2815-1508-416d-8e69-2dde5af3aed8
   curl -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping -d id=553f2815-1508-416d-8e69-2dde5af3aed8
   ==> {"event":"pong","id":"553f2815-1508-416d-8e69-2dde5af3aed8","now":"2017-05-24T13:47:21.312Z"}
+```
 
 Using JSON format to provide request id:
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
     -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
+```
 """
 
 message
@@ -1225,14 +1303,16 @@ Examples:
 Get public directory listing. Directory "Public" is shared and
 contains one file "hello.txt" and one subdirectory "p2".
 
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d path=Public \
-    -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d path=Public \\
+    -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \\
     https://cocalc.com/api/v1/public_get_directory_listing
   ==> {"event":"public_directory_listing",
        "id":"3e576b3b-b673-4d5c-9bce-780883f92958",
        "result":{"files":[{"size":41,"name":"hello.txt","mtime":1496430932},
                           {"isdir":true,"name":"p2","mtime":1496461616}]}
+```
 """
 
 message
@@ -1257,25 +1337,30 @@ API message2
 Read a public (shared) text file in the project whose id is supplied.
 User does not need to be owner or collaborator in the target project
 and does not need to be logged into CoCalc.
-Argument 'path' is relative to home directory in target project.
+Argument `path` is relative to home directory in target project.
 
 Examples
 
 Read a public file.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     -d path=Public/hello.txt
     https://cocalc.com/api/v1/public_get_text_file
-  ==> {"event":"public_text_file_contents","id":"2d0e2faa-893a-44c1-9f64-59203bbbb017","data":"hello world\nToday is Friday\n"}
+  ==> {"event":"public_text_file_contents",
+       "id":"2d0e2faa-893a-44c1-9f64-59203bbbb017",
+       "data":"hello world\\nToday is Friday\\n"}
+```
 
 Attempt to read a file which is not public.
-  curl -u sk_abcdefQWERTY090900000000: \
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     -d path=Private/hello.txt
     https://cocalc.com/api/v1/public_get_text_file
   ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
        "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}+
-
+```
 """
 
 message
@@ -1502,14 +1587,15 @@ API message2
     desc           : """
 This queries directly the database (sort of Facebook's GraphQL)
 Options for the 'query' API message must be sent as JSON object.
-A query is either "get" (read from database), or "set" (write to database).
-A query is "get" if any query keys are null, otherwise the query is "set".
+A query is either _get_ (read from database), or _set_ (write to database).
+A query is _get_ if any query keys are null, otherwise the query is _set_.
 
-Examples of 'get' query:
+Examples of _get_ query:
 
 Get title and description for a project, given the project id.
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","title":null,"description":null}}}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","title":null,"description":null}}}' \\
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
        "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
@@ -1517,10 +1603,12 @@ Get title and description for a project, given the project id.
                             "title":"MY NEW PROJECT 2",
                             "description":"desc 2"}},
        "multi_response":false}
+```
 
 Get project id, given title and description.
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-    -d '{"query":{"projects":{"project_id":null,"title":"MY NEW PROJECT 2","description":"desc 2"}}}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":null,"title":"MY NEW PROJECT 2","description":"desc 2"}}}' \\
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
        "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
@@ -1528,10 +1616,13 @@ Get project id, given title and description.
                             "description":"desc 2"}},
        "multi_response":false,
        "id":"2be22e08-f00c-4128-b112-fa8581c2d584"}
+```
 
 Get users, given the project id.
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \\
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
        "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
@@ -1539,19 +1630,23 @@ Get users, given the project id.
                                      "111634c0-7048-41e7-b2d0-f87129fd409e":{"group":"collaborator"}}}},
        "multi_response":false,
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
+```
 
-Example of 'set' query.
+Example of _set_ query.
 
 Set title and description for a project, given the project id.
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \
-    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \
-                              "title":"REVISED TITLE", \
-                              "description":"REVISED DESC"}}}' \
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
+                              "title":"REVISED TITLE", \\
+                              "description":"REVISED DESC"}}}' \\
     https://cocalc.com/api/v1/query
     ==> {"event":"query",
          "query":{},
          "multi_response":false,
          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+```
 
 Information on which fields are gettable and settable in the database tables
 via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
@@ -1559,15 +1654,14 @@ https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
 
 Within file 'db-schema.coffee':
 
-for project fields you can get, see the definition of
-`schema.projects.user_query.get.fields`.
-for user account fields you can set, see the definition of
-`schema.projects.user_query.set.fields`.
-
-for user account fields you can get, see the definition of
-`schema.accounts.user_query.get.fields`.
-for user account fields you can set, see the definition of
-`schema.accounts.user_query.set.fields`.
+- for _project_ fields you can get, see the definition of
+`schema.projects.user_query.get.fields`
+- for _project_ fields you can set, see the definition of
+`schema.projects.user_query.set.fields`
+- for _user account_ fields you can get, see the definition of
+`schema.accounts.user_query.get.fields`
+- for _user account_ fields you can set, see the definition of
+`schema.accounts.user_query.set.fields`
 """
     examples: [  # TODO: create real examples!  These are not done.
         [{id: "uuid", query: 'example1-query'},
