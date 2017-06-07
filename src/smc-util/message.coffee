@@ -317,19 +317,22 @@ API message2
 Examples:
 
 Create a new account:
+```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
     -d email_address=jd@some_email \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
+```
 
-Option 'agreed_to_terms' must be present and specified as true.
+Option `agreed_to_terms` must be present and specified as true.
 Account creation fails if there is already an account using the
-given email address, if 'email_address' is improperly formatted,
+given email address, if `email_address` is improperly formatted,
 and if password is fewer than 6 or more than 64 characters.
 
 Attempting to create the same account a second time results in an error:
+```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
@@ -339,6 +342,7 @@ Attempting to create the same account a second time results in an error:
   ==> {"event":"account_creation_failed",
        "id":"2332be03-aa7d-49a6-933a-cd9824b7331a",
        "reason":{"email_address":"This e-mail address is already taken."}}
+```
 """
 
 message
@@ -708,7 +712,7 @@ Simple built-in shell command.
     https://cocalc.com/api/v1/project_exec
   ==> {"event":"project_exec_output",
        "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
-       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba\n","stderr":"","exit_code":0}
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba\\n","stderr":"","exit_code":0}
 ```
 
 Shell command with different working directory.
@@ -720,7 +724,7 @@ Shell command with different working directory.
     https://cocalc.com/api/v1/project_exec
   ==> {"event":"project_exec_output",
        "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
-       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba/Private\n","stderr":"","exit_code":0}
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba/Private\\n","stderr":"","exit_code":0}
 ```
 
 Command line arguments specified by 'args' option. Note JSON format for request parameters.
@@ -731,7 +735,7 @@ Command line arguments specified by 'args' option. Note JSON format for request 
     https://cocalc.com/api/v1/project_exec
   ==> {"event":"project_exec_output",
        "id":"39289ba7-0333-48ad-984e-b25c8b8ffa0e",
-       "stdout":"xyz abc\n",
+       "stdout":"xyz abc\\n",
        "stderr":"",
        "exit_code":0}
 ```
@@ -912,7 +916,7 @@ Create a text file.
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
-    -d "content=hello$'\n'world" \\
+    -d "content=hello$'\\n'world" \\
     -d path=Assignments/A1/h1.txt \\
     https://cocalc.com/api/v1/write_text_file_to_project
 ```
@@ -1345,7 +1349,7 @@ Read a public file.
     https://cocalc.com/api/v1/public_get_text_file
   ==> {"event":"public_text_file_contents",
        "id":"2d0e2faa-893a-44c1-9f64-59203bbbb017",
-       "data":"hello world\nToday is Friday\n"}
+       "data":"hello world\\nToday is Friday\\n"}
 ```
 
 Attempt to read a file which is not public.
@@ -1650,15 +1654,14 @@ https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
 
 Within file 'db-schema.coffee':
 
-- for project fields you can get, see the definition of
-`schema.projects.user_query.get.fields`.
-- for user account fields you can set, see the definition of
-`schema.projects.user_query.set.fields`.
-
-- for user account fields you can get, see the definition of
-`schema.accounts.user_query.get.fields`.
-- for user account fields you can set, see the definition of
-`schema.accounts.user_query.set.fields`.
+- for _project_ fields you can get, see the definition of
+`schema.projects.user_query.get.fields`
+- for _project_ fields you can set, see the definition of
+`schema.projects.user_query.set.fields`
+- for _user account_ fields you can get, see the definition of
+`schema.accounts.user_query.get.fields`
+- for _user account_ fields you can set, see the definition of
+`schema.accounts.user_query.set.fields`
 """
     examples: [  # TODO: create real examples!  These are not done.
         [{id: "uuid", query: 'example1-query'},
