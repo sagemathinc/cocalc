@@ -188,7 +188,7 @@ FullProjectsNav = rclass
             lockAxis             = {'x'}
             lockToContainerEdges = {true}
             distance             = {3 if not isMobile.tablet()}
-            shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-project-tab-sorter')}
+            shouldCancelStart    = {(e) => 'smc-project-tab-sorter' in e.target.getAttribute('class')?}
         >
             {@project_tabs()}
         </SortableNav>

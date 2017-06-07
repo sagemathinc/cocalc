@@ -198,7 +198,7 @@ class AccountStore extends Store
         return @get_user_type() == 'signed_in'
 
     is_admin: =>
-        return @get('groups').includes('admin')
+        return 'admin' in @get('groups')
 
     get_terminal_settings: =>
         return @get('terminal')?.toJS()

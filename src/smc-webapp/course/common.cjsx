@@ -478,7 +478,7 @@ exports.FoldersToolbar = rclass
                 if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
                     # omit assignment collection folders unless explicitly searched (could cause confusion...)
                     return true
-                return paths_to_omit.includes(path)
+                return path in paths_to_omit
 
             directories = directories.filter (x) => not should_omit(x)
             directories.sort()
