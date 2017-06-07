@@ -540,8 +540,9 @@ API message2
             init      :""
             desc      : ''
     desc:"""
-Given the account_id for an account, set a new email address.
-Note: account_id must match the id of the current login.
+Given the `account_id` for an account, set a new email address.
+
+**Note:** `account_id` must match the `id` of the current login.
 """
 
 # hub --> client
