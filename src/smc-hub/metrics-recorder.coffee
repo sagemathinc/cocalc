@@ -33,7 +33,6 @@ underscore = require('underscore')
 # Prometheus client setup -- https://github.com/siimon/prom-client
 prom_client = require('prom-client')
 prom_default_metrics = prom_client.defaultMetrics
-prom_default_metrics(['process_cpu_seconds_total']) # we have our own cpu metrics
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
 require('prometheus-gc-stats')()()
@@ -149,7 +148,7 @@ class exports.MetricsRecorder
 
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
-        @_cpu_seconds_total = new_gauge('process_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
+        @_cpu_seconds_total = new_gauge('process_cpu_seconds_total_cc', 'Total number of CPU seconds used', ['type'])
 
     _collect: ->
         # called by @_update to evaluate the collector functions
@@ -235,7 +234,7 @@ class exports.MetricsRecorder
     # the periodically called publication step
     _publish: (cb) =>
         @record("timestamp", new Date(), TYPE.LAST)
-        # also record system metrics like cpu, memory, ... ?>>
+        # also record system metrics like cpu, memory, ... ?
         @_update()
         # only if we have a @filename, save it there
         if @filename?

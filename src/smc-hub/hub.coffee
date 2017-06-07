@@ -58,18 +58,17 @@ underscore = require('underscore')
 # CoCalc libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
-message = require('smc-util/message')     # message protocol between front-end and back-end
+message    = require('smc-util/message')     # message protocol between front-end and back-end
 client_lib = require('smc-util/client')
-{Client} = require('./client')
-
-sage    = require('./sage')               # sage server
-
-auth   = require('./auth')
-
-base_url = require('./base-url')
+{Client}   = require('./client')
+sage       = require('./sage')               # sage server
+auth       = require('./auth')
+base_url   = require('./base-url')
 
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
+
+MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
