@@ -4,20 +4,37 @@ extends ../_base.pug
 
 block vars
   - var subtitle = "API";
+  - var api_root = '/api/v1/'
+  - var api_doc = require('smc-util/message').documentation;
 
 block header
   script(type="text/javascript")
     include:coffee-script api.coffee
-  meta(name="description" content="#{NAME} #{subtitle}")
+  meta(name="description" content=NAME + " " + subtitle)
 
 block content
-  div.content#top
+
+  div.container#top
     div.row
       div.col-md-12
         h1 #{NAME} API
 
         div.
-          What's this API?
+          What's this API about?
+      div.col-md-12
+        h1 Endpoints:
+    - var api_doc_keys = Object.keys(api_doc).sort()
+    each key in api_doc_keys
+      - var val = api_doc[key]
+      div.row
+        div.col-md-12
+          h3= api_root + key
+          if val.fields
+            p fields:
+              ul
+                each descr, fld in val.fields
+                  li= fld + ": " + descr
+          p= val.description
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
