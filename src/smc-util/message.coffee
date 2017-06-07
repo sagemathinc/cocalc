@@ -640,28 +640,6 @@ message
     event : 'project_opened'
     id    : required
 
-# A hub sends the save_project message to a project_server to request
-# that the project_server save a snapshot of this project.  On
-# success, the project_server will respond by sending a project_saved
-# message then sending individual the bundles n.bundle for n >=
-# starting_bundle_number.
-#
-# client --> hub --> project_server
-API message
-    event                  : 'save_project'
-    id                     : undefined
-    project_id             : required    # uuid of a project
-
-# The project_saved message is sent to a hub by a project_server when
-# the project_servers creates a new snapshot of the project in
-# response to a save_project message.
-# project_server --> hub
-message
-    event          : 'project_saved'
-    id             : required       # message id, which matches the save_project message
-    bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
-
-
 ######################################################################
 # Execute a shell command in a given project
 ######################################################################
