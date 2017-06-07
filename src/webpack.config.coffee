@@ -251,7 +251,8 @@ pug2app = new HtmlWebpackPlugin(
 # static html pages
 # they only depend on the css chunk
 staticPages = []
-for [fn_in, fn_out] in [['index.pug', 'index.html'], ['features.pug', 'features.html']]
+# in the root directory (doc/ and policies/ is below)
+for [fn_in, fn_out] in [['index.pug', 'index.html']]
     staticPages.push(new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
@@ -270,6 +271,24 @@ for [fn_in, fn_out] in [['index.pug', 'index.html'], ['features.pug', 'features.
                         PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
                         PREFIX           : if fn_in == 'index.pug' then '' else '../'
+    ))
+
+# doc pages
+for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0] != '_')
+    output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        template         : dp
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
     ))
 
 # the following renders the policy pages
