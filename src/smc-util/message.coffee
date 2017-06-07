@@ -384,13 +384,6 @@ message
     id           : undefined
     error        : undefined
 
-# client <--> hub
-API message
-    event          : 'email_address_availability'
-    id             : undefined
-    email_address  : required
-    is_available   : undefined
-
 # client --> hub
 message
     id             : undefined
@@ -648,44 +641,95 @@ message
     event : 'project_opened'
     id    : required
 
-# A hub sends the save_project message to a project_server to request
-# that the project_server save a snapshot of this project.  On
-# success, the project_server will respond by sending a project_saved
-# message then sending individual the bundles n.bundle for n >=
-# starting_bundle_number.
-#
-# client --> hub --> project_server
-API message
-    event                  : 'save_project'
-    id                     : undefined
-    project_id             : required    # uuid of a project
-
-# The project_saved message is sent to a hub by a project_server when
-# the project_servers creates a new snapshot of the project in
-# response to a save_project message.
-# project_server --> hub
-message
-    event          : 'project_saved'
-    id             : required       # message id, which matches the save_project message
-    bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
-
-
 ######################################################################
 # Execute a shell command in a given project
 ######################################################################
 
 # client --> project
-API message
+API message2
     event      : 'project_exec'
-    id         : undefined
-    project_id : undefined
-    path       : ''   # if relative, is a path under home; if absolute is what it is.
-    command    : required
-    args       : []
-    timeout    : 10          # maximum allowed time, in seconds.
-    max_output : undefined   # maximum number of characters in the output
-    bash       : false       # if true, args are ignored and command is run as a bash command
-    err_on_exit : true       # if exit code is nonzero send error return message instead of the usual output.
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project where command is to be executed'
+        path:
+            init  : ''
+            desc  : 'path of working directory for the command'
+        command:
+            init  : required
+            desc  : 'command to be executed'
+        args:
+            init  : []
+            desc  : 'command line options for the command'
+        timeout:
+            init  : 10
+            desc  : 'maximum allowed time, in seconds'
+        max_output:
+            init  : undefined
+            desc  : 'maximum number of characters in the output'
+        bash:
+            init  : false
+            desc  : 'if true, args are ignored and command is run as a bash command'
+        err_on_exit:
+            init  : true
+            desc  : 'if exit code is nonzero send error return message instead of the usual output'
+     desc: """
+Execute a shell command in a given project.
+
+Examples:
+
+Simple built-in shell command.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d command=pwd \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    https://cocalc.com/api/v1/project_exec
+  ==> {"event":"project_exec_output",
+       "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba\n","stderr":"","exit_code":0}
+
+Shell command with different working directory.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d command=pwd \
+    -d path=Private \
+    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \
+    https://cocalc.com/api/v1/project_exec
+  ==> {"event":"project_exec_output",
+       "id":"8a78a37d-b2fb-4e29-94ae-d66acdeac949",
+       "stdout":"/projects/e49e86aa-192f-410b-8269-4b89fd934fba/Private\n","stderr":"","exit_code":0}
+
+Command line arguments specified by 'args' option. Note JSON format for request parameters.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -H 'Content-Type: application/json' \
+    -d '{"command":"echo","args":["xyz","abc"],"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+    https://cocalc.com/api/v1/project_exec
+  ==> {"event":"project_exec_output","id":"39289ba7-0333-48ad-984e-b25c8b8ffa0e","stdout":"xyz abc\n","stderr":"","exit_code":0}
+
+Limiting output of the command to 3 characters.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -H 'Content-Type: application/json' \
+    -d '{"command":"echo","args":["xyz","abc"],"max_output":3,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+    https://cocalc.com/api/v1/project_exec
+  ==> {"event":"project_exec_output","id":"02feab6c-a743-411a-afca-8a23b58988a9","stdout":"xyz (truncated at 3 characters)","stderr":"","exit_code":0}+ echo
+
+Setting a timeout for the command.
+  curl -u sk_abcdefQWERTY090900000000: \
+    -H 'Content-Type: application/json' \
+    -d '{"command":"sleep 5","timeout":2,"project_id":"e49e86aa-192f-410b-8269-4b89fd934fba"}' \
+    https://cocalc.com/api/v1/project_exec
+  ==>  {"event":"error",
+        "id":"86fea3f0-6a90-495b-a541-9c14a25fbe58",
+        "error":"Error executing command 'sleep 5' with args '' -- killed command 'bash /tmp/f-11757-1677-8ei2z0.t4fex0qkt9', , "}
+
+Notes:
+- Argument 'command' may invoke an executable file or a built-in shell command. It may include
+  a path and command line arguments.
+- If option 'args' is provided, options must be sent as a JSON object.
+- Argument 'path' is optional. When provided, 'path' is relative to home directory in target project
+  and specifies the working directory in which the command will be run.
+"""
 
 # project --> client
 message
@@ -1179,7 +1223,17 @@ returned.
 
 Examples:
 
-Get
+Get public directory listing. Directory "Public" is shared and
+contains one file "hello.txt" and one subdirectory "p2".
+
+  curl -u sk_abcdefQWERTY090900000000: \
+    -d path=Public \
+    -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \
+    https://cocalc.com/api/v1/public_get_directory_listing
+  ==> {"event":"public_directory_listing",
+       "id":"3e576b3b-b673-4d5c-9bce-780883f92958",
+       "result":{"files":[{"size":41,"name":"hello.txt","mtime":1496430932},
+                          {"isdir":true,"name":"p2","mtime":1496461616}]}
 """
 
 message
