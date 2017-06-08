@@ -90,11 +90,11 @@ exports.new_quantile = new_quantile = (name, help, config={}) ->
 exports.new_summary = new_summary = new_quantile
 
 exports.new_histogram = new_histogram = (name, help, config={}) ->
-    # invked as histogram.observe(value)
+    # invoked as histogram.observe(value)
     config = defaults config,
         buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
         labels: []
-    return new prom_client.Histogram(name, help, config.labels, buckets: config.buckets)
+    return new prom_client.Histogram(name, help, config.labels, buckets:config.buckets)
 
 class exports.MetricsRecorder
     constructor: (@dbg, cb) ->
@@ -125,7 +125,6 @@ class exports.MetricsRecorder
         (was a dict that should be JSON, now it is for prometheus)
         it's only called by hub_http_server for the /metrics endpoint
         ###
-        #return misc.deep_copy(@_data)
         return prom_client.register.metrics()
 
     register_collector: (collector) ->
@@ -148,17 +147,17 @@ class exports.MetricsRecorder
 
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
-        @_cpu_seconds_total = new_gauge('process_cpu_seconds_total_cc', 'Total number of CPU seconds used', ['type'])
+        @_cpu_seconds_total = new_gauge('process_cpu_categorized_seconds_total', 'Total number of CPU seconds used', ['type'])
 
     _collect: ->
         # called by @_update to evaluate the collector functions
         for c in @_collectors
             c()
-
         # linux specific: collecting this process and all its children sys+user times
         # http://man7.org/linux/man-pages/man5/proc.5.html
         fs.readFile path.join('/proc', ''+process.pid, 'stat'), 'utf8', (err, infos) =>
             if err or not CLK_TCK?
+                @dbg("MetricsRecorder._collect err: #{err}")
                 return
             # there might be spaces in the process name, hence split after the closing bracket!
             infos = infos[infos.lastIndexOf(')') + 2...].split(' ')
@@ -172,7 +171,7 @@ class exports.MetricsRecorder
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update: ->
-        @collect?()
+        @_collect()
 
         smooth = (new_value, arr) ->
             arr ?= []

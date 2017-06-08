@@ -61,17 +61,18 @@ MetricsRecorder = require('./metrics-recorder')
 
 # setting up client metrics
 mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
-                                   'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
-push_to_client_summary         = MetricsRecorder.new_summary('push_to_client',
-                                   'summary stats for Client::push_to_client', labels: ['event'])
+                                     'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
+push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
+                                     buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+                                     labels: ['event']
+                                 )
+push_to_client_stats_q         = MetricsRecorder.new_quantile('push_to_client_quant_ms', 'Client: push_to_client',
+                                     percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+                                     labels: ['event']
+                                 )
 push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
-                                   'summary stats for Client::push_to_client/to_json', labels: ['event'])
-copy_path_between_projects_summary = MetricsRecorder.new_summary('copy_path_between_projects_seconds_summary',
-                                   'summary stats for Client::copy_path_between_projects [s]')
-write_text_file_to_project_summary = MetricsRecorder.new_summary('write_text_file_to_project_seconds_summary',
-                                   'summary stats for Client::write_text_file_to_project [s]')
-read_text_file_to_project_summary = MetricsRecorder.new_summary('read_text_file_to_project_seconds_summary',
-                                   'summary stats for Client::read_text_file_to_project [s]')
+                                     'summary stats for Client::push_to_client/to_json', labels: ['event'])
+
 uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
 
 class exports.Client extends EventEmitter
@@ -275,6 +276,8 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
+                push_to_client_stats_q.observe({event:mesg.event}, time_taken)
+                push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
