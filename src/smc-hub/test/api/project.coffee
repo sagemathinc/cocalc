@@ -58,4 +58,43 @@ describe 'testing api calls with one project -- ', ->
                 expect(resp?.query?.projects?.title).toBe('New Title')
                 done(err)
 
+    it "creates project and omits title", (done) ->
+        api.call
+            event : 'create_project'
+            body  :
+                description : 'DESCXXX'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('project_created')
+                project_id = resp.project_id
+                done(err)
 
+    it "confirms blank title", (done) ->
+        api.call
+            event : 'query'
+            body :
+                query : {projects:{project_id:project_id, title:null, description:null}}
+            cb : (err, resp) ->
+                expect(resp?.query?.projects?.title).toBe('')
+                expect(resp?.query?.projects?.description).toBe('DESCXXX')
+                done(err)
+
+
+    it "creates project and omits description", (done) ->
+        api.call
+            event : 'create_project'
+            body  :
+                title       : 'TITLEXXX'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('project_created')
+                project_id = resp.project_id
+                done(err)
+
+    it "confirms blank description", (done) ->
+        api.call
+            event : 'query'
+            body :
+                query : {projects:{project_id:project_id, title:null, description:null}}
+            cb : (err, resp) ->
+                expect(resp?.query?.projects?.title).toBe('TITLEXXX')
+                expect(resp?.query?.projects?.description).toBe('')
+                done(err)
