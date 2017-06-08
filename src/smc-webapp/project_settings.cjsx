@@ -292,11 +292,11 @@ QuotaConsole = rclass
         # the keys in quotas have to match those in PROJECT_UPGRADES.field_order
         quotas =
             disk_quota  :
-                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} GB</b> disk space available - <b>{disk * quota_params['disk_quota'].display_factor} GB</b> used</span>
+                edit : <span><b>{@render_input('disk_quota')} GB</b> disk space available - <b>{disk * quota_params['disk_quota'].display_factor} GB</b> used</span>
             memory      :
-                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} GB</b> RAM memory available - <b>{memory * quota_params['memory'].display_factor} GB</b> used</span>
+                edit : <span><b>{@render_input('memory')} GB</b> RAM memory available - <b>{memory * quota_params['memory'].display_factor} GB</b> used</span>
             cores       :
                 view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>

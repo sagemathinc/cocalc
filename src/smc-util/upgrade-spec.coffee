@@ -60,17 +60,17 @@ upgrades.params =
     disk_quota :
         display        : 'Disk space'
         unit           : 'MB'
-        display_unit   : 'MB'
-        display_factor : 1
+        display_unit   : 'GB'
+        display_factor : 1/1000
         pricing_unit   : 'GB'
         pricing_factor : 1/1000
         input_type     : 'number'
-        desc           : 'The maximum amount of disk space (in MB) that a project may use.'
+        desc           : 'The maximum amount of disk space (in GB) that a project may use.'
     memory :
         display        : 'Memory'
         unit           : 'MB'
-        display_unit   : 'MB'
-        display_factor : 1
+        display_unit   : 'GB'
+        display_factor : 1/1000
         pricing_unit   : 'GB'
         pricing_factor : 1/1000
         input_type     : 'number'
