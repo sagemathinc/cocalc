@@ -1421,7 +1421,7 @@ exports.UpgradeAdjustor = rclass
             else
                 current_value = current[name] ? 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
-
+        state['steal_history'] = []
         return state
 
      get_quota_info : ->
@@ -1479,6 +1479,121 @@ exports.UpgradeAdjustor = rclass
     render_addon: (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
 
+    remove_upgrade_from_project: (project_id, name) ->
+        quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[project_id]
+        value = quotas_to_apply[name]
+        @state.steal_history.push({'project_id': project_id, 'name': name, 'value': value})
+        @setState(steal_history: @state.steal_history)
+        quotas_to_apply[name] = 0
+        redux.getActions('projects').apply_upgrades_to_project(project_id, quotas_to_apply)
+        unit_params = PROJECT_UPGRADES.params[name]
+        @setState("upgrade_#{name}" : value * unit_params.display_factor)
+
+    render_upgrade_amount: (project_id, name) ->
+        unit_params = PROJECT_UPGRADES.params[name]
+        amount = redux.getStore('projects').get_projects_upgraded_by()[project_id][name]
+        s = ' (' + (amount * unit_params.display_factor) + ' ' + misc.plural(amount, unit_params.display_unit) + ')'
+        <span>{s}</span> 
+
+    render_remove_upgrade_from_menuitems: (projects_with_this_upgrade, name) ->
+        for project_id, i in projects_with_this_upgrade
+            <MenuItem
+                eventKey={i}
+                onClick={=>@remove_upgrade_from_project(project_id, name)}
+            >
+                {redux.getStore('projects')?.get_title(project_id)} 
+                {@render_upgrade_amount(project_id, name) if PROJECT_UPGRADES.params[name].input_type != 'checkbox'}
+            </MenuItem>
+
+    projects_with_upgrade: (name) ->
+        upgrades = redux.getStore('projects').get_projects_upgraded_by()
+        projects_with_this_upgrade = []
+        for project_id, project_upgrades of upgrades
+            if project_upgrades[name]
+                if project_id != @props.project_id
+                    projects_with_this_upgrade.push(project_id)
+        return projects_with_this_upgrade
+
+    ten_least_active_projects_with_upgrade: (name) ->
+        ten_least_active_projects_with_this_upgrade = @projects_with_upgrade(name)
+        # show 10 projects with this upgrade by user sorted by when last edited in ascending order
+        # idea is that one is more likely to want to remove quota from projects they haven't touched
+        # in a long time
+        ten_least_active_projects_with_this_upgrade = underscore(ten_least_active_projects_with_this_upgrade).sortBy (project_id) -> 
+            [redux.getStore("projects").get_project(project_id).last_edited]
+        ten_least_active_projects_with_this_upgrade = ten_least_active_projects_with_this_upgrade.slice(0, 10)
+        return ten_least_active_projects_with_this_upgrade
+
+    render_remove_upgrade_from: (name) ->
+        ten_least_active_projects_with_this_upgrade = @ten_least_active_projects_with_upgrade(name)
+        if ten_least_active_projects_with_this_upgrade.length > 0
+            <DropdownButton className="small" title="Steal upgrade from" key={name} id={name}>
+                {@render_remove_upgrade_from_menuitems(ten_least_active_projects_with_this_upgrade, name)}
+            </DropdownButton>
+
+    render_steal_quota_button: (name) ->
+        if @state.steal_quota_from == name
+            <Button
+                onClick={=>@setState('steal_quota_from': '')}
+            >Close steal quota from</Button>
+        else
+            <Button
+                onClick={=>@setState('steal_quota_from': name)}
+            >Steal quota from</Button>
+    
+    render_steal_some: (project_id, name) ->
+        <span>
+            <InputGroup>
+                <FormControl
+                    ref        = {"steal_some_#{project_id}_#{name}"}
+                    type       = 'text'
+                />
+                <Button>
+                    Steal
+               </Button>
+            </InputGroup>
+        </span>
+
+    render_steal_some_button: (project_id, name) ->
+        console.log(@state.steal_some, [project_id, name], @state.steal_some == [project_id, name], @state.steal_some?[0] == project_id, @state.steal_some?[1] == name)
+        #if @state.steal_some == [project_id, name] no clue why this doesn't work
+        if @state.steal_some?[0] == project_id and @state.steal_some?[1] == name
+            <Button onClick={=>@setState(steal_some: undefined)}>Close steal some</Button>
+        else
+            <Button onClick={=>@setState(steal_some: [project_id, name])}>Steal some</Button>
+
+    render_projects_to_steal_quota_from: (name) ->
+        ten_least_active_projects_with_this_upgrade = @ten_least_active_projects_with_upgrade(name)
+        for project_id in ten_least_active_projects_with_this_upgrade
+            <tr>
+                <td>{redux.getStore('projects')?.get_title(project_id)}</td>
+                <td>{@render_upgrade_amount(project_id, name)}</td>
+                <td>
+                    <Button onClick={=>@remove_upgrade_from_project(project_id, name)}>Steal all</Button>
+                    {@render_steal_some_button(project_id, name)}
+                    {@render_steal_some(project_id, name) if @state.steal_some?[0] == project_id and @state.steal_some?[1] == name}
+                </td>
+            </tr>
+
+    render_steal_quota: (name) ->
+        <Col sm=12>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Amount</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {@render_projects_to_steal_quota_from(name)}
+                </tbody>
+            </table>
+        </Col>
+
+    is_quota_to_steal: (name) ->
+        return @projects_with_upgrade(name).length > 0
+
     render_upgrade_row: (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -1504,6 +1619,8 @@ exports.UpgradeAdjustor = rclass
                     </Tip>
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
+                    <br/>
+                    {@render_remove_upgrade_from(name) if input_type == 'checkbox' and ((val == 0 and show_remaining == 0) or not @is_upgrade_input_valid(val, limit))}
                 </Col>
                 <Col sm=6>
                     <form>
@@ -1551,34 +1668,41 @@ exports.UpgradeAdjustor = rclass
             unit = misc.plural(show_remaining, display_unit)
             if total_limit < remaining
                 remaining_note = <span> You have {remaining_all} unallocated {unit} (you may allocate up to {total_limit} {unit} here)</span>
-
             else
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
-
-            <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>
-                    </Tip>
-                    <br/>
-                    {remaining_note}
-                </Col>
-                <Col sm=6>
-                    <FormGroup>
-                        <InputGroup>
-                            <FormControl
-                                ref        = {"upgrade_#{name}"}
-                                type       = 'text'
-                                value      = {val}
-                                bsStyle    = {bs_style}
-                                onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
-                            />
-                            <InputGroup.Addon>
-                                {@render_addon(misc, name, display_unit, limit)}
-                            </InputGroup.Addon>
-                        </InputGroup>
-                    </FormGroup>
-                    {label}
+            <Row>
+                <Col sm=12>
+                    <Row key={name} style={marginTop:'5px'}>
+                        <Col sm=6>
+                            <Tip title={display} tip={desc}>
+                                <strong>{display}</strong>
+                            </Tip>
+                            <br/>
+                            {remaining_note}
+                            <br/>
+                            {@render_steal_quota_button(name) if @is_quota_to_steal(name) and remaining < total_limit}
+                        </Col>
+                        <Col sm=6>
+                            <FormGroup>
+                                <InputGroup>
+                                    <FormControl
+                                        ref        = {"upgrade_#{name}"}
+                                        type       = 'text'
+                                        value      = {val}
+                                        bsStyle    = {bs_style}
+                                        onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
+                                    />
+                                    <InputGroup.Addon>
+                                        {@render_addon(misc, name, display_unit, limit)}
+                                    </InputGroup.Addon>
+                                </InputGroup>
+                            </FormGroup>
+                            {label}
+                        </Col>
+                    </Row>
+                    <Row>
+                        {@render_steal_quota(name) if @state.steal_quota_from == name}
+                    </Row>
                 </Col>
             </Row>
         else
@@ -1635,7 +1759,55 @@ exports.UpgradeAdjustor = rclass
                 changed = true
         return changed
 
+    undo_all_steals: ->
+        for steal in @state.steal_history
+            quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[steal.project_id] ? {}
+            quotas_to_apply[steal.name] = steal.value
+            redux.getActions('projects').apply_upgrades_to_project(steal.project_id, quotas_to_apply)
+
+    undo_steal: (steal) ->
+        for steal_value, i in @state.steal_history
+            if steal_value == steal
+                history = @state.steal_history
+                delete history[i]
+                history = history.filter (e) -> e # removes the null
+                @setState(steal_history: history)
+        quotas_to_apply = redux.getStore('projects').get_projects_upgraded_by()[steal.project_id] ? {}
+        quotas_to_apply[steal.name] = steal.value
+        redux.getActions('projects').apply_upgrades_to_project(steal.project_id, quotas_to_apply)
+        @setState("upgrade_#{steal.name}" : 0)
+
+    render_steals: ->
+        for steal in @state.steal_history
+            <tr key={steal.project_id+'_'+steal.name}>
+                <th>{redux.getStore('projects')?.get_title(steal.project_id)}</th>
+                <td>{@props.quota_params[steal.name]['display']}</td>
+                <td>{misc.round2(steal.value * @props.quota_params[steal.name]['display_factor'])} {misc.plural(steal.value, @props.quota_params[steal.name]['display_unit'])}</td>
+                <td><Button onClick={=>@undo_steal(steal)}>Undo</Button></td>
+            </tr>
+
+    render_steal_history: ->
+        <div>
+            <br/>
+            <b>Stealing history</b>
+            <br/>
+            <table className="steal-history-table">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Upgrade type</th>
+                        <th>Amount</th>
+                        <th>Undo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {@render_steals()}
+                </tbody>
+            </table>
+        </div>
+
     render: ->
+        console.log(JSON.stringify(@state))
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
             <NoUpgrades cancel={@props.cancel_upgrading} />
@@ -1684,6 +1856,7 @@ exports.UpgradeAdjustor = rclass
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
+                {@render_steal_history() if @state.steal_history.length > 0}
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
@@ -1696,7 +1869,7 @@ exports.UpgradeAdjustor = rclass
                     >
                         <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
                     </Button>
-                    <Button onClick={@props.cancel_upgrading}>
+                    <Button onClick={@undo_all_steals();@props.cancel_upgrading}>
                         Cancel
                     </Button>
                 </ButtonToolbar>
