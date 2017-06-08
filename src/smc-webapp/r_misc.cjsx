@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
@@ -656,17 +656,37 @@ exports.SearchInput = rclass
                 </InputGroup.Button>
             </InputGroup>
         </FormGroup>
-# Important:
-# Can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
-# with callbacks, and value for a controlled one!
-#    See http://facebook.github.io/react/docs/forms.html#controlled-components
+
+redux.createStore
+    name: "markdown_inputs"
+
+    stateTypes:
+        open_inputs : rtypes.immutable.Map
+
+    getInitialState: =>
+        open_inputs : immutable.Map({}) # {id : String}
+
+class MarkdownInputActions extends Actions
+    get_store: ->
+        redux.getStore("markdown_inputs")
+
+    clear: (id) =>
+        open_inputs = @get_store().get('open_inputs').delete(id)
+        @setState({open_inputs})
+
+    set_value: (id, value) =>
+        open_inputs = @get_store().get('open_inputs').set(id, value)
+        @setState({open_inputs})
+
+redux.createActions("markdown_inputs", MarkdownInputActions)
 
 exports.MarkdownInput = rclass
     displayName : 'Misc-MarkdownInput'
 
     propTypes :
+        persist_id    : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
+        attach_to     : rtypes.string # Removes record when given store name is destroyed
         default_value : rtypes.string
-        value         : rtypes.string
         on_change     : rtypes.func
         on_save       : rtypes.func   # called when saving from editing and switching back
         on_edit       : rtypes.func   # called when editing starts
@@ -674,20 +694,54 @@ exports.MarkdownInput = rclass
         rows          : rtypes.number
         placeholder   : rtypes.string
 
+    reduxProps:
+        markdown_inputs :
+            open_inputs : rtypes.immutable.Map.isRequired
+
     getInitialState: ->
+        value = @props.default_value ? ''
+        if @props.persist_id and @props.open_inputs.includes(@props.persist_id)
+            value = @props.open_inputs.get(@props.persist_id)
+
         editing : false
-        value   : undefined
+        value   : value
+
+    componentDidMount: ->
+        if @props.attach_to
+            redux.getStore(@props.attach_to).on('destroy', @clear_persist)
+
+    componentWillUnmount: ->
+        console.log "persist?", @state.editing, "Unmounting", @props.persist_id
+        if @state.editing
+            @persist_value()
+        else if
+            @clear_persist()
+            redux.getStore(@props.attach_to)?.off('destroy', @clear_persist) if @props.attach_to
+
+    persist_value: ->
+        @actions("markdown_inputs").set_value(@props.persist_id, @state.value) if @props.persist_id
+
+    clear_persist: ->
+        @actions('markdown_inputs').clear(@props.persist_id) if @props.persist_id
+
+    set_value: (value) ->
+        @props.on_change?(value)
+        @persist_value(@state.value)
+        @setState(value : value)
 
     edit: ->
         @props.on_edit?()
-        @setState(value:@props.default_value ? '', editing:true)
+        @persist_value(@state.value)
+        @setState(editing:true)
 
     cancel: ->
         @props.on_cancel?()
+        @clear_persist()
         @setState(editing:false)
 
     save: ->
         @props.on_save?(@state.value)
+        @clear_persist()
         @setState(editing:false)
 
     keydown: (e) ->
@@ -710,14 +764,15 @@ exports.MarkdownInput = rclass
             <div>
                 <form onSubmit={@save} style={marginBottom: '-20px'}>
                     <FormGroup>
-                        <FormControl autoFocus
-                            ref         = 'input'
+                        <FormControl
+                            autoFocus      = {@props.autoFocus ? true}
+                            ref            = 'input'
                             componentClass = 'textarea'
-                            rows        = {@props.rows ? 4}
-                            placeholder = {@props.placeholder}
-                            value       = {@state.value}
-                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value; @setState(value:x); @props.on_change?(x)}
-                            onKeyDown   = {@keydown}
+                            rows           = {@props.rows ? 4}
+                            placeholder    = {@props.placeholder}
+                            value          = {@state.value}
+                            onChange       = {(e)=>@set_value(ReactDOM.findDOMNode(@refs.input).value)}
+                            onKeyDown      = {@keydown}
                         />
                     </FormGroup>
                 </form>

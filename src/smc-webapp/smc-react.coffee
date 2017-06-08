@@ -138,6 +138,7 @@ class Store extends EventEmitter
             @emit('change', state)
 
     destroy: =>
+        @emit('destroy')
         @redux.removeStore(@name)
 
     getState: =>
