@@ -116,15 +116,15 @@ exports.HandoutsPanel = rclass ({name}) ->
 
         return {shown_handouts:list, deleted_handouts:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_show_deleted_button: (num_deleted) ->
+    render_show_deleted_button: (num_deleted, num_shown) ->
         if @state.show_deleted
-            <Button style={styles.show_hide_deleted(needs_margin : true)} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list.">
                     Hide {num_deleted} deleted handouts
                 </Tip>
             </Button>
         else
-            <Button style={styles.show_hide_deleted(needs_margin : true)} onClick={=>@setState(show_deleted:true, search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:true, search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back.">
                     Show {num_deleted} deleted handouts
                 </Tip>
@@ -168,7 +168,7 @@ exports.HandoutsPanel = rclass ({name}) ->
                         is_expanded={@props.expanded_handouts.has(handout.handout_id)}
                         name={@props.name}
                 />}
-            {@render_show_deleted_button(num_deleted) if num_deleted > 0}
+            {@render_show_deleted_button(num_deleted, shown_handouts.length ? 0) if num_deleted > 0}
         </Panel>
 
 exports.HandoutsPanel.Header = rclass
