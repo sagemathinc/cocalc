@@ -151,7 +151,7 @@ exports.APIKeySetting = rclass
         <div>
             <hr/>
             <span style={color:'#666'}>
-            The API is <i>currently undocumented</i>.  Contact support if you need to use this.
+            See the <a href="#{window.app_base_url}/doc/api.html" target="_blank">CoCalc API documentation</a> to learn about the API.
             </span>
         </div>
 
