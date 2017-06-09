@@ -1,5 +1,5 @@
 ###
-Collection of misc API tests
+Using API to run shell command in project
 ###
 
 api   = require('./apitest')
