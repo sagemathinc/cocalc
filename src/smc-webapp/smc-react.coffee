@@ -78,8 +78,6 @@ class Actions
         @redux._set_state({"#{@name}": obj})
         return
 
-    destroy: =>
-        @redux.removeActions(@name)
 ###
 store_def =
     reduxState:
@@ -138,7 +136,8 @@ class Store extends EventEmitter
             @emit('change', state)
 
     destroy: =>
-        @redux.removeStore(@name)
+        @emit('destroy')
+        @removeAllListeners()
 
     getState: =>
         return @redux._redux_store.getState().get(@name)
@@ -365,14 +364,14 @@ class AppRedux
             @_tables[name]._table?.close()
             delete @_tables[name]
 
+    # Removing a Store also destroys it
     removeStore: (name) =>
         if not name?
             throw Error("name must be a string")
         if @_stores[name]?
             S = @_stores[name]
-            S.emit('destroy')
             delete @_stores[name]
-            S.removeAllListeners()
+            S.destroy()
             @_redux_store.dispatch(action_remove_store(name))
 
     removeActions: (name) =>
@@ -381,7 +380,6 @@ class AppRedux
         if @_actions[name]?
             A = @_actions[name]
             delete @_actions[name]
-            A.destroy()
 
     getTable: (name) =>
         if not name?
