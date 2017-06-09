@@ -1669,7 +1669,7 @@ Get users, given the project id.
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 ```
 
-Example of _set_ query.
+Examples of _set_ query.
 
 Set title and description for a project, given the project id.
 ```
@@ -1683,6 +1683,21 @@ Set title and description for a project, given the project id.
          "query":{},
          "multi_response":false,
          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+```
+
+Make a path public (publish a file).
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"public_paths":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
+                                  "path":"myfile.txt", \\
+                                  "description":"a shared text file"}}}' \\
+    https://cocalc.com/api/v1/query
+    ==> {"event":"query",
+         "query":{},
+         "multi_response":false,
+         "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+
 ```
 
 Information on which fields are gettable and settable in the database tables
