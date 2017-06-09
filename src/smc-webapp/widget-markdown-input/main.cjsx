@@ -69,8 +69,7 @@ exports.MarkdownInput = rclass
 
     edit: ->
         @props.on_edit?()
-        @persist_value()
-        @setState(editing : true)
+        @setState(editing : true, value : @props.default_value)
 
     cancel: ->
         @props.on_cancel?()
