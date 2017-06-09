@@ -941,10 +941,10 @@ API message2
             init  : undefined
             desc  : 'A unique UUID for the query'
         title     :
-            init  : undefined
+            init  : ''
             desc  : 'project title'
         description:
-            init  : undefined
+            init  : ''
             desc  : 'project description'
         start     :
             init  : false
