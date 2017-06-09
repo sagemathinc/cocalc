@@ -130,7 +130,7 @@ def main():
     start_hub()
     start_compute()
     while True:
-        time.sleep(3600)
+        os.wait()
 
 if __name__ == "__main__":
     main()
