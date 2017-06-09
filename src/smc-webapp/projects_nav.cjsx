@@ -178,20 +178,22 @@ FullProjectsNav = rclass
             paddingLeft : '0px'
             width       : '100%'
             display     : 'flex'
-
-        <SortableNav
-            className            = "smc-project-tab-sorter"
-            style                = {display:'flex', flex:'1', overflow: 'hidden', height:'40px', margin:'0'}
-            helperClass          = {'smc-project-tab-floating'}
-            onSortEnd            = {@on_sort_end}
-            axis                 = {'x'}
-            lockAxis             = {'x'}
-            lockToContainerEdges = {true}
-            distance             = {3 if not isMobile.tablet()}
-            shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-project-tab-sorter')}
+        <div
+            style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
         >
-            {@project_tabs()}
-        </SortableNav>
+            <SortableNav
+                className            = "smc-project-tab-sorter"
+                style                = {display:'flex', overflow: 'hidden', height:'40px', margin:'0'}
+                helperClass          = {'smc-project-tab-floating'}
+                onSortEnd            = {@on_sort_end}
+                axis                 = {'x'}
+                lockAxis             = {'x'}
+                lockToContainerEdges = {true}
+                distance             = {3 if not isMobile.tablet()}
+            >
+                {@project_tabs()}
+            </SortableNav>
+        </div>
 
 OpenProjectMenuItem = rclass
     propTypes:

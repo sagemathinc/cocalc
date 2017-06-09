@@ -3,6 +3,13 @@
   border-color:     $COL_TOP_BAR_BG
   border-width:     0 0 0 0
 
+=nav-tab-button-styles
+  padding : 0px
+  +disable-user-select
+  color: $COL_TOP_BAR_TEXT
+  &:hover
+    color: $COL_TOP_BAR_TEXT
+
 .smc-top-bar > .container
   position        : absolute
   display         : flex
@@ -10,11 +17,10 @@
   width           : 100%
   background-color: $COL_GRAY_L0
   > ul > li > a
-    padding : 0px
-    +disable-user-select
-    color: $COL_TOP_BAR_TEXT
-    &:hover
-      color: $COL_TOP_BAR_TEXT
+    +nav-tab-button-styles
+
+.smc-project-tab-sorter > li > a
+    +nav-tab-button-styles
 
 .smc-top-bar.navbar-default .navbar-nav>.active>a,
 .smc-top-bar.navbar-default .navbar-nav>.active>a:focus,
