@@ -572,11 +572,48 @@ message
 
 # Unlink a passport auth for this account.
 # client --> hub
-API message
+API message2
     event    : 'unlink_passport'
-    strategy : required
-    id       : required
+    fields:
+        strategy:
+            init  : required
+            desc  : 'passport strategy'
+        id:
+            init  : required
+            desc  : 'numeric id for user and passport strategy'
+    desc:"""
+Unlink a passport auth for the account.
 
+Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
+
+Example:
+
+Get passport id for some strategy for current user.
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d","passports":null}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d",
+                            "passports":{"facebook-14159265358":{"id":"14159265358",...}}}},
+       "multi_response":false,
+       "event":"query",
+       "id":"a2554ec8-665b-495b-b0e2-8e248b54eb94"}
+```
+
+Unlink passport for that strategy and id.
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d strategy=facebook \\
+    -d id=14159265358 \\
+    https://cocalc.com/api/v1/unlink_passport
+  ==> {"event":"success",
+       "id":"14159265358"}
+```
+
+Note that success is returned regardless of whether or not passport was linked
+for the given strategy and id before issuing the API command.
+"""
 message
     event : 'error'
     id    : undefined
@@ -941,10 +978,10 @@ API message2
             init  : undefined
             desc  : 'A unique UUID for the query'
         title     :
-            init  : required
+            init  : ''
             desc  : 'project title'
         description:
-            init  : required
+            init  : ''
             desc  : 'project description'
         start     :
             init  : false
@@ -1632,7 +1669,7 @@ Get users, given the project id.
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 ```
 
-Example of _set_ query.
+Examples of _set_ query.
 
 Set title and description for a project, given the project id.
 ```
@@ -1646,6 +1683,21 @@ Set title and description for a project, given the project id.
          "query":{},
          "multi_response":false,
          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+```
+
+Make a path public (publish a file).
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"public_paths":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
+                                  "path":"myfile.txt", \\
+                                  "description":"a shared text file"}}}' \\
+    https://cocalc.com/api/v1/query
+    ==> {"event":"query",
+         "query":{},
+         "multi_response":false,
+         "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
+
 ```
 
 Information on which fields are gettable and settable in the database tables

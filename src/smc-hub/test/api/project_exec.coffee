@@ -1,5 +1,5 @@
 ###
-Collection of misc API tests
+Using API to run shell command in project
 ###
 
 api   = require('./apitest')
@@ -25,7 +25,7 @@ describe 'runs shell command in a project', ->
                 done(err)
 
     it "does shell built-in", (done) ->
-        @timeout 10000
+        @timeout 30000
         api.call
             event : 'project_exec'
             body  :
@@ -77,7 +77,7 @@ describe 'runs shell command in a project', ->
                 done(err)    
 
     it "sets execution timeout", (done) ->
-        @timeout 5000
+        @timeout 10000
         api.call
             event : 'project_exec'
             body  :
