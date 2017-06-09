@@ -88,12 +88,8 @@ describe 'testing text file operations -- ', ->
             event : 'query'
             body  :
                 query  : {public_paths:{project_id:project_id, path:'A1/doc1.txt', description:'Handout #1'}}
-                #options: [{set:true}]
             cb : (err, resp) ->
-                expect(resp?.error).toEqual(null)
-                expect(err).toEqual(null)
-                #expect(resp?.event).toBe('query')
-                expect(resp?.query).toIncludeKey('public_paths')
+                expect(resp?.event).toBe('query')
                 done(err)
 
     it "reads a public text file in a project", (done) ->
