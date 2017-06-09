@@ -49,7 +49,7 @@ exports.MarkdownInput = rclass
         value   : value
 
     componentDidMount: ->
-        if @props.attach_to
+        if @props.attach_to and not @props.open_inputs.has(@props.persist_id)
             state_app.getStore(@props.attach_to).on('destroy', @clear_persist)
 
     componentWillUnmount: ->
