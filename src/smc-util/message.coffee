@@ -584,7 +584,7 @@ API message2
     desc:"""
 Unlink a passport auth for the account.
 
-Strategy is one of: `facebook`, `github`, `google`, `twitter`.
+Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
 
 Example:
 
@@ -611,7 +611,7 @@ Unlink passport for that strategy and id.
        "id":"14159265358"}
 ```
 
-Note that success is returned regardless of whether passport was linked
+Note that success is returned regardless of whether or not passport was linked
 for the given strategy and id before issuing the API command.
 """
 message
