@@ -94,6 +94,8 @@ exports.MarkdownInput = rclass
             {__html: ''}
 
     render: ->
+        # Maybe there's a better way to fix this.
+        # Required here because of circular requiring otherwise.
         {Tip, Icon} = require('../r_misc')
         if @state.editing
             tip = <span>
