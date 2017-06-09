@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
@@ -39,6 +39,8 @@ underscore  = require('underscore')
 markdown    = require('./markdown')
 
 {defaults, required} = misc
+
+exports.MarkdownInput = require('./widget-markdown-input/main').MarkdownInput
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -656,86 +658,6 @@ exports.SearchInput = rclass
                 </InputGroup.Button>
             </InputGroup>
         </FormGroup>
-
-exports.MarkdownInput = rclass
-    displayName : 'Misc-MarkdownInput'
-
-    propTypes :
-        default_value : rtypes.string
-        on_change     : rtypes.func
-        on_save       : rtypes.func   # called when saving from editing and switching back
-        on_edit       : rtypes.func   # called when editing starts
-        on_cancel     : rtypes.func   # called when cancel button clicked
-        rows          : rtypes.number
-        placeholder   : rtypes.string
-
-    getInitialState: ->
-        editing : false
-        value   : undefined
-
-    edit: ->
-        @props.on_edit?()
-        @setState(value:@props.default_value ? '', editing:true)
-
-    cancel: ->
-        @props.on_cancel?()
-        @setState(editing:false)
-
-    save: ->
-        @props.on_save?(@state.value)
-        @setState(editing:false)
-
-    keydown: (e) ->
-        if e.keyCode==27
-            @setState(editing:false)
-        else if e.keyCode==13 and e.shiftKey
-            @save()
-
-    to_html: ->
-        if @props.default_value
-            {__html: markdown.markdown_to_html(@props.default_value).s}
-        else
-            {__html: ''}
-
-    render: ->
-        if @state.editing
-
-            tip = <span>
-                You may enter (Github flavored) markdown here.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.
-            </span>
-
-            <div>
-                <ButtonToolbar style={paddingBottom:'5px'}>
-                    <Button key='save' bsStyle='success' onClick={@save}
-                            disabled={@state.value == @props.default_value}>
-                        <Icon name='edit' /> Save
-                    </Button>
-                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
-                </ButtonToolbar>
-                <form onSubmit={@save} style={marginBottom: '-20px'}>
-                    <FormGroup>
-                        <FormControl autoFocus
-                            ref         = 'input'
-                            componentClass = 'textarea'
-                            rows        = {@props.rows ? 4}
-                            placeholder = {@props.placeholder}
-                            value       = {@state.value}
-                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value; @setState(value:x); @props.on_change?(x)}
-                            onKeyDown   = {@keydown}
-                        />
-                    </FormGroup>
-                </form>
-                <div style={paddingTop:'8px', color:'#666'}>
-                    <Tip title='Use Markdown' tip={tip}>
-                        Format using <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a>
-                    </Tip>
-                </div>
-            </div>
-        else
-            <div>
-                {<Button onClick={@edit}>Edit</Button>}
-                <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
-            </div>
 
 exports.HTML = rclass
     displayName : 'Misc-HTML'

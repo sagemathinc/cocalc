@@ -370,6 +370,7 @@ class AppRedux
             throw Error("name must be a string")
         if @_stores[name]?
             S = @_stores[name]
+            S.emit('destroy')
             delete @_stores[name]
             S.removeAllListeners()
             @_redux_store.dispatch(action_remove_store(name))

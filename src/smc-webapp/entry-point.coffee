@@ -24,8 +24,9 @@ require('./system_notifications')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
-# Initializes app stores, actions, etc.
+# Initialize app stores, actions, etc.
 require('./init_app')
+require('./widget-markdown-input/main').init(redux)
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
