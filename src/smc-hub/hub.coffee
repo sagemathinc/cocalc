@@ -491,22 +491,13 @@ stripe_sync = (dump_only, cb) ->
                 cb        : cb
     ], cb)
 
-# real-time reporting of hub metrics
-metricsRecorder = null
-
-init_metrics = (cb) ->
-    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
-    metricsRecorder = new MetricsRecorder.MetricsRecorder(dbg, cb)
-
-# use record_metric to update its state
-exports.record_metric = record_metric = (key, value, type) ->
-    metricsRecorder?.record(key, value, type)
-
 
 #############################################
 # Start everything running
 #############################################
 BASE_URL = ''
+metricsRecorder = undefined
+metric_blocked  = undefined
 
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
@@ -527,9 +518,8 @@ exports.start_server = start_server = (cb) ->
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
     blocked (ms) ->
-        # filter values > 100 ms
-        if ms > 100
-            record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
+        if ms > 0
+            metric_blocked?.inc(ms)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
@@ -539,7 +529,15 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            init_metrics(cb)
+            winston.debug("Initializing Metrics Recorder")
+            MetricsRecorder.init(winston, (err, mr) ->
+                if err?
+                    cb(err)
+                else
+                    metricsRecorder = mr
+                    metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+                    cb()
+            )
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")

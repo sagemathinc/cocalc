@@ -96,7 +96,7 @@ exports.new_histogram = new_histogram = (name, help, config={}) ->
         labels: []
     return new prom_client.Histogram(name, help, config.labels, buckets:config.buckets)
 
-class exports.MetricsRecorder
+class MetricsRecorder
     constructor: (@dbg, cb) ->
         ###
         * @dbg: e.g. reporting via winston or whatever
@@ -117,7 +117,7 @@ class exports.MetricsRecorder
         @record("start", new Date(), TYPE.LAST)
 
         # initialization finished
-        cb?()
+        cb?(undefined, @)
 
     get: ->
         ###
@@ -263,3 +263,11 @@ class exports.MetricsRecorder
                 @dbg?('hub/record_stats: unknown or undefined type #{type}')
         # avoid overflows
         @_stats[key] = @_stats[key][-MAX_BUFFER..]
+
+metricsRecorder = null
+exports.init = (winston, cb) ->
+    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
+    metricsRecorder = new MetricsRecorder(dbg, cb)
+
+exports.get = ->
+    return metricsRecorder
