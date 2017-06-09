@@ -156,7 +156,9 @@ exports.SMC_Dropwrapper = rclass
             @_destroy()
         else
             @_create_dropzone()
-            @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
+            if @dropzone?
+                # see https://github.com/sagemathinc/cocalc/issues/2072
+                @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
 
     preview_template: ->
         <div className='dz-preview dz-file-preview'>
