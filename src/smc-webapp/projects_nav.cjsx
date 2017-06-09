@@ -183,7 +183,7 @@ FullProjectsNav = rclass
         >
             <SortableNav
                 className            = "smc-project-tab-sorter"
-                style                = {display:'flex', overflow: 'hidden', height:'40px', margin:'0'}
+                style                = {display:'flex', overflow: 'hidden'}
                 helperClass          = {'smc-project-tab-floating'}
                 onSortEnd            = {@on_sort_end}
                 axis                 = {'x'}
