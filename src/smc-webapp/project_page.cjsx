@@ -518,20 +518,23 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         shrink     = {shrink_fixed_tabs}
                     /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
                 </Nav>
-                <SortableNav
-                    className            = "smc-file-tabs-files-desktop"
-                    helperClass          = {'smc-file-tab-floating'}
-                    onSortEnd            = {@on_sort_end}
-                    axis                 = {'x'}
-                    lockAxis             = {'x'}
-                    lockToContainerEdges = {true}
-                    distance             = {3 if not IS_MOBILE}
-                    bsStyle              = "pills"
-                    style                = {display:'flex', overflow:'hidden', flex: 1}
-                    shouldCancelStart    = {(e)=>e.target.getAttribute('class')?.includes('smc-file-tabs')}
+                <div
+                    style = {display:'flex', overflow:'hidden', flex: 1}
                 >
-                    {@file_tabs()}
-                </SortableNav>
+                    <SortableNav
+                        className            = "smc-file-tabs-files-desktop"
+                        helperClass          = {'smc-file-tab-floating'}
+                        onSortEnd            = {@on_sort_end}
+                        axis                 = {'x'}
+                        lockAxis             = {'x'}
+                        lockToContainerEdges = {true}
+                        distance             = {3 if not IS_MOBILE}
+                        bsStyle              = "pills"
+                        style                = {display:'flex', overflow:'hidden'}
+                    >
+                        {@file_tabs()}
+                    </SortableNav>
+                </div>
                 {@render_chat_indicator() if not is_public}
             </div>
         </div>
