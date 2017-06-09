@@ -671,10 +671,12 @@ class MarkdownInputActions extends Actions
         redux.getStore("markdown_inputs")
 
     clear: (id) =>
+        return unless id?
         open_inputs = @get_store().get('open_inputs').delete(id)
         @setState({open_inputs})
 
     set_value: (id, value) =>
+        return unless id?
         open_inputs = @get_store().get('open_inputs').set(id, value)
         @setState({open_inputs})
 
@@ -700,10 +702,12 @@ exports.MarkdownInput = rclass
 
     getInitialState: ->
         value = @props.default_value ? ''
-        if @props.persist_id and @props.open_inputs.includes(@props.persist_id)
+        editing = false
+        if @props.persist_id and @props.open_inputs.has(@props.persist_id)
             value = @props.open_inputs.get(@props.persist_id)
+            editing = true
 
-        editing : false
+        editing : editing
         value   : value
 
     componentDidMount: ->
@@ -711,27 +715,23 @@ exports.MarkdownInput = rclass
             redux.getStore(@props.attach_to).on('destroy', @clear_persist)
 
     componentWillUnmount: ->
-        console.log "persist?", @state.editing, "Unmounting", @props.persist_id
-        if @state.editing
-            @persist_value()
-        else if
-            @clear_persist()
-            redux.getStore(@props.attach_to)?.off('destroy', @clear_persist) if @props.attach_to
+        if @props.persist_id? and not @state.editing
+                @clear_persist()
 
-    persist_value: ->
-        @actions("markdown_inputs").set_value(@props.persist_id, @state.value) if @props.persist_id
+    persist_value: (value) ->
+        @actions("markdown_inputs").set_value(@props.persist_id, value ? @state.value)
 
     clear_persist: ->
-        @actions('markdown_inputs').clear(@props.persist_id) if @props.persist_id
+        @actions('markdown_inputs').clear(@props.persist_id)
 
     set_value: (value) ->
         @props.on_change?(value)
-        @persist_value(@state.value)
+        @persist_value(value)
         @setState(value : value)
 
     edit: ->
         @props.on_edit?()
-        @persist_value(@state.value)
+        @persist_value()
         @setState(editing:true)
 
     cancel: ->

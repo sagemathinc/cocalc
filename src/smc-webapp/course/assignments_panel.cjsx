@@ -233,6 +233,7 @@ Assignment = rclass
             <Col xs=10>
                 <MarkdownInput
                     persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id')}
+                    attach_to     = {@props.name}
                     rows          = 6
                     placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
