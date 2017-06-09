@@ -32,7 +32,7 @@ describe 'testing text file operations -- ', ->
             body  :
                 project_id: project_id
                 content   : content
-                path      : 'A1/h1.txt'
+                path      : 'A1/doc1.txt'
             cb    : (err, resp) ->
                 expect(err).toEqual(null)
                 expect(resp?.event).toBe('file_written_to_project')
@@ -43,7 +43,7 @@ describe 'testing text file operations -- ', ->
             event : 'read_text_file_from_project'
             body  :
                 project_id: project_id
-                path      : 'A1/h1.txt'
+                path      : 'A1/doc1.txt'
             cb    : (err, resp) ->
                 expect(err).toEqual(null)
                 expect(resp?.event).toBe('text_file_read_from_project')
@@ -55,7 +55,7 @@ describe 'testing text file operations -- ', ->
             event : 'public_get_text_file'
             body  :
                 project_id: project_id
-                path      : 'A1/h1.txt'
+                path      : 'A1/doc1.txt'
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('error')
                 expect(resp?.error).toInclude('is not public')
@@ -83,18 +83,25 @@ describe 'testing text file operations -- ', ->
                 expect(resp?.error).toBe('not_public')
                 done(err)
 
-    it "uses the database to make a file public", (done) ->
-        api.db.user_query
-            account_id : api.account_id
-            query      : {public_paths:{project_id:project_id, path:'A1/h1.txt', description:'Handout #1'}}
-            cb         : done
+    it "uses API query to make a file public", (done) ->
+        api.call
+            event : 'query'
+            body  :
+                query  : {public_paths:{project_id:project_id, path:'A1/doc1.txt', description:'Handout #1'}}
+                #options: [{set:true}]
+            cb : (err, resp) ->
+                expect(resp?.error).toEqual(null)
+                expect(err).toEqual(null)
+                #expect(resp?.event).toBe('query')
+                expect(resp?.query).toIncludeKey('public_paths')
+                done(err)
 
     it "reads a public text file in a project", (done) ->
         api.call
             event : 'public_get_text_file'
             body  :
                 project_id: project_id
-                path      : 'A1/h1.txt'
+                path      : 'A1/doc1.txt'
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('public_text_file_contents')
                 expect(resp?.data).toBe(content)
