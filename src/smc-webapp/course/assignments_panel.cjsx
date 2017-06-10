@@ -44,6 +44,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             expanded_assignments   : rtypes.immutable.Set
             active_assignment_sort : rtypes.object
             active_student_sort    : rtypes.immutable.Map
+            expanded_peer_configs  : rtypes.immutable.Set
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -114,6 +115,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                     name                = {@props.name}
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
+                    expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
                     />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -189,9 +191,10 @@ Assignment = rclass
         background          : rtypes.string
         is_expanded         : rtypes.bool
         active_student_sort : rtypes.immutable.Map
+        expand_peer_config  : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
 
     getInitialState: ->
         confirm_delete : false
@@ -277,7 +280,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-        if @state.configure_peer
+        if @props.expand_peer_config
             v.push <Row key='header2-peer' style={bottom}>
                 <Col md=10 mdOffset=2>
                     {@render_configure_peer()}
@@ -685,7 +688,7 @@ Assignment = rclass
             {@render_configure_peer_due(config) if config.enabled}
             {@render_configure_grading_guidelines(config) if config.enabled}
 
-            <Button onClick={=>@setState(configure_peer:false)}>
+            <Button onClick={=>@redux.getActions(@props.name).toggle_item_expansion('peer_config', @props.assignment)}>
                 Close
             </Button>
 
@@ -696,7 +699,7 @@ Assignment = rclass
             icon = 'check-square-o'
         else
             icon = 'square-o'
-        <Button disabled={@state.configure_peer} onClick={=>@setState(configure_peer:true)}>
+        <Button disabled={@props.expand_peer_config } onClick={=>@redux.getActions(@props.name).toggle_item_expansion('peer_config', @props.assignment)}>
             <Icon name={icon} /> Peer Grading...
         </Button>
 
