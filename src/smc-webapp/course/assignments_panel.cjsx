@@ -183,7 +183,7 @@ Assignment = rclass
 
     propTypes :
         name                : rtypes.string.isRequired
-        assignment          : rtypes.object.isRequired
+        assignment          : rtypes.immutable.Map.isRequired
         project_id          : rtypes.string.isRequired
         redux               : rtypes.object.isRequired
         students            : rtypes.object.isRequired
@@ -688,7 +688,7 @@ Assignment = rclass
             {@render_configure_peer_due(config) if config.enabled}
             {@render_configure_grading_guidelines(config) if config.enabled}
 
-            <Button onClick={=>@redux.getActions(@props.name).toggle_item_expansion('peer_config', @props.assignment)}>
+            <Button onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
                 Close
             </Button>
 
@@ -699,7 +699,7 @@ Assignment = rclass
             icon = 'check-square-o'
         else
             icon = 'square-o'
-        <Button disabled={@props.expand_peer_config } onClick={=>@redux.getActions(@props.name).toggle_item_expansion('peer_config', @props.assignment)}>
+        <Button disabled={@props.expand_peer_config } onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
             <Icon name={icon} /> Peer Grading...
         </Button>
 
