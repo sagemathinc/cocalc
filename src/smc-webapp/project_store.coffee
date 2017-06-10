@@ -1619,11 +1619,12 @@ exports.getTable = (project_id, name, redux) ->
 exports.deleteStoreActionsTable = (project_id, redux) ->
     must_define(redux)
     name = key(project_id)
-    redux.removeStore(name)
+    redux.getStore(name)?.destroy?()
     redux.getActions(name).close_all_files()
     redux.removeActions(name)
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))
+    redux.removeStore(name)
 
 get_directory_listing = (opts) ->
     opts = defaults opts,
