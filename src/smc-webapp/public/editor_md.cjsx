@@ -51,6 +51,7 @@ PublicMarkdown = rclass ({name}) ->
                 boxShadow       : 'rgba(87, 87, 87, 0.2) 0px 0px 12px 1px'
                 backgroundColor : 'white'
                 display         : 'block'   # because wrapped HTML in Markdown is a span by default
+                overflowY       : 'hidden'  # for long horizontal lines; so stays in container
             <div
                 className = "webapp-editor-static-html-content"
                 style     = {backgroundColor: 'rgb(238, 238, 238)'}>
