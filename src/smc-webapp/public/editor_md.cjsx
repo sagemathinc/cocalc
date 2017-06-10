@@ -45,7 +45,7 @@ PublicMarkdown = rclass ({name}) ->
         else if not @props.content?
             <Loading />
         else
-            <div className="webapp-editor-static-html-content">
+            <div className="webapp-editor-static-html-content" style="margin-left:2em;margin-right:2em">
                 <Markdown project_id={@props.project_id} file_path={@props.file_path} value={@props.content} />
             </div>
 
