@@ -45,8 +45,12 @@ PublicMarkdown = rclass ({name}) ->
         else if not @props.content?
             <Loading />
         else
-            <div className="webapp-editor-static-html-content" style="margin-left:2em;margin-right:2em">
-                <Markdown project_id={@props.project_id} file_path={@props.file_path} value={@props.content} />
+            <div className="webapp-editor-static-html-content">
+                <Markdown
+                    project_id  = {@props.project_id}
+                    file_path   = {@props.file_path}
+                    style       = {marginLeft: "2em", marginRight: "2em"}
+                    value       = {@props.content} />
             </div>
 
 class MDActions extends Actions
