@@ -232,7 +232,7 @@ Assignment = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
-                    persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id')}
+                    persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "note"}
                     attach_to     = {@props.name}
                     rows          = 6
                     placeholder   = 'Private notes about this assignment (not visible to students)'
@@ -658,6 +658,8 @@ Assignment = rclass
             <LabeledRow label_cols=6 label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
                 <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
                     <MarkdownInput
+                        persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "grading-guidelines"}
+                        attach_to     = {@props.name}
                         rows          = 16
                         placeholder   = 'Enter your grading guidelines for this assignment...'
                         default_value = {config.guidelines}
