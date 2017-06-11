@@ -19,7 +19,6 @@ block content
     div.row
       div.col-md-12
         h1 #{NAME} API
-
         div!= markdown(api_doc.intro)
       div.col-md-12
         h2 Endpoints:
@@ -28,12 +27,13 @@ block content
       - var val = api_doc.events[key]
       div.row
         div.col-md-12
-          h3= api_root + key
+          h3.api-title= api_root + key
           if val.fields
-            p Fields:
-              ul
-                each descr, fld in val.fields
-                  li #[code #{fld}]: #{descr}
+            table.table.fields
+              each descr, fld in val.fields
+                tr
+                  td #[code #{fld}]
+                  td!= markdown(descr)
           p!= markdown(val.description)
 
   //- CSS comes at the bottom: overwrites styles defined in the header
@@ -41,6 +41,17 @@ block content
     :sass
       @import "smc-webapp/_colors.sass"
       body > div.space
-        margin-top       : 5rem
+        margin-top         : 5rem
       div#top
-        margin-top       : 10rem
+        margin-top         : 10rem
+      h3.api-title
+        font-weight        : bold
+        margin-top         : 5rem
+      table.fields
+        width              : auto !important
+        tr, td
+          border           : none !important
+          padding          : 5px 10px 0px 0px !important
+        code
+          color            : $COL_GRAY_DD
+          background-color : $COL_GRAY_LLL
