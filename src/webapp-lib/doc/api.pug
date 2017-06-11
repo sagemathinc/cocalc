@@ -25,9 +25,12 @@ block content
     - var api_doc_keys = Object.keys(api_doc.events).sort()
     each key in api_doc_keys
       - var val = api_doc.events[key]
+      a(class="anchor" id=key)
       div.row
         div.col-md-12
-          h3.api-title= api_root + key
+          h3.api-title
+            = api_root + key
+            a(class="marker" href="#"+key) ¶
           if val.fields
             table.table.fields
               each descr, fld in val.fields
@@ -46,7 +49,7 @@ block content
         margin-top         : 10rem
       h3.api-title
         font-weight        : bold
-        margin-top         : 5rem
+        margin-top         : 2em
       table.fields
         width              : auto !important
         tr, td

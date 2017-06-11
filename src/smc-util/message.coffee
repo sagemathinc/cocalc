@@ -77,7 +77,7 @@ message2 = (obj) ->
         if val.init == required
             desc += ' (required)'
         else if val.init?
-            desc += " (default: #{val.init})"
+            desc += " (default: #{misc.to_json(val.init)})"
         return desc
 
     # reassembling a version 1 message from a version 2 message
