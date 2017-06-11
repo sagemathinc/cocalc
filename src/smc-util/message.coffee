@@ -28,6 +28,33 @@
 #
 ###
 
+doc_intro = """
+
+## API messages
+
+These options appear on all API messages:
+
+- **event**: the command to be executed, for example "ping"
+- **id**: uuid for the API call, will be returned in response. If id not provided
+  in the API message, a random id will be generated and returned in the response
+
+Additional notes:
+
+- Options with default of "undefined" may be omitted.
+- A valid API key is required on all API calls, including ping.
+- The structure of the response to each API message is given in the
+  immediately following "message" object definition.
+- Some API messages, for example "query" and "get_usernames", require
+  options to be passed as a JSON object, as noted in message comments.
+- If JSON is not required for API message options, it is still valid.
+- If API message options are sent as JSON, the message must be sent with
+  a request header of "Content-Type: application/json".
+
+- See also: API mocha test suite:
+  https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api
+
+"""
+
 misc     = require('./misc')
 defaults = misc.defaults
 required = defaults.required
@@ -58,7 +85,7 @@ message2 = (obj) ->
     mesg_v1.event = obj.event
     # extracting description for the documentation
     fdesc = _.mapObject(obj.fields, mk_desc)
-    exports.documentation[obj.event] =
+    exports.documentation.events[obj.event] =
                                 description   : obj.desc ? ''
                                 fields        : fdesc
     # ... and the examples
@@ -71,7 +98,9 @@ message2 = (obj) ->
 exports.api_messages = {}
 
 # this holds the documentation for the message protocol
-exports.documentation = {}
+exports.documentation =
+    intro  : doc_intro
+    events : {}
 
 # holds all the examples: list of expected in/out objects for each message
 exports.examples = {}
@@ -79,31 +108,6 @@ exports.examples = {}
 API = (obj) ->
     # obj could be message version 1 or 2!
     exports.api_messages[obj.event] = true
-
-###
-
-API messages
-
-These options appear on all API messages:
-- event: the command to be executed, for example "ping"
-- id: uuid for the API call, will be returned in response. If id not provided
-  in the API message, a random id will be generated and returned in the response
-
-Additional notes:
-- Options with default of "undefined" may be omitted.
-- A valid API key is required on all API calls, including ping.
-- The structure of the response to each API message is given in the
-  immediately following "message" object definition.
-- Some API messages, for example "query" and "get_usernames", require
-  options to be passed as a JSON object, as noted in message comments.
-- If JSON is not required for API message options, it is still valid.
-- If API message options are sent as JSON, the message must be sent with
-  a request header of "Content-Type: application/json".
-
-- See also: API mocha test suite:
-  https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api
-
-###
 
 ############################################
 # Compute server messages

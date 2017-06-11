@@ -20,21 +20,20 @@ block content
       div.col-md-12
         h1 #{NAME} API
 
-        div.
-          What's this API about?
+        div!= markdown(api_doc.intro)
       div.col-md-12
-        h1 Endpoints:
-    - var api_doc_keys = Object.keys(api_doc).sort()
+        h2 Endpoints:
+    - var api_doc_keys = Object.keys(api_doc.events).sort()
     each key in api_doc_keys
-      - var val = api_doc[key]
+      - var val = api_doc.events[key]
       div.row
         div.col-md-12
           h3= api_root + key
           if val.fields
-            p fields:
+            p Fields:
               ul
                 each descr, fld in val.fields
-                  li= fld + ": " + descr
+                  li #[code #{fld}]: #{descr}
           p!= markdown(val.description)
 
   //- CSS comes at the bottom: overwrites styles defined in the header
