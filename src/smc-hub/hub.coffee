@@ -496,7 +496,6 @@ stripe_sync = (dump_only, cb) ->
 # Start everything running
 #############################################
 BASE_URL = ''
-metricsRecorder = undefined
 metric_blocked  = undefined
 
 exports.start_server = start_server = (cb) ->
@@ -579,7 +578,7 @@ exports.start_server = start_server = (cb) ->
                 dev            : program.dev
                 compute_server : compute_server
                 database       : database
-                metricsRecorder: metricsRecorder
+                metricsRecorder: MetricsRecorder
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
@@ -604,7 +603,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            metricsRecorder.setup_monitoring()
+            MetricsRecorder.setup_monitoring()
             cb()
     ], (err) =>
         if err
