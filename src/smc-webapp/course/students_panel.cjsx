@@ -622,10 +622,12 @@ Student = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
-                    rows        = 6
-                    placeholder = 'Notes about student (not visible to student)'
+                    persist_id    = {@props.student.get('student_id') + "note"}
+                    attach_to     = {@props.name}
+                    rows          = 6
+                    placeholder   = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
+                    on_save       = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
