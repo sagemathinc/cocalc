@@ -305,7 +305,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             if misc.is_array(opts.select)
                 opts.select = (quote_field(field) for field in opts.select).join(',')
             opts.query = "SELECT #{opts.select} FROM \"#{opts.table}\""
-            #delete opts.table    # TODO/Q: why is it deleted?
             delete opts.select
 
         push_param = (param, type) ->
