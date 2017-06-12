@@ -920,6 +920,17 @@ schema.remember_me =
             type : 'timestamp'
     pg_indexes : ['account_id']
 
+schema.auth_tokens =
+    primary_key : 'auth_key'
+    fields :
+        auth_key   :
+            type    : 'string'
+            pg_type : 'CHAR(24)'
+        account_id :
+            type : 'uuid'
+        expire     :
+            type : 'timestamp'
+
 schema.server_settings =
     primary_key : 'name'
     anonymous   : false

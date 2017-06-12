@@ -15,6 +15,7 @@ base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
 auth                 = require('./auth')
+auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
@@ -2179,3 +2180,25 @@ class exports.Client extends EventEmitter
                     else
                         @success_to_client(id:mesg.id)
 
+    mesg_user_auth: (mesg) =>
+        auth_token.get_user_auth_token
+            database        : @database
+            account_id      : @account_id  # strictly not necessary yet... but good if user has to be signed in,
+                                           # since more secure and we can rate limit attempts from a given user.
+            user_account_id : mesg.account_id
+            password        : mesg.password
+            cb              : (err, auth_token) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_auth_token(id:mesg.id, auth_token:auth_token))
+
+    mesg_revoke_auth_token: (mesg) =>
+        auth_token.revoke_user_auth_token
+            database        : @database
+            auth_token      : mesg.auth_token
+            cb              : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
