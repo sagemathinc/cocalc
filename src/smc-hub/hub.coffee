@@ -58,18 +58,17 @@ underscore = require('underscore')
 # CoCalc libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
-message = require('smc-util/message')     # message protocol between front-end and back-end
+message    = require('smc-util/message')     # message protocol between front-end and back-end
 client_lib = require('smc-util/client')
-{Client} = require('./client')
-
-sage    = require('./sage')               # sage server
-
-auth   = require('./auth')
-
-base_url = require('./base-url')
+{Client}   = require('./client')
+sage       = require('./sage')               # sage server
+auth       = require('./auth')
+base_url   = require('./base-url')
 
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
+
+MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
@@ -492,41 +491,13 @@ stripe_sync = (dump_only, cb) ->
                 cb        : cb
     ], cb)
 
-# real-time reporting of hub metrics
-
-MetricsRecorder = require('./metrics-recorder')
-metricsRecorder = null
-
-init_metrics = (cb) ->
-    if program.statsfile?
-        # make it absolute, with defaults it will sit next to the hub.log file
-        if program.statsfile[0] != '/'
-            STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
-        # make sure the directory exists
-        dir = require('path').dirname(STATS_FN)
-        if not fs.existsSync(dir)
-            fs.mkdirSync(dir)
-    else
-        STATS_FN = null
-    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
-    {number_of_clients} = require('./hub_register')
-    collect = () ->
-        try
-            record_metric('nb_clients', number_of_clients(), MetricsRecorder.TYPE.CONT)
-        catch err
-
-    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, collect, cb)
-
-# use record_metric to update its state
-
-exports.record_metric = record_metric = (key, value, type) ->
-    metricsRecorder?.record(key, value, type)
-
 
 #############################################
 # Start everything running
 #############################################
 BASE_URL = ''
+metricsRecorder = undefined
+metric_blocked  = undefined
 
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
@@ -547,9 +518,8 @@ exports.start_server = start_server = (cb) ->
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
     blocked (ms) ->
-        # filter values > 100 ms
-        if ms > 100
-            record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
+        if ms > 0
+            metric_blocked?.inc(ms)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
@@ -559,7 +529,14 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            init_metrics(cb)
+            winston.debug("Initializing Metrics Recorder")
+            MetricsRecorder.init(winston, (err, mr) ->
+                if err?
+                    cb(err)
+                else
+                    metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+                    cb()
+            )
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -624,6 +601,11 @@ exports.start_server = start_server = (cb) ->
                     else
                         cb()
             ], cb)
+        (cb) ->
+            if not program.port
+                cb(); return
+            metricsRecorder.setup_monitoring()
+            cb()
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
