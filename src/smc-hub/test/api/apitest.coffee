@@ -26,7 +26,10 @@ exports.db = exports.account_id = exports.api_key = exports.compute_server = und
 {http_message_api_v1} = require('../../api/handler')
 
 winston = require('winston')
-winston.remove(winston.transports.Console)
+try
+    winston.remove(winston.transports.Console)
+catch
+    # exception if already removed.
 
 exports.setup = (cb) ->
     async.series([
