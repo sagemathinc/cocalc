@@ -898,9 +898,13 @@ exports.define_codemirror_extensions = () ->
         element.find(".webapp-codemirror-introspect-title").text(opts.target)
         element.show()
         if opts.type == 'source-code'
-            CodeMirror.runMode(opts.content, 'python', element.find(".webapp-codemirror-introspect-content-source-code")[0])
+            elt = element.find(".webapp-codemirror-introspect-content-source-code")[0]
+            if elt? # see https://github.com/sagemathinc/cocalc/issues/1993
+                CodeMirror.runMode(opts.content, 'python', elt)
         else
-            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".webapp-codemirror-introspect-content-docstring")[0])
+            elt = element.find(".webapp-codemirror-introspect-content-docstring")[0]
+            if elt?  # see https://github.com/sagemathinc/cocalc/issues/1993
+                CodeMirror.runMode(opts.content, 'text/x-rst', elt)
 
     # Codemirror extension that takes as input an arrow of words (or undefined)
     # and visibly keeps those marked as misspelled.  If given empty input, cancels this.

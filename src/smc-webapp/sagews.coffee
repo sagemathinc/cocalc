@@ -2276,6 +2276,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     output_elements: () =>
         cm = @editor.codemirror
         v = []
+        if not cm?
+            # See https://github.com/sagemathinc/cocalc/issues/2070
+            return v
         for line in [0...cm.lineCount()]
             marks = cm.findMarksAt({line:line, ch:1})
             if not marks? or marks.length == 0

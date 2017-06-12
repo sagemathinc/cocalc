@@ -164,7 +164,7 @@ SUPPORT_LINKS =
         text : 'Please include the URL link to the relevant project or file!'
     teaching :
         icon : 'graduation-cap'
-        href : 'https://mikecroucher.github.io/SMC_tutorial/'
+        href : 'https://tutorial.cocalc.com/'
         link : <span>How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'

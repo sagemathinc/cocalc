@@ -45,8 +45,21 @@ PublicMarkdown = rclass ({name}) ->
         else if not @props.content?
             <Loading />
         else
-            <div className="webapp-editor-static-html-content">
-                <Markdown project_id={@props.project_id} file_path={@props.file_path} value={@props.content} />
+            md_style =
+                margin          : '20px'
+                padding         : '15px'
+                boxShadow       : 'rgba(87, 87, 87, 0.2) 0px 0px 12px 1px'
+                backgroundColor : 'white'
+                display         : 'block'   # because wrapped HTML in Markdown is a span by default
+                overflowY       : 'hidden'  # for long horizontal lines; so stays in container
+            <div
+                className = "webapp-editor-static-html-content"
+                style     = {backgroundColor: 'rgb(238, 238, 238)'}>
+                <Markdown
+                    project_id  = {@props.project_id}
+                    file_path   = {@props.file_path}
+                    style       = {md_style}
+                    value       = {@props.content} />
             </div>
 
 class MDActions extends Actions

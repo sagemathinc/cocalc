@@ -8,7 +8,7 @@ exports.HelpBox = rclass
             <span style={color:"#666"}>
                 <ul>
                     <li>
-                        <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">
+                        <a href="https://tutorial.cocalc.com/" target="_blank">
                             A tutorial for anyone wanting to use CoCalc for teaching
                         </a> (by Mike Croucher)
                     </li>

@@ -1149,7 +1149,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">this
+                Following <a href="https://tutorial.cocalc.com/" target="_blank">this
                 guide</a>, create a course file.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
