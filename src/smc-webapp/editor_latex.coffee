@@ -63,13 +63,14 @@ help_md = """
 
 LaTeX is a sophisticated markup language and processor for typesetting documents.
 For a general introduction, read this [LaTeX wiki book](https://en.wikibooks.org/wiki/LaTeX) or any other resource.
-In general, it works by editing a "source code", visible on the left, and compiles it to a PDF document.
+In general, it works by editing source code, visible on the left, and compiling it to a PDF document,
+visible on the right.
 #{SiteName} manages this task for you, by regularly saving and running the LaTeX processor for you.
 
-On the right hand side, there are several tabs like this one here for help:
+On the right-hand side there are several tabs like this one here for help:
 
-* **Preview** quickly renders a few some pages to see how the current part of the document looks like.
-* **Issues** lists you all compilation warnings and errors.
+* **Preview** quickly renders a few pages to see how the current part of the document looks.
+* **Issues** lists all compilation warnings and errors.
   Click on the buttons to jump to the corresponding line in the input code on the left.
   _LaTeX won't compile (or only partially or in a wrong way) as long as there are any errors left!_
 * **PDF** shows you an embedded view of the compiled PDF file.
@@ -82,7 +83,7 @@ On the right hand side, there are several tabs like this one here for help:
   * **Sage**: runs "SageMath" for [SageTeX](https://www.ctan.org/pkg/sagetex?lang=en), usually managed by the build process
   * **Clean**: deletes temporary files
   * **Build Command**: The drop-down list on the right hand side lets you specify the compilation program. On the left, you can edit the command even further. It is saved as part of the document, at the bottom.
-By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages temporary files and bibtex, and also runs SageTeX if necessary.
+By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages temporary files and bibtex, and runs SageTeX if necessary.
 
 ## LaTeX Engines
 
@@ -93,15 +94,15 @@ By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages t
 
 ### Forward & Inverse Search
 
-Forward and inverse search help you enormeously with navigating around in a larger document.
+Forward and inverse search are extremely helpful for navigating in a larger document.
 
-**Forward**: place your cursor at a specific location in the editor on the left hand side.
+**Forward**: place your cursor at a specific location in the editor on the left-hand side.
 Click the "Forward" button or the `[ALT]`+`[Return]` keyboard shortcut to jump to the corresponding
-location in the preview on the right hand side.
+location in the preview on the right-hand side.
 (It might not always work in case the full positional information is not available.)
 
 **Inverse**: Double-click on an area of interest on the right hand side in the **Preview** area.
-The cursor on the left hand side will jump to the paragraph in the source-code.
+The cursor on the left-hand side will jump to the paragraph in the source-code.
 
 ## Quickstart
 
@@ -157,17 +158,17 @@ The default template already selects the correct configuration for you.
 
 The `\\` character has a special meaning.
 It signals a LaTeX command or is used as an escape character.
-To enter a backslash, escape it's meaning by entering it twice: `\\\\`.
+To enter a backslash, escape its meaning by entering it twice: `\\\\`.
 
-A dollar-sign is entered as `\\$`, which escapes the meaning of "formula-start".
+A dollar sign is entered as `\\$`, which escapes the meaning of "formula-start".
 
-### The preview does not update
+### What to do if the preview does not update
 
 Possible reasons:
 
 1. Are there any errors in the "Issues" tab? LaTeX only compiles well if there are zero reported errors.
 2. Long documents could take an extended period of time to complete. In the "Preview" tab, disable the preview and only enable it once to avoid piling up too much work on the back-end.
-3. Similarly, computational-heavy "SageTeX" computations could lead to too long compilation times.
+3. Similarly, computational-heavy "SageTeX" computations could lead to excessive compilation times.
    You can pre-compute results or split the document into smaller parts.
 
 ### How to deal with large documents across multiple source files?
