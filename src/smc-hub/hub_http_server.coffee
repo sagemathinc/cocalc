@@ -77,7 +77,7 @@ exports.init_express_http_server = (opts) ->
 
     # initialize metrics
     response_time_quantile = MetricsRecorder.new_quantile('http_quantile', 'http server',
-                                  percentiles : [0, 0.5, 0.9, 0.99, 1]
+                                  percentiles : [0, 0.5, 0.75, 0.9, 0.99, 1]
                                   labels: ['path', 'method', 'code']
                              )
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'

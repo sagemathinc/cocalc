@@ -96,6 +96,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_database = opts.database
         @_concurrent_queries = 0
         @_password = opts.password ? read_password_from_disk()
+        @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
@@ -214,6 +215,22 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         else
             return ->
 
+    _init_metrics: =>
+        # initialize metrics
+        MetricsRecorder  = require('./metrics-recorder')
+        @query_time_quantile = MetricsRecorder.new_quantile('db_query_ms_quantile', 'db queries',
+            percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+            labels: ['table']
+        )
+        @query_time_histogram = MetricsRecorder.new_histogram('db_query_ms_histogram', 'db queries'
+            buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
+            labels: ['table']
+        )
+        @concurrent_counter = MetricsRecorder.new_counter('db_concurrent_total',
+            'Concurrent queries (started and finished)',
+            ['state']
+        )
+
     _query: (opts) =>
         opts  = defaults opts,
             query     : undefined    # can give select and table instead
@@ -288,7 +305,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             if misc.is_array(opts.select)
                 opts.select = (quote_field(field) for field in opts.select).join(',')
             opts.query = "SELECT #{opts.select} FROM \"#{opts.table}\""
-            delete opts.table
+            #delete opts.table    # TODO/Q: why is it deleted?
             delete opts.select
 
         push_param = (param, type) ->
@@ -482,11 +499,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
         @_concurrent_queries += 1
+        @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
             @_client.query opts.query, opts.params, (err, result) =>
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
+                @query_time_quantile.observe({table:opts.table ? ''}, query_time_ms)
+                @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
+                @concurrent_counter.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
@@ -502,6 +523,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             dbg("EXCEPTION in @_client.query: #{e}")
             opts.cb?(e)
             @_concurrent_queries -= 1
+            @concurrent_counter.labels('ended').inc(1)
         return
 
     # Special case of query for counting entries in a table.

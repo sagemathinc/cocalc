@@ -534,7 +534,6 @@ exports.start_server = start_server = (cb) ->
                 if err?
                     cb(err)
                 else
-                    metricsRecorder = mr
                     metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
                     cb()
             )

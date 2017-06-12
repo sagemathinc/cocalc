@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016, SageMath, Inc.
+#    Copyright (C) 2016 -- 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -38,10 +38,10 @@ prom_default_metrics = prom_client.defaultMetrics
 require('prometheus-gc-stats')()()
 
 # some constants
-FREQ_s     = 10   # write stats every FREQ seconds
-DELAY_s    = 5    # with an initial delay of DELAY seconds
-DISC_LEN   = 10   # length of queue for recording discrete values
-MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
+#FREQ_s     = 10   # update stats every FREQ seconds
+#DELAY_s    = 5    # with an initial delay of DELAY seconds
+#DISC_LEN   = 10   # length of queue for recording discrete values
+#MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
 
 # CLK_TCK (usually 100, but maybe not ...)
 try
@@ -49,12 +49,14 @@ try
 catch err
     CLK_TCK = null
 
+###
 # exponential smoothing, based on linux's load 1-exp(-1) smoothing
 # with compensation for sampling time FREQ_s
 d = 1 - Math.pow(Math.exp(-1), FREQ_s / 60)
 DECAY = [d, Math.pow(d, 5), Math.pow(d, 15)]
+###
 
-
+###
 # there is more than just continuous values
 # cont: continuous (like number of changefeeds), will be smoothed
 #       disc: discrete, like blocked, will be recorded with timestamp
@@ -67,6 +69,7 @@ exports.TYPE = TYPE =
     CONT : 'continuous' # continuous with exponential decay
     MAX  : 'contmax'    # like CONT, reduces buffer to max value
     SUM  : 'contsum'    # like CONT, reduces buffer to sum of values divided by FREQ_s
+###
 
 exports.new_counter = new_counter = (name, help, labels) ->
     # a prometheus counter -- https://github.com/siimon/prom-client#counter
@@ -110,11 +113,6 @@ class MetricsRecorder
         @_init_monitoring()
 
         @_collectors = []
-
-        # start of periodically calling publish/update
-        setTimeout((=> setInterval(@_publish, FREQ_s * 1000)), DELAY_s * 1000)
-        # record start time (as string!)
-        @record("start", new Date(), TYPE.LAST)
 
         # initialization finished
         cb?(undefined, @)
@@ -168,6 +166,7 @@ class MetricsRecorder
             @_cpu_seconds_total.labels('chld_system').set(parseFloat(infos[14]) / CLK_TCK)
 
 
+    ###
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update: ->
@@ -230,16 +229,6 @@ class MetricsRecorder
             # we've consumed the value(s), reset them
             @_stats[key] = []
 
-    # the periodically called publication step
-    _publish: (cb) =>
-        @record("timestamp", new Date(), TYPE.LAST)
-        # also record system metrics like cpu, memory, ... ?
-        @_update()
-        # only if we have a @filename, save it there
-        if @filename?
-            json = JSON.stringify(@_data, null, 2)
-            fs.writeFile(@filename, json, cb?())
-
     record: (key, value, type = TYPE.CONT) =>
         # store in @_stats a key → bounded array
         if (@_types[key] ? type) != type
@@ -263,6 +252,7 @@ class MetricsRecorder
                 @dbg?('hub/record_stats: unknown or undefined type #{type}')
         # avoid overflows
         @_stats[key] = @_stats[key][-MAX_BUFFER..]
+    ###
 
 metricsRecorder = null
 exports.init = (winston, cb) ->
