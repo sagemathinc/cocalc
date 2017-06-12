@@ -56,6 +56,126 @@ MAX_LATEX_WARNINGS = 50
 TOOLTIP_CONFIG =
     delay: {show: 500, hide: 100}
 
+{SITE_NAME} = require('smc-util/theme')
+SiteName = redux.getStore('customize').site_name ? SITE_NAME
+help_md = """
+# LaTeX Editor Help
+
+LaTeX is a sophisticated markup language and processor for typesetting documents.
+For a general introduction, read this [LaTeX wiki book](https://en.wikibooks.org/wiki/LaTeX) or any other resource.
+In general, it works by editing a "source code", visible on the left, and compiles it to a PDF document.
+#{SiteName} manages this task for you, by regularly saving and running the LaTeX processor for you.
+
+On the right hand side, there are several tabs like this one here for help:
+
+* **Preview** quickly renders a few some pages to see how the current part of the document looks like.
+* **Issues** lists you all compilation warnings and errors.
+  Click on the buttons to jump to the corresponding line in the input code on the left.
+  _LaTeX won't compile (or only partially or in a wrong way) as long as there are any errors left!_
+* **PDF** shows you an embedded view of the compiled PDF file.
+  This might be broken if your browser has problems rendering the file inline –
+  use the "Preview" tab instead!
+* **Build** gives you advanced control over how the compilation process works:
+  * **Rebuild**: erases all temporary documents and starts the compilation from scratch
+  * **Latex**: triggers a "normal" Latex build, which is much faster since temporary files are retained
+  * **Bibtex**: explicitly runs [Bibtex](https://en.wikipedia.org/wiki/BibTeX), usually managed by the build process
+  * **Sage**: runs "SageMath" for [SageTeX](https://www.ctan.org/pkg/sagetex?lang=en), usually managed by the build process
+  * **Clean**: deletes temporary files
+  * **Build Command**: The drop-down list on the right hand side lets you specify the compilation program. On the left, you can edit the command even further. It is saved as part of the document, at the bottom.
+By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages temporary files and bibtex, and also runs SageTeX if necessary.
+
+## LaTeX Engines
+
+* **latexmk** + **PDFlatex**: the default configuration, works in most cases
+* **latexmk** + **XeLaTeX**: this is useful for foreign languages with many special characters.
+
+## Features
+
+### Forward & Inverse Search
+
+Forward and inverse search help you enormeously with navigating around in a larger document.
+
+**Forward**: place your cursor at a specific location in the editor on the left hand side.
+Click the "Forward" button or the `[ALT]`+`[Return]` keyboard shortcut to jump to the corresponding
+location in the preview on the right hand side.
+(It might not always work in case the full positional information is not available.)
+
+**Inverse**: Double-click on an area of interest on the right hand side in the **Preview** area.
+The cursor on the left hand side will jump to the paragraph in the source-code.
+
+## Quickstart
+
+It is very easy to start with LaTeX.
+#{SiteName} guides your first document with a small default template.
+You start working between the `\\begin{document}` and `\\end{document}` instructions.
+Everything before `\\begin{document}` is called the "preamble" and contains the configuration for the document.
+
+For example, remove the `\\maketitle` instruction and replace it by
+
+> `Hello \\textbf{#{SiteName}}! This is a formula: $\\frac{1}{1+x^2}$.`
+
+After saving (`[CTRL]` + `[s]`), there should be a small spinner next to `Build` and once done,
+the preview renders. You should then see:
+
+> Hello **#{SiteName}**! This is a formula: $\\frac{1}{1+x^2}$.
+
+* **New paragraphs**: Single returns for new lines do not have any effect.
+  Use them to keep new sentences in paragraphs at the beginning of a line for better overview.
+  Two or more returns introduce a new paragraph.
+* **Formulas**: They're either between `$` or `$$`, or in `\\begin{equation}...\\end{equation}` environments.
+
+## Encoding
+
+**UTF8**: the build process runs in a Linux environment.
+All edited documents are assumed to be encoded as UTF-8.
+Therefore, depending if you compile via PDFLaTeX or XeLaTeX, the following encoding defintions are the preferred choices:
+
+* PDFLaTeX:
+  ```
+  \\usepackage[T1]{fontenc}
+  \\usepackage[utf8]{inputenc}
+  \\usepackage{lmodern}
+  ```
+* XeLaTeX:
+  ```
+  \\usepackage{fontspec}
+  ```
+
+The default template already selects the correct configuration for you.
+
+## FAQ
+
+### How to insert an image?
+
+1. Upload a PNG or PDF file via #{SiteName}'s "Files" interface.
+   The uploaded image should be in the same directory as the `.tex` file
+   Otherwise, use relative paths like `./images/filename.png` if it is in a subdirectory `images`.
+2. Follow [these instructions] about how to insert a graphic in a figure environment.
+   Do not forget `\\usepackage{graphicx}` in the preamble declaration.
+
+### How to insert a backslash or dollar sign?
+
+The `\\` character has a special meaning.
+It signals a LaTeX command or is used as an escape character.
+To enter a backslash, escape it's meaning by entering it twice: `\\\\`.
+
+A dollar-sign is entered as `\\$`, which escapes the meaning of "formula-start".
+
+### The preview does not update
+
+Possible reasons:
+
+1. Are there any errors in the "Issues" tab? LaTeX only compiles well if there are zero reported errors.
+2. Long documents could take an extended period of time to complete. In the "Preview" tab, disable the preview and only enable it once to avoid piling up too much work on the back-end.
+3. Similarly, computational-heavy "SageTeX" computations could lead to too long compilation times.
+   You can pre-compute results or split the document into smaller parts.
+
+### How to deal with large documents across multiple source files?
+
+The best way is to use the [subfiles](https://www.ctan.org/pkg/subfiles?lang=en) package as [described here](https://en.wikibooks.org/wiki/LaTeX/Modular_Documents#Subfiles).
+Here is an extended example demonstrating how this works: [cloud-examples/latex/multiple-files](https://github.com/sagemath/cloud-examples/tree/master/latex/multiple-files).
+"""
+
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         super(@project_id, @filename)
@@ -157,6 +277,11 @@ class exports.LatexEditor extends editor.FileEditor
         @errors = @element.find(".webapp-editor-latex-errors")
         @_pages['errors'] = @errors
         @_error_message_template = @element.find(".webapp-editor-latex-mesg-template")
+
+        @help = @element.find('.webapp-editor-latex-help')
+        markdown = require('./markdown')
+        @help.html(markdown.markdown_to_html(help_md).s)
+        @_pages['help'] = @help
 
         @_init_buttons()
         @init_draggable_split()
@@ -344,6 +469,10 @@ class exports.LatexEditor extends editor.FileEditor
             @show_page('png-preview')
             @preview.focus()
             @save()
+            return false
+
+        @element.find('a[href="#help"]').click () =>
+            @show_page('help')
             return false
 
         @element.find('a[href="#zoom-preview-out"]').click () =>
@@ -611,7 +740,7 @@ class exports.LatexEditor extends editor.FileEditor
         if not name?
             name = 'png-preview'
 
-        pages = ['png-preview', 'pdf-preview', 'log', 'errors']
+        pages = ['png-preview', 'pdf-preview', 'log', 'errors', 'help']
         for n in pages
             @element.find(".webapp-editor-latex-#{n}").hide()
 
@@ -629,6 +758,9 @@ class exports.LatexEditor extends editor.FileEditor
                         @log_input.val(c)
                 else if n == 'errors'
                     @render_error_page()
+                else if n == 'help'
+                    e.mathjax()
+                    e.find('a').attr('target', '_blank')
                 else
                     page.show()
                 button.parent().addClass('active')
