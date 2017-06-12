@@ -603,7 +603,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            MetricsRecorder.setup_monitoring()
+            MetricsRecorder.get().setup_monitoring()
             cb()
     ], (err) =>
         if err
