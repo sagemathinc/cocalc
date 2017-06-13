@@ -578,7 +578,6 @@ exports.start_server = start_server = (cb) ->
                 dev            : program.dev
                 compute_server : compute_server
                 database       : database
-                metricsRecorder: MetricsRecorder
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
@@ -600,11 +599,6 @@ exports.start_server = start_server = (cb) ->
                     else
                         cb()
             ], cb)
-        (cb) ->
-            if not program.port
-                cb(); return
-            MetricsRecorder.get().setup_monitoring()
-            cb()
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")

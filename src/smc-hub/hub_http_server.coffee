@@ -63,7 +63,6 @@ exports.init_express_http_server = (opts) ->
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
-        metricsRecorder: undefined
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
@@ -150,11 +149,12 @@ exports.init_express_http_server = (opts) ->
     router.get '/metrics', (req, res) ->
         res.header("Content-Type", "text/plain")
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-        if opts.metricsRecorder?
+        metricsRecorder = MetricsRecorder.get()
+        if metricsRecorder?
             # res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
-            res.send(opts.metricsRecorder.get())
+            res.send(metricsRecorder.metrics())
         else
-            res.send(JSON.stringify(error:'no metrics recorder'))
+            res.send(JSON.stringify(error:'Metrics recorder not initialized.'))
 
     # /concurrent -- used by kubernetes to decide whether or not to kill the container; if
     # below the warn thresh, returns number of concurrent connection; if hits warn, then

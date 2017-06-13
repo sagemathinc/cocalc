@@ -38,8 +38,8 @@ prom_default_metrics = prom_client.defaultMetrics
 require('prometheus-gc-stats')()()
 
 # some constants
-#FREQ_s     = 10   # update stats every FREQ seconds
-#DELAY_s    = 5    # with an initial delay of DELAY seconds
+FREQ_s     = 10   # update stats every FREQ seconds
+DELAY_s    = 5    # with an initial delay of DELAY seconds
 #DISC_LEN   = 10   # length of queue for recording discrete values
 #MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
 
@@ -102,7 +102,7 @@ exports.new_histogram = new_histogram = (name, help, config={}) ->
 class MetricsRecorder
     constructor: (@dbg, cb) ->
         ###
-        * @dbg: e.g. reporting via winston or whatever
+        * @dbg: reporting via winston, instance with configuration passed in from hub.coffee
         ###
         # stores the current state of the statistics
         @_stats = {}
@@ -110,14 +110,13 @@ class MetricsRecorder
 
         # the full statistic
         @_data  = {}
-        @_init_monitoring()
-
         @_collectors = []
 
         # initialization finished
+        @setup_monitoring()
         cb?(undefined, @)
 
-    get: ->
+    metrics: =>
         ###
         get a serialized representation of the metrics status
         (was a dict that should be JSON, now it is for prometheus)
@@ -125,37 +124,38 @@ class MetricsRecorder
         ###
         return prom_client.register.metrics()
 
-    register_collector: (collector) ->
+    register_collector: (collector) =>
         # The added collector functions will be evaluated periodically to gather metrics
         @_collectors.push(collector)
 
-    _init_monitoring: ->
-        # called by constructor, just initalize state variables
-        @dbg("CLK_TCK: #{CLK_TCK}")
-
-    setup_monitoring: ->
-        ###
-        setup monitoring of some components
-        called by the hub *after* setting up the DB, etc.
-        ###
+    setup_monitoring: =>
+        # setup monitoring of some components
+        # called by the hub *after* setting up the DB, etc.
         num_clients_gauge = new_gauge('clients_count', 'Number of connected clients')
         {number_of_clients} = require('./hub_register')
         @register_collector ->
-            num_clients_gauge.set(number_of_clients())
+            try
+                num_clients_gauge.set(number_of_clients())
+            catch
+                num_clients_gauge.set(0)
 
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
         @_cpu_seconds_total = new_gauge('process_cpu_categorized_seconds_total', 'Total number of CPU seconds used', ['type'])
 
-    _collect: ->
+        # init periodically calling @_collect
+        setTimeout((=> setInterval(@_collect, FREQ_s * 1000)), DELAY_s * 1000)
+
+    _collect: =>
         # called by @_update to evaluate the collector functions
+        #@dbg('_collect called')
         for c in @_collectors
             c()
         # linux specific: collecting this process and all its children sys+user times
         # http://man7.org/linux/man-pages/man5/proc.5.html
         fs.readFile path.join('/proc', ''+process.pid, 'stat'), 'utf8', (err, infos) =>
             if err or not CLK_TCK?
-                @dbg("MetricsRecorder._collect err: #{err}")
+                @dbg("_collect err: #{err}")
                 return
             # there might be spaces in the process name, hence split after the closing bracket!
             infos = infos[infos.lastIndexOf(')') + 2...].split(' ')
@@ -166,7 +166,9 @@ class MetricsRecorder
             @_cpu_seconds_total.labels('chld_system').set(parseFloat(infos[14]) / CLK_TCK)
 
 
-    ###
+
+# some of the commented code below might be used in the future when periodically collecting data (e.g. sliding max of "concurrent" value)
+###
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update: ->
@@ -252,11 +254,12 @@ class MetricsRecorder
                 @dbg?('hub/record_stats: unknown or undefined type #{type}')
         # avoid overflows
         @_stats[key] = @_stats[key][-MAX_BUFFER..]
-    ###
+###
 
 metricsRecorder = null
 exports.init = (winston, cb) ->
-    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
+    dbg = (msg) ->
+        winston.info("MetricsRecorder: #{msg}")
     metricsRecorder = new MetricsRecorder(dbg, cb)
 
 exports.get = ->
