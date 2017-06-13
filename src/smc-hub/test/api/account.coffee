@@ -12,7 +12,6 @@ describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
     after(teardown)
 
-
     it "gets names for empty list of users", (done) ->
         api.call
             event : 'get_usernames'

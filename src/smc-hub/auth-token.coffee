@@ -15,18 +15,18 @@ auth              = require('./auth')
 ban = {}
 
 exports.get_user_auth_token = (opts) ->
-    opts = types opts,
-        database        : types.object.isRequired
-        account_id      : types.string.isRequired
-        user_account_id : types.string.isRequired
-        password        : types.string.isRequired
-        cb              : types.func.isRequired    # cb(err, auth_token)
-    opts = types opts,  # temporary until types is more than just a WARNING
+    opts = defaults opts,  # temporary until types is more than just a WARNING
         database        : required
         account_id      : required
         user_account_id : required
         password        : required
         cb              : required
+    types opts,
+        database        : types.object.isRequired
+        account_id      : types.string.isRequired
+        user_account_id : types.string.isRequired
+        password        : types.string.isRequired
+        cb              : types.func.isRequired    # cb(err, auth_token)
 
     auth_token = undefined
     b = ban[opts.account_id]?[opts.user_account_id]
@@ -66,14 +66,14 @@ exports.get_user_auth_token = (opts) ->
     )
 
 exports.revoke_user_auth_token = (opts) ->
-    opts = types opts,
-        database   : types.object.isRequired
-        auth_token : types.string.isRequired
-        cb         : types.func.isRequired    # cb(err, auth_token)
     opts = defaults opts,
         database   : required
         auth_token : required
         cb         : required
+    types opts,
+        database   : types.object.isRequired
+        auth_token : types.string.isRequired
+        cb         : types.func.isRequired    # cb(err, auth_token)
     opts.database.delete_auth_token
         auth_token : opts.auth_token
         cb         : cb
