@@ -51,7 +51,7 @@
   },
   "scripts": {
     "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
-    "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test",
+    "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
     "webpack": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webpack --debug --output-pathinfo --progress --colors --watch",

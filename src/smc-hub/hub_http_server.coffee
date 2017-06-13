@@ -47,6 +47,7 @@ auth         = require('./auth')
 access       = require('./access')
 hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
+MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
 
@@ -73,6 +74,28 @@ exports.init_express_http_server = (opts) ->
 
     router.use(body_parser.json())
     router.use(body_parser.urlencoded({ extended: true }))
+
+    # initialize metrics
+    response_time_quantile = MetricsRecorder.new_quantile('http_quantile', 'http server',
+                                  percentiles : [0, 0.5, 0.75, 0.9, 0.99, 1]
+                                  labels: ['path', 'method', 'code']
+                             )
+    response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
+                                  buckets : [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1, 5, 10]
+                                  labels: ['path', 'method', 'code']
+                              )
+
+    router.use (req, res, next) ->
+        res_finished_q = response_time_quantile.startTimer()
+        res_finished_h = response_time_histogram.startTimer()
+        original_end = res.end
+        res.end = ->
+            original_end.apply(res, arguments)
+            {dirname} = require('path')
+            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            res_finished_q({path:dir_path, method:req.method, code:res.statusCode})
+            res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
+        next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
 
@@ -125,10 +148,11 @@ exports.init_express_http_server = (opts) ->
             res.send('alive')
 
     router.get '/metrics', (req, res) ->
-        res.header("Content-Type", "application/json")
+        res.header("Content-Type", "text/plain")
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
         if opts.metricsRecorder?
-            res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
+            # res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
+            res.send(opts.metricsRecorder.get())
         else
             res.send(JSON.stringify(error:'no metrics recorder'))
 

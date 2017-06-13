@@ -223,6 +223,8 @@ Handout = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
+                    persist_id    = {@props.handout.get('path') + @props.handout.get('assignment_id') + "note"}
+                    attach_to     = {@props.name}
                     rows          = 6
                     placeholder   = 'Private notes about this handout (not visible to students)'
                     default_value = {@props.handout.get('note')}

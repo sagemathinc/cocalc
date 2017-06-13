@@ -201,10 +201,12 @@ exports.SettingsPanel = rclass
             </LabeledRow>
             <LabeledRow label="Description">
                 <MarkdownInput
-                    rows    = 6
-                    type    = "textarea"
+                    persist_id    = {@props.name + "course-description"}
+                    attach_to     = {@props.name}
+                    rows          = 6
+                    type          = "textarea"
                     default_value = {@props.settings.get('description')}
-                    on_save ={(desc)=>@actions(@props.name).set_description(desc)}
+                    on_save       = {(desc)=>@actions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
             <hr/>
@@ -322,10 +324,12 @@ exports.SettingsPanel = rclass
         <Panel header={<h4><Icon name='envelope'/> Customize email invitation</h4>}>
             <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
                 <MarkdownInput
-                    rows    = 6
-                    type    = "textarea"
+                    persist_id    = {@props.name + "email-invite-body"}
+                    attach_to     = {@props.name}
+                    rows          = 6
+                    type          = "textarea"
                     default_value = {@props.redux.getStore(@props.name).get_email_invite()}
-                    on_save ={(body)=>@actions(@props.name).set_email_invite(body)}
+                    on_save       = {(body)=>@actions(@props.name).set_email_invite(body)}
                 />
             </div>
             <hr/>

@@ -314,7 +314,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Takes an item_name and the id of the time
     # item_name should be one of
-    # ['student', 'assignment', handout']
+    # ['student', 'assignment', 'peer_config', handout']
     toggle_item_expansion: (item_name, item_id) =>
         store = @get_store()
         return if not store?

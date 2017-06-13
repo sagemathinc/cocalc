@@ -15,6 +15,7 @@ base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
 auth                 = require('./auth')
+auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
@@ -55,6 +56,25 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
+
+# recording metrics and statistics
+MetricsRecorder = require('./metrics-recorder')
+
+# setting up client metrics
+mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
+                                     'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
+push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
+                                     buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+                                     labels: ['event']
+                                 )
+push_to_client_stats_q         = MetricsRecorder.new_quantile('push_to_client_quant_ms', 'Client: push_to_client',
+                                     percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+                                     labels: ['event']
+                                 )
+push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
+                                     'summary stats for Client::push_to_client/to_json', labels: ['event'])
+
+uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -257,6 +277,8 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
+                push_to_client_stats_q.observe({event:mesg.event}, time_taken)
+                push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
@@ -388,8 +410,10 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             email_address : required
             account_id    : required
+            ttl           : 24*3600 *30     # 30 days, by default
             cb            : undefined
 
+        ttl = opts.ttl; delete opts.ttl
         opts.hub = @_opts.host
         opts.remember_me = true
 
@@ -398,7 +422,6 @@ class exports.Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
         @hash_session_id = auth.password_hash(session_id)
-        ttl              = 24*3600 * 30     # 30 days
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
@@ -656,6 +679,15 @@ class exports.Client extends EventEmitter
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
+            client   : @
+            mesg     : mesg
+            logger   : @logger
+            database : @database
+            host     : @_opts.host
+            port     : @_opts.port
+
+    mesg_sign_in_using_auth_token: (mesg) =>
+        sign_in.sign_in_using_auth_token
             client   : @
             mesg     : mesg
             logger   : @logger
@@ -2158,3 +2190,25 @@ class exports.Client extends EventEmitter
                     else
                         @success_to_client(id:mesg.id)
 
+    mesg_user_auth: (mesg) =>
+        auth_token.get_user_auth_token
+            database        : @database
+            account_id      : @account_id  # strictly not necessary yet... but good if user has to be signed in,
+                                           # since more secure and we can rate limit attempts from a given user.
+            user_account_id : mesg.account_id
+            password        : mesg.password
+            cb              : (err, auth_token) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_auth_token(id:mesg.id, auth_token:auth_token))
+
+    mesg_revoke_auth_token: (mesg) =>
+        auth_token.revoke_user_auth_token
+            database        : @database
+            auth_token      : mesg.auth_token
+            cb              : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))

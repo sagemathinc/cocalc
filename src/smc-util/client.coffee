@@ -709,6 +709,15 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
+    sign_in_using_auth_token: (opts) ->
+        opts = defaults opts,
+            auth_token : required
+            cb         : required
+        @call
+            message : message.sign_in_using_auth_token
+                auth_token : opts.auth_token
+            timeout : opts.timeout
+            cb      : opts.cb
 
     sign_in: (opts) ->
         opts = defaults opts,

@@ -64,6 +64,7 @@ init_redux = (course_filename, redux, course_project_id) ->
         expanded_students      : immutable.Set() # Set of student id's (string) which should be expanded on render
         expanded_assignments   : immutable.Set() # Set of assignment id's (string) which should be expanded on render
         expanded_handouts      : immutable.Set() # Set of handout id's (string) which should be expanded on render
+        expanded_peer_configs  : immutable.Set() # Set of assignment configs (key = assignment_id) which should be expanded on render
         active_student_sort    : {column_name : "last_name", is_descending : false}
         active_assignment_sort : {column_name : "due_date", is_descending : false}
         settings               : {allow_collabs : true}
