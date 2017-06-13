@@ -29,30 +29,85 @@
 ###
 
 doc_intro = """
+## About the API
 
-## API messages
+### Purpose
 
-These options appear on all API messages:
+The purpose of the CoCalc API (application programming interface) is to make
+essential operations within the CoCalc platform available to automated
+clients. This allows embedding of CoCalc services within other products
+and customizing the external look and feel of the application.
+
+### Protocol and Data Format
+
+Each API command is invoked using an HTTPS PUT request.
+All commands support request parameters in JSON format, with request header
+`Content-Type: application/json`. Many commands (those that do not
+require lists or objects as parameters)
+also accept request parameters as key-value pairs, i.e. 
+`Content-Type: application/x-www-form-urlencoded`.
+
+Responses are formatted as JSON strings.
+Note that it is possible for a request to fail and return
+a response code of 200. In that case, the response
+string may contain helpful information on the nature of
+the failure. In other cases, if the request cannnot
+be completed, a response code other than 200 may be
+returned, and the response body may be a
+generic HTML message rather than a JSON string.
+
+### Authentication
+
+A valid API key is required on all API requests.
+To obtain a key, log into
+CoCalc and click on Settings (gear icon next to user name at upper
+right), and look under `Account Settings`.
+With the `API key` dialogue, you can create a key,
+view a previously assigned key, generate a replacement key,
+and delete your key entirely.
+
+Your API key carries access privileges, just like your
+login and password.
+__Keep it secret.__
+Do not share your API key with others or post it in publicly accessible
+forums.
+
+### Additional References
+
+- The CoCalc PostgreSQL schema definition
+[src/smc-util/db-schema.coffee]
+(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
+has information on tables and fields used with the API `query` request.
+- The API test suite
+[src/smc-hub/test/api/]
+(https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
+contains mocha unit tests for the API messages.
+- The CoCalc message definition file
+[src/smc-util/message.coffee]
+(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.coffee)
+contains the source for this guide.
+
+### API Message Reference
+
+The remainder of this guide explains the individual API endpoints.
+Each API request definition begins with the path of the
+URL used to invoke the request,
+for example `/api/v1/change_email_address`.
+The path name ends with the name of the request,
+for example, `change_email_address`.
+Following the path is the list of options.
+After options are one or more sample invocations
+illustrating format of the request as made with the `curl`
+command, and the format of the response.
+
+The following two options appear on all API messages
+(request parameters are often referred to
+as 'options' in the guide):
 
 - **event**: the command to be executed, for example "ping"
-- **id**: uuid for the API call, will be returned in response. If id not provided
-  in the API message, a random id will be generated and returned in the response
-
-Additional notes:
-
-- Options with default of "undefined" may be omitted.
-- A valid API key is required on all API calls, including ping.
-- The structure of the response to each API message is given in the
-  immediately following "message" object definition.
-- Some API messages, for example "query" and "get_usernames", require
-  options to be passed as a JSON object, as noted in message comments.
-- If JSON is not required for API message options, it is still valid.
-- If API message options are sent as JSON, the message must be sent with
-  a request header of "Content-Type: application/json".
-
-- See also: API mocha test suite:
-  https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api
-
+- **id**: uuid for the API call, returned in response in most cases.
+If id is not provided in the API message, a random id will be
+generated and returned in the response.
 """
 
 misc     = require('./misc')
@@ -388,7 +443,6 @@ After successful `delete_account`, the owner of the deleted account
 will not be able to login, but will still be listed as collaborator
 or owner on projects which the user collaborated on or owned
 respectively.
-```
 """
 
 # hub --> client
