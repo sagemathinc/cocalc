@@ -26,7 +26,7 @@ describe 'testing text file operations -- ', ->
                 done(err)
 
     it "creates a text file in a project", (done) ->
-        @timeout 15000
+        @timeout(15000)
         api.call
             event : 'write_text_file_to_project'
             body  :
@@ -39,6 +39,7 @@ describe 'testing text file operations -- ', ->
                 done(err)
 
     it "reads a text file in a project", (done) ->
+        @timeout(15000)
         api.call
             event : 'read_text_file_from_project'
             body  :
@@ -93,6 +94,7 @@ describe 'testing text file operations -- ', ->
                 done(err)
 
     it "reads a public text file in a project", (done) ->
+        @timeout(15000)
         api.call
             event : 'public_get_text_file'
             body  :
