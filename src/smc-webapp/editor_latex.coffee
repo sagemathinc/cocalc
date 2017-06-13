@@ -151,7 +151,8 @@ The default template already selects the correct configuration for you.
 1. Upload a PNG or PDF file via #{SiteName}'s "Files" interface.
    The uploaded image should be in the same directory as the `.tex` file
    Otherwise, use relative paths like `./images/filename.png` if it is in a subdirectory `images`.
-2. Follow [these instructions] about how to insert a graphic in a figure environment.
+2. Follow [these instructions](https://en.wikibooks.org/wiki/LaTeX/Floats,_Figures_and_Captions)
+   about how to insert a graphic in a figure environment.
    Do not forget `\\usepackage{graphicx}` in the preamble declaration.
 
 ### How to insert a backslash or dollar sign?
