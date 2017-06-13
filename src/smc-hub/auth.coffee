@@ -215,6 +215,7 @@ passport_login = (opts) ->
                             account_id    : account_id
                             cb            : cb
             ], cb)
+
         (cb) ->
             target = BASE_URL + "/app#login"
 

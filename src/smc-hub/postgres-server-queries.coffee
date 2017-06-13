@@ -1069,7 +1069,7 @@ class exports.PostgreSQL extends PostgreSQL
         opts = defaults opts,
             account_id : required
             auth_token : required
-            ttl        : 86400    # ttl in seconds (default: 1 day)
+            ttl        : 12*3600    # ttl in seconds (default: 12 hours)
             cb         : required
         if not @_validate_opts(opts) then return
         @_query
@@ -1080,17 +1080,25 @@ class exports.PostgreSQL extends PostgreSQL
                 'account_id :: UUID      ' : opts.account_id
             cb     : opts.cb
 
-    # Get remember me cookie with given hash.  If it has expired,
-    # get back undefined instead.  (Actually deleting expired)
+    # Get account_id of account with given auth_token.  If it
+    # is not defined, get back undefined instead.
     get_auth_token_account_id: (opts) =>
         opts = defaults opts,
             auth_token : required
             cb         : required   # cb(err, account_id)
         @_query
-            query : 'SELECT account_id FROM auth_tokens'
+            query : 'SELECT account_id, expire FROM auth_tokens'
             where :
                 'auth_token = $::CHAR(24)' : opts.auth_token
-            cb       : one_result('account_id', opts.cb)
+            cb       : one_result (err, x) =>
+                if err
+                    opts.cb(err)
+                else if not x?
+                    opts.cb()  # nothing
+                else if x.expire <= new Date()
+                    opts.cb()
+                else
+                    opts.cb(undefined, x.account_id)
 
     delete_auth_token: (opts) =>
         opts = defaults opts,

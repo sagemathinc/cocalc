@@ -401,12 +401,16 @@ message
     password       : required
     remember_me    : false
 
+message
+    id         : undefined
+    event      : 'sign_in_using_auth_token'
+    auth_token : required
 
 # hub --> client
 message
-    id             : undefined
-    event          : 'remember_me_failed'
-    reason         : required
+    id     : undefined
+    event  : 'remember_me_failed'
+    reason : required
 
 # client --> hub
 message
@@ -1768,7 +1772,7 @@ API message2
 Example:
 
 Obtain a temporary authentication token for an account, which
-is a 24 character string. Tokens last for 24 hours.  You can
+is a 24 character string. Tokens last for **12 hours**.  You can
 only obtain an auth token for accounts that have a password.
 
 ```
@@ -1792,6 +1796,8 @@ message
     id         : undefined
     auth_token : required   # 24 character string
 
+###
+# Not fully implemented yet
 # client --> hub
 API message2
     event        : 'revoke_auth_token'
@@ -1813,3 +1819,4 @@ Revoke a temporary authentication token for an account.
   ==> {"event":"success","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
 ```
 """
+###

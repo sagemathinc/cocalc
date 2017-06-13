@@ -21,14 +21,16 @@
 
 if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
-    window.location.reload()
+    setTimeout((->window.location.reload()), 1000)
 
 $ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')
 
-{APP_LOGO_WHITE} = require('./misc_page')
+misc_page = require('./misc_page')
+
+APP_LOGO_WHITE = misc_page.APP_LOGO_WHITE
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -63,6 +65,8 @@ idle_notification = (show) ->
     idle_notification_state = show
 
 # end idle notifications
+
+auth_token = misc_page.get_query_param('auth_token')
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -235,6 +239,11 @@ class Connection extends client.Connection
                 conn.on('data', ondata)
             conn.on("data", f)
 
+            if auth_token?
+                @sign_in_using_auth_token
+                    auth_token : auth_token
+                    cb         : (err, resp) ->
+                        auth_token = undefined
 
         conn.on 'outgoing::open', (evt) =>
             log("connecting")

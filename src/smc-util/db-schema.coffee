@@ -921,9 +921,9 @@ schema.remember_me =
     pg_indexes : ['account_id']
 
 schema.auth_tokens =
-    primary_key : 'auth_key'
+    primary_key : 'auth_token'
     fields :
-        auth_key   :
+        auth_token   :
             type    : 'string'
             pg_type : 'CHAR(24)'
         account_id :

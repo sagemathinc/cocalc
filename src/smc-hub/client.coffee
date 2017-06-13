@@ -410,8 +410,10 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             email_address : required
             account_id    : required
+            ttl           : 24*3600 *30     # 30 days, by default
             cb            : undefined
 
+        ttl = opts.ttl; delete opts.ttl
         opts.hub = @_opts.host
         opts.remember_me = true
 
@@ -420,7 +422,6 @@ class exports.Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
         @hash_session_id = auth.password_hash(session_id)
-        ttl              = 24*3600 * 30     # 30 days
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
@@ -678,6 +679,15 @@ class exports.Client extends EventEmitter
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
+            client   : @
+            mesg     : mesg
+            logger   : @logger
+            database : @database
+            host     : @_opts.host
+            port     : @_opts.port
+
+    mesg_sign_in_using_auth_token: (mesg) =>
+        sign_in.sign_in_using_auth_token
             client   : @
             mesg     : mesg
             logger   : @logger

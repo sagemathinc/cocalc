@@ -297,3 +297,4 @@ webapp_client.on 'new_version', (ver) ->
 misc_page = require('./misc_page')
 if misc_page.get_query_param('fullscreen')
     redux.getActions('page').set_fullscreen(true)
+
