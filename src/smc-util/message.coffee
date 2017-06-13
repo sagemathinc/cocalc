@@ -1785,7 +1785,7 @@ only obtain an auth token for accounts that have a password.
 
 You can now use the auth token to craft a URL like this:
 
-    https://cocalc.com?auth=BQokikJOvBiI2HlWgH4olfQ2
+    https://cocalc.com?auth_token=BQokikJOvBiI2HlWgH4olfQ2
 
 and provide that to a user.  When they visit that URL, they will be temporarily signed in as that user.
 """
