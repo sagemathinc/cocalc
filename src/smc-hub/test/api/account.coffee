@@ -104,9 +104,10 @@ describe 'testing calls relating to creating user accounts -- ', ->
 
     base_url = 'https://cocalc.com'
     it.skip "invites non-cloud collaborators", (done) ->
-    # TODO: fails because api.last_email isn't set until after this test runs
-    # see smc-hub/client.coffee around L1220 where cb() is called before
-    # email is sent
+        # TODO: this test is skipped for now.
+        # The test fails because api.last_email isn't set until after this test runs.
+        # See smc-hub/client.coffee around L1220 where cb() is called before
+        # email is sent.
         api.call
             event : 'invite_noncloud_collaborators'
             body  :
