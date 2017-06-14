@@ -1,12 +1,16 @@
 ###
 Testing API functions relating to users and user accounts
+
+COPYRIGHT : (c) 2017 SageMath, Inc.
+LICENSE   : AGPLv3
 ###
 
 api   = require('./apitest')
 {setup, teardown} = api
-misc = require('smc-util/misc')
-expect = require('expect')
 
+misc = require('smc-util/misc')
+
+expect = require('expect')
 
 describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
@@ -64,6 +68,68 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
                 expect(resp?.reason).toEqual({"email_address":"This e-mail address is already taken."})
+                done(err)
+
+    project_id = undefined
+    it "creates test project", (done) ->
+        api.call
+            event : 'create_project'
+            body  :
+                title       : 'COLLABTEST'
+                description : 'Testing collaboration ops'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('project_created')
+                project_id = resp.project_id
+                done(err)
+
+    it "invites collaborator to project", (done) ->
+        api.call
+            event : 'invite_collaborator'
+            body  :
+                account_id : account_id2
+                project_id : project_id
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('success')
+                done(err)
+
+    it "lists project collaborators", (done) ->
+        api.call
+            event : 'query'
+            body  :
+                query : {projects:{project_id:project_id, users:null}}
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('query')
+                expect(resp?.query?.projects?.users[account_id2]).toEqual( group: 'collaborator' )
+                done(err)
+
+    base_url = 'https://cocalc.com'
+    it.skip "invites non-cloud collaborators", (done) ->
+        # TODO: this test is skipped for now.
+        # The test fails because api.last_email isn't set until after this test runs.
+        # See smc-hub/client.coffee around L1220 where cb() is called before
+        # email is sent.
+        api.call
+            event : 'invite_noncloud_collaborators'
+            body  :
+                project_id : project_id
+                to         :  'someone@m.local'
+                email      :  'Plese sign up and join this project.'
+                title      :  'Team Project'
+                link2proj  :  "#{base_url}/projects/#{project_id}"
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('invite_noncloud_collaborators_resp')
+                expect(api.last_email?.subject).toBe('CoCalc Invitation')
+                done(err)
+
+
+    it "removes collaborator", (done) ->
+        api.call
+            event : 'remove_collaborator'
+            body  :
+                account_id : account_id2
+                project_id : project_id
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('success')
                 done(err)
 
     it "deletes the second account", (done) ->

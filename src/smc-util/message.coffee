@@ -623,7 +623,7 @@ Given the `account_id` for an account, set a new email address.
 Examples:
 
 Successful change of email address.
-
+```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
     -d password=secret_password \\
@@ -632,9 +632,11 @@ Successful change of email address.
   ==> {"event":"changed_email_address",
        "id":"8f68f6c4-9851-4b88-bd65-37cb983298e3",
        "error":false}
+```
 
 Fails if new email address is already in use.
 
+```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
     -d password=secret_password \\
@@ -643,6 +645,7 @@ Fails if new email address is already in use.
   ==> {"event":"changed_email_address",
        "id":"4501f022-a57c-4aaf-9cd8-af0eb05ebfce",
        "error":"email_already_taken"}
+```
 
 **Note:** `account_id` and `password` must match the `id` of the current login.
 """
@@ -1191,30 +1194,137 @@ API message
     id    : undefined
     users : required   # list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
 
-API message
+API message2
     event      : 'invite_collaborator'
-    id         : undefined
-    project_id : required
-    account_id : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'project_id of project into which user is invited'
+        account_id:
+            init  : required
+            desc  : 'account_id of invited user'
+    desc       : """
+Invite a user who already has a CoCalc account to
+become a collaborator on a project. You must be owner
+or collaborator on the target project.
 
-API message
+Example:
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
+    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    https://cocalc.com/api/v1/invite_collaborator
+  ==> {"event":"success",
+       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
+```
+"""
+
+API message2
     event      : 'remove_collaborator'
-    id         : undefined
-    project_id : required
-    account_id : required
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'project_id of project from which user is removed'
+        account_id:
+            init  : required
+            desc  : 'account_id of removed user'
+    desc       : """
+Remove a user from a CoCalc project.
+You must be owner or collaborator on the target project.
+You cannot remove the project owner.
+
+Example:
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
+    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    https://cocalc.com/api/v1/remove_collaborator
+  ==> {"event":"success",
+       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
+```
+"""
 
 # DANGER -- can be used to spam people.
-API message
+API message2
     event         : 'invite_noncloud_collaborators'
-    id            : undefined
-    project_id    : required
-    replyto       : undefined
-    replyto_name  : undefined
-    to            : required
-    subject       : undefined
-    email         : required    # spam vector
-    title         : required
-    link2proj     : required
+    fields        :
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'project_id of project into which users are invited'
+        to:
+            init  : required
+            desc  : 'comma- or semicolon-delimited string of email addresses'
+        email:
+            init  : required
+            desc  : 'body of the email to be sent, may include HTML markup'
+        title:
+            init  : required
+            desc  : 'string that will be used for project title in the email'
+        link2proj:
+            init  : required
+            desc  : 'URL for the target project'
+        replyto:
+            init  : undefined
+            desc  : 'Reply-To email address'
+        replyto_name:
+            init  : undefined
+            desc  : 'Reply-To name'
+        subject:
+            init  : undefined
+            desc  : 'email Subject'
+    desc          : """
+Invite users who do not already have a CoCalc account
+to join a project.
+An invitation email is sent to each user in the `to`
+option.
+Invitation is not sent if there is already a CoCalc
+account with the given email address.
+You must be owner or collaborator on the target project.
+
+Limitations:
+- Total length of the request message must be less than or equal to 1024 characters.
+- Length of each email address must be less than 128 characters.
+
+
+Example:
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    -d to=someone@m.local \\
+    -d 'email=Please sign up and join this project.' \\
+    -d 'title=Class Project' \\
+    -d link2proj=https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    https://cocalc.com/api/v1/invite_noncloud_collaborators
+  ==>  {"event":"invite_noncloud_collaborators_resp",
+        "id":"39d7203d-89b1-4145-8a7a-59e41d5682a3",
+        "mesg":"Invited someone@m.local to collaborate on a project."}
+```
+
+Email sent by the previous example:
+
+```
+To: someone@m.local
+From: CoCalc <invites@sagemath.com
+Reply-To: help@sagemath.com
+Subject: CoCalc Invitation
+
+Please sign up and join this project.<br/><br/>\\n<b>
+To accept the invitation, please sign up at\\n
+<a href='https://cocalc.com'>https://cocalc.com</a>\\n
+using exactly the email address 'someone@m.local'.\\n
+Then go to <a href='https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8'>
+the project 'Team Project'</a>.</b><br/>
+```
+"""
 
 message
     event      : 'invite_noncloud_collaborators_resp'
