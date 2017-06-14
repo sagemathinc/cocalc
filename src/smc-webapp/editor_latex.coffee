@@ -238,13 +238,13 @@ class exports.LatexEditor extends editor.FileEditor
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        if not $.browser.firefox
-            # see https://github.com/sagemathinc/cocalc/issues/1313
-            preview_filename = misc.change_filename_extension(@filename, 'pdf')
-            @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
-            @preview_embed.element.find(".webapp-editor-codemirror-button-row").remove()
-            @element.find(".webapp-editor-latex-pdf-preview").append(@preview_embed.element)
-            @_pages['pdf-preview'] = @preview_embed
+        # see https://github.com/sagemathinc/cocalc/issues/1313
+        # it was broken on Firefox, but as of version 53 it works
+        preview_filename = misc.change_filename_extension(@filename, 'pdf')
+        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
+        @preview_embed.element.find(".webapp-editor-codemirror-button-row").remove()
+        @element.find(".webapp-editor-latex-pdf-preview").append(@preview_embed.element)
+        @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
         @log = @element.find(".webapp-editor-latex-log")
@@ -499,12 +499,10 @@ class exports.LatexEditor extends editor.FileEditor
 
         @element.find('a[href="#pdf-preview"]').click () =>
             # see https://github.com/sagemathinc/cocalc/issues/1313
-            if $.browser.firefox
-                @download_pdf()
-            else
-                @show_page('pdf-preview')
-                @preview_embed.focus()
-                @preview_embed.update()
+            # it was broken on Firefox, but as of version 53 it works
+            @show_page('pdf-preview')
+            @preview_embed.focus()
+            @preview_embed.update()
             return false
 
         @element.find('a[href="#log"]').click () =>
