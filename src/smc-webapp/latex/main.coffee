@@ -29,15 +29,15 @@ async           = require('async')
 underscore      = require('underscore')
 
 misc            = require('smc-util/misc')
-misc_page       = require('./misc_page')
+misc_page       = require('../misc_page')
 {defaults, required} = misc
 
-{alert_message} = require('./alerts')
-{redux}         = require('./smc-react')
-editor          = require('./editor')
-printing        = require('./printing')
-{project_tasks} = require('./project_tasks')
-{webapp_client} = require('./webapp_client')
+{alert_message} = require('../alerts')
+{redux}         = require('../smc-react')
+editor          = require('../editor')
+printing        = require('../printing')
+{project_tasks} = require('../project_tasks')
+{webapp_client} = require('../webapp_client')
 
 templates       = $("#webapp-editor-templates")
 
@@ -232,7 +232,8 @@ class exports.LatexEditor extends editor.FileEditor
         n = @filename.length
 
         # The pdf preview.
-        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:@get_resolution()})
+        {PNG_Preview} = require('./png_preview')
+        @preview = new PNG_Preview(@project_id, @filename, undefined, {resolution:@get_resolution()})
         @element.find(".webapp-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
@@ -241,7 +242,8 @@ class exports.LatexEditor extends editor.FileEditor
         # see https://github.com/sagemathinc/cocalc/issues/1313
         # it was broken on Firefox, but as of version 53 it works
         preview_filename = misc.change_filename_extension(@filename, 'pdf')
-        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
+        {PDF_PreviewEmbed} = require('./pdf_preview')
+        @preview_embed = new PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
         @preview_embed.element.find(".webapp-editor-codemirror-button-row").remove()
         @element.find(".webapp-editor-latex-pdf-preview").append(@preview_embed.element)
         @_pages['pdf-preview'] = @preview_embed
@@ -281,7 +283,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_error_message_template = @element.find(".webapp-editor-latex-mesg-template")
 
         @help = @element.find('.webapp-editor-latex-help')
-        markdown = require('./markdown')
+        markdown = require('../markdown')
         @help.html(markdown.markdown_to_html(help_md).s)
         @_pages['help'] = @help
 
@@ -813,7 +815,7 @@ class exports.LatexEditor extends editor.FileEditor
         if not log?
             cb()
             return
-        {LatexParser} = require('latex/latex-log-parser.coffee')
+        {LatexParser} = require('webapp-lib/latex/latex-log-parser.coffee')
         p = (new LatexParser(log, {ignoreDuplicates: true})).parse()
 
         if p.errors.length
