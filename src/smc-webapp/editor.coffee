@@ -3326,11 +3326,13 @@ jupyter = require('./editor_jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
-        @init_font_size() # get the @default_font_size
-        # console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
-        @opts.default_font_size = @default_font_size
-        @element = jupyter.jupyter_notebook(@, @filename, @opts)
-        @wrapped = @element.data('jupyter_notebook')
+        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
+        require.ensure [], =>
+            @init_font_size() # get the @default_font_size
+            # console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
+            @opts.default_font_size = @default_font_size
+            @element = jupyter.jupyter_notebook(@, @filename, @opts)
+            @wrapped = @element.data('jupyter_notebook')
 
     mount: () =>
         if not @mounted
@@ -3403,16 +3405,17 @@ exports.register_nonreact_editors = () ->
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
-        icon = file_icon_class(extensions[0])
-        reg
-            ext       : extensions
-            is_public : is_public
-            icon      : icon
-            f         : (project_id, path, opts) ->
-                e = new cls(project_id, path, undefined, opts)
-                if not e.ext?
-                    console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
-                return e
+        require.ensure [], ->
+            icon = file_icon_class(extensions[0])
+            reg
+                ext       : extensions
+                is_public : is_public
+                icon      : icon
+                f         : (project_id, path, opts) ->
+                    e = new cls(project_id, path, undefined, opts)
+                    if not e.ext?
+                        console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
+                    return e
 
     # Editors for private normal editable files.
     register(false, HTML_MD_Editor,   html_md_exts)
