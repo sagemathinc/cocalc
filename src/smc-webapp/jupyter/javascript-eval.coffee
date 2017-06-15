@@ -4,7 +4,7 @@ element and whatever is available on window.  Obviously not "safe", but
 maybe safer/cleaner than nothing.
 ###
 require = requirejs = ->
-    console.warn("require is not available in SageMathCloud; if you need a Javascript library, please request it.")
+    console.warn("require is not available in CoCalc; if you need a Javascript library, please request it.")
 exports.javascript_eval = (line, element) ->
     try
         eval(line)

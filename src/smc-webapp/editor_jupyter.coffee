@@ -22,7 +22,7 @@
 #
 # There are multiple representations of the notebook.
 #
-#    - @doc      = syncstring version of the notebook (uses SMC sync functionality)
+#    - @doc      = syncstring version of the notebook (uses CoCalc's sync functionality)
 #    - @nb       = the visible view stored in the browser DOM
 #    - @filename = the .ipynb file on disk
 #
@@ -51,7 +51,7 @@ yet initialized would no longer be necessary.
 ###
 
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
-# a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
+# a minute can happen; this may be the CoCalc proxy being slow - not sure yet... but at least
 # things should be allowed to work.
 JUPYTER_LOAD_TIMEOUT_S = 60*10
 
@@ -324,7 +324,7 @@ class JupyterWrapper extends EventEmitter
         @frame.$("#menus").find("li:first").find(".divider").hide()
 
         # This makes the ipython notebook take up the full horizontal width, which is more
-        # consistent with the rest of SMC.   Also looks better on mobile.
+        # consistent with the rest of CoCalc.   Also looks better on mobile.
         @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
         if not require('./feature').IS_MOBILE
@@ -825,11 +825,11 @@ class JupyterNotebook extends EventEmitter
         # Jupyter is proxied via the following canonical URL:
         @server_url = "#{window.app_base_url}/#{@project_id}/port/jupyter/notebooks/"
 
-        # special case/hack for developing SMC-in-SMC
+        # special case/hack for developing CoCalc-in-CoCalc
         if window.app_base_url.indexOf('/port/') != -1
             # Hack until we can figure out how to proxy websockets through a proxy
             # (things just get too complicated)...
-            console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
+            console.warn("Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory!!")
             i = window.app_base_url.lastIndexOf('/')
             @server_url = "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
 

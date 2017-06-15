@@ -27,7 +27,7 @@
 {Loading, Icon, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
-# SMC Pages
+# CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
 {HelpPage}     = require('./r_help')
@@ -37,7 +37,7 @@
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
 
-# SMC Libraries
+# CoCalc Libraries
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')

@@ -68,12 +68,10 @@ exports.commands =
                         """
                         # See examples of .gitignore files at https://github.com/github/gitignore
                         echo "
-                        # For SMC files like .sagews .sage-chat etc
-                        *.sagews
+                        # For CoCalc files like .sage-chat etc
                         *.sage-chat
                         *.sage-history
                         *.term
-
                         *.py[cod]" >> .gitignore
                         """
         clone_local_repo :

@@ -25,6 +25,7 @@ class exports.PNG_Preview extends FileEditor
         @message   = @element.find(".webapp-editor-pdf-preview-message")
         @highlight = @element.find(".webapp-editor-pdf-preview-highlight").hide()
         @page.text('Loading preview...')
+        @_output_scroll_top = 0 # used in conjunction with @output.scrollTop()
         @_first_output = true
         @_needs_update = true
         @_dragpos = null
@@ -126,7 +127,9 @@ class exports.PNG_Preview extends FileEditor
         @output.on 'scroll', () =>
             @_needs_update = true
         f = () =>
-            if @_needs_update and @element.is(':visible')
+            return if not @element.is(':visible')
+            @_output_scroll_top = @output.scrollTop()
+            if @_needs_update
                 @_needs_update = false
                 @update cb:(err) =>
                     if err
@@ -353,5 +356,6 @@ class exports.PNG_Preview extends FileEditor
         cb()
 
     show: =>
+        @output.scrollTop(@_output_scroll_top)
 
     hide: =>
