@@ -1072,14 +1072,15 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
-    rename_or_duplicate_click: () ->
+    rename_or_duplicate_click: ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = ReactDOM.findDOMNode(@refs.new_name).value
         switch @props.file_action
             when 'rename'
                 @props.actions.move_files
-                    src  : @props.checked_files.toArray()
-                    dest : misc.path_to_file(rename_dir, destination)
+                    src           : @props.checked_files.toArray()
+                    dest          : misc.path_to_file(rename_dir, destination)
+                    include_chats : true
             when 'duplicate'
                 @props.actions.copy_paths
                     src           : @props.checked_files.toArray()

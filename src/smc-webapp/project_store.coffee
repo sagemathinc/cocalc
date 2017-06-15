@@ -925,14 +925,37 @@ class ProjectActions extends Actions
 
     move_files: (opts) =>
         opts = defaults opts,
-            src     : required    # Array of src paths to mv
-            dest    : required    # Single dest string
-            path    : undefined   # default to root of project
-            mv_args : undefined
-            id      : undefined
+            src           : required    # Array of src paths to mv
+            dest          : required    # Single dest string
+            path          : undefined   # default to root of project
+            mv_args       : undefined
+            id            : undefined
+            include_chats : false       # If we want to copy .filename.sage-chat
+
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
         delete opts.id
+
+        if opts.include_chats
+            if opts.src.length > 1
+                for path in opts.src
+                    {head, tail} = misc.path_split(path)
+                    opts.src.push(misc.path_join(head ? '', ".#{tail ? ''}.sage-chat"))
+                    # TODO: Read chat file naming from settings somewhere
+
+            else if opts.src.length == 1
+                {head, tail} = misc.path_split(opts.src[0])
+                old_chat_path = misc.path_join(head ? '', ".#{tail ? ''}.sage-chat")
+
+                {head, tail} = misc.path_split(opts.dest)
+                new_chat_path = misc.path_join(head ? '', ".#{tail ? ''}.sage-chat")
+
+                @move_files
+                    src  : old_chat_path
+                    dest : new_chat_path
+
+        delete opts.include_chats
+
         opts.cb = (err) =>
             if err
                 @set_activity(id:id, error:err)
