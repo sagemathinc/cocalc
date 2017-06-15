@@ -346,7 +346,6 @@ class exports.LatexEditor extends editor.FileEditor
         @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
         @element.find(".webapp-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
 
-
     set_conf: (obj) =>
         conf = @load_conf()
         for k, v of obj
@@ -424,7 +423,6 @@ class exports.LatexEditor extends editor.FileEditor
             @_passive_forward_search_disabled = false
 
         setTimeout(f, 3000)
-
 
     _passive_inverse_search: (cb) =>
         if @_passive_inverse_search_disabled
