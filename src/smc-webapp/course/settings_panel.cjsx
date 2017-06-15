@@ -31,7 +31,7 @@ misc = require('smc-util/misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Row, Col,
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
-# SMC Components
+# CoCalc Components
 {Calendar, Icon, LabeledRow, Loading, MarkdownInput,
      Space, TextInput, TimeAgo, Tip} = require('../r_misc')
 

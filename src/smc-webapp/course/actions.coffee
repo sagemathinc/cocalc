@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -23,7 +23,7 @@
 async     = require('async')
 markdownlib = require('../markdown')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
 schema = require('smc-util/schema')
@@ -388,7 +388,7 @@ exports.CourseActions = class CourseActions extends Actions
         @configure_all_projects()   # since they may get added back to shared project, etc.
 
     # Some students might *only* have been added using their email address, but they
-    # subsequently signed up for an SMC account.  We check for any of these and if
+    # subsequently signed up for an CoCalc account.  We check for any of these and if
     # we find any, we add in the account_id information about that student.
     lookup_nonregistered_students: =>
         store = @get_store()
