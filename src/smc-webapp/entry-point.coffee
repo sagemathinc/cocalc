@@ -1,5 +1,5 @@
 ###
-Complete 100% top-level react rewrite of SMC.
+Complete 100% top-level react rewrite of CoCalc.
 
 Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###

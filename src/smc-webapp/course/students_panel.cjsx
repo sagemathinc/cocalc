@@ -107,7 +107,7 @@ exports.StudentsPanel = rclass ({name}) ->
                             existing_students.email[email_address] = true
                     return aa
                 select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
-                # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
+                # Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
                 # NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
                 # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
                 # bringing back everything in the search, which is a bug.
@@ -251,10 +251,10 @@ exports.StudentsPanel = rclass ({name}) ->
     compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
-        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's SMC account ID
+        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
         # email_address  : "4@student.com"                        # Email the instructor signed the student up with.
-        # first_name     : "Rachel"                               # Student's first name they use for SMC
-        # last_name      : "Florence"                             # Student's last name they use for SMC
+        # first_name     : "Rachel"                               # Student's first name they use for CoCalc
+        # last_name      : "Florence"                             # Student's last name they use for CoCalc
         # project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
         # student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
         # last_active    : 2357025

@@ -1,3 +1,24 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {Actions, Store, redux, rtypes, computed} = require('./smc-react')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
@@ -276,17 +297,19 @@ webapp_client.on "connecting", () ->
     console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
     if num_recent_disconnects() >= 2 or (attempt >= 10)
         # this event fires several times, limit displaying the message and calling reconnect() too often
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
             if num_recent_disconnects() >= 5 or attempt >= 20
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your connection is unstable or SMC is temporarily not available."
+                    message: "Your connection is unstable or #{SiteName} is temporarily not available."
             else if attempt >= 10
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
+                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution."
     else
         reconnection_warning = null
 
