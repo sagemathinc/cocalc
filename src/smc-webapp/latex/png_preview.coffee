@@ -1,3 +1,5 @@
+# This is used in LatexEditor to show the preview of a compiled PDF file via PNG files
+
 $ = window.$
 async = require('async')
 {FileEditor} = require('../editor')
@@ -25,7 +27,8 @@ class exports.PNG_Preview extends FileEditor
         @message   = @element.find(".webapp-editor-pdf-preview-message")
         @highlight = @element.find(".webapp-editor-pdf-preview-highlight").hide()
         @page.text('Loading preview...')
-        @_output_scroll_top = 0 # used in conjunction with @output.scrollTop()
+        # used in conjunction with @output.scrollTop() and ...Left()
+        @_output_scroll_pos = {left: 0, top: 0}
         @_first_output = true
         @_needs_update = true
         @_dragpos = null
@@ -128,7 +131,9 @@ class exports.PNG_Preview extends FileEditor
             @_needs_update = true
         f = () =>
             return if not @element.is(':visible')
-            @_output_scroll_top = @output.scrollTop()
+            @_output_scroll_pos =
+                top    : @output.scrollTop()
+                left   : @output.scrollLeft()
             if @_needs_update
                 @_needs_update = false
                 @update cb:(err) =>
@@ -356,6 +361,7 @@ class exports.PNG_Preview extends FileEditor
         cb()
 
     show: =>
-        @output.scrollTop(@_output_scroll_top)
+        @output.scrollTop(@_output_scroll_pos.top)
+        @output.scrollLeft(@_output_scroll_pos.left)
 
     hide: =>

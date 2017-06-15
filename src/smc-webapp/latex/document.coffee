@@ -1,4 +1,8 @@
+# This manages the latex document itself
+# Highlights include the update_pdf (in the end, that's what this is all about) and update_images (for PNG_Preview) methods.
+
 async = require('async')
+underscore = _ = require('underscore')
 {defaults, required} = misc = require('smc-util/misc')
 misc_page = require('../misc_page')
 {webapp_client} = require('../webapp_client')
@@ -174,7 +178,7 @@ class exports.PDFLatexDocument
             else
                 latexmk('pdf')
 
-    # runs pdflatex; updates number of pages, latex log, parsed error log
+    # runs a latex compiler, updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
         opts = defaults opts,
             status        : undefined  # status(start:'latex' or 'sage' or 'bibtex'), status(end:'latex', 'log':'output of thing running...')
@@ -263,7 +267,7 @@ class exports.PDFLatexDocument
             command = @default_tex_command()
         sagetex_file = @base_filename + '.sagetex.sage'
         not_latexmk = command.indexOf('latexmk') == -1
-        sha_marker = 'sha1sums'
+        sha_marker = misc.uuid()
         @_need_to_run ?= {}
         @_need_to_run.latex = false
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling

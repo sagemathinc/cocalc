@@ -1,3 +1,5 @@
+# Shows the PDF file embedded
+
 $ = window.$
 async = require('async')
 {defaults, required} = misc = require('smc-util/misc')
@@ -53,7 +55,7 @@ class exports.PDF_PreviewEmbed extends FileEditor
                     @output.find("span").text(@filename)
 
     show: =>
-         # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
+        # Workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
         if $.browser.safari
             @element.find(".webapp-editor-pdf-preview-embed-page").make_height_defined()
 
