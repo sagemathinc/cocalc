@@ -930,6 +930,7 @@ class ProjectActions extends Actions
             id            : undefined
             include_chats : false       # If we want to copy .filename.sage-chat
 
+        # TODO: Put this somewhere else!
         get_chat_path = (path) ->
             {head, tail} = misc.path_split(path)
             misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
@@ -937,10 +938,10 @@ class ProjectActions extends Actions
         if opts.include_chats
             if opts.src.length > 1
                 for path in opts.src
-                    opts.src.push(get_chat_path(path))
-                    # TODO: Read chat file naming from settings somewhere
+                    chat_path = get_chat_path(path)
+                    opts.src.push(get_chat_path(path)) unless opts.src.includes(chat_path)
 
-            else if opts.src.length == 1 and not opts.src[0].startsWith('.')
+            else if opts.src.length == 1
                 old_chat_path = get_chat_path(opts.src[0])
                 new_chat_path = get_chat_path(opts.dest)
 
