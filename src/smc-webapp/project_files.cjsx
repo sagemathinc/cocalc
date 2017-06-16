@@ -1174,6 +1174,7 @@ ProjectFilesActionBox = rclass
         @props.actions.move_files
             src           : @props.checked_files.toArray()
             dest          : @state.move_destination
+            include_chats : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
