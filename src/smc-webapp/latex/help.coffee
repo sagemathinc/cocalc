@@ -18,9 +18,13 @@ visible on the right.
 On the right-hand side there are several tabs like this one here for help:
 
 * **Preview** quickly renders a few pages to see how the current part of the document looks.
+  * You can easily position the preview by hold-clicking and moving the mouse inside the shown preview.
+  * The first four buttons at the top are for zooming (our or in, zoom out to full width, and centered to the content of the page).
+  * The next button is for the resolution of the preview: smaller numbers load more quickly, while you see less details.
+  * The last button is for downloading the PDF.
 * **Issues** lists all compilation warnings and errors.
   Click on the buttons to jump to the corresponding line in the input code on the left.
-  _LaTeX won't compile (or only partially or in a wrong way) as long as there are any errors left!_
+  _**LaTeX won't compile** (or only partially or in a wrong way) **as long as there are any errors left!**_
 * **PDF** shows you an embedded view of the compiled PDF file.
   This might be broken if your browser has problems rendering the file inline –
   use the "Preview" tab instead!
@@ -30,13 +34,9 @@ On the right-hand side there are several tabs like this one here for help:
   * **Bibtex**: explicitly runs [Bibtex](https://en.wikipedia.org/wiki/BibTeX), usually managed by the build process
   * **Sage**: runs "SageMath" for [SageTeX](https://www.ctan.org/pkg/sagetex?lang=en), usually managed by the build process
   * **Clean**: deletes temporary files
-  * **Build Command**: The drop-down list on the right hand side lets you specify the compilation program. On the left, you can edit the command even further. It is saved as part of the document, at the bottom.
-By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages temporary files and bibtex, and runs SageTeX if necessary.
-
-## LaTeX Engines
-
-* **latexmk** + **PDFlatex**: the default configuration, works in most cases
-* **latexmk** + **XeLaTeX**: this is useful for foreign languages with many special characters.
+  * **Build Command**: The drop-down list on the right hand side lets you specify the compilation program.
+    On the left, you can edit the command even further. It is saved as part of the document, at the bottom.
+By default, it runs [LatexMK](https://www.ctan.org/pkg/latexmk/) which manages temporary files and bibtex, and automatically runs SageTeX if necessary.
 
 ## Features
 
@@ -72,6 +72,11 @@ the preview renders. You should then see:
   Use them to keep new sentences in paragraphs at the beginning of a line for better overview.
   Two or more returns introduce a new paragraph.
 * **Formulas**: They're either between `$` or `$$`, or in `\\begin{equation}...\\end{equation}` environments.
+
+## LaTeX Engines
+
+* **latexmk** + **PDFlatex**: the default configuration, works in most cases
+* **latexmk** + **XeLaTeX**: this is useful for foreign languages with many special characters.
 
 ## Encoding
 
