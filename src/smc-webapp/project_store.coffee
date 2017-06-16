@@ -31,7 +31,7 @@ misc      = require('smc-util/misc')
 {alert_message} = require('./alerts')
 {webapp_client} = require('./webapp_client')
 {project_tasks} = require('./project_tasks')
-{defaults, required} = misc
+{types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
@@ -383,6 +383,9 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             index = open_files_order.indexOf(opts.path)
+                            if opts.chat
+                                require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+
                             if index == -1
                                 index = open_files_order.size
                             @setState
@@ -424,6 +427,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
+        require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open
@@ -932,18 +936,26 @@ class ProjectActions extends Actions
 
         # TODO: Put this somewhere else!
         get_chat_path = (path) ->
-            {head, tail} = misc.path_split(path)
-            misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+            misc.meta_file(path, 'chat')
+            #{head, tail} = misc.path_split(path)
+            #misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
         if opts.include_chats
             if opts.src.length > 1
                 for path in opts.src
                     chat_path = get_chat_path(path)
-                    opts.src.push(get_chat_path(path)) unless opts.src.includes(chat_path)
+                    opts.src.push(chat_path) unless opts.src.includes(chat_path)
 
             else if opts.src.length == 1
+                # Cannot just append because of renames
                 old_chat_path = get_chat_path(opts.src[0])
-                new_chat_path = get_chat_path(opts.dest)
+
+                if opts.dest.endsWith('/')
+                    name = misc.path_split(old_chat_path).tail
+                    console.log "Sending to ", opts.dest, name
+                    new_chat_path = misc.normalized_path_join(opts.dest, name)
+                else
+                    new_chat_path = get_chat_path(opts.dest)
 
                 @move_files
                     src  : [old_chat_path]
