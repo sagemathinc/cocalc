@@ -62,6 +62,7 @@ describe 'testing text file operations -- ', ->
                 expect(resp?.error).toInclude('is not public')
                 done(err)
 
+
     it "tries to read a nonexistent public file and fails", (done) ->
         api.call
             event : 'public_get_text_file'
@@ -115,4 +116,22 @@ describe 'testing text file operations -- ', ->
                 expect(resp?.event).toBe('public_directory_listing')
                 expect(resp?.result?.files?.length).toBe(1)
                 expect(resp?.result?.files?[0]).toIncludeKeys(['mtime','name','size'])
+                done(err)
+    it "uses API query to make a folder public", (done) ->
+        api.call
+            event : 'query'
+            body  :
+                query  : {public_paths:{project_id:project_id, path:'A1/', description:'public folder A1'}}
+            cb : (err, resp) ->
+                expect(resp?.event).toBe('query')
+                done(err)
+
+    it "reads a folder as public text file and gets zip archive", (done) ->
+        api.call
+            event : 'public_get_text_file'
+            body  :
+                project_id: project_id
+                path      : 'A1/'
+            cb    : (err, resp) ->
+                expect(resp?.data[0..1]).toEqual("PK")
                 done(err)
