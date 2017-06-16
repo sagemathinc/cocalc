@@ -1172,8 +1172,8 @@ ProjectFilesActionBox = rclass
 
     move_click: ->
         @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : @state.move_destination
+            src           : @props.checked_files.toArray()
+            dest          : @state.move_destination
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 

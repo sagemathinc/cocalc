@@ -930,29 +930,37 @@ class ProjectActions extends Actions
             id            : undefined
             include_chats : false       # If we want to copy .filename.sage-chat
 
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
-        delete opts.id
+        get_chat_path = (path) ->
+            {head, tail} = misc.path_split(path)
+            misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
         if opts.include_chats
             if opts.src.length > 1
                 for path in opts.src
-                    {head, tail} = misc.path_split(path)
-                    opts.src.push(misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat"))
+                    opts.src.push(get_chat_path(path))
                     # TODO: Read chat file naming from settings somewhere
 
-            else if opts.src.length == 1
-                {head, tail} = misc.path_split(opts.src[0])
-                old_chat_path = misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
-
-                {head, tail} = misc.path_split(opts.dest)
-                new_chat_path = misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+            else if opts.src.length == 1 and not opts.src[0].startsWith('.')
+                old_chat_path = get_chat_path(opts.src[0])
+                new_chat_path = get_chat_path(opts.dest)
 
                 @move_files
-                    src  : old_chat_path
+                    src  : [old_chat_path]
                     dest : new_chat_path
 
         delete opts.include_chats
+
+        check_existence_of = (path) =>
+            path = misc.path_split(path)
+            @get_store().get('directory_listings').get(path.head ? "").some((item) => item.get('name') == path.tail)
+
+        opts.src = (path for path in opts.src when check_existence_of path)
+
+        return if opts.src.length == 0
+
+        id = opts.id ? misc.uuid()
+        @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+        delete opts.id
 
         opts.cb = (err) =>
             if err
