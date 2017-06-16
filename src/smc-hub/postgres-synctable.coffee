@@ -378,7 +378,9 @@ class ProjectAndUserTracker extends EventEmitter
                             continue
                         else
                             for collab_account_id in a.users
-                                @_add_user_to_project(collab_account_id, a.project_id)
+                                # NOTE: Very rarely, sometimes collab_account_id is not defined
+                                if collab_account_id?
+                                    @_add_user_to_project(collab_account_id, a.project_id)
                 # call the callbacks
                 if err
                     dbg("error registering '#{account_id}' -- err=#{err}")
