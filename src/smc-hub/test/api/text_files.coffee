@@ -117,6 +117,7 @@ describe 'testing text file operations -- ', ->
                 expect(resp?.result?.files?.length).toBe(1)
                 expect(resp?.result?.files?[0]).toIncludeKeys(['mtime','name','size'])
                 done(err)
+
     it "uses API query to make a folder public", (done) ->
         api.call
             event : 'query'
@@ -134,4 +135,15 @@ describe 'testing text file operations -- ', ->
                 path      : 'A1/'
             cb    : (err, resp) ->
                 expect(resp?.data[0..1]).toEqual("PK")
+                done(err)
+
+    it "tries to list public files on nonexistent path in a public project and gets empty list", (done) ->
+        api.call
+            event : 'public_get_directory_listing'
+            body  :
+                project_id: project_id
+                path      : 'nonexistent'
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('public_directory_listing')
+                expect(resp?.result).toEqual([])
                 done(err)
