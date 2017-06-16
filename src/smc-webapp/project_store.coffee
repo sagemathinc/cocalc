@@ -593,9 +593,8 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path, show_hidden} = defaults opts,
+        {path} = defaults opts,
             path         : @get_store()?.current_path
-            show_hidden  : undefined
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
@@ -606,7 +605,7 @@ class ProjectActions extends Actions
 
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
-        _key = "#{path}-#{show_hidden}"
+        _key = "#{path}"
         if @_set_directory_files_lock[_key]  # currently doing it already
             return
         @_set_directory_files_lock[_key] = true
@@ -627,11 +626,10 @@ class ProjectActions extends Actions
                 if not store?
                     cb("store no longer defined"); return
                 path         ?= store.current_path
-                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
-                    hidden     : show_hidden
+                    hidden     : true
                     max_time_s : 120  # keep trying for up to 2 minutes
                     group      : group
                     cb         : cb
@@ -1279,7 +1277,6 @@ class ProjectActions extends Actions
                             if not item?
                                 @fetch_directory_listing
                                     path         : parent_path
-                                    show_hidden  : true
                                     finish_cb    : =>
                                         {item, err} = @get_store().get_item_in_path(last, parent_path)
                                         cb(err, item)
@@ -1432,7 +1429,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1479,6 +1476,8 @@ create_project_store_def = (name, project_id) ->
 
         if @active_file_sort.is_descending
             listing.reverse()
+
+        listing = (l for l in listing when not l.name.startsWith('.')) unless @show_hidden
 
         map = {}
         for x in listing

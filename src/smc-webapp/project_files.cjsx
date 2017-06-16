@@ -730,7 +730,6 @@ ProjectFilesButtons = rclass
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.fetch_directory_listing(show_hidden : not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
