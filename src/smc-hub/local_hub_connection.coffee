@@ -716,7 +716,14 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 channel = opts.client.register_data_handler (data) =>
                     #winston.debug("handling data -- ignore='#{console_socket._ignore}'; path='#{opts.path}'")
                     if not console_socket._ignore
-                        console_socket.write(data)
+                        try
+                            console_socket.write(data)
+                        catch
+                            ###
+                            Sometimes this appears in the server logs, where
+                            local_hub_connection.coffee:719 below was the above line:
+                            2017-06-16 12:03:46.749111 | 04:33:22.604308 | uncaught_exception | {"host": "smc-hub-242825805-9pkmp", "error": "Error: write after end", "stack": "Error: write after end\n    at writeAfterEnd (_stream_writable.js:193:12)\n    at Socket.Writable.write (_stream_writable.js:240:5)\n    at Socket.write (net.js:657:40)\n    at Array.<anonymous> (/cocalc/src/smc-hub/local_hub_connection.coffee:719:40)\n    at Timeout._onTimeout (/cocalc/src/smc-hub/client.coffee:540:13)\n    at ontimeout (timers.js:386:14)\n    at tryOnTimeout (timers.js:250:5)\n    at Timer.listOnTimeout (timers.js:214:5)\n"}
+                            ###
                         if opts.params.filename?
                             opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
                     else
