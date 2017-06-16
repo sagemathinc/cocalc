@@ -1431,7 +1431,10 @@ class exports.Client extends EventEmitter
                         listing = x; cb(err)
         ], (err) =>
             if err
-                @error_to_client(id:mesg.id, error:err)
+                if misc.startswith(err, 'Traceback')
+                    @push_to_client(message.public_directory_listing(id:mesg.id, result:[]))
+                else
+                    @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
