@@ -3,7 +3,7 @@
  *Editor for files in a project
  */
 
-.salvus-editor-content
+.webapp-editor-content
   position   : absolute
   left       : 0
   margin     : 0
@@ -15,7 +15,7 @@
   .table
     width: auto
 
-.salvus-editor-close-button-x
+.webapp-editor-close-button-x
   font-size    : 14px
   margin-top   : 9px
   margin-right : 15px
@@ -23,53 +23,53 @@
   &:hover
     color: #f00
 
-.salvus-editor-tab-filename
+.webapp-editor-tab-filename
   overflow    : hidden
   display     : block
   white-space : nowrap
 
-.salvus-editor-find
+.webapp-editor-find
   display    : inline-block
   height     : 25px
   padding    : 4px 6px
   margin-top : 3px
 
-.salvus-editor-filename-pill
+.webapp-editor-filename-pill
   width  : 32%
   cursor : pointer
 
-.salvus-editor-filename-pill-icon-active
+.webapp-editor-filename-pill-icon-active
   color : orange
 
 @media (max-width: 767px)
-  .salvus-editor-filename-pill
+  .webapp-editor-filename-pill
     width: 50%
 
 @media (max-width: 480px)
-  .salvus-editor-filename-pill
+  .webapp-editor-filename-pill
     width: 100%
 
-.salvus-editor-codemirror
+.webapp-editor-codemirror
   width    : 100%
   padding  : 0px
 
-.salvus-editor-codemirror-button-row
+.webapp-editor-codemirror-button-row
   background : #efefef
 
-.salvus-editor-codemirror-filename,
-.salvus-editor-pdf-title
+.webapp-editor-codemirror-filename,
+.webapp-editor-pdf-title
   margin-left  : 1em
   margin-right : 10px
   font-size    : 11pt
   font-weight  : bold
   color        : #555
 
-.salvus-editor-codemirror-cursor
+.webapp-editor-codemirror-cursor
   position : absolute
   width    : 15em
   z-index  : 5
 
-.salvus-editor-codemirror-cursor-inside
+.webapp-editor-codemirror-cursor-inside
   position    : absolute
   top         : -1.3em
   left        : .5ex
@@ -79,7 +79,7 @@
   border      : 1px solid #aaa
   opacity     : .7
 
-.salvus-editor-codemirror-cursor-label
+.webapp-editor-codemirror-cursor-label
   position         : absolute
   top              : -2.9em
   left             : 1.5ex
@@ -88,32 +88,32 @@
   background-color : rgba(255, 255, 255, 0.7)
 
 
-.salvus-editor-recent-files
+.webapp-editor-recent-files
   margin-bottom: 0em
 
-.salvus-editor-codemirror-sync
+.webapp-editor-codemirror-sync
   font-size : 8pt
   color     : #bbb
 
-.salvus-latex-errors-counter
+.webapp-latex-errors-counter
   color       : white
   font-weight : bold
 
-.salvus-latex-warnings-counter
+.webapp-latex-warnings-counter
   color: #FDB600
 
-.salvus-editor-latex-mesg-template
+.webapp-editor-latex-mesg-template
   overflow-x   : auto
   background   : white
   margin-right : 2em
 
-.salvus-editor-latex-mesg-template-error
+.webapp-editor-latex-mesg-template-error
   border : 2px solid #a00
 
-.salvus-editor-latex-mesg-template-warning, .salvus-editor-latex-mesg-template-typesetting
+.webapp-editor-latex-mesg-template-warning, .webapp-editor-latex-mesg-template-typesetting
   border: 2px solid #FDB600
 
-.salvus-editor-latex-right-pane
+.webapp-editor-latex-right-pane
   > .nav > li
     > a:hover
       background-color: #fff
@@ -131,6 +131,11 @@
       padding-bottom : 6px
       &.btn-danger
         color: white
+
+.webapp-editor-latex-help
+  padding            : 20px
+  background-color   : white
+  overflow-y         : auto !important
 
 .smc-latex-inline-error
   padding            : 10px
@@ -174,24 +179,24 @@
   text-align       : right
   white-space      : nowrap
 
-.salvus-editor-pdf-preview-message
+.webapp-editor-pdf-preview-message
   padding          : 20px
 
-.salvus-latex-mesg-message
+.webapp-latex-mesg-message
   font-size   : 13pt
   margin-left : 1em
 
-.salvus-latex-mesg-content
+.webapp-latex-mesg-content
   font-size : 9pt
   margin    : 5px
 
-.salvus-editor-pdf-preview-page
+.webapp-editor-pdf-preview-page
   background-color : #666
   color            : #fff
   margin           : 0 auto
   overflow         : visible
 
-.salvus-editor-pdf-preview-page-single
+.webapp-editor-pdf-preview-page-single
   background-color : #666
   text-align       : center
   margin           : 0 auto
@@ -200,12 +205,12 @@
     max-width      : 100%
     width          : 100%
 
-.salvus-editor-pdf-preview-spinner
+.webapp-editor-pdf-preview-spinner
   position : absolute
   left     : 2em
   top      : 10em
 
-.salvus-editor-pdf-preview-text
+.webapp-editor-pdf-preview-text
   border-top   : 1px solid black
   text-align   : left
   margin-left  : 1em
@@ -213,23 +218,23 @@
   padding-top  : 1em
   color        : #8a8a8a
 
-.salvus-editor-pdf-preview-highlight
+.webapp-editor-pdf-preview-highlight
   margin-bottom    : -3em
   padding-bottom   : 3em
   opacity          : .3
   background-color : yellow
 
-.salvus-editor-pdf-preview-buttons
+.webapp-editor-pdf-preview-buttons
   font-size : 11pt
   border    : 1px solid lightgrey
 
-.salvus-editor-search-openfiles-input
+.webapp-editor-search-openfiles-input
   width : 80%
 
-.salvus-editor-openfile-excluded-from-search
+.webapp-editor-openfile-excluded-from-search
   opacity: .6
 
-.salvus-editor-openfile-included-in-search
+.webapp-editor-openfile-included-in-search
   border-radius : 6px
   border        : 1px solid #aaa
   box-shadow    : 2px 2px 2px 2px #bbb
@@ -237,7 +242,7 @@
 .smc-users-viewing-document
   display : inline-block
 
-.salvus-editor-chat-title
+.webapp-editor-chat-title
   color: #666
   margin-right: 5px
   white-space: nowrap
@@ -340,10 +345,10 @@
   margin-bottom    : 5px
   border           : 1px solid lightgrey
 
-.salvus-editor-codemirror-worksheet-editable-buttons
+.webapp-editor-codemirror-worksheet-editable-buttons
   padding-top : 3px
 
-.salvus-editor-mathjax-editor
+.webapp-editor-mathjax-editor
   cursor      : pointer
   border      : 1px solid lightgrey !important
   padding     : 3px !important
@@ -407,18 +412,18 @@
 
 // .sagews-output-interact!
 
-.salvus-editor-image
+.webapp-editor-image
   padding    : 0px
   overflow-y : auto
   left       : 0px
 
-.salvus-editor-image-container
+.webapp-editor-image-container
   overflow         : auto
   background-color : #fff
   border           : 1px solid #aaa
   box-shadow       : 5px 5px 5px 5px #888
 
-.salvus-editor-image-title
+.webapp-editor-image-title
   margin-left  : 3em
   margin-right : 5em
   font-size    : 10pt
@@ -426,18 +431,18 @@
   color        : #555
 
 
-.salvus-editor-static-html-content
+.webapp-editor-static-html-content
   overflow-y : auto
   margin     : 0
   border-top : 1px solid lightgray
 
 
-.salvus-editor-history-history_editor .salvus-editor-codemirror-input-box
+.webapp-editor-history-history_editor .webapp-editor-codemirror-input-box
   width : 100%
 
 /*the slider background */
 
-.salvus-editor-history-slider-style
+.webapp-editor-history-slider-style
   height   : 11px
   position : relative
   margin   : 11px
@@ -517,13 +522,13 @@ code
 .nav-pills > li + li
   margin-left : 0 !important
 
-.salvus-editor-codemirror-not-synced
+.webapp-editor-codemirror-not-synced
   background    : red
   color         : white
   padding       : 5px
   border-radius : 3px
 
-.salvus-editor-resize-bar-layout-1
+.webapp-editor-resize-bar-layout-1
   height        : 5px
   cursor        : ns-resize
   background    : #ddd
@@ -533,7 +538,7 @@ code
   &:hover
     background : #888
 
-.smc-vertical-drag-bar, .salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
+.smc-vertical-drag-bar, .webapp-editor-resize-bar-layout-2, .webapp-editor-latex-resize-bar, .webapp-editor-html-md-resize-bar
   cursor        : ew-resize
   background    : #ddd
   width         : 4px
@@ -543,7 +548,7 @@ code
   &:hover
     background : #888
 
-.salvus-editor-html-md-preview
+.webapp-editor-html-md-preview
   padding       : 12px
   background    : white
   overflow      : auto
@@ -558,10 +563,10 @@ code
   border-left  : 1px solid black
   margin-right : -1px
 
-.salvus-html-editor-symbols-dialog td:hover
+.webapp-html-editor-symbols-dialog td:hover
   background : lightblue
 
-.salvus-editor-codeedit-buttonbar-mode
+.webapp-editor-codeedit-buttonbar-mode
   background : #fafafa
   padding    : 6px 12px
   border     : 1px solid #ddd
@@ -614,7 +619,7 @@ code
 /* IMPORTANT FOR SAGE WORKSHEETS!  Do not remove!
    We override the bootstrap css styles, which hardcode a specific
    pixel font-size for headers, and hence can't be zoomed.
-   See https://github.com/sagemathinc/smc/issues/585 */
+   See https://github.com/sagemathinc/cocalc/issues/585 */
 
 h1 { font-size: 250% }
 h2 { font-size: 200% }
@@ -624,7 +629,7 @@ h5 { font-size: 130% }
 h6 { font-size: 110% }
 
 /* Important: for display math in Sage Worksheets.
-   See https://github.com/sagemathinc/smc/issues/136
+   See https://github.com/sagemathinc/cocalc/issues/136
    NOTE: I did try putting
          styles: {'background-color':'inherit !important'}
    in the mathjax config section of last.coffee, but
@@ -648,7 +653,7 @@ h6 { font-size: 110% }
   display     : flex
   align-items : flex-start
 
-.salvus-editor-codemirror-button-container
+.webapp-editor-codemirror-button-container
   border: 1px solid lightgrey
 
 .smc-message-from-viewer a:link, .smc-message-from-viewer a:visited

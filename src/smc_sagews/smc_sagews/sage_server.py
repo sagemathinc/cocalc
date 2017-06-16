@@ -15,7 +15,7 @@ For debugging, this may help:
 
 # NOTE: This file is GPL'd
 # because it imports the Sage library.  This file is not directly
-# imported by anything else in Salvus; the Python process it runs is
+# imported by anything else in CoCalc; the Python process it runs is
 # used over a TCP connection.
 
 #########################################################################################
@@ -66,7 +66,7 @@ def reload_attached_files_if_mod_smc():
     for filename, mtime in modified_file_iterator():
         basename = os.path.basename(filename)
         timestr = time.strftime('%T', mtime)
-        print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+        log('reloading attached file {0} modified at {1}'.format(basename, timestr))
         from sage_salvus import load
         load(filename)
 
@@ -506,7 +506,7 @@ namespace = Namespace({})
 
 class Salvus(object):
     """
-    Cell execution state object and wrapper for access to special SageMathCloud functionality.
+    Cell execution state object and wrapper for access to special CoCalc Server functionality.
 
     An instance of this object is created each time you execute a cell.  It has various methods
     for sending different types of output messages, links to files, etc.   Type 'help(smc)' for
@@ -989,7 +989,7 @@ class Salvus(object):
                             # this fixup has to happen after first block has executed (os.chdir etc)
                             # but before user assigns any variable in worksheet
                             # sage.misc.session.init() is not called until first call of show_identifiers
-                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals

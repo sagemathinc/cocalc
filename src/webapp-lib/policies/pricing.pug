@@ -1,0 +1,26 @@
+//- pricing page, includes the statically react.js rendered _static_pricing_page.html
+
+extends ../_base.pug
+
+block vars
+  - subtitle = 'Pricing'
+
+block content
+
+  div.jumbotron
+    div.container
+      h1 #[a(href=URL target="_blank") #{COMPANY_NAME}]
+      h2 #{NAME} Subscriptions and Pricing (September 2016)
+      a.btn.btn-default(href="index.html" role="button") &laquo; Other Policies
+
+  div.container.vertical-expand
+    p.
+      Initially, you start using #{NAME} under a #[em free plan].
+      There are various subscription options available to improve the service in various ways.
+      Listed prices are in US dollars (when charging in local currency, the prices are converted into local currency using the
+      conversion rates published by leading financial institutions).
+    p.
+      When logged in, you may sign up for a subscription in #[a(target="_blank" href="/settings/billing") the billing tab]
+      and see a summary of upgrades in #[a(target="_blank" href="/settings/upgrades") the upgrades tab].
+
+    include _static_pricing_page.html

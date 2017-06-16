@@ -1,28 +1,14 @@
 ###############################################################################
-#                                                                             #
-#    SageMathCloud: A collaborative web-based interface to                    #
-#                   Sage, IPython, LaTeX and the Terminal.                    #
-#                                                                             #
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.                               #
-#                                                                             #
-#    This program is free software: you can redistribute it and/or modify     #
-#    it under the terms of the GNU General Public License as published by     #
-#    the Free Software Foundation, either version 3 of the License, or        #
-#    (at your option) any later version.                                      #
-#                                                                             #
-#    This program is distributed in the hope that it will be useful,          #
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
-#    GNU General Public License for more details.                             #
-#                                                                             #
-#    You should have received a copy of the GNU General Public License        #
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.    #
-#                                                                             #
+#
+# CoCalc: Collaborative web-based calculation
+# Copyright (C) 2017, Sagemath Inc.
+# AGPLv3
+#
 ###############################################################################
 
 require('coffee-cache')
 
-misc = require('../misc.coffee')
+misc = require('../misc')
 underscore = require('underscore')
 
 # ATTN: the order of these require statements is important,
@@ -125,6 +111,10 @@ describe "endswith", ->
         endswith("foo", "foobar").should.be.false()
     it "doesn't work with arrays", ->
         (-> endswith("foobar", ["aa", "ab"])).should.not.throw()
+    it "is false if either argument is undefined", ->
+        endswith(undefined, '...').should.be.false()
+        endswith('...', undefined).should.be.false()
+        endswith(undefined, undefined).should.be.false()
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
@@ -216,87 +206,6 @@ describe "min_object of target and upper_bound", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
         mo().should.be.eql []
-
-
-# Returns a new object with properties determined by those of obj1 and
-# obj2.  The properties in obj1 *must* all also appear in obj2.  If an
-# obj2 property has value "defaults.required", then it must appear in
-# obj1.  For each property P of obj2 not specified in obj1, the
-# corresponding value obj1[P] is set (all in a new copy of obj1) to
-# be obj2[P].
-
-describe "default", ->
-    d = misc.defaults
-    required = misc.required
-
-    before =>
-        @debug_orig = global.DEBUG
-        global.DEBUG = true
-
-    after =>
-        global.DEBUG = @debug_orig
-
-    beforeEach =>
-        @console_debug_stub = sinon.stub(global.console, "warn")
-        @console_trace_stub = sinon.stub(global.console, "trace")
-
-    afterEach =>
-        @console_trace_stub.restore()
-        @console_debug_stub.restore()
-
-    it "returns a new object", ->
-        o1 = {}; o2 = {}
-        d(o1, o2).should.not.be.exactly(o1).and.not.exactly(o2)
-
-    it "properties of obj1 must appear in obj2", ->
-        obj1 =
-            foo: 1
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        obj2 =
-            foo: 2
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        exp =
-            foo: 1
-            bar: [1, 2, 3]
-            baz:
-                foo: "bar"
-        d(obj1, obj2).should.be.eql exp
-
-    it "raises exception for extra arguments", =>
-        obj1 = extra: true
-        obj2 = {}
-        (-> d(obj1, obj2)).should.throw /got an unexpected argument 'extra'/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={"extra":true}, obj2={})/
-
-    it "doesn't raises exception if extra arguments are allowed", =>
-        obj1 = extra: true
-        obj2 = {}
-        d(obj1, obj2, true)
-        @console_trace_stub.should.have.callCount 0
-        @console_debug_stub.should.have.callCount 0
-
-    it "raises an exception if obj2 has a `required` property but nothing in obj1", =>
-        obj1 = {}
-        obj2 =
-            r: required
-        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
-
-    it "raises an exception if obj2 has a `required` property but is undefined in obj1", =>
-        obj1 =
-            r: undefined
-        obj2 =
-            r: required
-        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.true()
-        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
-
 
 describe 'merge', ->
     merge = misc.merge

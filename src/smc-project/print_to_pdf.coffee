@@ -21,6 +21,7 @@ print_sagews = (opts) ->
         date       : required
         contents   : required
         subdir     : required    # 'true' or 'false', if true, then workdir is a generated subdirectory which will retain the temporary tex files
+        base_url   : undefined   # the base_url for downloading blobs/images
         extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
         timeout    : 90
         cb         : required
@@ -34,6 +35,8 @@ print_sagews = (opts) ->
             '--subdir', opts.subdir,   \
             '--contents', opts.contents\
            ]
+    if opts.base_url
+        args = args.concat(['--base_url', opts.base_url])
 
     async.series([
         (cb) ->

@@ -6,6 +6,8 @@ We will make all these tests be automated eventually. For now, at least figure o
 
 ### Landing page
 - open page while not logged in (say private browsing mode) and ensure that landing page appears
+  * the root page should show up if you aren't signed in and you do not have a `has_remember_me` cookie or its value isn't `true`.
+  * landing page is mainly for creating an account or signing in
 - click "Forgot password" and see a dialog
 - click "Sign in" and get "empty email address" error
 - put in a random bogus account and get ""no such account" error.
@@ -19,7 +21,7 @@ We will make all these tests be automated eventually. For now, at least figure o
 - click "Help" and check that all links under "Support" work and also open in another new tab
 - Verify that Current usage section looks reasonable
 - Check all the links under About (work and open in new tab)
-- Check everything under "Getting started with SageMathCloud"
+- Check everything under "Getting started with CoCalc"
 
 ## Logged in
 
@@ -79,6 +81,15 @@ We will make all these tests be automated eventually. For now, at least figure o
 - open .course file in a project
 - add a student to the course
 - verify that a project is created for the student, that the student is a collaborator on that project, and that you are the owner, and that the project is marked hidden.
+- go through a fictive assignment:
+  - create a folder, add it as an assignment, and have at least one student
+  - hand out, check it is in the student's project
+  - modify it as a student
+  - collect it
+  - check you really got the modified file
+  - grade it
+  - hand out the grade
+  - check student got the grade in the grade file
 
 ### Files in a project
 - show/hide hidden files in listing
@@ -95,6 +106,10 @@ We will make all these tests be automated eventually. For now, at least figure o
 - use the other user to try viewing a file that they don't have access to, then make it public, then try again.  Make sure browsing the directory tree as a public user works and shows public files/directories only.
 - make sure the project title is properly displayed when viewing public page (not just loading)
 
+### Publishing
+- publish e.g. a sagews or ipynb file
+- check it shows up in private/incognito browsing mode
+- check you can download it
 
 ### Log in a project
 Click the Log button to bring up the log
@@ -117,4 +132,29 @@ Click the Log button to bring up the log
 - click "ssh into your project..." (and also test the link to open authorized_keys)
 - click to restart sage worksheet server
 - adjust all quotas
+
+### Misc
+I (hsy) picked this up in a dev project, originally written by Tim
+
+* terminal
+  * copy and paste with CTRL-C/CTRL-V [broken on test]
+  * up and down arrows
+  * color
+    ```
+    RED='\033[0;31m'
+NC='\033[0m' # No Color
+printf "I ${RED}love${NC} Stack Overflow\n"
+```
+  * tab completion: typing `sag` and then hitting TAB should result in `sage`
+  * try terminal over time, for example I quickly realized that a terminal was breaking and giving `{"event":"error","id":"7c06e62f-8ec7-4a76-a6d7-567cbadf8bcc","error":"no response"}` and don't get this in production
+  * name of the terminal file to the right of "initialization file" icon [test.sagemath.com just shows ~]  [[wstein: no -- it should only show the terminal title, which is the current directory; the filename is in the tab.  This is correct.]]
+  * resize the browser window the terminal should adapt and adapt again when resized [does not work on cloud/test]
+  * hit small A makes fonts smaller
+  * hit big A makes fonts bigger
+  * Refresh refreshes if blank
+  * Pause/Play: type `python ENTER` `for i in range(500000): print i` press pause you should see output stop and press play you should see it continue warning computer may become very slow
+  * Clicking "Copyable history" should show dialog box with
+  * Clicking init file icon should open a .term.init file
+* chat
+  * clicking a SMC link in a chat should open a new SMC tab not a new browser tab [broken on test]
 

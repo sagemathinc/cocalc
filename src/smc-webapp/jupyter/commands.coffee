@@ -238,7 +238,7 @@ exports.commands = (actions) ->
         f : -> actions.insert_cell(1)
 
     'insert image' :
-        m : 'Insert Images...'
+        m : 'Insert Images in Markdown Cell...'
         f : -> actions.insert_image()
 
     'interrupt kernel' :
@@ -360,6 +360,10 @@ exports.commands = (actions) ->
     'print preview' :
         m : 'Print Preview...'
         f : -> actions.show_nbconvert_dialog('html')
+
+    'refresh kernels' :
+        m : 'Refresh Kernel List'
+        f : -> actions.fetch_jupyter_kernels()
 
     'rename notebook' :
         m : 'Rename...'

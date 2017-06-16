@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -110,7 +110,7 @@ upgrades.params =
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Full internet access enables a project to connect to the computers outside of SageMathCloud, download software packages, etc.'
+        desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
         display        : 'Member hosting'
         unit           : 'upgrade'

@@ -1,23 +1,26 @@
 {
   "name": "smc-project",
   "version": "1.0.0",
-  "description": "SageMathCloud: project daemons",
+  "description": "CoCalc: project daemons",
   "main": "index.js",
   "dependencies": {
     "async": "^1.5.0",
+    "body-parser": "^1.17.1",
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^0.7.2",
     "coffee-script": "^1.10.0",
     "commander": "^2.9.0",
-    "enchannel-zmq-backend": "^2.6.1",
+    "expect": "^1.20.2",
     "express": "^4.13.3",
+    "formidable": "^1.1.1",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
+    "mkdirp": "^0.5.1",
+    "mocha": "^3.4.2",
     "node-cleanup": "^2.1.2",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",
     "serve-index": "^1.7.2",
-    "spawnteract": "^2.2.1",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
     "underscore": "^1.8.3",
@@ -26,7 +29,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "cd jupyter && npm run test"
+    "test": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter progress test && echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha --reporter  progress  test"
   },
   "author": "SageMath, Inc.",
   "contributors": [
@@ -34,12 +37,12 @@
   ],
   "license": "GPL-3.0+",
   "bugs": {
-    "url": "https://github.com/sagemathinc/smc/issues"
+    "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/smc",
+  "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "keywords": [
     "python",

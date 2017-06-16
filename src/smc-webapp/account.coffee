@@ -1,7 +1,7 @@
 
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -25,7 +25,7 @@
 # Account Settings
 ############################################################
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
 
@@ -49,6 +49,12 @@ load_app = (cb) ->
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
     analytics_event('account', 'signed_in')    # user signed in
+    # the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
+    # next time the main landing page is visited, haproxy or hub will redirect to the client
+    # note: similar code is in redux_account.coffee → AccountActions::sign_out
+    {APP_BASE_URL} = require('./misc_page')
+    exp = misc.server_days_ago(-30).toGMTString()
+    document.cookie = "#{APP_BASE_URL}has_remember_me=true; expires=#{exp} ;path=/"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     load_file = window.smc_target and window.smc_target != 'login'
@@ -70,25 +76,35 @@ signed_in = (mesg) ->
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
-salvus_client.on("signed_in", signed_in)
+webapp_client.on("signed_in", signed_in)
 
 ################################################
 # Automatically log in
 ################################################
-remember_me = salvus_client.remember_me_key()
+remember_me = webapp_client.remember_me_key()
 if misc.get_local_storage(remember_me)
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
         redux.getActions('account').setState(remember_me: false)
     ), 45000
-salvus_client.on "remember_me_failed", () ->
+webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
     if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
+
+# check if user has a has_remember_me cookie (regardless if it is valid or not)
+# the "remember_me" is set to be http-only and hence not accessible from javascript (security)
+{get_cookie, APP_BASE_URL} = require('./misc_page')
+# for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
+# TODO the following is disabled -- https://github.com/sagemathinc/cocalc/issues/2051
+if false # misc.server_weeks_ago(4) > new Date("2017-05-20")
+    redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
+else
+    redux.getActions('account').setState(has_remember_me : true)
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # FUTURE: make this configurable with different schemas.

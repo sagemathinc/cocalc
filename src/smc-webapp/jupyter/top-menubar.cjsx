@@ -165,15 +165,14 @@ exports.TopMenubar = rclass ({name}) ->
             return
         else
             kernels = @props.kernels.toJS()
-            get_val = (x) -> (x.display_name ? x.name ? '').toUpperCase()
-            for kernel in kernels.sort((a, b) -> misc.cmp(get_val(a), get_val(b)))
+            for kernel in kernels
                 @render_kernel_item(kernel)
 
     render_kernel: ->
         items = @render_kernel_items()
         names = ["#{if @props.kernel_state != 'busy' then '<' else ''}interrupt kernel", 'confirm restart kernel', 'confirm restart kernel and clear output', \
                  'confirm restart kernel and run all cells', '', \
-                 '<Change kernel...'].concat(items)
+                 '<Change kernel...'].concat(items).concat(['', 'refresh kernels'])
 
         @render_menu
             heading : 'Kernel'
@@ -230,7 +229,7 @@ exports.TopMenubar = rclass ({name}) ->
                 disabled = {disabled}
                 >
                 <span style={style}>
-                    {display ? obj.m ? name} {s}
+                    {s} {display ? obj.m ? name}   {# shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 }
                 </span>
             </MenuItem>
         else
@@ -328,7 +327,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
-                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/smc/wiki/sagejupyter')}
+                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}

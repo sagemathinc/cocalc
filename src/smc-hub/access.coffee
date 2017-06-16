@@ -1,6 +1,5 @@
-
 ###
-Access permissions related to projects
+Access permissions related to projects for a given user (or project)
 ###
 
 async   = require('async')

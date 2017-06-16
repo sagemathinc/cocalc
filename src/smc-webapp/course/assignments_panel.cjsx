@@ -1,18 +1,39 @@
-# SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
-# SMC and course components
-course_funcs = require('./course_funcs')
+# CoCalc and course components
+util = require('./util')
 styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
-{STEPS, step_direction, step_verb, step_ready,
-    BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
+{STEPS, step_direction, step_verb, step_ready} = util
+{BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
 
 exports.AssignmentsPanel = rclass ({name}) ->
@@ -22,6 +43,8 @@ exports.AssignmentsPanel = rclass ({name}) ->
         "#{name}":
             expanded_assignments   : rtypes.immutable.Set
             active_assignment_sort : rtypes.object
+            active_student_sort    : rtypes.immutable.Map
+            expanded_peer_configs  : rtypes.immutable.Set
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -38,9 +61,9 @@ exports.AssignmentsPanel = rclass ({name}) ->
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
     compute_assignment_list: ->
-        list = course_funcs.immutable_to_list(@props.all_assignments, 'assignment_id')
+        list = util.immutable_to_list(@props.all_assignments, 'assignment_id')
 
-        {list, num_omitted} = course_funcs.compute_match_list
+        {list, num_omitted} = util.compute_match_list
             list        : list
             search_key  : 'path'
             search      : @state.search.trim()
@@ -50,7 +73,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
         else if @props.active_assignment_sort.column_name == "dir_name"
             f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
-        {list, deleted, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
             reverse          : @props.active_assignment_sort.is_descending
@@ -81,22 +104,29 @@ exports.AssignmentsPanel = rclass ({name}) ->
 
     render_assignments: (assignments) ->
         for x,i in assignments
-            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.all_assignments.get(x.assignment_id)}
-                    project_id={@props.project_id}  redux={@props.redux}
-                    students={@props.students} user_map={@props.user_map}
-                    name={@props.name}
-                    is_expanded={@props.expanded_assignments.has(x.assignment_id)}
+            <Assignment
+                    key                 = {x.assignment_id}
+                    assignment          = {@props.all_assignments.get(x.assignment_id)}
+                    background          = {if i%2==0 then "#eee"}
+                    project_id          = {@props.project_id}
+                    redux               = {@props.redux}
+                    students            = {@props.students}
+                    user_map            = {@props.user_map}
+                    name                = {@props.name}
+                    is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
+                    active_student_sort = {@props.active_student_sort}
+                    expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
                     />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted: (num_deleted, num_shown) ->
         if @state.show_deleted
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
                     Hide {num_deleted} deleted assignments
                 </Tip>
             </Button>
         else
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:true,search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:true,search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Assignments are not deleted forever even after you delete them.  Click this button to show any deleted assignments at the bottom of the list of assignments.  You can then click on the assignment and click undelete to bring the assignment back.">
                     Show {num_deleted} deleted assignments
                 </Tip>
@@ -131,9 +161,9 @@ exports.AssignmentsPanel = rclass ({name}) ->
             />
 
         <Panel header={header}>
-            {@render_assignment_table_header()}
+            {@render_assignment_table_header() if shown_assignments.length > 0}
             {@render_assignments(shown_assignments)}
-            {@render_show_deleted(num_deleted) if num_deleted}
+            {@render_show_deleted(num_deleted, shown_assignments.length) if num_deleted}
         </Panel>
 
 exports.AssignmentsPanel.Header = rclass
@@ -152,17 +182,19 @@ Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
     propTypes :
-        name       : rtypes.string.isRequired
-        assignment : rtypes.object.isRequired
-        project_id : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-        background : rtypes.string
-        is_expanded : rtypes.bool
+        name                : rtypes.string.isRequired
+        assignment          : rtypes.immutable.Map.isRequired
+        project_id          : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        background          : rtypes.string
+        is_expanded         : rtypes.bool
+        active_student_sort : rtypes.immutable.Map
+        expand_peer_config  : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
 
     getInitialState: ->
         confirm_delete : false
@@ -170,7 +202,7 @@ Assignment = rclass
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string
         if not due_date?
-            return salvus_client.server_time()
+            return webapp_client.server_time()
         else
             return new Date(due_date)
 
@@ -203,6 +235,8 @@ Assignment = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
+                    persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "note"}
+                    attach_to     = {@props.name}
                     rows          = 6
                     placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
@@ -246,7 +280,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-        if @state.configure_peer
+        if @props.expand_peer_config
             v.push <Row key='header2-peer' style={bottom}>
                 <Col md=10 mdOffset=2>
                     {@render_configure_peer()}
@@ -292,9 +326,14 @@ Assignment = rclass
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
-                    <StudentListForAssignment redux={@props.redux} name={@props.name}
-                        assignment={@props.assignment} students={@props.students}
-                        user_map={@props.user_map} />
+                    <StudentListForAssignment
+                        redux               = {@props.redux}
+                        name                = {@props.name}
+                        assignment          = {@props.assignment}
+                        students            = {@props.students}
+                        user_map            = {@props.user_map}
+                        active_student_sort = {@props.active_student_sort}
+                        />
                     {@render_note()}
                 </Panel>
             </Col>
@@ -622,6 +661,8 @@ Assignment = rclass
             <LabeledRow label_cols=6 label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
                 <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
                     <MarkdownInput
+                        persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "grading-guidelines"}
+                        attach_to     = {@props.name}
                         rows          = 16
                         placeholder   = 'Enter your grading guidelines for this assignment...'
                         default_value = {config.guidelines}
@@ -647,7 +688,7 @@ Assignment = rclass
             {@render_configure_peer_due(config) if config.enabled}
             {@render_configure_grading_guidelines(config) if config.enabled}
 
-            <Button onClick={=>@setState(configure_peer:false)}>
+            <Button onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
                 Close
             </Button>
 
@@ -658,7 +699,7 @@ Assignment = rclass
             icon = 'check-square-o'
         else
             icon = 'square-o'
-        <Button disabled={@state.configure_peer} onClick={=>@setState(configure_peer:true)}>
+        <Button disabled={@props.expand_peer_config } onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
             <Icon name={icon} /> Peer Grading...
         </Button>
 
@@ -704,12 +745,13 @@ StudentListForAssignment = rclass
     displayName : "CourseEditor-StudentListForAssignment"
 
     propTypes :
-        name       : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
-        assignment : rtypes.object.isRequired
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-        background : rtypes.string
+        name                : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        assignment          : rtypes.object.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        background          : rtypes.string
+        active_student_sort : rtypes.immutable.Map
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
@@ -723,21 +765,12 @@ StudentListForAssignment = rclass
               info    = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
-        v = course_funcs.immutable_to_list(@props.students, 'student_id')
+        v = util.parse_students(@props.students, @props.user_map, @props.redux)
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
-        for x in v
-            user = @props.user_map.get(x.account_id)
-            if user?
-                x.first_name = user.get('first_name')
-                x.last_name  = user.get('last_name')
-                x.name = x.first_name + ' ' + x.last_name
-                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
-            else if x.email_address?
-                x.name = x.sort = x.email_address.toLowerCase()
-
-        v.sort (a,b) ->
-            return misc.cmp(a.sort, b.sort)
+        v.sort(util.pick_student_sorter(@props.active_student_sort.toJS()))
+        if @props.active_student_sort.get('is_descending')
+            v.reverse()
 
         for x in v
             @render_student_info(x.student_id)

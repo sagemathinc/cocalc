@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -42,7 +42,7 @@ if not $?
 if not $.browser?
     $.browser = {}
 
-user_agent = navigator?.userAgent.toLowerCase()
+user_agent = navigator?.userAgent.toLowerCase() ? ''
 
 $.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
@@ -52,14 +52,14 @@ exports.IS_MOBILE = exports.isMobile.any()
 # exports.IS_MOBILE = true
 
 if $.browser.chrome
-    $(".salvus-chrome-only").show()
+    $(".webapp-chrome-only").show()
 
 $.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator?.userAgent.indexOf(' OPR/') >= 0
 $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
 $.browser.safari  = not $.browser.chrome and user_agent.indexOf('safari') > 0
 $.browser.ie      = not $.browser.chrome and user_agent.indexOf('windows') > 0
 $.browser.blink   = ($.browser.chrome || $.browser.opera) && !!window.CSS
-$.browser.edge    = /Edge\/\d./i.test(navigator.userAgent)
+$.browser.edge    = /edge\/\d./i.test(user_agent)
 
 exports.get_browser = () ->
     for k, v of $.browser
@@ -77,7 +77,7 @@ exports.get_mobile = () ->
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar
 exports.is_responsive_mode = () ->
-    return $(".salvus-responsive-mode-test").width() < 768
+    return $(".webapp-responsive-mode-test").width() < 768
 
 # DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
 # You can use DEBUG anywhere in the webapp code!
@@ -86,7 +86,7 @@ if DEBUG
 
 # These checks must be **after** the above functions are defined, since showing
 # these warnings requires functions like get_browser are already defined.
-# See https://github.com/sagemathinc/smc/issues/1898
+# See https://github.com/sagemathinc/cocalc/issues/1898
 cookies_and_local_storage = ->
     if not navigator?
         return

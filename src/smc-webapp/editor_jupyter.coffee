@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -22,7 +22,7 @@
 #
 # There are multiple representations of the notebook.
 #
-#    - @doc      = syncstring version of the notebook (uses SMC sync functionality)
+#    - @doc      = syncstring version of the notebook (uses CoCalc's sync functionality)
 #    - @nb       = the visible view stored in the browser DOM
 #    - @filename = the .ipynb file on disk
 #
@@ -51,7 +51,7 @@ yet initialized would no longer be necessary.
 ###
 
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
-# a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
+# a minute can happen; this may be the CoCalc proxy being slow - not sure yet... but at least
 # things should be allowed to work.
 JUPYTER_LOAD_TIMEOUT_S = 60*10
 
@@ -65,13 +65,13 @@ stringify            = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
-{salvus_client}      = require('./salvus_client')
+{webapp_client}      = require('./webapp_client')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")
-editor_templates     = $("#salvus-editor-templates")
+editor_templates     = $("#webapp-editor-templates")
 
 exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".sage-jupyter"
 
@@ -183,7 +183,7 @@ class JupyterWrapper extends EventEmitter
                 setTimeout(f, 250)
                 return
             try
-                # See https://github.com/sagemathinc/smc/issues/1262 -- this is especially broken on Firefox.
+                # See https://github.com/sagemathinc/cocalc/issues/1262 -- this is especially broken on Firefox.
                 @frame.require("notebook/js/outputarea").OutputArea.prototype._should_scroll = ->  # no op
             catch
                 # nothing.
@@ -232,7 +232,7 @@ class JupyterWrapper extends EventEmitter
         f()
 
     dbg: (f) =>
-        return (m) -> salvus_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
+        return (m) -> webapp_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
     # Position the iframe to exactly match the underlying element; I'm calling this
     # "refresh" since that's the name of the similar method for CodeMirror.
@@ -288,7 +288,7 @@ class JupyterWrapper extends EventEmitter
         @frame.window.onbeforeunload = null
         # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
-        @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+        @iframe.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset)
 
     remove_modal_backdrop: =>
         # For mysterious reasons, this modal-backdrop div
@@ -324,7 +324,7 @@ class JupyterWrapper extends EventEmitter
         @frame.$("#menus").find("li:first").find(".divider").hide()
 
         # This makes the ipython notebook take up the full horizontal width, which is more
-        # consistent with the rest of SMC.   Also looks better on mobile.
+        # consistent with the rest of CoCalc.   Also looks better on mobile.
         @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
         if not require('./feature').IS_MOBILE
@@ -361,7 +361,7 @@ class JupyterWrapper extends EventEmitter
         Notebook.prototype.move_selection_up = () ->
             this.smc_move_selection_up()
             this.dirty = true
-        # See https://github.com/sagemathinc/smc/issues/1262 -- this is especially broken on Firefox.
+        # See https://github.com/sagemathinc/cocalc/issues/1262 -- this is especially broken on Firefox.
         @frame.require("notebook/js/outputarea").OutputArea.prototype._should_scroll = ->  # no op
 
     font_size_set: (font_size) =>
@@ -738,7 +738,7 @@ class JupyterWrapper extends EventEmitter
                     blob       : blob
                     project_id : @project_id
             #console.log("saving blob with id #{id} to database")
-            salvus_client.query
+            webapp_client.query
                 query : query
                 cb : (err, resp) =>
                     #console.log("saving blob got response: #{err}, #{misc.to_json(resp)}")
@@ -755,7 +755,7 @@ class JupyterWrapper extends EventEmitter
         else
             # Async fetch blob from the database.
             @blobs_pending[id] = true
-            salvus_client.query
+            webapp_client.query
                 query :
                     blobs :
                         id   : id
@@ -809,8 +809,9 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Unfortunately, Jupyter notebooks are <a href='https://github.com/sagemathinc/smc/issues/1537' target='_blank'>not currently supported</a> in SageMathCloud using Firefox.<br>Please use <a href='https://www.google.com/chrome/browser/desktop/index.html' target='_blank'>Google Chrome</a> or Safari.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter classic does not work on Firefox; please switch to the modern Jupyter notebook server.</div>")
             @element.data("jupyter_notebook", @)
+            @modern()
             opts.cb?()
             return
         @project_id = @parent.project_id
@@ -822,15 +823,15 @@ class JupyterNotebook extends EventEmitter
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.smc_base_url}/#{@project_id}/port/jupyter/notebooks/"
+        @server_url = "#{window.app_base_url}/#{@project_id}/port/jupyter/notebooks/"
 
-        # special case/hack for developing SMC-in-SMC
-        if window.smc_base_url.indexOf('/port/') != -1
+        # special case/hack for developing CoCalc-in-CoCalc
+        if window.app_base_url.indexOf('/port/') != -1
             # Hack until we can figure out how to proxy websockets through a proxy
             # (things just get too complicated)...
-            console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
-            i = window.smc_base_url.lastIndexOf('/')
-            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
+            console.warn("Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory!!")
+            i = window.app_base_url.lastIndexOf('/')
+            @server_url = "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
 
         s = misc.path_split(@filename)
         @path = s.head
@@ -844,11 +845,13 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @ensure_nonempty () =>
+        @ensure_nonempty (err) =>
+            if err
+                console.warn("Error ensuring ipynb file is nonempty -- #{err}")
             @load(opts.cb)
 
     dbg: (f) =>
-        return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
+        return (m) -> webapp_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
 
     destroy: () =>
         @close()
@@ -864,8 +867,8 @@ class JupyterNotebook extends EventEmitter
         @state = 'closed'
 
     ensure_nonempty: (cb) =>
-        salvus_client.exec
-            command    : 'smc-jupyter-ensure-nonempty'
+        webapp_client.exec
+            command    : 'cc-jupyter-classic-open'
             project_id : @project_id
             path       : @path
             args       : [@file]
@@ -884,13 +887,14 @@ class JupyterNotebook extends EventEmitter
             if not err and not @dom?.nb?
                 # I read through all code and there is "no possible way" this can
                 # happen.  Except it does and would cause a traceback later:
-                # https://github.com/sagemathinc/smc/issues/1775
+                # https://github.com/sagemathinc/cocalc/issues/1775
                 # This is just a lame hack, rather than really understanding the issue,
                 # as this code is going to be deleted in a week or two anyways.
                 err = "failed to properly initialize notebook"
 
             if err
                 @state = 'failed'
+                @failed_to_load()
             else
                 if @state == 'closed'
                     # This could happen in case the user closes the tab before initialization is complete.
@@ -960,7 +964,7 @@ class JupyterNotebook extends EventEmitter
                 # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
                     f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
-                    max_time : 60*1000  # try for at most 1 minute
+                    max_time : 30*1000  # try for at most 30 seconds
                     cb       : cb
             (cb) =>
                 console.log 'Jupyter: loading iframe'
@@ -1026,11 +1030,11 @@ class JupyterNotebook extends EventEmitter
     render_cursor: (account_id) =>
         if @state != 'ready'
             return
-        if account_id == salvus_client.account_id
+        if account_id == webapp_client.account_id
             return
         x = @syncstring._syncstring.get_cursors()?.get(account_id)
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
                 try
@@ -1168,9 +1172,22 @@ class JupyterNotebook extends EventEmitter
         @element.hide()
         @dom?.refresh()
 
+    failed_to_load: =>
+        @element.find(".smc-jupyter-notebook-notebook").remove()
+        t = "<div style='margin:15px'><h3>Classical Jupyter is not working</h3>"
+        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the modern Jupyter notebook server</a>.</div>"
+        @element.append(t)
+        $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
+            bootbox.hideAll()
+            @save()
+            a = redux.getProjectActions(@project_id)
+            a.close_file(@filename)
+            redux.getTable('account').set(editor_settings: {jupyter_classic : false})
+            a.open_file(path : @filename)
+
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
-        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
+        t += "<h4>Enhanced with CoCalc Sync</h4>"
         t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization and history logging."
         t += "<h4>Use Sage by pasting this into a cell</h4>"
         t += "<pre>%load_ext sage</pre>"
@@ -1188,7 +1205,7 @@ class JupyterNotebook extends EventEmitter
 
     modern: () =>
         t = "<h3><i class='fa fa-exchange'></i> Switch to the Modern Notebook</a></h3>"
-        t += "<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the modern Jupyter notebook server (or use Google Chrome or Safari).<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!"
         t += "<br><hr>"
         t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to Modern Notebook</a>"
         bootbox.alert(t)
@@ -1245,7 +1262,7 @@ class JupyterNotebook extends EventEmitter
         if @state != 'ready'
             opts.cb?('not ready')
             return
-        salvus_client.exec
+        webapp_client.exec
             path        : @path
             project_id  : @project_id
             command     : 'sage'
@@ -1384,7 +1401,7 @@ get_timestamp = (opts) ->
         project_id : required
         path       : required
         cb         : required
-    salvus_client.exec
+    webapp_client.exec
         project_id : opts.project_id
         command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
         args       : ['--printf', '%Z ', opts.path]
@@ -1423,7 +1440,7 @@ class JupyterNBViewer
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@filename}"
+        @ipynb_html_src = "#{window.app_base_url}/#{@project_id}/raw/#{@filename}"
         @init_buttons()
 
     show: () =>
@@ -1438,7 +1455,7 @@ class JupyterNBViewer
             # callback, run after "load" event below this line
             @iframe.load ->
                 # could become undefined due to other things happening...
-                @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+                @iframe?.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
     init_buttons: () =>

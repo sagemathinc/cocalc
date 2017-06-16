@@ -41,9 +41,9 @@ if 'user' not in d.command_options.get("install", {}).keys():
 setup(
     name             = 'smc_pyutil',
     version          = '1.1',
-    description      = 'SageMathCloud Python Utilities',
+    description      = 'CoCalc Python Utilities',
     long_description = readme(),
-    url              = 'https://github.com/sagemathinc/smc',
+    url              = 'https://github.com/sagemathinc/cocalc',
     author           = 'SageMath, Inc.',
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
@@ -60,6 +60,7 @@ setup(
     entry_points     = {
         'console_scripts': [
             'open                 = smc_pyutil.smc_open:main',
+            # START deprecated smc-*
             'smc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
             'smc-sws2sagews       = smc_pyutil.sws2sagews:main',
             'smc-docx2txt         = smc_pyutil.docx2txt:main',
@@ -80,7 +81,30 @@ setup(
             'smc-rmd2html         = smc_pyutil.rmd2html:main',
             'smc-java2html        = smc_pyutil.java2html:main',
             'smc-m2sagews         = smc_pyutil.m2sagews:main',
-            'smc-jupyter-ensure-nonempty = smc_pyutil.smc_jupyter_ensure_nonempty:main'
+            'smc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
+            # END deprecated smc-*
+            'cc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
+            'cc-sws2sagews       = smc_pyutil.sws2sagews:main',
+            'cc-docx2txt         = smc_pyutil.docx2txt:main',
+            'cc-open             = smc_pyutil.smc_open:main',
+            'cc-new-file         = smc_pyutil.new_file:main',
+            'cc-status           = smc_pyutil.status:main',
+            'cc-jupyter          = smc_pyutil.jupyter_notebook:main',
+            'cc-jupyter-no-output= smc_pyutil.jupyter_delete_output:main',
+            'cc-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open',
+            'cc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',
+            'cc-ls               = smc_pyutil.git_ls:main',
+            'cc-compute          = smc_pyutil.smc_compute:main',
+            'cc-start            = smc_pyutil.start_smc:main',
+            'cc-stop             = smc_pyutil.stop_smc:main',
+            'cc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
+            'cc-top              = smc_pyutil.smc_top:main',
+            'cc-git              = smc_pyutil.smc_git:main',
+            'cc-html2sagews      = smc_pyutil.html2sagews:main',
+            'cc-rmd2html         = smc_pyutil.rmd2html:main',
+            'cc-java2html        = smc_pyutil.java2html:main',
+            'cc-m2sagews         = smc_pyutil.m2sagews:main',
+            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main'
         ]
     },
     include_package_data = True

@@ -1,8 +1,14 @@
-FROM ubuntu:16.10
+FROM ubuntu:17.04
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
 USER root
+
+# See https://github.com/sagemathinc/cocalc/issues/921
+ENV LC_ALL C.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV TERM screen
 
 # So we can source (see http://goo.gl/oBPi5G)
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
@@ -10,7 +16,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Ubuntu software that are used by SMC (latex, pandoc, sage, jupyter)
 RUN \
   apt-get update && \
-  apt-get install -y software-properties-common texlive texlive-latex-extra tmux flex bison libreadline-dev screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev
+  apt-get install -y software-properties-common texlive texlive-latex-extra texlive-xetex tmux flex bison libreadline-dev htop screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev
 
 # Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
@@ -45,18 +51,18 @@ ARG commit=HEAD
 
 # Pull latest source code for SMC and checkout requested commit (or HEAD)
 RUN \
-  git clone https://github.com/sagemathinc/smc.git && \
-  cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
+  git clone https://github.com/sagemathinc/cocalc.git && \
+  cd /cocalc && git pull && git fetch origin && git checkout ${commit:-HEAD}
 
 # Build and install all deps
 RUN \
-  cd /smc/src && \
+  cd /cocalc/src && \
   . ./smc-env && \
   ./install.py all --compute --web && \
   rm -rf /root/.npm /root/.node-gyp/
 
 # Install code into Sage
-RUN cd /smc/src && sage -pip install --upgrade smc_sagews/
+RUN cd /cocalc/src && sage -pip install --upgrade smc_sagews/
 
 # Install sage scripts system-wide
 RUN echo "install_scripts('/usr/local/bin/')" | sage
@@ -83,6 +89,9 @@ COPY kernels /usr/local/share/jupyter/kernels
 
 # Configure so that R kernel actually works -- see https://github.com/IRkernel/IRkernel/issues/388
 COPY kernels/ir/Rprofile.site /usr/local/sage/local/lib/R/etc/Rprofile.site
+
+# Build a UTF-8 locale, so that tmux works -- see https://unix.stackexchange.com/questions/277909/updated-my-arch-linux-server-and-now-i-get-tmux-need-utf-8-locale-lc-ctype-bu
+RUN apt -y install locales && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
 CMD /root/run.py
 

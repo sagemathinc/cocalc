@@ -1,6 +1,9 @@
+###
+React Component for displaying the entire page on a mobile device.
+###
+
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
-Sidebar = require('react-sidebar').default
 {Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
@@ -17,29 +20,7 @@ Sidebar = require('react-sidebar').default
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
-
-FileUsePageWrapper = (props) ->
-    styles =
-        zIndex       : '10'
-        marginLeft   : '0'
-        position     : 'fixed'
-        boxShadow    : '0 0 15px #aaa'
-        border       : '2px solid #ccc'
-        top          : '43px'
-        background   : '#fff'
-        right        : '2em'
-        overflowY    : 'auto'
-        overflowX    : 'hidden'
-        fontSize     : '10pt'
-        padding      : '4px'
-        borderRadius : '5px'
-        width        : '50%'
-        height       : '90%'
-
-    <div style={styles}>
-        {<FileUsePage redux={redux} />}
-    </div>
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 # Project tabs's names are their project id
 Page = rclass
@@ -69,7 +50,7 @@ Page = rclass
         redux : rtypes.object
 
     getInitialState: ->
-        show_right_menu : false
+        show_menu : false
 
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
@@ -85,41 +66,40 @@ Page = rclass
     render_projects_button: ->
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
             <NavItem onClick={(e)=>@actions('page').set_active_tab('projects')}>
-                <SMCLogo />
+                <AppLogo />
             </NavItem>
         </Nav>
 
-    render_right_menu_button: ->
+    render_menu_button: ->
         <Nav style={margin:'0', padding:'15px', paddingRight:'25px', fontSize:'20px', float:'right'}
-            onClick={()=>@setState(show_right_menu: true)}
+            onClick={@toggle_menu}
         >
             <NavItem>
                 <Icon name="bars"/>
             </NavItem>
         </Nav>
 
-    close_right_menu: ->
-        @setState(show_right_menu:false)
+    toggle_menu: ->
+        @setState ({show_menu}) ->
+            show_menu : not show_menu
 
-    render_right_menu: ->
-        # HACK: This is the dumbest hack ever.
-        # We should use a better sidemenu in the future.
-        if not @state.show_right_menu
-            return <div> </div>
+    close_menu: ->
+        @setState(show_menu:false)
 
-        <div style={width:'40vw', height:'100vw', backgroundColor:'white'}>
+    render_menu: ->
+        <div style={width:'100vw', backgroundColor:'white'}>
             <Nav stacked>
                 <NavTab
+                    on_click       = {@close_menu}
                     name           = 'account'
                     label          = {@account_name()}
                     icon           = 'cog'
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
-                    on_click       = {@close_right_menu}
                     style          = {width:'100%'}
                 />
                 <NavTab
-                    on_click       = {@close_right_menu}
+                    on_click       = {@close_menu}
                     name           = 'about'
                     label          = 'About'
                     icon           = 'question-circle'
@@ -132,16 +112,16 @@ Page = rclass
                     icon           = 'medkit'
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
-                    on_click       = {=>@close_right_menu();redux.getActions('support').show(true)}
+                    on_click       = {=>@close_menu(); @actions('support').show(true)}
                     style          = {width:'100%'}
                 />
                 {<NotificationBell
-                    on_click = {@close_right_menu}
+                    on_click = {=>@close_menu(); @actions('page').set_active_tab('file-use')}
                     count    = {@props.get_notify_count()}
                     active   = {@props.show_file_use}
                 /> if @props.is_logged_in()}
                 <ConnectionIndicator
-                    on_click = {@close_right_menu}
+                    on_click = {@close_menu}
                     actions  = {@actions('page')}
                 />
             </Nav>
@@ -170,36 +150,28 @@ Page = rclass
                 z-index:0;
             }'
         style =
-            height   : '100vh'
-            width    : '100vw'
-            overflow : 'auto'
+            height        : '100vh'
+            width         : '100vw'
+            overflow      : 'auto'
+            display       : 'flex'
+            flexDirection : 'column'
 
         <div ref="page" style={style}>
-            <Sidebar
-                sidebar   = {@render_right_menu()}
-                open      = {@state.show_right_menu}
-                onSetOpen = {(open)=>@setState(show_right_menu:open)}
-                pullRight = {true}
-                shadow    = {false}
-                touch     = {false}
-                styles    = {content:{display:'flex', flexDirection:'column'}}
-            >
-                <style>{page_style}</style>
-                <style>{ProjectsNav.dropdown_nav_page_styles}</style>
-                {<FileUsePageWrapper /> if @props.show_file_use}
-                {<Support actions={@actions('support')} /> if @props.show}
-                {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
-                {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
-                {<CookieWarning /> if @props.cookie_warning}
-                {<LocalStorageWarning /> if @props.local_storage_warning}
-                {<Navbar id="smc-top-bar" style={margin:'0px'}>
-                    {@render_projects_button()}
-                    <ProjectsNav dropdown={true} />
-                    {@render_right_menu_button()}
-                </Navbar> if not @props.fullscreen}
-                {# Children must define their own padding from navbar and screen borders}
-                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
-            </Sidebar>
+            <style>{page_style}</style>
+            <style>{ProjectsNav.dropdown_nav_page_styles}</style>
+            {<Support actions={@actions('support')} /> if @props.show}
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
+            {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
+            {<CookieWarning /> if @props.cookie_warning}
+            {<LocalStorageWarning /> if @props.local_storage_warning}
+            {<Navbar id="smc-top-bar" style={margin:'0px'}>
+                {@render_projects_button()}
+                <ProjectsNav dropdown={true} />
+                {@render_menu_button()}
+            </Navbar> if not @props.fullscreen}
+            {@render_menu() if @state.show_menu}
+            {# Children must define their own padding from navbar and screen borders}
+            <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
         </div>
 
 page =

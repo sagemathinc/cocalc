@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -196,11 +196,15 @@ schema.accounts =
             type : 'array'
             pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
+        api_key :
+            type : 'string'
+            desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
     pg_indexes : [
         '(lower(first_name) text_pattern_ops)',
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
+        'api_key'
         ]
     user_query :
         get :
@@ -232,11 +236,12 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                 other_settings  :
-                    confirm_close     : false
+                    confirm_close     : true
                     mask_files        : true
                     page_size         : 50
                     standby_timeout_m : 10
                     default_file_sort : 'time'
+                    show_global_info  : true
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -915,6 +920,17 @@ schema.remember_me =
             type : 'timestamp'
     pg_indexes : ['account_id']
 
+schema.auth_tokens =
+    primary_key : 'auth_token'
+    fields :
+        auth_token   :
+            type    : 'string'
+            pg_type : 'CHAR(24)'
+        account_id :
+            type : 'uuid'
+        expire     :
+            type : 'timestamp'
+
 schema.server_settings =
     primary_key : 'name'
     anonymous   : false
@@ -936,7 +952,7 @@ exports.site_settings_conf =
     site_name:
         name    : "Site name"
         desc    : "The heading name of your site."
-        default : "SageMathCloud"
+        default : "CoCalc"
     site_description:
         name    : "Site description"
         desc    : "The description of your site."
@@ -944,7 +960,7 @@ exports.site_settings_conf =
     terms_of_service:
         name    : "Terms of service link text"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
-        default : 'By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
+        default : 'By signing up you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
         name    : 'Account creation instructions'
         desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
@@ -995,6 +1011,8 @@ schema.stats =
             type : 'integer'
             pg_check : 'NOT NULL CHECK (accounts >= 0)'
         accounts_created    :
+            type : 'map'
+        files_opened :
             type : 'map'
         projects            :
             type : 'integer'

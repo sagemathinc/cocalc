@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2017, SageMath, Inc.
 #
@@ -93,8 +93,8 @@ sendError = (opts) ->
     opts.uptime      = misc.get_uptime()
     opts.start_time  = misc.get_start_time_ts()
     if DEBUG then console.info('error reporter sending:', opts)
-    {salvus_client} = require('smc-webapp/salvus_client')
-    salvus_client.webapp_error(opts)
+    {webapp_client} = require('smc-webapp/webapp_client')
+    webapp_client.webapp_error(opts)
 
 # neat trick to get a stacktrace when there is none
 generateStacktrace = () ->

@@ -1,14 +1,35 @@
-# SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React Libraries
 {React, rclass, rtypes} = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
 
-# SMC and course components
-course_funcs = require('./course_funcs')
+# CoCalc and course components
+util = require('./util')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
 {ErrorDisplay, Icon, Tip, MarkdownInput} = require('../r_misc')
@@ -81,29 +102,29 @@ exports.HandoutsPanel = rclass ({name}) ->
         return false
 
     compute_handouts_list: ->
-        list = course_funcs.immutable_to_list(@props.all_handouts, 'handout_id')
+        list = util.immutable_to_list(@props.all_handouts, 'handout_id')
 
-        {list, num_omitted} = course_funcs.compute_match_list
+        {list, num_omitted} = util.compute_match_list
             list        : list
             search_key  : 'path'
             search      : @state.search.trim()
 
-        {list, deleted, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp(a.path?.toLowerCase(), b.path?.toLowerCase())
             include_deleted  : @state.show_deleted
 
         return {shown_handouts:list, deleted_handouts:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_show_deleted_button: (num_deleted) ->
+    render_show_deleted_button: (num_deleted, num_shown) ->
         if @state.show_deleted
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list.">
                     Hide {num_deleted} deleted handouts
                 </Tip>
             </Button>
         else
-            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:true, search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : num_shown > 0)} onClick={=>@setState(show_deleted:true, search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back.">
                     Show {num_deleted} deleted handouts
                 </Tip>
@@ -147,7 +168,7 @@ exports.HandoutsPanel = rclass ({name}) ->
                         is_expanded={@props.expanded_handouts.has(handout.handout_id)}
                         name={@props.name}
                 />}
-            {@render_show_deleted_button(num_deleted) if num_deleted > 0}
+            {@render_show_deleted_button(num_deleted, shown_handouts.length ? 0) if num_deleted > 0}
         </Panel>
 
 exports.HandoutsPanel.Header = rclass
@@ -202,6 +223,8 @@ Handout = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
+                    persist_id    = {@props.handout.get('path') + @props.handout.get('assignment_id') + "note"}
+                    attach_to     = {@props.name}
                     rows          = 6
                     placeholder   = 'Private notes about this handout (not visible to students)'
                     default_value = {@props.handout.get('note')}
@@ -398,7 +421,7 @@ StudentListForHandout = rclass
         actions      : rtypes.object
 
     render_students: ->
-        v = course_funcs.immutable_to_list(@props.students, 'student_id')
+        v = util.immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v
@@ -531,7 +554,7 @@ StudentHandoutInfo = rclass
     render_open_copying: (name, open, stop) ->
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> Working...
+                <Icon name="cc-icon-cocalc-ring" spin /> Working...
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />

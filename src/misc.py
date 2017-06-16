@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -48,7 +48,7 @@ def post(url, data=None, timeout=10):
         if data is None: data = {}
         data = urllib.urlencode(data)
         req = urllib2.Request(url, data)
-        response = urllib2.urlopen(req)        
+        response = urllib2.urlopen(req)
         return response.read()
     finally:
         socket.setdefaulttimeout(old_timeout)
@@ -80,7 +80,7 @@ def all_files(path):   # TODO: delete if not used
 
     This all_files function returns a list of the 3 files, but
     completely ignores the empty directory::
-    
+
         >>> all_files(d)       # ... = / on unix but \\ windows
         ['a', 'm...n...k...foo', 'xyz.abc']
         >>> import shutil; shutil.rmtree(d)       # clean up mess
@@ -167,7 +167,7 @@ class call_until_succeed(object):
         self._mindelay = mindelay
         self._maxdelay = maxdelay
         self._totaldelay = totaldelay
-        
+
     def __call__(self, f):
         def g(*args, **kwds):
             attempts = 0
@@ -188,7 +188,7 @@ class call_until_succeed(object):
                     time.sleep(delay)
                     totaldelay += delay
                     delay = min(2*delay, self._maxdelay)
-                    
+
         return g
 
 
@@ -222,7 +222,7 @@ def thread_map(callable, inputs):
     e = [f.result for f in results if f.fail]
     if e: raise RuntimeError(e)
     return [f.result for f in results]
-                    
+
 
 ################################################
 # sha-1 hash

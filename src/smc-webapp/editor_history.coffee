@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -28,7 +28,7 @@ async = require('async')
 
 misc = require('smc-util/misc')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
@@ -37,7 +37,7 @@ jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
 
-templates = $("#salvus-editor-templates")
+templates = $("#webapp-editor-templates")
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -45,7 +45,7 @@ class exports.HistoryEditor extends FileEditor
             window.h = @ # for debugging
         super(@project_id, @filename)
         @init_paths()
-        @element  = templates.find(".salvus-editor-history").clone()
+        @element  = templates.find(".webapp-editor-history").clone()
         async.series([
             (cb) =>
                 @init_syncstring(cb)
@@ -82,7 +82,7 @@ class exports.HistoryEditor extends FileEditor
             @_path = s.head + '/' + @_path
 
     init_syncstring: (cb) =>
-        salvus_client.open_existing_sync_document
+        webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
             cb         : (err, syncstring) =>
@@ -139,12 +139,12 @@ class exports.HistoryEditor extends FileEditor
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
         if @ext in ['course', 'sage-chat']
-            @element.find(".salvus-editor-history-no-viewer").show()
-            @top_elt = @element.find(".salvus-editor-history-no-viewer")
+            @element.find(".webapp-editor-history-no-viewer").show()
+            @top_elt = @element.find(".webapp-editor-history-no-viewer")
         else
-            @top_elt = @element.find(".salvus-editor-history-sliders")
+            @top_elt = @element.find(".webapp-editor-history-sliders")
 
-        @element.find(".salvus-editor-history-history_editor").append(@view_doc.element)
+        @element.find(".webapp-editor-history-history_editor").append(@view_doc.element)
 
         if @ext == "sagews"
             opts0 =
@@ -166,7 +166,7 @@ class exports.HistoryEditor extends FileEditor
         @diff_doc ?= @view_doc
 
     init_slider: =>
-        @slider         = @element.find(".salvus-editor-history-slider")
+        @slider         = @element.find(".webapp-editor-history-slider")
         @forward_button = @element.find("a[href=\"#forward\"]")
         @back_button    = @element.find("a[href=\"#back\"]")
         @load_all       = @element.find("a[href=\"#all\"]")
@@ -174,8 +174,8 @@ class exports.HistoryEditor extends FileEditor
         ##element.children().not(".btn-history").hide()
         for e in [@view_doc, @diff_doc]
             if e?
-                e.element.find(".salvus-editor-save-group").hide()
-                e.element.find(".salvus-editor-chat-title").hide()
+                e.element.find(".webapp-editor-save-group").hide()
+                e.element.find(".webapp-editor-chat-title").hide()
                 e.element.find(".smc-editor-file-info-dropdown").hide()
 
         @slider.show()
@@ -221,7 +221,7 @@ class exports.HistoryEditor extends FileEditor
             open_file()
             @syncstring.emit('change')
 
-        @diff_slider    = @element.find(".salvus-editor-history-diff-slider")
+        @diff_slider    = @element.find(".webapp-editor-history-diff-slider")
 
         @element.find("a[href=\"#show-diff\"]").click () =>
             @diff_mode(true)
@@ -232,26 +232,29 @@ class exports.HistoryEditor extends FileEditor
             return false
 
     diff_mode: (enabled) =>
+        if not @syncstring?
+            # document already closed or not yet initialized
+            return
         @_diff_mode = enabled
         if enabled
             if @view_doc != @diff_doc
-                @element.find(".salvus-editor-history-history_editor").empty().append(@diff_doc.element)
+                @element.find(".webapp-editor-history-history_editor").empty().append(@diff_doc.element)
                 @diff_doc.show?()
             @element.find("a[href=\"#hide-diff\"]").show()
             @element.find("a[href=\"#show-diff\"]").hide()
-            @element.find(".salvus-editor-history-diff-mode").show()
+            @element.find(".webapp-editor-history-diff-mode").show()
             @diff_slider.show()
             @slider.hide()
             @set_doc_diff(@goto_diff()...)
             # Switch to default theme for diff viewer, until we implement
             # red/green colors that are selected to match the user's theme
-            # See https://github.com/sagemathinc/smc/issues/884
+            # See https://github.com/sagemathinc/cocalc/issues/884
             for cm in @diff_doc.codemirrors()
                 @_non_diff_theme ?= cm.getOption('theme')
                 cm.setOption('theme', '')
         else
             if @view_doc != @diff_doc
-                @element.find(".salvus-editor-history-history_editor").empty().append(@view_doc.element)
+                @element.find(".webapp-editor-history-history_editor").empty().append(@view_doc.element)
                 @view_doc.show?()
             for cm in @diff_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
@@ -263,7 +266,7 @@ class exports.HistoryEditor extends FileEditor
                 cm.setValue(@syncstring.version(@goto_revision(@revision_num)).to_str())
             @element.find("a[href=\"#hide-diff\"]").hide()
             @element.find("a[href=\"#show-diff\"]").show()
-            @element.find(".salvus-editor-history-diff-mode").hide()
+            @element.find(".webapp-editor-history-diff-mode").hide()
             @diff_slider.hide()
             @slider.show()
             @set_doc(@goto_revision())
@@ -377,7 +380,7 @@ class exports.HistoryEditor extends FileEditor
             username = usernames.join(', ')
         else
             username = ''
-        @element.find(".salvus-editor-history-revision-user").text(username)
+        @element.find(".webapp-editor-history-revision-user").text(username)
 
         @process_view()
 
@@ -400,8 +403,8 @@ class exports.HistoryEditor extends FileEditor
         @slider.slider("option", "value", @revision_num)
         @update_buttons()
         t = time.toLocaleString()
-        @element.find(".salvus-editor-history-revision-time").text($.timeago(t)).attr('title', t)
-        @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
+        @element.find(".webapp-editor-history-revision-time").text($.timeago(t)).attr('title', t)
+        @element.find(".webapp-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
 
@@ -419,7 +422,7 @@ class exports.HistoryEditor extends FileEditor
             username = ''  # don't know user or maybe no recorded user (e.g., initial version)
         if time_sent?
             username += "  (OFFLINE WARNING: sent #{$.timeago(time_sent)}) "
-        @element.find(".salvus-editor-history-revision-user").text(username)
+        @element.find(".webapp-editor-history-revision-user").text(username)
         return time
 
     goto_diff: (num1, num2) =>
@@ -448,10 +451,10 @@ class exports.HistoryEditor extends FileEditor
         @diff_slider.slider("option", "values", [num1, num2])
         @update_buttons()
         t1 = time1.toLocaleString()
-        @element.find(".salvus-editor-history-revision-time").text($.timeago(t1)).attr('title', t1)
+        @element.find(".webapp-editor-history-revision-time").text($.timeago(t1)).attr('title', t1)
         t2 = time2.toLocaleString()
-        @element.find(".salvus-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
-        @element.find(".salvus-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
+        @element.find(".webapp-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
+        @element.find(".webapp-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
         return [time1, time2]
 
     update_buttons: =>

@@ -435,7 +435,7 @@ Terminal.prototype.open = function() {
     , div;
 
   this.element = document.createElement('div');
-  this.element.className = 'salvus-console-terminal';
+  this.element.className = 'webapp-console-terminal';
   this.element.setAttribute('spellcheck', 'false');
   this.children = [];
 
@@ -748,19 +748,18 @@ Terminal.prototype.bindMouse = function() {
     y = ev.pageY;
     el = self.element;
 
-    // should probably check offsetParent
-    // but this is more portable
-    while (el !== document.documentElement) {
-      x -= el.offsetLeft;
-      y -= el.offsetTop;
-      el = el.parentNode;
-    }
+    // should probably check offsetParent but this is more portable
+    var offset = $(el).offset();
+    x -= offset.left;
+    y -= offset.top;
 
     // convert to cols/rows
     w = self.element.clientWidth;
     h = self.element.clientHeight;
     x = ((x / w) * self.cols) | 0;
     y = ((y / h) * self.rows) | 0;
+    x += 1;
+    y += 1;
 
     // be sure to avoid sending
     // bad positions to the program
@@ -795,7 +794,7 @@ Terminal.prototype.bindMouse = function() {
 
     // fix for odd bug
     if (self.vt200Mouse) {
-      sendButton({ __proto__: ev, type: 'mouseup' });
+      sendButton(new ev.constructor('mouseup', ev));
       return cancel(ev);
     }
 
@@ -943,7 +942,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="salvus-console-cursor-focus">';
+            out += '<span class="webapp-console-cursor-focus">';
           } else {
             out += '<span style="';
 
@@ -2991,6 +2990,16 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
+    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
+    // if (this.lines.length <= row) {
+    //     continue;
+    // }
+    // Question: How can you possibly have a problem because of running that code? It seems
+    // like if you don't have that commented out code, then the next line would
+    // cause a traceback? Answer: well, those tracebacks are there right now.
+    // With this code there, the output started to do weird things, repeating
+    // parts of the text, etc. So, I know this is a problem, but I don't
+    // want to fix it by making it worse.
     this.lines[row].splice(j++, 0, ch);
     this.lines[row].pop();
   }

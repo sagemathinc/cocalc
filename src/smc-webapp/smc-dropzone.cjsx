@@ -26,9 +26,9 @@ render_header = ->
         icon      = 'file'
         title     = 'Drag and drop files'
         placement = 'bottom'
-        tip       = 'Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+        tip       = 'Drag and drop files from your computer into the box below to upload them into your project.'>
         <h4 style={color:"#666"}>
-            Drag and drop files. Each file must be under 30MB.
+            Drag and drop files.
         </h4>
     </Tip>
 
@@ -54,9 +54,10 @@ exports.SMC_Dropzone = rclass
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 
-    postUrl : ->
+    postUrl: ->
+        # DANGER: code duplication with class below!
         dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
 
     render_close_button: ->
@@ -82,6 +83,7 @@ exports.SMC_Dropzone = rclass
         </div>
 
 exports.SMC_Dropwrapper = rclass
+
     displayName: 'dropzone-wrapper'
 
     propTypes:
@@ -106,12 +108,14 @@ exports.SMC_Dropwrapper = rclass
             url : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
+            maxFilesize       : 10000
         , true
         return misc.merge(with_defaults, @props.config)
 
     postUrl: ->
+        # DANGER: code duplication with class above!
         dest_dir = misc.encode_path(@props.dest_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.app_base_url + "/#{@props.project_id}/raw/.smc/upload?dest_dir=#{dest_dir}"
         return postUrl
 
     componentDidMount: ->
@@ -152,7 +156,9 @@ exports.SMC_Dropwrapper = rclass
             @_destroy()
         else
             @_create_dropzone()
-            @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
+            if @dropzone?
+                # see https://github.com/sagemathinc/cocalc/issues/2072
+                @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
 
     preview_template: ->
         <div className='dz-preview dz-file-preview'>

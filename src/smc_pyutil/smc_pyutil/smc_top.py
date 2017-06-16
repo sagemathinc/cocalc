@@ -2,9 +2,9 @@
 # -*- coding: utf8 -*-
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, SageMathCloud Authors
+#    Copyright (C) 2015, CoCalc Authors
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -462,7 +462,7 @@ class SmcTop(object):
             sortkey = lambda x: x["pid"]
 
         ts = date_parser(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        print0(" SageMathCloud Process Accounting -- {} UTC "
+        print0(" CoCalc Process Accounting -- {} UTC "
               .format(ts).center(width, "="))
         print0()
         if self.summarize:

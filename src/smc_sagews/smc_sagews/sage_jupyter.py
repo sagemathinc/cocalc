@@ -28,17 +28,20 @@ salvus = None  # set externally
 class JUPYTER(object):
 
     def __call__(self, kernel_name, **kwargs):
+        if kernel_name.startswith('sage'):
+            raise ValueError("You may not run Sage kernels from a Sage worksheet.\nInstead use the sage_select command in a Terminal to\nswitch to a different version of Sage, then restart your project.")
         return _jkmagic(kernel_name, **kwargs)
 
     def available_kernels(self):
         '''
         Returns the list of available Jupyter kernels.
         '''
-        return os.popen("jupyter kernelspec list").read()
+        v = os.popen("jupyter kernelspec list").readlines()
+        return ''.join(x for x in v if not x.strip().startswith('sage'))
 
     def _get_doc(self):
         ds0 = textwrap.dedent(r"""\
-        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet
+        Use the jupyter command to use any Jupyter kernel that you have installed using from your CoCalc worksheet
 
             | py3 = jupyter("python3")
 
@@ -74,7 +77,7 @@ class JUPYTER(object):
             | p2('print(a)')   # prints 10
 
         For details on supported features and known issues, see the SMC Wiki page:
-        https://github.com/sagemathinc/smc/wiki/sagejupyter
+        https://github.com/sagemathinc/cocalc/wiki/sagejupyter
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()

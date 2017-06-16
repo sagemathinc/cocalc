@@ -7,7 +7,7 @@ Register the Jupyter Notebook editor and viwer with SMC
 misc                   = require('smc-util/misc')
 
 {register_file_editor} = require('../project_file')
-{salvus_client}        = require('../salvus_client')
+{webapp_client}        = require('../webapp_client')
 {alert_message}        = require('../alerts')
 {redux_name}           = require('../smc-react')
 
@@ -36,7 +36,7 @@ exports.register = ->
             actions = redux.createActions(name, JupyterActions)
             store   = redux.createStore(name, JupyterStore)
 
-            syncdb = salvus_client.sync_db
+            syncdb = webapp_client.sync_db
                 project_id      : project_id
                 path            : misc.meta_file(path, 'jupyter2')   # a.ipynb --> ".a.ipynb.sage-jupyter2"
                 change_throttle : 5    # our UI/React can handle more rapid updates; plus we want output FAST.
@@ -46,10 +46,10 @@ exports.register = ->
                 string_cols     : ['input']
                 cursors         : true
 
-            actions._init(project_id, path, syncdb, store, salvus_client)
+            actions._init(project_id, path, syncdb, store, webapp_client)
 
-            if window.smc?
-                window.a = actions # for DEBUGGING
+            ##if window.smc?
+            ##    window.a = actions # for DEBUGGING
 
             syncdb.once 'init', (err) =>
                 if err
@@ -74,6 +74,11 @@ exports.register = ->
             redux.removeActions(name)
             return name
 
+        save      : (path, redux, project_id) ->
+            name = redux_name(project_id, path)
+            actions = redux.getActions(name)
+            actions?.save()
+
 
     register_file_editor
         ext       : ['ipynb']
@@ -90,7 +95,7 @@ exports.register = ->
                 return name  # already initialized
             actions = redux.createActions(name, NBViewerActions)
             store   = redux.createStore(name)
-            actions._init(project_id, path, store, salvus_client)
+            actions._init(project_id, path, store, webapp_client)
             return name
 
         remove    : (path, redux, project_id) ->

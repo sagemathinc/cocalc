@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -35,7 +35,7 @@ IDEAS FOR LATER:
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
-{salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
+{webapp_client} = require('./webapp_client')  # used to run the command -- could change to use an action and the store.
 
 output_style =
     position  : 'absolute'
@@ -52,7 +52,7 @@ BAD_COMMANDS =
     vi      : "Type vi in a full terminal instead,\nor just click on the file in the listing."
     vim     : "Type vim in a full terminal instead,\nor just click on the file in the listing."
     emacs   : "Type emacs in a full terminal instead,\nor just click on the file in the listing."
-    open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/smc/issues/230"
+    open    : "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230"
 
 EXEC_TIMEOUT = 10 # in seconds
 
@@ -88,7 +88,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         @_id = (@_id ? 0) + 1
         id = @_id
         start_time = new Date()
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
             timeout    : EXEC_TIMEOUT
@@ -141,7 +141,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                 </Button>
             when 'run'
                 <Button onClick={@execute_command}>
-                    <Icon name='circle-o-notch' spin  />
+                    <Icon name='cc-icon-cocalc-ring' spin  />
                 </Button>
 
     render_output: (x, style) ->

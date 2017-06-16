@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -31,12 +31,12 @@ markdown = require('./markdown')
 # Define interact jQuery plugins - used only by sage worksheets
 require('./interact')
 
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 
 async = require('async')
 
-templates = $("#salvus-editor-templates")
+templates = $("#webapp-editor-templates")
 
 account = require('./account')
 
@@ -92,7 +92,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        @_syncstring = salvus_client.sync_string
+        @_syncstring = webapp_client.sync_string
             project_id    : @project_id
             path          : @filename
             cursors       : opts.cursors
@@ -208,7 +208,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @filename = '.smc/root' + @filename
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = salvus_client.sync_string
+        @_syncstring = webapp_client.sync_string
             id         : id
             project_id : @project_id
             path       : @filename
@@ -224,7 +224,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 setTimeout(f, 5000)
         update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
-        #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
+        #dbg = webapp_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
 
         @_syncstring.once 'init', (err) =>
@@ -358,7 +358,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     undo: () =>
         if not @codemirror?
             return
-        cm = @focused_codemirror()  # see https://github.com/sagemathinc/smc/issues/1161
+        cm = @focused_codemirror()  # see https://github.com/sagemathinc/cocalc/issues/1161
         if not @_syncstring.in_undo_mode()
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
@@ -377,7 +377,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             # can't redo if version not defined/not available.
             return
         if not doc.to_str?
-            # BUG -- see https://github.com/sagemathinc/smc/issues/1831
+            # BUG -- see https://github.com/sagemathinc/cocalc/issues/1831
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
@@ -450,18 +450,18 @@ class SynchronizedDocument2 extends SynchronizedDocument
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             return locs
 
     _render_other_cursor: (account_id) =>
-        if account_id == salvus_client.account_id
+        if account_id == webapp_client.account_id
             # nothing to do -- we don't draw our own cursor via this
             return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.
-        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+        if webapp_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
                 #console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")

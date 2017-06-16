@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2016, Sagemath Inc.
+CoCalc, Copyright (C) 2016, Sagemath Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -557,7 +557,7 @@ class SyncTable extends EventEmitter
                         # checked for above before the call, and these can only get set by
                         # the close method to undefined, which also sets the @_state to closed,
                         # so would get caught above.  However, evidently this **does happen**:
-                        #   https://github.com/sagemathinc/smc/issues/1870
+                        #   https://github.com/sagemathinc/cocalc/issues/1870
                         cb?("value_server and value_local must be set")
                         return
                     @emit('saved', saved_objs)

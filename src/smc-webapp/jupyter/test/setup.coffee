@@ -23,9 +23,9 @@ exports.setup = (cb) ->
     smc_react.redux.getProjectStore(project_id)
 
     # Initialize/reset the testing client that the synctables connect to.
-    {salvus_client} = require('../../salvus_client')
-    global.salvus_client = salvus_client
-    salvus_client.reset()
+    {webapp_client} = require('../../webapp_client')
+    global.webapp_client = webapp_client
+    webapp_client.reset()
 
     # initialize actions/store
     actions = new (require('../project-actions').JupyterActions)(redux_name, smc_react.redux)
@@ -33,7 +33,7 @@ exports.setup = (cb) ->
 
     base = misc.separate_file_extension(path).name
     syncdb_path = misc.meta_file(base, 'ipython')
-    syncdb = salvus_client.sync_db
+    syncdb = webapp_client.sync_db
         project_id      : project_id
         path            : syncdb_path
         change_throttle : 0
@@ -42,7 +42,7 @@ exports.setup = (cb) ->
         string_cols     : ['input']
         cursors         : true
 
-    actions._init(project_id, path, syncdb, store, salvus_client)
+    actions._init(project_id, path, syncdb, store, webapp_client)
 
     syncdb.once 'init', (err) =>
         if err
@@ -54,7 +54,7 @@ exports.setup = (cb) ->
             cb?(undefined, actions)
 
     # Cause the syncstring to be initialized so that the above 'init' happens.
-    salvus_client.user_query
+    webapp_client.user_query
         query :
             syncstrings :
                 project_id : project_id
@@ -68,5 +68,5 @@ exports.teardown = (cb) ->
     smc_react.redux.getActions(redux_name)?.close()
     smc_react.redux.removeProjectReferences(project_id)
     smc_react.redux.constructor()  # this instantly resets the state of all redux
-    salvus_client.reset()
+    webapp_client.reset()
     cb()

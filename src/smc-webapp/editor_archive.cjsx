@@ -6,7 +6,7 @@ AGPLv3
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {filename_extension} = require('smc-util/misc')
 async = require('async')
 misc = require('smc-util/misc')
@@ -95,7 +95,7 @@ class ArchiveActions extends Actions
 
     set_unsupported: (ext) =>
         @setState
-            error    : <span> <b>WARNING:</b> Support for decompressing {ext} archives is not yet implemented (see <a href='https://github.com/sagemathinc/smc/issues/1720' target='_blank'>https://github.com/sagemathinc/smc/issues/1720</a>).</span>
+            error    : <span> <b>WARNING:</b> Support for decompressing {ext} archives is not yet implemented (see <a href='https://github.com/sagemathinc/cocalc/issues/1720' target='_blank'>https://github.com/sagemathinc/cocalc/issues/1720</a>).</span>
             contents : ''
             type     : ext
 
@@ -107,7 +107,7 @@ class ArchiveActions extends Actions
 
         {command, args} = COMMANDS[ext].list
 
-        salvus_client.exec
+        webapp_client.exec
             project_id : project_id
             command    : command
             args       : args.concat([path])
@@ -145,7 +145,7 @@ class ArchiveActions extends Actions
                     base = path_parts.tail.slice(0, i)
                     if contents.indexOf(base+'/') == -1
                         post_args = ['-C', base]
-                        salvus_client.exec
+                        webapp_client.exec
                             project_id    : project_id
                             path          : path_parts.head
                             command       : "mkdir"
@@ -161,7 +161,7 @@ class ArchiveActions extends Actions
                 args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
                 cmd = "cd \"#{path_parts.head}\" ; #{command} #{args_str}"  # ONLY for info purposes -- not actually run!
                 @setState(command: cmd)
-                salvus_client.exec
+                webapp_client.exec
                     project_id : project_id
                     path       : path_parts.head
                     command    : command
@@ -215,7 +215,7 @@ Archive = rclass ({name}) ->
 
     render_button_icon: ->
         if @props.loading
-            <Icon name='circle-o-notch' spin={true} />
+            <Icon name='cc-icon-cocalc-ring' spin={true} />
         else
             <Icon name='folder'/>
 
@@ -268,7 +268,7 @@ Archive = rclass ({name}) ->
 
 # TODO: change ext below to use misc.keys(COMMANDS).  We don't now, since there are a
 # ton of extensions that shoud open in the archive editor, but aren't implemented
-# yet and we don't want to open those in codemirror -- see https://github.com/sagemathinc/smc/issues/1720
+# yet and we don't want to open those in codemirror -- see https://github.com/sagemathinc/cocalc/issues/1720
 TODO_TYPES = misc.split('z lz lzma tgz tbz tbz2 tb2 taz tz tlz txz')
 require('project_file').register_file_editor
     ext       : misc.keys(COMMANDS).concat(TODO_TYPES)

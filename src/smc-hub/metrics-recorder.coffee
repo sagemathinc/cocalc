@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016, SageMath, Inc.
+#    Copyright (C) 2016 -- 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -21,45 +21,88 @@
 
 # This is a small helper class to record real-time metrics about the hub.
 # It is designed for the hub, such that a local process can easily check its health.
-# optionally, it stores the metrics to a status file -- TODO: also push this to the DB
-# usage: after init, publish key/value pairs which are then going to be reported
+# After an initial version, this has been repurposed to use prometheus.
+# It wraps its client elements and adds some instrumentation to some hub components.
 
 fs         = require('fs')
+path       = require('path')
 underscore = require('underscore')
-misc       = require('smc-util/misc')
+{execSync} = require('child_process')
+{defaults} = misc = require('smc-util/misc')
 
+# Prometheus client setup -- https://github.com/siimon/prom-client
+prom_client = require('prom-client')
+prom_default_metrics = prom_client.defaultMetrics
+# additionally, record GC statistics
+# https://www.npmjs.com/package/prometheus-gc-stats
+require('prometheus-gc-stats')()()
 
 # some constants
-FREQ_s     = 10   # write stats every FREQ seconds
+FREQ_s     = 10   # update stats every FREQ seconds
 DELAY_s    = 5    # with an initial delay of DELAY seconds
-DISC_LEN   = 10   # length of queue for recording discrete values
-MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
+#DISC_LEN   = 10   # length of queue for recording discrete values
+#MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
 
+# CLK_TCK (usually 100, but maybe not ...)
+try
+    CLK_TCK = parseInt(execSync('getconf CLK_TCK', {encoding: 'utf8'}))
+catch err
+    CLK_TCK = null
 
+###
 # exponential smoothing, based on linux's load 1-exp(-1) smoothing
 # with compensation for sampling time FREQ_s
 d = 1 - Math.pow(Math.exp(-1), FREQ_s / 60)
 DECAY = [d, Math.pow(d, 5), Math.pow(d, 15)]
+###
 
-
+###
 # there is more than just continuous values
 # cont: continuous (like number of changefeeds), will be smoothed
 #       disc: discrete, like blocked, will be recorded with timestamp
 #             in a queue of length DISC_LEN
 exports.TYPE = TYPE =
+    COUNT: 'counter'    # strictly non-decrasing integer
+    GAUGE: 'gauge'      # only the most recent value is recorded
     LAST : 'latest'     # only the most recent value is recorded
     DISC : 'discrete'   # timeseries of length DISC_LEN
     CONT : 'continuous' # continuous with exponential decay
     MAX  : 'contmax'    # like CONT, reduces buffer to max value
     SUM  : 'contsum'    # like CONT, reduces buffer to sum of values divided by FREQ_s
+###
 
+exports.new_counter = new_counter = (name, help, labels) ->
+    # a prometheus counter -- https://github.com/siimon/prom-client#counter
+    # use it like counter.labels(labelA, labelB).inc([positive number or default is 1])
+    if not name.endsWith('_total')
+        throw "Counter metric names have to end in [_unit]_total but I got '#{name}' -- https://prometheus.io/docs/practices/naming/"
+    return new prom_client.Counter(name, help, labels)
 
-class exports.MetricsRecorder
-    constructor: (@filename, @dbg, @collect, cb) ->
+exports.new_gauge = new_gauge = (name, help, labels) ->
+    # a prometheus gauge -- https://github.com/siimon/prom-client#gauge
+    # basically, use it like gauge.labels(labelA, labelB).set(value)
+    return new prom_client.Gauge(name, help, labels)
+
+exports.new_quantile = new_quantile = (name, help, config={}) ->
+    # invoked as quantile.observe(value)
+    config = defaults config,
+        # a few more than the default, in particular including the actual min and max
+        percentiles: [0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999, 1.0]
+        labels : []
+    return new prom_client.Summary(name, help, config.labels, percentiles: config.percentiles)
+exports.new_summary = new_summary = new_quantile
+
+exports.new_histogram = new_histogram = (name, help, config={}) ->
+    # invoked as histogram.observe(value)
+    config = defaults config,
+        buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+        labels: []
+    return new prom_client.Histogram(name, help, config.labels, buckets:config.buckets)
+
+class MetricsRecorder
+    constructor: (@dbg, cb) ->
         ###
-        * @filename: if set, periodically saved there. otherwise use @get.
-        * @collect: call this function on every _update
-        * @dbg: e.g. reporting via winston or whatever
+        * @dbg: reporting via winston, instance with configuration passed in from hub.coffee
         ###
         # stores the current state of the statistics
         @_stats = {}
@@ -67,27 +110,74 @@ class exports.MetricsRecorder
 
         # the full statistic
         @_data  = {}
-
-        # start of periodically calling publish/update
-        setTimeout((=> setInterval(@_publish, FREQ_s * 1000)), DELAY_s * 1000)
-        # record start time (as string!)
-        @record("start", new Date(), TYPE.LAST)
+        @_collectors = []
 
         # initialization finished
-        cb?()
+        @setup_monitoring()
+        cb?(undefined, @)
 
-    get: =>
-        return misc.deep_copy(@_data)
+    metrics: =>
+        ###
+        get a serialized representation of the metrics status
+        (was a dict that should be JSON, now it is for prometheus)
+        it's only called by hub_http_server for the /metrics endpoint
+        ###
+        return prom_client.register.metrics()
 
+    register_collector: (collector) =>
+        # The added collector functions will be evaluated periodically to gather metrics
+        @_collectors.push(collector)
+
+    setup_monitoring: =>
+        # setup monitoring of some components
+        # called by the hub *after* setting up the DB, etc.
+        num_clients_gauge = new_gauge('clients_count', 'Number of connected clients')
+        {number_of_clients} = require('./hub_register')
+        @register_collector ->
+            try
+                num_clients_gauge.set(number_of_clients())
+            catch
+                num_clients_gauge.set(0)
+
+        # our own CPU metrics monitor, separating user and sys!
+        # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
+        @_cpu_seconds_total = new_gauge('process_cpu_categorized_seconds_total', 'Total number of CPU seconds used', ['type'])
+
+        # init periodically calling @_collect
+        setTimeout((=> setInterval(@_collect, FREQ_s * 1000)), DELAY_s * 1000)
+
+    _collect: =>
+        # called by @_update to evaluate the collector functions
+        #@dbg('_collect called')
+        for c in @_collectors
+            c()
+        # linux specific: collecting this process and all its children sys+user times
+        # http://man7.org/linux/man-pages/man5/proc.5.html
+        fs.readFile path.join('/proc', ''+process.pid, 'stat'), 'utf8', (err, infos) =>
+            if err or not CLK_TCK?
+                @dbg("_collect err: #{err}")
+                return
+            # there might be spaces in the process name, hence split after the closing bracket!
+            infos = infos[infos.lastIndexOf(')') + 2...].split(' ')
+            @_cpu_seconds_total.labels('user')       .set(parseFloat(infos[11]) / CLK_TCK)
+            @_cpu_seconds_total.labels('system')     .set(parseFloat(infos[12]) / CLK_TCK)
+            # time spent waiting on child processes
+            @_cpu_seconds_total.labels('chld_user')  .set(parseFloat(infos[13]) / CLK_TCK)
+            @_cpu_seconds_total.labels('chld_system').set(parseFloat(infos[14]) / CLK_TCK)
+
+
+
+# some of the commented code below might be used in the future when periodically collecting data (e.g. sliding max of "concurrent" value)
+###
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update: ->
-        @collect?()
+        @_collect()
 
         smooth = (new_value, arr) ->
             arr ?= []
             arr[0] = new_value
-            # compute smoothed value sval for each decay param
+            # compute smoothed value `sval` for each decay param
             for d, idx in DECAY
                 sval = arr[idx + 1] ? new_value
                 sval = d * new_value + (1-d) * sval
@@ -141,16 +231,6 @@ class exports.MetricsRecorder
             # we've consumed the value(s), reset them
             @_stats[key] = []
 
-    # the periodically called publication step
-    _publish: (cb) =>
-        @record("timestamp", new Date(), TYPE.LAST)
-        # also record system metrics like cpu, memory, ... ?
-        @_update()
-        # only if we have a @filename, save it there
-        if @filename?
-            json = JSON.stringify(@_data, null, 2)
-            fs.writeFile(@filename, json, cb?())
-
     record: (key, value, type = TYPE.CONT) =>
         # store in @_stats a key → bounded array
         if (@_types[key] ? type) != type
@@ -174,3 +254,13 @@ class exports.MetricsRecorder
                 @dbg?('hub/record_stats: unknown or undefined type #{type}')
         # avoid overflows
         @_stats[key] = @_stats[key][-MAX_BUFFER..]
+###
+
+metricsRecorder = null
+exports.init = (winston, cb) ->
+    dbg = (msg) ->
+        winston.info("MetricsRecorder: #{msg}")
+    metricsRecorder = new MetricsRecorder(dbg, cb)
+
+exports.get = ->
+    return metricsRecorder

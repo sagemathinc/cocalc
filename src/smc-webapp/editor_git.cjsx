@@ -6,7 +6,7 @@ Git "editor" -- basically an application that let's you interact with git.
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -37,7 +37,7 @@ class GitActions extends Actions
             cmd  : required
             args : []
             cb   : required
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : opts.cmd
             args        : opts.args

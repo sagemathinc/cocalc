@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -908,12 +908,13 @@ if exports.SALVUS_HOME?
     # that's where webpack writes the symlink to
     exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
     if exports.MATHJAX_VERSION?
-        exports.MATHJAX_ROOT = path.join(exports.OUTPUT_DIR, "mathjax-#{exports.MATHJAX_VERSION}")
+        exports.MATHJAX_SUBDIR = "mathjax-#{exports.MATHJAX_VERSION}"
+        exports.MATHJAX_ROOT   = path.join(exports.OUTPUT_DIR, exports.MATHJAX_SUBDIR)
     else
-        exports.MATHJAX_ROOT = exports.MATHJAX_NOVERS
-    exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
+        exports.MATHJAX_SUBDIR = "mathjax"
+        exports.MATHJAX_ROOT   = exports.MATHJAX_NOVERS
     # this is where the webapp and the jupyter notebook should get mathjax from
-    exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
+    exports.MATHJAX_URL        = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
 
     # google analytics (or later on some other analytics provider) needs a token as a parameter
     # if defined in data/config/google_analytics, tell webpack about it.

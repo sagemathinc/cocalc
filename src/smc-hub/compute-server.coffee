@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -54,8 +54,11 @@ sqlite      = require('smc-util-node/sqlite')
 
 
 # Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+try
+    winston.remove(winston.transports.Console)
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+catch err
+    # ignore
 
 {defaults, required} = misc
 
@@ -88,7 +91,7 @@ smc_compute = (opts) =>
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         path = require('path')
         command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        PROJECT_PATH = process.env.COCALC_PROJECT_PATH ? path.join(process.env.SALVUS_ROOT, 'data', 'projects')
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")

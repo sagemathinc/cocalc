@@ -310,7 +310,7 @@ somewhere.
     In the process of researching this we learned that the original
     developer of CJSX has abandoned the project and there isn't really
     anything to take its place yet.  William `insists
-    <https://github.com/sagemathinc/smc/issues/1545>`_ that SMC will
+    <https://github.com/sagemathinc/cocalc/issues/1545>`_ that SMC will
     continue to use it, and with good reason!, but it leaves me not without
     doubts...
 
@@ -783,13 +783,13 @@ first.)
 
 Finally, this module installs some event handlers that impact the page state
 (now that the ``"page"`` store has been set up), on an object named
-``salvus_client``.  This is actually the same ``Connection`` object that was
+``webapp_client``.  This is actually the same ``Connection`` object that was
 instantiated back in `Initial page load and connection`_.  "Salvus" is the
 working name for earlier versions of SMC, and there are still references to
-it throughout the sources.  Here, the use of ``salvus_client``, is probably
+it throughout the sources.  Here, the use of ``webapp_client``, is probably
 just code smell that hasn't been cleaned up yet.
 
-For example, it calls ``salvus_client.on("ping")`` to set a handler to
+For example, it calls ``webapp_client.on("ping")`` to set a handler to
 update the page's ping time display (actually, just the underlying state is
 updated here--we haven't attached a display to it yet) every time the
 connection receives a ping back from the server.
@@ -931,7 +931,7 @@ In principle the scheme supports other web services embedded in SMC as well.
 
 
 
-.. _README: https://github.com/sagemathinc/smc/blob/master/README.md#architecture
+.. _README: https://github.com/sagemathinc/cocalc/blob/master/README.md#architecture
 .. _Babel: http://babeljs.io/
 .. _webpack: https://webpack.github.io/
 .. _Node.js: https://nodejs.org/

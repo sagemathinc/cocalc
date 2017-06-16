@@ -1,16 +1,17 @@
 {
   "name": "smc-hub",
   "version": "1.0.0",
-  "description": "SageMathCloud: Backend webserver component",
+  "description": "CoCalc: Backend webserver component",
   "main": "index.js",
   "directories": {},
   "dependencies": {
     "async": "^1.4.2",
     "blocked": "^1.1.0",
-    "body-parser": "^1.14.1",
+    "body-parser": "^1.17.1",
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^0.7.2",
     "commander": "^2.6.0",
+    "cookie-parser": "^1.4.3",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
     "expiring-lru-cache": "^2.1.0",
@@ -40,6 +41,9 @@
     "pg": "^6.1.0",
     "pg-native": "^1.10.0",
     "primus": "^4.0.1",
+    "prom-client": "^5.0.2",
+    "prometheus-gc-stats": "^0.3.0",
+    "random-key": "^0.3.2",
     "read": "^1.0.5",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
@@ -65,14 +69,14 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "test": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter progress test/postgres && echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter progress test/api",
     "testpg": "SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter progress test/postgres",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sagemathinc/smc"
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "keywords": [
     "python",
@@ -94,7 +98,7 @@
   ],
   "license": "GPL-3.0+",
   "bugs": {
-    "url": "https://github.com/sagemathinc/smc/issues"
+    "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/smc"
+  "homepage": "https://github.com/sagemathinc/cocalc"
 }

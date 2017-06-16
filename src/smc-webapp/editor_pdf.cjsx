@@ -1,7 +1,6 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
-# and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -23,7 +22,7 @@
 {Button, ButtonGroup} = require('react-bootstrap')
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {Icon} = require('./r_misc')
 
 PublicPDF = rclass
@@ -80,7 +79,7 @@ refresh_iframe = (project_id, path, elt, show) ->
     elt = $(elt)
 
     if last_visible_key?
-        # See https://github.com/sagemathinc/smc/issues/1322
+        # See https://github.com/sagemathinc/cocalc/issues/1322
         # React optimizes things and doesn't unmount the component when switching
         # between two editors both display PDF's, so componentWillUnmount isn't called
         # (instead the PDF viewer is mutated from one to the other!).
@@ -99,7 +98,7 @@ refresh_iframe = (project_id, path, elt, show) ->
         iframe.hide()
 
 get_url = (project_id, path) ->
-    return salvus_client.read_file_from_project({project_id:project_id, path:path})
+    return webapp_client.read_file_from_project({project_id:project_id, path:path})
 
 create_iframe = (project_id, path) ->
     src = get_url(project_id, path)

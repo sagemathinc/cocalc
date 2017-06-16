@@ -1,6 +1,6 @@
 ###############################################################################
 #
-#    SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015, SageMath, Inc.
 #
@@ -20,7 +20,7 @@
 ###############################################################################
 
 {alert_message} = require('./alerts')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 # load dependencies asynchronously
 exports.load = (element, project) ->
@@ -103,7 +103,7 @@ exports.load = (element, project) ->
           # we're done... so send this to the backend
           console.log("Sending folder", path, "to backend")
           @setState { processing: true }
-          salvus_client.update_project_data
+          webapp_client.update_project_data
             project_id : project.project_id
             data       : {dropbox_folder: path, dropbox_token: @state.client.credentials().token}
             cb         : (err, mesg) ->

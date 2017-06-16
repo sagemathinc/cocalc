@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -52,10 +52,10 @@ class BillingActions extends Actions
         @_update_customer_lock=true
         @setState(action:"Updating billing information")
         customer_is_defined = false
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         async.series([
             (cb) =>
-                salvus_client.stripe_get_customer
+                webapp_client.stripe_get_customer
                     cb : (err, resp) =>
                         @_update_customer_lock = false
                         if not err and not resp?.stripe_publishable_key?
@@ -73,7 +73,7 @@ class BillingActions extends Actions
                     cb()
                 else
                     # only call get_invoices if the customer already exists in the system!
-                    salvus_client.stripe_get_invoices
+                    webapp_client.stripe_get_invoices
                         limit : 100  # FUTURE: -- this will change when we use webhooks and our own database of info.
                         cb: (err, invoices) =>
                             if not err
@@ -95,8 +95,8 @@ class BillingActions extends Actions
                 cb?(err)
             else
                 @update_customer(cb)
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
-        salvus_client["stripe_#{action}"](opts)
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
+        webapp_client["stripe_#{action}"](opts)
 
     clear_action: =>
         @setState(action:"", error:"")
@@ -137,7 +137,7 @@ class BillingActions extends Actions
         @_action('cancel_subscription', 'Cancel a subscription', {subscription_id : id, cb : cb})
 
     create_subscription: (plan='standard') =>
-        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
+        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
         if lsa? and lsa > misc.server_minutes_ago(2)
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
@@ -654,7 +654,7 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render: ->
         max = PROJECT_UPGRADES.max_per_project
         <Panel
-            header = 'Maximum possible quotas per project'
+            header = {<span>Maximum possible quotas <strong>per project</strong></span>}
         >
             {@render_project_quota(name, max[name]) for name in PROJECT_UPGRADES.field_order when max[name]}
         </Panel>
@@ -679,11 +679,19 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
             </Tip>
         </div>
 
+    render_header: ->
+      <div style={paddingLeft:"10px"}>
+            <Icon name='battery-empty' />{' '}
+            <span style={fontWeight:'bold'}>Free plan</span>
+        </div>
+
     render: ->
         free = require('smc-util/schema').DEFAULT_QUOTAS
         <Panel
-            header = 'Projects start with these quotas for free'
+            header  = {@render_header()}
+            bsStyle = 'info'
         >
+            <Space/>
             <div style={marginBottom:'5px', marginLeft:'10px'}>
                 <Tip title="Free servers" tip="Many free projects are cramped together inside weaker compute machines, competing for CPU, RAM and I/O.">
                     <span style={fontWeight:'bold',color:'#666'}>low-grade</span><Space/>
@@ -691,12 +699,19 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
                 </Tip>
             </div>
             <div style={marginBottom:'5px', marginLeft:'10px'}>
-                <Tip title="Network access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
+                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
                     <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
-                    <span style={color:'#999'}>Network access</span>
+                    <span style={color:'#999'}>Internet access</span>
                 </Tip>
             </div>
             {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
+            <Space/>
+            <div style={textAlign : 'center', marginTop:'10px'}>
+                <h3 style={textAlign:'left'}>
+                    <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
+                    <span style={fontSize:'30px'}>0</span>
+                </h3>
+            </div>
         </Panel>
 
 PlanInfo = rclass
@@ -1134,7 +1149,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">this
+                Following <a href="https://tutorial.cocalc.com/" target="_blank">this
                 guide</a>, create a course file.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
@@ -1194,9 +1209,9 @@ FAQS =
            prioritize supporting paying users.
            We very strongly encourage you to make an account and explore our product for free!
            There is no difference in functionality between the free and for-pay versions of
-           SageMathCloud; everything is still private by default for free users, and you can
+           <SiteName/>; everything is still private by default for free users, and you can
            make as many projects as you want.  You can even fully start teaching a course
-           in SMC completely for free, then upgrade at any point later so that your students
+           in <SiteName/> completely for free, then upgrade at any point later so that your students
            have a <b>much</b> better quality experience (for a small fraction of the cost of
            their textbook).
            </span>
@@ -1223,7 +1238,7 @@ FAQS =
             you are actually working in a highly restricted environment.
             Processes running <em>inside</em> a free project are not allowed to directly
             access the internet.  (We do not allow such access for free users, since when we did,
-            malicious users launched attacks on other computers from SageMathCloud.)
+            malicious users launched attacks on other computers from <SiteName/>.)
             Enable internet access by adding the "internet access" quota.
            </span>
     idle_timeout:
@@ -1236,7 +1251,7 @@ FAQS =
             Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
             running on is rebooted.
             (NOTE: Projects do not normally stop if you are continuously using them, and there are no
-            daily or monthly caps on how much you may use a SageMathCloud project, even a free one.)
+            daily or monthly caps on how much you may use a <SiteName/> project, even a free one.)
            </span>
     cpu_shares:
         q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
@@ -1311,7 +1326,7 @@ FAQS =
         q: <span>Are my files backed up?</span>
         a: <span>
             All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
-            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, SageMathCloud records
+            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, <SiteName/> records
             the history of all edits you or your collaborators make to most files, and you can browse
             that history with a slider by clicking on the "History" button (next to save) in files.
             We care about your data, and also make offsite backups periodically to encrypted USB
@@ -1469,7 +1484,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.smc_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.app_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status: ->
         if @props.invoice.paid
@@ -1615,7 +1630,7 @@ exports.PayCourseFee = PayCourseFee = rclass
     render_buy_button: ->
         if @props.redux.getStore('billing').get(@key())
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="circle-o-notch" spin /> Paying the one-time $9 fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time $9 fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
@@ -1883,6 +1898,8 @@ set_selected_plan = (plan, period) ->
 
 exports.render_static_pricing_page = () ->
     <div>
+        <ExplainResources type='shared' is_static={true}/>
+        <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
         {# <Space/><ExplainResources type='dedicated'/> }
@@ -1890,10 +1907,7 @@ exports.render_static_pricing_page = () ->
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>
         <hr/>
-        <ExplainResources type='shared' is_static={true}/>
-        <hr/>
         <FAQ/>
-        <Footer/>
     </div>
 
 exports.visit_billing_page = ->

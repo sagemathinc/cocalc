@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014--2016, SageMath, Inc.
 #
@@ -32,13 +32,13 @@ misc_page       = require('../misc_page')
 editor          = require('../editor')
 
 {alert_message} = require('../alerts')
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 {IS_MOBILE}     = require('../feature')
 
 {redux}         = require('../smc-react')
 printing        = require('../printing')
 
-templates       = $("#salvus-editor-templates")
+templates       = $("#webapp-editor-templates")
 
 
 class exports.HTML_MD_Editor extends editor.FileEditor
@@ -72,23 +72,23 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # reasonable default more generally.
             @disable_preview = true
 
-        @element = templates.find(".salvus-editor-html-md").clone()
+        @element = templates.find(".webapp-editor-html-md").clone()
 
         # create the textedit button bar.
-        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
-        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+        @edit_buttons = templates.find(".webapp-editor-textedit-buttonbar").clone()
+        @element.find(".webapp-editor-html-md-textedit-buttonbar").append(@edit_buttons)
 
         if @ext == 'java'
-            @element.find(".salvus-editor-html-md-textedit-buttonbar").hide()
+            @element.find(".webapp-editor-html-md-textedit-buttonbar").hide()
 
-        @preview = @element.find(".salvus-editor-html-md-preview")
-        @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+        @preview = @element.find(".webapp-editor-html-md-preview")
+        @preview_content = @preview.find(".webapp-editor-html-md-preview-content")
         @preview.on 'scroll', =>
             @preview_scroll_position = @preview.scrollTop()
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
-        @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
+        @element.find(".webapp-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
         if @ext == 'java' and not @disable_preview
             @update_preview()
@@ -138,8 +138,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
-        @_dragbar = dragbar = @element.find(".salvus-editor-html-md-resize-bar")
-        elt = @element.find(".salvus-editor-html-md-content")
+        @_dragbar = dragbar = @element.find(".webapp-editor-html-md-resize-bar")
+        elt = @element.find(".webapp-editor-html-md-content")
         @set_split_pos(@local_storage('split_pos'))
         dragbar.draggable
             axis        : 'x'
@@ -156,7 +156,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 @local_storage('split_pos', p)
 
     set_split_pos: (p) =>
-        @element.find(".salvus-editor-html-md-source-editor").css('flex-basis', "#{100*p}%")
+        @element.find(".webapp-editor-html-md-source-editor").css('flex-basis', "#{100*p}%")
         @_dragbar.css('left', 0)
 
     inverse_search: (cb) =>
@@ -315,7 +315,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         else
             mode = 'none'
         #t0 = misc.mswalltime()
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
             bash        : true
@@ -478,14 +478,14 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             (cb) =>
                 @save(cb)
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id  : @project_id
                     command     : opts.command
                     args        : opts.args
                     path        : opts.path
                     err_on_exit : false
                     cb          : (err, output) =>
-                        #console.log("salvus_client.exec ", err, output)
+                        #console.log("webapp_client.exec ", err, output)
                         if err
                             cb(err)
                         else
