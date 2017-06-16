@@ -14,6 +14,8 @@ auth              = require('./auth')
 # map {account_id:{user_account_id:timestamp}}
 ban = {}
 
+BAN_TIME_MS = 1000*60
+
 exports.get_user_auth_token = (opts) ->
     opts = defaults opts,  # temporary until types is more than just a WARNING
         database        : required
