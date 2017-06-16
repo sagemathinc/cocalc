@@ -940,15 +940,15 @@ class ProjectActions extends Actions
             if opts.src.length > 1
                 for path in opts.src
                     {head, tail} = misc.path_split(path)
-                    opts.src.push(misc.path_join(head ? '', ".#{tail ? ''}.sage-chat"))
+                    opts.src.push(misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat"))
                     # TODO: Read chat file naming from settings somewhere
 
             else if opts.src.length == 1
                 {head, tail} = misc.path_split(opts.src[0])
-                old_chat_path = misc.path_join(head ? '', ".#{tail ? ''}.sage-chat")
+                old_chat_path = misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
                 {head, tail} = misc.path_split(opts.dest)
-                new_chat_path = misc.path_join(head ? '', ".#{tail ? ''}.sage-chat")
+                new_chat_path = misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
                 @move_files
                     src  : old_chat_path
