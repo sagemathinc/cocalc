@@ -473,9 +473,6 @@ exports.SideChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions     = redux.getActions(name)
-    if not actions?
-        init_redux(path, redux, project_id)
-        actions = redux.getActions(name)
     <ChatRoom
         redux       = {redux}
         actions     = {redux.getActions(name)}

@@ -1077,9 +1077,10 @@ ProjectFilesActionBox = rclass
         switch @props.file_action
             when 'rename'
                 @props.actions.move_files
-                    src           : @props.checked_files.toArray()
-                    dest          : misc.path_to_file(rename_dir, destination)
-                    include_chats : true
+                    src            : @props.checked_files.toArray()
+                    dest           : misc.path_to_file(rename_dir, destination)
+                    dest_is_folder : false
+                    include_chats  : true
             when 'duplicate'
                 @props.actions.copy_paths
                     src           : @props.checked_files.toArray()
@@ -1172,9 +1173,10 @@ ProjectFilesActionBox = rclass
 
     move_click: ->
         @props.actions.move_files
-            src           : @props.checked_files.toArray()
-            dest          : @state.move_destination
-            include_chats : true
+            src            : @props.checked_files.toArray()
+            dest           : @state.move_destination
+            dest_is_folder : true
+            include_chats  : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 

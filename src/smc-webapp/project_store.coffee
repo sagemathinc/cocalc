@@ -927,12 +927,13 @@ class ProjectActions extends Actions
 
     move_files: (opts) =>
         opts = defaults opts,
-            src           : required    # Array of src paths to mv
-            dest          : required    # Single dest string
-            path          : undefined   # default to root of project
-            mv_args       : undefined
-            id            : undefined
-            include_chats : false       # If we want to copy .filename.sage-chat
+            src            : required    # Array of src paths to mv
+            dest           : required    # Single dest string
+            dest_is_folder : required
+            path           : undefined   # default to root of project
+            mv_args        : undefined
+            id             : undefined
+            include_chats  : false       # If we want to copy .filename.sage-chat
 
         # TODO: Put this somewhere else!
         get_chat_path = (path) ->
@@ -950,18 +951,19 @@ class ProjectActions extends Actions
                 # Cannot just append because of renames
                 old_chat_path = get_chat_path(opts.src[0])
 
-                if opts.dest.endsWith('/')
+                if opts.dest_is_folder
                     name = misc.path_split(old_chat_path).tail
-                    console.log "Sending to ", opts.dest, name
                     new_chat_path = misc.normalized_path_join(opts.dest, name)
                 else
                     new_chat_path = get_chat_path(opts.dest)
 
                 @move_files
-                    src  : [old_chat_path]
-                    dest : new_chat_path
+                    src            : [old_chat_path]
+                    dest           : new_chat_path
+                    dest_is_folder : opts.dest_is_folder
 
         delete opts.include_chats
+        delete opts.dest_is_folder
 
         check_existence_of = (path) =>
             path = misc.path_split(path)
