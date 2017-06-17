@@ -942,20 +942,14 @@ class ProjectActions extends Actions
             #misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
         if opts.include_chats
-            if opts.src.length > 1
+            if opts.dest_is_folder
                 for path in opts.src
                     chat_path = get_chat_path(path)
                     opts.src.push(chat_path) unless opts.src.includes(chat_path)
 
-            else if opts.src.length == 1
-                # Cannot just append because of renames
+            else
                 old_chat_path = get_chat_path(opts.src[0])
-
-                if opts.dest_is_folder
-                    name = misc.path_split(old_chat_path).tail
-                    new_chat_path = misc.normalized_path_join(opts.dest, name)
-                else
-                    new_chat_path = get_chat_path(opts.dest)
+                new_chat_path = get_chat_path(opts.dest)
 
                 @move_files
                     src            : [old_chat_path]
