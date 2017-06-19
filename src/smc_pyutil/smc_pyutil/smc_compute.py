@@ -613,7 +613,10 @@ class Project(object):
                 return -1
 
 
-        listdir = os.listdir(abspath)
+        try:
+            listdir = os.listdir(abspath)
+        except:
+            listdir = []
         result = {}
         if not hidden:
             listdir = [x for x in listdir if not x.startswith('.')]
