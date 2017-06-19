@@ -1189,7 +1189,7 @@ message
     results : required  # list of {first_name:, last_name:, account_id:} objects.
 
 # hub --> client
-API message
+message
     event : 'project_users'
     id    : undefined
     users : required   # list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
