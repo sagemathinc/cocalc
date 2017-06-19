@@ -145,5 +145,5 @@ describe 'testing text file operations -- ', ->
                 path      : 'nonexistent'
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('public_directory_listing')
-                expect(resp?.result).toEqual([])
+                expect(resp?.result).toEqual(files:[])
                 done(err)
