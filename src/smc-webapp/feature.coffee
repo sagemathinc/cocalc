@@ -46,11 +46,6 @@ user_agent = navigator?.userAgent.toLowerCase() ? ''
 
 $.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
-exports.IS_MOBILE = exports.isMobile.any()
-
-# DEBUG
-# exports.IS_MOBILE = true
-
 if $.browser.chrome
     $(".webapp-chrome-only").show()
 
@@ -78,6 +73,16 @@ exports.get_mobile = () ->
 # Use this because CSS and JS display different widths due to scrollbar
 exports.is_responsive_mode = () ->
     return $(".webapp-responsive-mode-test").width() < 768
+
+# MOBILE for us means "responsive skinny" and on a mobile device.
+# On iPad, where the screen is wide, we do not enable MOBILE, since that
+# currently disables things like chat completely.
+# See https://github.com/sagemathinc/cocalc/issues/1392
+exports.IS_MOBILE = exports.isMobile.any() and exports.is_responsive_mode()
+
+# DEBUG
+# exports.IS_MOBILE = true
+
 
 # DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
 # You can use DEBUG anywhere in the webapp code!
