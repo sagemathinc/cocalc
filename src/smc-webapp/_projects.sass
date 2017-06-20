@@ -1,17 +1,18 @@
 // #smc-file-tabs-* used in project_page.cjsx
 
 // ProjectPage
+=file-tabs-base
+  height        : 32px
+  font-size     : 10.5pt
+  border-radius : 5px 5px 0px 0px
 
 .smc-file-tabs-fixed-desktop > li > a
-  height        : 36px
-  padding       : 8px 5px
-  border-radius : 5px 5px 0px 0px
-  font-size     : 10pt
+  padding       : 7px 5px
+  +file-tabs-base
 
 .smc-file-tabs-files-desktop > li > a
-  padding       : 13px 5px 10px
-  border-radius : 5px 5px 0px 0px
-  font-size     : 10pt
+  padding       : 11px 5px
+  +file-tabs-base
   +disable-user-select
 
 // MobileProjectPage
