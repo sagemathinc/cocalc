@@ -499,14 +499,17 @@ exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
-# See http://stackoverflow.com/questions/29855098/is-there-a-built-in-javascript-function-similar-to-os-path-join
-exports.path_join = (parts...) ->
+# Takes parts to a path and intelligently merges them on '/'.
+# Continuous non-'/' portions of each part will have at most
+# one '/' on either side.
+# Each part will have exactly one '/' between it and adjacent parts
+# Does NOT resolve up-level references
+# See misc-tests for examples.
+exports.normalized_path_join = (parts...) ->
     sep = '/'
     replace = new RegExp(sep+'{1,}', 'g')
-    s = ("#{x}" for x in parts).join(sep).replace(replace, sep)
-    #console.log parts, s
+    s = ("#{x}" for x in parts when x? and "#{x}".length > 0).join(sep).replace(replace, sep)
     return s
-
 
 # Takes a path string and file name and gives the full path to the file
 exports.path_to_file = (path, file) ->

@@ -473,9 +473,6 @@ exports.SideChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions     = redux.getActions(name)
-    if not actions?
-        init_redux(path, redux, project_id)
-        actions = redux.getActions(name)
     <ChatRoom
         redux       = {redux}
         actions     = {redux.getActions(name)}
@@ -491,9 +488,6 @@ render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions = redux.getActions(name)
-    if not actions?
-        init_redux(@props.path, @props.redux, @props.project_id)
-        actions = redux.getActions(name)
     <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
 
 # Render the given chatroom, and return the name of the redux actions/store

@@ -31,7 +31,7 @@ misc      = require('smc-util/misc')
 {alert_message} = require('./alerts')
 {webapp_client} = require('./webapp_client')
 {project_tasks} = require('./project_tasks')
-{defaults, required} = misc
+{types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
@@ -383,6 +383,9 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             index = open_files_order.indexOf(opts.path)
+                            if opts.chat
+                                require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+
                             if index == -1
                                 index = open_files_order.size
                             @setState
@@ -424,6 +427,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
+        require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open
@@ -593,9 +597,8 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path, show_hidden} = defaults opts,
+        {path} = defaults opts,
             path         : @get_store()?.current_path
-            show_hidden  : undefined
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
@@ -606,7 +609,7 @@ class ProjectActions extends Actions
 
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
-        _key = "#{path}-#{show_hidden}"
+        _key = "#{path}"
         if @_set_directory_files_lock[_key]  # currently doing it already
             return
         @_set_directory_files_lock[_key] = true
@@ -627,11 +630,10 @@ class ProjectActions extends Actions
                 if not store?
                     cb("store no longer defined"); return
                 path         ?= store.current_path
-                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
-                    hidden     : show_hidden
+                    hidden     : true
                     max_time_s : 120  # keep trying for up to 2 minutes
                     group      : group
                     cb         : cb
@@ -925,14 +927,50 @@ class ProjectActions extends Actions
 
     move_files: (opts) =>
         opts = defaults opts,
-            src     : required    # Array of src paths to mv
-            dest    : required    # Single dest string
-            path    : undefined   # default to root of project
-            mv_args : undefined
-            id      : undefined
+            src            : required    # Array of src paths to mv
+            dest           : required    # Single dest string
+            dest_is_folder : required
+            path           : undefined   # default to root of project
+            mv_args        : undefined
+            id             : undefined
+            include_chats  : false       # If we want to copy .filename.sage-chat
+
+        # TODO: Put this somewhere else!
+        get_chat_path = (path) ->
+            misc.meta_file(path, 'chat')
+            #{head, tail} = misc.path_split(path)
+            #misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+
+        if opts.include_chats
+            if opts.dest_is_folder
+                for path in opts.src
+                    chat_path = get_chat_path(path)
+                    opts.src.push(chat_path) unless opts.src.includes(chat_path)
+
+            else
+                old_chat_path = get_chat_path(opts.src[0])
+                new_chat_path = get_chat_path(opts.dest)
+
+                @move_files
+                    src            : [old_chat_path]
+                    dest           : new_chat_path
+                    dest_is_folder : opts.dest_is_folder
+
+        delete opts.include_chats
+        delete opts.dest_is_folder
+
+        check_existence_of = (path) =>
+            path = misc.path_split(path)
+            @get_store().get('directory_listings').get(path.head ? "").some((item) => item.get('name') == path.tail)
+
+        opts.src = (path for path in opts.src when check_existence_of path)
+
+        return if opts.src.length == 0
+
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
         delete opts.id
+
         opts.cb = (err) =>
             if err
                 @set_activity(id:id, error:err)
@@ -1256,7 +1294,6 @@ class ProjectActions extends Actions
                             if not item?
                                 @fetch_directory_listing
                                     path         : parent_path
-                                    show_hidden  : true
                                     finish_cb    : =>
                                         {item, err} = @get_store().get_item_in_path(last, parent_path)
                                         cb(err, item)
@@ -1409,7 +1446,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1456,6 +1493,8 @@ create_project_store_def = (name, project_id) ->
 
         if @active_file_sort.is_descending
             listing.reverse()
+
+        listing = (l for l in listing when not l.name.startsWith('.')) unless @show_hidden
 
         map = {}
         for x in listing

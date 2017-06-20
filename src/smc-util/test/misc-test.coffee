@@ -524,6 +524,35 @@ describe "copy flavours:", =>
             co[2].ref[0].should.be.eql d
             co[2].ref[1].should.be.eql r
 
+describe "normalized_path_join", ->
+    pj = misc.normalized_path_join
+    it "Leaves single argument joins untouched", ->
+        pj("lonely").should.be.eql "lonely"
+
+    it "Does nothing with empty strings", ->
+        pj("", "thing").should.be.eql "thing"
+
+    it "Ignores undefined parts", ->
+        pj(undefined, undefined, "thing").should.be.eql "thing"
+
+    it "Does not skip previous upon an absolute path", ->
+        pj("not-skipped!", "/", "thing").should.be.eql "not-skipped!/thing"
+
+    it "Shrinks multiple /'s into one / if found anywhere", ->
+        pj("//", "thing").should.be.eql "/thing"
+        pj("a//", "//", "//thing").should.be.eql "a/thing"
+        pj("slashes////inside").should.be.eql "slashes/inside"
+
+    it "Ignores empty strings in the middle", ->
+        pj("a", "", "thing").should.be.eql "a/thing"
+
+    it "Allows generating absolute paths using a leading /", ->
+        pj("/", "etc", "stuff", "file.name").should.be.eql "/etc/stuff/file.name"
+
+    it "Allows generating a folder path using a trailing /", ->
+        pj("/", "etc", "stuff", "folder/").should.be.eql "/etc/stuff/folder/"
+        pj("/", "etc", "stuff", "folder", "/").should.be.eql "/etc/stuff/folder/"
+
 
 describe "path_split", ->
     ps = misc.path_split

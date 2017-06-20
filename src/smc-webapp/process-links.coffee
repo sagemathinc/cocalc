@@ -62,7 +62,7 @@ $.fn.process_smc_links = (opts={}) ->
                             target = opts.project_id + '/files/' + decodeURI(target)
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
-                            target = misc.path_join(opts.project_id, 'files', opts.file_path ? '', decodeURI(target) ? '')
+                            target = misc.normalized_path_join(opts.project_id, 'files', opts.file_path ? '', decodeURI(target) ? '')
                         load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else
@@ -91,14 +91,14 @@ $.fn.process_smc_links = (opts={}) ->
                             # j-i should be 36, unless we ever start to have different (vanity) project_ids
                             path = src.slice(j + '/files/'.length)
                             project_id = src.slice(i + '/projects/'.length, j) ? ''
-                            new_src = misc.path_join('/', window.app_base_url, project_id, 'raw', path)
+                            new_src = misc.normalized_path_join('/', window.app_base_url, project_id, 'raw', path)
                             y.attr(attr, new_src)
                             continue
                         if src.indexOf('://') != -1
                             # link points somewhere else
                             continue
                         # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
-                        new_src = misc.path_join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
+                        new_src = misc.normalized_path_join('/', window.app_base_url, opts.project_id, 'raw', opts.file_path, src)
                     y.attr(attr, new_src)
 
         return e

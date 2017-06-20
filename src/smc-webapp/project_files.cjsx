@@ -730,7 +730,6 @@ ProjectFilesButtons = rclass
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.fetch_directory_listing(show_hidden : not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
@@ -1072,14 +1071,16 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
-    rename_or_duplicate_click: () ->
+    rename_or_duplicate_click: ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = ReactDOM.findDOMNode(@refs.new_name).value
         switch @props.file_action
             when 'rename'
                 @props.actions.move_files
-                    src  : @props.checked_files.toArray()
-                    dest : misc.path_to_file(rename_dir, destination)
+                    src            : @props.checked_files.toArray()
+                    dest           : misc.path_to_file(rename_dir, destination)
+                    dest_is_folder : false
+                    include_chats  : true
             when 'duplicate'
                 @props.actions.copy_paths
                     src           : @props.checked_files.toArray()
@@ -1172,8 +1173,10 @@ ProjectFilesActionBox = rclass
 
     move_click: ->
         @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : @state.move_destination
+            src            : @props.checked_files.toArray()
+            dest           : @state.move_destination
+            dest_is_folder : true
+            include_chats  : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
