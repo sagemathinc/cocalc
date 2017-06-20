@@ -37,6 +37,7 @@ immutable   = require('immutable')
 underscore  = require('underscore')
 
 markdown    = require('./markdown')
+feature     = require('./feature')
 
 {defaults, required} = misc
 
@@ -892,6 +893,12 @@ exports.Tip = Tip = rclass
             </Tooltip>
 
     render: ->
+        if feature.IS_TOUCH
+            # Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
+            # our assumption is that mobile users will also use the desktop version at some point, where
+            # they can learn what the tooltips say.
+            return <span style={@props.style}>{@props.children}</span>
+
         if not @state.display_trigger
             <span style={@props.style}
                 onMouseEnter={=>@setState(display_trigger:true)}

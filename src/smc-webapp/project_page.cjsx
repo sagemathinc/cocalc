@@ -22,7 +22,7 @@
 ###
 project page react component
 ###
-{IS_MOBILE} = require('./feature')
+feature = require('./feature')
 
 # 3rd party Libraries
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
@@ -369,7 +369,7 @@ ProjectContentViewer = rclass
         </Draggable>
 
     render_editor_tab: ->
-        if IS_MOBILE
+        if feature.IS_MOBILE
             # Side chat is not supported at all on mobile.
             is_chat_open = false
         else
@@ -528,7 +528,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         axis                 = {'x'}
                         lockAxis             = {'x'}
                         lockToContainerEdges = {true}
-                        distance             = {3 if not IS_MOBILE}
+                        distance             = {3 if not feature.IS_TOUCH}
+                        pressDelay           = {200 if feature.IS_TOUCH}
                         bsStyle              = "pills"
                         style                = {display:'flex', overflow:'hidden'}
                     >

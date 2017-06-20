@@ -44,7 +44,7 @@ console_template = templates.find(".webapp-console")
 
 feature = require('./feature')
 
-IS_MOBILE = feature.IS_MOBILE
+IS_TOUCH = feature.IS_TOUCH  # still have to use crappy mobile for now on
 
 CSI = String.fromCharCode(0x9b)
 
@@ -176,13 +176,13 @@ class Console extends EventEmitter
         # Init pausing rendering when user clicks
         @_init_rendering_pause()
 
-        if not IS_MOBILE
+        if not IS_TOUCH
             @textarea.on 'blur', =>
                 if @_focusing?          # see comment in @focus.
                     @_focus_hidden_textarea()
 
         # delete scroll buttons except on mobile
-        if not IS_MOBILE
+        if not IS_TOUCH
             @element.find(".webapp-console-up").hide()
             @element.find(".webapp-console-down").hide()
 
@@ -520,7 +520,7 @@ class Console extends EventEmitter
             'line-height' : "#{@opts.font.line_height}%"
 
         # Focus/blur handler.
-        if IS_MOBILE  # so keyboard appears
+        if IS_TOUCH  # so keyboard appears
             @mobile_target = @element.find(".webapp-console-for-mobile").show()
             @mobile_target.css('width', ter.css('width'))
             @mobile_target.css('height', ter.css('height'))
@@ -642,11 +642,11 @@ class Console extends EventEmitter
                     @_project_actions?.open_file(path:initfn, foreground:true)
 
     _init_input_line: () =>
-        #if not IS_MOBILE
+        #if not IS_TOUCH
         #    @element.find(".webapp-console-mobile-input").hide()
         #    return
 
-        if not IS_MOBILE
+        if not IS_TOUCH
             @element.find(".webapp-console-mobile-input").hide()
 
         input_line = @element.find('.webapp-console-input-line')
@@ -717,7 +717,7 @@ class Console extends EventEmitter
             editor.scrollIntoView({line:vp.to, ch:0})
             return false
 
-        if IS_MOBILE
+        if IS_TOUCH
             @element.find(".webapp-console-tab").show().click (e) =>
                 @focus()
                 @terminal.keyDown(keyCode:9, shiftKey:false)
@@ -901,7 +901,7 @@ class Console extends EventEmitter
 
         @is_focused = false
 
-        if IS_MOBILE
+        if IS_TOUCH
             $(document).off('keydown', @mobile_keydown)
 
         try
@@ -932,8 +932,9 @@ class Console extends EventEmitter
         @textarea.blur()
         $(@terminal.element).focus()
 
-        if IS_MOBILE
+        if IS_TOUCH
             @element.find(".webapp-console-input-line").focus()
+            @terminal.focus()
         else
             @_focus_hidden_textarea()
             @terminal.focus()

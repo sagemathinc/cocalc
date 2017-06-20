@@ -25,7 +25,7 @@
 
 # SMC Libraries
 misc = require('smc-util/misc')
-{isMobile} = require('./feature')
+feature = require('./feature')
 {set_window_title} = require('./browser')
 {COLORS} = require('smc-util/theme')
 
@@ -104,12 +104,12 @@ ProjectTab = rclass
             x_color = COLORS.TOP_BAR.X
 
         <SortableNavTab
-            index={@props.index}
-            name={@props.project_id}
-            actions={@actions('page')}
-            active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
-            ref='tab'
+            index          = {@props.index}
+            name           = {@props.project_id}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            style          = {flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
+            ref            = 'tab'
         >
             <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
                 <Icon
@@ -189,7 +189,8 @@ FullProjectsNav = rclass
                 axis                 = {'x'}
                 lockAxis             = {'x'}
                 lockToContainerEdges = {true}
-                distance             = {3 if not isMobile.tablet()}
+                distance             = {3 if not feature.IS_TOUCH}
+                pressDelay           = {200 if feature.IS_TOUCH}
             >
                 {@project_tabs()}
             </SortableNav>

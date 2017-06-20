@@ -80,6 +80,8 @@ exports.is_responsive_mode = () ->
 # See https://github.com/sagemathinc/cocalc/issues/1392
 exports.IS_MOBILE = exports.isMobile.any() and exports.is_responsive_mode()
 
+exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE
+
 # DEBUG
 # exports.IS_MOBILE = true
 
