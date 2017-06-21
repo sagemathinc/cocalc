@@ -156,12 +156,15 @@ console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
 # adds a banner to each compiled and minified source .js file
+# webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
 banner = new webpack.BannerPlugin(
-                        """\
-                        This file is part of #{TITLE}.
-                        It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
-                        See #{SMC_REPO} for its #{SMC_LICENSE} code.
-                        """)
+    banner   : """\
+               This file is part of #{TITLE}.
+               It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
+               See #{SMC_REPO} for its #{SMC_LICENSE} code.
+               """
+    entryOnly: true
+)
 
 # webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
@@ -422,7 +425,8 @@ plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner
+    banner,
+    new webpack.LoaderOptionsPlugin({minimize: true})  # https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
 ]
 
 if STATICPAGES
@@ -456,7 +460,6 @@ if PRODMODE
     # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     plugins.push new webpack.optimize.DedupePlugin()
-    plugins.push new webpack.optimize.OccurenceOrderPlugin()
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
@@ -514,6 +517,8 @@ if CDN_BASE_URL?
 else
     publicPath = path.join(BASE_URL, OUTPUT) + '/'
 
+# TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
+# https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
 module.exports =
     cache: true
 
