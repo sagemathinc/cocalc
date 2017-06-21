@@ -8,7 +8,7 @@
 # and evals them right into the global context
 # TODO switch to npm packaging
 
-require("script!primus/primus-engine.min.js")
+require("script-loader!primus/primus-engine.min.js")
 
 # polyfill Number.isNaN for IE
 # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
@@ -76,7 +76,7 @@ require('jquery-caret')
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
-require("script!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
+require("script-loader!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
 # require('bootbox') # this doesn't work, sadly (jquery initializiation with "modal" from bootstrap doesn't happen properly)
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
@@ -88,23 +88,23 @@ require('bootstrap-switch')
 require('bootstrap-colorpicker')
 
 # Pnotify: Notification framework from http://pinesframework.org/pnotify
-require("script!pnotify/jquery.pnotify.min.js")
+require("script-loader!pnotify/jquery.pnotify.min.js")
 #PNotify = require("pnotify/src/pnotify.js");
 require("pnotify/src/pnotify.mobile.js");
 require("pnotify/src/pnotify.buttons.js");
 require("pnotify/src/pnotify.desktop.js");
 
 # Datetime picker
-require("script!datetimepicker/bootstrap-datetimepicker.min.js")
+require("script-loader!datetimepicker/bootstrap-datetimepicker.min.js")
 # https://github.com/eonasdan/bootstrap-datetimepicker
 # require("eonasdan-bootstrap-datetimepicker")
 
 # XTerm terminal emulator
-require("script!term/term.js")
-require("script!term/color_themes.js")
+require("script-loader!term/term.js")
+require("script-loader!term/color_themes.js")
 
 # Make html look nice
-require("script!jsbeautify/beautify-html.min.js")
+require("script-loader!jsbeautify/beautify-html.min.js")
 
 # Make html into markdown
 #require("script!remarked/reMarked.min.js")

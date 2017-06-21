@@ -329,7 +329,7 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
 #                        minify   : htmlMinifyOpts
 
 # global css loader configuration
-cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
+cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
 
 ###
 # ExtractText for CSS should work, but doesn't. Also not necessary for our purposes ...
@@ -433,6 +433,9 @@ loaderOptions = new webpack.LoaderOptionsPlugin(
             minifyCSS            : true
             collapseWhitespace   : true
             conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+        #sassLoader:
+        #    includePaths: [path.resolve(__dirname, 'src', 'scss')]
+        #context: '/'
 )
 
 plugins = [
@@ -555,9 +558,9 @@ module.exports =
             { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
+            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
+            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
+            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
             { test: /\.json$/,   loaders: ['json-loader'] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
@@ -586,7 +589,8 @@ module.exports =
                       path.resolve(__dirname, 'smc-util'),
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
-                      path.resolve(__dirname, 'smc-webapp/node_modules')]
+                      path.resolve(__dirname, 'smc-webapp/node_modules'),
+                      path.resolve(__dirname, 'node_modules')]
         #alias:
         #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
         #    modules: path.join(__dirname, "node_modules") # bind to modules;
