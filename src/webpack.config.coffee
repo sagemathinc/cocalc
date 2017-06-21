@@ -104,7 +104,7 @@ SMC_REPO      = 'https://github.com/sagemathinc/cocalc'
 SMC_LICENSE   = 'AGPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB
 INPUT         = path.resolve(__dirname, WEBAPP_LIB)
-OUTPUT        = misc_node.OUTPUT_DIR
+OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
@@ -420,13 +420,27 @@ class PrintChunksPlugin
                         includes: c.modules.map (m) ->  m.request
                 )
 
+# https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
+loaderOptions = new webpack.LoaderOptionsPlugin(
+    minimize: true
+    options:
+        'html-minify-loader':
+            empty                : true   # KEEP empty attributes
+            cdata                : true   # KEEP CDATA from scripts
+            comments             : false
+            removeComments       : true
+            minifyJS             : true
+            minifyCSS            : true
+            collapseWhitespace   : true
+            conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+)
 
 plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
     banner,
-    new webpack.LoaderOptionsPlugin({minimize: true})  # https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
+    loaderOptions
 ]
 
 if STATICPAGES
@@ -566,8 +580,8 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['', '.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
-        root       : [path.resolve(__dirname),
+        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
                       path.resolve(__dirname, 'smc-util/node_modules'),
@@ -578,14 +592,3 @@ module.exports =
         #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
-
-    'html-minify-loader':
-        empty                : true   # KEEP empty attributes
-        cdata                : true   # KEEP CDATA from scripts
-        comments             : false
-        removeComments       : true
-        minifyJS             : true
-        minifyCSS            : true
-        collapseWhitespace   : true
-        conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
-
