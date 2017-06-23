@@ -33,6 +33,10 @@ CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
     borderRadius : '3px'
 
+USERS_VIEWING_STYLE =
+    maxWidth:"120px"
+    paddingTop : "3px"
+
 CHAT_INDICATOR_TIP = <span>
     Hide or show the chat for this file.
     <hr/>
@@ -71,6 +75,7 @@ exports.ChatIndicator = rclass
         <UsersViewing
             project_id = {@props.project_id}
             path       = {@props.path}
+            style      = {USERS_VIEWING_STYLE}
         />
 
     render_video_button: ->
