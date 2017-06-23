@@ -367,6 +367,7 @@ Terminal.bindKeys = function(client_keydown) {
        return;
     }
 
+    //console.log('term.js keydown ', ev);
 
     if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
 	  return false;
@@ -2100,7 +2101,7 @@ Terminal.prototype.writeln = function(data) {
 
 Terminal.prototype.keyDown = function(ev) {
   var key;
-/*    console.log("keydown: " + ev);  */
+  // console.log("term.js.keyDown: ", ev);
   switch (ev.keyCode) {
     // backspace
     case 8:
@@ -2292,6 +2293,58 @@ Terminal.prototype.keyDown = function(ev) {
       break;
   }
 
+  if (!key) {
+      /* some devices, e.g., the iPad Pro with SmartKeyboard, have keys that do not have
+         a keyCode, but do corresponding to something above. */
+    switch (ev.key) {
+    // left-arrow
+    case "UIKeyInputLeftArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOD'; // SS3 as ^[O for 7-bit
+        //key = '\x8fD'; // SS3 as 0x8f for 8-bit
+        break;
+      }
+      key = '\x1b[D';
+      break;
+    // right-arrow
+    case "UIKeyInputRightArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOC';
+        break;
+      }
+      key = '\x1b[C';
+      break;
+    // up-arrow
+    case "UIKeyInputUpArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOA';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(-1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[A';
+      }
+      break;
+    // down-arrow
+    case "UIKeyInputDownArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOB';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[B';
+      }
+      break;
+    }
+  }
+
+  //console.log("term.js.keyDown: after switch, key=", key);
+
   this.emit('keydown', ev);
 
   if (key) {
@@ -2301,6 +2354,12 @@ Terminal.prototype.keyDown = function(ev) {
     this.handler(key);
 
     return cancel(ev);
+  } else {
+    if(ev.keyCode == 32 && ev.code != 'Space') {
+      /* On iPad Pro with Smart Keyboard (in which code is not set),
+         the spacebar keyPress event never fires */
+      this.keyPress({charCode: 32});
+    }
   }
 
   return true;
@@ -2324,6 +2383,7 @@ Terminal.prototype.keyPress = function(ev) {
   /* Doing cancel here seems to server no purpose, *and* completely breaks
      using Ctrl-c to copy on firefox. */
   /* cancel(ev);*/
+  //console.log("term.js.keyPress: ", ev);
 
   if (ev.charCode) {
     key = ev.charCode;
@@ -2335,9 +2395,12 @@ Terminal.prototype.keyPress = function(ev) {
     return false;
   }
 
+  //console.log("term.js.keyPress: got key=", key);
+
   if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
 
   key = String.fromCharCode(key);
+  //console.log("term.js.keyPress: got string=", key);
 
   this.emit('keypress', key, ev);
   this.emit('key', key, ev);
