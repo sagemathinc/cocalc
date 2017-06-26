@@ -27,8 +27,9 @@ misc     = require('smc-util/misc')
 {defaults, required} = misc
 
 # Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if !!process.env.SMC_DEBUG
+    winston.remove(winston.transports.Console)
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 
 

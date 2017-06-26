@@ -454,6 +454,10 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown", ev)
+        if @_input_line_is_focused and ev.keyCode == 32
+            # on mobile ipad we avoid sending space twice (see the hack in
+            # term.js involving the smart keyboard)
+            return false
         @mark_file_use()
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
@@ -650,6 +654,11 @@ class Console extends EventEmitter
             @element.find(".webapp-console-mobile-input").hide()
 
         input_line = @element.find('.webapp-console-input-line')
+
+        input_line.on 'focus', =>
+            @_input_line_is_focused = true
+        input_line.on 'blur', =>
+            @_input_line_is_focused = false
 
         submit_line = () =>
             @session?.write_data(input_line.val())
