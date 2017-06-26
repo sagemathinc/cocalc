@@ -179,10 +179,9 @@ class Console extends EventEmitter
         # Init pausing rendering when user clicks
         @_init_rendering_pause()
 
-        if not IS_TOUCH
-            @textarea.on 'blur', =>
-                if @_focusing?          # see comment in @focus.
-                    @_focus_hidden_textarea()
+        @textarea.on 'blur', =>
+            if @_focusing?          # see comment in @focus.
+                 @_focus_hidden_textarea()
 
         # delete scroll buttons except on mobile
         if not IS_TOUCH
@@ -875,7 +874,7 @@ class Console extends EventEmitter
         # Determine number of rows from the height of the row, as computed above.
         height = elt.height()
         if IS_TOUCH
-            height -= 120
+            height -= 60
         new_rows = Math.max(1, Math.floor(height / row_height))
 
         # Resize the renderer
@@ -916,9 +915,6 @@ class Console extends EventEmitter
 
         @is_focused = false
 
-        if IS_TOUCH
-            $(document).off('keydown', @mobile_keydown)
-
         try
             @terminal.blur()
         catch e
@@ -947,12 +943,9 @@ class Console extends EventEmitter
         @textarea.blur()
         $(@terminal.element).focus()
 
-        if IS_TOUCH
-            @element.find(".webapp-console-input-line").focus()
-            @terminal.focus()
-        else
+        if not IS_TOUCH
             @_focus_hidden_textarea()
-            @terminal.focus()
+        @terminal.focus()
 
         $(@terminal.element).addClass('webapp-console-focus').removeClass('webapp-console-blur')
         setTimeout((()=>delete @_focusing), 0)   # critical!
