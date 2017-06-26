@@ -2355,10 +2355,15 @@ Terminal.prototype.keyDown = function(ev) {
 
     return cancel(ev);
   } else {
-    if(ev.keyCode == 32 && ev.code != 'Space') {
-      /* On iPad Pro with Smart Keyboard (in which code is not set),
-         the spacebar keyPress event never fires */
+    if(this.IS_TOUCH && ev.keyCode == 32) {
+      /* On iPad with external Keyboard,
+         the spacebar keyPress fires but with charCode, etc., set to 0.  Ugh.
+         We thus simulate the proper code. */
       this.keyPress({charCode: 32});
+      /* We then cancel the space event, since otherwise the browser
+         will scroll the page down.  Also, this will prevent seeing two
+         spaces in case this bug is fixed or not present on some touch devices! */
+      return cancel(ev);
     }
   }
 

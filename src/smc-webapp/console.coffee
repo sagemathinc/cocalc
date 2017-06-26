@@ -144,6 +144,9 @@ class Console extends EventEmitter
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
+
+        @terminal.IS_TOUCH = IS_TOUCH
+
         @init_mesg()
 
         # The first time Terminal.bindKeys is called, it makes Terminal
@@ -870,7 +873,10 @@ class Console extends EventEmitter
         new_cols = Math.max(1, Math.floor(elt.width() / character_width))
 
         # Determine number of rows from the height of the row, as computed above.
-        new_rows = Math.max(1, Math.floor(elt.height() / row_height))
+        height = elt.height()
+        if IS_TOUCH
+            height -= 120
+        new_rows = Math.max(1, Math.floor(height / row_height))
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)
