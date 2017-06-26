@@ -873,8 +873,6 @@ class Console extends EventEmitter
 
         # Determine number of rows from the height of the row, as computed above.
         height = elt.height()
-        if IS_TOUCH
-            height -= 60
         new_rows = Math.max(1, Math.floor(height / row_height))
 
         # Resize the renderer
