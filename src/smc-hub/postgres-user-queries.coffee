@@ -5,7 +5,7 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-MAX_CHANGEFEEDS_PER_CLIENT = 4*100
+MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
 # Reject all patches that have timestamp that is more than 3 minutes in the future.
 MAX_PATCH_FUTURE_MS = 1000*60*3

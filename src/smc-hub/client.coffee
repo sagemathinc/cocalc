@@ -1539,8 +1539,8 @@ class exports.Client extends EventEmitter
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
-                    if mesg.changes and not first
-                        # also, assume changefeed got messed up, so cancel it.
+                    if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
+                        dbg("changefeed got messed up, so cancel it:")
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
@@ -1554,14 +1554,17 @@ class exports.Client extends EventEmitter
                     @push_to_client(resp)
 
     query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds? or misc.len(@_query_changefeeds) == 0
+        if not @_query_changefeeds?
+            cb?(); return
+        cnt = misc.len(@_query_changefeeds)
+        if cnt == 0
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         v = @_query_changefeeds
-        dbg("canceling #{v.length} changefeeds")
+        dbg("cancel #{cnt} changefeeds")
         delete @_query_changefeeds
         f = (id, cb) =>
-            dbg("canceling id=#{id}")
+            dbg("cancel id=#{id}")
             @database.user_query_cancel_changefeed
                 id : id
                 cb : (err) =>
@@ -1573,10 +1576,13 @@ class exports.Client extends EventEmitter
         async.map(misc.keys(v), f, (err) => cb?(err))
 
     mesg_query_cancel: (mesg) =>
-        if not @_query_changefeeds?
-            # no changefeeds
+        if not @_query_changefeeds?[mesg.id]?
+            # no such changefeed
             @success_to_client(id:mesg.id)
         else
+            # actualy cancel it.
+            if @_query_changefeeds?
+                delete @_query_changefeeds[mesg.id]
             @database.user_query_cancel_changefeed
                 id : mesg.id
                 cb : (err, resp) =>
@@ -1585,7 +1591,6 @@ class exports.Client extends EventEmitter
                     else
                         mesg.resp = resp
                         @push_to_client(mesg)
-                        delete @_query_changefeeds?[mesg.id]
 
     mesg_query_get_changefeed_ids: (mesg) =>
         mesg.changefeed_ids = @_query_changefeeds ? {}
