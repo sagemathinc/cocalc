@@ -597,22 +597,25 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path} = defaults opts,
+        opts = defaults opts,
             path         : @get_store()?.current_path
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
-
+        path = opts.path
+        if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.finish_cb)
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
             return
 
-        if not @_set_directory_files_lock?
-            @_set_directory_files_lock = {}
+        @_set_directory_files_lock ?= {}
         _key = "#{path}"
-        if @_set_directory_files_lock[_key]  # currently doing it already
+        # this makes sure finish_cb is being called, even when there are concurrent requests
+        if @_set_directory_files_lock[_key]?  # currently doing it already
+            @_set_directory_files_lock[_key].push(opts.finish_cb) if opts.finish_cb?
+            if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
             return
-        @_set_directory_files_lock[_key] = true
+        @_set_directory_files_lock[_key] = []
         # Wait until user is logged in, project store is loaded enough
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
@@ -641,12 +644,19 @@ class ProjectActions extends Actions
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
+            if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
-            delete @_set_directory_files_lock[_key] # done!
-            opts?.finish_cb?()
+            # done! releasing lock, then executing callback(s)
+            cbs = @_set_directory_files_lock[_key]
+            delete @_set_directory_files_lock[_key]
+            for cb in cbs ? []
+                if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
+                cb?()
+            if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.finish_cb)
+            opts.finish_cb?()
         )
 
     # Sets the active file_sort to next_column_name
@@ -1281,7 +1291,9 @@ class ProjectActions extends Actions
         last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
+                if DEBUG then console.log("ProjectStore::load_target", segments, full_path, parent_path ,last)
                 if target[target.length-1] == '/' or full_path == ''
+                    if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
                     @open_directory(parent_path)
                 else
                     # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
@@ -1289,15 +1301,19 @@ class ProjectActions extends Actions
                     async.waterfall [
                         (cb) =>
                             {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
                             cb(err, item)
                         (item, cb) => # Fetch if error or nothing found
                             if not item?
+                                if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
                                 @fetch_directory_listing
                                     path         : parent_path
                                     finish_cb    : =>
                                         {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
                                         cb(err, item)
                             else
+                                if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
                                 cb(undefined, item)
                     ], (err, item) =>
                         if err?
@@ -1308,6 +1324,7 @@ class ProjectActions extends Actions
                         if item?.get('isdir')
                             @open_directory(full_path)
                         else
+                            if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground)
                             @open_file
                                 path       : full_path
                                 foreground : foreground
