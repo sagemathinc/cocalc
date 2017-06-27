@@ -66,6 +66,8 @@ syncdoc  = require('./syncdoc')
 sagews   = require('./sagews')
 printing = require('./printing')
 
+copypaste = require('./copy-paste-buffer')
+
 codemirror_associations =
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
@@ -1114,7 +1116,8 @@ class CodeMirrorEditor extends FileEditor
     init_edit_buttons: () =>
         that = @
         button_names = ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line',
+                        'copy', 'paste']
 
         # if the file extension indicates that we know how to print it, show and enable the print button
         if printing.can_print(@ext)
@@ -1181,6 +1184,10 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'goto-line'
                 @goto_line(cm)
+            when 'copy'
+                @copy(cm)
+            when 'paste'
+                @paste(cm)
             when 'sagews2pdf'
                 @print(sagews2html = false)
             when 'print'
@@ -1295,6 +1302,16 @@ class CodeMirrorEditor extends FileEditor
                 setTimeout(focus, 50)
                 dialog.modal('hide')
                 return false
+
+    copy: (cm) =>
+        if not cm?
+            return
+        copypaste.set_buffer(cm.getSelection())
+
+    paste: (cm) =>
+        if not cm?
+            return
+        cm.replaceSelection(copypaste.get_buffer())
 
     print: (sagews2html = true) =>
         switch @ext
