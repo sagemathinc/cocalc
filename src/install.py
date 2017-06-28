@@ -57,6 +57,10 @@ def install_project():
     # UGLY; hard codes the path -- TODO: fix at some point.
     cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"%SUDO)
 
+    # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
+    # This can easily save more than 2 seconds, given how big things have got.
+    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter")
+
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm --loglevel=warn install"%path)
