@@ -962,6 +962,11 @@ class CodeMirrorEditor extends FileEditor
                     @_vim_mode = 'insert'
                     @element.find("a[href='#vim-mode-toggle']").text('i')
 
+        if feature.IS_TOUCH
+            # ugly hack so more usable on touch...
+            @element.find(".webapp-editor-resize-bar-layout-1").height('12px')
+            @element.find(".webapp-editor-resize-bar-layout-2").width('12px')
+
         @init_font_size() # get the @default_font_size
         @restore_font_size()
 
@@ -1267,7 +1272,7 @@ class CodeMirrorEditor extends FileEditor
         @_layout = (@_layout + 1) % 3
         @local_storage("layout", @_layout)
         @show()
-        if cm?
+        if cm? and not feature.IS_TOUCH
             if @_layout > 0
                 cm.focus()
             else
@@ -1749,7 +1754,7 @@ class CodeMirrorEditor extends FileEditor
         if not @codemirror?
             return
         @show()
-        if not IS_MOBILE
+        if not (IS_MOBILE or feature.IS_TOUCH)
             @codemirror_with_last_focus?.focus()
 
     ############

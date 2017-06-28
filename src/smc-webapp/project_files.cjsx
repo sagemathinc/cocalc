@@ -40,6 +40,8 @@ underscore            = require('underscore')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
 
+feature = require('./feature')
+
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
@@ -1744,8 +1746,8 @@ ProjectFilesSearch = rclass
     render: ->
         <span>
             <SearchInput
-                autoFocus   = {true}
-                autoSelect  = {true}
+                autoFocus   = {not feature.IS_TOUCH}
+                autoSelect  = {not feature.IS_TOUCH}
                 placeholder = 'Filename'
                 value       = {@props.file_search}
                 on_change   = {@on_change}

@@ -345,29 +345,23 @@ ProjectContentViewer = rclass
             @refs.draggable.state.x = 0
             $(ReactDOM.findDOMNode(@refs.draggable)).css('transform','')
 
-        handle_drag_bar_stop = (data) =>
+        handle_drag_bar_stop = (evt, ui) =>
+            clientX = ui.node.offsetLeft + ui.x + $(ui.node).width() + 2
             misc_page.drag_stop_iframe_enable()
-            # TODO: rewrite to not use jQuery?
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            width = 1 - (data.clientX - elt.offset().left) / elt.width()
+            width = 1 - (clientX - elt.offset().left) / elt.width()
             reset()
             redux.getProjectActions(@props.project_id).set_chat_width({path:path, width:width})
-
-        handle_drag_bar_drag = (data) =>
-            elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            width = 1 - (data.clientX - elt.offset().left) / elt.width()
-            $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")
-            reset(); setTimeout(reset, 0)
 
         <Draggable
             ref    = 'draggable'
             axis   = "x"
             onStop = {handle_drag_bar_stop}
-            onDrag = {handle_drag_bar_drag}
             onStart = {misc_page.drag_start_iframe_disable}
             >
-            <div className="smc-vertical-drag-bar"> </div>
+            <div className="smc-vertical-drag-bar" style={if feature.IS_TOUCH then {width:'12px'}}> </div>
         </Draggable>
+
 
     render_editor_tab: ->
         if feature.IS_MOBILE
@@ -546,7 +540,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
-
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, paddingTop: '5px', overflow:'auto'}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
