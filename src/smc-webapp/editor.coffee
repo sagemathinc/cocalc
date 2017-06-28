@@ -875,7 +875,6 @@ class CodeMirrorEditor extends FileEditor
             # see https://github.com/sragemathinc/smc/issues/1360
             opts.style_active_line = false
 
-
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
@@ -952,6 +951,16 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
+
+        if @opts.bindings == 'vim'
+            @_vim_mode = 'visual'
+            @codemirror.on 'vim-mode-change', (obj) =>
+                if obj.mode == 'normal'
+                    @_vim_mode = 'visual'
+                    @element.find("a[href='#vim-mode-toggle']").text('esc')
+                else
+                    @_vim_mode = 'insert'
+                    @element.find("a[href='#vim-mode-toggle']").text('i')
 
         @init_font_size() # get the @default_font_size
         @restore_font_size()
@@ -1117,7 +1126,10 @@ class CodeMirrorEditor extends FileEditor
         that = @
         button_names = ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                         'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line',
-                        'copy', 'paste']
+                        'copy', 'paste', 'vim-mode-toggle']
+
+        if @opts.bindings != 'vim'
+            @element.find("a[href='#vim-mode-toggle']").remove()
 
         # if the file extension indicates that we know how to print it, show and enable the print button
         if printing.can_print(@ext)
@@ -1192,6 +1204,12 @@ class CodeMirrorEditor extends FileEditor
                 @print(sagews2html = false)
             when 'print'
                 @print(sagews2html = true)
+            when 'vim-mode-toggle'
+                if @_vim_mode == 'visual'
+                    CodeMirror.Vim.handleKey(cm, 'i')
+                else
+                    CodeMirror.Vim.exitInsertMode(cm)
+                cm.focus()
 
     restore_font_size: () =>
         # we set the font_size from local storage
