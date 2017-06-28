@@ -70,8 +70,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                    require('./history').load_target(window.smc_target)
-                    window.smc_target = ''
+                require('./history').load_target(window.smc_target)
+                window.smc_target = ''
 
 
 # Listen for pushed sign_in events from the server.  This is one way that

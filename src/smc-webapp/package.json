@@ -51,7 +51,7 @@
     "react-bootstrap": "^0.30.5",
     "react-chosen": "^0.3.8",
     "react-dom": "^15.4.2",
-    "react-draggable": "^2.2.2",
+    "react-draggable": "^2.2.6",
     "react-dropzone-component": "^1.4.1",
     "react-json-inspector": "^7.0.1",
     "react-notify-resize": "^2.0.2",

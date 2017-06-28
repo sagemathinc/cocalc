@@ -89,11 +89,11 @@ Editor for files in a project
                     <span class="hidden-xs">
                         <span class="webapp-editor-codemirror-worksheet-buttons hide">
                             <span class="btn-group webapp-editor-write-only">
-                                <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
-                                <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
-                                <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
-                                <a href="#tab" class="btn btn-info"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
-                                <a href="https://github.com/sagemathinc/cocalc/wiki/sagews" target="_blank" class="btn btn-info" data-original-title="" title=""><i class="fa fa-question-circle"></i> Help</a>
+                                <a href="#execute" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm"></span></a>
+                                <a href="#interrupt" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm"></span></a>
+                                <a href="#kill" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm"></span></a>
+                                <a href="#tab" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
+                                <a href="https://github.com/sagemathinc/cocalc/wiki/sagews" target="_blank" class="btn btn-default" data-original-title="" title=""><i class="fa fa-question-circle"></i> </a>
 
 
                             </span>
@@ -105,6 +105,7 @@ Editor for files in a project
                         </span>
                     </span>
                     <span class="hidden-xs btn-group editor-btn-group">
+                        <a href="#vim-mode-toggle" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Toggle VIM mode" style="width:4em">esc</a>
                         <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
                         <a href="#undo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                         <a href="#redo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
@@ -120,6 +121,8 @@ Editor for files in a project
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
                         <a href="#goto-line" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
+                        <a href="#copy" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Copy"><i class="fa fa-copy"> </i> </a>
+                        <a href="#paste" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Paste"><i class="fa fa-paste"> </i> </a>
                         <a href="#sagews2pdf" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
                         <a href="#print" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                     </span>

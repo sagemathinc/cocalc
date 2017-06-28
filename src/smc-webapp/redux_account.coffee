@@ -37,7 +37,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        redux.getActions('page').set_active_tab('projects')
+                        #redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)

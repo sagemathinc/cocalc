@@ -66,6 +66,8 @@ syncdoc  = require('./syncdoc')
 sagews   = require('./sagews')
 printing = require('./printing')
 
+copypaste = require('./copy-paste-buffer')
+
 codemirror_associations =
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
@@ -873,7 +875,6 @@ class CodeMirrorEditor extends FileEditor
             # see https://github.com/sragemathinc/smc/issues/1360
             opts.style_active_line = false
 
-
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
@@ -950,6 +951,21 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
+
+        if @opts.bindings == 'vim'
+            @_vim_mode = 'visual'
+            @codemirror.on 'vim-mode-change', (obj) =>
+                if obj.mode == 'normal'
+                    @_vim_mode = 'visual'
+                    @element.find("a[href='#vim-mode-toggle']").text('esc')
+                else
+                    @_vim_mode = 'insert'
+                    @element.find("a[href='#vim-mode-toggle']").text('i')
+
+        if feature.IS_TOUCH
+            # ugly hack so more usable on touch...
+            @element.find(".webapp-editor-resize-bar-layout-1").height('12px')
+            @element.find(".webapp-editor-resize-bar-layout-2").width('12px')
 
         @init_font_size() # get the @default_font_size
         @restore_font_size()
@@ -1114,7 +1130,11 @@ class CodeMirrorEditor extends FileEditor
     init_edit_buttons: () =>
         that = @
         button_names = ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line',
+                        'copy', 'paste', 'vim-mode-toggle']
+
+        if @opts.bindings != 'vim'
+            @element.find("a[href='#vim-mode-toggle']").remove()
 
         # if the file extension indicates that we know how to print it, show and enable the print button
         if printing.can_print(@ext)
@@ -1181,10 +1201,20 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'goto-line'
                 @goto_line(cm)
+            when 'copy'
+                @copy(cm)
+            when 'paste'
+                @paste(cm)
             when 'sagews2pdf'
                 @print(sagews2html = false)
             when 'print'
                 @print(sagews2html = true)
+            when 'vim-mode-toggle'
+                if @_vim_mode == 'visual'
+                    CodeMirror.Vim.handleKey(cm, 'i')
+                else
+                    CodeMirror.Vim.exitInsertMode(cm)
+                cm.focus()
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1242,7 +1272,7 @@ class CodeMirrorEditor extends FileEditor
         @_layout = (@_layout + 1) % 3
         @local_storage("layout", @_layout)
         @show()
-        if cm?
+        if cm? and not feature.IS_TOUCH
             if @_layout > 0
                 cm.focus()
             else
@@ -1295,6 +1325,16 @@ class CodeMirrorEditor extends FileEditor
                 setTimeout(focus, 50)
                 dialog.modal('hide')
                 return false
+
+    copy: (cm) =>
+        if not cm?
+            return
+        copypaste.set_buffer(cm.getSelection())
+
+    paste: (cm) =>
+        if not cm?
+            return
+        cm.replaceSelection(copypaste.get_buffer())
 
     print: (sagews2html = true) =>
         switch @ext
@@ -1714,7 +1754,7 @@ class CodeMirrorEditor extends FileEditor
         if not @codemirror?
             return
         @show()
-        if not IS_MOBILE
+        if not (IS_MOBILE or feature.IS_TOUCH)
             @codemirror_with_last_focus?.focus()
 
     ############
