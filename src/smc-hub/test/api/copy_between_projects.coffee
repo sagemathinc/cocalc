@@ -13,11 +13,10 @@ describe 'testing copy between projects -- ', ->
 
     project_id  = undefined
     project_id2 = undefined
-    
+
     path1 = 'doc1.txt'
     path2 = 'B2/doc2.txt'
     path3 = 'FOO/abc.txt'
-    path2dir = path2.split('/')[0]
 
     content  = 'TEST CONTENT'
     src_dir  = 'TEST_DIR'
@@ -71,7 +70,7 @@ describe 'testing copy between projects -- ', ->
                 expect(resp?.event).toBe('success')
                 done(err)
 
-    it "reads file from target project", (done) ->
+    it "reads target file 1", (done) ->
         @timeout(15000)
         api.call
             event : 'read_text_file_from_project'
@@ -97,7 +96,7 @@ describe 'testing copy between projects -- ', ->
                 expect(resp?.event).toBe('file_written_to_project')
                 done(err)
 
-    it "copies second file", (done) ->
+    it "copies src with directory and file", (done) ->
         @timeout(15000)
         api.call
             event : 'copy_path_between_projects'
@@ -110,7 +109,7 @@ describe 'testing copy between projects -- ', ->
                 expect(resp?.event).toBe('success')
                 done(err)
 
-    it "reads second file", (done) ->
+    it "reads target file 2", (done) ->
         @timeout(15000)
         api.call
             event : 'read_text_file_from_project'
@@ -118,6 +117,62 @@ describe 'testing copy between projects -- ', ->
                 project_id: project_id2
                 path      : path2
             cb    : (err, resp) ->
+                expect(resp?.event).toBe('text_file_read_from_project')
+                expect(resp?.content).toBe(content)
+                done(err)
+
+    it "copies file to directory", (done) ->
+        # src:'B2/doc2.txt' tgt:'DIR3/ result:'DIR3/doc2.txt'
+        @timeout(15000)
+        api.call
+            event : 'copy_path_between_projects'
+            body  :
+                src_project_id   : project_id
+                src_path         : path2
+                target_project_id: project_id2
+                target_path      : 'DIR3/'
+            cb    : (err, resp) ->
+                expect(err).toEqual(null)
+                expect(resp?.event).toBe('success')
+                done(err)
+
+    it "reads target file 3", (done) ->
+        @timeout(15000)
+        api.call
+            event : 'read_text_file_from_project'
+            body  :
+                project_id: project_id2
+                path      : 'DIR3/doc2.txt'
+            cb    : (err, resp) ->
+                expect(err).toEqual(null)
+                expect(resp?.event).toBe('text_file_read_from_project')
+                expect(resp?.content).toBe(content)
+                done(err)
+
+    it "copies directory to directory", (done) ->
+        # src:'B2/' tgt:'DIR4/ result:'DIR4/doc2.txt'
+        @timeout(15000)
+        api.call
+            event : 'copy_path_between_projects'
+            body  :
+                src_project_id   : project_id
+                src_path         : 'B2/'
+                target_project_id: project_id2
+                target_path      : 'DIR4/'
+            cb    : (err, resp) ->
+                expect(err).toEqual(null)
+                expect(resp?.event).toBe('success')
+                done(err)
+
+    it "reads target file 4", (done) ->
+        @timeout(15000)
+        api.call
+            event : 'read_text_file_from_project'
+            body  :
+                project_id: project_id2
+                path      : 'DIR4/doc2.txt'
+            cb    : (err, resp) ->
+                expect(err).toEqual(null)
                 expect(resp?.event).toBe('text_file_read_from_project')
                 expect(resp?.content).toBe(content)
                 done(err)
@@ -132,6 +187,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "copies a public file to different target dir", (done) ->
+        # src:'B2/doc2.txt'(public) tgt:'FOO/abc.txt'
         api.call
             event : 'copy_public_path_between_projects'
             body  :
@@ -154,4 +210,3 @@ describe 'testing copy between projects -- ', ->
                 expect(resp?.event).toBe('text_file_read_from_project')
                 expect(resp?.content).toBe(content)
                 done(err)
-
