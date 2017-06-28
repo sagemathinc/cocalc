@@ -28,6 +28,15 @@ def cmd(s):
         sys.exit(1)
     print "TOTAL TIME: %.1f seconds"%(time.time() - t0)
 
+def thread_map(callable, inputs, nb_threads=None):
+    if len(inputs) == 0:
+        return []
+    from multiprocessing.pool import ThreadPool
+    if not nb_threads:
+        nb_threads = min(50, len(inputs))
+    tp = ThreadPool(nb_threads)
+    return tp.map(callable, inputs)
+
 def pull():
     cmd("git pull")
 
@@ -41,8 +50,9 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
+    def f(m):
         cmd(SUDO+"npm --loglevel=warn --unsafe-perm=true install --upgrade %s -g"%m)
+    thread_map(f, './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split())
 
     # UGLY; hard codes the path -- TODO: fix at some point.
     cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"%SUDO)
