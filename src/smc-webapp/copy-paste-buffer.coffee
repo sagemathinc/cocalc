@@ -17,5 +17,6 @@ exports.set_buffer = (s) ->
     buffer = s ? ''
     try
         # https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
+        # NOTE: there is probably no context in CoCalc where thi will actually work...
         document.execCommand('copy')
     return
