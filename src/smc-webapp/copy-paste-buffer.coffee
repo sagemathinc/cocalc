@@ -15,4 +15,7 @@ exports.get_buffer = ->
 
 exports.set_buffer = (s) ->
     buffer = s ? ''
+    try
+        # https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
+        document.execCommand('copy')
     return
