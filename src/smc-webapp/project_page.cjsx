@@ -59,10 +59,11 @@ DEFAULT_FILE_TAB_STYLES =
     overflow     : 'hidden'
 
 CHAT_INDICATOR_STYLE =
-    paddingTop  : '5px'
+    paddingTop  : '1px'
     overflow    : 'hidden'
     paddingLeft : '5px'
     borderLeft  : '1px solid lightgrey'
+    height      : '32px'
 
 FileTab = rclass
     displayName : 'FileTab'
