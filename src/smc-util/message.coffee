@@ -913,7 +913,7 @@ message
 
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
-API message
+message
     event       : 'jupyter_port'
     port        : undefined  # gets set in response
     id          : undefined
