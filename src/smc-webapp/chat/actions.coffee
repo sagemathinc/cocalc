@@ -1,5 +1,13 @@
+# 3rd Party Libraries
+immutable = require('immutable')
 
-class exports.ChatActions extends Actions
+# Internal Libraries
+{Actions} = require('../smc-react')
+{webapp_client} = require('../webapp_client')
+
+# Sibling Libraries
+
+class ChatActions extends Actions
     _process_syncdb_obj: (x) =>
         if x.event != 'chat'
             # Event used to be used for video chat, etc...; but we have a better approach now, so
@@ -130,3 +138,5 @@ class exports.ChatActions extends Actions
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
+
+exports.ChatActions = ChatActions

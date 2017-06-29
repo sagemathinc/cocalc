@@ -384,7 +384,8 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             index = open_files_order.indexOf(opts.path)
                             if opts.chat
-                                require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+                                require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+                                # MEMORY LEAK. This store is never closed. See close_file
 
                             if index == -1
                                 index = open_files_order.size

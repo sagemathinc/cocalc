@@ -1,8 +1,17 @@
-{ChatActions} = require('./actions')
-store = require('./store')
+# 3rd Party Libraries
 
-init = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
+# Internal Libraries
+{React, rtypes} = require('../smc-react')
+{webapp_client} = require('../webapp_client')
+
+# Sibling Libraries
+util = require('./util')
+store = require('./store')
+{ChatActions} = require('./actions')
+{ChatRoom} = require('../smc_chat')
+
+exports.init = init = (path, redux, project_id) ->
+    name = util.generate_name(project_id, path)
     if redux.getActions(name)?
         return name  # already initialized
 
@@ -26,7 +35,7 @@ init = (path, redux, project_id) ->
     return name
 
 remove = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
+    name = util.generate_name(project_id, path)
     actions = redux.getActions(name)
     actions?.syncdb?.close()
     store = redux.getStore(name)
@@ -40,7 +49,7 @@ remove = (path, redux, project_id) ->
     return name
 
 ChatEditorGenerator = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
+    name = util.generate_name(project_id, path)
     C_ChatRoom = ({actions}) ->
         <ChatRoom
             redux       = {redux}
@@ -55,7 +64,7 @@ ChatEditorGenerator = (path, redux, project_id) ->
 
     return C_ChatRoom
 
-require('project_file').register_file_editor
+require('../project_file').register_file_editor
     ext       : 'sage-chat'
     icon      : 'comment'
     init      : init

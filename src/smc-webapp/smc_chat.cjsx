@@ -41,8 +41,6 @@ editor_chat = require('./editor_chat')
 
 {redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
-chat_main = require('./chat/main')
-
 {VideoChatButton} = require('./video-chat')
 
 Message = rclass
@@ -411,7 +409,7 @@ ChatLog = rclass
             {@list_messages()}
         </Grid>
 
-ChatRoom = rclass ({name}) ->
+exports.ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
