@@ -138,7 +138,7 @@ exports.special_filenames_with_no_extension = () ->
 # This should be a comprehensive list of all React editors
 
 # require('./editor_terminal')
-require('./smc_chat')
+require('./chat/register')
 require('./editor_archive')
 require('./course/main')
 require('./editor_pdf')
