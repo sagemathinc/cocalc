@@ -2023,32 +2023,49 @@ class exports.PostgreSQL extends PostgreSQL
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 120         # how long cached version lives (in seconds)
-            cb  : undefined
+            ttl_dt : 15       # 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
+            ttl    : 5*60     # how long cached version lives (in seconds)
+            ttl_db : 30       # how long a valid result from a db query is cached in any case
+            update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
+            cb     : undefined
         stats   = undefined
         start_t = process.hrtime()
         dbg     = @_dbg('get_stats')
         async.series([
             (cb) =>
                 dbg("using cached stats?")
-                if @_stats_cached? and @_stats_cached.time > misc.seconds_ago(opts.ttl)
-                    stats = @_stats_cached
-                    dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
-                    cb(); return
+                if @_stats_cached?
+                    # decide if cache should be used -- tighten interval if we are allowed to update
+                    offset_dt = if opts.update then opts.ttl_dt else 0
+                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
+                    # in case we aren't allowed to update and the cache is outdated, do not query db too often
+                    did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
+                    if is_cache_recent or did_query_recently
+                        stats = @_stats_cached
+                        dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
+                        cb(); return
                 @_query
                     query : "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
                     cb    : one_result (err, x) =>
-                        if err or not x? or (x? and x.time < misc.seconds_ago(opts.ttl))
-                            dbg("not using cache")
-                            cb(err)
+                        if err or not x?
+                            dbg("problem with query -- no stats in db?")
+                            cb(err); return
+                        # query successful, since x exists
+                        @_stats_cached_db_query = new Date()
+                        if opts.update and x.time < misc.seconds_ago(opts.ttl - opts.ttl_dt)
+                            dbg("cache outdated -- will update stats")
+                            cb()
                         else
-                            dbg("using db cached stats from #{(new Date() - x.time) / 1000} secs ago.")
+                            dbg("using db stats from #{(new Date() - x.time) / 1000} secs ago.")
                             stats = x
                             # storing still valid result in local cache
                             @_stats_cached = misc.deep_copy(stats)
                             cb()
             (cb) =>
                 if stats?
+                    cb(); return
+                else if not opts.update
+                    dbg("warning: no recent stats but not allowed to update")
                     cb(); return
                 dbg("querying all stats from the DB")
                 stats =

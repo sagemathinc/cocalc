@@ -295,8 +295,8 @@ exports.init_express_http_server = (opts) ->
             res.json({error:"not connected to database"})
             return
         opts.database.get_stats
-            ttl: 3600*24*180   # basically never update in hub -- too slow
-            cb : (err, stats) ->
+            update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
                     res.status(500).send("internal error: #{err}")
