@@ -100,11 +100,6 @@ store_def =
     filtered_val: depends('basic_input', 'some_list') ->
         return @some_list.filter (val) => val == @basic_input
 
-    # Not available through redux props.
-    # Great place to describe pure functions
-    # These are callable in your selectors as @greetings(...)
-    greetings: (full_name) -> ...
-
 Note: you cannot name a property "state" or "props"
 ###
 class Store extends EventEmitter
