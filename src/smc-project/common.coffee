@@ -2,7 +2,10 @@ fs      = require('fs')
 winston = require('winston')
 misc    = require('smc-util/misc')
 
-exports.secret_token_filename = "#{process.env['SMC']}/secret_token"
+if process.env.COCALC_SECRET_TOKEN?
+    exports.secret_token_filename = process.env.COCALC_SECRET_TOKEN
+else
+    exports.secret_token_filename = "#{process.env.SMC}/secret_token"
 
 _secret_token = undefined
 exports.secret_token = ->  # doing sync is ok since only happens rarely at startup and is quick
