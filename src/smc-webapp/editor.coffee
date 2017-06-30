@@ -805,15 +805,18 @@ class CodeMirrorEditor extends FileEditor
             #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
 
             "Cmd-S"        : (editor)   => @click_save_button()
+            "Alt-S"        : (editor)   => @click_save_button()
 
             "Ctrl-L"       : (editor)   => @goto_line(editor)
             "Cmd-L"        : (editor)   => @goto_line(editor)
+            "Alt-L"        : (editor)   => @goto_line(editor)
 
             "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
             "Cmd-I"        : (editor)   => @toggle_split_view(editor)
 
             "Shift-Cmd-L"  : (editor)   => editor.align_assignments()
             "Shift-Ctrl-L" : (editor)   => editor.align_assignments()
+            "Shift-Alt-L" : (editor)   => editor.align_assignments()
 
             "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
             "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
@@ -834,6 +837,15 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
+        if opts.bindings == 'vim'
+            # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
+            extraKeys["Alt-C"] = (editor) =>
+                CodeMirror.Vim.exitInsertMode(editor)
+            extraKeys["Alt-F"] = (editor) =>
+                editor.execCommand('goPageDown')
+            extraKeys["Alt-B"] = (editor) =>
+                editor.execCommand('goPageUp')
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
