@@ -416,6 +416,8 @@ connect_to_database = (opts) ->
     database.connect(cb:opts.cb)
 
 # client for compute servers
+# The name "compute_server" below is CONFUSING; this is really a client for a
+# remote server.
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
@@ -436,9 +438,7 @@ init_compute_server = (cb) ->
         cb?()
 
     if program.kucalc
-        require('./kucalc/compute-client').compute_server
-            database : database
-            cb       : f
+        f(undefined, require('./kucalc/compute-client').compute_server(database, winston))
     else
         require('./compute-client').compute_server
             database : database
