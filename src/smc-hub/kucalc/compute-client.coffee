@@ -15,6 +15,9 @@ What this modules should acomplish:
 
 ###
 
+LOCAL_HUB_PORT = 6000
+RAW_PORT       = 6001
+
 {EventEmitter} = require('events')
 
 misc = require('smc-util/misc')
@@ -41,6 +44,7 @@ class Client extends Dbg
 
 class Project extends Dbg
     constructor: (@compute_server, @project_id, @logger) ->
+        @host = "project-{@project_id}"
 
     free: () =>
 
@@ -51,21 +55,32 @@ class Project extends Dbg
             cb     : required     # cb(err, {state:?, time:?, error:?})
         dbg = @dbg("state")
         dbg()
-        opts.cb?("state -- not implemented")
+        opts.cb(undefined, {state:'running', time:new Date()})
 
     status: (opts) =>
         opts = defaults opts,
             cb     : required
         dbg = @dbg("status")
         dbg()
-        opts.cb?("status -- not implemented")
+        status =
+            "sage_server.pid"     : false
+            "secret_token"        : 'secret'  # TODO
+            "local_hub.port"      : LOCAL_HUB_PORT
+            "raw.port"            : RAW_PORT
+            "sage_server.port"    : false
+            "local_hub.pid"       : 5     # TODO
+            "console_server.pid"  : false
+            "console_server.port" : false
+        status.quotas = {}
+        status.host = status.ssh = 'host'
+        opts.cb(undefined, status)
 
     open: (opts) =>
         opts = defaults opts,
             cb   : required
         dbg = @dbg("open")
         dbg()
-        opts.cb?("open -- not implemented")
+        opts.cb()
 
     start: (opts) =>
         opts = defaults opts,
@@ -73,7 +88,7 @@ class Project extends Dbg
             cb         : required
         dbg = @dbg("start")
         dbg()
-        opts.cb?("start -- not implemented")
+        opts.cb()
 
     restart: (opts) =>
         opts = defaults opts,
@@ -81,14 +96,14 @@ class Project extends Dbg
             cb         : required
         dbg = @dbg("restart")
         dbg()
-        opts.cb?("restart -- not implemented")
+        opts.cb()
 
     ensure_running: (opts) =>
         opts = defaults opts,
             cb : undefined
         dbg = @dbg("ensure_running")
         dbg()
-        opts.cb?("ensure_running -- not implemented")
+        opts.cb()
 
     ensure_closed: (opts) =>
         opts = defaults opts,
@@ -109,7 +124,7 @@ class Project extends Dbg
             cb     : required
         dbg = @dbg("stop")
         dbg()
-        opts.cb?("stop -- not implemented")
+        opts.cb()
 
     save: (opts) =>
         opts = defaults opts,
@@ -117,14 +132,18 @@ class Project extends Dbg
             cb            : undefined
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg()
-        opts.cb?("save -- not implemented")
+        opts.cb()
 
     address: (opts) =>
         opts = defaults opts,
             cb : required
         dbg = @dbg("address")
         dbg()
-        opts.cb?("address -- not implemented")
+        address =
+            host         : @host
+            port         : LOCAL_HUB_PORT
+            secret_token : 'secret'   # TODO
+        opts.cb(undefined, address)
 
     copy_path: (opts) =>
         opts = defaults opts,
@@ -185,21 +204,21 @@ class Project extends Dbg
         opts.member_host =  opts.member_host > 0
         dbg = @dbg("set_member_host(member_host=#{opts.member_host})")
         dbg()
-        opts.cb?('set_member_host -- not implemented')
+        opts.cb() # TODO
 
     set_quotas: (opts) =>
         opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network',
                                      'mintime', 'member_host', 'cb'])
         dbg = @dbg("set_quotas")
         dbg()
-        opts.cb?('set_quotas -- not implemented')
+        opts.cb() # TODO
 
     set_all_quotas: (opts) =>
         opts = defaults opts,
             cb : required
         dbg = @dbg("set_all_quotas")
         dbg()
-        opts.cb?('set_all_quotas -- not implemented')
+        opts.cb() # TODO
 
 
 
