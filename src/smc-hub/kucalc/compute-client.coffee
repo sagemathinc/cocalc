@@ -44,7 +44,7 @@ class Client extends Dbg
 
 class Project extends Dbg
     constructor: (@compute_server, @project_id, @logger) ->
-        @host = "project-{@project_id}"
+        @host = "project-#{@project_id}"
 
     free: () =>
 
