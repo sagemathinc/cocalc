@@ -23,28 +23,38 @@ RAW_PORT       = 6001
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-exports.compute_server = (db) ->
-    return new Client(db)
+exports.compute_server = (db, logger) ->
+    return new Client(db, logger)
 
 class Dbg extends EventEmitter
+
+class Client
+    constructor: (@database, @logger) ->
+        @dbg("constructor")()
+
     dbg: (f) =>
         if not @logger?
             return ->
         else
-            return (args...) => @logger.debug("ComputeServer.#{f}", args...)
-
-class Client extends Dbg
-    constructor: (@database, @logger) ->
+            return (args...) => @logger.debug("kucalc.Client.#{f}", args...)
 
     project: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
+        @dbg("project")("project_id=#{opts.project_id}")
         opts.cb(undefined, new Project(@, opts.project_id, @logger))
 
-class Project extends Dbg
+class Project extends EventEmitter
     constructor: (@compute_server, @project_id, @logger) ->
         @host = "project-#{@project_id}"
+        @dbg('constructor')
+
+    dbg: (f) =>
+        if not @logger?
+            return ->
+        else
+            return (args...) => @logger.debug("kucalc.Project('#{@project_id}').#{f}", args...)
 
     free: () =>
 
