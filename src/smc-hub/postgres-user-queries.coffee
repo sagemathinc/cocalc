@@ -1418,7 +1418,7 @@ class exports.PostgreSQL extends PostgreSQL
         #dbg = @dbg("_syncstrings_check")
         #dbg(misc.to_json([obj, account_id, project_id]))
         if not misc.is_valid_uuid_string(obj?.project_id)
-            cb("project_id must be a valid uuid")
+            cb("project_id (='#{obj?.project_id}') must be a valid uuid")
             return
         if project_id?
             if project_id == obj.project_id
