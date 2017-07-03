@@ -113,9 +113,13 @@ INFO = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
-    v = process.env.HOME.split('/')
-    project_id = v[v.length-1]
-    username   = project_id.replace(/-/g,'')
+    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+        project_id = process.env.COCALC_PROJECT_ID
+        username   = process.env.COCALC_USERNAME
+    else
+        v = process.env.HOME.split('/')
+        project_id = v[v.length-1]
+        username   = project_id.replace(/-/g,'')
     if process.env.SMC_HOST?
         host = process.env.SMC_HOST
     else if os.hostname() == 'sagemathcloud'
