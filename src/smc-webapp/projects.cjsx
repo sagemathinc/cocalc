@@ -502,18 +502,19 @@ class ProjectsStore extends Store
                     return pay
 
     is_deleted: (project_id) =>
-        return !!@getIn(['project_map', project_id, 'deleted'])
+        return !!@getIn(['project_map', project_id, 'deleted']) #getIn returns nested data form list pointers. e.g. 'project_map' points to project_id, which points to 'deleted. 
 
     is_hidden_from: (project_id, account_id) =>
         return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
 
     get_project_select_list: (current, show_hidden=true) =>
         map = @get('project_map')
+        console.log(map)
         if not map?
             return
         account_id = webapp_client.account_id
         list = []
-        if current? and map.has(current)
+        if current? and map.has(current)   #current is for current project
             list.push(id:current, title:map.get(current).get('title'))
             map = map.delete(current)
         v = map.toArray()
@@ -525,8 +526,11 @@ class ProjectsStore extends Store
             return 0
         others = []
         for i in v
-            if not i.deleted and (show_hidden or not i.get('users').get(account_id).get('hide'))
+            console.log("(not (i.get('deleted') == 'true' ))")
+            console.log((not (i.get('deleted') == true )))
+            if (not (i.get('deleted') == true )) and (show_hidden or not i.get('users').get(account_id).get('hide'))
                 others.push(id:i.get('project_id'), title:i.get('title'))
+                console.log("i.get('title') was just pushed to list")
         list = list.concat others
         return list
 
