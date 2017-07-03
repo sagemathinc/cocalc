@@ -809,17 +809,16 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-L"       : (editor)   => @goto_line(editor)
             "Cmd-L"        : (editor)   => @goto_line(editor)
-            "Alt-L"        : (editor)   => @goto_line(editor)
 
             "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
             "Cmd-I"        : (editor)   => @toggle_split_view(editor)
 
             "Shift-Cmd-L"  : (editor)   => editor.align_assignments()
             "Shift-Ctrl-L" : (editor)   => editor.align_assignments()
-            "Shift-Alt-L" : (editor)   => editor.align_assignments()
 
             "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
             "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
+
             "Shift-Cmd-."  : (editor)   => @change_font_size(editor, +1)
             "Shift-Cmd-,"  : (editor)   => @change_font_size(editor, -1)
 
@@ -836,16 +835,40 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-Space"   : "autocomplete"
 
-            #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+        if feature.IS_TOUCH
+            # Better more external keyboard friendly shortcuts, motivated by iPad.
+            misc.merge extraKeys,
+                "Alt-L"        : (editor)   => @goto_line(editor)
+                "Alt-I"        : (editor)   => @toggle_split_view(editor)
+                "Shift-Alt-L"  : (editor)   => editor.align_assignments()
+                'Alt-Z'        : (editor)   => editor.undo()
+                'Shift-Alt-Z'  : (editor)   => editor.redo()
+                'Alt-A'        : (editor)   => editor.execCommand('selectAll')
+                'Shift-Alt-A'  : (editor)   => editor.execCommand('selectAll')
+                'Alt-K'        : (editor)   => editor.execCommand('killLine')
+                'Alt-D'        : (editor)   => editor.execCommand('selectNextOccurrence')
+                'Alt-C'        : (editor)   => @copy(editor)  # gets overwritten for vim mode, of course
+                'Alt-X'        : (editor)   => @cut(editor)
+                'Alt-V'        : (editor)   => @paste(editor)
+                'Alt-F'        : (editor)   => editor.execCommand('find')
+                'Shift-Alt-F'  : (editor)   => editor.execCommand('replace')
+                'Shift-Alt-R'  : (editor)   => editor.execCommand('replaceAll')
+                'Shift-Alt-D'  : (editor)   => editor.execCommand('duplicateLine')
+                'Alt-G'        : (editor)   => editor.execCommand('findNext')
+                'Alt-Up'       : (editor)   => editor.execCommand('goPageUp')
+                'Alt-Down'     : (editor)   => editor.execCommand('goPageDown')
+                'Alt-P'        : (editor)   => editor.execCommand('goLineUp')
+                'Alt-N'        : (editor)   => editor.execCommand('goLineDown')
+                'q'  : (editor)   => console.log('hi'); editor.execCommand('findPrevious')
 
-        if opts.bindings == 'vim'
-            # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
-            extraKeys["Alt-C"] = (editor) =>
-                CodeMirror.Vim.exitInsertMode(editor)
-            extraKeys["Alt-F"] = (editor) =>
-                editor.execCommand('goPageDown')
-            extraKeys["Alt-B"] = (editor) =>
-                editor.execCommand('goPageUp')
+            if opts.bindings == 'vim'
+                # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
+                extraKeys["Alt-C"] = (editor) =>
+                    CodeMirror.Vim.exitInsertMode(editor)
+                extraKeys["Alt-F"] = (editor) =>
+                    editor.execCommand('goPageDown')
+                extraKeys["Alt-B"] = (editor) =>
+                    editor.execCommand('goPageUp')
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
@@ -916,6 +939,7 @@ class CodeMirrorEditor extends FileEditor
 
             if opts.code_folding
                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
+                extraKeys["Alt-Q"]  = (cm) -> cm.foldCodeSelectionAware()
                 options.foldGutter  = true
                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
@@ -949,6 +973,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+        #window.cm = @codemirror
 
         elt1 = @element.find(".webapp-editor-textarea-1")
 
@@ -1215,8 +1240,10 @@ class CodeMirrorEditor extends FileEditor
                 @goto_line(cm)
             when 'copy'
                 @copy(cm)
+                cm.focus()
             when 'paste'
                 @paste(cm)
+                cm.focus()
             when 'sagews2pdf'
                 @print(sagews2html = false)
             when 'print'
@@ -1342,6 +1369,12 @@ class CodeMirrorEditor extends FileEditor
         if not cm?
             return
         copypaste.set_buffer(cm.getSelection())
+
+    cut: (cm) =>
+        if not cm?
+            return
+        copypaste.set_buffer(cm.getSelection())
+        cm.replaceSelection('')
 
     paste: (cm) =>
         if not cm?
