@@ -913,7 +913,7 @@ message
 
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
-API message
+message
     event       : 'jupyter_port'
     port        : undefined  # gets set in response
     id          : undefined
@@ -1401,18 +1401,65 @@ message
 # Copy a path from one project to another.
 #
 ###########################################################
-API message
-    event             : 'copy_path_between_projects'
-    id                : undefined
-    src_project_id    : required    # id of source project
-    src_path          : required    # relative path of director or file in the source project
-    target_project_id : required    # if of target project
-    target_path       : undefined   # defaults to src_path
-    overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
-    delete_missing    : false       # delete files in dest that are missing from source (destructive)
-    backup            : false       # make ~ backup files instead of overwriting changed files
-    timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude_history   : false
+API message2
+    event : 'copy_path_between_projects'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        src_project_id:
+            init  : required
+            desc  : 'id of source project'
+        src_path:
+            init  : required
+            desc  : 'relative path of directory or file in the source project'
+        target_project_id:
+            init  : required
+            desc  : 'id of target project'
+        target_path:
+            init  : undefined
+            desc  : 'defaults to src_path'
+        overwrite_newer:
+            init  : false
+            desc  : 'overwrite newer versions of file at destination (destructive)'
+        delete_missing:
+            init  : false
+            desc  : 'delete files in dest that are missing from source (destructive)'
+        backup:
+            init  : false
+            desc  : 'make ~ backup files instead of overwriting changed files'
+        timeout:
+            init  : undefined
+            desc  : 'seconds to wait before reporting "error" (though copy could still succeed)'
+        exclude_history:
+            init  : false
+            desc  : 'if true, exclude all files of the form *.sage-history'
+    desc  : """
+Copy a file or directory from one project to another. User must be
+owner or collaborator on both projects.
+
+Note: the `timeout` option is passed to a call to the `rsync` command.
+If no data is transferred for the specified number of seconds, then
+the copy terminates. The default is 0, which means no timeout.
+
+Relative paths (paths not beginning with '/') are relative to the user's
+home directory in source and target projects.
+
+Example:
+
+Copy file `A/doc.txt` from source project to target project.
+Folder `A` will be created in target project if it does not exist already.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d src_path=A/doc.txt \\
+    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
+    https://cocalc.com/api/v1/copy_path_between_projects
+  ==> {"event":"success",
+       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
+```
+"""
 
 
 #############################################
@@ -1601,18 +1648,63 @@ message
     id            : undefined
     data          : required
 
-API message
+API message2
     event             : 'copy_public_path_between_projects'
-    id                : undefined
-    src_project_id    : required    # id of source project
-    src_path          : required    # relative path of director or file in the source project
-    target_project_id : required    # if of target project
-    target_path       : undefined   # defaults to src_path
-    overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
-    delete_missing    : false       # delete files in dest that are missing from source (destructive)
-    timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude_history   : false
-    backup            : false
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        src_project_id:
+            init  : required
+            desc  : 'id of source project'
+        src_path:
+            init  : required
+            desc  : 'relative path of directory or file in the source project'
+        target_project_id:
+            init  : required
+            desc  : 'id of target project'
+        target_path:
+            init  : undefined
+            desc  : 'defaults to src_path'
+        overwrite_newer:
+            init  : false
+            desc  : 'overwrite newer versions of file at destination (destructive)'
+        delete_missing:
+            init  : false
+            desc  : 'delete files in dest that are missing from source (destructive)'
+        backup:
+            init  : false
+            desc  : 'make ~ backup files instead of overwriting changed files'
+        timeout:
+            init  : undefined
+            desc  : 'how long to wait for the copy to complete before reporting error (though it could still succeed)'
+        exclude_history:
+            init  : false
+            desc  : 'if true, exclude all files of the form *.sage-history'
+    desc  : """
+Copy a file or directory from public project to a project for which the
+user is owner or collaborator.
+
+Note: the `timeout` option is passed to a call to the `rsync` command.
+If no data is transferred for the specified number of seconds, then
+the copy terminates. The default is 0, which means no timeout.
+
+Example:
+
+Copy public file `PUBLIC/doc.txt` from source project to private file
+`A/sample.txt` in target project.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d src_path=PUBLIC/doc.txt \\
+    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
+    -d target_path=A/sample.txt \\
+    https://cocalc.com/api/v1/copy_public_path_between_projects
+  ==> {"event":"success",
+       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
+```
+"""
 
 API message
     event : 'log_client_error'
