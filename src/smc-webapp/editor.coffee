@@ -67,6 +67,7 @@ sagews   = require('./sagews')
 printing = require('./printing')
 
 copypaste = require('./copy-paste-buffer')
+{extra_alt_keys} = require('mobile/codemirror')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -837,38 +838,7 @@ class CodeMirrorEditor extends FileEditor
 
         if feature.IS_TOUCH
             # Better more external keyboard friendly shortcuts, motivated by iPad.
-            misc.merge extraKeys,
-                "Alt-L"        : (editor)   => @goto_line(editor)
-                "Alt-I"        : (editor)   => @toggle_split_view(editor)
-                "Shift-Alt-L"  : (editor)   => editor.align_assignments()
-                'Alt-Z'        : (editor)   => editor.undo()
-                'Shift-Alt-Z'  : (editor)   => editor.redo()
-                'Alt-A'        : (editor)   => editor.execCommand('selectAll')
-                'Shift-Alt-A'  : (editor)   => editor.execCommand('selectAll')
-                'Alt-K'        : (editor)   => editor.execCommand('killLine')
-                'Alt-D'        : (editor)   => editor.execCommand('selectNextOccurrence')
-                'Alt-C'        : (editor)   => @copy(editor)  # gets overwritten for vim mode, of course
-                'Alt-X'        : (editor)   => @cut(editor)
-                'Alt-V'        : (editor)   => @paste(editor)
-                'Alt-F'        : (editor)   => editor.execCommand('find')
-                'Shift-Alt-F'  : (editor)   => editor.execCommand('replace')
-                'Shift-Alt-R'  : (editor)   => editor.execCommand('replaceAll')
-                'Shift-Alt-D'  : (editor)   => editor.execCommand('duplicateLine')
-                'Alt-G'        : (editor)   => editor.execCommand('findNext')
-                'Alt-Up'       : (editor)   => editor.execCommand('goPageUp')
-                'Alt-Down'     : (editor)   => editor.execCommand('goPageDown')
-                'Alt-P'        : (editor)   => editor.execCommand('goLineUp')
-                'Alt-N'        : (editor)   => editor.execCommand('goLineDown')
-                'q'  : (editor)   => console.log('hi'); editor.execCommand('findPrevious')
-
-            if opts.bindings == 'vim'
-                # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
-                extraKeys["Alt-C"] = (editor) =>
-                    CodeMirror.Vim.exitInsertMode(editor)
-                extraKeys["Alt-F"] = (editor) =>
-                    editor.execCommand('goPageDown')
-                extraKeys["Alt-B"] = (editor) =>
-                    editor.execCommand('goPageUp')
+            extra_alt_keys(extraKeys, @, opts)
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
