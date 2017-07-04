@@ -69,7 +69,7 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "npm run testpg && npm run testapi",
+    "test": "(npm run testpg && npm run testapi); rc=$?; ../scripts/mocha_clean.sh; exit $rc",
     "testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres",
     "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/api",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
