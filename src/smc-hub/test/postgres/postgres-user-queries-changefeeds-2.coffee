@@ -797,7 +797,7 @@ describe 'test stats changefeed: ', ->
                         (cb) ->
                             create_projects(10, account_id, cb)
                         (cb) ->
-                            db.get_stats(ttl:0, cb:cb)
+                            db.get_stats(ttl:0, ttl_db:0, ttl_dt:0, cb:cb)
                     ], cb)
                 (x, cb) ->
                     expect(x).toEqual({ action: 'insert', new_val: { accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.new_val.id, projects: 110, projects_created: { '1d': 110, '1h': 110, '30d': 110, '7d': 110 }, projects_edited: { '1d': 110, '1h': 110, '30d': 110, '5min': 110, '7d': 110 }, time: x.new_val.time } })

@@ -2121,6 +2121,7 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : cb
                 )
         ], (err) =>
+            dbg("get_stats final CB: (#{misc.to_json(err)}, #{misc.to_json(stats)})")
             opts.cb?(err, stats)
         )
 
