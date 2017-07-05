@@ -82,6 +82,7 @@ if window?
     # See https://github.com/sagemathinc/cocalc/issues/1392
     exports.IS_MOBILE = exports.isMobile.any() and exports.is_responsive_mode()
 
+    # IS_TOUCH for us means multitouch tablet or mobile.
     exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE
 
     # DEBUG

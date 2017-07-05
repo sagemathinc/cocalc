@@ -28,6 +28,13 @@ misc                    = require('smc-util/misc')
 
 {alert_message}         = require('./alerts')
 
+# Ephemeral websockets mean a browser that kills the websocket whenever
+# the page is backgrounded.  So far, it seems that maybe all mobile devices
+# do this.  The only impact is we don't show a certain error message for
+# such devices.
+
+EPHEMERAL_WEBSOCKETS    = require('./feature').isMobile.any()
+
 ###
 # Page Redux
 ###
@@ -294,8 +301,12 @@ webapp_client.on "connecting", () ->
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 
-    console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
-    if num_recent_disconnects() >= 2 or (attempt >= 10)
+    console.log("attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}")
+    # NOTE: On mobile devices the websocket is disconnected every time one backgrounds
+    # the application.  This normal and expected behavior, which does not indicate anything
+    # bad about the user's actual network connection.  Thus displaying this error in the case
+    # of mobile is likely wrong.  (It could also be right, of course.)
+    if not EPHEMERAL_WEBSOCKETS and (num_recent_disconnects() >= 2 or (attempt >= 10))
         # this event fires several times, limit displaying the message and calling reconnect() too often
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
