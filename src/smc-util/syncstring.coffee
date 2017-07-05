@@ -1803,7 +1803,9 @@ class SyncDoc extends EventEmitter
 
         #dbg("project - write to disk file")
         # set window to slightly earlier to account for clock imprecision.
-        @_save_to_disk_start_ctime = new Date() - 50
+        # Over an sshfs mount, all stats info is **rounded down to the nearest second**,
+        # which this also takes care of.
+        @_save_to_disk_start_ctime = new Date() - 1500
         @_save_to_disk_end_ctime = undefined
         async.series([
             (cb) =>
