@@ -76,7 +76,6 @@ focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
 
-
 class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
@@ -455,11 +454,7 @@ class Console extends EventEmitter
         redux.getActions('file_use').mark_file(@project_id, @path, 'edit')
 
     client_keydown: (ev) =>
-        #console.log("client_keydown", ev)
-        if @_input_line_is_focused and ev.keyCode == 32
-            # on mobile ipad we avoid sending space twice (see the hack in
-            # term.js involving the smart keyboard)
-            return false
+        #console.log("client_keydown")
         @mark_file_use()
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
@@ -659,6 +654,7 @@ class Console extends EventEmitter
 
         input_line.on 'focus', =>
             @_input_line_is_focused = true
+            @terminal.blur()
         input_line.on 'blur', =>
             @_input_line_is_focused = false
 
@@ -666,7 +662,7 @@ class Console extends EventEmitter
             @session?.write_data(input_line.val())
             input_line.val('')
 
-        input_line.on 'keyup', (e) =>
+        input_line.on 'keydown', (e) =>
             if e.which == 13
                 e.preventDefault()
                 submit_line()
