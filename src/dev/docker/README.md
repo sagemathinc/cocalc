@@ -11,8 +11,8 @@ This is a self-contained single-image multi-user CoCalc server.
 
 Install Docker on your computer (e.g., `apt-get install docker.io` on Ubuntu).   Make sure you have at least 8GB disk space free, then type
 
-    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 sagemathinc/sagemathcloud
-    
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 sagemathinc/cocalc
+
 wait a minute, then visit https://localhost.  It is expected that you'll see a "Your connection is not private" warning, since you haven't set up a security certificate.  Click "Show advanced" and "Proceed to localhost (unsafe)".
 
 NOTES:
@@ -30,12 +30,12 @@ The docker container is called `cocalc` and you can refer to the container and u
 You can watch the logs:
 
     $ docker logs cocalc -f
-    
+
 However, these logs often don't work.  In that case get a bash shell in the terminal and look at the logs using tail:
 
     $ docker exec -it cocalc bash
-    $ tail -f /var/log/hub.log 
-   
+    $ tail -f /var/log/hub.log
+
 
 ### Clock skew on OS X
 
@@ -55,7 +55,7 @@ For **enhanced security**, make the container only listen on localhost
 
     docker stop cocalc
     docker rm cocalc
-    docker run --name=cocalc -d -v ~/cocalc:/projects -p  127.0.0.1:80:80 sagemathinc/sagemathcloud
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p  127.0.0.1:80:80 sagemathinc/cocalc
 
 Then the **only way** to access your CoCalc server is to type the following on your local computer
 
@@ -93,14 +93,14 @@ The directory `postgres` contains the database files, so all projects, users, fi
 
 To get the newest image, do this (which will take some time):
 
-    docker pull  sagemathinc/sagemathcloud
+    docker pull  sagemathinc/cocalc
 
 Once done, you can delete and recreate your CoCalc container.  This will not delete any of your project or user data, which you confirmed above is in ~/cocalc.
 
     docker stop cocalc
     docker rm cocalc
-    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 sagemathinc/sagemathcloud
-    
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 sagemathinc/cocalc
+
 Now visit https://localhost to see your upgraded server.
 
 
@@ -118,9 +118,9 @@ Run the image (to test)
 
 How I pushed this
 
-    docker tag smc:latest sagemathinc/sagemathcloud
+    docker tag smc:latest sagemathinc/cocalc
     docker login --username=sagemathinc
-    docker push  sagemathinc/sagemathcloud
+    docker push  sagemathinc/cocalc
 
 Also to build at a specific commit.
 
