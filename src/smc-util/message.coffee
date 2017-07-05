@@ -1884,7 +1884,7 @@ API message2
             init  : undefined
             desc  : "a list of tags, like ['member']"
         account_id:
-            init  : required
+            init  : undefined
             desc  : 'account_id for the ticket'
         location:
             init  : undefined
@@ -1897,8 +1897,8 @@ Open a CoCalc support ticket.
 
 Notes:
 
-- `account_id` cocalc account_id for the support ticket, usually
-the account_id for the api request
+- If `account_id` is not provided, the ticket will be created, but ticket
+info will not be returned by `get_support_tickets`.
 
 - If `username` is not provided, `email_address` is used for the name on the ticket.
 
@@ -1907,6 +1907,7 @@ for example
 ```
 /project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb`
 ```
+
 If present, the `location` string will be expanded to a complete URL and
 appended to the body of the ticket.
 
@@ -1914,7 +1915,6 @@ appended to the body of the ticket.
 ```
 {"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
 ```
-
 - If the ticket concerns a CoCalc course, the project id of the course can
 be included in the `info` dict, for example,
 ```
@@ -1923,7 +1923,6 @@ be included in the `info` dict, for example,
 In that case, the course
 project_id will be expanded to a URL and appended to the body of the
 ticket.
-
 - If `tags` or `info` are provided, options must be sent as a JSON object.
 
 Example:
@@ -1940,7 +1939,7 @@ Example:
     https://cocalc.com/api/v1/create_support_ticket
   ==> {"event":"support_ticket_url",
        "id":"abd649bf-ea2d-4952-b925-e44c6903945e",
-       "url":"https://sagemathcloud.zendesk.com/requests/xxxx"}
+       "url":"https://sagemathcloud.zendesk.com/requests/0123"}
 ```
 """
 
@@ -1949,10 +1948,41 @@ message # client ← hub
     id           : undefined
     url          : required
 
-API message # client → hub
+# client → hub
+API message2
     event        : 'get_support_tickets'
-    id           : undefined
-    # no account_id, that's known by the hub
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+    desc  : """
+Fetch information on support tickets for the user making the request.
+See the example for details on what is returned.
+
+Notes:
+
+- There may be a delay of several minutes between the time a support ticket
+is created with a given `account_id` and the time that ticket is
+available to the account owner via `get_support_tickets`.
+- Field `account_id` is not required because it is implicit from the request.
+- Archived tickets are not returned.
+
+Example:
+
+```
+curl -u sk_abcdefQWERTY090900000000:  -X POST \\
+    https://cocalc.com/api/v1/get_support_tickets
+  ==> {"event":"support_tickets",
+       "id":"58bfd6f4-fd63-4602-82b8-676d92f8b0b8",
+       "tickets":[{"id":1234,
+                   "subject":"package xyz",
+                   "description":"package xyz\\n\\nhttps://cocalc.com/projects/0010abe1-9283-4b42-b403-fa4fc1e3be57/worksheet.sagews\\n\\nCourse: https://cocalc.com/projects/cc8f1243-d573-4562-9aab-c15a3872d683",
+                   "created_at":"2017-07-05T14:28:38Z",
+                   "updated_at":"2017-07-05T14:29:29Z",
+                   "status":"open",
+                   "url":"https://sagemathcloud.zendesk.com/requests/0123"}]}
+```
+"""
 
 message # client ← hub
     event        : 'support_tickets'
