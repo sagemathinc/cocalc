@@ -207,15 +207,6 @@ class Project extends EventEmitter
             wait   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
             cb     : cb
 
-    # this is a no-op for Kubernetes; this was only used for serving
-    # some static websites, e.g., wstein.org, so may evolve into that...
-    save: (opts) =>
-        opts = defaults opts,
-            min_interval  : undefined # ignored
-            cb            : undefined # ignored
-        dbg = @dbg("save(min_interval:#{opts.min_interval})")
-        dbg()
-        opts.cb()
 
     address: (opts) =>
         opts = defaults opts,
@@ -228,7 +219,22 @@ class Project extends EventEmitter
             secret_token : @getIn(['status', 'secret_token'])
         opts.cb(undefined, address)
 
-        
+    ###
+    LATER
+    ###
+
+
+    # this is a no-op for Kubernetes; this was only used for serving
+    # some static websites, e.g., wstein.org, so may evolve into that...
+    save: (opts) =>
+        opts = defaults opts,
+            min_interval  : undefined # ignored
+            cb            : undefined # ignored
+        dbg = @dbg("save(min_interval:#{opts.min_interval})")
+        dbg()
+        opts.cb()
+
+
 
     copy_path: (opts) =>
         opts = defaults opts,
