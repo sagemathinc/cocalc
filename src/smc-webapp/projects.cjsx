@@ -525,8 +525,8 @@ class ProjectsStore extends Store
             return 0
         others = []
         for i in v
-            # deleted projects have a map node " 'deleted': true' standard projects do not have this property
-            if (not (i.get('deleted') == true )) and (show_hidden or not i.get('users').get(account_id).get('hide'))
+            # Deleted projects have a map node " 'deleted': true ". Standard projects do not have this property.
+            if (not i.get('deleted')) and (show_hidden or not i.get('users').get(account_id).get('hide'))
                 others.push(id:i.get('project_id'), title:i.get('title'))
         list = list.concat others
         return list
