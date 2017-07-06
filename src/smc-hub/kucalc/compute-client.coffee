@@ -15,8 +15,10 @@ What this modules should acomplish:
 
 ###
 
-LOCAL_HUB_PORT = 6000
-RAW_PORT       = 6001
+LOCAL_HUB_PORT      = 6000
+RAW_PORT            = 6001
+SAGE_SERVER_PORT    = 6002
+CONSOLE_SERVER_PORT = 6003
 
 {EventEmitter} = require('events')
 async = require('async')
@@ -61,10 +63,15 @@ class Project extends EventEmitter
     constructor: (@client, @project_id, @synctable, @logger) ->
         @host = "project-#{@project_id}"
         @dbg('constructor')
+        @synctable.on 'change', => @emit('change')
 
     # Get the current data about the project from the database.
-    get: =>
-        return @synctable.get(@project_id)
+    get: (field) =>
+        t = @synctable.get(@project_id)
+        if field?
+            return t?.get(field)
+        else
+            return t
 
     getIn: (v) =>
         return @get().getIn(v)
@@ -75,7 +82,9 @@ class Project extends EventEmitter
         else
             return (args...) => @logger.debug("kucalc.Project('#{@project_id}').#{f}", args...)
 
-    free: () =>
+    close: () =>
+        @synctable?.close()
+        delete @synctable
         delete @logger
         delete @project_id
         delete @compute_server
@@ -88,24 +97,19 @@ class Project extends EventEmitter
             cb     : required     # cb(err, {state:?, time:?, error:?})
         dbg = @dbg("state")
         dbg()
-        opts.cb(undefined, {state:'running', time:new Date()})
+        opts.cb(undefined, @get('state')?.toJS())
 
     status: (opts) =>
         opts = defaults opts,
             cb     : required
         dbg = @dbg("status")
         dbg()
-        status =
-            "sage_server.pid"     : false
-            "secret_token"        : 'secret'  # TODO
+        status = @get('status')?.toJS() ? {}
+        misc.merge status,  # merge in canonical information
             "local_hub.port"      : LOCAL_HUB_PORT
             "raw.port"            : RAW_PORT
-            "sage_server.port"    : false
-            "local_hub.pid"       : 5     # TODO
-            "console_server.pid"  : false
-            "console_server.port" : false
-        status.quotas = {}
-        status.host = status.ssh = 'host'
+            "sage_server.port"    : SAGE_SERVER_PORT
+            "console_server.port" : CONSOLE_SERVER_PORT
         opts.cb(undefined, status)
 
     _action: (opts) =>
@@ -123,7 +127,8 @@ class Project extends EventEmitter
         if opts.goal?
             dbg("start waiting for goal to be satisfied")
             @synctable.wait
-                until   : opts.goal
+                until   : () =>
+                    return opts.goal(@get())
                 timeout : opts.timeout_s
                 cb      : (err) =>
                     dbg("done waiting for goal #{err}")
@@ -131,8 +136,7 @@ class Project extends EventEmitter
                     delete opts.cb
 
         dbg("request action to happen")
-        @client.database._query
-            table     : 'projects'
+        @_query
             jsonb_set :
                 action_request :
                     action  : opts.action
@@ -145,6 +149,11 @@ class Project extends EventEmitter
                 else
                     dbg("action requested")
 
+    _query: (opts) =>
+        opts.query = 'UPDATE projects'
+        opts.where = {'project_id  = $::UUID' : @project_id}
+        @client.database._query(opts)
+
     open: (opts) =>
         opts = defaults opts,
             cb   : undefined
@@ -152,8 +161,8 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'open'
-            goal   : (project) -> (project.getIn(['state', 'state']) ? 'closed') != 'closed'
-            cb     : cb
+            goal   : (project) => (project.getIn(['state', 'state']) ? 'closed') != 'closed'
+            cb     : opts.cb
 
     start: (opts) =>
         opts = defaults opts,
