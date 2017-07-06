@@ -502,7 +502,7 @@ class ProjectsStore extends Store
                     return pay
 
     is_deleted: (project_id) =>
-        return !!@getIn(['project_map', project_id, 'deleted']) 
+        return !!@getIn(['project_map', project_id, 'deleted'])
 
     is_hidden_from: (project_id, account_id) =>
         return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
