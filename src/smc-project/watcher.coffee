@@ -4,10 +4,12 @@ Watch a file for changes
 Watch for changes to the given file.  Returns obj, which
 is an event emitter with events:
 
-   - 'change' - when file changes or is created
+   - 'change', ctime - when file changes or is created
    - 'delete' - when file is deleted
 
 and a method .close().
+
+The ctime might be undefined, in case it can't be determined.
 
 If debounce is given, only fires after the file
 definitely has not had its ctime changed
@@ -33,7 +35,11 @@ class exports.Watcher extends EventEmitter
             if @debounce
                 @_emit_when_stable(true)
             else
-                @emit('change')
+                fs.stat @path, (err, stats) =>
+                    if err
+                        @emit('change')
+                    else
+                        @emit('change', stats.ctime)
 
     _emit_when_stable: (first) =>
         ###
@@ -56,5 +62,5 @@ class exports.Watcher extends EventEmitter
                 setTimeout((=>@_emit_when_stable(false)), Math.max(500, @debounce - elapsed + 100))
             else
                 delete @_waiting_for_stable
-                @emit('change')
+                @emit('change', stats.ctime)
 

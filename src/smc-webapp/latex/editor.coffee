@@ -38,6 +38,7 @@ editor          = require('../editor')
 printing        = require('../printing')
 {project_tasks} = require('../project_tasks')
 {webapp_client} = require('../webapp_client')
+{IS_TOUCH}      = require('../feature')
 
 templates       = $("#webapp-editor-templates")
 
@@ -214,6 +215,8 @@ class exports.LatexEditor extends editor.FileEditor
             dragbar.css(left: 0)
             @set_dragbar_position()
 
+        if IS_TOUCH
+            dragbar.width('12px')
 
         dragbar.draggable
             axis        : 'x'

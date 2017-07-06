@@ -57,7 +57,7 @@ editing   : immutable.Map
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE, isMobile} = require('./feature')
+{IS_MOBILE, isMobile, IS_TOUCH} = require('./feature')
 underscore = require('underscore')
 
 # CoCalc libraries
@@ -279,8 +279,15 @@ exports.message_colors = (account_id, message) ->
     else
         return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
 
-exports.render_timeago = (message) ->
+exports.render_timeago = (message, edit) ->
+    # NOTE: we make click on the timestamp edit the chat since onDoubleClick is completely
+    # ignored on mobile touch devices...
+    if IS_TOUCH and edit?
+        f = edit
+    else
+        f = undefined
     <span
+        onClick   = {f}
         className = "pull-right small"
         style     = {maxWidth:'20%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
         >

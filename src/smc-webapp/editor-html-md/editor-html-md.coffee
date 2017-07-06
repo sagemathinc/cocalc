@@ -33,7 +33,7 @@ editor          = require('../editor')
 
 {alert_message} = require('../alerts')
 {webapp_client} = require('../webapp_client')
-{IS_MOBILE}     = require('../feature')
+{IS_TOUCH, IS_MOBILE} = require('../feature')
 
 {redux}         = require('../smc-react')
 printing        = require('../printing')
@@ -139,6 +139,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".webapp-editor-html-md-resize-bar")
+        if IS_TOUCH
+            dragbar.width('12px')
         elt = @element.find(".webapp-editor-html-md-content")
         @set_split_pos(@local_storage('split_pos'))
         dragbar.draggable

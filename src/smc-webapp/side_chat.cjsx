@@ -21,7 +21,7 @@
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, IS_TOUCH} = require('./feature')
 underscore = require('underscore')
 
 # CoCalc libraries
@@ -160,11 +160,11 @@ Message = rclass
         else
             <span className="small">
                 {text}
+                {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
             </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
         if e.keyCode == 27 # ESC
@@ -173,11 +173,14 @@ Message = rclass
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # shift+enter
-            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
-            if mesg != newest_content(@props.message)
-                @props.actions.send_edit(@props.message, mesg)
-            else
-                @props.actions.set_editing(@props.message, false)
+            @save_edit()
+
+    save_edit: ->
+        mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
+        if mesg != newest_content(@props.message)
+            @props.actions.send_edit(@props.message, mesg)
+        else
+            @props.actions.set_editing(@props.message, false)
 
     # All the columns
     content_column: ->
@@ -218,7 +221,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
-                    {editor_chat.render_timeago(@props.message)}
+                    {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
                 {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}

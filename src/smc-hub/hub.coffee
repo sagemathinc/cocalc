@@ -681,7 +681,6 @@ command_line = () ->
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-        .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
         .option('--database_nodes <string,string,...>', "database address (default: '#{default_db}')", String, default_db)
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')

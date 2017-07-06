@@ -913,7 +913,7 @@ message
 
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
-API message
+message
     event       : 'jupyter_port'
     port        : undefined  # gets set in response
     id          : undefined
@@ -1401,18 +1401,65 @@ message
 # Copy a path from one project to another.
 #
 ###########################################################
-API message
-    event             : 'copy_path_between_projects'
-    id                : undefined
-    src_project_id    : required    # id of source project
-    src_path          : required    # relative path of director or file in the source project
-    target_project_id : required    # if of target project
-    target_path       : undefined   # defaults to src_path
-    overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
-    delete_missing    : false       # delete files in dest that are missing from source (destructive)
-    backup            : false       # make ~ backup files instead of overwriting changed files
-    timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude_history   : false
+API message2
+    event : 'copy_path_between_projects'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        src_project_id:
+            init  : required
+            desc  : 'id of source project'
+        src_path:
+            init  : required
+            desc  : 'relative path of directory or file in the source project'
+        target_project_id:
+            init  : required
+            desc  : 'id of target project'
+        target_path:
+            init  : undefined
+            desc  : 'defaults to src_path'
+        overwrite_newer:
+            init  : false
+            desc  : 'overwrite newer versions of file at destination (destructive)'
+        delete_missing:
+            init  : false
+            desc  : 'delete files in dest that are missing from source (destructive)'
+        backup:
+            init  : false
+            desc  : 'make ~ backup files instead of overwriting changed files'
+        timeout:
+            init  : undefined
+            desc  : 'seconds to wait before reporting "error" (though copy could still succeed)'
+        exclude_history:
+            init  : false
+            desc  : 'if true, exclude all files of the form *.sage-history'
+    desc  : """
+Copy a file or directory from one project to another. User must be
+owner or collaborator on both projects.
+
+Note: the `timeout` option is passed to a call to the `rsync` command.
+If no data is transferred for the specified number of seconds, then
+the copy terminates. The default is 0, which means no timeout.
+
+Relative paths (paths not beginning with '/') are relative to the user's
+home directory in source and target projects.
+
+Example:
+
+Copy file `A/doc.txt` from source project to target project.
+Folder `A` will be created in target project if it does not exist already.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d src_path=A/doc.txt \\
+    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
+    https://cocalc.com/api/v1/copy_path_between_projects
+  ==> {"event":"success",
+       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
+```
+"""
 
 
 #############################################
@@ -1601,18 +1648,63 @@ message
     id            : undefined
     data          : required
 
-API message
+API message2
     event             : 'copy_public_path_between_projects'
-    id                : undefined
-    src_project_id    : required    # id of source project
-    src_path          : required    # relative path of director or file in the source project
-    target_project_id : required    # if of target project
-    target_path       : undefined   # defaults to src_path
-    overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
-    delete_missing    : false       # delete files in dest that are missing from source (destructive)
-    timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude_history   : false
-    backup            : false
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        src_project_id:
+            init  : required
+            desc  : 'id of source project'
+        src_path:
+            init  : required
+            desc  : 'relative path of directory or file in the source project'
+        target_project_id:
+            init  : required
+            desc  : 'id of target project'
+        target_path:
+            init  : undefined
+            desc  : 'defaults to src_path'
+        overwrite_newer:
+            init  : false
+            desc  : 'overwrite newer versions of file at destination (destructive)'
+        delete_missing:
+            init  : false
+            desc  : 'delete files in dest that are missing from source (destructive)'
+        backup:
+            init  : false
+            desc  : 'make ~ backup files instead of overwriting changed files'
+        timeout:
+            init  : undefined
+            desc  : 'how long to wait for the copy to complete before reporting error (though it could still succeed)'
+        exclude_history:
+            init  : false
+            desc  : 'if true, exclude all files of the form *.sage-history'
+    desc  : """
+Copy a file or directory from public project to a project for which the
+user is owner or collaborator.
+
+Note: the `timeout` option is passed to a call to the `rsync` command.
+If no data is transferred for the specified number of seconds, then
+the copy terminates. The default is 0, which means no timeout.
+
+Example:
+
+Copy public file `PUBLIC/doc.txt` from source project to private file
+`A/sample.txt` in target project.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
+    -d src_path=PUBLIC/doc.txt \\
+    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
+    -d target_path=A/sample.txt \\
+    https://cocalc.com/api/v1/copy_public_path_between_projects
+  ==> {"event":"success",
+       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
+```
+"""
 
 API message
     event : 'log_client_error'
@@ -1768,27 +1860,129 @@ message
 ###
 Support Tickets → right now going through Zendesk
 ###
-API message # client → hub
+
+# client → hub
+API message2
     event        : 'create_support_ticket'
-    id           : undefined
-    username     : undefined
-    email_address: required  # if there is no email_address in the account, there can't be a ticket! (for now)
-    subject      : required  # like an email subject
-    body         : required  # html or md formatted text
-    tags         : undefined # a list of tags, like ['member']
-    account_id   : undefined
-    location     : undefined # from the URL, to know what the requester is talking about
-    info         : undefined # additional data dict, like browser/OS
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        username:
+            init  : undefined
+            desc  : 'name on the ticket'
+        email_address:
+            init  : required
+            desc  : 'if there is no email_address in the account, there cannot be a ticket!'
+        subject:
+            init  : required
+            desc  : 'like an email subject'
+        body:
+            init  : required
+            desc  : 'html or md formatted text'
+        tags:
+            init  : undefined
+            desc  : "a list of tags, like ['member']"
+        account_id:
+            init  : undefined
+            desc  : 'account_id for the ticket'
+        location:
+            init  : undefined
+            desc  : 'from the URL, to know what the requester is talking about'
+        info:
+            init  : undefined
+            desc  : 'additional data dict, like browser/OS'
+    desc  : """
+Open a CoCalc support ticket.
+
+Notes:
+
+- If `account_id` is not provided, the ticket will be created, but ticket
+info will not be returned by `get_support_tickets`.
+
+- If `username` is not provided, `email_address` is used for the name on the ticket.
+
+- `location` is used to provide a path to a specific project or file,
+for example
+```
+/project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb`
+```
+
+If present, the `location` string will be expanded to a complete URL and
+appended to the body of the ticket.
+
+- The `info` dict can be used to provide additional metadata, for example
+```
+{"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
+```
+- If the ticket concerns a CoCalc course, the project id of the course can
+be included in the `info` dict, for example,
+```
+{"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
+```
+In that case, the course
+project_id will be expanded to a URL and appended to the body of the
+ticket.
+- If `tags` or `info` are provided, options must be sent as a JSON object.
+
+Example:
+
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"email_address":"jd@some_email", \\
+         "subject":"package xyz", \\
+         "account_id":"291f43c1-deae-431c-b763-712307fa6859", \\
+         "body":"please install package xyz for use with Python3", \\
+         "tags":["member"], \\
+         "location":"/projects/0010abe1-9283-4b42-b403-fa4fc1e3be57/worksheet.sagews", \\
+         "info":{"user_agent":"Mozilla/5.0","course":"cc8f1243-d573-4562-9aab-c15a3872d683"}}' \\
+    https://cocalc.com/api/v1/create_support_ticket
+  ==> {"event":"support_ticket_url",
+       "id":"abd649bf-ea2d-4952-b925-e44c6903945e",
+       "url":"https://sagemathcloud.zendesk.com/requests/0123"}
+```
+"""
 
 message # client ← hub
     event        : 'support_ticket_url'
     id           : undefined
     url          : required
 
-API message # client → hub
+# client → hub
+API message2
     event        : 'get_support_tickets'
-    id           : undefined
-    # no account_id, that's known by the hub
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+    desc  : """
+Fetch information on support tickets for the user making the request.
+See the example for details on what is returned.
+
+Notes:
+
+- There may be a delay of several minutes between the time a support ticket
+is created with a given `account_id` and the time that ticket is
+available to the account owner via `get_support_tickets`.
+- Field `account_id` is not required because it is implicit from the request.
+- Archived tickets are not returned.
+
+Example:
+
+```
+curl -u sk_abcdefQWERTY090900000000:  -X POST \\
+    https://cocalc.com/api/v1/get_support_tickets
+  ==> {"event":"support_tickets",
+       "id":"58bfd6f4-fd63-4602-82b8-676d92f8b0b8",
+       "tickets":[{"id":1234,
+                   "subject":"package xyz",
+                   "description":"package xyz\\n\\nhttps://cocalc.com/projects/0010abe1-9283-4b42-b403-fa4fc1e3be57/worksheet.sagews\\n\\nCourse: https://cocalc.com/projects/cc8f1243-d573-4562-9aab-c15a3872d683",
+                   "created_at":"2017-07-05T14:28:38Z",
+                   "updated_at":"2017-07-05T14:29:29Z",
+                   "status":"open",
+                   "url":"https://sagemathcloud.zendesk.com/requests/0123"}]}
+```
+"""
 
 message # client ← hub
     event        : 'support_tickets'
