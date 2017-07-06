@@ -513,7 +513,7 @@ class ProjectsStore extends Store
             return
         account_id = webapp_client.account_id
         list = []
-        if current? and map.has(current)   #current is for current project
+        if current? and map.has(current)   # current is for current project_id value
             list.push(id:current, title:map.get(current).get('title'))
             map = map.delete(current)
         v = map.toArray()
