@@ -104,11 +104,16 @@ describe 'test basic foundations of project client -- ', ->
                 expect(status.secret_token).toBe('top-secret')
                 done(err)
 
+    it 'get address of project', (done) ->
+        project.address
+            cb : (err, address) ->
+                expect(err).toBe(undefined)
+                expect(address).toEqual({ host: "project-#{project_id}", port: 6000, secret_token: 'top-secret' })
+                done()
+
     it 'close the project client and verifies that host is no longer defined ', ->
         project.close()
         expect(project.host).toBe(undefined)
-
-
 
 
 describe 'test the lifecyle of project client (mocking the manager) -- ', ->
@@ -133,13 +138,113 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
         # start project opening
         project.open
             cb : (err) ->
+                x = project._action_request()
+                expect((new Date() - x.finished) < 500).toBe(true)
                 done(err)
         # all that did was change the db, which we confirm now
         project.once 'change', ->
-            expect(project.getIn(['action_request','action'])).toBe('open')
+            x = project._action_request()
+            expect(x.action).toBe('open')
+            expect((new Date() - x.started) < 500).toBe(true)
+            expect(x.finished).toBe(undefined)
             # Now set the state to opened; this is what the project manager will do....
             project._query
-                jsonb_merge : {state : {state:'opened', time:new Date()}}
+                jsonb_merge :
+                    state          : {state:'opened', time:new Date()}
+                    action_request : {finished:new Date()}
                 cb          : (err) ->
                     expect(!!err).toBe(false)
                     # this will trigger the callback of project.open above
+
+    it 'start the project running', (done) ->
+        project.start
+            cb : (err) ->
+                x = project._action_request()
+                expect((new Date() - x.finished) < 500).toBe(true)
+                done(err)
+        project.once 'change', ->
+            x = project._action_request()
+            expect(x.action).toBe('start')
+            expect((new Date() - x.started) < 500).toBe(true)
+            expect(x.finished).toBe(undefined)
+            project._query
+                jsonb_merge :
+                    state          : {state:'running', time:new Date(), error:undefined}
+                    action_request : {finished:new Date()}
+                cb          : (err) ->
+                    expect(!!err).toBe(false)
+
+    it 'stop the project', (done) ->
+        project.stop
+            cb : done
+        project.once 'change', ->
+            x = project._action_request()
+            expect(x.action).toBe('stop')
+            project._query
+                jsonb_merge :
+                    state          : {state:'opened', time:new Date(), error:undefined}
+                    action_request : {finished:new Date()}
+                cb          : (err) ->
+                    expect(!!err).toBe(false)
+
+    it 'start the project again', (done) ->
+        project.start
+            cb : done
+        project.once 'change', ->
+            project._query
+                jsonb_merge :
+                    state          : {state:'running', time:new Date(), error:undefined}
+                    action_request : {finished:new Date()}
+                cb          : (err) ->
+                    expect(!!err).toBe(false)
+
+    it 'restart the project', (done) ->
+        project.restart
+            cb : done
+        # NOW mock --
+        project.once 'change', ->
+            # first stop it.
+            project._query
+                jsonb_merge :
+                    state          : {state:'opened', time:new Date(), error:undefined}
+                    action_request : {finished:new Date()}
+                cb          : (err) ->
+                    expect(!!err).toBe(false)
+                    # then start it back up.
+                    project.once 'change', ->
+                        project._query
+                            jsonb_merge :
+                                state          : {state:'running', time:new Date(), error:undefined}
+                                action_request : {finished:new Date()}
+                            cb          : (err) ->
+                                expect(!!err).toBe(false)
+
+    it 'close the project (means moving it to longterm storage)', (done) ->
+        project.ensure_closed
+            cb : done
+        project.once 'change', ->
+            project._query
+                jsonb_merge :
+                    state          : {state:'closed', time:new Date(), error:undefined}
+                    action_request : {finished:new Date()}
+                cb          : (err) ->
+                    expect(!!err).toBe(false)
+
+    it 'move gives an error', (done) ->
+        project.move
+            cb : (err) ->
+                expect(err).toBe("move makes no sense for Kubernetes")
+                done()
+
+
+    it 'close the project client (i.e., free up usage)', ->
+        project.close()
+        expect(project.synctable).toBe(undefined)
+
+
+
+
+
+
+
+

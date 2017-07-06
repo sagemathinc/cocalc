@@ -76,6 +76,14 @@ class Project extends EventEmitter
     getIn: (v) =>
         return @get().getIn(v)
 
+    _action_request: =>
+        x = @get('action_request')?.toJS()
+        if x.started?
+            x.started = new Date(x.started)
+        if x.finished?
+            x.finished = new Date(x.finished)
+        return x
+
     dbg: (f) =>
         if not @logger?
             return ->
@@ -117,11 +125,11 @@ class Project extends EventEmitter
             action    : required    # action to do
             goal      : required    # wait until goal(project) is true, where project is immutable js obj
             timeout_s : 300         # timeout in seconds (only used for wait)
-            cb        : required
+            cb        : undefined
         dbg = @dbg("_action('#{opts.action}')")
         if opts.goal(@get())
             dbg("condition already holds; nothing to do.")
-            opts.cb()
+            opts.cb?()
             return
 
         if opts.goal?
@@ -141,6 +149,7 @@ class Project extends EventEmitter
                 action_request :
                     action  : opts.action
                     started : new Date()
+                    finished : undefined
             cb          : (err) =>
                 if err
                     dbg('action request failed')
@@ -173,7 +182,17 @@ class Project extends EventEmitter
         @_action
             action : 'start'
             goal   : (project) -> project.getIn(['state', 'state']) == 'running'
-            cb     : cb
+            cb     : opts.cb
+
+    stop: (opts) =>
+        opts = defaults opts,
+            cb     : undefined
+        dbg = @dbg("stop")
+        dbg()
+        @_action
+            action : 'stop'
+            goal   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
+            cb     : opts.cb
 
     restart: (opts) =>
         opts = defaults opts,
@@ -199,7 +218,7 @@ class Project extends EventEmitter
         @_action
             action : 'close'
             goal   : (project) -> project.getIn(['state', 'state']) == 'closed'
-            cb     : cb
+            cb     : opts.cb
 
     move: (opts) =>
         opts = defaults opts,
@@ -207,17 +226,6 @@ class Project extends EventEmitter
             force  : false     # ignored for now
             cb     : required
         opts.cb("move makes no sense for Kubernetes")
-
-    stop: (opts) =>
-        opts = defaults opts,
-            cb     : required
-        dbg = @dbg("stop")
-        dbg()
-        @_action
-            action : 'stop'
-            wait   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
-            cb     : cb
-
 
     address: (opts) =>
         opts = defaults opts,
@@ -243,9 +251,7 @@ class Project extends EventEmitter
             cb            : undefined # ignored
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg()
-        opts.cb()
-
-
+        opts.cb?()
 
     copy_path: (opts) =>
         opts = defaults opts,
@@ -258,7 +264,7 @@ class Project extends EventEmitter
             exclude_history   : false
             timeout           : 5*60
             bwlimit           : undefined
-            cb                : required
+            cb                : undefined
         dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
@@ -274,7 +280,7 @@ class Project extends EventEmitter
             time      : false        # sort by timestamp, with newest first?
             start     : 0
             limit     : -1
-            cb        : required
+            cb        : undefined
         dbg = @dbg("directory_listing")
         dbg()
         opts.cb?("directory_listing -- not implemented")
@@ -283,7 +289,7 @@ class Project extends EventEmitter
         opts = defaults opts,
             path    : required
             maxsize : 3000000    # maximum file size in bytes to read
-            cb      : required   # cb(err, Buffer)
+            cb      : undefined   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file or directory from disk")  # directories get zip'd
         opts.cb?("read_file -- not implemented")
