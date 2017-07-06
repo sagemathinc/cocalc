@@ -6,6 +6,6 @@
 # This is what might go in crontab on one of the database nodes
 # */5 * * * * $HOME/cocalc/src/scripts/update_stats > $HOME/.update_stats.log 2>$HOME/.update_stats.err
 
-cd $HOME/smc/src
+cd $HOME/cocalc/src  # BAD..., but this is *temporary* :-(
 . smc-env
 hub --update_stats --database_nodes=$PGHOST
