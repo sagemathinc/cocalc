@@ -502,7 +502,7 @@ class ProjectsStore extends Store
                     return pay
 
     is_deleted: (project_id) =>
-        return !!@getIn(['project_map', project_id, 'deleted']) #getIn returns nested data form list pointers. e.g. 'project_map' points to project_id, which points to 'deleted. 
+        return !!@getIn(['project_map', project_id, 'deleted']) 
 
     is_hidden_from: (project_id, account_id) =>
         return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
@@ -525,6 +525,7 @@ class ProjectsStore extends Store
             return 0
         others = []
         for i in v
+            # deleted projects have a map node " 'deleted': true' standard projects do not have this property
             if (not (i.get('deleted') == true )) and (show_hidden or not i.get('users').get(account_id).get('hide'))
                 others.push(id:i.get('project_id'), title:i.get('title'))
         list = list.concat others
