@@ -64,6 +64,9 @@ class Project extends EventEmitter
     get: =>
         return @synctable.get(@project_id)
 
+    getIn: (v) =>
+        return @get().getIn(v)
+
     dbg: (f) =>
         if not @logger?
             return ->
@@ -106,8 +109,8 @@ class Project extends EventEmitter
     _action: (opts) =>
         opts = defaults opts,
             action    : required    # action to do
-            goal      : required
-            timeout_s : 300         # timeout in seconds (only used for wait)
+            goal      : required    # wait until goal(project) is true, where project is immutable js obj
+            timeout_s : 300         # timeout in seconds (only used for wait)
             cb        : required
         dbg = @dbg("_action('#{opts.action}')")
         if opts.goal(@get())
@@ -127,8 +130,8 @@ class Project extends EventEmitter
 
         dbg("request action to happen")
         @client.database._query
-            table       : 'projects'
-            jsonb_set   :
+            table     : 'projects'
+            jsonb_set :
                 action_request :
                     action  : opts.action
                     started : new Date()
@@ -147,7 +150,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'open'
-            wait   : (project) -> (project.state?.state ? 'closed') != 'closed'
+            goal   : (project) -> (project.getIn(['state', 'state']) ? 'closed') != 'closed'
             cb     : cb
 
     start: (opts) =>
@@ -158,7 +161,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'start'
-            wait   : (project) -> project.state?.state == 'running'
+            goal   : (project) -> project.getIn(['state', 'state']) == 'running'
             cb     : cb
 
     restart: (opts) =>
@@ -167,11 +170,12 @@ class Project extends EventEmitter
             cb         : undefined
         dbg = @dbg("restart")
         dbg()
-        @_action
-            action : 'restart'
-            goal   : (project) -> project.action_request?.finished
-            force  : true
-            cb     : opts.cb
+        async.series([
+            (cb) =>
+                @stop(cb:cb)
+            (cb) =>
+                @start(cb:cb)
+        ], (err) => opts.cb?(err))
 
     ensure_running: (opts) =>
         @start(opts)  # it's just the same
@@ -183,7 +187,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'close'
-            wait   : (project) -> project.state?.state == 'closed'
+            goal   : (project) -> project.getIn(['state', 'state']) == 'closed'
             cb     : cb
 
     move: (opts) =>
@@ -200,7 +204,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'stop'
-            wait   : (project) -> project.state?.state in ['opened', 'closed']
+            wait   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
             cb     : cb
 
     # this is a no-op for Kubernetes; this was only used for serving
@@ -221,8 +225,10 @@ class Project extends EventEmitter
         address =
             host         : @host
             port         : LOCAL_HUB_PORT
-            secret_token : 'secret'   # TODO
+            secret_token : @getIn(['status', 'secret_token'])
         opts.cb(undefined, address)
+
+        
 
     copy_path: (opts) =>
         opts = defaults opts,
