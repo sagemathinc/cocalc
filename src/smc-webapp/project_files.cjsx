@@ -1968,7 +1968,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3>
+        <Col sm=3 style={whiteSpace: 'nowrap'}>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
