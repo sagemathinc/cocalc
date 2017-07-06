@@ -44,7 +44,7 @@ markdown          = require('./markdown')
 
 underscore = require('underscore')
 
-{IS_MOBILE} = require('./feature')
+{IS_TOUCH} = require('./feature')
 
 misc_page = require('./misc_page')
 templates = $(".webapp-tasks-templates")
@@ -979,6 +979,10 @@ class TaskList
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
             extraKeys["Esc"] = stop_editing
+
+        if IS_TOUCH
+            {extra_alt_keys} = require('mobile/codemirror')
+            extra_alt_keys(extraKeys, @, editor_settings)
 
         opts =
             mode                : 'gfm2'

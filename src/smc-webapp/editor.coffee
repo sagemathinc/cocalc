@@ -67,6 +67,7 @@ sagews   = require('./sagews')
 printing = require('./printing')
 
 copypaste = require('./copy-paste-buffer')
+{extra_alt_keys} = require('mobile/codemirror')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -805,6 +806,7 @@ class CodeMirrorEditor extends FileEditor
             #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
 
             "Cmd-S"        : (editor)   => @click_save_button()
+            "Alt-S"        : (editor)   => @click_save_button()
 
             "Ctrl-L"       : (editor)   => @goto_line(editor)
             "Cmd-L"        : (editor)   => @goto_line(editor)
@@ -817,6 +819,7 @@ class CodeMirrorEditor extends FileEditor
 
             "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
             "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
+
             "Shift-Cmd-."  : (editor)   => @change_font_size(editor, +1)
             "Shift-Cmd-,"  : (editor)   => @change_font_size(editor, -1)
 
@@ -833,7 +836,9 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-Space"   : "autocomplete"
 
-            #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+        if feature.IS_TOUCH
+            # Better more external keyboard friendly shortcuts, motivated by iPad.
+            extra_alt_keys(extraKeys, @, opts)
 
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
@@ -904,6 +909,7 @@ class CodeMirrorEditor extends FileEditor
 
             if opts.code_folding
                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
+                extraKeys["Alt-Q"]  = (cm) -> cm.foldCodeSelectionAware()
                 options.foldGutter  = true
                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
@@ -937,6 +943,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+        #window.cm = @codemirror
 
         elt1 = @element.find(".webapp-editor-textarea-1")
 
@@ -1203,8 +1210,10 @@ class CodeMirrorEditor extends FileEditor
                 @goto_line(cm)
             when 'copy'
                 @copy(cm)
+                cm.focus()
             when 'paste'
                 @paste(cm)
+                cm.focus()
             when 'sagews2pdf'
                 @print(sagews2html = false)
             when 'print'
@@ -1330,6 +1339,12 @@ class CodeMirrorEditor extends FileEditor
         if not cm?
             return
         copypaste.set_buffer(cm.getSelection())
+
+    cut: (cm) =>
+        if not cm?
+            return
+        copypaste.set_buffer(cm.getSelection())
+        cm.replaceSelection('')
 
     paste: (cm) =>
         if not cm?

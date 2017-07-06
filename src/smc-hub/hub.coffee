@@ -416,29 +416,36 @@ connect_to_database = (opts) ->
     database.connect(cb:opts.cb)
 
 # client for compute servers
+# The name "compute_server" below is CONFUSING; this is really a client for a
+# remote server.
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
-    require('./compute-client.coffee').compute_server
-        database : database
-        dev      : program.dev
-        single   : program.single
-        base_url : BASE_URL
-        cb       : (err, x) ->
-            if not err
-                winston.debug("compute server created")
-            else
-                winston.debug("FATAL ERROR creating compute server -- #{err}")
-            compute_server = x
-            database.compute_server = compute_server
-            # This is used by the database when handling certain writes to make sure
-            # that the there is a connection to the corresponding project, so that
-            # the project can respond.
-            database.ensure_connection_to_project = (project_id) ->
-                local_hub_connection.connect_to_project(project_id, database, compute_server)
-
+    f = (err, x) ->
+        if not err
+            winston.debug("compute server created")
+        else
+            winston.debug("FATAL ERROR creating compute server -- #{err}")
             cb?(err)
+            return
+        compute_server = x
+        database.compute_server = compute_server
+        # This is used by the database when handling certain writes to make sure
+        # that the there is a connection to the corresponding project, so that
+        # the project can respond.
+        database.ensure_connection_to_project = (project_id) ->
+            local_hub_connection.connect_to_project(project_id, database, compute_server)
+        cb?()
 
+    if program.kucalc
+        f(undefined, require('./kucalc/compute-client').compute_server(database, winston))
+    else
+        require('./compute-client').compute_server
+            database : database
+            dev      : program.dev
+            single   : program.single
+            base_url : BASE_URL
+            cb       : f
 
 update_primus = (cb) ->
     misc_node.execute_code
@@ -674,7 +681,6 @@ command_line = () ->
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-        .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
         .option('--database_nodes <string,string,...>', "database address (default: '#{default_db}')", String, default_db)
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
@@ -688,6 +694,7 @@ command_line = () ->
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)

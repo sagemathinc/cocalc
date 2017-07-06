@@ -279,11 +279,11 @@ class ProjectAndUserTracker extends EventEmitter
 
     # add and remove user from a project, maintaining our data structures (@_accounts, @_projects, @_collabs)
     _add_user_to_project: (account_id, project_id) =>
-        if not account_id? or not project_id?
-            # nothing to do -- better than crashing the server...
-            return
+        dbg = @_dbg('_add_user_to_project')
         if account_id?.length != 36 or project_id?.length != 36
-            throw Error("invalid account_id (='#{account_id}') or project_id (='#{project_id}')")
+            # nothing to do -- better than crashing the server...
+            dbg("WARNING: invalid account_id (='#{account_id}') or project_id (='#{project_id}')")
+            return
         if @_projects[account_id]?[project_id]
             return
         @emit 'add_user_to_project', {account_id:account_id, project_id:project_id}

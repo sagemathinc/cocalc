@@ -21,7 +21,7 @@
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE, isMobile} = require('./feature')
+{IS_MOBILE, IS_TOUCH, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # CoCalc libraries
@@ -142,7 +142,7 @@ Message = rclass
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
-                if IS_MOBILE
+                if IS_TOUCH
                     text = "You are now editing ..."
                 else
                     text = "You are now editing ... Shift+Enter to submit changes."
@@ -268,7 +268,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} className="smc-chat-message" bsSize="small" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
-                    {editor_chat.render_timeago(@props.message)}
+                    {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
                 {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input()   if is_editing(@props.message, @props.account_id)}

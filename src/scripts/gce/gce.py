@@ -181,21 +181,21 @@ class GCE(object):
 
         v.append(('postgres', 0))
 
-        for i in [0,1,2,3,4,5]:
-            v.append(('db', i))
+        #for i in [0,1,2,3,4,5]:
+        #    v.append(('db', i))
 
         #for name in self.dev_instances():
         #    node = name.split('v')[1]
         #    v.append(('dev', node))
 
-        for i in [0,1,2]:
-            v.append(('web',i))
+        #for i in [0,1,2]:
+        #    v.append(('web',i))
         v.append(('admin',0))
         log("snapshotting storage machine boot images")
         for i in [0,1,2,3,4,5]:
             v.append(('storage', i))
         log("snapshotting compute machine boot images")
-        for i in [0,1,2,3,4,5,6,7]:
+        for i in [0,1,2,3,4,5,6,7,8]:
             v.append(('compute', i))
 
         errors = []
