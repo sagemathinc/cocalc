@@ -438,7 +438,7 @@ init_compute_server = (cb) ->
         cb?()
 
     if program.kucalc
-        f(undefined, require('./kucalc/compute-client').compute_server(database, winston))
+        f(undefined, require('./kucalc/compute-client').compute_client(database, winston))
     else
         require('./compute-client').compute_server
             database : database

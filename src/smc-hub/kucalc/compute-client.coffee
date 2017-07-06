@@ -24,7 +24,7 @@ async = require('async')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-exports.compute_server = (db, logger) ->
+exports.compute_client = (db, logger) ->
     return new Client(db, logger)
 
 class Dbg extends EventEmitter
@@ -32,6 +32,8 @@ class Dbg extends EventEmitter
 class Client
     constructor: (@database, @logger) ->
         @dbg("constructor")()
+        if not @database?
+            throw Error("database must be defined")
 
     dbg: (f) =>
         if not @logger?
