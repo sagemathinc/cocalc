@@ -15,15 +15,18 @@ What this modules should acomplish:
 
 ###
 
-LOCAL_HUB_PORT = 6000
-RAW_PORT       = 6001
+LOCAL_HUB_PORT      = 6000
+RAW_PORT            = 6001
+SAGE_SERVER_PORT    = 6002
+CONSOLE_SERVER_PORT = 6003
 
 {EventEmitter} = require('events')
+async = require('async')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-exports.compute_server = (db, logger) ->
+exports.compute_client = (db, logger) ->
     return new Client(db, logger)
 
 class Dbg extends EventEmitter
@@ -31,6 +34,8 @@ class Dbg extends EventEmitter
 class Client
     constructor: (@database, @logger) ->
         @dbg("constructor")()
+        if not @database?
+            throw Error("database must be defined")
 
     dbg: (f) =>
         if not @logger?
@@ -43,12 +48,41 @@ class Client
             project_id : required
             cb         : required
         @dbg("project")("project_id=#{opts.project_id}")
-        opts.cb(undefined, new Project(@, opts.project_id, @logger))
+        @database.synctable
+            table    : 'projects'
+            columns  : ['state', 'status', 'action_request']
+            where    :
+                project_id : opts.project_id
+            cb       : (err, synctable) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, new Project(@, opts.project_id, synctable, @logger))
 
 class Project extends EventEmitter
-    constructor: (@compute_server, @project_id, @logger) ->
+    constructor: (@client, @project_id, @synctable, @logger) ->
         @host = "project-#{@project_id}"
         @dbg('constructor')
+        @synctable.on 'change', => @emit('change')
+
+    # Get the current data about the project from the database.
+    get: (field) =>
+        t = @synctable.get(@project_id)
+        if field?
+            return t?.get(field)
+        else
+            return t
+
+    getIn: (v) =>
+        return @get().getIn(v)
+
+    _action_request: =>
+        x = @get('action_request')?.toJS()
+        if x.started?
+            x.started = new Date(x.started)
+        if x.finished?
+            x.finished = new Date(x.finished)
+        return x
 
     dbg: (f) =>
         if not @logger?
@@ -56,93 +90,142 @@ class Project extends EventEmitter
         else
             return (args...) => @logger.debug("kucalc.Project('#{@project_id}').#{f}", args...)
 
-    free: () =>
+    close: () =>
+        @synctable?.close()
+        delete @synctable
+        delete @logger
+        delete @project_id
+        delete @compute_server
+        delete @host
 
     state: (opts) =>
         opts = defaults opts,
-            force  : false
-            update : false
+            force  : false  # ignored
+            update : false  # ignored
             cb     : required     # cb(err, {state:?, time:?, error:?})
         dbg = @dbg("state")
         dbg()
-        opts.cb(undefined, {state:'running', time:new Date()})
+        opts.cb(undefined, @get('state')?.toJS())
 
     status: (opts) =>
         opts = defaults opts,
             cb     : required
         dbg = @dbg("status")
         dbg()
-        status =
-            "sage_server.pid"     : false
-            "secret_token"        : 'secret'  # TODO
+        status = @get('status')?.toJS() ? {}
+        misc.merge status,  # merge in canonical information
             "local_hub.port"      : LOCAL_HUB_PORT
             "raw.port"            : RAW_PORT
-            "sage_server.port"    : false
-            "local_hub.pid"       : 5     # TODO
-            "console_server.pid"  : false
-            "console_server.port" : false
-        status.quotas = {}
-        status.host = status.ssh = 'host'
+            "sage_server.port"    : SAGE_SERVER_PORT
+            "console_server.port" : CONSOLE_SERVER_PORT
         opts.cb(undefined, status)
+
+    _action: (opts) =>
+        opts = defaults opts,
+            action    : required    # action to do
+            goal      : required    # wait until goal(project) is true, where project is immutable js obj
+            timeout_s : 300         # timeout in seconds (only used for wait)
+            cb        : undefined
+        dbg = @dbg("_action('#{opts.action}')")
+        if opts.goal(@get())
+            dbg("condition already holds; nothing to do.")
+            opts.cb?()
+            return
+
+        if opts.goal?
+            dbg("start waiting for goal to be satisfied")
+            @synctable.wait
+                until   : () =>
+                    return opts.goal(@get())
+                timeout : opts.timeout_s
+                cb      : (err) =>
+                    dbg("done waiting for goal #{err}")
+                    opts.cb?(err)
+                    delete opts.cb
+
+        dbg("request action to happen")
+        @_query
+            jsonb_set :
+                action_request :
+                    action  : opts.action
+                    started : new Date()
+                    finished : undefined
+            cb          : (err) =>
+                if err
+                    dbg('action request failed')
+                    opts.cb?(err)
+                    delete opts.cb
+                else
+                    dbg("action requested")
+
+    _query: (opts) =>
+        opts.query = 'UPDATE projects'
+        opts.where = {'project_id  = $::UUID' : @project_id}
+        @client.database._query(opts)
 
     open: (opts) =>
         opts = defaults opts,
-            cb   : required
+            cb   : undefined
         dbg = @dbg("open")
         dbg()
-        opts.cb()
+        @_action
+            action : 'open'
+            goal   : (project) => (project.getIn(['state', 'state']) ? 'closed') != 'closed'
+            cb     : opts.cb
 
     start: (opts) =>
         opts = defaults opts,
-            set_quotas : true   # if true, also sets all quotas
-            cb         : required
+            set_quotas : true    # ignored
+            cb         : undefined
         dbg = @dbg("start")
         dbg()
-        opts.cb()
+        @_action
+            action : 'start'
+            goal   : (project) -> project.getIn(['state', 'state']) == 'running'
+            cb     : opts.cb
+
+    stop: (opts) =>
+        opts = defaults opts,
+            cb     : undefined
+        dbg = @dbg("stop")
+        dbg()
+        @_action
+            action : 'stop'
+            goal   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
+            cb     : opts.cb
 
     restart: (opts) =>
         opts = defaults opts,
-            set_quotas : true
-            cb         : required
+            set_quotas : true    # ignored
+            cb         : undefined
         dbg = @dbg("restart")
         dbg()
-        opts.cb()
+        async.series([
+            (cb) =>
+                @stop(cb:cb)
+            (cb) =>
+                @start(cb:cb)
+        ], (err) => opts.cb?(err))
 
     ensure_running: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        dbg = @dbg("ensure_running")
-        dbg()
-        opts.cb()
+        @start(opts)  # it's just the same
 
     ensure_closed: (opts) =>
         opts = defaults opts,
             cb     : undefined
         dbg = @dbg("ensure_closed")
         dbg()
-        opts.cb?("ensure_closed -- not implemented")
+        @_action
+            action : 'close'
+            goal   : (project) -> project.getIn(['state', 'state']) == 'closed'
+            cb     : opts.cb
 
     move: (opts) =>
         opts = defaults opts,
-            target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
+            target : undefined # ignored
             force  : false     # ignored for now
             cb     : required
-        opts.cb("move make no sense for Kubernetes")
-
-    stop: (opts) =>
-        opts = defaults opts,
-            cb     : required
-        dbg = @dbg("stop")
-        dbg()
-        opts.cb()
-
-    save: (opts) =>
-        opts = defaults opts,
-            min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
-            cb            : undefined
-        dbg = @dbg("save(min_interval:#{opts.min_interval})")
-        dbg()
-        opts.cb()
+        opts.cb("move makes no sense for Kubernetes")
 
     address: (opts) =>
         opts = defaults opts,
@@ -152,8 +235,23 @@ class Project extends EventEmitter
         address =
             host         : @host
             port         : LOCAL_HUB_PORT
-            secret_token : 'secret'   # TODO
+            secret_token : @getIn(['status', 'secret_token'])
         opts.cb(undefined, address)
+
+    ###
+    LATER
+    ###
+
+
+    # this is a no-op for Kubernetes; this was only used for serving
+    # some static websites, e.g., wstein.org, so may evolve into that...
+    save: (opts) =>
+        opts = defaults opts,
+            min_interval  : undefined # ignored
+            cb            : undefined # ignored
+        dbg = @dbg("save(min_interval:#{opts.min_interval})")
+        dbg()
+        opts.cb?()
 
     copy_path: (opts) =>
         opts = defaults opts,
@@ -166,7 +264,7 @@ class Project extends EventEmitter
             exclude_history   : false
             timeout           : 5*60
             bwlimit           : undefined
-            cb                : required
+            cb                : undefined
         dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
@@ -182,7 +280,7 @@ class Project extends EventEmitter
             time      : false        # sort by timestamp, with newest first?
             start     : 0
             limit     : -1
-            cb        : required
+            cb        : undefined
         dbg = @dbg("directory_listing")
         dbg()
         opts.cb?("directory_listing -- not implemented")
@@ -191,7 +289,7 @@ class Project extends EventEmitter
         opts = defaults opts,
             path    : required
             maxsize : 3000000    # maximum file size in bytes to read
-            cb      : required   # cb(err, Buffer)
+            cb      : undefined   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file or directory from disk")  # directories get zip'd
         opts.cb?("read_file -- not implemented")

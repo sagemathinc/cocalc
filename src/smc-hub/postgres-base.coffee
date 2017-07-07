@@ -79,9 +79,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                  # identical permission checks in a single user query.
             cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
+            ensure_exists : true # ensure database exists on startup (runs psql in a shell)
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
+        @_ensure_exists = opts.ensure_exists
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
         i = opts.host.indexOf(':')
@@ -172,8 +174,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
-                dbg("first make sure db exists")
-                @_ensure_database_exists(cb)
+                if @_ensure_exists
+                    dbg("first make sure db exists")
+                    @_ensure_database_exists(cb)
+                else
+                    dbg("assuming database exists")
+                    cb()
             (cb) =>
                 dbg("create client and start connecting...")
                 client = new pg.Client
