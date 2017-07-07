@@ -17,12 +17,15 @@ describe 'log_client_error', ->
     logged_event = 'error'
     logged_error = 'API error FOO'
 
-    it "logs an error", ->
+    it "logs an error", (done) ->
         api.call
             event : 'log_client_error'
             body  :
                 error   : logged_error
-            cb    : ->
+            cb    : (err, resp) ->
+                expect(resp?.event).toBe('success')
+                done(err)
+
     it 'gets error log using database', (done) ->
         api.db.get_client_error_log
             event : logged_event
