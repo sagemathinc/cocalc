@@ -6,7 +6,7 @@
 
 # Sibling Libraries
 util = require('./util')
-store = require('./store')
+{get_store_def} = require('./store')
 {ChatActions} = require('./actions')
 {ChatRoom} = require('../smc_chat')
 
@@ -16,7 +16,7 @@ exports.init = init = (path, redux, project_id) ->
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(store.create(name))
+    store   = redux.createStore(get_store_def(name))
 
     syncdb = webapp_client.sync_db
         project_id   : project_id
@@ -34,7 +34,7 @@ exports.init = init = (path, redux, project_id) ->
         syncdb.on('change', actions._syncdb_change)
     return name
 
-remove = (path, redux, project_id) ->
+exports.remove = remove = (path, redux, project_id) ->
     name = util.generate_name(project_id, path)
     actions = redux.getActions(name)
     actions?.syncdb?.close()

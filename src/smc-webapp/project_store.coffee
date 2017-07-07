@@ -385,7 +385,7 @@ class ProjectActions extends Actions
                             index = open_files_order.indexOf(opts.path)
                             if opts.chat
                                 require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
-                                # MEMORY LEAK. This store is never closed. See close_file
+                                # Closed by require('./project_file').remove
 
                             if index == -1
                                 index = open_files_order.size
@@ -428,7 +428,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
-        require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+        require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open

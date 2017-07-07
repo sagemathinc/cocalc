@@ -5,7 +5,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {types} = misc
 
-exports.create = (name) ->
+exports.get_store_def = (name) ->
     name: name
 
     stateTypes:
