@@ -659,7 +659,16 @@ class Console extends EventEmitter
             @_input_line_is_focused = false
 
         submit_line = () =>
-            @session?.write_data(input_line.val())
+            x = input_line.val()
+            # Apple text input replaces single and double quotes by some stupid
+            # fancy unicode, which is incompatible with most uses in the terminal.
+            # Here we switch it back.  (Note: not doing exactly this renders basically all
+            # dev related tools on iPads very frustrating.  Not so, CoCalc :-)
+            x = misc.replace_all(x, '“','"')
+            x = misc.replace_all(x, '”','"')
+            x = misc.replace_all(x, '‘',"'")
+            x = misc.replace_all(x, '’',"'")
+            @session?.write_data(x)
             input_line.val('')
 
         input_line.on 'keydown', (e) =>
@@ -676,6 +685,11 @@ class Console extends EventEmitter
             #@focus()
             submit_line()
             @session?.write_data("\n")
+            return false
+
+        @element.find(".webapp-console-submit-submit").click () =>
+            #@focus()
+            submit_line()
             return false
 
         @element.find(".webapp-console-submit-tab").click () =>
