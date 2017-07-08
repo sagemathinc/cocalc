@@ -147,8 +147,9 @@ class Project extends EventEmitter
         @_query
             jsonb_set :
                 action_request :
-                    action  : opts.action
-                    started : new Date()
+                    action   : opts.action
+                    time     : new Date()
+                    started  : undefined
                     finished : undefined
             cb          : (err) =>
                 if err
