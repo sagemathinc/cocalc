@@ -232,12 +232,24 @@ class Project extends EventEmitter
         opts = defaults opts,
             cb : required
         dbg = @dbg("address")
-        dbg()
-        address =
-            host         : @host
-            port         : LOCAL_HUB_PORT
-            secret_token : @getIn(['status', 'secret_token'])
-        opts.cb(undefined, address)
+        dbg('first ensure is running')
+        @ensure_running
+            cb : (err) ->
+                if err
+                    dbg('error starting it up')
+                    opts.cb(err)
+                    return
+                dbg('it is running')
+                address =
+                    host         : @host
+                    port         : LOCAL_HUB_PORT
+                    secret_token : @getIn(['status', 'secret_token'])
+                if not address.secret_token
+                    err = 'BUG -- running, but no secret_token!'
+                    dbg(err)
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, address)
 
     ###
     LATER
