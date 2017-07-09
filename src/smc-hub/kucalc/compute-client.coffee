@@ -234,7 +234,7 @@ class Project extends EventEmitter
         dbg = @dbg("address")
         dbg('first ensure is running')
         @ensure_running
-            cb : (err) ->
+            cb : (err) =>
                 if err
                     dbg('error starting it up')
                     opts.cb(err)
