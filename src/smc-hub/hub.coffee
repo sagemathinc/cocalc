@@ -601,7 +601,7 @@ exports.start_server = start_server = (cb) ->
                         host     : program.host
                         cb       : cb
                 (cb) ->
-                    if program.dev or program.update
+                    if (program.dev or program.update) and not program.kucalc
                         update_primus(cb)
                     else
                         cb()
