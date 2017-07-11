@@ -2090,6 +2090,40 @@ Get users, given the project id.
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 ```
 
+
+Show project upgrades. Like the preceding example, this is a query to get users.
+In this example, there are no collaborators, but upgrades have been applied to the
+selected project. Upgrades do not show if none are applied.
+
+The project shows the following upgrades:
+- cpu cores:       1
+- memory:          3000 MB
+- idle timeout:    24 hours (86400 seconds)
+- internet access: true 
+- cpu shares:      3 (stored in database as 768 = 3 * 256)
+- disk space:      27000 MB
+- member hosting:  true
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                            "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{
+                                         "group":"owner",
+                                         "upgrades":{"cores":1,
+                                                     "memory":3000,
+                                                     "mintime":86400,
+                                                     "network":1,
+                                                     "cpu_shares":768,
+                                                     "disk_quota":27000,
+                                                     "member_host":1}}}}},
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
+```
+
 Examples of _set_ query.
 
 Set title and description for a project, given the project id.
@@ -2121,7 +2155,32 @@ Make a path public (publish a file).
 
 ```
 
-Information on which fields are gettable and settable in the database tables
+Add an upgrade to a project. In the "get" example above showing project upgrades,
+change cpu upgrades from 3 to 4. The `users` object is returned as
+read, with `cpu_shares` increased to 1024 = 4 * 256.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
+                              "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
+                                           "group":"owner", \\
+                                           "upgrades: {"cores":1, \\
+                                                       "memory":3000, \\
+                                                       "mintime":86400, \\
+                                                       "network":1, \\
+                                                       "cpu_shares":1024, \\
+                                                       "disk_quota":27000, \\
+                                                       "member_host":1}}}}}}' \\
+    https://cocalc.com/api/v1/query
+    ==> {"event":"query",
+         "query":{},
+         "multi_response":false,
+         "id":"ec822d6f-f9fe-443d-9845-9cd5f68bac20"}
+```
+
+
+__NOTE:__ Information on which fields are gettable and settable in the database tables
 via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
 https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
 
