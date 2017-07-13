@@ -893,7 +893,7 @@ exports.commands =
         sagemathreference:
             url: 'http://doc.sagemath.org/html/en/reference/index.html'
         sagemathkeyboardshortcuts:
-            url: 'http://doc.sagemath.org/html/en/reference/notebook/sagenb/notebook/config.html'
+            url: 'https://github.com/sagemathinc/cocalc/wiki/Keyboard-Shortcuts'
         help:
             wrap:
                 left  : "help("
