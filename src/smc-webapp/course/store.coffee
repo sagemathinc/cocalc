@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -72,8 +72,8 @@ exports.CourseStore = class CourseStore extends Store
         return @getIn(['settings', 'allow_collabs']) ? true
 
     get_email_invite: =>
-        host = window.location.hostname
-        @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
+        {SITE_NAME, DOMAIN_NAME} = require('smc-util/theme')
+        @getIn(['settings', 'email_invite']) ? "We will use [#{SITE_NAME}](#{DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
 
     get_activity: =>
         @get('activity')
