@@ -20,7 +20,7 @@ Ansi = require('ansi-to-react')
 {javascript_eval} = require('./javascript-eval')
 
 OUT_STYLE =
-    whiteSpace    : 'pre-line'
+    whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
     fontFamily    : 'monospace'
     paddingTop    : '5px'
