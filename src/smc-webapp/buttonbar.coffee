@@ -892,6 +892,8 @@ exports.commands =
             url: 'http://doc.sagemath.org/html/en/tutorial/index.html'
         sagemathreference:
             url: 'http://doc.sagemath.org/html/en/reference/index.html'
+        sagemathkeyboardshortcuts:
+            url: 'http://doc.sagemath.org/html/en/reference/notebook/sagenb/notebook/config.html'
         help:
             wrap:
                 left  : "help("
@@ -1573,7 +1575,8 @@ initialize_sage_python_r_toolbar = () ->
             ["SageMath Documentation"],
             ["Overview", "#sagemathdoc"],
             ["Tutorial", "#sagemathtutorial"],
-            ["Reference", "#sagemathreference"]
+            ["Reference", "#sagemathreference"],
+            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"]
         ]]
     add_menu(system_bar, help_list)
     ## MAYBE ADD THESE in another menu:
