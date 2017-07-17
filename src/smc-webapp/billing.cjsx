@@ -1296,6 +1296,20 @@ FAQS =
             instructions.   We will then respond with a custom invoice for your purchase that
             satisfies your unique requirements.
            </span>
+    course_required_plan:
+        q: <span>Am I <strong>required to pay</strong> for conducting a course?</span>
+        a: <span>
+            <strong>No.</strong> You can use all course related functionalities under a free plan.
+           </span>
+    student_files:
+        q: <span>What happens with the <strong>files of my students</strong> after the course finishes?</span>
+        a: <span>
+            Students will <strong>continue to have access</strong> to their files after the course,
+            regardless of running the course under a paid plan or for free.
+            Their projects remain accessible,
+            they can (optionally) upgrade their projects with their own subscriptions,
+            and they can also download all files to their local computer.
+           </span>
     close_browser:
         q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
         a: <span>
@@ -1332,6 +1346,28 @@ FAQS =
             We care about your data, and also make offsite backups periodically to encrypted USB
             drives that are not physically connected to the internet.
            </span>
+    download_everything:
+        q: <span>How can I <strong>download my project files</strong>?</span>
+        a: <ol>
+             <li>
+                 You can download each file individually via the "Files" interface.
+                 Select the file and click the "Download" button.
+             </li>
+             <li>
+                 It is also possible to create an archive for a directory or all files.
+                 For that, create a "Terminal"-file and issue one of these commands:
+                 <ul>
+                  <li>
+                      ZIP archive (Windows): <code>zip -r9 "[filename].zip" [directory-name...]</code>
+                  </li>
+                  <li>
+                      Tarball (Unix-like): <code>tar cjvf "[filename].tar.bz2" [directory-name...]</code>
+                  </li>
+                 </ul>
+                 (Replace <code>[filename]</code> with the actual filename and <code>[directory-name]</code> by one or more filenames or directory names.)
+                 Afterwards, download the archive as explained above.
+             </li>
+           </ol>
 
 
 FAQ = exports.FAQ = rclass
