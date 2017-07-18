@@ -668,6 +668,8 @@ class Console extends EventEmitter
             x = misc.replace_all(x, '”','"')
             x = misc.replace_all(x, '‘',"'")
             x = misc.replace_all(x, '’',"'")
+            x = misc.replace_all(x, '–', "--")
+            x = misc.replace_all(x, '—', "---")
             @session?.write_data(x)
             input_line.val('')
 
@@ -726,6 +728,11 @@ class Console extends EventEmitter
             #@focus()
             submit_line()
             @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
+
+        @element.find(".webapp-console-submit-ctrl-b").show().click (e) =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:66, shiftKey:false, ctrlKey:true)
 
         ###
         @element.find(".webapp-console-up").click () ->
