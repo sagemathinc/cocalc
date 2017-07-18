@@ -16,7 +16,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Ubuntu software that are used by SMC (latex, pandoc, sage, jupyter)
 RUN \
   apt-get update && \
-  apt-get install -y software-properties-common texlive texlive-latex-extra texlive-xetex tmux flex bison libreadline-dev htop screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev
+  apt-get install -y software-properties-common texlive texlive-latex-extra texlive-xetex tmux flex bison libreadline-dev htop screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev graphviz smem
 
 # Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
