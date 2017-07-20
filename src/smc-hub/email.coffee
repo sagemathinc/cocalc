@@ -23,6 +23,9 @@
 # Sending emails
 #########################################
 
+BANNED_DOMAINS = {'qq.com':true}
+
+
 fs           = require('fs')
 async        = require('async')
 winston      = require('winston') # logging -- https://github.com/flatiron/winston
@@ -39,6 +42,13 @@ misc         = require('smc-util/misc')
 {SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL} = require('smc-util/theme')
 
 email_server = undefined
+
+exports.is_banned = is_banned = (address) ->
+    i = address.indexOf('@')
+    if i == -1
+        return false
+    x = address.slice(i+1).toLowerCase()
+    return !! BANNED_DOMAINS[x]
 
 # here's how I test this function:
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
@@ -63,6 +73,11 @@ exports.send_email = send_email = (opts={}) ->
     else
         dbg = (m) ->
     dbg(opts.body)
+
+    if is_banned(opts.to) or is_banned(opts.from)
+        dbg("WARNING: attempt to send banned email")
+        opts.cb?('banned domain')
+        return
 
     disabled = false
     async.series([
