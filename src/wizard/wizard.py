@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 #####################################################################################
 #                 SMC Wizard - Documentation Files Compiler                         #
 #                                                                                   #
-#                 Copyright (C) 2015, SageMath, Inc.                                #
+#                Copyright (C) 2015 -- 2017, SageMath, Inc.                         #
 #                                                                                   #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+  #
 #                                                                                   #
@@ -112,19 +112,17 @@ def wizard_data(input_dir, output_fn):
                     titles.add(title)
                     processed = True
 
+                # if False, malformatted document
                 if not processed: # bad document
                     raise Exception("This document is not well formatted (wrong keys, etc.)\n%s" % doc)
 
-    #from datetime import datetime
-    #wizard["timestamp"] = str(datetime.utcnow())
     if not os.path.exists(output_dir):
         print("Creating output directory '%s'" % output_dir)
         os.makedirs(output_dir)
 
     with open(wizard_json, "w", "utf8") as f_out:
-        # sorted keys to de-randomize output (to keep it in Git)
+        # sorted keys to de-randomize output (stable representation when kept it in Git)
         json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True, indent=1)
-    #return json.dumps(wizard, indent=1)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

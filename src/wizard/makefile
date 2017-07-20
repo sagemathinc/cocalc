@@ -1,9 +1,9 @@
-PYTHON ?= python2.7
+PYTHON ?= python3
 
 INDIR  := input
 OUTDIR := ../webapp-lib/wizard
 
-INPUT  := $(shell find ${INDIR}/ -type f -name '*.yaml')
+INPUT  := $(shell find . ${INDIR}/ -type f -name '*.yaml')
 OUTPUT := ${OUTDIR}/wizard.json
 
 .PHONY: clean
