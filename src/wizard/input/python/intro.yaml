@@ -103,6 +103,34 @@ code: |
     print(l[-1])
     print(l[0] + 2 * l[1])
 ---
+title: "Control Structure: if/else"
+descr: >
+    Code is executed line by line, but it can be directed to flow in more complex ways.
+    An `if` decides if a block of code is executed, or – together with `else` – decides between two blocks.
+
+    In Python, blocks are indented by spaces (usually two or four) from the beginning for the line.
+    Nested blocks are indented multiple times (4 or 8 times, etc.).
+code: |
+    x = -8
+    print('x is %s' % x)
+    if x > 0:    # note the colon!
+        print('x is positive')
+    else:
+        print('x is not positive')
+    print('this line is always executed!')
+
+    # TODO: change the -8 to a positive value and see how the flow changes
+---
+title: "Control Structure: for"
+descr: >
+    A `for`-loop repeates a block of code by consecutively assigning a local variable with values from a list or iterator.
+code: |
+    for i in ['a', 'c', 'abc', 'x']:
+        print("variable i is %s" % i)
+    for j in range(3):
+        for k in range(5):
+            print("j: {} + k: {} = {}".format(j, k, j+k))
+---
 title: "Data Structure: Dict(ionary)"
 descr: >
     A dictionary is an mapping of (immutable) objects to arbitrary objects.
@@ -122,3 +150,27 @@ code: |
     print(d[(4,2)])
     print(d.keys())
     print(42 in d)
+---
+title: "Classes"
+descr: >
+    A `class` is the usual way how someone can define a custom `type`.
+    We define a class `Shoe` with a specific color and size.
+    Under the hood, a class is like a dictionary but with some extras and an enhanced syntax.
+    Additionally, "methods" are functions in a class.
+    They are used to compute a derived value from the data of an instantiated object.
+    The method `__init__` is special: it is called upon instantiation and used to set the values of the object.
+code: |
+    class Shoe(object):
+        def __init__(self, size, color):
+            self.size = size
+            self.color = color
+        def double(self):
+            """return twice the size of the shoe"""
+            return 2 * self.size
+
+    # instantiation:
+    s1 = Shoe(40, "green")
+    s2 = Shoe(43, "black")
+    print(s1.color)
+    print(s2.double())
+    print(type(s2))   # the type of the object referenced by s1 is "Shoe"
