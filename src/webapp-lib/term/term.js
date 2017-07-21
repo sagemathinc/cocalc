@@ -362,6 +362,12 @@ Terminal.bindKeys = function(client_keydown) {
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
 
+  // handle composite characters which otherwise
+  // don't work with firefox and opera
+  on(document, "compositionend", function(ev) {
+    Terminal.focus.handler(ev.data);
+  }, true);
+
   on(document, 'keydown', function(ev) {
     if (typeof Terminal.focus === "undefined") {
        return;
