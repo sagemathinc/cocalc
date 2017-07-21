@@ -42,6 +42,8 @@ editor_chat = require('./editor_chat')
 {redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 {VideoChatButton} = require('./video-chat')
+{SMC_Dropwrapper} = require('./smc-dropzone')
+
 
 Message = rclass
     displayName: "Message"
@@ -434,11 +436,11 @@ exports.ChatRoom = rclass ({name}) ->
             file_use : rtypes.immutable
 
     propTypes :
-        redux       : rtypes.object
-        actions     : rtypes.object
-        name        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        path        : rtypes.string
+        redux           : rtypes.object
+        actions         : rtypes.object
+        name            : rtypes.string.isRequired
+        project_id      : rtypes.string.isRequired
+        path            : rtypes.string
 
     getInitialState: ->
         input   : ''
@@ -619,6 +621,17 @@ exports.ChatRoom = rclass ({name}) ->
             </Col>
         </Row>
 
+    append_file: (file) ->
+        text_area = ReactDOM.findDOMNode(@refs.input)
+
+        if file.type.indexOf("image") isnt -1
+            insertion_text = "<img src=\"#{file.name}\" width='60%'>"
+        else
+            insertion_text = "[#{file.name}](#{file.name})"
+
+        if text_area.selectionStart == text_area.selectionEnd
+            new_text = @props.input.slice(0, text_area.selectionStart) + insertion_text + @props.input.slice(text_area.selectionStart)
+            @props.actions.set_input(new_text)
 
     render_body: ->
         chat_log_style =
@@ -657,19 +670,25 @@ exports.ChatRoom = rclass ({name}) ->
             </Row>
             <Row>
                 <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
-                    <FormGroup>
-                        <FormControl
-                            autoFocus   = {not IS_MOBILE or isMobile.Android()}
-                            rows        = 4
-                            componentClass = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onChange    = {(e)=>@props.actions.set_input(e.target.value);  @mark_as_read()}
-                            style       = {chat_input_style}
-                        />
-                    </FormGroup>
+                    <SMC_Dropwrapper
+                        project_id     = {@props.project_id}
+                        dest_path      = {@props.redux.getProjectStore(@props.project_id).get('current_path')}
+                        event_handlers = {complete : @append_file}
+                    >
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {not IS_MOBILE or isMobile.Android()}
+                                rows        = 4
+                                componentClass = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onChange    = {(e)=>@props.actions.set_input(e.target.value);  @mark_as_read()}
+                                style       = {chat_input_style}
+                            />
+                        </FormGroup>
+                    </SMC_Dropwrapper>
                 </Col>
                 <Col xs={2} md={1}
                     style={height:'90px', padding:'0', marginBottom: '0', display:'flex', flexDirection:'column'}
