@@ -486,7 +486,7 @@ AccountSettings = rclass
                 maxLength = 64
                 />
             <APIKeySetting />
-            <SSHKeyAdder />
+            <SSHKeyAdder style={marginTop:'15px'}/>
             <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
                 <Col xs=12>
                     {@render_sign_out_buttons()}

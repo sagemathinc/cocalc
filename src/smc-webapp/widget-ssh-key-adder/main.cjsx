@@ -23,7 +23,8 @@ exports.SSHKeyAdder = rclass
         @props.onSubmit?(@state.key_title, @state.key_value)
 
     render: ->
-        <Panel>
+        <Panel style={@props.style}>
+            {# TODO: Make a style mapper to the components if necessary}
             <form>
                 <FormGroup>
                     Title
@@ -40,6 +41,7 @@ exports.SSHKeyAdder = rclass
                     <FormControl
                         componentClass = "textarea"
                         value          = {@state.key_value}
+                        rows           = {8}
                         placeholder    = "Begins with 'ssh-rsa', 'ssh-dss', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', or 'ecdsa-sha2-nistp521'"
                         onChange       = {(e) => @setState(key_value : e.target.value)}
                         style          = {resize : "vertical"}
