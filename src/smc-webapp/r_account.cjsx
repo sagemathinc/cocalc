@@ -40,6 +40,8 @@ misc       = require('smc-util/misc')
 
 {APIKeySetting} = require('./api-key')
 
+{SSHKeyAdder} = require('./widget-ssh-key-adder/main')
+
 # Define a component for working with the user's basic
 # account information.
 
@@ -484,6 +486,7 @@ AccountSettings = rclass
                 maxLength = 64
                 />
             <APIKeySetting />
+            <SSHKeyAdder />
             <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
                 <Col xs=12>
                     {@render_sign_out_buttons()}
