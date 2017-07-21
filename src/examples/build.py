@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 #####################################################################################
-#                 SMC Wizard - Documentation Files Compiler                         #
+#              CoCalc Exampples - Documentation Files Compiler                      #
 #                                                                                   #
 #                Copyright (C) 2015 -- 2017, SageMath, Inc.                         #
 #                                                                                   #
@@ -32,7 +32,7 @@ from collections import defaultdict
 hashtag_re = re.compile(r'#([a-zA-Z].+?\b)')
 def process_hashtags(match):
     ht = match.group(1)
-    return "<a class='smc-wizard-hashtag' href='{0}'>#{0}</a>".format(ht)
+    return "<a class='webapp-examples-hashtag' href='{0}'>#{0}</a>".format(ht)
 """
 
 def process_category(doc):
@@ -59,16 +59,16 @@ def process_doc(doc, input_fn):
         body.append(doc["attr"])
     return title, body
 
-def wizard_data(input_dir, output_fn):
+def examples_data(input_dir, output_fn):
     input_dir = abspath(normpath(input_dir))
-    wizard_json = abspath(normpath(output_fn))
-    output_dir = dirname(wizard_json)
+    examples_json = abspath(normpath(output_fn))
+    output_dir = dirname(examples_json)
     print(output_dir)
     #print(input_dir, output_dir)
 
     # this implicitly defines all known languages
     recursive_dict = lambda : defaultdict(recursive_dict)
-    wizard = {
+    examples = {
                  "sage":   recursive_dict(),
                  "python": recursive_dict(),
                  "r":      recursive_dict(),
@@ -91,15 +91,15 @@ def wizard_data(input_dir, output_fn):
 
                 if "language" in doc:
                     language = doc["language"]
-                    if language not in wizard.keys():
+                    if language not in examples.keys():
                         raise Exception("Language %s not known. Fix first document in %s" % (language, input_fn))
                     processed = True
 
                 if "category" in doc: # setting both levels of the category and re-setting entries and titles
                     lvl1, lvl2 = process_category(doc)
-                    if lvl2 in wizard[language][lvl1]:
+                    if lvl2 in examples[language][lvl1]:
                         raise Exception("Category level2 '%s' already exists (error in %s)" % (lvl2, input_fn))
-                    entries = wizard[language][lvl1][lvl2] = []
+                    entries = examples[language][lvl1][lvl2] = []
                     titles = set()
                     processed = True
 
@@ -120,12 +120,12 @@ def wizard_data(input_dir, output_fn):
         print("Creating output directory '%s'" % output_dir)
         os.makedirs(output_dir)
 
-    with open(wizard_json, "w", "utf8") as f_out:
+    with open(examples_json, "w", "utf8") as f_out:
         # sorted keys to de-randomize output (stable representation when kept it in Git)
-        json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True, indent=1)
+        json.dump(examples, f_out, ensure_ascii=True, sort_keys=True, indent=1)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'wizard.json')>" % sys.argv[0])
+        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'examples.json')>" % sys.argv[0])
         sys.exit(1)
-    wizard_data(sys.argv[1], sys.argv[2])
+    examples_data(sys.argv[1], sys.argv[2])

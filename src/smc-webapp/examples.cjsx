@@ -19,18 +19,18 @@
 #
 ###############################################################################
 
-# Wizard
+# Examples Dialog
 # This is a modal dialog, which downloads a hierarchical collection of code snippets
 # with descriptions. It returns an object, containing the code and the language:
 # {"code": "...", "lang" : "..."} via a given callback.
 #
 # Usage:
-# w = render_wizard(target, project_id, filename, lang = mode, cb = cb)
+# w = render_examples_dialog(target, project_id, filename, lang = mode, cb = cb)
 #     * target: jquery dom object, where react is put into
 #     * project_id and filename to make state in redux unique
 #     * lang is the mode (sage, r, python, ...)
 #     * cb: the handler that's used for inserting the selected document
-# API (implemented in WizardActions)
+# API (implemented in ExamplesActions)
 # w.show([lang=lang]) -- show dialog again (same state!) and if
 #                        language given, a selection of it is triggered
 
@@ -44,17 +44,17 @@ markdown = require('./markdown')
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
 
-# react wizard
+# react examples dialog
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
 {Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Loading, Icon, Markdown} = require('./r_misc')
 
 redux_name = (project_id, path) ->
-    return "wizard-#{project_id}-#{path}"
+    return "examples-#{project_id}-#{path}"
 
-class WizardStore extends Store
+class ExamplesStore extends Store
 
-class WizardActions extends Actions
+class ExamplesActions extends Actions
     get: (key) ->
         @redux.getStore(@name).get(key)
 
@@ -107,7 +107,7 @@ class WizardActions extends Actions
         @select_lang(@get('lang'))
 
     insert: (cb, descr) ->
-        # this is the essential task of the wizard:
+        # this is the essential task of the example dialog:
         # call the callback with the selected code snippet
         data =
             code  : @get('code')
@@ -119,7 +119,7 @@ class WizardActions extends Actions
         if not DATA?
             require.ensure [], =>
                 # DATA is a global variable!
-                DATA = require('wizard/wizard.json')
+                DATA = require('examples/examples.json')
                 @init_data(DATA)
         else
             @init_data(DATA)
@@ -306,8 +306,8 @@ class WizardActions extends Actions
                 @set(cat2 : idx)
                 @show_doc(doc)
 
-WizardHeader = rclass
-    displayName : 'WizardHeader'
+ExamplesHeader = rclass
+    displayName : 'ExamplesHeader'
 
     propTypes:
         actions     : rtypes.object
@@ -359,7 +359,7 @@ WizardHeader = rclass
 
     render: ->
         <Row>
-            <Col sm={3}><h2><Icon name='magic' /> Wizard</h2></Col>
+            <Col sm={3}><h2><Icon name='magic' /> Examples</h2></Col>
             <Col sm={5}>
                 {@render_nav()}
             </Col>
@@ -367,7 +367,7 @@ WizardHeader = rclass
                 <FormGroup>
                     <FormControl ref='search'
                        type='text'
-                       className='smc-wizard-search'
+                       className='webapp-examples-search'
                        placeholder='Search'
                        value={@props.search_str ? ''}
                        onKeyUp={@handle_search_keyup}
@@ -376,8 +376,8 @@ WizardHeader = rclass
             </Col>
         </Row>
 
-WizardBody = rclass
-    displayName : 'WizardBody'
+ExamplesBody = rclass
+    displayName : 'ExamplesBody'
 
     propTypes:
         actions    : rtypes.object
@@ -485,7 +485,7 @@ WizardBody = rclass
                     <pre ref='code' className='code'>{@props.code}</pre>
                 </Col>
                 <Col sm={6}>
-                    <Panel ref='descr' className='smc-wizard-descr'>
+                    <Panel ref='descr' className='webapp-examples-descr'>
                         <Markdown value={@props.descr} />
                     </Panel>
                 </Col>
@@ -493,8 +493,8 @@ WizardBody = rclass
         </Modal.Body>
 
 
-RWizard = (name) -> rclass
-    displayName : 'Wizard'
+RExamples = (name) -> rclass
+    displayName : 'Examples'
 
     reduxProps :
         "#{name}" :
@@ -562,28 +562,28 @@ RWizard = (name) -> rclass
                onKeyUp={@handle_dialog_keyup}
                onHide={@close}
                bsSize="large"
-               className="smc-wizard">
+               className="webapp-examples">
             <Modal.Header closeButton className='modal-header'>
-               <WizardHeader actions     = {@props.actions}
-                             lang        = {@props.lang}
-                             search_str  = {@props.search_str}
-                             nav_entries = {@props.nav_entries} />
+               <ExamplesHeader actions     = {@props.actions}
+                               lang        = {@props.lang}
+                               search_str  = {@props.search_str}
+                               nav_entries = {@props.nav_entries} />
             </Modal.Header>
 
-            <WizardBody actions    = {@props.actions}
-                        lang       = {@props.lang}
-                        code       = {@props.code}
-                        descr      = {@props.descr}
-                        cat0       = {@props.cat0}
-                        cat1       = {@props.cat1}
-                        cat2       = {@props.cat2}
-                        catlist0   = {@props.catlist0}
-                        catlist1   = {@props.catlist1}
-                        catlist2   = {@props.catlist2}
-                        search_str = {@props.search_str}
-                        search_sel = {@props.search_sel}
-                        hits       = {@props.hits}
-                        data       = {@props.data} />
+            <ExamplesBody actions    = {@props.actions}
+                          lang       = {@props.lang}
+                          code       = {@props.code}
+                          descr      = {@props.descr}
+                          cat0       = {@props.cat0}
+                          cat1       = {@props.cat1}
+                          cat2       = {@props.cat2}
+                          catlist0   = {@props.catlist0}
+                          catlist1   = {@props.catlist1}
+                          catlist2   = {@props.catlist2}
+                          search_str = {@props.search_str}
+                          search_sel = {@props.search_sel}
+                          hits       = {@props.hits}
+                          data       = {@props.data} />
 
             <Modal.Footer>
                 <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
@@ -592,13 +592,13 @@ RWizard = (name) -> rclass
             </Modal.Footer>
         </Modal>
 
-exports.render_wizard = (target, project_id, path, lang = 'sage', cb = null) ->
+exports.render_examples_dialog = (target, project_id, path, lang = 'sage', cb = null) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
-        actions = redux.createActions(name, WizardActions)
+        actions = redux.createActions(name, ExamplesActions)
         store   = redux.createStore(name)
     actions.init(lang=lang)
-    W = RWizard(name)
+    W = RExamples(name)
     ReactDOM.render(<Redux redux={redux}><W cb={cb} actions={actions}/></Redux>, target)
     return actions

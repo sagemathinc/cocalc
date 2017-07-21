@@ -1,15 +1,15 @@
 PYTHON ?= python3
 
 INDIR  := input
-OUTDIR := ../webapp-lib/wizard
+OUTDIR := ../webapp-lib/examples
 
 INPUT  := $(shell find . ${INDIR}/ -type f -name '*.yaml')
-OUTPUT := ${OUTDIR}/wizard.json
+OUTPUT := ${OUTDIR}/examples.json
 
 .PHONY: clean
 
 ${OUTPUT}: ${INPUT}
-	${PYTHON} wizard.py ${INDIR} ${OUTPUT}
+	${PYTHON} build.py ${INDIR} ${OUTPUT}
 
 clean:
 	-${RM} ${OUTPUT}
