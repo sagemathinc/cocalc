@@ -362,6 +362,14 @@ Terminal.bindKeys = function(client_keydown) {
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
 
+  // We handle composite characters, which otherwise
+  // would not work with firefox and opera.  This
+  // addresses https://github.com/sagemathinc/cocalc/issues/2211
+  // Idea/work done by Gonzalo Tornaría.
+  on(document, "compositionend", function(ev) {
+    Terminal.focus.handler(ev.data);
+  }, true);
+
   on(document, 'keydown', function(ev) {
     if (typeof Terminal.focus === "undefined") {
        return;
