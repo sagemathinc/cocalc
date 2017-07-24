@@ -92,14 +92,14 @@ exports.SMC_Dropwrapper = rclass
         config           : rtypes.object               # All supported dropzone.js config options
         event_handlers   : rtypes.object
         preview_template : rtypes.func                 # See http://www.dropzonejs.com/#layout
-        show_upload      : rtypes.bool
+        show_upload      : rtypes.bool                 # Whether or not to show upload area
         on_close         : rtypes.func
         disabled         : rtypes.bool
 
     getDefaultProps: ->
         config         : {}
-        hide_previewer : false
         disabled       : false
+        show_upload    : true
 
     getInitialState: ->
         files : []
@@ -182,7 +182,7 @@ exports.SMC_Dropwrapper = rclass
         @setState(files : [])
 
     render_preview: ->
-        if not @props.show_upload and @state.files.length == 0
+        if not @props.show_upload or @state.files.length == 0
             style = display : 'none'
         box_style =
             border       : '2px solid #ccc'

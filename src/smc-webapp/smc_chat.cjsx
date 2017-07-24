@@ -442,8 +442,10 @@ exports.ChatRoom = rclass ({name}) ->
         project_id      : rtypes.string.isRequired
         path            : rtypes.string
 
+    getDefaultProps: ->
+        input : ''
+
     getInitialState: ->
-        input   : ''
         preview : ''
 
     preview_style:
@@ -621,17 +623,30 @@ exports.ChatRoom = rclass ({name}) ->
             </Col>
         </Row>
 
-    append_file: (file) ->
+    generate_temp_upload_text: (file) ->
+        return "[Uploading...]\(#{file.name}\)"
+
+    start_upload: (file, XMLRequest, FormData) ->
         text_area = ReactDOM.findDOMNode(@refs.input)
+        temporary_insertion_text = @generate_temp_upload_text(file)
+        temp_new_text = @props.input.slice(0, text_area.selectionStart) + temporary_insertion_text + @props.input.slice(text_area.selectionEnd)
+        @props.actions.set_input(temp_new_text)
 
+    append_file: (file) ->
         if file.type.indexOf("image") isnt -1
-            insertion_text = "<img src=\"#{file.name}\" width='60%'>"
+            final_insertion_text = "<img src=\"#{file.name}\" width='60%'>"
         else
-            insertion_text = "[#{file.name}](#{file.name})"
+            final_insertion_text = "[#{file.name}](#{file.name})"
 
-        if text_area.selectionStart == text_area.selectionEnd
-            new_text = @props.input.slice(0, text_area.selectionStart) + insertion_text + @props.input.slice(text_area.selectionStart)
-            @props.actions.set_input(new_text)
+        temporary_insertion_text = @generate_temp_upload_text(file)
+        start_index = @props.input.indexOf(temporary_insertion_text)
+        end_index = start_index + temporary_insertion_text.length
+
+        if start_index == -1
+            return
+
+        new_text = @props.input.slice(0, start_index) + final_insertion_text + @props.input.slice(end_index)
+        @props.actions.set_input(new_text)
 
     render_body: ->
         chat_log_style =
@@ -673,7 +688,7 @@ exports.ChatRoom = rclass ({name}) ->
                     <SMC_Dropwrapper
                         project_id     = {@props.project_id}
                         dest_path      = {@props.redux.getProjectStore(@props.project_id).get('current_path')}
-                        event_handlers = {complete : @append_file}
+                        event_handlers = {complete : @append_file, sending : @start_upload}
                     >
                         <FormGroup>
                             <FormControl
@@ -710,13 +725,13 @@ exports.ChatRoom = rclass ({name}) ->
 
 
     render: ->
-        if not @props.messages? or not @props.redux? or not @props.input.length?
+        if not @props.messages? or not @props.redux? or not @props.input?.length?
             return <Loading/>
         <div
             onMouseMove = {@mark_as_read}
             onClick     = {@mark_as_read}
             className   = "smc-vfill"
-            >
+        >
             {@render_body()}
         </div>
 
