@@ -264,7 +264,10 @@ class exports.Client extends EventEmitter
         dbg = @dbg("push_to_client")
 
         if mesg.event != 'pong'
-            dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            if DEBUG2
+                dbg("hub --> client (client=#{@id}): #{JSON.stringify(mesg)}")
+            else if DEBUG
+                dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
@@ -503,7 +506,7 @@ class exports.Client extends EventEmitter
             if channel != 'X'  # X is a special case used on purpose -- not an error.
                 @logger?.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
             # Tell the client that they had better reconnect.
-            @push_to_client( message.session_reconnect(data_channel : channel) )
+            @push_to_client( message.data_channel_cancel(data_channel : channel) )
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
@@ -546,10 +549,7 @@ class exports.Client extends EventEmitter
         # generate a channel character that isn't already taken -- if these get too large,
         # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
         # however, this is a counter for *each* individual user connection, so they won't get too big.
-        # Ultimately, we'll redo things to use primus/websocket channel support, which should be much more powerful
-        # and faster.
-        if not @_last_channel?
-            @_last_channel = 1
+        @_last_channel ?= 32
         while true
             @_last_channel += 1
             channel = String.fromCharCode(@_last_channel)
@@ -580,7 +580,10 @@ class exports.Client extends EventEmitter
             return
         dbg = @dbg('handle_json_message_from_client')
         if mesg.event != 'ping'
-            dbg("hub <-- client: #{misc.trunc(to_safe_str(mesg), 120)}")
+            if DEBUG2
+                dbg("hub <-- client (client=#{@id}): #{JSON.stringify(mesg)}")
+            else
+                dbg("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
 
         # check for message that is coming back in response to a request from the hub
         if @call_callbacks? and mesg.id?
