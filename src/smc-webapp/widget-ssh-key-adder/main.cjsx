@@ -1,5 +1,6 @@
 # 3rd Party Libraries
-{Button, FormControl, FormGroup, Panel} = require('react-bootstrap')
+{Button, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
+immutable = require('immutable')
 
 # Internal & React Libraries
 misc = require('smc-util/misc')
@@ -7,7 +8,14 @@ misc = require('smc-util/misc')
 
 submit_key = ->
     console.log "Do nothing yet! This will be an action soon."
-
+###
+ssh_key_description =
+    name          : rtypes.string
+    value         : rtypes.string
+    fingerprint   : rtypes.string
+    creation_date : rtypes.Date
+    last_use_date : rtypes.Date
+###
 exports.SSHKeyAdder = rclass
     displayName: 'SSH-Key-Adder'
 
@@ -54,4 +62,46 @@ exports.SSHKeyAdder = rclass
             >
                 Add SSH Key
             </Button>
+        </Panel>
+
+OneSSHKey = rclass
+    displayName: 'SSH-Key'
+
+    propTypes:
+        ssh_key : rtypes.immutable.Map.isRequired
+        style   : rtypes.object
+
+    render: ->
+        <Well style={@props.style}>
+            <Row>
+                {@props.ssh_key.get('name')}
+            </Row>
+            <Row>
+                {@props.ssh_key.get('value')}
+            </Row>
+            <Button bsStyle='danger'>
+                Delete
+            </Button>
+        </Well>
+
+exports.SSHKeyList = rclass
+    displayName: 'SSH-Key-List'
+
+    propTypes:
+        ssh_keys : rtypes.immutable.List
+
+    getDefaultProps: ->
+        placeholder1 = immutable.Map
+            value : "ssh-rsa blah blah blah"
+            name  : "fake 1"
+
+        placeholder2 = immutable.Map
+            value : "ssh-rsa Blah Blah Blah"
+            name  : "fake 2"
+
+        return ssh_keys : immutable.List([placeholder1, placeholder2])
+
+    render: ->
+        <Panel>
+            {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('value')} /> for ssh_key in @props.ssh_keys.toArray())}
         </Panel>
