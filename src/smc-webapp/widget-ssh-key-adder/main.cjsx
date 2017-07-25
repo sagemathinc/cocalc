@@ -1,5 +1,5 @@
 # 3rd Party Libraries
-{Button, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
+{Button, Col, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
 immutable = require('immutable')
 
 # Internal & React Libraries
@@ -74,14 +74,16 @@ OneSSHKey = rclass
     render: ->
         <Well style={@props.style}>
             <Row>
-                {@props.ssh_key.get('name')}
+                <Col md=9>
+                    {@props.ssh_key.get('name')}<br/>
+                    {@props.ssh_key.get('value')}
+                </Col>
+                <Col md=3>
+                    <Button bsStyle='danger' bsSize='small'>
+                        Delete
+                    </Button>
+                </Col>
             </Row>
-            <Row>
-                {@props.ssh_key.get('value')}
-            </Row>
-            <Button bsStyle='danger'>
-                Delete
-            </Button>
         </Well>
 
 exports.SSHKeyList = rclass
