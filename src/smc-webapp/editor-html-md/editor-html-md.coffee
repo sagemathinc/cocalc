@@ -121,7 +121,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             underline : 'Cmd-U Ctrl-U'
             comment   : 'Shift-Ctrl-3'
             strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
-            justifycenter : "Cmd-E Ctrl-E"
+            #justifycenter : "Cmd-E Ctrl-E" # no need to create "div" element in markdown file
             #justifyright  : "Cmd-R Ctrl-R"  # messes up page reload
             subscript     : "Cmd-= Ctrl-="
             superscript   : "Shift-Cmd-= Shift-Ctrl-="
