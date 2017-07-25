@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -547,7 +547,7 @@ def graph_to_d3_jsonable(G,
       height              = None,
       **ignored):
     r"""
-    Display a graph in SageMathCloud using the D3 visualization library.
+    Display a graph in CoCalc using the D3 visualization library.
 
     INPUT:
 

@@ -3,7 +3,7 @@ Supplies the interface for creating file editors in the webapp
 
 ---
 
- SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+ CoCalc: Collaborative Calculation in the Cloud
 
     Copyright (C) 2016, SageMath, Inc.
 
@@ -33,6 +33,11 @@ misc = require('smc-util/misc')
 file_editors =
     true  : {}    # true = is_public
     false : {}    # false = not public
+
+exports.icon = (ext) ->
+    # Return the icon for the given extension, if it is defined here,
+    # with preference for non-public icon; returns undefined otherwise.
+    return (file_editors[false] ? file_editors[true])?[ext]?.icon
 
 ###
 ext       : string|array[string] to associate the editor with
@@ -102,7 +107,7 @@ exports.remove = (path, redux, project_id, is_public) ->
         return
     if typeof(path) != 'string'
         console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
-        # see https://github.com/sagemathinc/smc/issues/1275
+        # see https://github.com/sagemathinc/cocalc/issues/1275
         return
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
@@ -111,7 +116,7 @@ exports.remove = (path, redux, project_id, is_public) ->
     remove?(path, redux, project_id)
 
     # Also free the corresponding side chat, if it was created.
-    require('./editor_chat').remove_redux(misc.meta_file(path, 'chat'), redux, project_id)
+    require('./chat/register').remove(misc.meta_file(path, 'chat'), redux, project_id)
 
 # The save function may be called to request to save contents to disk.
 # It does not take a callback.  It's a non-op if no save function is registered
@@ -133,7 +138,7 @@ exports.special_filenames_with_no_extension = () ->
 # This should be a comprehensive list of all React editors
 
 # require('./editor_terminal')
-require('./smc_chat')
+require('./chat/register')
 require('./editor_archive')
 require('./course/main')
 require('./editor_pdf')

@@ -1,7 +1,6 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
-# and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -33,6 +32,10 @@ misc = require('smc-util/misc')
 CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
     borderRadius : '3px'
+
+USERS_VIEWING_STYLE =
+    maxWidth:"120px"
+    paddingTop : "3px"
 
 CHAT_INDICATOR_TIP = <span>
     Hide or show the chat for this file.
@@ -72,6 +75,7 @@ exports.ChatIndicator = rclass
         <UsersViewing
             project_id = {@props.project_id}
             path       = {@props.path}
+            style      = {USERS_VIEWING_STYLE}
         />
 
     render_video_button: ->
@@ -79,6 +83,7 @@ exports.ChatIndicator = rclass
             <VideoChatButton
                 project_id = {@props.project_id}
                 path       = {@props.path}
+                short      = {true}
             />
         </span>
 

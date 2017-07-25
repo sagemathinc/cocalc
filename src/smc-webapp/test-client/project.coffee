@@ -35,7 +35,7 @@ describe 'create a project and make some changes using projects action', ->
         expect(store.get_description(project_id)).toEqual("TEST description")
 
     it 'confirms the document title at the top changes', ->
-        expect(document.title).toEqual("TEST project - SageMathCloud")
+        expect(document.title).toEqual("TEST project - CoCalc")
 
     it 'changes the title', ->
         actions.set_project_title(project_id, "TEST project -- Better Title")
@@ -89,7 +89,7 @@ describe 'starting and stopping a project and getting directory listing', ->
         actions.open_project
             project_id : project_id
             switch_to  : true        # so user can watch :-)
-        expect(document.title).toEqual("TEST start/stop project - SageMathCloud")
+        expect(document.title).toEqual("TEST start/stop project - CoCalc")
         expect(misc.endswith(window.location.href, "/projects/#{project_id}/")).toEqual(true)
 
     it 'starts the NEW project running and waits until running', (done) ->
@@ -123,7 +123,7 @@ describe 'starting and stopping a project and getting directory listing', ->
 
     it 'gets directory listing including hidden (and confirm some dirs)', (done) ->
         @timeout(5000)
-        smc.redux.getProjectActions(project_id).fetch_directory_listing({path:'', sort_by_time:true, show_hidden:true})
+        smc.redux.getProjectActions(project_id).fetch_directory_listing({path:'', sort_by_time:true})
         s = smc.redux.getProjectStore(project_id)
         s.wait
             until : => s.getIn(['directory_listings', ""])?.toJS()?.length > 0

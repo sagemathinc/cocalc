@@ -362,11 +362,20 @@ Terminal.bindKeys = function(client_keydown) {
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
 
+  // We handle composite characters, which otherwise
+  // would not work with firefox and opera.  This
+  // addresses https://github.com/sagemathinc/cocalc/issues/2211
+  // Idea/work done by Gonzalo Tornaría.
+  on(document, "compositionend", function(ev) {
+    Terminal.focus.handler(ev.data);
+  }, true);
+
   on(document, 'keydown', function(ev) {
     if (typeof Terminal.focus === "undefined") {
        return;
     }
 
+    //console.log('term.js keydown ', ev);
 
     if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
 	  return false;
@@ -435,7 +444,7 @@ Terminal.prototype.open = function() {
     , div;
 
   this.element = document.createElement('div');
-  this.element.className = 'salvus-console-terminal';
+  this.element.className = 'webapp-console-terminal';
   this.element.setAttribute('spellcheck', 'false');
   this.children = [];
 
@@ -748,19 +757,18 @@ Terminal.prototype.bindMouse = function() {
     y = ev.pageY;
     el = self.element;
 
-    // should probably check offsetParent
-    // but this is more portable
-    while (el !== document.documentElement) {
-      x -= el.offsetLeft;
-      y -= el.offsetTop;
-      el = el.parentNode;
-    }
+    // should probably check offsetParent but this is more portable
+    var offset = $(el).offset();
+    x -= offset.left;
+    y -= offset.top;
 
     // convert to cols/rows
     w = self.element.clientWidth;
     h = self.element.clientHeight;
     x = ((x / w) * self.cols) | 0;
     y = ((y / h) * self.rows) | 0;
+    x += 1;
+    y += 1;
 
     // be sure to avoid sending
     // bad positions to the program
@@ -795,7 +803,7 @@ Terminal.prototype.bindMouse = function() {
 
     // fix for odd bug
     if (self.vt200Mouse) {
-      sendButton({ __proto__: ev, type: 'mouseup' });
+      sendButton(new ev.constructor('mouseup', ev));
       return cancel(ev);
     }
 
@@ -943,7 +951,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="salvus-console-cursor-focus">';
+            out += '<span class="webapp-console-cursor-focus">';
           } else {
             out += '<span style="';
 
@@ -2101,7 +2109,7 @@ Terminal.prototype.writeln = function(data) {
 
 Terminal.prototype.keyDown = function(ev) {
   var key;
-/*    console.log("keydown: " + ev);  */
+  // console.log("term.js.keyDown: ", ev);
   switch (ev.keyCode) {
     // backspace
     case 8:
@@ -2293,6 +2301,58 @@ Terminal.prototype.keyDown = function(ev) {
       break;
   }
 
+  if (!key) {
+      /* some devices, e.g., the iPad Pro with SmartKeyboard, have keys that do not have
+         a keyCode, but do corresponding to something above. */
+    switch (ev.key) {
+    // left-arrow
+    case "UIKeyInputLeftArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOD'; // SS3 as ^[O for 7-bit
+        //key = '\x8fD'; // SS3 as 0x8f for 8-bit
+        break;
+      }
+      key = '\x1b[D';
+      break;
+    // right-arrow
+    case "UIKeyInputRightArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOC';
+        break;
+      }
+      key = '\x1b[C';
+      break;
+    // up-arrow
+    case "UIKeyInputUpArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOA';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(-1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[A';
+      }
+      break;
+    // down-arrow
+    case "UIKeyInputDownArrow":
+      if (this.applicationKeypad) {
+        key = '\x1bOB';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[B';
+      }
+      break;
+    }
+  }
+
+  //console.log("term.js.keyDown: after switch, key=", key);
+
   this.emit('keydown', ev);
 
   if (key) {
@@ -2302,6 +2362,17 @@ Terminal.prototype.keyDown = function(ev) {
     this.handler(key);
 
     return cancel(ev);
+  } else {
+    if(this.IS_TOUCH && ev.keyCode == 32) {
+      /* On iPad with external Keyboard,
+         the spacebar keyPress fires but with charCode, etc., set to 0.  Ugh.
+         We thus simulate the proper code. */
+      this.keyPress({charCode: 32});
+      /* We then cancel the space event, since otherwise the browser
+         will scroll the page down.  Also, this will prevent seeing two
+         spaces in case this bug is fixed or not present on some touch devices! */
+      return cancel(ev);
+    }
   }
 
   return true;
@@ -2325,6 +2396,7 @@ Terminal.prototype.keyPress = function(ev) {
   /* Doing cancel here seems to server no purpose, *and* completely breaks
      using Ctrl-c to copy on firefox. */
   /* cancel(ev);*/
+  //console.log("term.js.keyPress: ", ev);
 
   if (ev.charCode) {
     key = ev.charCode;
@@ -2336,9 +2408,12 @@ Terminal.prototype.keyPress = function(ev) {
     return false;
   }
 
+  //console.log("term.js.keyPress: got key=", key);
+
   if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
 
   key = String.fromCharCode(key);
+  //console.log("term.js.keyPress: got string=", key);
 
   this.emit('keypress', key, ev);
   this.emit('key', key, ev);
@@ -2991,6 +3066,16 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
+    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
+    // if (this.lines.length <= row) {
+    //     continue;
+    // }
+    // Question: How can you possibly have a problem because of running that code? It seems
+    // like if you don't have that commented out code, then the next line would
+    // cause a traceback? Answer: well, those tracebacks are there right now.
+    // With this code there, the output started to do weird things, repeating
+    // parts of the text, etc. So, I know this is a problem, but I don't
+    // want to fix it by making it worse.
     this.lines[row].splice(j++, 0, ch);
     this.lines[row].pop();
   }

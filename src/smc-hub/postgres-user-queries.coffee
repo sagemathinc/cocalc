@@ -5,7 +5,7 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-MAX_CHANGEFEEDS_PER_CLIENT = 4*100
+MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
 # Reject all patches that have timestamp that is more than 3 minutes in the future.
 MAX_PATCH_FUTURE_MS = 1000*60*3
@@ -1418,7 +1418,7 @@ class exports.PostgreSQL extends PostgreSQL
         #dbg = @dbg("_syncstrings_check")
         #dbg(misc.to_json([obj, account_id, project_id]))
         if not misc.is_valid_uuid_string(obj?.project_id)
-            cb("project_id must be a valid uuid")
+            cb("project_id (='#{obj?.project_id}') must be a valid uuid")
             return
         if project_id?
             if project_id == obj.project_id

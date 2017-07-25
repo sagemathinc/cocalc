@@ -1,11 +1,39 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 {Actions, Store, redux, rtypes, computed} = require('./smc-react')
-{salvus_client}         = require('./salvus_client')
+{webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
 {set_url}               = require('./history')
 {set_window_title}      = require('./browser')
 
 {alert_message}         = require('./alerts')
+
+# Ephemeral websockets mean a browser that kills the websocket whenever
+# the page is backgrounded.  So far, it seems that maybe all mobile devices
+# do this.  The only impact is we don't show a certain error message for
+# such devices.
+
+EPHEMERAL_WEBSOCKETS    = require('./feature').isMobile.any()
 
 ###
 # Page Redux
@@ -94,12 +122,20 @@ class PageActions extends Actions
             when 'about'
                 set_url('/help')
                 set_window_title('Help')
+            when 'file-use'
+                set_url('/file-use')
+                set_window_title('File Usage')
             when undefined
                 return
             else
                 redux.getProjectActions(key)?.push_state()
                 set_window_title("Loading Project")
-                redux.getStore('projects').wait
+                projects_store = redux.getStore('projects')
+
+                if projects_store.date_when_course_payment_required(key)
+                    redux.getActions('projects').apply_default_upgrades(project_id : key)
+
+                projects_store.wait
                     until   : (store) =>
                         title = store.getIn(['project_map', key, 'title'])
                         title ?= store.getIn(['public_project_titles', key])
@@ -153,7 +189,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
-        if redux.getStore('account')?.get_confirm_close()
+        # Returns a defined string if the user should confirm exiting the site.
+        s = redux.getStore('account')
+        if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()
             return "Changes you make may not have been saved."
         else
             return
@@ -228,7 +266,7 @@ if DEBUG
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
 
-salvus_client.on "ping", (ping_time) ->
+webapp_client.on "ping", (ping_time) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
     if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
@@ -238,20 +276,20 @@ salvus_client.on "ping", (ping_time) ->
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
     redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
 
-salvus_client.on "connected", () ->
+webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
 
-salvus_client.on "disconnected", (state) ->
+webapp_client.on "disconnected", (state) ->
     record_disconnect()
     redux.getActions('page').set_connection_status('disconnected', new Date())
     redux.getActions('page').set_ping(undefined, undefined)
 
-salvus_client.on "connecting", () ->
+webapp_client.on "connecting", () ->
     date = new Date()
     f = ->
         redux.getActions('page').set_connection_status('connecting', date)
     window.setTimeout(f, 2000)
-    attempt = salvus_client._num_attempts ? 1
+    attempt = webapp_client._num_attempts ? 1
     reconnect = (msg) ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
@@ -259,26 +297,38 @@ salvus_client.on "connecting", () ->
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
-        salvus_client._fix_connection(true)
+        webapp_client._fix_connection(true)
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 
-    console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
-    if num_recent_disconnects() >= 2 or (attempt >= 10)
+    console.log("attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}")
+    # NOTE: On mobile devices the websocket is disconnected every time one backgrounds
+    # the application.  This normal and expected behavior, which does not indicate anything
+    # bad about the user's actual network connection.  Thus displaying this error in the case
+    # of mobile is likely wrong.  (It could also be right, of course.)
+    if not EPHEMERAL_WEBSOCKETS and (num_recent_disconnects() >= 2 or (attempt >= 10))
         # this event fires several times, limit displaying the message and calling reconnect() too often
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
             if num_recent_disconnects() >= 5 or attempt >= 20
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your connection is unstable or SMC is temporarily not available."
+                    message: "Your connection is unstable or #{SiteName} is temporarily not available."
             else if attempt >= 10
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
+                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution."
     else
         reconnection_warning = null
 
-salvus_client.on 'new_version', (ver) ->
+webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
+
+# enable fullscreen mode upon a URL like /app?fullscreen
+misc_page = require('./misc_page')
+if misc_page.get_query_param('fullscreen')
+    redux.getActions('page').set_fullscreen(true)
+

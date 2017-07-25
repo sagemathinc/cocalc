@@ -1,15 +1,18 @@
 // #smc-file-tabs-* used in project_page.cjsx
 
 // ProjectPage
+=file-tabs-base
+  height        : 32px
+  font-size     : 10.5pt
+  border-radius : 5px 5px 0px 0px
 
 .smc-file-tabs-fixed-desktop > li > a
-  height        : 36px
-  padding       : 8px 10px
-  border-radius : 5px 5px 0px 0px
+  padding       : 7px 5px
+  +file-tabs-base
 
 .smc-file-tabs-files-desktop > li > a
-  padding       : 13px 15px 7px
-  border-radius : 5px 5px 0px 0px
+  padding       : 11px 5px
+  +file-tabs-base
   +disable-user-select
 
 // MobileProjectPage
@@ -23,13 +26,12 @@
 // ProjectPage
 
 .smc-file-tab-floating
-  background-color    : rgb(237, 237, 237)
+  background-color    : $COL_BS_BLUE_BGRND
   border-radius       : 5px 5px 0px 0px
   box-sizing          : border-box
   color               : rgb(51, 51, 51)
   display             : block
   flex-shrink         : 1
-  height              : 36px
   line-height         : normal
   list-style-image    : none
   list-style-position : outside
@@ -39,19 +41,20 @@
   position            : relative
   text-align          : left
   width               : 250px
+  +file-tabs-base
 
   > a
-    background-color    : rgba(0, 0, 0, 0)
+    color               : rgb(51, 51, 51)
     border-radius       : 5px 5px 0px 0px
     box-sizing          : border-box
     display             : block
-    height              : 36px
     line-height         : normal
     list-style-image    : none
     list-style-position : outside
     list-style-type     : none
-    padding             : 13px 15px 7px
+    padding             : 11px 5px
     position            : relative
+    +file-tabs-base
 
 .highlight
   background-color : yellow

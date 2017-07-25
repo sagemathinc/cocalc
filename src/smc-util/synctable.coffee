@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2016, Sagemath Inc.
+CoCalc, Copyright (C) 2016, Sagemath Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -217,7 +217,14 @@ class SyncTable extends EventEmitter
             connect    : @_connect
             no_sign_in : @_schema.anonymous or @_client.is_project()  # note: projects don't have to authenticate
 
-        @_client.on('disconnected', (=>@_disconnected('client disconnect')))
+        @_client.on 'disconnected', =>
+            #console.log("synctable: DISCONNECTED")
+            # When the connection is dropped, the backend hub notices that it was dropped
+            # and immediately cancels all changefeeds.  Thus we set @_id to undefined
+            # below, so that we don't redundantly cancel them again, which leads to an error
+            # and wastes resources (which can pile up).
+            @_id = undefined
+            @_disconnected('client disconnect')
 
         # No throttling of change events unless explicitly requested *or* part of the schema.
         @_throttle_changes ?= schema.SCHEMA[@_table]?.user_query?.get?.throttle_changes
@@ -557,7 +564,7 @@ class SyncTable extends EventEmitter
                         # checked for above before the call, and these can only get set by
                         # the close method to undefined, which also sets the @_state to closed,
                         # so would get caught above.  However, evidently this **does happen**:
-                        #   https://github.com/sagemathinc/smc/issues/1870
+                        #   https://github.com/sagemathinc/cocalc/issues/1870
                         cb?("value_server and value_local must be set")
                         return
                     @emit('saved', saved_objs)

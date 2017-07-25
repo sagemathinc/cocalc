@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -24,7 +24,7 @@
 # do not modify the state in the project store.
 ###############################################################################
 
-{salvus_client}      = require('./salvus_client')
+{webapp_client}      = require('./webapp_client')
 {alert_message}      = require('./alerts')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -41,7 +41,7 @@ class ProjectTasks
             path : required
             cb   : undefined
         f = misc.path_split(opts.path)
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : 'test'
             args        : ['-s', f.tail]
@@ -56,7 +56,7 @@ class ProjectTasks
             path  : required
             cb    : undefined  # cb(true or false)
             alert : true
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : "mkdir"
             timeout    : 15
@@ -71,18 +71,14 @@ class ProjectTasks
 
     # returns the full URL path to the file (not the "raw" server)
     url_fullpath: (path) ->
-        if window?
-            loc = window.location
-            base = "#{loc.protocol}//#{loc.hostname}"
-        else
-            base = 'https://cloud.sagemath.com'
         {join} = require('path')
-        path = join("#{window.smc_base_url ? '/'}", "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
-        return "#{base}" + (if path[0] == '/' then '' else '/') + path
+        {BASE_URL} = require('./misc_page')
+        path = join(BASE_URL, "projects", "#{@project_id}", 'files', "#{misc.encode_path(path)}")
+        return path
 
     # returns the URL for the file at the given path
     url_href: (path) =>
-        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
+        return "#{window.app_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
 
     # returns the download URL for a file at a given path
     download_href: (path) =>

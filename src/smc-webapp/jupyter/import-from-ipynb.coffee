@@ -27,7 +27,7 @@ class exports.IPynbImporter
         @_process_attachment = opts.process_attachment
         @_existing_ids       = opts.existing_ids  # option to re-use existing ids
 
-        @_handle_old_versions()  # must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/smc/issues/1937
+        @_handle_old_versions()  # must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/cocalc/issues/1937
         @_sanity_improvements()
         @_import_settings()
         @_import_metadata()

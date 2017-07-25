@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -34,7 +34,8 @@ import misc
 ############################################################
 # Paths where data and configuration are stored
 ############################################################
-SITENAME = 'cloud.sagemath.com'
+SITENAME = 'cocalc.com'
+DOMAINNAME = 'cocalc.com'
 DATA   = 'data'
 CONF   = 'conf'
 AGENT  = os.path.join(os.environ['HOME'], '.ssh', 'agent')
@@ -48,7 +49,7 @@ SECRETS = os.path.join(DATA,'secrets')
 
 # Read in socket of ssh-agent, if there is an AGENT file.
 # NOTE: I'm using this right now on my laptop, but it's not yet
-# deployed on cloud.sagemath *yet*.  When done, it will mean the
+# deployed in production *yet*.  When done, it will mean the
 # ssh key used by the hub is password protected, which
 # will be much more secure: someone who steals ~/.ssh gets nothing,
 # though still if somebody logs in as the salvus user on one of
@@ -86,7 +87,7 @@ SYNCSTRING_PORT = 6001
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='monitoring@sagemath.com', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- %s' % DOMAINNAME, toaddrs='monitoring@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'smc/src/data/secrets/salvusmath_email_password')

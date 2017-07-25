@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -27,8 +27,9 @@ misc     = require('smc-util/misc')
 {defaults, required} = misc
 
 # Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if !!process.env.SMC_DEBUG
+    winston.remove(winston.transports.Console)
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 
 

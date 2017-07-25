@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -26,15 +26,64 @@ misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
+theme       = require('smc-util/theme')
 
-{redux} = require('./smc-react')
+get_inspect_dialog = (editor) ->
+    dialog = $('''
+    <div class="webapp-codemirror-introspect modal"
+         data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width:90%">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h4><div class="webapp-codemirror-introspect-title"></div></h4>
+                </div>
 
-templates = $("#salvus-misc-templates")
+                <div class="webapp-codemirror-introspect-content-source-code cm-s-default">
+                </div>
+                <div class="webapp-codemirror-introspect-content-docstring cm-s-default">
+                </div>
+
+
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    ''')
+    dialog.modal()
+    dialog.data('editor', editor)
+
+    dialog.find("button").click () ->
+        dialog.modal('hide')
+        dialog.remove() # also removing, we no longer have any use for this element!
+
+    # see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
+    dialog.on 'hidden.bs.modal', () ->
+        dialog.data('editor').focus?()
+        dialog.data('editor', 0)
+
+    return dialog
+
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
+
+exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
+exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
+exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
+exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
+exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
+exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
+
+{join} = require('path')
+exports.APP_BASE_URL = window?.app_base_url ? ''
+exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -110,89 +159,6 @@ $.fn.exactly_cover = (other) ->
         elt.width(other.width())
         elt.height(other.height())
     return this
-
-# make all links open internally or in a new tab; etc.
-# opts={project_id:?, file_path:path that contains file}
-$.fn.process_smc_links = (opts={}) ->
-    @each ->
-        e = $(this)
-        a = e.find('a')
-        for x in a
-            y = $(x)
-            href = y.attr('href')
-            if href?
-                if href[0] == '#'  # internal link - do not touch
-                    continue
-                if opts.href_transform?
-                    href = opts.href_transform(href)
-                if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
-                    # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
-                    # link directly inside this browser tab.
-                    # WARNING: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
-                    # to have /projects/ in it -- deal with them someday...
-                    y.click (e) ->
-                        url = $(@).attr('href')
-                        i = url.indexOf('/projects/')
-                        target = url.slice(i + '/projects/'.length)
-                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
-                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
-                    # internal link
-                    y.click (e) ->
-                        target = $(@).attr('href')
-                        {join} = require('path')
-                        if target.indexOf('/projects/') == 0
-                            # fully absolute (but without https://...)
-                            target = decodeURI(target.slice('/projects/'.length))
-                        else if target[0] == '/' and target[37] == '/' and misc.is_valid_uuid_string(target.slice(1,37))
-                            # absolute path with /projects/ omitted -- /..project_id../files/....
-                            target = decodeURI(target.slice(1))  # just get rid of leading slash
-                        else if target[0] == '/' and opts.project_id
-                            # absolute inside of project
-                            target = join(opts.project_id, 'files', decodeURI(target))
-                        else if opts.project_id and opts.file_path?
-                            # realtive to current path
-                            target = join(opts.project_id, 'files', opts.file_path, decodeURI(target))
-                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
-                        return false
-                else
-                    # make links open in a new tab by default
-                    a.attr("target","_blank")
-
-        # make relative links to images use the raw server
-        if opts.project_id and opts.file_path?
-            for [tag, attr] in [['img', 'src'], ['object', 'data']]
-                for x in e.find(tag)
-                    y = $(x)
-                    src = y.attr(attr)
-                    if not src?
-                        continue
-                    if opts.href_transform?
-                        src = opts.href_transform(src)
-                    if src[0] == '/' or src.slice(0,5) == 'data:'
-                        # absolute path or data: url
-                        new_src = src
-                    else
-                        {join} = require('path')
-                        i = src.indexOf('/projects/')
-                        j = src.indexOf('/files/')
-                        if src.indexOf(document.location.origin) == 0 and i != -1 and j != -1 and j > i
-                            # the href is inside the app, points to the current project or another one
-                            # j-i should be 36, unless we ever start to have different (vanity) project_ids
-                            path = src.slice(j + '/files/'.length)
-                            project_id = src.slice(i + '/projects/'.length, j)
-                            new_src = join('/', window.smc_base_url, project_id, 'raw', path)
-                            y.attr(attr, new_src)
-                            continue
-                        if src.indexOf('://') != -1
-                            # link points somewhere else
-                            continue
-                        # we do not have an absolute url, hence we assume it is a relative URL to a file in a project
-                        new_src = join('/', window.smc_base_url, opts.project_id, 'raw', opts.file_path, src)
-                    y.attr(attr, new_src)
-
-        return e
-
 
 # Easily enable toggling details of some elements...
 # (grep code for usage examples)
@@ -782,7 +748,7 @@ exports.define_codemirror_extensions = () ->
             # Special case -- trying to set to value=undefined.  This is the sort of thing
             # that might rarely happen right as the document opens or closes, for which
             # there is no meaningful thing to do but "do nothing".  We detected this periodically
-            # by catching user stacktraces in production...  See https://github.com/sagemathinc/smc/issues/1768
+            # by catching user stacktraces in production...  See https://github.com/sagemathinc/cocalc/issues/1768
             return
         current_value = @getValue()
         if value == current_value
@@ -858,7 +824,7 @@ exports.define_codemirror_extensions = () ->
             return
 
         sel = $("<select>").css('width','auto')
-        complete = $("<div>").addClass("salvus-completions").append(sel)
+        complete = $("<div>").addClass("webapp-completions").append(sel)
         for c in completions
             # do not include target in appended completion if it has a '*'
             if target.indexOf('*') == -1
@@ -928,16 +894,17 @@ exports.define_codemirror_extensions = () ->
             # If for some reason the content isn't a string (e.g., undefined or an object or something else),
             # convert it a string, which will display fine.
             opts.content = "#{JSON.stringify(opts.content)}"
-        element = templates.find(".salvus-codemirror-introspect")
-        element.find(".salvus-codemirror-introspect-title").text(opts.target)
-        element.modal()
-        element.find(".salvus-codemirror-introspect-content-docstring").text('')
-        element.find(".salvus-codemirror-introspect-content-source-code").text('')
-        element.data('editor', @)
+        element = get_inspect_dialog(@)
+        element.find(".webapp-codemirror-introspect-title").text(opts.target)
+        element.show()
         if opts.type == 'source-code'
-            CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
+            elt = element.find(".webapp-codemirror-introspect-content-source-code")[0]
+            if elt? # see https://github.com/sagemathinc/cocalc/issues/1993
+                CodeMirror.runMode(opts.content, 'python', elt)
         else
-            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
+            elt = element.find(".webapp-codemirror-introspect-content-docstring")[0]
+            if elt?  # see https://github.com/sagemathinc/cocalc/issues/1993
+                CodeMirror.runMode(opts.content, 'text/x-rst', elt)
 
     # Codemirror extension that takes as input an arrow of words (or undefined)
     # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
@@ -1257,17 +1224,17 @@ exports.define_codemirror_extensions = () ->
         opts = defaults opts,
             cb : undefined
         cm = @
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             setTimeout(focus, 50)
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
+        display = dialog.find(".webapp-html-editor-display")
+        target  = dialog.find(".webapp-html-editor-target")
+        title   = dialog.find(".webapp-html-editor-title")
 
         selected_text = cm.getSelection()
         display.val(selected_text)
@@ -1275,7 +1242,7 @@ exports.define_codemirror_extensions = () ->
         mode = cm.get_edit_mode()
 
         if mode in ['md', 'rst', 'tex']
-            dialog.find(".salvus-html-editor-target-row").hide()
+            dialog.find(".webapp-html-editor-target-row").hide()
 
         submit = () =>
             dialog.modal('hide')
@@ -1376,31 +1343,31 @@ exports.define_codemirror_extensions = () ->
             cb : undefined
         cm = @
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-image-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
             return false
-        url = dialog.find(".salvus-html-editor-url")
+        url = dialog.find(".webapp-html-editor-url")
         url.focus()
 
         mode = cm.get_edit_mode()
 
         if mode == "tex"
             # different units and don't let user specify the height
-            dialog.find(".salvus-html-editor-height-row").hide()
-            dialog.find(".salvus-html-editor-image-width-header-tex").show()
-            dialog.find(".salvus-html-editor-image-width-header-default").hide()
-            dialog.find(".salvus-html-editor-width").val('80')
+            dialog.find(".webapp-html-editor-height-row").hide()
+            dialog.find(".webapp-html-editor-image-width-header-tex").show()
+            dialog.find(".webapp-html-editor-image-width-header-default").hide()
+            dialog.find(".webapp-html-editor-width").val('80')
 
         submit = () =>
             dialog.modal('hide')
-            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            title  = dialog.find(".webapp-html-editor-title").val().trim()
             height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
+            h = dialog.find(".webapp-html-editor-height").val().trim()
             if h.length > 0
                 height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
+            w = dialog.find(".webapp-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
 
@@ -1411,10 +1378,10 @@ exports.define_codemirror_extensions = () ->
                 #    :alt: alternate text
                 #    :align: right
                 s = "\n.. image:: #{url.val()}\n"
-                height = dialog.find(".salvus-html-editor-height").val().trim()
+                height = dialog.find(".webapp-html-editor-height").val().trim()
                 if height.length > 0
                     s += "   :height: #{height}px\n"
-                width = dialog.find(".salvus-html-editor-width").val().trim()
+                width = dialog.find(".webapp-html-editor-width").val().trim()
                 if width.length > 0
                     s += "   :width: #{width}px\n"
                 if title.length > 0
@@ -1428,7 +1395,7 @@ exports.define_codemirror_extensions = () ->
 
             else if mode == "tex"
                 cm.tex_ensure_preamble("\\usepackage{graphicx}")
-                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                width = parseInt(dialog.find(".webapp-html-editor-width").val(), 10)
                 if "#{width}" == "NaN"
                     width = "0.8"
                 else
@@ -1485,7 +1452,7 @@ exports.define_codemirror_extensions = () ->
             bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
             return
 
-        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog = $("#webapp-editor-templates").find(".webapp-html-editor-symbols-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
@@ -1508,7 +1475,7 @@ exports.define_codemirror_extensions = () ->
                 cm.replaceRange(s, sel.head)
             opts.cb?()
 
-        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.find(".webapp-html-editor-symbols-dialog-table").off("click").click(selected)
         dialog.keydown (evt) =>
             if evt.which == 13 # enter
                 submit()
@@ -1616,16 +1583,6 @@ cm_start_end = (selection) ->
     if end_line < start_line
         end_line = start_line
     return {start_line:start_line, end_line:end_line}
-
-codemirror_introspect_modal = templates.find(".salvus-codemirror-introspect")
-
-codemirror_introspect_modal.find("button").click () ->
-    codemirror_introspect_modal.modal('hide')
-
-# see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
-codemirror_introspect_modal.on 'hidden.bs.modal', () ->
-    codemirror_introspect_modal.data('editor').focus?()
-    codemirror_introspect_modal.data('editor',0)
 
 exports.download_file = (url) ->
     #console.log("download_file(#{url})")
@@ -1833,6 +1790,11 @@ exports.open_new_tab = (url, popup=false) ->
         return null
     return tab
 
+exports.get_cookie = (name) ->
+    value = "; " + document.cookie
+    parts = value.split("; " + name + "=")
+    return parts.pop().split(";").shift() if (parts.length == 2)
+
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
     if window.getSelection?().empty?
@@ -1841,3 +1803,23 @@ exports.clear_selection = ->
         window.getSelection().removeAllRanges() # firefox
     else
         document.selection?.empty?()
+
+# read the query string of the URL and transform it to a key/value map
+# based on: https://stackoverflow.com/a/4656873/54236
+# the main difference is that multiple identical keys are collected in an array
+# test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
+exports.get_query_params = ->
+    vars = {}
+    href = window.location.href
+    for part in href.slice(href.indexOf('?') + 1).split('&')
+        [k, v] = part.split('=')
+        if vars[k]?
+            if not Array.isArray(vars[k])
+                vars[k] = [vars[k]]
+            vars[k] = vars[k].concat(v)
+        else
+            vars[k] = v ? true
+    return vars
+
+exports.get_query_param = (p) ->
+    return exports.get_query_params()[p]

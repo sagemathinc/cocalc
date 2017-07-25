@@ -1,5 +1,5 @@
 ###
-SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+CoCalc: Collaborative Calculation in the Cloud
 Copyright (C) 2016, Sagemath Inc.
 ---
 
@@ -11,6 +11,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 {Loading} = require('./r_misc')
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
+theme  = require('smc-util/theme')
 
 actions  = redux.createActions('customize')
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
@@ -18,7 +19,7 @@ store    = redux.createStore('customize', defaults)
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
-$?.get (window.smc_base_url + "/customize"), (obj, status) ->
+$?.get (window.app_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
         actions.setState(obj)
@@ -139,10 +140,10 @@ exports.AccountCreationEmailInstructions = rclass
 # first step of centralizing these URLs in one place → collecting all such pages into one
 # react-class with a 'type' prop is the next step (TODO)
 # then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-smc_base_url = window?.smc_base_url ? ''  # fallback for react-static
-exports.PolicyIndexPageUrl     = smc_base_url + '/policies/index.html'
-exports.PolicyPricingPageUrl   = smc_base_url + '/policies/pricing.html'
-exports.PolicyPrivacyPageUrl   = smc_base_url + '/policies/privacy.html'
-exports.PolicyCopyrightPageUrl = smc_base_url + '/policies/copyright.html'
-exports.PolicyTOSPageUrl       = smc_base_url + '/policies/terms.html'
-exports.SmcWikiUrl             = 'https://github.com/sagemathinc/smc/wiki/Portal'
+app_base_url = window?.app_base_url ? ''  # fallback for react-static
+exports.PolicyIndexPageUrl     = app_base_url + '/policies/index.html'
+exports.PolicyPricingPageUrl   = app_base_url + '/policies/pricing.html'
+exports.PolicyPrivacyPageUrl   = app_base_url + '/policies/privacy.html'
+exports.PolicyCopyrightPageUrl = app_base_url + '/policies/copyright.html'
+exports.PolicyTOSPageUrl       = app_base_url + '/policies/terms.html'
+exports.SmcWikiUrl             = theme.WIKI_URL

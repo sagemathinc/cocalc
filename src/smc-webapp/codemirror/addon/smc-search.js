@@ -163,7 +163,7 @@ function doSearch(cm, rev, persistent, immediate) {
 }
 
 /* Return true if the given position is part of a collapsed mark.
-   See https://github.com/sagemathinc/smc/issues/522
+   See https://github.com/sagemathinc/cocalc/issues/522
    We need this since codemirror's own search doesn't ignore
    collapsed ranges, e.g., the output in sage worksheets.
 */

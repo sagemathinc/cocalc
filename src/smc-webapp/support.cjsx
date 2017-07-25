@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -25,7 +25,7 @@ underscore = _ = require('underscore')
 {Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
@@ -89,7 +89,7 @@ class SupportActions extends Actions
                 ]
                 support_ticket_error : null
         else
-            salvus_client.get_support_tickets (err, tickets) =>
+            webapp_client.get_support_tickets (err, tickets) =>
                 # console.log("tickets: #{misc.to_json(tickets)}")
                 # sort by .updated_at
                 if err?
@@ -159,7 +159,7 @@ class SupportActions extends Actions
             return null
 
     location: ->
-        window.location.pathname.slice(window.smc_base_url.length)
+        window.location.pathname.slice(window.app_base_url.length)
 
     # sends off the support request
     support: () =>
@@ -210,7 +210,7 @@ class SupportActions extends Actions
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        salvus_client.create_support_ticket
+        webapp_client.create_support_ticket
             opts:
                 username     : name
                 email_address: @get('email')
@@ -388,7 +388,7 @@ SupportInfo = rclass
             {what}
             <p>
                 Looking for documentation and help? Go to
-                the <a href="#{SmcWikiUrl}" target="_blank">SageMathCloud documentation</a>.
+                the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
             </p>
             <p>
                 After submitting a ticket, you{"'"}ll get a link, which you may
@@ -434,7 +434,7 @@ SupportFooter = rclass
             <Button
                 tabIndex  = 5
                 bsStyle   ='default'
-                onClick   = {@props.close}>Cancel</Button>
+                onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
 
 SupportForm = rclass
@@ -559,7 +559,7 @@ exports.Support = rclass
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
 
-        <Modal show={@props.show} onHide={@close} animation={false}>
+        <Modal bsSize={"large"} show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>Support Ticket</Modal.Title>
             </Modal.Header>

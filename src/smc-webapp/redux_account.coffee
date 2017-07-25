@@ -13,8 +13,8 @@ misc = require('smc-util/misc')
 help = ->
     return redux.getStore('customize').get('help_email')
 
-{salvus_client} = require('./salvus_client')
-remember_me = salvus_client.remember_me_key()
+{webapp_client} = require('./webapp_client')
+remember_me = webapp_client.remember_me_key()
 
 # Define account actions
 class AccountActions extends Actions
@@ -23,7 +23,7 @@ class AccountActions extends Actions
 
     sign_in: (email, password) =>
         @setState(signing_in: true)
-        salvus_client.sign_in
+        webapp_client.sign_in
             email_address : email
             password      : password
             remember_me   : true
@@ -37,7 +37,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        redux.getActions('page').set_active_tab('projects')
+                        #redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -45,16 +45,9 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account: (name, email, password, token) =>
-        i = name.lastIndexOf(' ')
-        if i == -1
-            last_name = ''
-            first_name = name
-        else
-            first_name = name.slice(0,i).trim()
-            last_name = name.slice(i).trim()
+    create_account: (first_name, last_name, email, password, token) =>
         @setState(signing_up: true)
-        salvus_client.create_account
+        webapp_client.create_account
             first_name      : first_name
             last_name       : last_name
             email_address   : email
@@ -82,23 +75,28 @@ class AccountActions extends Actions
         async.series([
             (cb) =>
                 # cancel any subscriptions
-                redux.getActions('billing').cancel_everything(cb)
+                redux.getActions('billing').cancel_everything (err) =>
+                    if err and redux.getStore('billing').get('no_stripe')
+                        # stripe not configured on backend, so no this err is expected
+                        cb()
+                    else
+                        cb(err)
             (cb) =>
                 # actually request to delete the account
-                salvus_client.delete_account
+                webapp_client.delete_account
                     account_id : @redux.getStore('account').get_account_id()
                     timeout       : 40
                     cb            : cb
 
         ], (err) =>
             if err?
-                @setState('account_deletion_error' : "Error trying to delete the account: #{err}")
+                @setState(account_deletion_error: "Error trying to delete the account: #{err}")
             else
                 @sign_out(true)
         )
 
     forgot_password: (email) =>
-        salvus_client.forgot_password
+        webapp_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
                 if mesg?.error
@@ -113,7 +111,7 @@ class AccountActions extends Actions
                         forgot_password_error   : ''
 
     reset_password: (code, new_password) =>
-        salvus_client.reset_forgot_password
+        webapp_client.reset_forgot_password
             reset_code   : code
             new_password : new_password
             cb : (error, mesg) =>
@@ -130,6 +128,15 @@ class AccountActions extends Actions
 
     sign_out: (everywhere) =>
         misc.delete_local_storage(remember_me)
+
+        # disable redirection from main index page to landing page
+        # (existence of cookie signals this is a known client)
+        # note: similar code is in account.coffee → signed_in
+        {APP_BASE_URL} = require('./misc_page')
+        exp = misc.server_days_ago(-30).toGMTString()
+        document.cookie = "#{APP_BASE_URL}has_remember_me=false; expires=#{exp} ;path=/"
+
+        # record this event
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
@@ -139,7 +146,7 @@ class AccountActions extends Actions
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server must clean up resources
         # and *invalidate* the remember_me cookie for this client.
-        salvus_client.sign_out
+        webapp_client.sign_out
             everywhere : everywhere
             cb         : (error) =>
                 if error
@@ -152,12 +159,13 @@ class AccountActions extends Actions
                         sign_out_error : err
                         show_sign_out  : false
                 else
-                    # Force a refresh, since otherwise there could be data
+                    # Invalidate the remember_me cookie and force a refresh, since otherwise there could be data
                     # left in the DOM, which could lead to a vulnerability
                     # or bleed into the next login somehow.
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
-                    window.location = window.location.pathname.slice(0, -8) # remove settings hashtag so that on login the projects page shows instead of settings page
+                    {APP_BASE_URL} = require('./misc_page')
+                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
 
     push_state: (url) =>
         {set_url} = require('./history')
@@ -231,6 +239,8 @@ class AccountStore extends Store
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
+# ... except for show_global_info
+init.other_settings.show_global_info = false
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 
@@ -246,11 +256,11 @@ class AccountTable extends Table
 redux.createTable('account', AccountTable)
 
 # Login status
-salvus_client.on 'signed_in', ->
+webapp_client.on 'signed_in', ->
     redux.getActions('account').set_user_type('signed_in')
-salvus_client.on 'signed_out', ->
+webapp_client.on 'signed_out', ->
     redux.getActions('account').set_user_type('public')
-salvus_client.on 'remember_me_failed', ->
+webapp_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
 # Autosave interval
@@ -265,7 +275,7 @@ init_autosave = (autosave) ->
     # Use the most recent autosave value.
     if autosave
         save_all_files = () ->
-            if salvus_client.is_connected()
+            if webapp_client.is_connected()
                 redux.getActions('projects').save_all_files()
         _autosave_interval = setInterval(save_all_files, autosave * 1000)
 
@@ -285,7 +295,7 @@ account_store.on 'change', ->
     x = account_store.getIn(['other_settings', 'standby_timeout_m'])
     if last_set_standby_timeout_m != x
         last_set_standby_timeout_m = x
-        salvus_client.set_standby_timeout_m(x)
+        webapp_client.set_standby_timeout_m(x)
 
 account_store.on 'change', ->
     x = account_store.getIn(['editor_settings', 'jupyter_classic'])

@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -19,12 +19,12 @@
 #
 ###############################################################################
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE, isMobile} = require('./feature')
+{IS_MOBILE, IS_TOUCH, isMobile} = require('./feature')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 {Avatar} = require('./other-users')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
@@ -142,7 +142,7 @@ Message = rclass
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
-                if IS_MOBILE
+                if IS_TOUCH
                     text = "You are now editing ..."
                 else
                     text = "You are now editing ... Shift+Enter to submit changes."
@@ -268,7 +268,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} className="smc-chat-message" bsSize="small" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
-                    {editor_chat.render_timeago(@props.message)}
+                    {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
                 {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input()   if is_editing(@props.message, @props.account_id)}
@@ -409,7 +409,7 @@ ChatLog = rclass
             {@list_messages()}
         </Grid>
 
-ChatRoom = rclass ({name}) ->
+exports.ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
@@ -701,26 +701,3 @@ ChatRoom = rclass ({name}) ->
             {@render_body()}
         </div>
 
-
-ChatEditorGenerator = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
-    C_ChatRoom = ({actions}) ->
-        <ChatRoom
-            redux       = {redux}
-            path        = {path}
-            name        = {name}
-            actions     = {actions}
-            project_id  = {project_id}
-            />
-
-    C_ChatRoom.propTypes =
-        actions : rtypes.object.isRequired
-
-    return C_ChatRoom
-
-require('project_file').register_file_editor
-    ext       : 'sage-chat'
-    icon      : 'comment'
-    init      : init_redux
-    generator : ChatEditorGenerator
-    remove    : remove_redux

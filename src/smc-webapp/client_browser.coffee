@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -21,26 +21,26 @@
 
 if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
-    window.location.reload()
+    setTimeout((->window.location.reload()), 1000)
 
 $ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')
 
-#{SMC_ICON_URL} = require('./misc_page')
-SMC_ICON_URL = require('salvus-icon.svg')
+misc_page = require('./misc_page')
+
+APP_LOGO_WHITE = misc_page.APP_LOGO_WHITE
 
 # these idle notifications were in misc_page, but importing it here failed
 
 idle_notification_html = ->
     {redux}   = require('./smc-react')
     customize = redux.getStore('customize')
-    site_name = customize?.get('site_name') ? "SageMathCloud"
     """
     <div>
-    <img src="#{SMC_ICON_URL}">
-    <h1>#{site_name}<br> is on standby</h1>
+    <img src="#{APP_LOGO_WHITE}">
+    <h1>... is on standby</h1>
     &mdash; click to resume &mdash;
     </div>
     """
@@ -65,6 +65,8 @@ idle_notification = (show) ->
     idle_notification_state = show
 
 # end idle notifications
+
+auth_token = misc_page.get_query_param('auth_token')
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -123,7 +125,7 @@ class Connection extends client.Connection
         It is pushed forward each time @_idle_reset is called.
         The setInterval timer checks every minute, if the current time is past this @_init_time.
         If so, the user is 'idle'.
-        To keep 'active', call salvus_client.idle_reset as often as you like:
+        To keep 'active', call webapp_client.idle_reset as often as you like:
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
@@ -237,6 +239,11 @@ class Connection extends client.Connection
                 conn.on('data', ondata)
             conn.on("data", f)
 
+            if auth_token?
+                @sign_in_using_auth_token
+                    auth_token : auth_token
+                    cb         : (err, resp) ->
+                        auth_token = undefined
 
         conn.on 'outgoing::open', (evt) =>
             log("connecting")
@@ -256,7 +263,7 @@ class Connection extends client.Connection
         conn.on 'error', (err) =>
             log("error: ", err)
             # NOTE: we do NOT emit an error event in this case!  See
-            # https://github.com/sagemathinc/smc/issues/1819
+            # https://github.com/sagemathinc/cocalc/issues/1819
             # for extensive discussion.
 
         conn.on 'close', () =>

@@ -26,7 +26,7 @@ def process(paths):
             continue
         if not os.path.exists(path) and any(c in path for c in '{?*'):
             # If the path doesn't exist and does contain a shell glob character which didn't get expanded,
-            # then don't try to just create that file.  See https://github.com/sagemathinc/smc/issues/1019
+            # then don't try to just create that file.  See https://github.com/sagemathinc/cocalc/issues/1019
             sys.stderr.write("no match for '%s', so not creating\n"%path)
             continue
         if not os.path.exists(path):
@@ -38,7 +38,7 @@ def process(paths):
             if path[-1] != '/':
                 sys.stderr.write("creating file '%s'\n"%path)
                 import new_file
-                new_file.new_file(path)   # see https://github.com/sagemathinc/smc/issues/1476
+                new_file.new_file(path)   # see https://github.com/sagemathinc/cocalc/issues/1476
 
         path = os.path.abspath(path)
 

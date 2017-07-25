@@ -1,44 +1,55 @@
-# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-48.png) SageMathCloud (SMC)
+# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-32x32.png) CoCalc
 
-#### _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
+#### _Collaborative Calculation in the Cloud_
+
+**CoCalc** offers collaborative calculation in the cloud.
+This includes working with the full (scientific) Python stack, SageMath, Julia, R, Octave, and more.
+It also offers capabilities to author documents in LaTeX, R/knitr or Markdown,
+storing and organizing files, a web-based Linux Terminal,
+communication tools like a chat, course management and more.
 
 ## Website
 
-   * [SageMathCloud](https://cloud.sagemath.com) -- the online service
-   * [Github](https://github.com/sagemathinc/smc)
-   * [Mailing list](https://groups.google.com/forum/#!forum/sage-cloud)
-   * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
+   * **[CoCalc](https://cocalc.com) -- the online service**
+   * [Github](https://github.com/sagemathinc/cocalc)
+   * [Mailing List](https://groups.google.com/forum/#!forum/cocalc)
 
-## Evaluation install
+## Very easy install of CoCalc on your computer
 
-To quickly evaluate SMC on your own machine, you can **[run a Docker image](https://github.com/sagemathinc/smc/blob/master/src/dev/docker/README.md)**.
+You can easily use CoCalc on your own computer for free by **[running a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+
+## History
+
+*CoCalc* was formerly called *SageMathCloud*.
+It started to offer way more than just SageMath and hence outgrew itself.
+The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
-### Current very active contributors
+### Current highly active contributors
 
-   * Tim Clemans
    * John Jeng
-   * William Stein
    * Harald Schilly
    * Hal Snyder
+   * William Stein
 
 ### Past contributors
 
    * Greg Bard
    * Rob Beezer
    * Keith Clawson
+   * Tim Clemans
    * Andy Huchala
    * Jon Lee
    * Simon Luu
    * Nicholas Ruhland
    * Todd Zimmerman
 
-... and *many* others: See https://github.com/sagemathinc/smc/graphs/contributors
+... and *many* others: See https://github.com/sagemathinc/cocalc/graphs/contributors
 
 ## Copyright/License
 
-The copyright of SMC is owned by SageMath, Inc., and the source code
+The copyright of CoCalc is owned by SageMath, Inc., and the source code
 here is released under the GNU Affero General Public License version 3+.
 See the included file LICENSE.md.
 
@@ -46,6 +57,10 @@ None of the frontend or server dependencies of SMC are themselves GPL
 licensed; they all have non-viral liberal licenses.   If want to host
 your own SMC at a company, and need a different AGPL-free license,
 please contact help@sagemath.com.
+
+## Trademark
+
+"CoCalc" is a registered trademark.
 
 ## ARCHITECTURE
 
@@ -58,12 +73,12 @@ please contact help@sagemath.com.
   * HTTP server  -- Nginx
 
 ### Architectural Diagram
-<pre>
+```
 
    Client    Client    Client   Client  ...
      /|\
       |
-   https://cloud.sagemath.com (primus)
+   https://cocalc.com (primus)
       |
       |
      \|/
@@ -82,8 +97,15 @@ please contact help@sagemath.com.
   \|/               \|/      \|/
  Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has ZFS snapshots
 
-</pre>
+```
 
+## Acknowledgements
+
+### Browserstack
+
+We are grateful to BrowserStack for providing infrastructure to test CoCalc. 
+
+<a href="https://www.browserstack.com" target="_blank"><img src="http://i.imgur.com/VProOTR.png"></a>
 
 ## Development
 
@@ -97,11 +119,11 @@ please contact help@sagemath.com.
 
 The following instruction **don't** install SMC. They're for development purposes only!
 
-   * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `cd smc/src`
+   * `git clone https://github.com/sagemathinc/cocalc` -- copy repo
+   * `cd cocalc/src`
    * `npm run install-all` -- build
    * `npm test` -- run test suite (expected failures if your clock is not UTC)
    * `install.py all --compute --web` -- build and install some parts system-wide for development use
    * See `INSTALL.md` for more details.
 
-For further options please [go here](https://github.com/sagemathinc/smc/tree/master/src/dev).
+For further options please [go here](https://github.com/sagemathinc/cocalc/tree/master/src/dev).

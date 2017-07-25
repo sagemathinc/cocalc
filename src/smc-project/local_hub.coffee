@@ -1,6 +1,6 @@
 ###
 
-SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 
 local_hub -- a node.js program that runs as a regular user, and
@@ -93,7 +93,7 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-# See https://github.com/sagemathinc/smc/issues/174 -- some stupid (?)
+# See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
 # code sometimes assumes this exists, and it's not so hard to just ensure
 # it does, rather than fixing any such code.
 SAGE = path.join(process.env.HOME, '.sage')
@@ -112,9 +112,13 @@ INFO = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
-    v = process.env.HOME.split('/')
-    project_id = v[v.length-1]
-    username   = project_id.replace(/-/g,'')
+    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+        project_id = process.env.COCALC_PROJECT_ID
+        username   = process.env.COCALC_USERNAME
+    else
+        v = process.env.HOME.split('/')
+        project_id = v[v.length-1]
+        username   = project_id.replace(/-/g,'')
     if process.env.SMC_HOST?
         host = process.env.SMC_HOST
     else if os.hostname() == 'sagemathcloud'
@@ -270,6 +274,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port
+                logger     : winston
                 cb         : cb
     ], (err) ->
         if err

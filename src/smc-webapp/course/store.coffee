@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -27,7 +27,10 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
+
+# Upgrades
+project_upgrades = require('./project-upgrades')
 
 exports.CourseStore = class CourseStore extends Store
     any_assignment_uses_peer_grading: =>
@@ -66,12 +69,11 @@ exports.CourseStore = class CourseStore extends Store
         return @getIn(['settings', 'pay']) ? ''
 
     get_allow_collabs: =>
-        return true  # see https://github.com/sagemathinc/smc/issues/1494
-        # return @getIn(['settings', 'allow_collabs']) ? false
+        return @getIn(['settings', 'allow_collabs']) ? true
 
     get_email_invite: =>
-        host = window.location.hostname
-        @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
+        {SITE_NAME, DOMAIN_NAME} = require('smc-util/theme')
+        @getIn(['settings', 'email_invite']) ? "We will use [#{SITE_NAME}](#{DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
 
     get_activity: =>
         @get('activity')
@@ -124,14 +126,31 @@ exports.CourseStore = class CourseStore extends Store
                 v.push(student_id)
         return v
 
-    # return list of all non-deleted created student projects (or undefined if not loaded)
-    get_student_project_ids: =>
+    # return list of all student projects (or undefined if not loaded)
+    get_student_project_ids: (opts) =>
+        {include_deleted, deleted_only, map} = defaults opts,
+            include_deleted : false
+            deleted_only    : false
+            map             : false   # return as map to true/false instead of array
+        # include_deleted = if true, also include deleted projects
+        # deleted_only = if true, only include deleted projects
         if not @get('students')?
             return
-        v = []
+        if map
+            v = {}
+            include = (x) -> v[x] = true
+        else
+            v = []
+            include = (x) -> v.push(x)
         @get('students').map (val, student_id) =>
-            if not val.get('deleted')
-                v.push(val.get('project_id'))
+            id = val.get('project_id')
+            if deleted_only
+                if include_deleted and val.get('deleted')
+                    include(id)
+            else if include_deleted
+                include(id)
+            else if not val.get('deleted')
+                include(id)
         return v
 
     get_student: (student) =>
@@ -209,7 +228,7 @@ exports.CourseStore = class CourseStore extends Store
     # number of student projects that are currently running
     num_running_projects: (project_map) =>
         n = 0
-        @get_students().map (student, student_id) =>
+        @get_students()?.map (student, student_id) =>
             if not student.get('deleted')
                 if project_map.getIn([student.get('project_id'), 'state', 'state']) == 'running'
                     n += 1
@@ -398,3 +417,14 @@ exports.CourseStore = class CourseStore extends Store
 
         @_handout_status[handout_id] = info
         return info
+
+    get_upgrade_plan: (upgrade_goal) =>
+        account_store = @redux.getStore('account')
+        plan = project_upgrades.upgrade_plan
+            account_id          : account_store.get_account_id()
+            purchased_upgrades  : account_store.get_total_upgrades()
+            project_map         : @redux.getStore('projects').get('project_map')
+            student_project_ids : @get_student_project_ids(include_deleted:true, map:true)
+            deleted_project_ids : @get_student_project_ids(include_deleted:true, deleted_only:true, map:true)
+            upgrade_goal        : upgrade_goal
+        return plan

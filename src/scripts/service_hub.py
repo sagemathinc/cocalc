@@ -29,6 +29,9 @@ def hub_args(server_id):
         hostname=args.hostname, server_id=server_id, port=port, proxy_port=proxy_port,
         base_url=args.base_url)
 
+    if args.kucalc:
+        s += ' --kucalc '
+
     if args.dev:
         s += ' --dev '
 
@@ -101,6 +104,7 @@ if __name__ == "__main__":
     parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
 
     parser.add_argument('--dev', help="dev", dest='dev', action="store_const", const=True, default=False)
+    parser.add_argument('--kucalc', help="kucalc", dest='kucalc', action="store_const", const=True, default=False)
     parser.add_argument('--single', help="single", dest='single', action="store_const", const=True, default=False)
 
     parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)

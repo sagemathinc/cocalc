@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -20,15 +20,7 @@
 ###############################################################################
 
 ###
-
-
-
-
-
-
 Database-backed time-log database-based synchronized editing
-
-[TODO: High level description of algorithm here, or link to article.]
 ###
 
 # How big of files we allow users to open using syncstrings.
@@ -645,7 +637,7 @@ class SyncDoc extends EventEmitter
 
     set_doc: (value) =>
         if not value?.apply_patch?
-            # Do a sanity check -- see https://github.com/sagemathinc/smc/issues/1831
+            # Do a sanity check -- see https://github.com/sagemathinc/cocalc/issues/1831
             throw Error("value must be a document object with apply_patch, etc., methods")
         @_doc = value
         return
@@ -1360,7 +1352,7 @@ class SyncDoc extends EventEmitter
             # unpack ISO timestamps as Date, since patch just contains the raw
             # patches from user editing.  This was done for a while, which
             # led to horrific bugs in some edge cases...
-            # See https://github.com/sagemathinc/smc/issues/1771
+            # See https://github.com/sagemathinc/cocalc/issues/1771
             patch = JSON.parse(x.get('patch') ? '[]')
         snapshot = x.get('snapshot')
         obj =
@@ -1580,18 +1572,34 @@ class SyncDoc extends EventEmitter
             (cb) =>
                 dbg("now requesting to watch file")
                 @_file_watcher = @_client.watch_file(path:path)
-                @_file_watcher.on 'change', =>
-                    dbg("event change")
+                @_file_watcher.on 'change', (ctime) =>
+                    ctime ?= new Date()
+                    ctime = ctime - 0
+                    dbg("file_watcher: change, ctime=#{ctime}, @_save_to_disk_start_ctime=#{@_save_to_disk_start_ctime}, @_save_to_disk_end_ctime=#{@_save_to_disk_end_ctime}")
                     if @_closed
                         @_file_watcher.close()
                         return
-                    if @_save_to_disk_just_happened
-                        dbg("@_save_to_disk_just_happened")
-                        @_save_to_disk_just_happened = false
-                    else
-                        dbg("_load_from_disk")
+                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 15*1000
+                        # last attempt to save was at least 15s ago, so definitely
+                        # this change event was not caused by it.
+                        dbg("_load_from_disk: no recent save")
                         @_load_from_disk()
+                        return
+                    if not @_save_to_disk_end_ctime?
+                        # save event started less than 15s and isn't done.
+                        # ignore this load.
+                        dbg("_load_from_disk: unfinished @_save_to_disk just happened, so ignoring file change")
+                        return
+                    if @_save_to_disk_start_ctime <= ctime and ctime <= @_save_to_disk_end_ctime
+                        # changed triggered during the save
+                        dbg("_load_from_disk: change happened during @_save_to_disk , so ignoring file change")
+                        return
+                    # Changed happened near to when there was a save, but not in window, so
+                    # we do it..
+                    dbg("_load_from_disk: despite a recent save")
+                    @_load_from_disk()
                     return
+
                 @_file_watcher.on 'delete', =>
                     dbg("event delete")
                     if @_closed
@@ -1803,18 +1811,31 @@ class SyncDoc extends EventEmitter
             return
 
         #dbg("project - write to disk file")
-        @_save_to_disk_just_happened = true
-        @_client.write_file
-            path : path
-            data : data
-            cb   : (err) =>
-                #dbg("returned from write_file: #{err}")
-                if err
-                    @_set_save(state:'done', error:err)
-                else
-                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-                cb(err)
-
+        # set window to slightly earlier to account for clock imprecision.
+        # Over an sshfs mount, all stats info is **rounded down to the nearest second**,
+        # which this also takes care of.
+        @_save_to_disk_start_ctime = new Date() - 1500
+        @_save_to_disk_end_ctime = undefined
+        async.series([
+            (cb) =>
+                @_client.write_file
+                    path : path
+                    data : data
+                    cb   : cb
+            (cb) =>
+                @_client.path_stat
+                    path : path
+                    cb   : (err, stat) =>
+                        @_save_to_disk_end_ctime = stat?.ctime - 0
+                        cb(err)
+        ], (err) =>
+            #dbg("returned from write_file: #{err}")
+            if err
+                @_set_save(state:'done', error:err)
+            else
+                @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+            cb(err)
+        )
 
     ###
     # When the underlying synctable that defines the state of the document changes
@@ -1845,7 +1866,7 @@ class SyncDoc extends EventEmitter
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
 
-        # temporary hotfix for https://github.com/sagemathinc/smc/issues/1873
+        # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
         try
             changed = not @_doc?.is_equal(new_remote)
         catch

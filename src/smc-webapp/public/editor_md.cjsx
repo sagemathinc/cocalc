@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -19,12 +19,14 @@
 #
 ###############################################################################
 
+misc = require('smc-util/misc')
+
 # React libraries
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
 
 {ErrorDisplay, Loading, Markdown} = require('../r_misc')
 
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
@@ -35,7 +37,7 @@ PublicMarkdown = rclass ({name}) ->
         "#{name}" :
             content    : rtypes.string
             project_id : rtypes.string
-            path       : rtypes.string
+            file_path  : rtypes.string
 
     render: ->
         if @props.error
@@ -43,14 +45,30 @@ PublicMarkdown = rclass ({name}) ->
         else if not @props.content?
             <Loading />
         else
-            <div className="salvus-editor-static-html-content">
-                <Markdown project_id={@props.project_id} path={@props.path} value={@props.content} />
+            md_style =
+                margin          : '20px'
+                padding         : '15px'
+                boxShadow       : 'rgba(87, 87, 87, 0.2) 0px 0px 12px 1px'
+                backgroundColor : 'white'
+                display         : 'block'   # because wrapped HTML in Markdown is a span by default
+                overflowY       : 'hidden'  # for long horizontal lines; so stays in container
+            <div
+                className = "webapp-editor-static-html-content"
+                style     = {backgroundColor: 'rgb(238, 238, 238)'}>
+                <Markdown
+                    project_id  = {@props.project_id}
+                    file_path   = {@props.file_path}
+                    style       = {md_style}
+                    value       = {@props.content} />
             </div>
 
 class MDActions extends Actions
     load_content: (project_id, path) =>
-        @setState(project_id:project_id, path:path)
-        salvus_client.public_get_text_file
+        @setState
+            project_id : project_id
+            file_path  : misc.path_split(path).head
+
+        webapp_client.public_get_text_file
             project_id : project_id
             path       : path
             timeout    : 60

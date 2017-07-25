@@ -1,7 +1,6 @@
-###############################################################################
+##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
-# and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, SageMath, Inc.
 #
@@ -24,7 +23,7 @@
 misc          = require('smc-util/misc')
 {Button}      = require('react-bootstrap')
 {sha1}        = require('smc-util/schema').client_db
-{server_time} = require('./salvus_client').salvus_client
+{server_time} = require('./webapp_client').webapp_client
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
@@ -35,7 +34,7 @@ VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
 # The pop-up window for video chat
 video_window = (title, url, cb_closed) ->
     w = window.open(url, null, "location=yes,resizable=yes,height=640,width=800")
-    # disabled, see https://github.com/sagemathinc/smc/issues/1899
+    # disabled, see https://github.com/sagemathinc/cocalc/issues/1899
     #w.document.write """
     #<html>
     #    <head>
@@ -100,14 +99,14 @@ class VideoChat
         chat_window_is_open()
         @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
 
-        title = "SageMathCloud Video Chat: #{misc.trunc_middle(@path, 30)}"
+        title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
         url   = "https://appear.in/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w
-        # disabled -- see https://github.com/sagemathinc/smc/issues/1899
+        # disabled -- see https://github.com/sagemathinc/cocalc/issues/1899
         #w.addEventListener "unload", =>
         #    @close_video_chat_window()
-        # workaround for https://github.com/sagemathinc/smc/issues/1899
+        # workaround for https://github.com/sagemathinc/cocalc/issues/1899
         poll_window = window.setInterval( =>
             if w.closed != false # != is required for compatibility with Opera
                 window.clearInterval(poll_window)
@@ -135,6 +134,7 @@ exports.VideoChatButton = rclass
         project_id : rtypes.string.isRequired
         path       : rtypes.string.isRequired
         label      : rtypes.string
+        short      : rtypes.bool     # if true, styles button to be short
 
     mixins: [SetIntervalMixin]
 
@@ -179,10 +179,12 @@ exports.VideoChatButton = rclass
 
     render: ->
         num_users_chatting = @video_chat.num_users_chatting()
+        style = {}
+        if @props.short
+            style.height = '30px'
         if num_users_chatting > 0
-            style = {color: '#c9302c'}
-        else
-            style = {}
+            style.color = '#c9302c'
+
         <Button onClick={@click_video_button} style={style}>
             <Tip
                 title     = {<span>Toggle Video Chat</span>}

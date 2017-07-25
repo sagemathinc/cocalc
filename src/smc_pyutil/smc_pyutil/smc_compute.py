@@ -2,7 +2,7 @@
 
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -613,7 +613,10 @@ class Project(object):
                 return -1
 
 
-        listdir = os.listdir(abspath)
+        try:
+            listdir = os.listdir(abspath)
+        except:
+            listdir = []
         result = {}
         if not hidden:
             listdir = [x for x in listdir if not x.startswith('.')]
@@ -626,8 +629,9 @@ class Project(object):
         except:
             # Throw away filenames that can't be json'd, since they can't be JSON'd below,
             # which would totally lock user out of their listings.
+            ld0 = listdir[:]
             listdir = []
-            for x in os.listdir('.'):
+            for x in ld0:
                 try:
                     json.dumps(x)
                     listdir.append(x)

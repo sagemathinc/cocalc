@@ -16,7 +16,7 @@ fi
 
 
 U="`pwd`"
-cd /smc/src
+cd /cocalc/src
 . smc-env
 cd "$U"
 

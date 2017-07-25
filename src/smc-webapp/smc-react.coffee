@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -51,7 +51,7 @@ class Table
     constructor: (@name, @redux) ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
-        @_table = require('./salvus_client').salvus_client.sync_table(@query(), @options())
+        @_table = require('./webapp_client').webapp_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
@@ -99,11 +99,6 @@ store_def =
 
     filtered_val: depends('basic_input', 'some_list') ->
         return @some_list.filter (val) => val == @basic_input
-
-    # Not available through redux props.
-    # Great place to describe pure functions
-    # These are callable in your selectors as @greetings(...)
-    greetings: (full_name) -> ...
 
 Note: you cannot name a property "state" or "props"
 ###
@@ -370,6 +365,7 @@ class AppRedux
             throw Error("name must be a string")
         if @_stores[name]?
             S = @_stores[name]
+            S.emit('destroy')
             delete @_stores[name]
             S.removeAllListeners()
             @_redux_store.dispatch(action_remove_store(name))
@@ -418,92 +414,13 @@ class AppRedux
 
 redux = new AppRedux()
 
-###
-Custom Prop Validation
-FUTURE: Put prop validation code in a debug area so that it doesn't get loaded for production
-
-In addition to React Prop checks, we implement the following type checkers:
-immutable,
-immutable.List,
-immutable.Map,
-immutable.Set,
-immutable.Stack,
-which may be chained with .isRequired just like normal React prop checks
-
-Additional validations may be added with the following signature
-rtypes.custom_checker_name<function (
-        props,
-        propName,
-        componentName,
-        location,
-        propFullName,
-        secret
-    ) => <Error-Like-Object or null>
->
-Check React lib to see if this has changed.
-
-###
-
-check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
-#    locationName = ReactPropTypeLocationNames[location]
-    if not props[propName]? or props[propName].toJS?
-        return null
-    else
-        type = typeof props[propName]
-        return new Error(
-            "Invalid prop '#{propName}' of" +
-            " type #{type} supplied to" +
-            " '#{componentName}', expected an immutable collection or frozen object."
-        )
-
-allow_isRequired = (validate) ->
-    check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
-        if not props[propName]? and isRequired
-            return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
-        return validate(props, propName, componentName, location)
-
-    chainedCheckType = check_type.bind(null, false)
-    chainedCheckType.isRequired = check_type.bind(null, true)
-    chainedCheckType.isRequired.category = "IMMUTABLE"
-    chainedCheckType.category = "IMMUTABLE"
-
-    return chainedCheckType
-
-create_immutable_type_required_chain = (validate) ->
-    check_type = (immutable_type_name, props, propName, componentName="ANONYMOUS") ->
-        if immutable_type_name and props[propName]?
-            T = immutable_type_name
-            if not props[propName].toJS?
-                return new Error("NOT EVEN IMMUTABLE, wanted immutable.#{T} #{props}, #{propName}")
-            if require('immutable')["#{T}"]["is#{T}"](props[propName])
-                return null
-            else
-                return new Error(
-                    "Component '#{componentName}'" +
-                    " expected #{propName} to be an immutable.#{T}" +
-                    " but was supplied #{props[propName]}"
-                )
-        else
-            return validate(props, propName, componentName, location)
-
-    # To add more immutable.js types, mimic code below.
-    check_immutable_chain = allow_isRequired check_type.bind(null, undefined)
-    check_immutable_chain.Map = allow_isRequired check_type.bind(null, "Map")
-    check_immutable_chain.List = allow_isRequired check_type.bind(null, "List")
-    check_immutable_chain.Set = allow_isRequired check_type.bind(null, "Set")
-    check_immutable_chain.Stack = allow_isRequired check_type.bind(null, "Stack")
-    check_immutable_chain.category = "IMMUTABLE"
-
-    return check_immutable_chain
-
-rtypes = {}
-rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
-Object.assign(rtypes, React.PropTypes)
-
 computed = (rtype) =>
     clone = rtype.bind({})
     clone.is_computed = true
     return clone
+
+# For backward compatibility
+rtypes = require('smc-util/opts').types
 
 ###
 Used by Provider to map app state to component props
@@ -535,16 +452,27 @@ connect_component = (spec) =>
     return connect(map_state_to_props)
 
 ###
+Takes an object to create a reactClass or a function which returns such an object.
+
+Objects should be shaped like a react class save for a few exceptions:
+x.reduxProps =
+    redux_store_name :
+        fields : value_type
+        name   : type
+
+x.actions must not be defined.
 
 ###
 react_component = (x) ->
     if typeof x == 'function'
-        # Enhance the return value of x with an HOC
+        # Creates a react class that wraps the eventual component.
+        # It calls the generator function with props as a parameter
+        # and caches the result based on reduxProps
         cached = React.createClass
             # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
-                # OPTIMIZATION: check for cached the keys in props
+                # OPTIMIZATION: Cache props before generating a new key.
                 # currently assumes making a new object is fast enough
                 definition = x(@props)
                 key = misc.keys(definition.reduxProps).sort().join('')

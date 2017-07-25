@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# SageMathCloud: collaborative mathematics
+#    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016, Sagemath Inc.
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,6 +23,9 @@
 # Sending emails
 #########################################
 
+BANNED_DOMAINS = {'qq.com':true}
+
+
 fs           = require('fs')
 async        = require('async')
 winston      = require('winston') # logging -- https://github.com/flatiron/winston
@@ -36,7 +39,16 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL} = require('smc-util/theme')
+
 email_server = undefined
+
+exports.is_banned = is_banned = (address) ->
+    i = address.indexOf('@')
+    if i == -1
+        return false
+    x = address.slice(i+1).toLowerCase()
+    return !! BANNED_DOMAINS[x]
 
 # here's how I test this function:
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
@@ -44,8 +56,8 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject      : required
         body         : required
-        fromname     : 'SageMath Inc.'
-        from         : 'office@sagemath.com'
+        fromname     : COMPANY_NAME
+        from         : COMPANY_EMAIL
         to           : required
         replyto      : undefined
         replyto_name : undefined
@@ -61,6 +73,11 @@ exports.send_email = send_email = (opts={}) ->
     else
         dbg = (m) ->
     dbg(opts.body)
+
+    if is_banned(opts.to) or is_banned(opts.from)
+        dbg("WARNING: attempt to send banned email")
+        opts.cb?('banned domain')
+        return
 
     disabled = false
     async.series([
@@ -118,7 +135,7 @@ exports.send_email = send_email = (opts={}) ->
                 mail.setAsm(new helper.Asm(opts.asm_group))
 
             # plain template with a header (smc logo), a h1 title, and a footer
-            mail.setTemplateId('0375d02c-945f-4415-a611-7dc3411e2a78')
+            mail.setTemplateId(SENDGRID_TEMPLATE_ID)
             # This #title# will end up below the header in an <h1> according to the template
             personalization.addSubstitution(new helper.Substitution("#title#", opts.subject))
 
@@ -156,8 +173,8 @@ exports.mass_email = (opts) ->
     opts = defaults opts,
         subject  : required
         body     : required
-        from     : 'office@sagemath.com'
-        fromname : 'SageMath, Inc.'
+        from     : COMPANY_EMAIL
+        fromname : COMPANY_NAME
         to       : required   # array or string (if string, opens and reads from file, splitting on whitspace)
         cc       : ''
         limit    : 10         # number to send in parallel
@@ -188,7 +205,6 @@ exports.mass_email = (opts) ->
                 if n % 100 == 0
                     dbg("#{n}/#{recipients.length-1}")
                 n += 1
-                # asm_group https://app.sendgrid.com/suppressions/advanced_suppression_manager
                 send_email
                     subject  : opts.subject
                     body     : opts.body
@@ -196,7 +212,7 @@ exports.mass_email = (opts) ->
                     fromname : opts.fromname
                     to       : to
                     cc       : opts.cc
-                    asm_group: 698
+                    asm_group: SENDGRID_ASM_NEWSLETTER
                     category : "newsletter"
                     verbose  : false
                     cb       : (err) ->

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
@@ -27,28 +27,28 @@
 ###############################################################################
 
 $               = window.$
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {redux}         = require('./smc-react')
 misc            = require('smc-util/misc')
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
 $(document).on "click", (e) ->
-    if e.button == 1 and $(e.target).hasClass("salvus-no-middle-click")
+    if e.button == 1 and $(e.target).hasClass("webapp-no-middle-click")
         e.preventDefault()
         e.stopPropagation() # ?
     # hide popover on click
     if $(e.target).data('toggle') != 'popover' and $(e.target).parents('.popover.in').length == 0
         $('[data-toggle="popover"]').popover('hide')
 
-remember_me = salvus_client.remember_me_key()
+remember_me = webapp_client.remember_me_key()
 if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
     redux.getActions('page').set_active_tab('account')
 
 
-client = salvus_client
+client = webapp_client
 if client._connected
     # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.
@@ -62,54 +62,58 @@ if client._connected
 window.MathJax = exports.MathJaxConfig =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
-    # common html is the output default: http://docs.mathjax.org/en/latest/output.html
-    jax: ["input/TeX","input/AsciiMath", "output/CommonHTML"]
+    # NOTE: "output/CommonHTML" is the output default: http://docs.mathjax.org/en/latest/output.html
+    # However, **DO NOT** use "output/CommonHTML" for the output JAX; it completely breaks
+    # Sage worksheet output right now.  Maybe when/if worksheets are rewritten
+    # using React, we can change, but not now.  Using "output/SVG" works just fine.
+    #   https://github.com/sagemathinc/cocalc/issues/1962
+    jax: ["input/TeX","input/AsciiMath", "output/SVG"]
     # http://docs.mathjax.org/en/latest/options/tex2jax.html
     tex2jax:
-        inlineMath: [ ['$','$'], ["\\(","\\)"] ]
-        displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
-        processEscapes: true
-        ignoreClass: "tex2jax_ignore"
-        skipTags: ["script","noscript","style","textarea","pre","code"]
+        inlineMath     : [ ['$','$'], ["\\(","\\)"] ]
+        displayMath    : [ ['$$','$$'], ["\\[","\\]"] ]
+        processEscapes : true
+        ignoreClass    : "tex2jax_ignore"
+        skipTags       : ["script","noscript","style","textarea","pre","code"]
 
     TeX:
-        extensions: ["autoload-all.js", "noUndefined.js", "noErrors.js"]
-        Macros:  # get these from sage/misc/latex.py
-            Bold:  ["\\mathbb{#1}",1]
-            ZZ:    ["\\Bold{Z}",0]
-            NN:    ["\\Bold{N}",0]
-            RR:    ["\\Bold{R}",0]
-            CC:    ["\\Bold{C}",0]
-            FF:    ["\\Bold{F}",0]
-            QQ:    ["\\Bold{Q}",0]
-            QQbar: ["\\overline{\\QQ}",0]
-            CDF:   ["\\Bold{C}",0]
-            CIF:   ["\\Bold{C}",0]
-            CLF:   ["\\Bold{C}",0]
-            RDF:   ["\\Bold{R}",0]
-            RIF:   ["\\Bold{I} \\Bold{R}",0]
-            RLF:   ["\\Bold{R}",0]
-            CFF:   ["\\Bold{CFF}",0]
-            GF:    ["\\Bold{F}_{#1}",1]
-            Zp:    ["\\ZZ_{#1}",1]
-            Qp:    ["\\QQ_{#1}",1]
-            Zmod:  ["\\ZZ/#1\\ZZ",1]
+        MAXBUFFER  : 100000  # see https://github.com/mathjax/MathJax/issues/910
+        extensions : ["autoload-all.js", "noUndefined.js", "noErrors.js"]
+        Macros     : # get these from sage/misc/latex.py
+            Bold  : ["\\mathbb{#1}",1]
+            ZZ    : ["\\Bold{Z}",0]
+            NN    : ["\\Bold{N}",0]
+            RR    : ["\\Bold{R}",0]
+            CC    : ["\\Bold{C}",0]
+            FF    : ["\\Bold{F}",0]
+            QQ    : ["\\Bold{Q}",0]
+            QQbar : ["\\overline{\\QQ}",0]
+            CDF   : ["\\Bold{C}",0]
+            CIF   : ["\\Bold{C}",0]
+            CLF   : ["\\Bold{C}",0]
+            RDF   : ["\\Bold{R}",0]
+            RIF   : ["\\Bold{I} \\Bold{R}",0]
+            RLF   : ["\\Bold{R}",0]
+            CFF   : ["\\Bold{CFF}",0]
+            GF    : ["\\Bold{F}_{#1}",1]
+            Zp    : ["\\ZZ_{#1}",1]
+            Qp    : ["\\QQ_{#1}",1]
+            Zmod  : ["\\ZZ/#1\\ZZ",1]
         noErrors:  # http://docs.mathjax.org/en/latest/tex.html#noerrors
             inlineDelimiters : ["$","$"]
             multiLine        : true
             style:
-                "font-size"      : "85%"
-                "text-align"     : "left"
-                "color"          : "red"
-                "padding"        : "1px 3px"
-                "background"     : "#FFEEEE"
-                "border"         : "none"
+                "font-size"  : "85%"
+                "text-align" : "left"
+                "color"      : "red"
+                "padding"    : "1px 3px"
+                "background" : "#FFEEEE"
+                "border"     : "none"
         noUndefined:  # http://docs.mathjax.org/en/latest/tex.html#noundefined
             attributes:
-                mathcolor        : "red"
-                mathbackground   : "#FFEEEE"
-                mathsize         : "90%"
-
+                mathcolor      : "red"
+                mathbackground : "#FFEEEE"
+                mathsize       : "90%"
 
     # do not use "xypic.js", frequently causes crash!
     "HTML-CSS":
@@ -121,9 +125,9 @@ window.MathJax = exports.MathJaxConfig =
     showProcessingMessages: false
 
 $ = window.$
+$("#smc-startup-banner")?.remove()
+$('#smc-startup-banner-status')?.remove()
 $ ->
-    $("#smc-startup-banner")?.remove()
-    $('#smc-startup-banner-status')?.remove()
     $(parent).trigger('initialize:frame')
 
     # dynamically inserting the mathjax script URL

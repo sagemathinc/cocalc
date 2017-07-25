@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -27,58 +27,58 @@ Code related to the history and URL in the browser bar.
 The URI schema is as follows:
 
     Overall help:
-       https://cloud.sagemath.com/help
+       https://cocalc.com/help
 
     Overall settings:
-       https://cloud.sagemath.com/settings
+       https://cocalc.com/settings
 
     Account settings (default):
-       https://cloud.sagemath.com/settings/account
+       https://cocalc.com/settings/account
 
     Billing:
-       https://cloud.sagemath.com/settings/billing
+       https://cocalc.com/settings/billing
 
     Upgrades:
-       https://cloud.sagemath.com/settings/upgrades
+       https://cocalc.com/settings/upgrades
 
     Support:
-       https://cloud.sagemath.com/settings/support
+       https://cocalc.com/settings/support
 
     Projects page:
-       https://cloud.sagemath.com/projects/
+       https://cocalc.com/projects/
 
     Specific project:
-       https://cloud.sagemath.com/projects/project-id/
+       https://cocalc.com/projects/project-id/
 
     Create new file page (in given directory):
-       https://cloud.sagemath.com/projects/project-id/new/path/to/dir
+       https://cocalc.com/projects/project-id/new/path/to/dir
 
     Search (in given directory):
-       https://cloud.sagemath.com/projects/project-id/search/path/to/dir
+       https://cocalc.com/projects/project-id/search/path/to/dir
 
     Settings:
-       https://cloud.sagemath.com/projects/project-id/settings
+       https://cocalc.com/projects/project-id/settings
 
     Log:
-       https://cloud.sagemath.com/projects/project-id/log
+       https://cocalc.com/projects/project-id/log
 
     Directory listing (must have slash at end):
-      https://cloud.sagemath.com/projects/project-id/files/path/to/dir/
+      https://cocalc.com/projects/project-id/files/path/to/dir/
 
     Open file:
-      https://cloud.sagemath.com/projects/project-id/files/path/to/file
+      https://cocalc.com/projects/project-id/files/path/to/file
 
     (From before) raw http:
-      https://cloud.sagemath.com/projects/project-id/raw/path/...
+      https://cocalc.com/projects/project-id/raw/path/...
 
     (From before) proxy server (supports websockets and ssl) to a given port.
-      https://cloud.sagemath.com/projects/project-id/port/<number>/.
+      https://cocalc.com/projects/project-id/port/<number>/.
 
 ###
 
 {redux} = require('./smc-react')
 exports.set_url = (url) ->
-    window.history.pushState("", "", window.smc_base_url + url)
+    window.history.pushState("", "", window.app_base_url + url)
     {analytics_pageview} = require('./misc_page')
     analytics_pageview(window.location.pathname)
 
@@ -110,9 +110,11 @@ exports.load_target = load_target = (target) ->
                 redux.getActions('account').set_active_tab('upgrades')
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
-
-
+        when 'file-use'
+            if not logged_in
+                return
+            redux.getActions('page').set_active_tab('file-use')
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
-    load_target(decodeURIComponent(document.location.pathname.slice(window.smc_base_url.length + 1)))
+    load_target(decodeURIComponent(document.location.pathname.slice(window.app_base_url.length + 1)))

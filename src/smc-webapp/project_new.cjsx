@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -28,7 +28,7 @@ underscore = require('underscore')
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {file_associations} = require('./editor')
 {special_filenames_with_no_extension} = require('./project_file')
 
@@ -129,7 +129,7 @@ NewFileDropdown = rclass
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
         <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
     render: ->
@@ -165,7 +165,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <span style={marginRight:'5px'}></span>
                     <Tip
                         title='Folder'  placement='left' icon='folder-open-o'
-                        tip='Create a folder in which to store and organize your files.  SageMathCloud provides a full featured filesystem.' >
+                        tip='Create a folder in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
                         <NewFileButton
                             icon='folder-open-o' name='Folder'
                             on_click={@props.create_folder} />
@@ -179,7 +179,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@props.create_file} ext='tex' />
                     </Tip>
                     <Tip title='Terminal'  icon='terminal'
-                        tip="Create a command line terminal.  SageMathCloud includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
+                        tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
                     <Tip title='Task List'   icon='tasks'

@@ -33,6 +33,10 @@ npm install
 cd $SMC_ROOT/wizard
 make
 
+# generating color scheme
+cd $SMC_ROOT
+scripts/update_color_scheme.coffee
+
 # static react pages update must come *before* webpack
 cd $SMC_ROOT
 update_react_static

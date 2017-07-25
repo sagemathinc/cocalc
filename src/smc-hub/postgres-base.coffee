@@ -1,8 +1,26 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 PostgreSQL -- basic queries and database interface
-
-COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
 ###
 
 exports.DEBUG = true
@@ -61,9 +79,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                  # identical permission checks in a single user query.
             cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
+            ensure_exists : true # ensure database exists on startup (runs psql in a shell)
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
+        @_ensure_exists = opts.ensure_exists
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
         i = opts.host.indexOf(':')
@@ -78,6 +98,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_database = opts.database
         @_concurrent_queries = 0
         @_password = opts.password ? read_password_from_disk()
+        @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
@@ -153,8 +174,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
-                dbg("first make sure db exists")
-                @_ensure_database_exists(cb)
+                if @_ensure_exists
+                    dbg("first make sure db exists")
+                    @_ensure_database_exists(cb)
+                else
+                    dbg("assuming database exists")
+                    cb()
             (cb) =>
                 dbg("create client and start connecting...")
                 client = new pg.Client
@@ -196,6 +221,22 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         else
             return ->
 
+    _init_metrics: =>
+        # initialize metrics
+        MetricsRecorder  = require('./metrics-recorder')
+        @query_time_quantile = MetricsRecorder.new_quantile('db_query_ms_quantile', 'db queries',
+            percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+            labels: ['table']
+        )
+        @query_time_histogram = MetricsRecorder.new_histogram('db_query_ms_histogram', 'db queries'
+            buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
+            labels: ['table']
+        )
+        @concurrent_counter = MetricsRecorder.new_counter('db_concurrent_total',
+            'Concurrent queries (started and finished)',
+            ['state']
+        )
+
     _query: (opts) =>
         opts  = defaults opts,
             query     : undefined    # can give select and table instead
@@ -229,7 +270,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # case that key is deleted from the JSONB object fieldi.  Simple as that!  This is much, much
                                      # cleaner to use than SQL.   Also, if the value in fieldi itself is NULL, it gets
                                      # created automatically.
-            jsonb_merge : undefined  # Exactly lke jsonb_set, but when val1 (say) is an object, it merges that object in,
+            jsonb_merge : undefined  # Exactly like jsonb_set, but when val1 (say) is an object, it merges that object in,
                                      # *instead of* setting field1[key1]=val1.  So after this field1[key1] has what was in it
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
@@ -270,7 +311,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             if misc.is_array(opts.select)
                 opts.select = (quote_field(field) for field in opts.select).join(',')
             opts.query = "SELECT #{opts.select} FROM \"#{opts.table}\""
-            delete opts.table
             delete opts.select
 
         push_param = (param, type) ->
@@ -464,11 +504,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
         @_concurrent_queries += 1
+        @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
             @_client.query opts.query, opts.params, (err, result) =>
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
+                @query_time_quantile.observe({table:opts.table ? ''}, query_time_ms)
+                @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
+                @concurrent_counter.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
@@ -484,6 +528,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             dbg("EXCEPTION in @_client.query: #{e}")
             opts.cb?(e)
             @_concurrent_queries -= 1
+            @concurrent_counter.labels('ended').inc(1)
         return
 
     # Special case of query for counting entries in a table.

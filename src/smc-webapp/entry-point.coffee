@@ -1,12 +1,16 @@
 ###
-Complete 100% top-level react rewrite of SMC.
+Complete 100% top-level react rewrite of CoCalc.
 
 Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
 # FUTURE: This is needed only for the old non-react editors; will go away.
-html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html') + require('./misc_page.html')
+html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
 $('body').append(html)
+
+# deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
+{init_buttonbars} = require('./buttonbar')
+init_buttonbars()
 
 # Load/initialize Redux-based react functionality
 {redux} = require('./smc-react')
@@ -20,8 +24,9 @@ require('./system_notifications')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
-# Initializes app stores, actions, etc.
+# Initialize app stores, actions, etc.
 require('./init_app')
+require('./widget-markdown-input/main').init(redux)
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')

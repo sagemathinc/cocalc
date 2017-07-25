@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2017, SageMath, Inc.
 #
@@ -44,7 +44,7 @@ class M2SageWS(object):
 
     def __init__(self, filename, overwrite=True):
         """
-        Convert a GNU Octave .m file to a SageMathCloud .sagews file.
+        Convert a GNU Octave .m file to a CoCalc .sagews file.
 
         INPUT:
         - ``filename`` -- the name of an m file, say foo.m
@@ -57,7 +57,7 @@ class M2SageWS(object):
         self.outfile = base + '.sagews'
         if not overwrite and os.path.exists(self.outfile):
             raise Exception(
-                "%s: Warning --SageMathCloud worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
+                "%s: Warning --CoCalc worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
 
         self.m = None  # holds the notebook data
         self.output = None  # use self.write([line]) to write to output
@@ -83,7 +83,7 @@ class M2SageWS(object):
             self.output.send(line)
 
     def open(self):
-        sys.stdout.write("%s: Creating SageMathCloud worksheet '%s'\n" %
+        sys.stdout.write("%s: Creating CoCalc worksheet '%s'\n" %
                          (sys.argv[0], self.outfile))
         sys.stdout.flush()
 
@@ -119,7 +119,7 @@ class M2SageWS(object):
 def main():
     if len(sys.argv) == 1:
         sys.stderr.write("""
-Convert a GNU Octave .m file to a SageMathCloud .sagews file.
+Convert a GNU Octave .m file to a CoCalc .sagews file.
 
     Usage: %s path/to/filename.m [path/to/filename2.m ...]
 

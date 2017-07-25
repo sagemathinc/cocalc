@@ -18,7 +18,7 @@ def show(s):
 def go():
     if os.path.exists('stats'):
         os.unlink('stats')
-    os.system('wget https://cloud.sagemath.com/stats')
+    os.system('wget https://cocalc.com/stats')
     stats = json.loads(open('stats').read())
     print stats
     clients = sum([x['clients'] for x in stats['hub_servers']])

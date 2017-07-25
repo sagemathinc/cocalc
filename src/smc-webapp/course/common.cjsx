@@ -1,9 +1,29 @@
+###############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
@@ -13,74 +33,6 @@ misc = require('smc-util/misc')
 {ErrorDisplay, Icon, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
 
 immutable = require('immutable')
-
-# Move these to funcs file
-exports.STEPS = (peer) ->
-    if peer
-        return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'return_graded']
-    else
-        return ['assignment', 'collect', 'return_graded']
-
-exports.previous_step = (step, peer) ->
-    switch step
-        when 'collect'
-            return 'assignment'
-        when 'return_graded'
-            if peer
-                return 'peer_collect'
-            else
-                return 'collect'
-        when 'assignment'
-            return
-        when 'peer_assignment'
-            return 'collect'
-        when 'peer_collect'
-            return 'peer_assignment'
-        else
-            console.warn("BUG! previous_step('#{step}')")
-
-exports.step_direction = (step) ->
-    switch step
-        when 'assignment'
-            return 'to'
-        when 'collect'
-            return 'from'
-        when 'return_graded'
-            return 'to'
-        when 'peer_assignment'
-            return 'to'
-        when 'peer_collect'
-            return 'from'
-        else
-            console.warn("BUG! step_direction('#{step}')")
-
-exports.step_verb = (step) ->
-    switch step
-        when 'assignment'
-            return 'assign'
-        when 'collect'
-            return 'collect'
-        when 'return_graded'
-            return 'return'
-        when 'peer_assignment'
-            return 'assign'
-        when 'peer_collect'
-            return 'collect'
-        else
-            console.warn("BUG! step_verb('#{step}')")
-
-exports.step_ready = (step, n) ->
-    switch step
-        when 'assignment'
-            return ''
-        when 'collect'
-            return if n >1 then ' who have already received it' else ' who has already received it'
-        when 'return_graded'
-            return ' whose work you have graded'
-        when 'peer_assignment'
-            return ' for peer grading'
-        when 'peer_collect'
-            return ' who should have peer graded it'
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
@@ -271,7 +223,7 @@ exports.StudentAssignmentInfo = rclass
             placement = 'left'
         <ButtonGroup key='open_copying'>
             <Button key="copy" bsStyle='success' disabled={true}>
-                <Icon name="circle-o-notch" spin /> {name}ing
+                <Icon name="cc-icon-cocalc-ring" spin /> {name}ing
             </Button>
             <Button key="stop" bsStyle='danger' onClick={stop}>
                 <Icon name="times" />
@@ -401,7 +353,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         if @props.is_searching
             # Currently doing a search, so show a spinner
             <Button>
-                <Icon name="circle-o-notch" spin />
+                <Icon name="cc-icon-cocalc-ring" spin />
             </Button>
         else if @state.show_selector
             # There is something in the selection box -- so only action is to clear the search box.
@@ -495,7 +447,7 @@ exports.FoldersToolbar = rclass
         if @state.add_is_searching
             return
         @setState(add_is_searching:true)
-        salvus_client.find_directories
+        webapp_client.find_directories
             project_id : @props.project_id
             query      : "*#{search.trim()}*"
             cb         : (err, resp) =>

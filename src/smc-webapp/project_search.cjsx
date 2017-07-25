@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015, Nich Ruhland
 #
@@ -27,7 +27,7 @@ underscore = require('underscore')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {PathLink} = require('./project_new')
 
 

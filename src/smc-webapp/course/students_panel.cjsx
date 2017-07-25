@@ -1,33 +1,39 @@
-# SMC libraries
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# CoCalc libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 # React libraries and components
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel, Well} = require('react-bootstrap')
 
-# SMC components
+# CoCalc components
 {User} = require('../users')
 {ErrorDisplay, Icon, MarkdownInput, SearchInput, Space, TimeAgo, Tip} = require('../r_misc')
 {StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
-
-selected_entry_style =
-    border        : '1px solid #aaa'
-    boxShadow     : '5px 5px 5px #999'
-    borderRadius  : '3px'
-    marginBottom  : '10px'
-    paddingBottom : '5px'
-    paddingTop    : '5px'
-
-note_style =
-    borderTop  : '3px solid #aaa'
-    marginTop  : '10px'
-    paddingTop : '5px'
-
-show_hide_deleted_style =
-    marginTop  : '20px'
-    float      : 'right'
+util = require('./util')
+styles = require('./styles')
 
 exports.StudentsPanel = rclass ({name}) ->
     displayName: "CourseEditorStudents"
@@ -70,7 +76,7 @@ exports.StudentsPanel = rclass ({name}) ->
             return
         @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
         add_search = @state.add_search
-        salvus_client.user_search
+        webapp_client.user_search
             query : add_search
             limit : 50
             cb    : (err, select) =>
@@ -101,8 +107,8 @@ exports.StudentsPanel = rclass ({name}) ->
                             existing_students.email[email_address] = true
                     return aa
                 select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
-                # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                # NOTE (see comment on https://github.com/sagemathinc/smc/issues/677): it is very important to pass in
+                # Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
+                # NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
                 # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
                 # bringing back everything in the search, which is a bug.
                 select3 = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select2)
@@ -111,7 +117,7 @@ exports.StudentsPanel = rclass ({name}) ->
 
     student_add_button: ->
         <Button onClick={@do_add_search}>
-            {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
+            {if @props.add_searching then <Icon name="cc-icon-cocalc-ring" spin /> else <Icon name="search" />}
         </Button>
 
     add_selector_clicked: ->
@@ -242,27 +248,13 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_error()}
         </div>
 
-    sort_on_string_field: (field) ->
-        (a,b) -> misc.cmp(a[field].toLowerCase(), b[field].toLowerCase())
-
-    sort_on_numerical_field: (field) ->
-        (a,b) -> misc.cmp(a[field] * -1, b[field] * -1)
-
-    pick_sorter: (sort=@props.active_student_sort) ->
-        switch sort.column_name
-            when "email" then @sort_on_string_field("email_address")
-            when "first_name" then @sort_on_string_field("first_name")
-            when "last_name" then @sort_on_string_field("last_name")
-            when "last_active" then @sort_on_numerical_field("last_active")
-            when "hosting" then @sort_on_numerical_field("hosting")
-
     compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
-        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's SMC account ID
+        # account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
         # email_address  : "4@student.com"                        # Email the instructor signed the student up with.
-        # first_name     : "Rachel"                               # Student's first name they use for SMC
-        # last_name      : "Florence"                             # Student's last name they use for SMC
+        # first_name     : "Rachel"                               # Student's first name they use for CoCalc
+        # last_name      : "Florence"                             # Student's last name they use for CoCalc
         # project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
         # student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
         # last_active    : 2357025
@@ -270,27 +262,8 @@ exports.StudentsPanel = rclass ({name}) ->
         # deleted        : False
         # note           : "Is younger sister of Abby Florence (TA)"
 
-        v = immutable_to_list(@props.students, 'student_id')
-        # Fill in values
-        # TODO: Caching
-        for x in v
-            if x.account_id?
-                user = @props.user_map.get(x.account_id)
-                x.first_name ?= user?.get('first_name') ? ''
-                x.last_name  ?= user?.get('last_name') ? ''
-                if x.project_id?
-                    x.last_active = @props.redux.getStore('projects').get_last_active(x.project_id)?.get(x.account_id)?.getTime?()
-                    upgrades = @props.redux.getStore('projects').get_total_project_quotas(x.project_id)
-                    if upgrades?
-                        x.hosting = upgrades.member_host
-
-            x.first_name  ?= ""
-            x.last_name   ?= ""
-            x.last_active ?= 0
-            x.hosting ?= false
-            x.email_address ?= ""
-
-        v.sort(@pick_sorter())
+        v = util.parse_students(@props.students, @props.user_map, @props.redux)
+        v.sort(util.pick_student_sorter(@props.active_student_sort))
 
         if @props.active_student_sort.is_descending
             v.reverse()
@@ -365,15 +338,15 @@ exports.StudentsPanel = rclass ({name}) ->
                      display_account_name={true}
                      />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted: (num_deleted, shown_students) ->
         if @state.show_deleted
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted(needs_margin : shown_students.length > 0)} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
                     Hide {num_deleted} deleted students
                 </Tip>
             </Button>
         else
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+            <Button style={styles.show_hide_deleted(needs_margin : shown_students.length > 0)} onClick={=>@setState(show_deleted:true,search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Students are not deleted forever, even after you delete them.  Click this button to show any deleted students at the bottom of the list.  You can then click on the student and click undelete to bring the assignment back.">
                     Show {num_deleted} deleted students
                 </Tip>
@@ -382,9 +355,9 @@ exports.StudentsPanel = rclass ({name}) ->
     render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
-            {@render_student_table_header()}
+            {@render_student_table_header() if students.length > 0}
             {@render_students(students)}
-            {@render_show_deleted(num_deleted) if num_deleted}
+            {@render_show_deleted(num_deleted, students) if num_deleted}
         </Panel>
 
 exports.StudentsPanel.Header = rclass
@@ -510,9 +483,9 @@ Student = rclass
         create = @props.student.get("create_project")
         if create?
             # if so, how long ago did it start
-            how_long = (salvus_client.server_time() - create)/1000
+            how_long = (webapp_client.server_time() - create)/1000
             if how_long < 120 # less than 2 minutes -- still hope, so render that creating
-                return <div><Icon name="circle-o-notch" spin /> Creating project... (started <TimeAgo date={create} />)</div>
+                return <div><Icon name="cc-icon-cocalc-ring" spin /> Creating project... (started <TimeAgo date={create} />)</div>
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
             # to attempt creation again by clicking the create button.
 
@@ -641,7 +614,7 @@ Student = rclass
         return [header, @render_assignments_info_rows()]
 
     render_note: ->
-        <Row key='note' style={note_style}>
+        <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
                     Notes
@@ -649,10 +622,12 @@ Student = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
-                    rows        = 6
-                    placeholder = 'Notes about student (not visible to student)'
+                    persist_id    = {@props.student.get('student_id') + "note"}
+                    attach_to     = {@props.name}
+                    rows          = 6
+                    placeholder   = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
+                    on_save       = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
@@ -763,7 +738,7 @@ Student = rclass
         </Row>
 
     render: ->
-        <Row style={if @state.more then selected_entry_style}>
+        <Row style={if @state.more then styles.selected_entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}

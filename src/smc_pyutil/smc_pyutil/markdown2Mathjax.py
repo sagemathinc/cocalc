@@ -137,7 +137,7 @@ def reconstructMath(processedString,codeblocks,inline_delims=["$","$"],equation_
 	if not match:
 	    #raise ValueError("More codeblocks given than valid placeholders in text.")
             print("WARNING: More codeblocks given than valid placeholders in text.") 
-            continue  # we make this error non-fatal: see https://github.com/sagemathinc/smc/issues/506
+            continue  # we make this error non-fatal: see https://github.com/sagemathinc/cocalc/issues/506
 	outString=outString+processedString[post:match.start()]+delims[inBlock][0]+codeblocks[i][1:]+delims[inBlock][1]
 	post = match.end()
     #Add the rest of the string (if we need to)

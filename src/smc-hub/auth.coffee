@@ -1,9 +1,26 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2016, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 Passport Authentication (oauth, etc.)
-
-LICENSE: AGPLv3
-
-(c) 2015-2017 SageMath, Inc.
 ###
 
 async   = require('async')
@@ -12,7 +29,7 @@ winston = require('winston')
 passport= require('passport')
 
 misc    = require('smc-util/misc')
-message = require('smc-util/message')     # salvus message protocol
+message = require('smc-util/message')     # message protocol between front-end and back-end
 
 Cookies = require('cookies')
 
@@ -139,7 +156,7 @@ passport_login = (opts) ->
                         else
                             if has_valid_remember_me and account_id != _account_id
                                 dbg("passport exists but is associated with another account already")
-                                cb("Your #{opts.strategy} account is already attached to another SageMathCloud account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
+                                cb("Your #{opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
                             else
                                 if has_valid_remember_me
                                     dbg("passport already exists and is associated to the currently logged into account")
@@ -198,8 +215,9 @@ passport_login = (opts) ->
                             account_id    : account_id
                             cb            : cb
             ], cb)
+
         (cb) ->
-            target = BASE_URL + "/#login"
+            target = BASE_URL + "/app#login"
 
             if has_valid_remember_me
                 opts.res.redirect(target)
@@ -292,11 +310,11 @@ exports.init_passport = (opts) ->
     # Set the site conf like this:
     #
     #  require 'c'; db()
-    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:done())
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/auth'}, cb:done())
     #
     #  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
     #
-    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/project_uuid.../port/YYYYY/auth'}, cb:done())
+    #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
 
 
     auth_url = undefined # gets set below
@@ -435,7 +453,7 @@ exports.init_passport = (opts) ->
                 cb(err)
                 return
             # Get these by going to https://developers.facebook.com/ and creating a new application.
-            # For that application, set the url to the site SMC will be served from.
+            # For that application, set the url to the site CoCalc will be served from.
             # The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
             # for oauth2, as I discovered by a lucky guess... (sigh).
             #
@@ -526,7 +544,7 @@ exports.init_passport = (opts) ->
             # Get these by:
             #      (1) make a bitbucket account
             #      (2) Go to https://bitbucket.org/account/user/[your username]/api
-            #      (3) Click add consumer and enter the URL of your SMC instance.
+            #      (3) Click add consumer and enter the URL of your CoCalc instance.
             #
             # You must then put them in the database, via
             #   db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
@@ -667,9 +685,9 @@ exports.init_passport = (opts) ->
 
 
 
-# Password checking.  opts.cb(false, true) if the
-# password is correct, opts.cb(true) on error (e.g., loading from
-# database), and opts.cb(false, false) if password is wrong.  You must
+# Password checking.  opts.cb(undefined, true) if the
+# password is correct, opts.cb(error) on error (e.g., loading from
+# database), and opts.cb(undefined, false) if password is wrong.  You must
 # specify exactly one of password_hash, account_id, or email_address.
 # In case you specify password_hash, in addition to calling the
 # callback (if specified), this function also returns true if the
@@ -685,7 +703,7 @@ exports.is_password_correct = (opts) ->
         allow_empty_password : false  # If true and no password set in account, it matches anything.
                                       # this is only used when first changing the email address or password
                                       # in passport-only accounts.
-        cb            : required
+        cb            : required      # cb(err, true or false)
 
     if opts.password_hash?
         r = password_hash_library.verify(opts.password, opts.password_hash)

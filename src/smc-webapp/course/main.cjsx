@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -23,19 +23,18 @@
 Course Management
 ###
 
+# standard non-CoCalc libraries
 immutable = require('immutable')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../smc-react')
 
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, Row, Col, Panel, Tabs, Tab} = require('react-bootstrap')
 
-{ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SelectorInput, Space, TimeAgo, NumberInput} = require('../r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SaveButton} = require('../r_misc')
 
 # Course components
 {CourseStore}        = require('./store')
@@ -46,7 +45,7 @@ CourseSync           = require('./sync')
 {HandoutsPanel}      = require('./handouts_panel')
 {SettingsPanel}      = require('./settings_panel')
 {SharedProjectPanel} = require('./shared_project_panel')
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
@@ -65,8 +64,10 @@ init_redux = (course_filename, redux, course_project_id) ->
         expanded_students      : immutable.Set() # Set of student id's (string) which should be expanded on render
         expanded_assignments   : immutable.Set() # Set of assignment id's (string) which should be expanded on render
         expanded_handouts      : immutable.Set() # Set of handout id's (string) which should be expanded on render
+        expanded_peer_configs  : immutable.Set() # Set of assignment configs (key = assignment_id) which should be expanded on render
         active_student_sort    : {column_name : "last_name", is_descending : false}
-        active_assignment_sort : {column_name : "dir_name", is_descending : false}
+        active_assignment_sort : {column_name : "due_date", is_descending : false}
+        settings               : {allow_collabs : true}
 
     actions = redux.createActions(the_redux_name, CourseActions)
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)

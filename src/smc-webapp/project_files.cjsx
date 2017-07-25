@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
+{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
@@ -35,10 +35,12 @@ misc = require('smc-util/misc')
 account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
-{salvus_client}       = require('./salvus_client')
+{webapp_client}       = require('./webapp_client')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
+
+feature = require('./feature')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
@@ -121,6 +123,48 @@ FileCheckbox = rclass
         <span onClick={@handle_click} style={@props.style}>
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
+
+# TODO: Something should uniformly describe how sorted table headers work.
+# 5/8/2017 We have 3 right now, Course students and assignments panel and this one.
+ListingHeader = rclass
+    propTypes:
+        active_file_sort : rtypes.object    # {column_name : string, is_descending : bool}
+        sort_by          : rtypes.func      # Invoked as `sort_by(string)
+
+    render_sort_link: (column_name, display_name) ->
+        <a href=''
+            onClick={(e)=>e.preventDefault();@props.sort_by(column_name)}>
+            {display_name}
+            <Space/>
+            {<Icon style={marginRight:'10px'}
+                name={if @props.active_file_sort.is_descending then 'caret-up' else 'caret-down'}
+            /> if @props.active_file_sort.column_name == column_name}
+        </a>
+
+    render: ->
+        row_styles =
+            cursor          : 'pointer'
+            color           : '#666'
+            backgroundColor : '#fafafa'
+            border          : '1px solid #eee'
+            borderRadius    : '4px'
+
+        <Row style={row_styles}>
+            <Col sm=2 xs=3>
+            </Col>
+            <Col sm=1 xs=3>
+                {@render_sort_link("type", "Type")}
+            </Col>
+            <Col sm=4 smPush=5 xs=6>
+                {@render_sort_link("time", "Date Modified")}
+                <span className='pull-right'>
+                    {@render_sort_link("size", "Size")}
+                </span>
+            </Col>
+            <Col sm=5 smPull=4 xs=12>
+                {@render_sort_link("name", "Name")}
+            </Col>
+        </Row>
 
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
@@ -244,9 +288,9 @@ FileRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
-        # See https://github.com/sagemathinc/smc/issues/1020
+        # See https://github.com/sagemathinc/cocalc/issues/1020
         # support right-click → copy url for the download button
         url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
@@ -357,7 +401,7 @@ DirectoryRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
             borderStyle     : 'solid'
-            borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+            borderColor     : if @props.bordered then COLORS.BLUE_BG else @props.color
 
         directory_styles =
             fontWeight     : 'bold'
@@ -539,6 +583,7 @@ FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
+        active_file_sort    : rtypes.object
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -554,6 +599,7 @@ FileListing = rclass
         project_id          : rtypes.string
         show_upload         : rtypes.bool
         shift_is_down       : rtypes.bool
+        sort_by             : rtypes.func
 
     getDefaultProps: ->
         file_search : ''
@@ -606,34 +652,6 @@ FileListing = rclass
                 no_select    = {@props.shift_is_down}
             />
 
-    handle_parent: (e) ->
-        e.preventDefault()
-        path = misc.path_split(@props.current_path).head
-        @props.actions.open_directory(path)
-
-    parent_directory: ->
-        styles =
-            fontWeight   : 'bold'
-            whiteSpace   : 'pre-wrap'
-            wordWrap     : 'break-word'
-            overflowWrap : 'break-word'
-
-        row_styles =
-            backgroundColor : '#fafafa'
-            border          : '1px solid #eee'
-            cursor          : 'pointer'
-            borderRadius    : '4px'
-
-        if @props.current_path.length > 0
-            <Row style={row_styles} onClick={@handle_parent}>
-                <Col sm=1 smOffset=1>
-                    <a><Icon name='reply' style={fontSize:'14pt'} /></a>
-                </Col>
-                <Col sm=4 style={styles}>
-                    <a href=''>Parent Directory</a>
-                </Col>
-            </Row>
-
     render_rows: ->
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
@@ -655,7 +673,11 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode()}
-            {@parent_directory()}
+            {<ListingHeader
+                active_file_sort = {@props.active_file_sort}
+                sort_by          = {@props.sort_by}
+                check_all        = false
+                /> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
         </Col>
@@ -700,43 +722,19 @@ ProjectFilesButtons = rclass
 
     propTypes :
         show_hidden  : rtypes.bool
-        sort_by_time : rtypes.bool
-        default_sort : rtypes.string
-        current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
-
-    componentWillReceiveProps: (next) ->
-        if @props.default_sort != next.default_sort
-            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
-                @props.actions.setState(sort_by_time : next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, next.sort_by_time, next.show_hidden)
-            else
-                @props.actions.setState(sort_by_time : not next.sort_by_time)
-                @props.actions.fetch_directory_listing(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh: (e) ->
         e.preventDefault()
         @props.actions.fetch_directory_listing()
 
-    handle_sort_method: (e) ->
-        e.preventDefault()
-        @props.actions.setState(sort_by_time : not @props.sort_by_time)
-        @props.actions.fetch_directory_listing(sort_by_time : not @props.sort_by_time)
-
     handle_hidden_toggle: (e) ->
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
-        @props.actions.fetch_directory_listing(show_hidden : not @props.show_hidden)
 
     render_refresh: ->
         <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
-
-    render_sort_method: ->
-        if @props.sort_by_time
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-numeric-asc' /> </a>
-        else
-            <a href='' onClick={@handle_sort_method}><Icon name='sort-alpha-asc' /> </a>
 
     render_hidden_toggle: ->
         if @props.show_hidden
@@ -755,7 +753,6 @@ ProjectFilesButtons = rclass
     render: ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
-            {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_backup()}
         </div>
@@ -945,6 +942,8 @@ ProjectFilesActionBox = rclass
             get_project_select_list : rtypes.func
         account :
             get_user_type : rtypes.func
+        customize :
+            site_name : rtypes.string
 
     getInitialState: ->
         copy_destination_directory  : ''
@@ -1074,14 +1073,16 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
-    rename_or_duplicate_click: () ->
+    rename_or_duplicate_click: ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = ReactDOM.findDOMNode(@refs.new_name).value
         switch @props.file_action
             when 'rename'
                 @props.actions.move_files
-                    src  : @props.checked_files.toArray()
-                    dest : misc.path_to_file(rename_dir, destination)
+                    src            : @props.checked_files.toArray()
+                    dest           : misc.path_to_file(rename_dir, destination)
+                    dest_is_folder : false
+                    include_chats  : true
             when 'duplicate'
                 @props.actions.copy_paths
                     src           : @props.checked_files.toArray()
@@ -1174,8 +1175,10 @@ ProjectFilesActionBox = rclass
 
     move_click: ->
         @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : @state.move_destination
+            src            : @props.checked_files.toArray()
+            dest           : @state.move_destination
+            dest_is_folder : true
+            include_chats  : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1482,23 +1485,26 @@ ProjectFilesActionBox = rclass
         return ret
 
     share_social_network: (where, single_file) ->
+        {SITE_NAME, TWITTER_HANDLE} = require('smc-util/theme')
         file_url   = @construct_public_share_url(single_file)
         public_url = encodeURIComponent(file_url)
         filename   = misc.path_split(single_file).tail
         text       = encodeURIComponent("Check out #{filename}")
+        site_name  = @props.site_name ? SITE_NAME
         switch where
             when 'facebook'
                 # https://developers.facebook.com/docs/sharing/reference/share-dialog
-                # 806558949398043 is the ID of "SageMathCloud"
+                # 806558949398043 is the ID of "SageMathcloud"
+                # TODO CoCalc
                 url = """https://www.facebook.com/dialog/share?app_id=806558949398043&display=popup&
                 href=#{public_url}&redirect_uri=https%3A%2F%2Ffacebook.com&quote=#{text}"""
             when 'twitter'
                 # https://dev.twitter.com/web/tweet-button/web-intent
-                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=sagemath"
+                url = "https://twitter.com/intent/tweet?text=#{text}&url=#{public_url}&via=#{TWITTER_HANDLE}"
             when 'google'
                 url = "https://plus.google.com/share?url=#{public_url}"
             when 'email'
-                url = """mailto:?to=&subject=#{filename} on SageMathCloud&
+                url = """mailto:?to=&subject=#{filename} on #{site_name}&
                 body=A file is shared with you: #{public_url}"""
         if url?
             {open_popup_window} = require('./misc_page')
@@ -1623,7 +1629,7 @@ ProjectFilesSearch = rclass
 
         @_id = (@_id ? 0) + 1
         id = @_id
-        salvus_client.exec
+        webapp_client.exec
             project_id : @props.project_id
             command    : input0
             timeout    : 10
@@ -1740,8 +1746,8 @@ ProjectFilesSearch = rclass
     render: ->
         <span>
             <SearchInput
-                autoFocus   = {true}
-                autoSelect  = {true}
+                autoFocus   = {not feature.IS_TOUCH}
+                autoSelect  = {not feature.IS_TOUCH}
                 placeholder = 'Filename'
                 value       = {@props.file_search}
                 on_change   = {@on_change}
@@ -1780,7 +1786,7 @@ ProjectFilesNew = rclass
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
         <MenuItem eventKey=i key={i} onClick={=>@on_menu_item_clicked(ext)}>
-            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
     on_menu_item_clicked: (ext) ->
@@ -1824,24 +1830,23 @@ exports.ProjectFiles = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map   : rtypes.immutable
+            project_map                       : rtypes.immutable
             date_when_course_payment_required : rtypes.func
-            get_my_group : rtypes.func
-            get_total_project_quotas : rtypes.func
-
+            get_my_group                      : rtypes.func
+            get_total_project_quotas          : rtypes.func
         account :
             other_settings : rtypes.immutable
         billing :
             customer      : rtypes.object
 
         "#{name}" :
+            active_file_sort    : rtypes.object
             current_path        : rtypes.string
             activity            : rtypes.object
             page_number         : rtypes.number
             file_action         : rtypes.string
             file_search         : rtypes.string
             show_hidden         : rtypes.bool
-            sort_by_time        : rtypes.bool
             error               : rtypes.string
             checked_files       : rtypes.immutable
             selected_file_index : rtypes.number
@@ -1857,12 +1862,12 @@ exports.ProjectFiles = rclass ({name}) ->
     getDefaultProps: ->
         page_number : 0
         file_search : ''
-        new_name : ''
-        actions : redux.getActions(name) # TODO: Do best practices way
-        redux   : redux
+        new_name    : ''
+        actions     : redux.getActions(name) # TODO: Do best practices way
+        redux       : redux
 
     getInitialState: ->
-        show_pay : false
+        show_pay      : false
         shift_is_down : false
 
     componentDidMount: ->
@@ -1899,7 +1904,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
@@ -1909,7 +1913,6 @@ exports.ProjectFiles = rclass ({name}) ->
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
-            # WARNING: Uses old way of refreshing file listing
             @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
@@ -1965,7 +1968,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3>
+        <Col sm=3 style={whiteSpace: 'nowrap'}>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
@@ -2027,10 +2030,10 @@ exports.ProjectFiles = rclass ({name}) ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
             if @props.redux.getStore('account')?.is_logged_in()
-                <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are trying to access a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
+                <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
             if @props.redux.getStore('account')?.is_logged_in()
@@ -2059,7 +2062,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.
                     e = <ErrorDisplay title="Project still not running" error={"The project was not running when this directory listing was requested.  Please try again in a moment."} />
                 else
-                    if error == 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
+                    if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
                         e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
@@ -2080,6 +2083,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 disabled       = {public_view}
             >
                 <FileListing
+                    active_file_sort    = {@props.active_file_sort}
                     listing             = {listing}
                     page_size           = {@file_listing_page_size()}
                     page_number         = {@props.page_number}
@@ -2094,6 +2098,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     selected_file_index = {@props.selected_file_index}
                     project_id          = {@props.project_id}
                     shift_is_down       = {@state.shift_is_down}
+                    sort_by             = {@props.actions.set_sorted_file_column}
                     event_handlers
                 />
             </SMC_Dropwrapper>
@@ -2128,15 +2133,12 @@ exports.ProjectFiles = rclass ({name}) ->
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
-    file_listing_default_sort: ->
-        return @props.other_settings?.get('default_file_sort') ? 'time'
-
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
 
         pay = @props.date_when_course_payment_required(@props.project_id)
-        if pay? and pay <= salvus_client.server_time()
+        if pay? and pay <= webapp_client.server_time()
             return @render_course_payment_required()
 
         public_view = @props.get_my_group(@props.project_id) == 'public'
@@ -2181,8 +2183,6 @@ exports.ProjectFiles = rclass ({name}) ->
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
-                        sort_by_time = {@props.sort_by_time ? true}
-                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
@@ -2197,7 +2197,8 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
-            {@render_access_error() if public_view}
+            {# Only show the access error if there is not another error. }
+            {@render_access_error() if public_view and not error}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>

@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -29,12 +29,12 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 schema = require('smc-util/schema')
-{salvus_client} = require('../salvus_client')
+{webapp_client} = require('../webapp_client')
 
 exports.create_sync_db = (redux, actions, store) =>
     return if not redux? or not actions? or not store?
 
-    syncdb = salvus_client.sync_db
+    syncdb = webapp_client.sync_db
         project_id      : store.get('course_project_id')
         path            : store.get('course_filename')
         primary_keys    : ['table', 'handout_id', 'student_id', 'assignment_id']

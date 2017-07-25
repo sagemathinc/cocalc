@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -141,7 +141,7 @@ class exports.Connection extends EventEmitter
 
     constructor: (@url) ->
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
-        # The issue is https://github.com/sagemathinc/smc/issues/1098 and the errors we got are
+        # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
@@ -270,7 +270,7 @@ class exports.Connection extends EventEmitter
         Use like this in a Sage Worksheet:
 
             %coffeescript
-            s = require('salvus_client').salvus_client
+            s = require('webapp_client').webapp_client
             s.ping_test(delay_ms:100, packets:40, log:print)
         ###
         ping_times = []
@@ -342,7 +342,7 @@ class exports.Connection extends EventEmitter
 
     is_connected: => !!@_connected
 
-    remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
+    remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
         mesg = misc.from_json_socket(data)
@@ -546,11 +546,11 @@ class exports.Connection extends EventEmitter
             cb             : required
 
         if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the SageMathCloud Terms of Service."}))
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
             return
 
         if @_create_account_lock
-            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/smc/issues/1187
+            # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
             opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
             return
 
@@ -580,6 +580,15 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
+    sign_in_using_auth_token: (opts) ->
+        opts = defaults opts,
+            auth_token : required
+            cb         : required
+        @call
+            message : message.sign_in_using_auth_token
+                auth_token : opts.auth_token
+            timeout : opts.timeout
+            cb      : opts.cb
 
     sign_in: (opts) ->
         opts = defaults opts,
@@ -627,7 +636,6 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
-            old_email_address : ""
             new_email_address : required
             password          : ""
             cb                : undefined
@@ -637,7 +645,6 @@ class exports.Connection extends EventEmitter
         @call
             message: message.change_email_address
                 account_id        : @account_id
-                old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
             error_event : true
@@ -680,10 +687,27 @@ class exports.Connection extends EventEmitter
             timeout : 15
             cb : opts.cb
 
+     api_key: (opts) ->
+        # getting, setting, deleting, etc., the api key for this account
+        opts = defaults opts,
+            action   : required   # 'get', 'delete', 'regenerate'
+            password : required
+            cb       : required
+        if not @account_id?
+            opts.cb?("must be logged in")
+            return
+        @call
+            message: message.api_key
+                action     : opts.action
+                password   : opts.password
+            error_event : true
+            timeout : 10
+            cb : (err, resp) ->
+                opts.cb(err, resp?.api_key)
 
-    #################################################
-    # Project Management
-    #################################################
+    ###
+    Project Management
+    ###
     create_project: (opts) =>
         opts = defaults opts,
             title       : required
@@ -758,7 +782,7 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : undefined
 
-        base = window?.smc_base_url ? '' # will be defined in web browser
+        base = window?.app_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
@@ -1588,6 +1612,8 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 exports.is_valid_password = (password) ->
+    if typeof(password) != 'string'
+        return [false, 'Password must be specified.']
     if password.length >= 6 and password.length <= 64
         return [true, '']
     else
@@ -1598,7 +1624,9 @@ exports.issues_with_create_account = (mesg) ->
     if not mesg.agreed_to_terms
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
-        issues.first_name = 'Enter your name.'
+        issues.first_name = 'Enter your first name.'
+    if mesg.last_name == ''
+        issues.last_name = 'Enter your last name.'
     if not misc.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     [valid, reason] = exports.is_valid_password(mesg.password)

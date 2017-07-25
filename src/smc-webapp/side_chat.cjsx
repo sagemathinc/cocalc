@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -19,16 +19,16 @@
 #
 ###############################################################################
 
-# standard non-SMC libraries
+# standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, IS_TOUCH} = require('./feature')
 underscore = require('underscore')
 
-# SMC libraries
+# CoCalc libraries
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 
 {alert_message} = require('./alerts')
 
@@ -160,11 +160,11 @@ Message = rclass
         else
             <span className="small">
                 {text}
+                {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
             </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
         if e.keyCode == 27 # ESC
@@ -173,11 +173,14 @@ Message = rclass
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # shift+enter
-            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
-            if mesg != newest_content(@props.message)
-                @props.actions.send_edit(@props.message, mesg)
-            else
-                @props.actions.set_editing(@props.message, false)
+            @save_edit()
+
+    save_edit: ->
+        mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
+        if mesg != newest_content(@props.message)
+            @props.actions.send_edit(@props.message, mesg)
+        else
+            @props.actions.set_editing(@props.message, false)
 
     # All the columns
     content_column: ->
@@ -218,7 +221,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
-                    {editor_chat.render_timeago(@props.message)}
+                    {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
                 {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
@@ -473,9 +476,6 @@ exports.SideChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions     = redux.getActions(name)
-    if not actions?
-        init_redux(path, redux, project_id)
-        actions = redux.getActions(name)
     <ChatRoom
         redux       = {redux}
         actions     = {redux.getActions(name)}
@@ -491,9 +491,6 @@ render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions = redux.getActions(name)
-    if not actions?
-        init_redux(@props.path, @props.redux, @props.project_id)
-        actions = redux.getActions(name)
     <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
 
 # Render the given chatroom, and return the name of the redux actions/store

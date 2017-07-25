@@ -13,6 +13,8 @@ MAP_LIMIT = 5
 
 async   = require('async')
 
+random_key = require("random-key")
+
 misc_node = require('smc-util-node/misc_node')
 
 {defaults} = misc = require('smc-util/misc')
@@ -227,6 +229,54 @@ class exports.PostgreSQL extends PostgreSQL
             where :
                 "strategy = $::TEXT" : opts.strategy
             cb    : one_result('conf', opts.cb)
+
+    ###
+    API Key Management
+    ###
+    get_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query      : 'SELECT api_key FROM accounts'
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : one_result (err, x) =>
+                opts.cb(err, x?.api_key ? '')
+
+    get_account_with_api_key: (opts) =>
+        opts = defaults opts,
+            api_key : required
+            cb      : required   # cb(err, account_id)
+        @_query
+            query   : 'SELECT account_id FROM accounts'
+            where   :
+                "api_key = $::TEXT" : opts.api_key
+            cb      : one_result (err, x) =>
+                opts.cb(err, x?.account_id)
+
+    delete_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @_query
+            query      : 'UPDATE accounts SET api_key = NULL'
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : opts.cb
+
+    regenerate_api_key: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        api_key = 'sk_' + random_key.generate(24)
+        @_query
+            query      : 'UPDATE accounts'
+            set        : {api_key : api_key}
+            where      :
+                "account_id = $::UUID" : opts.account_id
+            cb         : (err) =>
+                opts.cb(err, api_key)
 
     ###
     Account creation, deletion, existence
@@ -1005,11 +1055,61 @@ class exports.PostgreSQL extends PostgreSQL
                 else if exists
                     opts.cb("email_already_taken")
                 else
-                @_query
-                    query : 'UPDATE accounts'
-                    set   : {email_address: opts.email_address}
-                    where : @_account_where(opts)
-                    cb    : opts.cb
+                    @_query
+                        query : 'UPDATE accounts'
+                        set   : {email_address: opts.email_address}
+                        where : @_account_where(opts)
+                        cb    : opts.cb
+
+    ###
+    User auth token
+    ###
+    # save an auth token in the database
+    save_auth_token: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            auth_token : required
+            ttl        : 12*3600    # ttl in seconds (default: 12 hours)
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query  : 'INSERT INTO auth_tokens'
+            values :
+                'auth_token :: CHAR(24)  ' : opts.auth_token
+                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
+                'account_id :: UUID      ' : opts.account_id
+            cb     : opts.cb
+
+    # Get account_id of account with given auth_token.  If it
+    # is not defined, get back undefined instead.
+    get_auth_token_account_id: (opts) =>
+        opts = defaults opts,
+            auth_token : required
+            cb         : required   # cb(err, account_id)
+        @_query
+            query : 'SELECT account_id, expire FROM auth_tokens'
+            where :
+                'auth_token = $::CHAR(24)' : opts.auth_token
+            cb       : one_result (err, x) =>
+                if err
+                    opts.cb(err)
+                else if not x?
+                    opts.cb()  # nothing
+                else if x.expire <= new Date()
+                    opts.cb()
+                else
+                    opts.cb(undefined, x.account_id)
+
+    delete_auth_token: (opts) =>
+        opts = defaults opts,
+            auth_token : required
+            cb         : undefined   # cb(err)
+        @_query
+            query : 'DELETE FROM auth_tokens'
+            where :
+                'auth_token = $::CHAR(24)' : opts.auth_token
+            cb    : opts.cb
+
 
     ###
     Password reset
@@ -1846,6 +1946,45 @@ class exports.PostgreSQL extends PostgreSQL
             where : where
             cb    : count_result(opts.cb)
 
+    _count_opened_files: (opts) =>
+        opts = defaults opts,
+            age_m    : undefined
+            key      : required
+            data     : required
+            distinct : required # true or false
+            cb       : required
+        q = """
+            WITH filenames AS (
+                SELECT #{if opts.distinct then 'DISTINCT' else ''} event ->> 'filename' AS fn
+                FROM project_log
+                WHERE time BETWEEN $1::TIMESTAMP AND NOW()
+                  AND event @> '{"action" : "open"}'::jsonb
+            ), ext_count AS (
+                SELECT COUNT(*) as cnt, lower(reverse(split_part(reverse(fn), '.', 1))) AS ext
+                FROM filenames
+                GROUP BY ext
+            )
+            SELECT ext, cnt
+            FROM ext_count
+            WHERE ext IN ('sagews', 'ipynb', 'tex', 'txt', 'py', 'md', 'sage', 'term', 'rnw', 'rmd', 'rst',
+                          'png', 'svg', 'jpeg', 'jpg', 'pdf', 'tasks', 'course', 'sage-chat', 'chat')
+            ORDER BY ext
+            """
+
+        post_process = (err, rows) ->
+            if err
+                opts.cb(err); return
+            else
+                _ = require('underscore')
+                values = _.object(_.pluck(rows, 'ext'), _.pluck(rows, 'cnt'))
+                opts.data[opts.key] = values
+                opts.cb(undefined)
+
+        @_query
+            query : q
+            params : [misc.minutes_ago(opts.age_m)]
+            cb     : all_results(post_process)
+
     recent_projects: (opts) =>
         opts = defaults opts,
             age_m     : required   # return results at most this old
@@ -1884,25 +2023,40 @@ class exports.PostgreSQL extends PostgreSQL
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 60         # how long cached version lives (in seconds)
-            cb  : undefined
-        stats = undefined
-        dbg = @_dbg('get_stats')
+            ttl_dt : 15       # 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
+            ttl    : 5*60     # how long cached version lives (in seconds)
+            ttl_db : 30       # how long a valid result from a db query is cached in any case
+            update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
+            cb     : undefined
+        stats   = undefined
+        start_t = process.hrtime()
+        dbg     = @_dbg('get_stats')
         async.series([
             (cb) =>
                 dbg("using cached stats?")
-                if @_stats_cached? and @_stats_cached.time > misc.seconds_ago(opts.ttl)
-                    stats = @_stats_cached
-                    dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
-                    cb(); return
+                if @_stats_cached?
+                    # decide if cache should be used -- tighten interval if we are allowed to update
+                    offset_dt = if opts.update then opts.ttl_dt else 0
+                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
+                    # in case we aren't allowed to update and the cache is outdated, do not query db too often
+                    did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
+                    if is_cache_recent or did_query_recently
+                        stats = @_stats_cached
+                        dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
+                        cb(); return
                 @_query
                     query : "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
                     cb    : one_result (err, x) =>
-                        if err or not x? or (x? and x.time < misc.seconds_ago(opts.ttl))
-                            dbg("not using cache")
-                            cb(err)
+                        if err or not x?
+                            dbg("problem with query -- no stats in db?")
+                            cb(err); return
+                        # query successful, since x exists
+                        @_stats_cached_db_query = new Date()
+                        if opts.update and x.time < misc.seconds_ago(opts.ttl - opts.ttl_dt)
+                            dbg("cache outdated -- will update stats")
+                            cb()
                         else
-                            dbg("using db cached stats from #{(new Date() - x.time) / 1000} secs ago.")
+                            dbg("using db stats from #{(new Date() - x.time) / 1000} secs ago.")
                             stats = x
                             # storing still valid result in local cache
                             @_stats_cached = misc.deep_copy(stats)
@@ -1910,29 +2064,22 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 if stats?
                     cb(); return
+                else if not opts.update
+                    dbg("warning: no recent stats but not allowed to update")
+                    cb(); return
                 dbg("querying all stats from the DB")
-                stats = {time : new Date(), projects_created : {}, projects_edited: {}, accounts_created : {}}
+                stats =
+                    time             : new Date()
+                    projects_created : {}
+                    projects_edited  : {}
+                    accounts_created : {}
+                    files_opened     : {distinct: {}, total:{}}
                 R = RECENT_TIMES
                 K = RECENT_TIMES_KEY
-                async.parallelLimit([
+                stats_tasks = [
                     (cb) => @_count_timespan(table:'accounts', cb:(err, x) => stats.accounts = x; cb(err))
                     (cb) => @_count_timespan(table:'projects', cb:(err, x) => stats.projects = x; cb(err))
-
                     (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.active, cb: (err, x) => stats.projects_edited[K.active] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_hour, cb: (err, x) => stats.projects_edited[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_day, cb: (err, x) => stats.projects_edited[K.last_day]  = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_week, cb: (err, x) => stats.projects_edited[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.last_month, cb: (err, x) => stats.projects_edited[K.last_month]= x; cb(err))
-
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_hour, cb: (err, x) => stats.projects_created[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_day, cb: (err, x) => stats.projects_created[K.last_day] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_week, cb: (err, x) => stats.projects_created[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'created', age_m: R.last_month, cb: (err, x) => stats.projects_created[K.last_month] = x; cb(err))
-
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_hour,  cb: (err, x) => stats.accounts_created[K.last_hour] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_day,   cb: (err, x) => stats.accounts_created[K.last_day] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_week,  cb: (err, x) => stats.accounts_created[K.last_week] = x; cb(err))
-                    (cb) => @_count_timespan(table: 'accounts', field: 'created', age_m: R.last_month, cb: (err, x) => stats.accounts_created[K.last_month] = x; cb(err))
                     (cb) =>
                         @_query
                             query : 'SELECT expire, host, clients FROM hub_servers'
@@ -1947,11 +2094,24 @@ class exports.PostgreSQL extends PostgreSQL
                                             delete x.expire
                                             stats.hub_servers.push(x)
                                     cb()
-                ], MAP_LIMIT, (err) =>
+                ]
+                for tkey in ['last_month', 'last_week', 'last_day', 'last_hour']
+                    do (tkey) =>
+                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.distinct, distinct:true,  cb:cb))
+                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.total,    distinct:false, cb:cb))
+                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R[tkey], cb: (err, x) => stats.projects_edited[K[tkey]] = x; cb(err)))
+                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'created', age_m: R[tkey], cb: (err, x) => stats.projects_created[K[tkey]] = x; cb(err)))
+                        stats_tasks.push((cb) => @_count_timespan(table:'accounts', field: 'created', age_m: R[tkey], cb: (err, x) => stats.accounts_created[K[tkey]] = x; cb(err)))
+
+                # this was running in parallel, but there is no hurry updating the stats...
+                # async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
+                async.series(stats_tasks, (err) =>
                     if err
                         cb(err)
                     else
-                        dbg("everything succeeded in parallel above -- now insert stats")
+                        elapsed_t = process.hrtime(start_t)
+                        duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4)
+                        dbg("everything succeeded above after #{duration_s} secs -- now insert stats")
                         # storing in local and db cache
                         stats.id = misc.uuid()
                         @_stats_cached = misc.deep_copy(stats)
@@ -1961,6 +2121,7 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : cb
                 )
         ], (err) =>
+            dbg("get_stats final CB: (#{misc.to_json(err)}, #{misc.to_json(stats)})")
             opts.cb?(err, stats)
         )
 

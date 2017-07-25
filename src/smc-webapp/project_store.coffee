@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
@@ -29,9 +29,9 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
 {alert_message} = require('./alerts')
-{salvus_client} = require('./salvus_client')
+{webapp_client} = require('./webapp_client')
 {project_tasks} = require('./project_tasks')
-{defaults, required} = misc
+{types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
@@ -151,6 +151,8 @@ class ProjectActions extends Actions
             @clear_ghost_file_tabs()
         else
             @add_a_ghost_file_tab()
+        window.clearTimeout(@last_close_timer)
+        @last_close_timer = window.setTimeout(@clear_ghost_file_tabs, 5000)
         @close_file(path)
 
     # Expects one of ['files', 'new', 'log', 'search', 'settings']
@@ -237,7 +239,7 @@ class ProjectActions extends Actions
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
-        require('./salvus_client').salvus_client.query
+        require('./webapp_client').webapp_client.query
             query :
                 project_log :
                     project_id : @project_id
@@ -306,7 +308,7 @@ class ProjectActions extends Actions
 
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
                             # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
-                            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
+                            alert_message(type:"info",message:"Opening converted CoCalc worksheet file instead of '#{opts.path}...")
                             @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
@@ -381,6 +383,10 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             index = open_files_order.indexOf(opts.path)
+                            if opts.chat
+                                require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+                                # Closed by require('./project_file').remove
+
                             if index == -1
                                 index = open_files_order.size
                             @setState
@@ -422,6 +428,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
+        require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open
@@ -472,7 +479,7 @@ class ProjectActions extends Actions
                 else
                     i = filename.length - ext.length
                     new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
-                    salvus_client.exec
+                    webapp_client.exec
                         project_id : @project_id
                         command    : "cp"
                         args       : [filename, new_filename]
@@ -483,7 +490,7 @@ class ProjectActions extends Actions
                                 filename = new_filename
                                 cb()
             (cb) =>
-                salvus_client.exec
+                webapp_client.exec
                     project_id : @project_id
                     command    : "smc-sws2sagews"
                     args       : [filename]
@@ -497,7 +504,7 @@ class ProjectActions extends Actions
         )
 
     convert_docx_file: (filename, cb) =>
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : "smc-docx2txt"
             args       : [filename]
@@ -591,24 +598,25 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path, sort_by_time, show_hidden} = defaults opts,
+        opts = defaults opts,
             path         : @get_store()?.current_path
-            sort_by_time : undefined
-            show_hidden  : undefined
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
-
+        path = opts.path
+        #if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.finish_cb)
         if not path?
-            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
+            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
             return
 
-        if not @_set_directory_files_lock?
-            @_set_directory_files_lock = {}
-        _key = "#{path}-#{sort_by_time}-#{show_hidden}"
-        if @_set_directory_files_lock[_key]  # currently doing it already
+        @_set_directory_files_lock ?= {}
+        _key = "#{path}"
+        # this makes sure finish_cb is being called, even when there are concurrent requests
+        if @_set_directory_files_lock[_key]?  # currently doing it already
+            @_set_directory_files_lock[_key].push(opts.finish_cb) if opts.finish_cb?
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
             return
-        @_set_directory_files_lock[_key] = true
+        @_set_directory_files_lock[_key] = []
         # Wait until user is logged in, project store is loaded enough
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
@@ -626,13 +634,10 @@ class ProjectActions extends Actions
                 if not store?
                     cb("store no longer defined"); return
                 path         ?= store.current_path
-                sort_by_time ?= store.sort_by_time
-                show_hidden  ?= store.show_hidden
                 get_directory_listing
                     project_id : @project_id
                     path       : path
-                    time       : sort_by_time
-                    hidden     : show_hidden
+                    hidden     : true
                     max_time_s : 120  # keep trying for up to 2 minutes
                     group      : group
                     cb         : cb
@@ -640,32 +645,49 @@ class ProjectActions extends Actions
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
             map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setState(directory_listings : map)
-            delete @_set_directory_files_lock[_key] # done!
-            opts?.finish_cb?()
+            # done! releasing lock, then executing callback(s)
+            cbs = @_set_directory_files_lock[_key]
+            delete @_set_directory_files_lock[_key]
+            for cb in cbs ? []
+                #if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
+                cb?()
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.finish_cb)
+            opts.finish_cb?()
         )
+
+    # Sets the active file_sort to next_column_name
+    set_sorted_file_column: (column_name) =>
+        current = @get_store()?.active_file_sort
+        if current?.column_name == column_name
+            is_descending = not current.is_descending
+        else
+            is_descending = false
+        next_file_sort = {is_descending, column_name}
+        @setState(active_file_sort : next_file_sort)
 
     # Increases the selected file index by 1
     # undefined increments to 0
-    increment_selected_file_index: ->
+    increment_selected_file_index: =>
         current_index = @get_store().selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
     # Does nothing when selected_file_index is undefined
-    decrement_selected_file_index: ->
+    decrement_selected_file_index: =>
         current_index = @get_store().selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
-    zero_selected_file_index: ->
+    zero_selected_file_index: =>
         @setState(selected_file_index : 0)
 
-    clear_selected_file_index: ->
+    clear_selected_file_index: =>
         @setState(selected_file_index : undefined)
 
     # Set the most recently clicked checkbox, expects a full/path/name
@@ -763,7 +785,7 @@ class ProjectActions extends Actions
 
         {command, args} = misc.transform_get_url(opts.url)
 
-        require('./salvus_client').salvus_client.exec
+        require('./webapp_client').webapp_client.exec
             project_id : @project_id
             command    : command
             timeout    : opts.timeout
@@ -777,7 +799,7 @@ class ProjectActions extends Actions
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
-    # function used internally by things that call salvus_client.exec
+    # function used internally by things that call webapp_client.exec
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
@@ -798,7 +820,7 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
             args            : args
@@ -837,7 +859,7 @@ class ProjectActions extends Actions
         if opts.only_contents
             opts.src = with_slashes
 
-        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
+        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
         deal_with_leading_dash = (src_path) ->
             if src_path[0] == '-'
                 return "./#{src_path}"
@@ -850,7 +872,7 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
             args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
@@ -891,7 +913,7 @@ class ProjectActions extends Actions
             opts0.src_path = src_path
             # we do this for consistent semantics with file copy
             opts0.target_path = misc.path_to_file(opts0.target_path, misc.path_split(src_path).tail)
-            salvus_client.copy_path_between_projects(opts0)
+            webapp_client.copy_path_between_projects(opts0)
         async.mapLimit(src, 3, f, @_finish_exec(id))
 
     _move_files: (opts) =>  #PRIVATE -- used internally to move files
@@ -904,7 +926,7 @@ class ProjectActions extends Actions
         if not opts.dest and not opts.path?
             opts.dest = '.'
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : 'mv'
             args            : (opts.mv_args ? []).concat(['--'], opts.src, [opts.dest])
@@ -916,14 +938,50 @@ class ProjectActions extends Actions
 
     move_files: (opts) =>
         opts = defaults opts,
-            src     : required    # Array of src paths to mv
-            dest    : required    # Single dest string
-            path    : undefined   # default to root of project
-            mv_args : undefined
-            id      : undefined
+            src            : required    # Array of src paths to mv
+            dest           : required    # Single dest string
+            dest_is_folder : required
+            path           : undefined   # default to root of project
+            mv_args        : undefined
+            id             : undefined
+            include_chats  : false       # If we want to copy .filename.sage-chat
+
+        # TODO: Put this somewhere else!
+        get_chat_path = (path) ->
+            misc.meta_file(path, 'chat')
+            #{head, tail} = misc.path_split(path)
+            #misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+
+        if opts.include_chats
+            if opts.dest_is_folder
+                for path in opts.src
+                    chat_path = get_chat_path(path)
+                    opts.src.push(chat_path) unless opts.src.includes(chat_path)
+
+            else
+                old_chat_path = get_chat_path(opts.src[0])
+                new_chat_path = get_chat_path(opts.dest)
+
+                @move_files
+                    src            : [old_chat_path]
+                    dest           : new_chat_path
+                    dest_is_folder : opts.dest_is_folder
+
+        delete opts.include_chats
+        delete opts.dest_is_folder
+
+        check_existence_of = (path) =>
+            path = misc.path_split(path)
+            @get_store().get('directory_listings').get(path.head ? "").some((item) => item.get('name') == path.tail)
+
+        opts.src = (path for path in opts.src when check_existence_of path)
+
+        return if opts.src.length == 0
+
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
         delete opts.id
+
         opts.cb = (err) =>
             if err
                 @set_activity(id:id, error:err)
@@ -951,7 +1009,7 @@ class ProjectActions extends Actions
         else
             mesg = "#{opts.paths.length} files"
         @set_activity(id:id, status: "Deleting #{mesg}")
-        salvus_client.exec
+        webapp_client.exec
             project_id : @project_id
             command    : 'rm'
             timeout    : 60
@@ -1077,7 +1135,7 @@ class ProjectActions extends Actions
                 if filename.indexOf(bad_char) != -1
                     @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename '#{filename}'")
                     return
-        salvus_client.exec
+        webapp_client.exec
             project_id  : @project_id
             command     : 'smc-new-file'
             timeout     : 10
@@ -1209,7 +1267,7 @@ class ProjectActions extends Actions
             most_recent_search : query
             most_recent_path   : store.current_path
 
-        salvus_client.exec
+        webapp_client.exec
             project_id      : @project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
             timeout         : 10   # how long grep runs on client
@@ -1234,7 +1292,9 @@ class ProjectActions extends Actions
         last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
+                #if DEBUG then console.log("ProjectStore::load_target", segments, full_path, parent_path ,last)
                 if target[target.length-1] == '/' or full_path == ''
+                    #if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
                     @open_directory(parent_path)
                 else
                     # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
@@ -1242,16 +1302,19 @@ class ProjectActions extends Actions
                     async.waterfall [
                         (cb) =>
                             {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            #if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
                             cb(err, item)
                         (item, cb) => # Fetch if error or nothing found
                             if not item?
+                                #if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
                                 @fetch_directory_listing
                                     path         : parent_path
-                                    show_hidden  : true
                                     finish_cb    : =>
                                         {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        #if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
                                         cb(err, item)
                             else
+                                #if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
                                 cb(undefined, item)
                     ], (err, item) =>
                         if err?
@@ -1262,6 +1325,7 @@ class ProjectActions extends Actions
                         if item?.get('isdir')
                             @open_directory(full_path)
                         else
+                            #if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground)
                             @open_file
                                 path       : full_path
                                 foreground : foreground
@@ -1309,7 +1373,6 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
-        sort_by_time       : true
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1344,6 +1407,7 @@ create_project_store_def = (name, project_id) ->
 
         # Project Files
         activity               : rtypes.immutable
+        active_file_sort       : rtypes.object     # {column_name : string, is_descending : bool}
         page_number            : rtypes.number
         file_action            : rtypes.string
         file_search            : rtypes.string
@@ -1352,7 +1416,6 @@ create_project_store_def = (name, project_id) ->
         checked_files          : rtypes.immutable
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
-        sort_by_time           : rtypes.bool
         most_recent_file_click : rtypes.string
 
         # Project Log
@@ -1389,15 +1452,19 @@ create_project_store_def = (name, project_id) ->
             {SCHEMA, client_db} = require('smc-util/schema')
             return SCHEMA.public_paths.user_query.set.fields.id({project_id:project_id, path:path}, client_db)
 
-    # TODO: Change input functions like this to use getInitialState
-    sort_by_time: ->
-        return @get('sort_by_time') ? @redux.getStore('account').getIn(['other_settings', 'default_file_sort']) == 'time'
+    active_file_sort: ->
+        if @get('active_file_sort')?
+            return @get('active_file_sort').toJS()
+        else
+            is_descending = false
+            column_name = @redux.getStore('account').getIn(['other_settings', 'default_file_sort'])
+            return {is_descending, column_name}
 
     # Computed values
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('directory_listings', 'current_path', 'stripped_public_paths', 'file_search', 'other_settings') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1426,6 +1493,26 @@ create_project_store_def = (name, project_id) ->
         search = @file_search?.toLowerCase()
         if search and search[0] isnt search_escape_char
             listing = @_matched_files(search, listing)
+
+        sorter = switch @active_file_sort.column_name
+            when "name" then @_sort_on_string_field("name")
+            when "time" then @_sort_on_numerical_field("mtime", -1)
+            when "size" then @_sort_on_numerical_field("size")
+            when "type"
+                (a, b) =>
+                    if a.isdir and not b.isdir
+                        return -1
+                    else if b.isdir and not a.isdir
+                        return 1
+                    else
+                        return misc.cmp_array(a.name.split('.').reverse(), b.name.split('.').reverse())
+
+        listing.sort(sorter)
+
+        if @active_file_sort.is_descending
+            listing.reverse()
+
+        listing = (l for l in listing when not l.name.startsWith('.')) unless @show_hidden
 
         map = {}
         for x in listing
@@ -1536,6 +1623,12 @@ create_project_store_def = (name, project_id) ->
                     pub[x.name] = map[p]
 
 
+    _sort_on_string_field: (field) =>
+        (a,b) -> misc.cmp(a[field]?.toLowerCase() ? "", b[field]?.toLowerCase() ? "")
+
+    _sort_on_numerical_field: (field, factor=1) =>
+        (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
+
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)
     name  = key(project_id)
@@ -1594,23 +1687,21 @@ get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
         path       : required
-        time       : required
         hidden     : required
         max_time_s : required
         group      : required
         cb         : required
-    {salvus_client} = require('./salvus_client')
+    {webapp_client} = require('./webapp_client')
     if opts.group in ['owner', 'collaborator', 'admin']
-        method = salvus_client.project_directory_listing
+        method = webapp_client.project_directory_listing
     else
-        method = salvus_client.public_project_directory_listing
+        method = webapp_client.public_project_directory_listing
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
         method
             project_id : opts.project_id
             path       : opts.path
-            time       : opts.time
             hidden     : opts.hidden
             timeout    : 15
             cb         : (err, x) ->

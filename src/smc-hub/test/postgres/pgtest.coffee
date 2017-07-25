@@ -24,6 +24,8 @@ if DEBUG
 else
     log = ->
 
+exports.log = log
+
 exports.db = undefined
 exports.setup = (cb) ->
     async.series([

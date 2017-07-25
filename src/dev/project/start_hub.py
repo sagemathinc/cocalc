@@ -7,7 +7,7 @@ path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.in
 os.environ['DEVEL']='yes'
 os.environ['PGHOST']=os.path.join(path, 'postgres_data/socket')
 
-if 'TMUX' in os.environ: # see https://github.com/sagemathinc/smc/issues/563
+if 'TMUX' in os.environ: # see https://github.com/sagemathinc/cocalc/issues/563
     del os.environ['TMUX']
 
 util.chdir()

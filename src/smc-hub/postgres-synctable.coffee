@@ -1,9 +1,27 @@
+##############################################################################
+#
+#    CoCalc: Collaborative Calculation in the Cloud
+#
+#    Copyright (C) 2017, Sagemath Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 ###
 Server side synchronized tables built on PostgreSQL, and basic support
 for user get query updates.
-
-COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
 ###
 
 EventEmitter = require('events')
@@ -261,8 +279,11 @@ class ProjectAndUserTracker extends EventEmitter
 
     # add and remove user from a project, maintaining our data structures (@_accounts, @_projects, @_collabs)
     _add_user_to_project: (account_id, project_id) =>
+        dbg = @_dbg('_add_user_to_project')
         if account_id?.length != 36 or project_id?.length != 36
-            throw Error("invalid account_id or project_id")
+            # nothing to do -- better than crashing the server...
+            dbg("WARNING: invalid account_id (='#{account_id}') or project_id (='#{project_id}')")
+            return
         if @_projects[account_id]?[project_id]
             return
         @emit 'add_user_to_project', {account_id:account_id, project_id:project_id}
@@ -357,7 +378,9 @@ class ProjectAndUserTracker extends EventEmitter
                             continue
                         else
                             for collab_account_id in a.users
-                                @_add_user_to_project(collab_account_id, a.project_id)
+                                # NOTE: Very rarely, sometimes collab_account_id is not defined
+                                if collab_account_id?
+                                    @_add_user_to_project(collab_account_id, a.project_id)
                 # call the callbacks
                 if err
                     dbg("error registering '#{account_id}' -- err=#{err}")
@@ -943,7 +966,7 @@ $$ LANGUAGE plpgsql;"""
 NOTES: The following is a way to back the changes with a small table.
 This allows to have changes which are larger than the hard 8000 bytes limit.
 HSY did this with the idea of having a temporary workaround for a bug related to this.
-https://github.com/sagemathinc/smc/issues/1718
+https://github.com/sagemathinc/cocalc/issues/1718
 
 1. Create a table trigger_notifications via the db-schema.
    For performance reasons, the table itself should be created with "UNLOGGED"
