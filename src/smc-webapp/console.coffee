@@ -593,7 +593,7 @@ class Console extends EventEmitter
         delete @session
 
         if @_syncdb?
-            @_syncdb.delete(id: salvus_client._conn_id)
+            @_syncdb.delete(id: webapp_client._conn_id)
             @_syncdb.save () =>
                 @_syncdb?.close()
                 delete @_syncdb
@@ -909,7 +909,7 @@ class Console extends EventEmitter
         @_row_height = row_height
 
         cur = @_syncdb.get_one
-            id    : salvus_client._conn_id
+            id    : webapp_client._conn_id
             table : 'clients'
 
         if cur? and cur.rows == rows and cur.cols == cols and cur.active >= misc.server_minutes_ago(1)
@@ -923,7 +923,7 @@ class Console extends EventEmitter
             cols   : cols
             active : misc.server_time()
             table  : 'clients'
-            id     : salvus_client._conn_id
+            id     : webapp_client._conn_id
         @_syncdb.save()
 
     set_renderer_size: =>
@@ -933,7 +933,7 @@ class Console extends EventEmitter
             # Not ready yet -- try again on connect
             @once('init-syncdb', @set_renderer_size)
             return
-        settings = @_syncdb.get_one(table:'settings').toJS()  # TODO: use immutable...
+        settings = @_syncdb.get_one(table:'settings')?.toJS()  # TODO: use immutable...
         if not settings?.cols? or not settings?.rows?
             return
         console.log "set our renderer size to (rows=#{settings.rows}, cols=#{settings.cols})"

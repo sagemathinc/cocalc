@@ -2027,7 +2027,7 @@ class Terminal extends FileEditor
         @connect_to_server()
 
     connect_to_server: (cb) =>
-        salvus_client.connect_to_terminal_session
+        webapp_client.connect_to_terminal_session
             project_id : @project_id
             path       : @filename
             cb         : (err, session) =>

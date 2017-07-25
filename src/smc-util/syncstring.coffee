@@ -595,8 +595,8 @@ class SyncDoc extends EventEmitter
 
         # window.s = @
 
-        #dbg = @dbg("constructor(path='#{@_path}')")
-        #dbg('connecting...')
+        dbg = @dbg("constructor(path='#{@_path}')")
+        dbg('connecting...')
         @connect (err) =>
             if err
                 dbg("error connecting -- '#{err}'")
