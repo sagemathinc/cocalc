@@ -124,8 +124,16 @@ start_session = (socket, mesg) ->
     async.series([
         (cb) ->
             # Fork off a child process that does all further work to
-            # handle a connection.
-            child = child_process.fork(__dirname + '/console_server_child.coffee', [])
+            # handle a connection.  We prefer the .js file if it is there,
+            # e.g., in kucalc, but can also work purely with .coffee, e.g.,
+            # for smc-in-smc development.  NOTE: things will break if
+            # just console_server_child.js exists, but not all other .js files.
+            module = __dirname + '/console_server_child'
+            if fs.existsSync(module + '.js')
+                module += '.js'
+            else
+                module += '.coffee'
+            child = child_process.fork(module, [])
 
             # Send the pid of the child to the client (the connected hub)
             socket.write_mesg('json', message.session_description(pid:child.pid))
