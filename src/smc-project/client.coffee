@@ -168,7 +168,7 @@ class exports.Client extends EventEmitter
         x = @_recent_syncstrings.get()
         if not x?
             return
-        log_message = "UPDATE: open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}, wait_syncstrings: #{misc.len(@_wait_syncstrings)}"
+        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
         if log_message != @_update_recent_syncstrings_last
             winston.debug(log_message)
             @_update_recent_syncstrings_last = log_message
@@ -179,7 +179,7 @@ class exports.Client extends EventEmitter
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-            #winston.debug("LAST_ACTIVE: #{val.get('last_active')} typeof=#{typeof(val.get('last_active'))}, cutoff=#{cutoff}")
+            #winston.debug("LAST_ACTIVE: #{val.get('last_active')}, typeof=#{typeof(val.get('last_active'))}")
             if new Date(val.get("last_active")) > cutoff
                 keys[string_id] = true   # anything not set here gets closed below.
                 #dbg("considering '#{path}' with id '#{string_id}'")
@@ -216,14 +216,18 @@ class exports.Client extends EventEmitter
                             ext = misc.separate_file_extension(path).ext
 
                             doctype = val.get('doctype')
+                            dbg("doctype='#{doctype}'")
                             if doctype?
-                                dbg("using doctype='#{doctype}'")
                                 doctype   = misc.from_json(doctype)
                                 opts      = doctype.opts ? {}
                                 opts.path = path
                                 type      = doctype.type
                             else
                                 opts = {path:path}
+                                type = 'string'
+                            dbg("type='#{type}'")
+                            if type != 'db' and type != 'string'
+                                # defense against intentional corruption...
                                 type = 'string'
 
                             if ext == 'sage-ipython'

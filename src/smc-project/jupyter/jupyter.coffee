@@ -31,7 +31,11 @@ SAGE_JUPYTER_ENV = misc.merge misc.copy(process.env),
     "R_MAKEVARS_USER"  : "#{process.env.HOME}/.sage/R/Makevars.user"
 
 exports.jupyter_backend = (syncdb, client) ->
-    dbg = client.dbg("jupyter_backend")
+    # This path is the file we will watch for changes and save to, which is in the original
+    # official ipynb format:
+    path = misc.original_path(syncdb._path)
+
+    dbg = client.dbg("jupyter_backend(path='#{path}')")
     dbg()
     {JupyterActions} = require('smc-webapp/jupyter/project-actions')
     {JupyterStore}   = require('smc-webapp/jupyter/store')
@@ -39,16 +43,13 @@ exports.jupyter_backend = (syncdb, client) ->
 
     project_id = client.client_id()
 
-    # This path is the file we will watch for changes and save to, which is in the original
-    # official ipynb format:
-    path = misc.original_path(syncdb._path)
 
     redux_name = smc_react.redux_name(project_id, path)
     actions    = new JupyterActions(redux_name, smc_react.redux)
     store      = new JupyterStore(redux_name, smc_react.redux)
 
     actions._init(project_id, path, syncdb, store, client)
-
+    dbg("waiting for syncdb to get init...")
     syncdb.once 'init', (err) ->
         dbg("syncdb init complete -- #{err}")
 
