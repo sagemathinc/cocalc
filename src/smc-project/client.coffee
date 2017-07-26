@@ -61,9 +61,6 @@ jupyter = require('./jupyter/jupyter')
 
 {defaults, required} = misc
 
-DEBUG = false
-#DEBUG = true
-
 # Easy way to enable debugging in any project anywhere.
 DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
 if fs.existsSync(DEBUG_FILE)
@@ -71,6 +68,7 @@ if fs.existsSync(DEBUG_FILE)
     DEBUG = true
 else
     winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
+    DEBUG = false
 
 
 class exports.Client extends EventEmitter
@@ -170,7 +168,7 @@ class exports.Client extends EventEmitter
         x = @_recent_syncstrings.get()
         if not x?
             return
-        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
+        log_message = "UPDATE: open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}, wait_syncstrings: #{misc.len(@_wait_syncstrings)}"
         if log_message != @_update_recent_syncstrings_last
             winston.debug(log_message)
             @_update_recent_syncstrings_last = log_message
@@ -181,8 +179,8 @@ class exports.Client extends EventEmitter
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-            #winston.debug("LAST_ACTIVE: #{val.get('last_active')}, typeof=#{typeof(val.get('last_active'))}")
-            if val.get("last_active") > cutoff
+            #winston.debug("LAST_ACTIVE: #{val.get('last_active')} typeof=#{typeof(val.get('last_active'))}, cutoff=#{cutoff}")
+            if new Date(val.get("last_active")) > cutoff
                 keys[string_id] = true   # anything not set here gets closed below.
                 #dbg("considering '#{path}' with id '#{string_id}'")
                 if @_open_syncstrings[string_id]? or @_wait_syncstrings[string_id]

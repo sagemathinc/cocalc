@@ -593,7 +593,10 @@ class SyncDoc extends EventEmitter
             window.syncstrings[@_path] = @
         ###
 
-        # window.s = @
+        ###
+        if window?
+            window.s = @
+        ###
 
         dbg = @dbg("constructor(path='#{@_path}')")
         dbg('connecting...')

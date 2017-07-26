@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name             = 'smc_sagews',
-    version          = '1.0',
+    version          = '1.1',
     description      = 'CoCalc Worksheets',
     long_description = readme(),
     url              = 'https://github.com/sagemathinc/cocalc',
