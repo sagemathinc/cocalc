@@ -576,6 +576,7 @@ class SyncDoc extends EventEmitter
         @_string_id      = opts.string_id
         @_project_id     = opts.project_id
         @_path           = opts.path
+        @_short_path     = misc.trunc_middle(@_path, 64)  # used only for debugging
         @_client         = opts.client
         @_from_str       = opts.from_str
         @_from_patch_str = opts.from_patch_str
@@ -660,7 +661,7 @@ class SyncDoc extends EventEmitter
 
     # Used for internal debug logging
     dbg: (f) ->
-        return @_client.dbg("SyncString.#{f}:")
+        return @_client.dbg("SyncString.#{f}(path='{@_short_path}'):")
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
