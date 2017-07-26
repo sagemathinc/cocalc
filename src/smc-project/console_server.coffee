@@ -39,6 +39,7 @@ net            = require('net')
 child_process  = require('child_process')
 winston        = require('winston')
 assert         = require('assert')
+program        = require('commander')
 
 message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
@@ -194,8 +195,8 @@ start_server = (cb) ->
             # read the secret token
             read_token(cb)
         (cb) ->
-            # start listening for incoming connections
-            server.listen(0, '127.0.0.1', cb)
+            # start listening for incoming connections on localhost only.
+            server.listen(program.port ? 0, '127.0.0.1', cb)
         (cb) ->
             # write port that we are listening on to port file
             fs.writeFile(port_manager.port_file('console'), server.address().port, cb)
@@ -206,6 +207,10 @@ start_server = (cb) ->
             winston.info("listening on port #{server.address().port}")
             cb()
     )
+
+program.usage('[?] [options]')
+    .option('--port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .parse(process.argv)
 
 start_server (err) ->
     if err
