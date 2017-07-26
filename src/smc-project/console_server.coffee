@@ -42,7 +42,7 @@ assert         = require('assert')
 
 message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
-{secret_token_filename} = require('./common.coffee')
+{secret_token_filename} = require('./common')
 
 port_manager = require('./port_manager')
 misc = require('smc-util/misc')
