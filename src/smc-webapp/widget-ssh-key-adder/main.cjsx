@@ -23,11 +23,11 @@ normalize_key = (value) ->
 # Assumes the key has valid formatting ie.
 # <key-type>[space]<public-key>[space]<comment>
 parse_key = (value) ->
-    parts = value.split(/s+/)
+    parts = value.split(/\s+/)
     type = parts[0]
     hash = parts[1]
-    source = parts[3]
-    comments = parts[4..]
+    source = parts[2]
+    comments = parts[3..]
 
     return {value, type, hash, source, comments}
 
