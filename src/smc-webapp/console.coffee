@@ -866,7 +866,7 @@ class Console extends EventEmitter
         # We ignore any data coming out of the terminal for
         # a little while after rerendering, to allow it to fully
         # re-render.  See https://github.com/sagemathinc/cocalc/issues/1269
-        @_ignore_timeout = setTimeout(done, 75)
+        @_ignore_timeout = setTimeout(done, 15)
 
     resize_terminal: () =>
         # Determine size of container DOM.
