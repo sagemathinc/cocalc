@@ -634,7 +634,7 @@ exports.ChatRoom = rclass ({name}) ->
 
     append_file: (file) ->
         if file.type.indexOf("image") isnt -1
-            final_insertion_text = "<img src=\"#{file.name}\" width='60%'>"
+            final_insertion_text = "<img src=\".chat-images/#{file.name}\" width='60%'>"
         else
             final_insertion_text = "[#{file.name}](#{file.name})"
 
@@ -687,7 +687,7 @@ exports.ChatRoom = rclass ({name}) ->
                 <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
                     <SMC_Dropwrapper
                         project_id     = {@props.project_id}
-                        dest_path      = {@props.redux.getProjectStore(@props.project_id).get('current_path')}
+                        dest_path      = {misc.normalized_path_join(@props.redux.getProjectStore(@props.project_id).get('current_path'), "/.chat-images")}
                         event_handlers = {complete : @append_file, sending : @start_upload}
                     >
                         <FormGroup>
