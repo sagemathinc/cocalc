@@ -2643,7 +2643,7 @@ Terminal.prototype.handleTitle = function(title) {
 
 /* Message as (nearly) arbitrary string.  Client sends a message by printing this:
 
-    \x1b]49;any string you want toges here\x07
+    \x1b]49;any string you want goes here\x07
 
 */
 Terminal.prototype.handleMesg = function(mesg) {
