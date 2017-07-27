@@ -252,6 +252,8 @@ start_tcp_server = (secret_token, port, cb) ->
 # Start listening for connections on the socket.
 start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
+    if program.console_port
+        console_sessions.set_port(program.console_port)
     async.series([
         (cb) ->
             # This is also written by forever; however, by writing it directly it's also possible
@@ -287,6 +289,7 @@ start_server = (tcp_port, raw_port, cb) ->
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
     .parse(process.argv)
 
 start_server program.tcp_port, program.raw_port, (err) ->
