@@ -14,11 +14,17 @@ class TestLex:
     def test_lex_1(self, execdoc):
         execdoc("x = random? # bar")
     def test_lex_2(self, execdoc):
-        execdoc("x = random? # plot?")
+        execdoc("x = random? # plot?",pattern='random')
     def test_lex_3(self, exec2):
         exec2("x = 1 # plot?\nx","1\n")
     def test_lex_4(self, exec2):
         exec2('x="random?" # plot?\nx',"'random?'\n")
+    def test_lex_5(self, exec2):
+        code = dedent(r'''
+        x = """
+        salvus?
+        """;pi''')
+        exec2(code, "pi\n")
 
 class TestDecorators:
     def test_simple_dec(self, exec2):

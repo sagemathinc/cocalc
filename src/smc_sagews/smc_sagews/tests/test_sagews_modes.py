@@ -240,6 +240,7 @@ class TestAnaconda3Mode:
     def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
+@pytest.mark.skip(reason="drop support for sagemath kernel in jupyter bridge")
 class TestSageMode:
     def test_sagemath(self, exec2):
         exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
