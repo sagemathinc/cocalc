@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 #####################################################################################
-#              CoCalc Exampples - Documentation Files Compiler                      #
+#              CoCalc Examples - Documentation Files Compiler                       #
 #                                                                                   #
 #                Copyright (C) 2015 -- 2017, SageMath, Inc.                         #
 #                                                                                   #
@@ -13,7 +13,7 @@
 
 import os, sys
 
-# make it python 2 and 3 compatible
+# make it python 2 and 3 compatible (although, to be clear, it is supposed to be py3 only)
 if (sys.version_info > (3, 0)):
     mystr = str
 else:
@@ -129,3 +129,4 @@ if __name__ == "__main__":
         print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'examples.json')>" % sys.argv[0])
         sys.exit(1)
     examples_data(sys.argv[1], sys.argv[2])
+

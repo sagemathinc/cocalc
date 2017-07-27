@@ -31,10 +31,24 @@ category: ["Numpy/Scipy", "Optimization"]
 title: Optimization, 1D, unconstrained
 descr: Unconstrained one-dimensional optimization with Scipy.
 code: |
-    import numpy as np
-    
+    from scipy import optimize
+    def f(x):
+        return 3 * (1 - x) + (x - 2)**2
+    res = optimize.minimize_scalar(f)
+    print(res.x)
+    print(f(res.x))
 ---
-title: Optimization, n-dim, unconstrained
+title: Optimization, 1D, constrained
+descr: Constrained one-dimensional optimization with Scipy.
+code: |
+    from scipy import optimize
+    def f(x):
+        return 3 * (1 - x) + (x - 2)**2
+    res = optimize.minimize_scalar(f, bounds=(-1, 1), method='bounded')
+    print(res.x)
+    print(f(res.x))
+---
+title: Optimization, ND, unconstrained
 descr: >
     Minimize the classical Rosenbock function with starting value $(2,2)$.
 
