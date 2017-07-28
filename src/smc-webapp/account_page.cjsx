@@ -43,6 +43,7 @@ exports.AccountPage = rclass
         projects :
             project_map             : rtypes.immutable.Map
         account :
+            account_id              : rtypes.string
             active_page             : rtypes.string
             strategies              : rtypes.array
             sign_up_error           : rtypes.object
@@ -99,6 +100,7 @@ exports.AccountPage = rclass
 
     render_ssh_keys_page: ->
         <SSHKeysPage
+            account_id = {@props.account_id}
             ssh_keys = {immutable.List(@props.other_settings.ssh ? [])}
         />
 

@@ -1,5 +1,5 @@
 # 3rd Party Libraries
-{Alert, Button, ButtonToolbar, Col, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, Well} = require('react-bootstrap')
 immutable = require('immutable')
 
 # Internal & React Libraries
@@ -7,6 +7,7 @@ misc = require('smc-util/misc')
 {defaults, types, required} = misc
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {Icon, TimeAgo} = require('../r_misc')
+{User} = require('../users')
 
 # Sibling Libraries
 {compute_fingerprint} = require('./fingerprint')
@@ -128,42 +129,6 @@ AddKeyError = ({mesg}) ->
         {mesg}
     </Alert>
 
-OneSSHKey = rclass
-    displayName: 'SSH-Key'
-
-    propTypes:
-        ssh_key : rtypes.immutable.Map.isRequired
-        delete  : rtypes.func
-        style   : rtypes.object
-
-    getInitialState: ->
-        show_delete_conf : false
-
-    render: ->
-        <Well style={@props.style}>
-            <Row>
-                <Col md=9>
-                    <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
-                    <span style={fontWeight:600}>Fingerprint: </span>{@props.ssh_key.get('fingerprint')}<br/>
-                    Added on {new Date(@props.ssh_key.get('last_use_date')).toLocaleDateString()}<br/>
-                    Last used about <TimeAgo date={new Date(@props.ssh_key.get('last_use_date'))} />
-                </Col>
-                <Col md=3>
-                    <Button
-                        bsStyle  = 'warning'
-                        bsSize   = 'small'
-                        onClick  = {=>@setState(show_delete_conf : true)}
-                        disabled = {@state.show_delete_conf}
-                    >
-                        Delete...
-                    </Button>
-                </Col>
-            </Row>
-            {<DeleteConfirmation
-                confirm = {@props.delete}
-                cancel  = {=>@setState(show_delete_conf : false)}
-            /> if @state.show_delete_conf}
-        </Well>
 
 DeleteConfirmation = rclass
     propTypes:
@@ -184,6 +149,53 @@ DeleteConfirmation = rclass
             </ButtonToolbar>
         </Well>
 
+OneSSHKey = rclass
+    displayName: 'SSH-Key'
+
+    propTypes:
+        ssh_key : rtypes.immutable.Map.isRequired
+        delete  : rtypes.func
+
+    getInitialState: ->
+        show_delete_conf : false
+
+    render_creator: ->
+        <div>
+            Created by <User account_id={@props.ssh_key.get('creator_id')} />
+        </div>
+
+    render_last_use: ->
+        <div>
+            Last used about <TimeAgo date={new Date(@props.ssh_key.get('last_use_date'))} />
+        </div>
+
+    render: ->
+        <ListGroupItem>
+            <Row>
+                <Col md=9>
+                    <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
+                    <span style={fontWeight:600}>Fingerprint: </span><code>{@props.ssh_key.get('fingerprint')}</code><br/>
+                    Added on {new Date(@props.ssh_key.get('last_use_date')).toLocaleDateString()}
+                    {@render_creator() if @props.ssh_key.get('creator_id')}
+                    {@render_last_use() if @props.ssh_key.get('last_use_date')}
+                </Col>
+                <Col md=3>
+                    <Button
+                        bsStyle  = 'warning'
+                        bsSize   = 'small'
+                        onClick  = {=>@setState(show_delete_conf : true)}
+                        disabled = {@state.show_delete_conf}
+                        style    = {float:'right'}
+                    >
+                        Delete...
+                    </Button>
+                </Col>
+            </Row>
+            {<DeleteConfirmation
+                confirm = {@props.delete}
+                cancel  = {=>@setState(show_delete_conf : false)}
+            /> if @state.show_delete_conf}
+        </ListGroupItem>
 
 exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
@@ -193,14 +205,16 @@ exports.SSHKeyList = rclass
 
     getDefaultProps: ->
         placeholder1 = immutable.Map
-            title          : "john@desktop"
+            title         : "john@desktop"
             fingerprint   : '4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92'
+            creator_id    : "6f5e76e1-9fda-4829-b947-fac2bb6f9ca9"
             creation_date : '1995-12-17T03:24:00'
             last_use_date : '2012-12-17T03:24:00'
 
         placeholder2 = immutable.Map
-            title          : "J3@London"
+            title         : "J3@London"
             fingerprint   : '19:a3:c3:8a:91:19:92:26:97:50:01:bd:f3:1d:36:65'
+            creator_id    : "6f5e76e1-9fda-4829-b947-fac2bb6f9ca9"
             creation_date : '2002-12-17T03:24:00'
             last_use_date : '2016-12-17T03:24:00'
 
@@ -208,6 +222,10 @@ exports.SSHKeyList = rclass
 
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
-            This is a list of SSH keys associated with your account. Remove keys you do not recognize.
-            {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('fingerprint')} /> for ssh_key in @props.ssh_keys.toArray())}
+            This is the list of associated SSH keys. Remove keys you do not recognize.
+            <Panel style={marginBottom:'0px'} >
+                <ListGroup fill={true}>
+                    {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('fingerprint')} /> for ssh_key in @props.ssh_keys.toArray())}
+                </ListGroup>
+            </Panel>
         </Panel>

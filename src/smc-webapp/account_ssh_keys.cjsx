@@ -10,7 +10,8 @@ misc = require('smc-util/misc')
 
 exports.SSHKeysPage = rclass
     propTypes:
-        ssh_keys : rtypes.immutable.List
+        account_id : rtypes.string.isRequired
+        ssh_keys   : rtypes.immutable.List
 
     render: ->
         <div style={marginTop:'1em'}>
@@ -19,7 +20,8 @@ exports.SSHKeysPage = rclass
                     <SSHKeyList ssh_keys={undefined} />
                 </Col>
                 <Col md=4>
-                    <SSHKeyAdder submit_key={()=>console.log "do nothing...."}/>
+                    <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "do nothing...."} style={marginBottom:'0px'}/>
+                    Check out <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key">this</a> guide on generating SSH keys.
                 </Col>
             </Row>
         </div>

@@ -129,9 +129,12 @@ exports.User = User = rclass
 
     propTypes :
         account_id  : rtypes.string.isRequired
-        user_map    : rtypes.object # immutable map if known
+        user_map    : rtypes.immutable.Map
         last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
         name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
+
+    getDefaultProps: ->
+        user_map : redux.getStore('users').get('user_map')
 
     shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id
