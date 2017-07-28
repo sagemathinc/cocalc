@@ -130,7 +130,7 @@ exports.SSHKeyAdder = rclass
                     />
                 </FormGroup>
             </form>
-            <div style={display:"flex"}>
+            <div>
                 <Button
                     bsStyle  = 'success'
                     onClick  = {@submit_form}
@@ -143,8 +143,8 @@ exports.SSHKeyAdder = rclass
         </Panel>
 
 AddKeyError = ({mesg}) ->
-    <Alert bsStyle='warning'>
-        mesg
+    <Alert bsStyle='danger'>
+        {mesg}
     </Alert>
 
 OneSSHKey = rclass
@@ -161,9 +161,9 @@ OneSSHKey = rclass
     render: ->
         <Well style={@props.style}>
             <Row>
-                <Col md=9>
+                <Col md=9 style={overflowX:'scroll'}>
                     <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
-                    {@props.ssh_key.get('value')}<br/>
+                    <span style={fontWeight:600}>Fingerprint: </span>{@props.ssh_key.get('fingerprint')}<br/>
                     Added on {new Date(@props.ssh_key.get('last_use_date')).toLocaleDateString()}<br/>
                     Last used about <TimeAgo date={new Date(@props.ssh_key.get('last_use_date'))} />
                 </Col>
@@ -212,15 +212,13 @@ exports.SSHKeyList = rclass
 
     getDefaultProps: ->
         placeholder1 = immutable.Map
-            value         : "ssh-rsa blah blah blah"
-            title          : "fake 1"
+            title          : "john@desktop"
             fingerprint   : '4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92'
             creation_date : '1995-12-17T03:24:00'
             last_use_date : '2012-12-17T03:24:00'
 
         placeholder2 = immutable.Map
-            value         : "ssh-rsa Blah Blah Blah"
-            title          : "fake 2"
+            title          : "J3@London"
             fingerprint   : '19:a3:c3:8a:91:19:92:26:97:50:01:bd:f3:1d:36:65'
             creation_date : '2002-12-17T03:24:00'
             last_use_date : '2016-12-17T03:24:00'
@@ -229,5 +227,5 @@ exports.SSHKeyList = rclass
 
     render: ->
         <Panel>
-            {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('value')} /> for ssh_key in @props.ssh_keys.toArray())}
+            {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('fingerprint')} /> for ssh_key in @props.ssh_keys.toArray())}
         </Panel>
