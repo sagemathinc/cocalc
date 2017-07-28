@@ -161,7 +161,7 @@ OneSSHKey = rclass
     render: ->
         <Well style={@props.style}>
             <Row>
-                <Col md=9 style={overflowX:'scroll'}>
+                <Col md=9>
                     <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
                     <span style={fontWeight:600}>Fingerprint: </span>{@props.ssh_key.get('fingerprint')}<br/>
                     Added on {new Date(@props.ssh_key.get('last_use_date')).toLocaleDateString()}<br/>
