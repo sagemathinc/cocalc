@@ -20,6 +20,7 @@
 ###############################################################################
 
 misc = require('smc-util/misc')
+immutable = require('immutable')
 
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
@@ -31,6 +32,7 @@ require('./redux_account')
 {BillingPageRedux}                       = require('./billing')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
+{SSHKeysPage}                            = require('./account_ssh_keys')
 {Icon}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
@@ -95,8 +97,10 @@ exports.AccountPage = rclass
             stripe_customer = {@props.stripe_customer}
             project_map     = {@props.project_map} />
 
-    render_support: ->
-        <SupportPage />
+    render_ssh_keys_page: ->
+        <SSHKeysPage
+            ssh_keys = {immutable.List(@props.other_settings.ssh ? [])}
+        />
 
     render_account_settings: ->
         <AccountSettingsTop
@@ -144,8 +148,11 @@ exports.AccountPage = rclass
         v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
             {@render_upgrades() if @props.active_page == 'upgrades'}
         </Tab>
+        v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
+            {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
+        </Tab>
         v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
-            {@render_support() if @props.active_page == 'support'}
+            {<SupportPage/> if @props.active_page == 'support'}
         </Tab>
         return v
 

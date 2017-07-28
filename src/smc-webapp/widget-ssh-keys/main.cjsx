@@ -6,7 +6,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
-{TimeAgo} = require('../r_misc')
+{Icon, TimeAgo} = require('../r_misc')
 
 # Sibling Libraries
 {compute_fingerprint} = require('./fingerprint')
@@ -47,29 +47,12 @@ validate_key = (value) ->
         key.error = "Invalid key"
     return key
 
-submit_key = (opts) ->
-    console.log "submit_key got:", opts
-    types opts,
-        title         : types.string.isRequired
-        value         : types.string.isRequired
-        fingerprint   : types.string.isRequired
-        cb            : types.func # cb(err, key)
-
-    BACK_END_CREATE_SSH_KEY
-        title         : opts.title
-        value         : opts.value
-        fingerprint   : opts.fingerprint
-        creation_date : Date.now()
-        last_use_date : undefined
-        creator       : "TODO"
-        cb            : opts.cb
-
-
 exports.SSHKeyAdder = rclass
     displayName: 'SSH-Key-Adder'
 
     propTypes:
-        onSubmit : rtypes.func
+        add_ssh_key : rtypes.func
+        account_id  : rtypes.string
 
     getInitialState: ->
         key_title : ""
@@ -77,7 +60,6 @@ exports.SSHKeyAdder = rclass
 
     trigger_error: (err) ->
         @setState(error : err)
-        console.log "Add error to state...", err
 
     clear_error: ->
         @setState(error : undefined)
@@ -86,26 +68,25 @@ exports.SSHKeyAdder = rclass
         validated_key = validate_key(normalize_key(@state.key_value))
         if validated_key.error?
             @trigger_error(validated_key.error)
+            return
+
+        if @state.key_title
+            title = @state.key_title
         else
-            if @state.key_title
-                title = @state.key_title
-            else
-                title = validated_key.source
-            value = validated_key.value
-            submit_key
-                title       : title
-                value       : value
-                fingerprint : compute_fingerprint(validated_key.pubkey)
-                cb          : (err) =>
-                    if err
-                        @trigger_error(err)
-                    else
-                        @clear_error()
-                        @props.onSubmit?(title, value)
+            title = validated_key.source
+
+        value = validated_key.value
+
+        @props.submit_key
+            title         : title
+            value         : value
+            fingerprint   : compute_fingerprint(validated_key.pubkey)
+            creation_date : Date.now()
+            creator_id    : @props.account_id
 
 
     render: ->
-        <Panel style={@props.style}>
+        <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH Key</h2>} style={@props.style}>
             {# TODO: Make a style mapper to the components if necessary}
             <form>
                 <FormGroup>
@@ -226,6 +207,7 @@ exports.SSHKeyList = rclass
         return ssh_keys : immutable.List([placeholder1, placeholder2])
 
     render: ->
-        <Panel>
+        <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
+            This is a list of SSH keys associated with your account. Remove keys you do not recognize.
             {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('fingerprint')} /> for ssh_key in @props.ssh_keys.toArray())}
         </Panel>
