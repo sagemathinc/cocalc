@@ -124,6 +124,7 @@ class UsersTable extends Table
 
 redux.createTable('users', UsersTable)
 
+#TODO: Make useable without passing in user_map
 exports.User = User = rclass
     displayName : 'User'
 
@@ -132,9 +133,6 @@ exports.User = User = rclass
         user_map    : rtypes.immutable.Map
         last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
         name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
-
-    getDefaultProps: ->
-        user_map : redux.getStore('users').get('user_map')
 
     shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id

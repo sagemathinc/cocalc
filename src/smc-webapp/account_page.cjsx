@@ -42,6 +42,8 @@ exports.AccountPage = rclass
     reduxProps :
         projects :
             project_map             : rtypes.immutable.Map
+        users :
+            user_map                : rtypes.immutable.Map
         account :
             account_id              : rtypes.string
             active_page             : rtypes.string
@@ -101,7 +103,8 @@ exports.AccountPage = rclass
     render_ssh_keys_page: ->
         <SSHKeysPage
             account_id = {@props.account_id}
-            ssh_keys = {immutable.List(@props.other_settings.ssh ? [])}
+            user_map   = {@props.user_map}
+            ssh_keys   = {immutable.List(@props.other_settings.ssh ? [])}
         />
 
     render_account_settings: ->

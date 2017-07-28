@@ -11,13 +11,15 @@ misc = require('smc-util/misc')
 exports.SSHKeysPage = rclass
     propTypes:
         account_id : rtypes.string.isRequired
+        user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.List
 
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col md=8>
-                    <SSHKeyList ssh_keys={undefined} />
+                    {#TODO: Pass down the ssh_keys}
+                    <SSHKeyList ssh_keys={undefined} user_map={@props.user_map}/>
                 </Col>
                 <Col md=4>
                     <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "do nothing...."} style={marginBottom:'0px'}/>

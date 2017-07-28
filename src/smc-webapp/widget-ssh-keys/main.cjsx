@@ -153,15 +153,16 @@ OneSSHKey = rclass
     displayName: 'SSH-Key'
 
     propTypes:
-        ssh_key : rtypes.immutable.Map.isRequired
-        delete  : rtypes.func
+        ssh_key  : rtypes.immutable.Map.isRequired
+        user_map : rtypes.immutable.Map
+        delete   : rtypes.func
 
     getInitialState: ->
         show_delete_conf : false
 
     render_creator: ->
         <div>
-            Created by <User account_id={@props.ssh_key.get('creator_id')} />
+            Created by <User account_id={@props.ssh_key.get('creator_id')} user_map={@props.user_map} />
         </div>
 
     render_last_use: ->
@@ -192,7 +193,7 @@ OneSSHKey = rclass
                 </Col>
             </Row>
             {<DeleteConfirmation
-                confirm = {@props.delete}
+                confirm = {()=>@props.delete(@props.ssh_key.get('fingerprint'))}
                 cancel  = {=>@setState(show_delete_conf : false)}
             /> if @state.show_delete_conf}
         </ListGroupItem>
@@ -201,9 +202,11 @@ exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
     propTypes:
+        user_map : rtypes.immutable.Map
         ssh_keys : rtypes.immutable.List
 
     getDefaultProps: ->
+        # TODO: Remove when keys are passed from parent
         placeholder1 = immutable.Map
             title         : "john@desktop"
             fingerprint   : '4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92'
@@ -225,7 +228,7 @@ exports.SSHKeyList = rclass
             This is the list of associated SSH keys. Remove keys you do not recognize.
             <Panel style={marginBottom:'0px'} >
                 <ListGroup fill={true}>
-                    {(<OneSSHKey ssh_key={ssh_key} key={ssh_key.get('fingerprint')} /> for ssh_key in @props.ssh_keys.toArray())}
+                    {(<OneSSHKey ssh_key={ssh_key} delete={()=>console.log "TODO DELTE THE KEY"} key={ssh_key.get('fingerprint')} user_map={@props.user_map}/> for ssh_key in @props.ssh_keys.toArray())}
                 </ListGroup>
             </Panel>
         </Panel>
