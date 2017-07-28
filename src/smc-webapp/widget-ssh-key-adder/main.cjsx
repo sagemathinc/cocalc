@@ -1,5 +1,5 @@
 # 3rd Party Libraries
-{Button, ButtonToolbar, Col, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, FormControl, FormGroup, Panel, Row, Well} = require('react-bootstrap')
 immutable = require('immutable')
 
 # Internal & React Libraries
@@ -7,6 +7,9 @@ misc = require('smc-util/misc')
 {defaults, types, required} = misc
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {TimeAgo} = require('../r_misc')
+
+# Sibling Libraries
+{compute_fingerprint} = require('./fingerprint')
 
 BACK_END_CREATE_SSH_KEY = ->
     console.log "todo"
@@ -25,14 +28,11 @@ normalize_key = (value) ->
 parse_key = (value) ->
     parts = value.split(/\s+/)
     type = parts[0]
-    hash = parts[1]
+    pubkey = parts[1]
     source = parts[2]
     comments = parts[3..]
 
-    return {value, type, hash, source, comments}
-
-compute_fingerprint = (opts) ->
-    return "TEST 12:45:34:df:32..."
+    return {value, type, pubkey, source, comments}
 
 lib_is_valid = (key) ->
     ret = true
@@ -40,8 +40,7 @@ lib_is_valid = (key) ->
     return ret
 
 validate_key = (value) ->
-    key = {value, type, hash, source, comments} = parse_key(value)
-    console.log "split:", key
+    key = {value, type, pubkey, source, comments} = parse_key(value)
     if type not in ALLOWED_SSH_TYPES
         key.error = "Type not supported"
     else if not lib_is_valid(value)
@@ -49,14 +48,17 @@ validate_key = (value) ->
     return key
 
 submit_key = (opts) ->
+    console.log "submit_key got:", opts
     types opts,
         title         : types.string.isRequired
         value         : types.string.isRequired
+        fingerprint   : types.string.isRequired
         cb            : types.func # cb(err, key)
 
     BACK_END_CREATE_SSH_KEY
         title         : opts.title
         value         : opts.value
+        fingerprint   : opts.fingerprint
         creation_date : Date.now()
         last_use_date : undefined
         creator       : "TODO"
@@ -74,20 +76,33 @@ exports.SSHKeyAdder = rclass
         key_value : ""
 
     trigger_error: (err) ->
+        @setState(error : err)
         console.log "Add error to state...", err
+
+    clear_error: ->
+        @setState(error : undefined)
 
     submit_form: ->
         validated_key = validate_key(normalize_key(@state.key_value))
         if validated_key.error?
             @trigger_error(validated_key.error)
         else
-            title = @state.key_title ? validated_key.source
+            if @state.key_title
+                title = @state.key_title
+            else
+                title = validated_key.source
             value = validated_key.value
             submit_key
-                title : title
-                value : value
-                cb    : (err) => @trigger_error(err) if err
-            @props.onSubmit?(title, value)
+                title       : title
+                value       : value
+                fingerprint : compute_fingerprint(validated_key.pubkey)
+                cb          : (err) =>
+                    if err
+                        @trigger_error(err)
+                    else
+                        @clear_error()
+                        @props.onSubmit?(title, value)
+
 
     render: ->
         <Panel style={@props.style}>
@@ -115,13 +130,22 @@ exports.SSHKeyAdder = rclass
                     />
                 </FormGroup>
             </form>
-            <Button
-                bsStyle = 'success'
-                onClick = {@submit_form}
-            >
-                Add SSH Key
-            </Button>
+            <div style={display:"flex"}>
+                <Button
+                    bsStyle  = 'success'
+                    onClick  = {@submit_form}
+                    disabled = {@state.key_value.length < 10}
+                >
+                    Add SSH Key
+                </Button>
+                {<AddKeyError mesg={@state.error}/> if @state.error?}
+            </div>
         </Panel>
+
+AddKeyError = ({mesg}) ->
+    <Alert bsStyle='warning'>
+        mesg
+    </Alert>
 
 OneSSHKey = rclass
     displayName: 'SSH-Key'
