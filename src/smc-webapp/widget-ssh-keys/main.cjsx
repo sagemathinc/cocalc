@@ -12,9 +12,6 @@ misc = require('smc-util/misc')
 # Sibling Libraries
 {compute_fingerprint} = require('./fingerprint')
 
-BACK_END_CREATE_SSH_KEY = ->
-    console.log "todo"
-
 ALLOWED_SSH_TYPES = ['ssh-rsa', 'ssh-dss', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521']
 ALLOWED_SSH_TYPES_DESCRIPTION = ALLOWED_SSH_TYPES[...-1].join(', ') + ", or " + ALLOWED_SSH_TYPES[ALLOWED_SSH_TYPES.length - 1]
 

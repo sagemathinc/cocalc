@@ -22,7 +22,7 @@ exports.SSHKeysPage = rclass
                     <SSHKeyList ssh_keys={undefined} user_map={@props.user_map}/>
                 </Col>
                 <Col md=4>
-                    <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "do nothing...."} style={marginBottom:'0px'}/>
+                    <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "TODO..."} style={marginBottom:'0px'}/>
                     Check out <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key">this</a> guide on generating SSH keys.
                 </Col>
             </Row>
