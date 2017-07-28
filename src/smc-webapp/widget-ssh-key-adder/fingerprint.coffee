@@ -1,3 +1,5 @@
+# Adapted from https://github.com/bahamas10/node-ssh-fingerprint
+
 crypto = require('crypto')
 
 exports.compute_fingerprint = (pub, alg='md5') ->
