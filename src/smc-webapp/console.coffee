@@ -196,7 +196,6 @@ class Console extends EventEmitter
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
     init_mesg: () =>
-        @_ignore = false
         @terminal.on 'mesg', (mesg) =>
             if @_ignore or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
                 return
@@ -300,11 +299,11 @@ class Console extends EventEmitter
             @_got_remote_data = new Date()
             @element.find(".webapp-console-terminal").css('opacity':'1')
             @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
-            @_ignore = true
             @reset()
             if @session.init_history?
                 #console.log("writing history")
                 try
+                    @_ignore = true
                     @terminal.write(@session.init_history)
                 catch e
                     console.log(e)
@@ -314,7 +313,6 @@ class Console extends EventEmitter
             # On first write we ignore any queued terminal attributes responses that result.
             @terminal.queue = ''
             @terminal.showCursor()
-            @_ignore = false
 
         @session.on 'close', () =>
             @_connected = false
@@ -333,7 +331,6 @@ class Console extends EventEmitter
             @append_to_value(@session.init_history)
 
         @terminal.showCursor()
-        @_ignore = false
         @resize()
 
     render: (data) =>
@@ -457,7 +454,13 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown")
+
+        if @_ignore
+            # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
+            @_ignore = false
+            
         @mark_file_use()
+
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -672,6 +675,7 @@ class Console extends EventEmitter
             x = misc.replace_all(x, '’',"'")
             x = misc.replace_all(x, '–', "--")
             x = misc.replace_all(x, '—', "---")
+            @_ignore = false
             @session?.write_data(x)
             input_line.val('')
 
@@ -679,6 +683,7 @@ class Console extends EventEmitter
             if e.which == 13
                 e.preventDefault()
                 submit_line()
+                @_ignore = false
                 @session?.write_data("\n")
                 return false
             else if e.which == 67 and e.ctrlKey
@@ -688,6 +693,7 @@ class Console extends EventEmitter
         @element.find(".webapp-console-submit-line").click () =>
             #@focus()
             submit_line()
+            @_ignore = false
             @session?.write_data("\n")
             return false
 
@@ -767,6 +773,7 @@ class Console extends EventEmitter
         pb = @textarea
 
         f = (evt) =>
+            @_ignore = false
             data = pb.val()
             pb.val('')
             @session?.write_data(data)
@@ -853,20 +860,11 @@ class Console extends EventEmitter
         @_needs_resize = false
 
     full_rerender: =>
-        if @_ignore_timeout?
-            # don't let pending timeout clear the @_ignore flag.
-            clearTimeout(@_ignore_timeout)
         value = @value_orig
         @reset()
+        # start ignoring terminal output until the user explicitly does something (keys or paste)
         @_ignore = true
         @render(value)
-        done = =>
-            @_ignore = false
-            delete @_ignore_timeout
-        # We ignore any data coming out of the terminal for
-        # a little while after rerendering, to allow it to fully
-        # re-render.  See https://github.com/sagemathinc/cocalc/issues/1269
-        @_ignore_timeout = setTimeout(done, 75)
 
     resize_terminal: () =>
         # Determine size of container DOM.
