@@ -115,9 +115,26 @@ class TestBasic:
         html = "https://www.google.com/search\?q=site%3Adoc.sagemath.org\+laurent\&oq=site%3Adoc.sagemath.org"
         exec2(code, html_pattern = html)
 
-    def test_show_doc(self, execdoc):
+    def test_show_doc(self, test_id, sagews):
         # issue 476
-        execdoc("show?")
+        code = "show?"
+        patn = dedent("""
+        import smc_sagews.graphics
+        smc_sagews.graphics.graph_to_d3_jsonable?""")
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        # ignore stderr message about deprecation warning
+        for ix in [0,1]:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            if 'stderr' in mesg:
+                continue
+            assert 'code' in mesg
+            assert 'source' in mesg['code']
+            assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
+            conftest.recv_til_done(sagews, test_id)
+            break
 
     # https://github.com/sagemathinc/cocalc/issues/1107
     def test_sage_underscore_1(self, exec2):
