@@ -8,7 +8,7 @@ from textwrap import dedent
 
 class TestSingularMode:
     def test_singular_version(self, exec2):
-        exec2('%singular_kernel\nsystem("version");','4100\n')
+        exec2('%singular_kernel\nsystem("version");',pattern='(4100|4103)\n')
     def test_singular_factor_polynomial(self, exec2):
         code = dedent('''
         %singular_kernel
@@ -239,10 +239,6 @@ class TestAnaconda3Mode:
 
     def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
-
-class TestSageMode:
-    def test_sagemath(self, exec2):
-        exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
 
 class TestJuliaMode:
     def test_julia1(self, exec2):
