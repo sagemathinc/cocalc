@@ -196,9 +196,8 @@ class Console extends EventEmitter
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
     init_mesg: () =>
-        @_ignore_mesg = false
         @terminal.on 'mesg', (mesg) =>
-            if @_ignore_mesg or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
+            if @_ignore or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
                 return
             try
                 mesg = from_json(mesg)
@@ -234,7 +233,7 @@ class Console extends EventEmitter
         # that is in turn connected to a console_server:
         @session = session
 
-        @_ignore_mesg = true
+        @_ignore = true
         @_connected = true
         @_needs_resize = true
 
@@ -243,6 +242,8 @@ class Console extends EventEmitter
         # This is usually caused by the user typing,
         # but can also be the result of a device attributes request.
         @terminal.on 'data',  (data) =>
+            if @_ignore
+                return
             if not @_connected
                 # not connected, so first connect, then write the data.
                 @session.reconnect (err) =>
@@ -298,11 +299,11 @@ class Console extends EventEmitter
             @_got_remote_data = new Date()
             @element.find(".webapp-console-terminal").css('opacity':'1')
             @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
-            @_ignore_mesg = true
             @reset()
             if @session.init_history?
                 #console.log("writing history")
                 try
+                    @_ignore = true
                     @terminal.write(@session.init_history)
                 catch e
                     console.log(e)
@@ -312,7 +313,6 @@ class Console extends EventEmitter
             # On first write we ignore any queued terminal attributes responses that result.
             @terminal.queue = ''
             @terminal.showCursor()
-            @_ignore_mesg = false
 
         @session.on 'close', () =>
             @_connected = false
@@ -331,7 +331,6 @@ class Console extends EventEmitter
             @append_to_value(@session.init_history)
 
         @terminal.showCursor()
-        @_ignore_mesg = false
         @resize()
 
     render: (data) =>
@@ -455,7 +454,13 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown")
+
+        if @_ignore
+            # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
+            @_ignore = false
+            
         @mark_file_use()
+
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -670,6 +675,7 @@ class Console extends EventEmitter
             x = misc.replace_all(x, '’',"'")
             x = misc.replace_all(x, '–', "--")
             x = misc.replace_all(x, '—', "---")
+            @_ignore = false
             @session?.write_data(x)
             input_line.val('')
 
@@ -677,6 +683,7 @@ class Console extends EventEmitter
             if e.which == 13
                 e.preventDefault()
                 submit_line()
+                @_ignore = false
                 @session?.write_data("\n")
                 return false
             else if e.which == 67 and e.ctrlKey
@@ -686,6 +693,7 @@ class Console extends EventEmitter
         @element.find(".webapp-console-submit-line").click () =>
             #@focus()
             submit_line()
+            @_ignore = false
             @session?.write_data("\n")
             return false
 
@@ -765,6 +773,7 @@ class Console extends EventEmitter
         pb = @textarea
 
         f = (evt) =>
+            @_ignore = false
             data = pb.val()
             pb.val('')
             @session?.write_data(data)
@@ -853,9 +862,9 @@ class Console extends EventEmitter
     full_rerender: =>
         value = @value_orig
         @reset()
-        @_ignore_mesg = true
+        # start ignoring terminal output until the user explicitly does something (keys or paste)
+        @_ignore = true
         @render(value)
-        @_ignore_mesg = false
 
     resize_terminal: () =>
         # Determine size of container DOM.

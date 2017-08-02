@@ -44,7 +44,7 @@ class TestSageTiming:
         tick = time.time()
         elapsed = tick - start
         print("elapsed %s"%elapsed)
-        assert elapsed < 10.0
+        assert elapsed < 20.0
 
 class TestStartSageServer:
     def test_2plus2_timing(self, test_id):

@@ -462,7 +462,7 @@ def exec2(request, sagews, test_id):
             assert 'stdout' in mesg
             mout = mesg['stdout']
             if output is not None:
-                assert output in mout
+                assert output.strip() in mout
             elif pattern is not None:
                 assert re.search(pattern, mout) is not None
         elif html_pattern:

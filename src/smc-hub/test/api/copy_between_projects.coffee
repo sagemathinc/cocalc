@@ -188,6 +188,7 @@ describe 'testing copy between projects -- ', ->
 
     it "copies a public file to different target dir", (done) ->
         # src:'B2/doc2.txt'(public) tgt:'FOO/abc.txt'
+        @timeout(15000)
         api.call
             event : 'copy_public_path_between_projects'
             body  :

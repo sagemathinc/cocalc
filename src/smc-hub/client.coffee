@@ -788,6 +788,11 @@ class exports.Client extends EventEmitter
             event      : mesg.type
             error      : mesg.error
             account_id : @account_id
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
 
     mesg_webapp_error: (mesg) =>
         @dbg('mesg_webapp_error')(mesg.msg)
