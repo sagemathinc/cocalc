@@ -9,15 +9,11 @@ labels to triage issues:
 * Green, **E**-prefixed labels explain the type of **experience** necessary
   to fix the issue.
 
-* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue. The
-  [I-nominated][inom] label indicates that an issue has been nominated for
-  prioritizing at the next triage meeting.
+* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.
 
 * **M** is market segment priority.
 
-* Orange, **P**-prefixed labels indicate a bug's **priority**. These labels
-  are only assigned during triage meetings, and replace the [I-nominated][inom]
-  label.
+* Orange, **P**-prefixed labels indicate a bug's **priority**.
 
 * The purple **meta** label denotes a list of issues collected from other categories.
 
@@ -27,7 +23,6 @@ labels to triage issues:
 
 If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 
-[inom]:https://github.com/sagemathinc/smc/labels/I-nominated
 [eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
 
 ### List of labels and their descriptions
