@@ -73,7 +73,7 @@ Importing them in a high level component:
 ```coffee
 ProjectPage = rclass
     reduxProps:
-        account
+        account :
             full_name : rtypes.string
             greeting  : rtypes.string
 
