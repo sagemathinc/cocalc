@@ -49,7 +49,7 @@ exports.SSHKeyAdder = rclass
     displayName: 'SSH-Key-Adder'
 
     propTypes:
-        add_ssh_key : rtypes.func
+        add_ssh_key : rtypes.func     # See arg signature at end of @submit_form
         account_id  : rtypes.string
 
     getInitialState: ->
@@ -75,7 +75,7 @@ exports.SSHKeyAdder = rclass
 
         value = validated_key.value
 
-        @props.submit_key
+        @props.add_ssh_key
             title         : title
             value         : value
             fingerprint   : compute_fingerprint(validated_key.pubkey)

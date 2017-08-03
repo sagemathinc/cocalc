@@ -593,8 +593,9 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.immutable.Map
+        project    : rtypes.object.isRequired
+        account_id : rtypes.string.isRequired
+        user_map   : rtypes.immutable.Map
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -617,12 +618,13 @@ ProjectControlPanel = rclass
         if host?
             if @state.show_ssh
                 <div>
-
-                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
-                    <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
-                    <Icon name='life-ring'/> How to create SSH keys</a>
+                    <SSHKeyAdder account_id={@props.account_id} add_ssh_key={(opts)=> console.log "TODO: add project ssh key. Dummy func got", opts} />
+                    <Row>
+                        <Button onClick={()=>@setState(show_ssh:false)}>
+                            <Icon name='x'/>Finished</Button>
+                        <a style={pull:'right'} href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+                            <Icon name='life-ring'/> How to create SSH keys</a>
+                    </Row>
                 </div>
             else
                 <Row>
@@ -988,6 +990,7 @@ ProjectSettingsBody = rclass ({name}) ->
 
     propTypes :
         project_id    : rtypes.string.isRequired
+        account_id    : rtypes.string.isRequired
         project       : rtypes.immutable.Map.isRequired
         user_map      : rtypes.immutable.Map.isRequired
         customer      : rtypes.object
@@ -1053,7 +1056,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} user_map={@props.user_map} />
+                    <ProjectControlPanel key='control' project={@props.project} account_id={@props.account_id} user_map={@props.user_map} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
@@ -1073,6 +1076,7 @@ exports.ProjectSettings = rclass ({name}) ->
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
             user_type       : rtypes.string    # needed for projects get_my_group call in render
+            account_id      : rtypes.string
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
 
@@ -1125,6 +1129,7 @@ exports.ProjectSettings = rclass ({name}) ->
                 {@render_admin_message() if @state.admin_project?}
                 <ProjectSettingsBody
                     project_id    = {@props.project_id}
+                    account_id    = {@props.account_id}
                     project       = {project}
                     user_map      = {@props.user_map}
                     customer      = {@props.customer}
