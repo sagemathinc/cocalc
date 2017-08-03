@@ -38,6 +38,7 @@ misc                 = require('smc-util/misc')
 
 {HelpEmailLink}   = require('./customize')
 {ShowSupportLink} = require('./support')
+{SSHKeyAdder, SSHKeyList} = require('./widget-ssh-keys/main')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -592,7 +593,8 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project : rtypes.object.isRequired
+        project  : rtypes.object.isRequired
+        user_map : rtypes.immutable.Map
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -615,6 +617,7 @@ ProjectControlPanel = rclass
         if host?
             if @state.show_ssh
                 <div>
+
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
@@ -1046,13 +1049,13 @@ ProjectSettingsBody = rclass ({name}) ->
                         total_project_quotas                 = {total_project_quotas}
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} />
+                    <HideDeletePanel key='hidedelete' project={@props.project} />
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel   key='control'       project={@props.project} />
-                    <SageWorksheetPanel    key='worksheet'     project={@props.project} />
-                    <JupyterServerPanel    key='jupyter'        project_id={@props.project_id} />
+                    <ProjectControlPanel key='control' project={@props.project} user_map={@props.user_map} />
+                    <SageWorksheetPanel  key='worksheet' project={@props.project} />
+                    <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
             </Row>
         </div>
