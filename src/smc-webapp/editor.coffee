@@ -1358,18 +1358,23 @@ class CodeMirrorEditor extends FileEditor
             console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
     
-        webapp_client.exec
-            project_id  : @project_id
-            command     : "smc-sagews2ipynb #{@filename}"
-            bash        : true
-            err_on_exit : false
-            cb          : (err, output) =>
-                if err
-                    alert_message(type:"error", message:"Error occured converting #{@filename}")
-                else
-                    redux.getProjectActions(@project_id).open_file
-                        path               : base + '.ipynb'
-                        foreground         : true
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                webapp_client.exec
+                    project_id  : @project_id
+                    command     : "smc-sagews2ipynb #{@filename}"
+                    bash        : true
+                    err_on_exit : false
+                    cb          : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:"Error occured converting #{@filename}")
+                        else
+                            redux.getProjectActions(@project_id).open_file
+                                path               : base + '.ipynb'
+                                foreground         : true
+        ])
 
     cut: (cm) =>
         if not cm?
