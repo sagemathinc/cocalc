@@ -1152,8 +1152,10 @@ class CodeMirrorEditor extends FileEditor
         # sagews2pdf conversion
         if @ext == 'sagews'
             button_names.push('sagews2pdf')
+            button_names.push('sagews2ipynb')
         else
             @element.find('a[href="#sagews2pdf"]').remove()
+            @element.find('a[href="#sagews2ipynb"]').remove()
 
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
@@ -1216,6 +1218,8 @@ class CodeMirrorEditor extends FileEditor
                 cm.focus()
             when 'sagews2pdf'
                 @print(sagews2html = false)
+            when 'sagews2ipynb'
+                @convert_to_ipynb()
             when 'print'
                 @print(sagews2html = true)
             when 'vim-mode-toggle'
@@ -1339,6 +1343,33 @@ class CodeMirrorEditor extends FileEditor
         if not cm?
             return
         copypaste.set_buffer(cm.getSelection())
+
+    convert_to_ipynb: () =>
+        p = misc.path_split(@filename)
+        v = p.tail.split('.')
+        if v.length <= 1
+            ext = ''
+            base = p.tail
+        else
+            ext = v[v.length-1]
+            base = v.slice(0,v.length-1).join('.')
+
+        if ext != 'sagews'
+            console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
+            return
+    
+        webapp_client.exec
+            project_id  : @project_id
+            command     : "smc-sagews2ipynb #{@filename}"
+            bash        : true
+            err_on_exit : false
+            cb          : (err, output) =>
+                if err
+                    alert_message(type:"error", message:"Error occured converting #{@filename}")
+                else
+                    redux.getProjectActions(@project_id).open_file
+                        path               : base + '.ipynb'
+                        foreground         : true
 
     cut: (cm) =>
         if not cm?
