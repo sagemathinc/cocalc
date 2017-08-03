@@ -785,11 +785,13 @@ schema.projects =
                 project_id     : null
                 title          : null
                 description    : null
+                status         : null
         set :
             fields :
                 project_id     : 'project_id'
                 title          : true
                 description    : true
+                status         : true
 
 # Table that enables set queries to the course field of a project.  Only
 # project owners are allowed to use this table.  The point is that this makes
