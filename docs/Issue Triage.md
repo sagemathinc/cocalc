@@ -1,0 +1,44 @@
+## Issue Triage
+For the most part, for issue labels on GitHub, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
+
+Contributors with sufficient permissions on the SMC repo can help by adding
+labels to triage issues:
+
+* Yellow, **A**-prefixed labels state which **area** of SMC the issue relates to.
+
+* Green, **E**-prefixed labels explain the type of **experience** necessary
+  to fix the issue.
+
+* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue. The
+  [I-nominated][inom] label indicates that an issue has been nominated for
+  prioritizing at the next triage meeting.
+
+* **M** is market segment priority.
+
+* Orange, **P**-prefixed labels indicate a bug's **priority**. These labels
+  are only assigned during triage meetings, and replace the [I-nominated][inom]
+  label.
+
+* The purple **meta** label denotes a list of issues collected from other categories.
+
+* The black, **blocked** label denotes an issue blocked by another.
+
+* Finally, **upstream** signals the problem is related to a library, usually includes a link to another issue.
+
+If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
+
+[inom]:https://github.com/sagemathinc/smc/labels/I-nominated
+[eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
+
+### List of labels and their descriptions
+Most tags should be self explanatory but some can be unclear. If you're unsure what a label means how it's different from another just ask (Where??). We'll probably add it to the description here.
+
+- `blocked` -- Always link what the issue is blocked by.
+- `I-bug` -- Something that is clearly wrong based on what the UI tells you or on strongly expected behavior by the majority of people.
+- `I-enhancement` -- Making something in SMC better.
+- `I-feature request` -- Adding some new component to SMC
+- `I-slow` -- Something that seems unnecessarily slow.
+- `I-software request` -- Requests for adding something to be installed in SMC by default.
+- `I-UA` -- Text that needs to be reworded or a tip that needs to get written.
+
+

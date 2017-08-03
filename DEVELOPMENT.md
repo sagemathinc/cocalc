@@ -1,6 +1,7 @@
 # Development Information
 
-Source code is in the `src/` subdirectory.
+- Source code is in the `src/` subdirectory.
+- Additional development information is in the `docs/` directory.
 
 ## Activity
 
@@ -21,36 +22,6 @@ in various contexts:
 - src/dev/laptop -- for development on your personal laptop (or desktop) that is not public; zero concern about security. No sudo setup.  Works on Linux and OS X.  Currently deprecated/not updated.
 
 - src/dev/smc -- related to the actual live CoCalc deployment, which runs on many nodes, and uses haproxy and nginx. (Will be deprecated)
-
-## Issue Triage
-For the most part, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
-
-Contributors with sufficient permissions on the CoCalc repo can help by adding
-labels to triage issues:
-
-* Yellow, **A**-prefixed labels state which **area** of SMC the issue relates to.
-
-* Green, **E**-prefixed labels explain the type of **experience** necessary
-  to fix the issue.
-
-* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue. The
-  [I-nominated][inom] label indicates that an issue has been nominated for
-  prioritizing at the next triage meeting.
-
-* Orange, **P**-prefixed labels indicate a bug's **priority**. These labels
-  are only assigned during triage meetings, and replace the [I-nominated][inom]
-  label.
-
-* The purple **meta** label denotes a list of issues collected from other categories.
-
-
-* The black, **blocked** label denotes an issue blocked by another.
-
-If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
-
-[inom]:https://github.com/sagemathinc/cocalc/labels/I-nominated
-[eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
-
 
 ## The Components of CoCalc
 
