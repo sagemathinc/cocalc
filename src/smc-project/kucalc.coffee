@@ -8,18 +8,41 @@ misc_node = require('smc-util-node/misc_node')
 
 exports.IN_KUCALC = process.env.COCALC_USERNAME == 'user'
 
-exports.status = (cb) ->
+exports.init = ->
+    # update project status every 30s
+    # TODO: could switch to faster when it's changing and slower when it isn't.
+    setInterval(update_project_status, 30000)
+
+update_project_status = (client, cb) ->
+    dbg = client.dbg("update_status")
+    dbg()
+    status = undefined
+    async.series([
+        (cb) ->
+            compute_status (err, s) ->
+                status = s
+                cb(err)
+        (cb) ->
+            client.query
+                query   :
+                    projects : {project_id:client.client_id(), status: status}
+                cb      : cb
+    ], (err) ->
+        cb?(err)
+    )
+
+compute_status = (cb) ->
     status = {}
     async.parallel([
         (cb) ->
-            status_disk(status, cb)
+            compute_status_disk(status, cb)
         (cb) ->
-            status_memory(status, cb)
+            compute_status_memory(status, cb)
     ], (err) ->
         cb(err, status)
     )
 
-status_disk = (status, cb) ->
+compute_status_disk = (status, cb) ->
     misc_node.execute_code
         command : "df -BM $HOME | tail -1 | awk '{gsub(\"M\",\"\");print $3}'"
         bash    : true
@@ -30,7 +53,7 @@ status_disk = (status, cb) ->
                 status.disk_MB = parseInt(out.stdout)
                 cb()
 
-status_memory = (status, cb) ->
+compute_status_memory = (status, cb) ->
     misc_node.execute_code
         command : "smem -nu | tail -1 | awk '{print $6}'"
         bash    : true

@@ -90,9 +90,8 @@ class exports.Client extends EventEmitter
         @_init_recent_syncstrings_table()
 
         if kucalc.IN_KUCALC
-            # Update memory and disk space usage every 30s.
-            setInterval((=>@update_status()), 30000)
-
+            kucalc.init()
+           
     ###
     _test_ping: () =>
         dbg = @dbg("_test_ping")
@@ -415,25 +414,6 @@ class exports.Client extends EventEmitter
             @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
         # Finally, send the message
         socket.write_mesg('json', opts.message)
-
-    update_status: (cb) =>
-        dbg = @dbg("update_status")
-        dbg()
-        status = undefined
-        async.series([
-            (cb) =>
-                kucalc.status (err, s) =>
-                    status = s
-                    cb(err)
-            (cb) =>
-                @query
-                    query   :
-                        projects : {project_id:@client_id(), status: status}
-                    cb      : (err, resp) =>
-                        dbg("got: err=#{err}, resp=#{json(resp)}")
-                        cb(err)
-        ], (err) -> cb?(err))
-
 
     # Do a project_query
     query: (opts) =>
