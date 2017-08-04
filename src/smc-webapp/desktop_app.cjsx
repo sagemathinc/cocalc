@@ -79,6 +79,7 @@ Page = rclass
             connection_status : rtypes.string
             new_version       : rtypes.object
             fullscreen        : rtypes.bool
+            kiosk             : rtypes.bool
             cookie_warning    : rtypes.bool
             local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
@@ -226,7 +227,7 @@ Page = rclass
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
-            <FullscreenButton />
+            {<FullscreenButton /> if not @props.kiosk}
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>

@@ -303,28 +303,40 @@ exports.FullscreenButton = rclass
         page :
             fullscreen : rtypes.bool
 
-    on_fullscreen: ->
-        @actions('page').set_fullscreen(not @props.fullscreen)
+    on_fullscreen: (ev) ->
+        if ev.shiftKey
+            @actions('page').set_kiosk(true)
+        else
+            @actions('page').set_fullscreen(not @props.fullscreen)
 
     render: ->
         icon = if @props.fullscreen then 'expand' else 'compress'
-        styles =
+
+        outer_style =
             position   : 'fixed'
             zIndex     : 10000
             right      : 0
             top        : '1px'
+            borderRadius: '3px'
+
+        icon_style =
             fontSize   : '13pt'
             padding    : 4
             color      : COLORS.GRAY
             cursor     : 'pointer'
-            borderRadius: '3px'
 
         if @props.fullscreen
-            styles.background = '#fff'
-            styles.opacity    = .7
-            styles.border     = '1px solid grey'
+            outer_style.background = '#fff'
+            outer_style.opacity    = .7
+            outer_style.border     = '1px solid grey'
 
-        <Icon style={styles} name={icon} onClick={@on_fullscreen} />
+        <Tip
+            style     = {outer_style}
+            title     = {'Removes navigational chrome from the UI. Shift-click to enter "kiosk-mode".'}
+            placement = {'left'}
+        >
+            <Icon style={icon_style} name={icon} onClick = {(e) => @on_fullscreen(e)} />
+        </Tip>
 
 exports.AppLogo = rclass
     displayName : 'AppLogo'

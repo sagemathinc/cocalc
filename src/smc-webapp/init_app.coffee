@@ -179,7 +179,18 @@ class PageActions extends Actions
     set_fullscreen: (val) =>
         @setState(fullscreen : val)
 
+    set_kiosk: (val) =>
+        # if kiosk is ever set, disable toggling back
+        if redux.getStore('page').get('kiosk') and not val
+            return
+        @setState(kiosk : val)
+        if val
+            @set_fullscreen(val)
+
     toggle_fullscreen: =>
+        # if kiosk is ever set, disable toggling back
+        if redux.getStore('page').get('kiosk')
+            return
         @setState(fullscreen : not redux.getStore('page').get('fullscreen'))
 
     show_cookie_warning: =>
@@ -225,6 +236,7 @@ redux.createStore
         connection_status     : rtypes.string
         new_version           : rtypes.object
         fullscreen            : rtypes.bool
+        kiosk                 : rtypes.bool
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
@@ -327,8 +339,8 @@ webapp_client.on "connecting", () ->
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
 
-# enable fullscreen mode upon a URL like /app?fullscreen
+# enable fullscreen mode upon a URL like /app?fullscreen and additionally kiosk-mode upon /app?fullscreen=kiosk
 misc_page = require('./misc_page')
-if misc_page.get_query_param('fullscreen')
-    redux.getActions('page').set_fullscreen(true)
-
+fullscreen_query_value = misc_page.get_query_param('fullscreen')
+redux.getActions('page').set_fullscreen(!!fullscreen_query_value)
+redux.getActions('page').set_kiosk(fullscreen_query_value == 'kiosk')
