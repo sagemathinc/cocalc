@@ -23,7 +23,7 @@
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
-{set_url}               = require('./history')
+history                 = require('./history')
 {set_window_title}      = require('./browser')
 
 {alert_message}         = require('./alerts')
@@ -114,16 +114,16 @@ class PageActions extends Actions
         @setState(active_top_tab : key)
         switch key
             when 'projects'
-                set_url('/projects')
+                history.set_url('/projects')
                 set_window_title('Projects')
             when 'account'
                 redux.getActions('account').push_state()
                 set_window_title('Account')
             when 'about'
-                set_url('/help')
+                history.set_url('/help')
                 set_window_title('Help')
             when 'file-use'
-                set_url('/file-use')
+                history.set_url('/file-use')
                 set_window_title('File Usage')
             when undefined
                 return
@@ -181,9 +181,14 @@ class PageActions extends Actions
         if redux.getStore('page').get('fullscreen') == 'kiosk'
             return
         @setState(fullscreen : val)
+        history.update_params()
 
     toggle_fullscreen: =>
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
+
+    set_session: (val) =>
+        @setState(session : val)
+        history.update_params()
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)
@@ -339,3 +344,4 @@ if fullscreen_query_value
     else
         redux.getActions('page').set_fullscreen('default')
 
+redux.getActions('page').set_session(misc_page.get_query_param('session'))
