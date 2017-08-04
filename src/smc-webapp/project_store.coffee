@@ -130,6 +130,8 @@ class ProjectActions extends Actions
         temp_list = x.delete(old_index)
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
+        @redux.getActions('page').save_session()
+
 
     # Closes a file tab
     # Also closes file references.
@@ -392,6 +394,7 @@ class ProjectActions extends Actions
                             @setState
                                 open_files       : open_files
                                 open_files_order : open_files_order.set(index, opts.path)
+                            @redux.getActions('page').save_session()
 
                         if opts.foreground
                             @foreground_project()
@@ -540,6 +543,7 @@ class ProjectActions extends Actions
                 open_files_order : x.delete(index)
                 open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
+            @redux.getActions('page').save_session()
 
     # Makes this project the active project tab
     foreground_project: =>

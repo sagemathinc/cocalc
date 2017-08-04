@@ -109,6 +109,7 @@ class PageActions extends Actions
 
         # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
+        @save_session()
 
     set_active_tab: (key) =>
         @setState(active_top_tab : key)
@@ -187,8 +188,24 @@ class PageActions extends Actions
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
 
     set_session: (val) =>
+        # If existing different session, close it.
+        if val != redux.getStore('page')?.get('session')
+            @_session_manager?.close()
+            delete @_session_manager
+
+        # Save state and update URL.
         @setState(session : val)
         history.update_params()
+
+        # Make new session manager if necessary
+        if val
+            @_session_manager ?= require('./session').session_manager(val, redux)
+
+    save_session: =>
+        @_session_manager?.save()
+
+    restore_session: =>
+        @_session_manager?.restore()
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)
@@ -344,4 +361,5 @@ if fullscreen_query_value
     else
         redux.getActions('page').set_fullscreen('default')
 
+# configure the session
 redux.getActions('page').set_session(misc_page.get_query_param('session'))
