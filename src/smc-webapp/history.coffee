@@ -110,6 +110,8 @@ exports.load_target = load_target = (target) ->
                 redux.getActions('account').set_active_tab('upgrades')
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
+            if segments[1] == 'ssh-keys'
+                redux.getActions('account').set_active_tab('ssh-keys')
         when 'file-use'
             if not logged_in
                 return
