@@ -423,7 +423,7 @@ class exports.Client extends EventEmitter
             query   :
                 projects : {status:{disk_MB:389, memory:{rss:234446}}}
             cb      : (err, resp) =>
-               dbg("got: err=#{err}, resp=#{json(resp)}")
+                dbg("got: err=#{err}, resp=#{json(resp)}")
                 cb?(err)
 
 
