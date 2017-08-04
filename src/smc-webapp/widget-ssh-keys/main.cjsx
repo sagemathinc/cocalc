@@ -49,12 +49,14 @@ exports.SSHKeyAdder = rclass
     displayName: 'SSH-Key-Adder'
 
     propTypes:
-        add_ssh_key : rtypes.func     # See arg signature at end of @submit_form
-        account_id  : rtypes.string
+        add_ssh_key  : rtypes.func     # See arg signature at end of @submit_form
+        account_id   : rtypes.string
+        toggleable   : rtypes.bool     # If it should be a button
 
     getInitialState: ->
-        key_title : ""
-        key_value : ""
+        key_title  : ""
+        key_value  : ""
+        show_panel : false
 
     trigger_error: (err) ->
         @setState(error : err)
@@ -82,8 +84,7 @@ exports.SSHKeyAdder = rclass
             creation_date : Date.now()
             creator_id    : @props.account_id
 
-
-    render: ->
+    render_panel: ->
         <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH Key</h2>} style={@props.style}>
             {# TODO: Make a style mapper to the components if necessary}
             <form>
@@ -110,19 +111,35 @@ exports.SSHKeyAdder = rclass
                 </FormGroup>
             </form>
             <div>
-                <Button
-                    bsStyle  = 'success'
-                    onClick  = {@submit_form}
-                    disabled = {@state.key_value.length < 10}
-                >
-                    Add SSH Key
-                </Button>
-                {<AddKeyError mesg={@state.error}/> if @state.error?}
+                <ButtonToolbar>
+                    <Button
+                        bsStyle  = 'success'
+                        onClick  = {@submit_form}
+                        disabled = {@state.key_value.length < 10}
+                    >
+                        Add SSH Key
+                    </Button>
+                    {<Button onClick={=>@setState(show_panel:false)}>
+                        Cancel
+                    </Button> if @props.toggleable }
+                </ButtonToolbar>
+                {<AddKeyError style={marginTop:'10px'} mesg={@state.error}/> if @state.error?}
             </div>
         </Panel>
 
-AddKeyError = ({mesg}) ->
-    <Alert bsStyle='danger'>
+    render_open_button: ->
+        <Button bsStyle='success' onClick={=>@setState(show_panel : true)} style={@props.style}>
+            <Icon name='terminal' /> Add an SSH Key...
+        </Button>
+
+    render: ->
+        if not @props.toggleable or @state.show_panel
+            @render_panel()
+        else
+            @render_open_button()
+
+AddKeyError = ({mesg, style}) ->
+    <Alert style={style} bsStyle='danger'>
         {mesg}
     </Alert>
 

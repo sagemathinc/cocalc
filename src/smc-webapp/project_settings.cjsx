@@ -589,51 +589,10 @@ ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
-        restart  : false
-        show_ssh : false
+        restart : false
 
-    propTypes :
-        project    : rtypes.object.isRequired
-        account_id : rtypes.string.isRequired
-        user_map   : rtypes.immutable.Map
-
-    open_authorized_keys: (e) ->
-        e.preventDefault()
-        project_id = @props.project.get('project_id')
-        async.series([
-            (cb) =>
-                project_tasks(project_id).ensure_directory_exists
-                    path : '.ssh'
-                    cb   : cb
-            (cb) =>
-                @actions(project_id: project_id).open_file
-                    path       : '.ssh/authorized_keys'
-                    foreground : true
-                cb()
-        ])
-
-    ssh_notice: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            if @state.show_ssh
-                <div>
-                    <SSHKeyAdder account_id={@props.account_id} add_ssh_key={(opts)=> console.log "TODO: add project ssh key. Dummy func got", opts} />
-                    <Row>
-                        <Button onClick={()=>@setState(show_ssh:false)}>
-                            <Icon name='x'/>Finished</Button>
-                        <a style={pull:'right'} href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
-                            <Icon name='life-ring'/> How to create SSH keys</a>
-                    </Row>
-                </div>
-            else
-                <Row>
-                    <Col sm=12>
-                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH into your project...
-                        </Button>
-                    </Col>
-                </Row>
+    propTypes:
+        project : rtypes.object.isRequired
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -700,8 +659,6 @@ ProjectControlPanel = rclass
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
             If your project is not working, please create a <ShowSupportLink />.
-            <hr />
-            {@ssh_notice()}
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
@@ -1053,10 +1010,17 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
+                    <SSHKeyList user_map={@props.user_map} ssh_keys={undefined}
+                        pre_list={<SSHKeyAdder
+                            add_ssh_key  = {(opts)=> console.log "TODO -- add project ssh key. Dummy func got", opts}
+                            toggleable   = {true}
+                            style        = {marginBottom:'10px'}
+                            account_id   = {@props.account_id} />}
+                        />
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} account_id={@props.account_id} user_map={@props.user_map} />
+                    <ProjectControlPanel key='control' project={@props.project} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
