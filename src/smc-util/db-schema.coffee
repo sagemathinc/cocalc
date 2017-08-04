@@ -658,7 +658,7 @@ schema.projects =
             desc : 'A longer textual description of the project.  This can include hashtags and should be formatted using markdown.'  # markdown rendering possibly not implemented
         users       :
             type : 'map'
-            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}."
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
@@ -785,11 +785,13 @@ schema.projects =
                 project_id     : null
                 title          : null
                 description    : null
+                status         : null
         set :
             fields :
                 project_id     : 'project_id'
                 title          : true
                 description    : true
+                status         : true
 
 # Table that enables set queries to the course field of a project.  Only
 # project owners are allowed to use this table.  The point is that this makes
