@@ -57,6 +57,8 @@ jupyter = require('./jupyter/jupyter')
 
 {json} = require('./common')
 
+kucalc = require('./kucalc')
+
 {Watcher} = require('./watcher')
 
 {defaults, required} = misc
@@ -86,6 +88,10 @@ class exports.Client extends EventEmitter
         # Start listening for syncstrings that have been recently modified, so that we
         # can open them and porivde filesystem and computational support.
         @_init_recent_syncstrings_table()
+
+        if kucalc.IN_KUCALC
+            # Update memory and disk space usage every 30s.
+            setInterval((=>@update_status()), 30000)
 
     ###
     _test_ping: () =>
@@ -409,6 +415,17 @@ class exports.Client extends EventEmitter
             @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
         # Finally, send the message
         socket.write_mesg('json', opts.message)
+
+    update_status: (cb) =>
+        dbg = @dbg("update_status")
+        dbg()
+        @query
+            query   :
+                projects : {status:{disk_MB:389, memory:{rss:234446}}}
+            cb      : (err, resp) =>
+               dbg("got: err=#{err}, resp=#{json(resp)}")
+                cb?(err)
+
 
     # Do a project_query
     query: (opts) =>
