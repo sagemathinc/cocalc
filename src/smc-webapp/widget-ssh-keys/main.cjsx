@@ -195,12 +195,15 @@ OneSSHKey = rclass
             /> if @state.show_delete_conf}
         </ListGroupItem>
 
+# Children are rendered below the list of SSH Keys
+# Use pre_list to render "children" above the list
 exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
     propTypes:
         user_map : rtypes.immutable.Map
         ssh_keys : rtypes.immutable.List
+        pre_list : rtypes.element
 
     getDefaultProps: ->
         # TODO: Remove when keys are passed from parent
@@ -222,10 +225,11 @@ exports.SSHKeyList = rclass
 
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
-            This is the list of associated SSH keys. Remove keys you do not recognize.
+            {@props.pre_list}
             <Panel style={marginBottom:'0px'} >
                 <ListGroup fill={true}>
                     {(<OneSSHKey ssh_key={ssh_key} delete={()=>console.log "TODO DELTE THE KEY"} key={ssh_key.get('fingerprint')} user_map={@props.user_map}/> for ssh_key in @props.ssh_keys.toArray())}
                 </ListGroup>
             </Panel>
+            {@props.children}
         </Panel>

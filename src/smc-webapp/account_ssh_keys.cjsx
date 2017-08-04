@@ -14,12 +14,17 @@ exports.SSHKeysPage = rclass
         user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.List
 
+    render_pre_list_message: ->
+        <div>
+            This is your list of account access SSH keys. Remove keys you do not recognize.
+        </div>
+
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col md=8>
                     {#TODO: Pass down the ssh_keys}
-                    <SSHKeyList ssh_keys={undefined} user_map={@props.user_map}/>
+                    <SSHKeyList ssh_keys={undefined} user_map={@props.user_map} pre_list={@render_pre_list_message()}/>
                 </Col>
                 <Col md=4>
                     <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "TODO..."} style={marginBottom:'0px'}/>
