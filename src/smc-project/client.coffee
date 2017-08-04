@@ -57,6 +57,8 @@ jupyter = require('./jupyter/jupyter')
 
 {json} = require('./common')
 
+kucalc = require('./kucalc')
+
 {Watcher} = require('./watcher')
 
 {defaults, required} = misc
@@ -86,6 +88,9 @@ class exports.Client extends EventEmitter
         # Start listening for syncstrings that have been recently modified, so that we
         # can open them and porivde filesystem and computational support.
         @_init_recent_syncstrings_table()
+
+        if kucalc.IN_KUCALC
+            kucalc.init(@)
 
     ###
     _test_ping: () =>
