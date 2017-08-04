@@ -431,7 +431,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             project_map  : rtypes.immutable
             get_my_group : rtypes.func
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
         "#{name}" :
             active_project_tab  : rtypes.string
             open_files          : rtypes.immutable
@@ -499,7 +499,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
         <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px'}>
             <div style={display:'flex'}>
-                <Nav
+                {<Nav
                     bsStyle   = "pills"
                     className = "smc-file-tabs-fixed-desktop"
                     style     = {overflow:'hidden', float:'left'} >
@@ -512,7 +512,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         is_active  = {@props.active_project_tab == k}
                         shrink     = {shrink_fixed_tabs}
                     /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
-                </Nav>
+                </Nav> if (@props.fullscreen != 'kiosk')}
                 <div
                     style = {display:'flex', overflow:'hidden', flex: 1}
                 >
@@ -569,7 +569,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             project_map  : rtypes.immutable
             get_my_group : rtypes.func
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
         "#{name}" :
             active_project_tab  : rtypes.string
             open_files          : rtypes.immutable
