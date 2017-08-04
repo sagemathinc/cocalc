@@ -1481,7 +1481,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: running this cell again, restarting your project,\nclosing and opening this file, refreshing your browser,\nor deleting the contents of ~/.local"
+            error = """ERROR: '#{mesg.error}'
+
+            Communication with the Sage server is failing.
+
+            Here are some actions you could try to resolve this problem:
+            - check your internet connection,
+            - run this cell again,
+            - close and reopen this file,
+            - restart the project (in project settings, wrench icon),
+            - reload the browser tab or even restart your browser,
+            - delete some of the content in the project's ~/.local directory,
+              (locally installed Python libraries might interfere with running this worksheet)
+            """
             output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
