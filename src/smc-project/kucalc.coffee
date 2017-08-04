@@ -11,7 +11,9 @@ exports.IN_KUCALC = process.env.COCALC_USERNAME == 'user'
 exports.init = (client) ->
     # update project status every 30s
     # TODO: could switch to faster when it's changing and slower when it isn't.
-    setInterval((->update_project_status(client)), 30000)
+    f = -> update_project_status(client)
+    f()
+    setInterval(f, 30000)
 
 update_project_status = (client, cb) ->
     dbg = client.dbg("update_status")
