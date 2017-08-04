@@ -26,7 +26,7 @@ status_disk = (status, cb) ->
         cb      : (err, out) ->
             if err
                 cb(err)
-            else:
+            else
                 status.disk_MB = parseInt(out.stdout)
                 cb()
 
@@ -37,6 +37,6 @@ status_memory = (status, cb) ->
         cb      : (err, out) ->
             if err
                 cb(err)
-            else:
+            else
                 status.memory = {rss:parseInt(out.stdout)}
                 cb()
