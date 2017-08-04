@@ -942,6 +942,34 @@ CollaboratorsPanel = rclass
             <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
         </ProjectSettingsPanel>
 
+SSHPanel = rclass
+    displayName: 'ProjectSettings-SSHPanel'
+
+    propTypes :
+        project    : rtypes.immutable.Map.isRequired
+        user_map   : rtypes.immutable.Map
+        account_id : rtypes.string
+
+    render_how_to: ->
+        project_id = @props.project.get('project_id')
+        host = @props.project.get('host')?.get('host')
+        if host?
+            <div>
+                To SSH into your project, use the following <span style={color:'#666'}>username@host:</span>
+                {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
+                <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+            </div>
+
+    render: ->
+        <SSHKeyList user_map={@props.user_map} ssh_keys={undefined} >
+            <SSHKeyAdder
+                add_ssh_key  = {(opts)=> console.log "TODO -- add project ssh key. Dummy func got", opts}
+                toggleable   = {true}
+                style        = {marginBottom:'10px'}
+                account_id   = {@props.account_id} />
+            {@render_how_to()}
+        </SSHKeyList>
+
 ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
@@ -1010,13 +1038,8 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
-                    <SSHKeyList user_map={@props.user_map} ssh_keys={undefined}
-                        pre_list={<SSHKeyAdder
-                            add_ssh_key  = {(opts)=> console.log "TODO -- add project ssh key. Dummy func got", opts}
-                            toggleable   = {true}
-                            style        = {marginBottom:'10px'}
-                            account_id   = {@props.account_id} />}
-                        />
+                    <SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id}/>
+
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
