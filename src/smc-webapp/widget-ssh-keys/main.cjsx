@@ -58,6 +58,12 @@ exports.SSHKeyAdder = rclass
         key_value  : ""
         show_panel : false
 
+    cancel_and_close: ->
+        @setState
+            key_title  : ""
+            key_value  : ""
+            show_panel : false
+
     trigger_error: (err) ->
         @setState(error : err)
 
@@ -83,6 +89,8 @@ exports.SSHKeyAdder = rclass
             fingerprint   : compute_fingerprint(validated_key.pubkey)
             creation_date : Date.now()
             creator_id    : @props.account_id
+
+        @cancel_and_close() if @props.toggleable
 
     render_panel: ->
         <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH Key</h2>} style={@props.style}>
@@ -119,7 +127,7 @@ exports.SSHKeyAdder = rclass
                     >
                         Add SSH Key
                     </Button>
-                    {<Button onClick={=>@setState(show_panel:false)}>
+                    {<Button onClick={@cancel_and_close}>
                         Cancel
                     </Button> if @props.toggleable }
                 </ButtonToolbar>
