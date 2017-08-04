@@ -90,8 +90,8 @@ class exports.Client extends EventEmitter
         @_init_recent_syncstrings_table()
 
         if kucalc.IN_KUCALC
-            kucalc.init()
-           
+            kucalc.init(@)
+
     ###
     _test_ping: () =>
         dbg = @dbg("_test_ping")
