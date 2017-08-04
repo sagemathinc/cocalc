@@ -419,12 +419,20 @@ class exports.Client extends EventEmitter
     update_status: (cb) =>
         dbg = @dbg("update_status")
         dbg()
-        @query
-            query   :
-                projects : {status:{disk_MB:389, memory:{rss:234446}}}
-            cb      : (err, resp) =>
-                dbg("got: err=#{err}, resp=#{json(resp)}")
-                cb?(err)
+        status = undefined
+        async.series([
+            (cb) =>
+                kucalc.status (err, s) =>
+                    status = s
+                    cb(err)
+            (cb) =>
+                @query
+                    query   :
+                        projects : {project_id:@client_id(), status: status}
+                    cb      : (err, resp) =>
+                        dbg("got: err=#{err}, resp=#{json(resp)}")
+                        cb(err)
+        ], (err) -> cb?(err))
 
 
     # Do a project_query
