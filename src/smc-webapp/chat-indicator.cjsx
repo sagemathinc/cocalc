@@ -50,7 +50,7 @@ exports.ChatIndicator = rclass
         file_use :
             file_use : rtypes.immutable
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
 
     propTypes :
         project_id   : rtypes.string.isRequired

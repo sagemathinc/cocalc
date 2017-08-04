@@ -301,13 +301,13 @@ exports.FullscreenButton = rclass
 
     reduxProps :
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
-            @actions('page').set_kiosk(true)
+            @actions('page').set_fullscreen('kiosk')
         else
-            @actions('page').set_fullscreen(not @props.fullscreen)
+            @actions('page').toggle_fullscreen()
 
     render: ->
         icon = if @props.fullscreen then 'expand' else 'compress'
