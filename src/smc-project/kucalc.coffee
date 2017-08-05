@@ -54,7 +54,7 @@ compute_status_disk = (status, cb) ->
 # NOTE: we use tmpfs for /tmp, so RAM usage is the **sum** of /tmp and what
 # processes use.
 compute_status_tmp = (status, cb) ->
-    disk_usage "$HOME", (err, x) ->
+    disk_usage "/tmp", (err, x) ->
         status.memory.rss += 1000*x
         cb(err)
 
