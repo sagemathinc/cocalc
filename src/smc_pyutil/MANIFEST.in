@@ -4,3 +4,4 @@ include smc_pyutil/templates/linux/bash_profile
 include smc_pyutil/templates/darwin/default.*
 include smc_pyutil/templates/darwin/bashrc
 include smc_pyutil/templates/darwin/bash_profile
+include fastentrypoints.py

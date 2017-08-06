@@ -14,6 +14,8 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
+# from https://github.com/ninjaaron/fast-entry_points/ issue https://github.com/sagemathinc/cocalc/issues/2259
+import fastentrypoints
 from setuptools import setup, find_packages
 
 # This checks, if setup.py is run with 'install --user'
