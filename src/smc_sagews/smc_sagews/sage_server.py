@@ -1668,7 +1668,7 @@ def handle_session_term(signum, frame):
 secret_token = None
 
 if 'COCALC_SECRET_TOKEN' in os.environ:
-    secret_token_path = os.environ[COCALC_SECRET_TOKEN]
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
 else:
     secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
