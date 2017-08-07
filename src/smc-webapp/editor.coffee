@@ -985,7 +985,7 @@ class CodeMirrorEditor extends FileEditor
         if misc.filename_extension(@filename)?.toLowerCase() == 'sagews'
             @init_sagews_edit_buttons()
 
-        @wizard = null
+        @examples_dialog = null
 
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
@@ -1831,21 +1831,21 @@ class CodeMirrorEditor extends FileEditor
                 # needed so that dropdown menu closes when clicked.
                 return true
 
-    wizard_handler: () =>
-        # @wizard is this WizardActions object
-        if not @wizard?
+    examples_dialog_handler: () =>
+        # @examples_dialog is this ExampleActions object
+        if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
-            {render_wizard} = require('./wizard')
-            @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
+            {render_examples_dialog} = require('./examples')
+            @examples_dialog = render_examples_dialog($target[0], @project_id, @filename, lang = @_current_mode, cb = @example_insert_handler)
         else
-            @wizard.show(lang = @_current_mode)
+            @examples_dialog.show(lang = @_current_mode)
 
-    wizard_insert_handler: (insert) =>
+    example_insert_handler: (insert) =>
         code = insert.code
         lang = insert.lang
         cm = @focused_codemirror()
         line = cm.getCursor().line
-        # console.log "wizard insert:", lang, code, insert.descr
+        # console.log "example insert:", lang, code, insert.descr
         if insert.descr?
             @syncdoc?.insert_new_cell(line)
             cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
@@ -1980,7 +1980,7 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        mode_display.click(@wizard_handler)
+        mode_display.click(@examples_dialog_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for

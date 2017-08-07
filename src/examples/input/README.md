@@ -1,9 +1,9 @@
-# SMC Wizard
+# Embedded CoCalc Examples
 
-These wizard source files are a set of [YAML documents](http://www.yaml.org/).
+These embedded example source files are a set of [YAML documents](http://www.yaml.org/).
 
 Each one of them is a list of individual "documents",
-where the delimiter is exactly "---".
+where the delimiter is the usual "---".
 
 The are composed of:
 

@@ -71,7 +71,7 @@ def install_webapp(*args):
     nothing = True
 
     if 'build' in action:
-        cmd("cd wizard && make")
+        cmd("cd examples && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
         # react static step must come *before* webpack step

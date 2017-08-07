@@ -30,7 +30,7 @@ npm install
 cd $SMC_ROOT/smc-hub
 npm install
 
-cd $SMC_ROOT/wizard
+cd $SMC_ROOT/examples
 make
 
 # generating color scheme
