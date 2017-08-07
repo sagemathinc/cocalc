@@ -2107,6 +2107,12 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
             return
         dbg = @dbg("mesg_stripe_admin_create_invoice_item")
+        @_stripe = get_stripe()
+        if not @_stripe?
+            err = "stripe billing not configured"
+            dbg(err)
+            @error_to_client(id:id, error:err)
+            return
         customer_id = undefined
         description = undefined
         email       = undefined
