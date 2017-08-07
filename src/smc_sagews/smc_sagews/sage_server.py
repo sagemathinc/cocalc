@@ -1666,7 +1666,11 @@ def handle_session_term(signum, frame):
         if not pid: return
 
 secret_token = None
-secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
+if 'COCALC_SECRET_TOKEN' in os.environ:
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
+else:
+    secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
 def unlock_conn(conn):
     global secret_token

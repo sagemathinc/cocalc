@@ -23,7 +23,7 @@
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
-{set_url}               = require('./history')
+history                 = require('./history')
 {set_window_title}      = require('./browser')
 
 {alert_message}         = require('./alerts')
@@ -109,21 +109,22 @@ class PageActions extends Actions
 
         # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
+        @save_session()
 
     set_active_tab: (key) =>
         @setState(active_top_tab : key)
         switch key
             when 'projects'
-                set_url('/projects')
+                history.set_url('/projects')
                 set_window_title('Projects')
             when 'account'
                 redux.getActions('account').push_state()
                 set_window_title('Account')
             when 'about'
-                set_url('/help')
+                history.set_url('/help')
                 set_window_title('Help')
             when 'file-use'
-                set_url('/file-use')
+                history.set_url('/file-use')
                 set_window_title('File Usage')
             when undefined
                 return
@@ -177,10 +178,34 @@ class PageActions extends Actions
         @setState(new_version : version)
 
     set_fullscreen: (val) =>
+        # if kiosk is ever set, disable toggling back
+        if redux.getStore('page').get('fullscreen') == 'kiosk'
+            return
         @setState(fullscreen : val)
+        history.update_params()
 
     toggle_fullscreen: =>
-        @setState(fullscreen : not redux.getStore('page').get('fullscreen'))
+        @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
+
+    set_session: (val) =>
+        # If existing different session, close it.
+        if val != redux.getStore('page')?.get('session')
+            @_session_manager?.close()
+            delete @_session_manager
+
+        # Save state and update URL.
+        @setState(session : val)
+        history.update_params()
+
+        # Make new session manager if necessary
+        if val
+            @_session_manager ?= require('./session').session_manager(val, redux)
+
+    save_session: =>
+        @_session_manager?.save()
+
+    restore_session: =>
+        @_session_manager?.restore()
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)
@@ -224,7 +249,7 @@ redux.createStore
         avgping               : rtypes.number
         connection_status     : rtypes.string
         new_version           : rtypes.object
-        fullscreen            : rtypes.bool
+        fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
@@ -327,8 +352,14 @@ webapp_client.on "connecting", () ->
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
 
-# enable fullscreen mode upon a URL like /app?fullscreen
+# enable fullscreen mode upon a URL like /app?fullscreen and additionally kiosk-mode upon /app?fullscreen=kiosk
 misc_page = require('./misc_page')
-if misc_page.get_query_param('fullscreen')
-    redux.getActions('page').set_fullscreen(true)
+fullscreen_query_value = misc_page.get_query_param('fullscreen')
+if fullscreen_query_value
+    if fullscreen_query_value == 'kiosk'
+        redux.getActions('page').set_fullscreen('kiosk')
+    else
+        redux.getActions('page').set_fullscreen('default')
 
+# configure the session
+redux.getActions('page').set_session(misc_page.get_query_param('session'))

@@ -34,26 +34,29 @@ update_project_status = (client, cb) ->
     )
 
 compute_status = (cb) ->
-    status = {}
+    status = {memory:{rss:0}, disk_MB:0}
     async.parallel([
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
             compute_status_memory(status, cb)
+        (cb) ->
+            compute_status_tmp(status, cb)
     ], (err) ->
         cb(err, status)
     )
 
 compute_status_disk = (status, cb) ->
-    misc_node.execute_code
-        command : "df -BM $HOME | tail -1 | awk '{gsub(\"M\",\"\");print $3}'"
-        bash    : true
-        cb      : (err, out) ->
-            if err
-                cb(err)
-            else
-                status.disk_MB = parseInt(out.stdout)
-                cb()
+    disk_usage "$HOME", (err, x) ->
+        status.disk_MB = x
+        cb(err)
+
+# NOTE: we use tmpfs for /tmp, so RAM usage is the **sum** of /tmp and what
+# processes use.
+compute_status_tmp = (status, cb) ->
+    disk_usage "/tmp", (err, x) ->
+        status.memory.rss += 1000*x
+        cb(err)
 
 compute_status_memory = (status, cb) ->
     misc_node.execute_code
@@ -63,5 +66,15 @@ compute_status_memory = (status, cb) ->
             if err
                 cb(err)
             else
-                status.memory = {rss:parseInt(out.stdout)}
+                status.memory.rss += parseInt(out.stdout)
                 cb()
+
+disk_usage = (path, cb) ->
+    misc_node.execute_code
+        command : "df -BM #{path} | tail -1 | awk '{gsub(\"M\",\"\");print $3}'"
+        bash    : true
+        cb      : (err, out) ->
+            if err
+                cb(err)
+            else
+                cb(undefined, parseInt(out.stdout))
