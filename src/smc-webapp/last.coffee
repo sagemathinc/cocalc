@@ -43,7 +43,7 @@ $(document).on "click", (e) ->
 
 remember_me = webapp_client.remember_me_key()
 if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
-    require('./history').load_target(window.smc_target)
+    require('./history').load_target(window.smc_target, true)
 else
     redux.getActions('page').set_active_tab('account')
 

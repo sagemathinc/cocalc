@@ -110,7 +110,9 @@ exports.set_url = (url) ->
     analytics_pageview(window.location.pathname)
 
 # Now load any specific page/project/previous state
-exports.load_target = load_target = (target) ->
+exports.load_target = load_target = (target, ignore_kiosk=false) ->
+    misc = require('smc-util/misc')
+    #if DEBUG then console.log("history/load_target: #{misc.to_json(arguments)}")
     if not target
         return
     logged_in = redux.getStore('account')?.is_logged_in()
@@ -121,7 +123,8 @@ exports.load_target = load_target = (target) ->
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
-                    redux.getActions('projects').load_target(segments.slice(1).join('/'), true)
+                    #if DEBUG then console.log("history/load_target → load_target: #{misc.to_json([segments.slice(1).join('/'), true, ignore_kiosk])}")
+                    redux.getActions('projects').load_target(segments.slice(1).join('/'), true, ignore_kiosk)
                 else
                     redux.getActions('page').set_active_tab('projects')
         when 'settings'
