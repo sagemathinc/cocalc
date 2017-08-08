@@ -1974,7 +1974,8 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3 md=2>
+        # hsy: for me, without the "nowrap", the upload button usually shows up on the next line
+        <Col sm=3 md=2 style={whiteSpace: 'nowrap'}>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
