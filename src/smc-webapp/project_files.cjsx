@@ -1974,7 +1974,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3 style={whiteSpace: 'nowrap'}>
+        <Col sm=3 md=2>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
@@ -2180,7 +2180,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 3}>
+                <Col sm={if public_view then 6 else 3} md={if public_view then 6 else 4} >
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 {<Col sm=3>
