@@ -247,6 +247,59 @@ FreeProjectWarning = rclass ({name}) ->
             {@extra(host, internet)}
         </Alert>
 
+DiskSpaceWarning = rclass ({name}) ->
+    displayName : 'DiskSpaceWarning'
+
+    reduxProps :
+        projects :
+            project_map              : rtypes.immutable.Map
+            get_total_project_quotas : rtypes.func
+
+    propTypes :
+        project_id : rtypes.string
+
+    shouldComponentUpdate : (nextProps) ->
+        return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
+
+    render : ->
+        if not require('./customize').commercial
+            return null
+        if @props.free_warning_closed
+            return null
+        quotas = @props.get_total_project_quotas(@props.project_id)
+        project_status = @props.project_map.get(@prop.project_id)?.get('status')
+        if not quotas?.disk_quota? or project_status?
+            return null
+        else
+            rss = project_status.get('memory')?.get('rss')
+            if rss?
+                memory = Math.round(rss/1000)
+            disk = project_status.get('disk_MB')
+            if disk?
+                disk = Math.ceil(disk)
+        if disk
+            console.log "Disk is:", disk
+
+        styles =
+            padding      : 3
+            paddingLeft  : 7
+            paddingRight : 7
+            marginBottom : 0
+            fontSize     : '13pt'
+        dismiss_styles =
+            cursor     : 'pointer'
+            display    : 'inline-block'
+            float      : 'right'
+            fontWeight : 700
+            top        : -4
+            fontSize   : '18pt'
+            color      : 'grey'
+            position   : 'relative'
+            height     : 0
+        <Alert bsStyle='danger' style={styles}>
+            <Icon name='exclamation-triangle' /> WARNING: This project is running out of space. &mdash;
+            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+        </Alert>
 # is_public below -- only show this tab if this is true
 
 fixed_project_pages =
@@ -548,6 +601,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         if not @props.fullscreen
             style.paddingTop = '5px'
         <div className='container-content' style={style}>
+            <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
@@ -663,6 +717,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
+            <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
