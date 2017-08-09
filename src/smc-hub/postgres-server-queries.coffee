@@ -1040,6 +1040,67 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
         ], opts.cb)
 
+    # Reset Password MEANT FOR INTERACTIVE USE -- if password is not given, will prompt for it.
+    reset_password: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            account_id    : undefined
+            password      : undefined
+            random        : true      # if true (the default), will generate and print a random password.
+            cb            : undefined
+        dbg = @_dbg("reset_password")
+        read = require('read')
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                    return
+                @get_account
+                    email_address : opts.email_address
+                    columns       : ['account_id']
+                    cb            : (err, data) =>
+                        opts.account_id = data?.account_id
+                        cb(err)
+            (cb) =>
+                if opts.password?
+                    cb()
+                    return
+                if opts.random
+                    require('crypto').randomBytes 16, (err, buffer) =>
+                        opts.password = buffer.toString('hex')
+                        cb()
+                    return
+                read {prompt:'Password: ', silent:true}, (err, passwd) =>
+                    opts.passwd0 = passwd; cb(err)
+            (cb) =>
+                if opts.password?
+                    cb()
+                    return
+                read {prompt:'Retype password: ', silent:true}, (err, passwd1) =>
+                    if err
+                        cb(err)
+                    else
+                        if passwd1 != opts.passwd0
+                            cb("Passwords do not match.")
+                        else
+                            opts.password = passwd1
+                            cb()
+            (cb) =>
+                # change the user's password in the database.
+                @change_password
+                    account_id    : opts.account_id
+                    password_hash : require('./auth').password_hash(opts.password)
+                    cb            : cb
+        ], (err) =>
+            if err
+                console.warn("Error -- #{err}")
+            else
+                console.log("Password changed for #{opts.email_address}")
+                if opts.random
+                    console.log("Random Password:\n\n\t\t#{opts.password}\n\n")
+            opts.cb?(err)
+        )
+
     # Change the email address, unless the email_address we're changing to is already taken.
     change_email_address: (opts={}) =>
         opts = defaults opts,
