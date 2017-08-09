@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
@@ -80,6 +80,10 @@ PathSegmentLink = rclass
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
         actions    : rtypes.object.isRequired
         full_name  : rtypes.string
+        active     : rtypes.bool
+
+    getDefaultProps: ->
+        active     : false
 
     styles :
         cursor   : 'pointer'
@@ -97,7 +101,9 @@ PathSegmentLink = rclass
             return @props.display
 
     render: ->
-        <Button bsSize='small' onClick={@handle_click}>{@render_content()}</Button>
+        <Breadcrumb.Item bsSize='small' onClick={@handle_click} active={@props.active}>
+            {@render_content()}
+        </Breadcrumb.Item>
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
@@ -700,20 +706,20 @@ ProjectFilesPath = rclass
             path = path[1..]
         path_segments = path.split('/')
         for segment, i in path_segments
+            is_last = segment == path_segments[path_segments.length - 1]
             v.push <PathSegmentLink
                     path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
                     key       = {i+1}
-                    actions   = {@props.actions} />
+                    actions   = {@props.actions}
+                    active    = {is_last} />
         return v
 
     render: ->
-        <ButtonToolbar>
-            <ButtonGroup bsSize='small'>
-                {@make_path()}
-            </ButtonGroup>
-        </ButtonToolbar>
+        <Breadcrumb bsSize='small' style={marginBottom: '0'}>
+            {@make_path()}
+        </Breadcrumb>
 
 ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
@@ -755,7 +761,12 @@ ProjectFilesButtons = rclass
         </Button>
 
     render: ->
-        <ButtonToolbar>
+        <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
+            <ButtonGroup bsSize='small'>
+                <Button bsSize='small' className="upload-button">
+                    <Icon name='upload' /> Upload
+                </Button>
+            </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
                 {@render_refresh()}
                 {@render_hidden_toggle()}
@@ -1974,19 +1985,13 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        # hsy: for me, without the "nowrap", the upload button usually shows up on the next line
-        <Col sm=3 md=2 style={whiteSpace: 'nowrap'}>
+        <Col sm=2>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
-            <Button
-                className = "upload-button"
-                >
-                <Icon name='upload' /> Upload
-            </Button>
         </Col>
 
     render_activity: ->
@@ -2184,7 +2189,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <Col sm={if public_view then 6 else 3} md={if public_view then 6 else 4} >
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                {<Col sm=3>
+                {<Col sm=4 md=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
                         <UsersViewing project_id={@props.project_id} />
                     </div>
