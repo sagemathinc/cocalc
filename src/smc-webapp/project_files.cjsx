@@ -1525,44 +1525,66 @@ ProjectFilesActionBox = rclass
             if not (single_file_data.is_public and single_file_data.public?.path isnt single_file)
                 @share_click()
 
-    download_click: ->
+    download_single_click: ->
         @props.actions.download_file
             path : @props.checked_files.first()
             log : true
         @props.actions.set_file_action()
 
-    render_download_link: (single_item) ->
-        target = @props.actions.get_store().get_raw_link(single_item)
-        <pre style={@pre_styles}>
-            <a href={target} target='_blank'>{target}</a>
-        </pre>
+    download_multiple_click: ->
+        destination = ReactDOM.findDOMNode(@refs.download_archive).value
+        @props.actions.zip_files
+            src  : @props.checked_files.toArray()
+            dest : misc.path_to_file(@props.current_path, destination)
+        @props.actions.download_file
+            path : destination
+            log : true
+        @props.actions.set_all_files_unchecked()
+        @props.actions.set_file_action()
 
-    render_download_alert: ->
-        <Alert bsStyle='warning'>
-            <h4><Icon name='exclamation-triangle' /> Notice</h4>
-            <p>Download for multiple files and directories is not yet implemented.</p>
-            <p>For now, create a zip archive or download files one at a time.</p>
-        </Alert>
+    render_download_single: (single_item) ->
+        target = @props.actions.get_store().get_raw_link(single_item)
+        <div>
+            <h4>Download link</h4>
+            <pre style={@pre_styles}>
+                <a href={target} target='_blank'>{target}</a>
+            </pre>
+        </div>
+
+    render_download_multiple: ->
+        <div>
+            <h4>Download as archive</h4>
+            <FormGroup>
+                <FormControl
+                    autoFocus    = {true}
+                    ref          = 'download_archive'
+                    key          = 'download_archive'
+                    type         = 'text'
+                    defaultValue = {account.default_filename('zip')}
+                    placeholder  = 'Result archive...'
+                    onKeyDown    = {@action_key}
+                />
+            </FormGroup>
+        </div>
 
     render_download: ->
         single_item = @props.checked_files.first()
         if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail]?.isdir
-            download_not_implemented_yet = true
+            download_multiple_files = true
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
-                    <h4>Download file to your computer</h4>
+                    <h4>Download file(s) to your computer</h4>
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm=7 style={color:'#666'}>
-                    <h4>Download link</h4>
-                    {if download_not_implemented_yet then @render_download_alert() else @render_download_link(single_item)}
+                    {if download_multiple_files then @render_download_multiple() else @render_download_single(single_item)}
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='primary' onClick={@download_click} disabled={download_not_implemented_yet}>
+                        <Button bsStyle='primary' onClick={if download_multiple_files then @download_multiple_click else @download_single_click}>
                             <Icon name='cloud-download' /> Download
                         </Button>
                         <Button onClick={@cancel_action}>
