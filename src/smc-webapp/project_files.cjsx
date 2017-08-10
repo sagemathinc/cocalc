@@ -678,7 +678,7 @@ FileListing = rclass
 
     render : ->
         <Col sm=12>
-            {@render_terminal_mode()}
+            {@render_terminal_mode() if not @props.public_view}
             {<ListingHeader
                 active_file_sort = {@props.active_file_sort}
                 sort_by          = {@props.sort_by}
@@ -1622,6 +1622,7 @@ ProjectFilesSearch = rclass
         selected_file_index: rtypes.number
         file_creation_error: rtypes.string
         num_files_displayed: rtypes.number
+        public_view        : rtypes.bool.isRequired
 
     getDefaultProps: ->
         file_search : ''
@@ -1721,7 +1722,7 @@ ProjectFilesSearch = rclass
         @props.actions.setState(file_creation_error : '')
 
     search_submit: (value, opts) ->
-        if value[0] == TERM_MODE_CHAR
+        if value[0] == TERM_MODE_CHAR and not @props.public_view
             command = value.slice(1, value.length)
             @execute_command(command)
         else if @props.selected_file
@@ -2184,7 +2185,8 @@ exports.ProjectFiles = rclass ({name}) ->
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}
                         create_file         = {@create_file}
-                        create_folder       = {@create_folder} />
+                        create_folder       = {@create_folder}
+                        public_view         = {public_view} />
                 </div>
                 {<div style={flex: '0 1 auto', marginLeft: '5px'}>
                     {@render_new_file()}
