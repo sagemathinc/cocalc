@@ -174,7 +174,7 @@ SortableNav = SortableContainer(NavWrapper)
 FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
 
-    reduxProps :
+    reduxProps:
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -185,15 +185,15 @@ FreeProjectWarning = rclass ({name}) ->
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
 
-    propTypes :
+    propTypes:
         project_id : rtypes.string
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
             @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
-    extra : (host, internet) ->
+    extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
@@ -209,7 +209,7 @@ FreeProjectWarning = rclass ({name}) ->
             </ul>
         </div>
 
-    render : ->
+    render: ->
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -258,17 +258,19 @@ DiskSpaceWarning = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
-    shouldComponentUpdate : (nextProps) ->
-        return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
+    shouldComponentUpdate: (nextProps) ->
+        return true
+        #@props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
 
-    render : ->
+    render: ->
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
             return null
         quotas = @props.get_total_project_quotas(@props.project_id)
-        project_status = @props.project_map.get(@prop.project_id)?.get('status')
-        if not quotas?.disk_quota? or project_status?
+        project_status = @props.project_map?.get(@props.project_id)?.get('status')
+        console.log "Quotas?", quotas, "status?", project_status?.toJS()
+        if not quotas?.disk_quota? or not project_status?
             return null
         else
             rss = project_status.get('memory')?.get('rss')
@@ -297,8 +299,7 @@ DiskSpaceWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='danger' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running out of space. &mdash;
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+            <Icon name='exclamation-triangle' /> WARNING: This project is running out of disk space. Please increase the quota or delete some files.
         </Alert>
 # is_public below -- only show this tab if this is true
 
