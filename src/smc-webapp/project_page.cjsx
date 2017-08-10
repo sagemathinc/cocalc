@@ -264,16 +264,12 @@ DiskSpaceWarning = rclass ({name}) ->
     render: ->
         if not require('./customize').commercial
             return null
-        if @props.free_warning_closed
-            return null
         quotas = @props.get_total_project_quotas(@props.project_id)
         project_status = @props.project_map?.get(@props.project_id)?.get('status')
         if not quotas?.disk_quota? or not project_status?
             return null
         else
-            disk = project_status.get('disk_MB') ? 0
-            if disk?
-                disk = Math.ceil(disk)
+            disk = Math.ceil(project_status.get('disk_MB') ? 0)
         if quotas.disk_quota - 5 > disk
             return null
 
