@@ -12,8 +12,11 @@ exports.session_manager = (name, redux) ->
 
 class SessionManager
     constructor: (@name, @redux) ->
-        console.log 'session manager', @name
-        @_local_storage_name = "session.#{@name}"
+        #if DEBUG then console.log 'session manager', @name
+        {APP_BASE_URL} = require('misc_page')
+        prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
+        @_local_storage_name = "session#{prefix}.#{@name}"
+        #if DEBUG then console.log '_local_storage_name: ', @_local_storage_name
         @save = throttle(@save, 1000)
 
     save: =>

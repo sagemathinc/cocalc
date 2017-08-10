@@ -206,6 +206,7 @@ class ProjectsActions extends Actions
 
     # should not be in projects...?
     load_target: (target, switch_to) =>
+        #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
             return
