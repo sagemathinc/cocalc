@@ -94,7 +94,7 @@ PathSegmentLink = rclass
 
     render_content: ->
         if @props.full_name and @props.full_name isnt @props.display
-            <Tip title='Full name' tip={@props.full_name}>
+            <Tip tip={@props.full_name} placement='bottom' title='Full name'>
                 {@props.display}
             </Tip>
         else
@@ -1825,7 +1825,10 @@ ProjectFilesNew = rclass
     render: ->
         # This div prevents the split button from line-breaking when the page is small
         <div style={whiteSpace: 'nowrap', display: 'inline-block', marginRight: '20px' }>
-            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
+            <SplitButton id='new_file_dropdown'
+                title={@file_dropdown_icon()}
+                style={whiteSpace: 'nowrap'}
+                onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
@@ -1985,14 +1988,12 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=2>
-            <ProjectFilesNew
-                file_search   = {@props.file_search}
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                create_file   = {@create_file}
-                create_folder = {@create_folder} />
-        </Col>
+        <ProjectFilesNew
+            file_search   = {@props.file_search}
+            current_path  = {@props.current_path}
+            actions       = {@props.actions}
+            create_file   = {@create_file}
+            create_folder = {@create_folder} />
 
     render_activity: ->
         <ActivityDisplay
@@ -2170,8 +2171,8 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_deleted()}
             {@render_error()}
             {@render_activity()}
-            <Row>
-                <Col sm=3>
+            <div style={display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                <div style={flex: '0 1 25%'}>
                     <ProjectFilesSearch
                         project_id          = {@props.project_id}
                         key                 = {@props.current_path}
@@ -2184,22 +2185,24 @@ exports.ProjectFiles = rclass ({name}) ->
                         num_files_displayed = {visible_listing?.length}
                         create_file         = {@create_file}
                         create_folder       = {@create_folder} />
-                </Col>
-                {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 3} md={if public_view then 6 else 4} >
+                </div>
+                {<div style={flex: '0 1 auto', marginLeft: '5px'}>
+                    {@render_new_file()}
+                </div> if not public_view}
+                <div  style={flex: '5 1 auto'}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
-                </Col>
-                {<Col sm=4 md=3>
-                    <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing project_id={@props.project_id} />
-                    </div>
+                </div>
+                {<div style={flex: '0 1 auto', marginLeft: '10px'}>
+                    <UsersViewing project_id={@props.project_id} />
+                </div> if not public_view}
+                {<div style={flex: '1 0 auto'}>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
-                </Col> if not public_view}
-            </Row>
+                </div> if not public_view}
+            </div>
             <Row>
                 <Col sm=8>
                     {@render_files_actions(listing, public_view) if listing?}
