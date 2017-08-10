@@ -460,7 +460,7 @@ exports.execute_code = execute_code = (opts) ->
                 c()
         (c) ->
             if info?
-                fs.chmod(info.path, 0o777, c)
+                fs.chmod(info.path, 0o700, c)
             else
                 c()
 
@@ -566,11 +566,11 @@ exports.execute_code = execute_code = (opts) ->
         # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
         # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
-        if tmpfilename?
+        if info?.path?
             try
-                fs.unlink(tmpfilename)
+                fs.unlink(info.path)
             catch e
-                winston.debug("failed to unlink #{tmpfilename}")
+                winston.debug("failed to unlink #{info.path}")
 
 
         if opts.verbose

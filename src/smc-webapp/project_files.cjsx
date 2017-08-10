@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
@@ -80,6 +80,10 @@ PathSegmentLink = rclass
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
         actions    : rtypes.object.isRequired
         full_name  : rtypes.string
+        active     : rtypes.bool
+
+    getDefaultProps: ->
+        active     : false
 
     styles :
         cursor   : 'pointer'
@@ -88,16 +92,18 @@ PathSegmentLink = rclass
     handle_click: ->
         @props.actions.open_directory(@props.path)
 
-    render_link: ->
-        <a style={@styles} onClick={@handle_click}>{@props.display}</a>
-
-    render: ->
+    render_content: ->
         if @props.full_name and @props.full_name isnt @props.display
             <Tip title='Full name' tip={@props.full_name}>
-                {@render_link()}
+                {@props.display}
             </Tip>
         else
-            return @render_link()
+            return @props.display
+
+    render: ->
+        <Breadcrumb.Item bsSize='small' onClick={@handle_click} active={@props.active}>
+            {@render_content()}
+        </Breadcrumb.Item>
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
@@ -691,7 +697,7 @@ ProjectFilesPath = rclass
 
     make_path: ->
         v = []
-        v.push <PathSegmentLink path='' display={<Icon name='home' />} key='home' actions={@props.actions} />
+        v.push <PathSegmentLink path='' display={<Icon name='home' />} key=0 actions={@props.actions} />
         if @props.current_path == ""
             return v
         path = @props.current_path
@@ -700,22 +706,20 @@ ProjectFilesPath = rclass
             path = path[1..]
         path_segments = path.split('/')
         for segment, i in path_segments
-            if i == 0 and root
-                v.push <span key={2 * i + 1}><span style={width: '2em', display:'inline-block'}>&nbsp;</span>/<Space/></span>
-            else
-                v.push <span key={2 * i + 1}><Space/>/<Space/></span>
+            is_last = segment == path_segments[path_segments.length - 1]
             v.push <PathSegmentLink
                     path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
-                    key       = {2 * i + 2}
-                    actions   = {@props.actions} />
+                    key       = {i+1}
+                    actions   = {@props.actions}
+                    active    = {is_last} />
         return v
 
     render: ->
-        <div style={wordWrap:'break-word'}>
+        <Breadcrumb bsSize='small' style={marginBottom: '0'}>
             {@make_path()}
-        </div>
+        </Breadcrumb>
 
 ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
@@ -733,29 +737,42 @@ ProjectFilesButtons = rclass
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
 
+    handle_backup: (e) ->
+        e.preventDefault()
+        @props.actions.open_directory('.snapshots')
+
     render_refresh: ->
-        <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
+        <Button bsSize='small' onClick={@handle_refresh}>
+            <Icon name='refresh' />
+        </Button>
 
     render_hidden_toggle: ->
-        if @props.show_hidden
-            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye' /> </a>
-        else
-            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
+        icon = if @props.show_hidden then 'eye' else 'eye-slash'
+        <Button bsSize='small' onClick={@handle_hidden_toggle}>
+            <Icon name={icon} />
+        </Button>
 
     render_backup: ->
         if @props.public_view or not require('./customize').commercial
             return
         # NOTE -- snapshots aren't available except in commercial version -- they are complicated nontrivial thing that isn't usually setup...
-        <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
-            <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
-        </a>
+        <Button bsSize='small' onClick={@handle_backup}>
+            <Icon name='life-saver' /> <span style={fontSize: 12} className='hidden-sm'>Backups</span>
+        </Button>
 
     render: ->
-        <div style={textAlign: 'right', fontSize: '14pt'}>
-            {@render_refresh()}
-            {@render_hidden_toggle()}
-            {@render_backup()}
-        </div>
+        <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
+            <ButtonGroup bsSize='small'>
+                <Button bsSize='small' className="upload-button">
+                    <Icon name='upload' /> Upload
+                </Button>
+            </ButtonGroup>
+            <ButtonGroup bsSize='small' className='pull-right'>
+                {@render_refresh()}
+                {@render_hidden_toggle()}
+                {@render_backup()}
+            </ButtonGroup>
+        </ButtonToolbar>
 
 ProjectFilesActions = rclass
     displayName : 'ProjectFiles-ProjectFilesActions'
@@ -905,7 +922,7 @@ ProjectFilesActions = rclass
                 'download'
             ]
         <ButtonGroup bsSize='small'>
-                {(@render_action_button(v) for v in action_buttons)}
+            {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
 
     render: ->
@@ -1968,18 +1985,13 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3 style={whiteSpace: 'nowrap'}>
+        <Col sm=2>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
-            <Button
-                className = "upload-button"
-                >
-                <Icon name='upload' /> Upload
-            </Button>
         </Col>
 
     render_activity: ->
@@ -2174,10 +2186,10 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 3}>
+                <Col sm={if public_view then 6 else 3} md={if public_view then 6 else 4} >
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                {<Col sm=3>
+                {<Col sm=4 md=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
                         <UsersViewing project_id={@props.project_id} />
                     </div>

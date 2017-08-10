@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 #####################################################################################
-#                 SMC Wizard - Documentation Files Compiler                         #
+#              CoCalc Examples - Documentation Files Compiler                       #
 #                                                                                   #
-#                 Copyright (C) 2015, SageMath, Inc.                                #
+#                Copyright (C) 2015 -- 2017, SageMath, Inc.                         #
 #                                                                                   #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+  #
 #                                                                                   #
@@ -13,7 +13,7 @@
 
 import os, sys
 
-# make it python 2 and 3 compatible
+# make it python 2 and 3 compatible (although, to be clear, it is supposed to be py3 only)
 if (sys.version_info > (3, 0)):
     mystr = str
 else:
@@ -32,7 +32,7 @@ from collections import defaultdict
 hashtag_re = re.compile(r'#([a-zA-Z].+?\b)')
 def process_hashtags(match):
     ht = match.group(1)
-    return "<a class='smc-wizard-hashtag' href='{0}'>#{0}</a>".format(ht)
+    return "<a class='webapp-examples-hashtag' href='{0}'>#{0}</a>".format(ht)
 """
 
 def process_category(doc):
@@ -59,16 +59,16 @@ def process_doc(doc, input_fn):
         body.append(doc["attr"])
     return title, body
 
-def wizard_data(input_dir, output_fn):
+def examples_data(input_dir, output_fn):
     input_dir = abspath(normpath(input_dir))
-    wizard_json = abspath(normpath(output_fn))
-    output_dir = dirname(wizard_json)
+    examples_json = abspath(normpath(output_fn))
+    output_dir = dirname(examples_json)
     print(output_dir)
     #print(input_dir, output_dir)
 
     # this implicitly defines all known languages
     recursive_dict = lambda : defaultdict(recursive_dict)
-    wizard = {
+    examples = {
                  "sage":   recursive_dict(),
                  "python": recursive_dict(),
                  "r":      recursive_dict(),
@@ -91,15 +91,15 @@ def wizard_data(input_dir, output_fn):
 
                 if "language" in doc:
                     language = doc["language"]
-                    if language not in wizard.keys():
+                    if language not in examples.keys():
                         raise Exception("Language %s not known. Fix first document in %s" % (language, input_fn))
                     processed = True
 
                 if "category" in doc: # setting both levels of the category and re-setting entries and titles
                     lvl1, lvl2 = process_category(doc)
-                    if lvl2 in wizard[language][lvl1]:
+                    if lvl2 in examples[language][lvl1]:
                         raise Exception("Category level2 '%s' already exists (error in %s)" % (lvl2, input_fn))
-                    entries = wizard[language][lvl1][lvl2] = []
+                    entries = examples[language][lvl1][lvl2] = []
                     titles = set()
                     processed = True
 
@@ -112,22 +112,21 @@ def wizard_data(input_dir, output_fn):
                     titles.add(title)
                     processed = True
 
+                # if False, malformatted document
                 if not processed: # bad document
                     raise Exception("This document is not well formatted (wrong keys, etc.)\n%s" % doc)
 
-    #from datetime import datetime
-    #wizard["timestamp"] = str(datetime.utcnow())
     if not os.path.exists(output_dir):
         print("Creating output directory '%s'" % output_dir)
         os.makedirs(output_dir)
 
-    with open(wizard_json, "w", "utf8") as f_out:
-        # sorted keys to de-randomize output (to keep it in Git)
-        json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True, indent=1)
-    #return json.dumps(wizard, indent=1)
+    with open(examples_json, "w", "utf8") as f_out:
+        # sorted keys to de-randomize output (stable representation when kept it in Git)
+        json.dump(examples, f_out, ensure_ascii=True, sort_keys=True, indent=1)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'wizard.json')>" % sys.argv[0])
+        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'examples.json')>" % sys.argv[0])
         sys.exit(1)
-    wizard_data(sys.argv[1], sys.argv[2])
+    examples_data(sys.argv[1], sys.argv[2])
+

@@ -187,6 +187,7 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+        redux.getActions('page').save_session()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -201,9 +202,11 @@ class ProjectsActions extends Actions
         temp_list = x.delete(old_index)
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_projects:new_list)
+        redux.getActions('page').save_session()
 
     # should not be in projects...?
     load_target: (target, switch_to) =>
+        #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
             return

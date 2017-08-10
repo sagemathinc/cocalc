@@ -458,7 +458,7 @@ class Console extends EventEmitter
         if @_ignore
             # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
             @_ignore = false
-            
+
         @mark_file_use()
 
         if ev.ctrlKey and ev.shiftKey

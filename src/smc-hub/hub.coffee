@@ -348,43 +348,15 @@ push_to_clients = (opts) ->
 
 
 reset_password = (email_address, cb) ->
-    read = require('read')
-    passwd0 = passwd1 = undefined
-    account_id = undefined
     async.series([
         (cb) ->
             connect_to_database
                 pool : 1
                 cb   : cb
         (cb) ->
-            database.get_account
+            database.reset_password
                 email_address : email_address
-                columns       : ['account_id']
-                cb            : (err, data) ->
-                    if err
-                        cb(err)
-                    else
-                        account_id = data.account_id
-                        cb()
-        (cb) ->
-            read {prompt:'Password: ', silent:true}, (err, passwd) ->
-                passwd0 = passwd; cb(err)
-        (cb) ->
-            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
-                if err
-                    cb(err)
-                else
-                    passwd1 = passwd
-                    if passwd1 != passwd0
-                        cb("Passwords do not match.")
-                    else
-                        cb()
-        (cb) ->
-            # change the user's password in the database.
-            database.change_password
-                account_id    : account_id
-                password_hash : auth.password_hash(passwd0)
-                cb            : cb
+                cb : cb
     ], (err) ->
         if err
             winston.debug("Error -- #{err}")
