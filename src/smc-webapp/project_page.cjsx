@@ -271,10 +271,10 @@ DiskSpaceWarning = rclass ({name}) ->
         if not quotas?.disk_quota? or not project_status?
             return null
         else
-            disk = project_status.get('disk_MB')
+            disk = project_status.get('disk_MB') ? 0
             if disk?
                 disk = Math.ceil(disk)
-        if not disk or quotas.disk_quota - 5 > disk
+        if quotas.disk_quota - 5 > disk
             return null
 
         styles =
