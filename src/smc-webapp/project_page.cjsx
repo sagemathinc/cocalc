@@ -259,8 +259,7 @@ DiskSpaceWarning = rclass ({name}) ->
         project_id : rtypes.string
 
     shouldComponentUpdate: (nextProps) ->
-        return true
-        #@props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
+        return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
 
     render: ->
         if not require('./customize').commercial
@@ -275,8 +274,8 @@ DiskSpaceWarning = rclass ({name}) ->
             disk = project_status.get('disk_MB')
             if disk?
                 disk = Math.ceil(disk)
-        #if not disk or quotas.disk_quota - 5 > disk
-        #    return null
+        if not disk or quotas.disk_quota - 5 > disk
+            return null
 
         styles =
             marginBottom : 0

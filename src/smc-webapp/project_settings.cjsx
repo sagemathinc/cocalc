@@ -268,7 +268,7 @@ QuotaConsole = rclass
         settings     = @props.project_settings
         if not settings?
             return <Loading/>
-        status       = @props.project_status   # <------ Current status of disk
+        status       = @props.project_status
         total_quotas = @props.total_project_quotas
         if not total_quotas?
             # this happens for the admin -- just ignore any upgrades from the users
