@@ -1825,7 +1825,7 @@ ProjectFilesNew = rclass
 
     render: ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={whiteSpace: 'nowrap', display: 'inline-block', marginRight: '20px' }>
+        <div style={whiteSpace: 'nowrap', display: 'inline-block'}>
             <SplitButton id='new_file_dropdown'
                 title={@file_dropdown_icon()}
                 style={whiteSpace: 'nowrap'}
@@ -2188,10 +2188,10 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder}
                         public_view         = {public_view} />
                 </div>
-                {<div style={flex: '0 1 auto', marginLeft: '5px'}>
+                {<div style={flex: '0 1 auto', marginLeft: '10px'}>
                     {@render_new_file()}
                 </div> if not public_view}
-                <div  style={flex: '5 1 auto'}>
+                <div style={flex: '5 1 auto', marginLeft: '10px'}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </div>
                 {<div style={flex: '0 1 auto', marginLeft: '10px'}>
