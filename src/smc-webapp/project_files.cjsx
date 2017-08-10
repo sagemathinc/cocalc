@@ -101,7 +101,7 @@ PathSegmentLink = rclass
             return @props.display
 
     render: ->
-        <Breadcrumb.Item bsSize='small' onClick={@handle_click} active={@props.active}>
+        <Breadcrumb.Item onClick={@handle_click} active={@props.active}>
             {@render_content()}
         </Breadcrumb.Item>
 
@@ -1798,7 +1798,9 @@ ProjectFilesNew = rclass
     new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
-        <span><Icon name='plus-circle' /> Create</span>
+        <span style={whiteSpace: 'nowrap'}>
+            <Icon name='plus-circle' /> Create
+        </span>
 
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
@@ -1824,19 +1826,15 @@ ProjectFilesNew = rclass
             @props.create_file()
 
     render: ->
-        # This div prevents the split button from line-breaking when the page is small
-        <div style={whiteSpace: 'nowrap', display: 'inline-block'}>
-            <SplitButton id='new_file_dropdown'
-                title={@file_dropdown_icon()}
-                style={whiteSpace: 'nowrap'}
-                onClick={@on_create_button_clicked} >
+        <SplitButton id='new_file_dropdown'
+            title={@file_dropdown_icon()}
+            onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
                     <Icon name='folder' /> Folder
                 </MenuItem>
-            </SplitButton>
-        </div>
+        </SplitButton>
 
 error_style =
     marginRight : '1ex'
@@ -2188,8 +2186,10 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder}
                         public_view         = {public_view} />
                 </div>
-                {<div style={flex: '0 1 auto', marginLeft: '10px'}>
-                    {@render_new_file()}
+                {<div
+                    style={flex: '0 1 auto', marginLeft: '10px'}
+                    className='cc-project-files-create-dropdown' >
+                        {@render_new_file()}
                 </div> if not public_view}
                 <div style={flex: '5 1 auto', marginLeft: '10px'}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
