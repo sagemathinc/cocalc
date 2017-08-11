@@ -36,6 +36,8 @@ validate_key = (value) ->
     key = {value, type, pubkey, source, comments} = parse_key(value)
     if type not in ALLOWED_SSH_TYPES
         key.error = "Type not supported"
+    else
+        delete key.error
     # TODO: Use some validation library.
     return key
 
@@ -70,6 +72,8 @@ exports.SSHKeyAdder = rclass
         if validated_key.error?
             @trigger_error(validated_key.error)
             return
+        else
+            @clear_error()
 
         if @state.key_title
             title = @state.key_title
@@ -79,11 +83,9 @@ exports.SSHKeyAdder = rclass
         value = validated_key.value
 
         @props.add_ssh_key
-            title         : title
-            value         : value
-            fingerprint   : compute_fingerprint(validated_key.pubkey)
-            creation_date : Date.now()
-            creator_id    : @props.account_id
+            title       : title
+            value       : value
+            fingerprint : compute_fingerprint(validated_key.pubkey)
 
         @cancel_and_close()
 
@@ -157,8 +159,12 @@ DeleteConfirmation = rclass
 
     render: ->
         <Well style={marginBottom:'0px', textAlign:'center'}>
-            Are you sure you want to delete this SSH key?<br/>
+            <h3>
+            Are you sure you want to delete this SSH key?
+            </h3>
+            <hr />
             This CANNOT be undone. If you want to reuse this key in the future, you will have to reupload it.
+            <hr />
             <ButtonToolbar>
                 <Button bsStyle='danger' onClick={@props.confirm}>
                     Yes, delete this key.
@@ -180,25 +186,34 @@ OneSSHKey = rclass
     getInitialState: ->
         show_delete_conf : false
 
-    render_creator: ->
-        <div>
-            Created by <User account_id={@props.ssh_key.get('creator_id')} user_map={@props.user_map} />
-        </div>
-
     render_last_use: ->
-        <div>
-            Last used about <TimeAgo date={new Date(@props.ssh_key.get('last_use_date'))} />
-        </div>
+        d = @props.ssh_key.get('last_use_date')
+        if d
+            <div style={color:'#1e7e34'}>
+                Last used within <TimeAgo date={new Date(d)} />
+            </div>
+        else
+            <div style={color:'#333'}>
+                Never used
+            </div>
 
     render: ->
+        key_style = {fontSize:'42px'}
+        if @props.ssh_key.get('last_use_date')
+            key_style.color = '#1e7e34'
         <ListGroupItem>
             <Row>
-                <Col md=9>
+                <Col md=1>
+                    <Icon
+                        style = {key_style}
+                        name='key'
+                    />
+                </Col>
+                <Col md=8>
                     <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
                     <span style={fontWeight:600}>Fingerprint: </span><code>{@props.ssh_key.get('fingerprint')}</code><br/>
                     Added on {new Date(@props.ssh_key.get('creation_date')).toLocaleDateString()}
-                    {@render_creator() if @props.ssh_key.get('creator_id')}
-                    {@render_last_use() if @props.ssh_key.get('last_use_date')}
+                    {@render_last_use()}
                 </Col>
                 <Col md=3>
                     <Button
@@ -230,12 +245,24 @@ exports.SSHKeyList = rclass
     getDefaultProps: ->
         ssh_keys : immutable.Map()
 
+    render_keys: ->
+       for ssh_key in @props.ssh_keys.toArray()
+           if ssh_key
+               <OneSSHKey
+                   ssh_key  = {ssh_key}
+                   delete   = {@props.delete_key}
+                   key      = {ssh_key.get('fingerprint')}
+                   user_map = {@props.user_map}
+                   />
+
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
             {@props.children}
             <Panel style={marginBottom:'0px'} >
                 <ListGroup fill={true}>
-                    {(<OneSSHKey ssh_key={ssh_key} delete={@props.delete_key} key={ssh_key.get('fingerprint')} user_map={@props.user_map}/> for ssh_key in @props.ssh_keys.toArray())}
+                    {@render_keys()}
                 </ListGroup>
             </Panel>
         </Panel>
+
+

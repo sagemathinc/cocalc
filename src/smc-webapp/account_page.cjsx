@@ -76,6 +76,7 @@ exports.AccountPage = rclass
             profile                 : rtypes.object
             groups                  : rtypes.array
             stripe_customer         : rtypes.object
+            ssh_keys                : rtypes.immutable.Map
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -104,7 +105,7 @@ exports.AccountPage = rclass
         <SSHKeysPage
             account_id = {@props.account_id}
             user_map   = {@props.user_map}
-            ssh_keys   = {@props.other_settings.get('ssh_keys')}
+            ssh_keys   = {@props.ssh_keys}
         />
 
     render_account_settings: ->
