@@ -999,14 +999,23 @@ SSHPanel = rclass
                 <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
             </div>
 
+    add_ssh_key: (opts) ->
+        opts.project_id = @props.project.get('project_id')
+        @actions('projects').add_ssh_key_to_project(opts)
+
+    delete_ssh_key: (fingerprint) ->
+        @actions('projects').delete_ssh_key_from_project
+            fingerprint : fingerprint
+            project_id  : @props.project.get('project_id')
+
     render: ->
         <SSHKeyList
             user_map   = {@props.user_map}
-            ssh_keys   = {@props.project.get('ssh_keys')}
-            delete_key = {@actions('projects').delete_project_ssh_key.bind(null, @props.project.get('project_id'))}
+            ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
+            delete_key = {@delete_ssh_key}
         >
             <SSHKeyAdder
-                add_ssh_key  = {@actions('projects').add_project_ssh_key.bind(null, @props.project.get('project_id'))}
+                add_ssh_key  = {@add_ssh_key}
                 toggleable   = {true}
                 style        = {marginBottom:'10px'}
                 account_id   = {@props.account_id} />

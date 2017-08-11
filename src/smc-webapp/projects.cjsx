@@ -104,25 +104,32 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
-    add_project_ssh_key: (project_id, opts) =>
-        new_project_map = store.get('project_map').setIn([project_id, 'ssh_keys', "#{opts.fingerprint}"], immutable.Map(opts))
-        @setState(project_map: new_project_map)
-        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
+    add_ssh_key_to_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+            title       : required
+            value       : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}":
+                            title         : opts.title
+                            value         : opts.value
+                            creation_date : new Date() - 0
 
-        #TODO create entry in the project's log
-        #@redux.getProjectActions(project_id).log
-        #    event       : 'ssh_key_add'
-        #    description : description
-
-    delete_project_ssh_key: (project_id, fingerprint) =>
-        new_project_map = store.get('project_map').deleteIn([project_id, 'ssh_keys', fingerprint])
-        @setState(project_map: new_project_map)
-        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
-
-        #TODO create entry in the project's log
-        #@redux.getProjectActions(project_id).log
-        #    event       : 'set'
-        #    description : description
+    delete_ssh_key_from_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}": null
 
     # Apply default upgrades -- if available -- to the given project.
     # Right now this means upgrading to member hosting and enabling

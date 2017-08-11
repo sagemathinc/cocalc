@@ -187,15 +187,18 @@ class AccountActions extends Actions
             fingerprint : required
             title       : required
             value       : required
-        store = @redux.getStore('account')
-        ssh_keys = store.get('ssh_keys') ? immutable.Map()
-        opts.creation_date = new Date() - 0
-        ssh_keys = ssh_keys.set(opts.fingerprint, immutable.Map(opts))
-        @redux.getTable('account').set(ssh_keys:ssh_keys)
+        @redux.getTable('account').set
+            ssh_keys :
+                "#{opts.fingerprint}" :
+                    title          : opts.title
+                    value          : opts.value
+                    creation_date  : new Date() - 0
 
     # Delete the ssh key with given fingerprint for this user.
     delete_ssh_key: (fingerprint) =>
-        @redux.getTable('account').set(ssh_keys:{"#{fingerprint}":null})
+        @redux.getTable('account').set
+            ssh_keys :
+                "#{fingerprint}" : null   # null is how to tell the backend/synctable to delete this...
 
 # Register account actions
 actions = redux.createActions('account', AccountActions)

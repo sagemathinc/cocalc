@@ -246,14 +246,18 @@ exports.SSHKeyList = rclass
         ssh_keys : immutable.Map()
 
     render_keys: ->
-       for ssh_key in @props.ssh_keys.toArray()
-           if ssh_key
-               <OneSSHKey
-                   ssh_key  = {ssh_key}
-                   delete   = {@props.delete_key}
-                   key      = {ssh_key.get('fingerprint')}
-                   user_map = {@props.user_map}
-                   />
+        v = []
+        @props.ssh_keys.forEach (ssh_key, fingerprint) =>
+            if not ssh_key
+                return
+            ssh_key = ssh_key.set('fingerprint', fingerprint)
+            v.push <OneSSHKey
+                    ssh_key  = {ssh_key}
+                    delete   = {@props.delete_key}
+                    key      = {fingerprint}
+                    user_map = {@props.user_map}
+                />
+        return v
 
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
