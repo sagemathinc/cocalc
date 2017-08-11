@@ -56,7 +56,7 @@ exports.SSHKeyAdder = rclass
         @setState
             key_title  : ""
             key_value  : ""
-            show_panel : false
+            show_panel : not @props.toggleable
 
     trigger_error: (err) ->
         @setState(error : err)
@@ -64,7 +64,8 @@ exports.SSHKeyAdder = rclass
     clear_error: ->
         @setState(error : undefined)
 
-    submit_form: ->
+    submit_form: (e) ->
+        e?.preventDefault()
         validated_key = validate_key(normalize_key(@state.key_value))
         if validated_key.error?
             @trigger_error(validated_key.error)
@@ -84,12 +85,17 @@ exports.SSHKeyAdder = rclass
             creation_date : Date.now()
             creator_id    : @props.account_id
 
-        @cancel_and_close() if @props.toggleable
+        @cancel_and_close()
+
+    key_down: (e) ->
+        if e.keyCode == 13 # Enter key
+            e.preventDefault()
+            @submit_form()
 
     render_panel: ->
         <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH Key</h2>} style={@props.style}>
             {# TODO: Make a style mapper to the components if necessary}
-            <form>
+            <form onSubmit={@submit_form}>
                 <FormGroup>
                     Title
                     <FormControl
@@ -98,9 +104,6 @@ exports.SSHKeyAdder = rclass
                         value = {@state.key_title}
                         onChange = {(e) => @setState(key_title : e.target.value)}
                      />
-                </FormGroup>
-
-                <FormGroup>
                     Key
                     <FormControl
                         componentClass = "textarea"
@@ -108,6 +111,7 @@ exports.SSHKeyAdder = rclass
                         rows           = {8}
                         placeholder    = "Begins with #{ALLOWED_SSH_TYPES_DESCRIPTION}"
                         onChange       = {(e) => @setState(key_value : e.target.value)}
+                        onKeyDown      = {@key_down}
                         style          = {resize : "vertical"}
                     />
                 </FormGroup>
