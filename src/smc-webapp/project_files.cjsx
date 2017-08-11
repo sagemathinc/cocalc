@@ -706,7 +706,7 @@ ProjectFilesPath = rclass
             path = path[1..]
         path_segments = path.split('/')
         for segment, i in path_segments
-            is_last = segment == path_segments[path_segments.length - 1]
+            is_last = i == path_segments.length - 1
             v.push <PathSegmentLink
                     path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
