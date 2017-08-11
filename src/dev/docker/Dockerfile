@@ -13,10 +13,60 @@ ENV TERM screen
 # So we can source (see http://goo.gl/oBPi5G)
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-# Ubuntu software that are used by SMC (latex, pandoc, sage, jupyter)
+# Ubuntu software that are used by CoCalc (latex, pandoc, sage, jupyter)
 RUN \
-  apt-get update && \
-  apt-get install -y software-properties-common texlive texlive-latex-extra texlive-xetex tmux flex bison libreadline-dev htop screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4 latexmk libpq5 libpq-dev build-essential gfortran automake dpkg-dev libssl-dev imagemagick libcairo2-dev libcurl4-openssl-dev graphviz smem
+     apt-get update \
+  && apt-get install -y \
+       software-properties-common \
+       texlive \
+       texlive-latex-extra \
+       texlive-xetex \
+       tmux \
+       flex \
+       bison \
+       libreadline-dev \
+       htop \
+       screen \
+       pandoc \
+       aspell \
+       poppler-utils \
+       net-tools \
+       wget \
+       git \
+       python \
+       python-pip \
+       make \
+       g++ \
+       sudo \
+       psmisc \
+       haproxy \
+       nginx \
+       vim \
+       bup \
+       inetutils-ping \
+       lynx \
+       telnet \
+       git \
+       emacs \
+       subversion \
+       ssh \
+       m4 \
+       latexmk \
+       libpq5 \
+       libpq-dev \
+       build-essential \
+       gfortran \
+       automake \
+       dpkg-dev \
+       libssl-dev \
+       imagemagick \
+       libcairo2-dev \
+       libcurl4-openssl-dev \
+       graphviz \
+       smem \
+       python3-yaml \
+       locales \
+       locales-all
 
 # Jupyter from pip (since apt-get jupyter is ancient)
 RUN \
@@ -44,7 +94,14 @@ RUN /tmp/scripts/post_install_sage.sh && rm -rf /tmp/* && sync
 
 # Build and install PostgreSQL
 RUN \
-  cd /tmp && wget https://ftp.postgresql.org/pub/source/v9.6.1/postgresql-9.6.1.tar.bz2 && tar xf postgresql-9.6.1.tar.bz2 && cd postgresql-9.6.1 && ./configure --with-openssl --prefix=/usr/ && make -j16 install && cd /tmp && rm -rf /tmp/postgresql-9.6.1 /tmp/postgresql-9.6.1.tar.bz2
+     cd /tmp \
+  && wget https://ftp.postgresql.org/pub/source/v9.6.1/postgresql-9.6.1.tar.bz2 \
+  && tar xf postgresql-9.6.1.tar.bz2 \
+  && cd postgresql-9.6.1 \
+  && ./configure --with-openssl --prefix=/usr/ \
+  && make -j16 install \
+  && cd /tmp \
+  && rm -rf /tmp/postgresql-9.6.1 /tmp/postgresql-9.6.1.tar.bz2
 
 # Which commit to checkout and build.
 ARG commit=HEAD
@@ -56,10 +113,10 @@ RUN \
 
 # Build and install all deps
 RUN \
-  cd /cocalc/src && \
-  . ./smc-env && \
-  ./install.py all --compute --web && \
-  rm -rf /root/.npm /root/.node-gyp/
+     cd /cocalc/src \
+  && . ./smc-env \
+  && ./install.py all --compute --web \
+  && rm -rf /root/.npm /root/.node-gyp/
 
 # Install code into Sage
 RUN cd /cocalc/src && sage -pip install --upgrade smc_sagews/
@@ -69,8 +126,9 @@ RUN echo "install_scripts('/usr/local/bin/')" | sage
 
 # Install SageTex
 RUN \
-  sudo -H -E -u sage sage -p sagetex && \
-  cp -rv /usr/local/sage/local/share/texmf/tex/latex/sagetex/ /usr/share/texmf/tex/latex/ && texhash
+     sudo -H -E -u sage sage -p sagetex \
+  && cp -rv /usr/local/sage/local/share/texmf/tex/latex/sagetex/ /usr/share/texmf/tex/latex/ \
+  && texhash
 
 COPY login.defs /etc/login.defs
 COPY login /etc/defaults/login
