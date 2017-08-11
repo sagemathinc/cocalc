@@ -39,7 +39,7 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
+        print "Usage: %s [start/stop/status] normal Jupyter notebook options..."%sys.argv[0]
         print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         sys.exit(1)
 
@@ -204,16 +204,6 @@ def action(mode):
         except:
             pass
         return
-
-    elif mode == 'run':
-        print cmd + '\n\n'
-        print "*"*80 + '\n'
-        print "  The IPython Notebook server is running at \n"
-        print "      https://cocalc.com%s\n"%base
-        print "  All collaborators on this project may access the notebook at the"
-        print "  above SSL-encrypted URL, but nobody else can access it."
-        print '\n\n' + "*"*80 + '\n\n'
-        os.system(cmd + "  2>&1 | grep -v running ")
 
     elif mode == 'restart':
         action('stop')
