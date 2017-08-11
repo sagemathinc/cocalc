@@ -15,14 +15,18 @@ exports.SSHKeysPage = rclass
         ssh_keys   : rtypes.immutable.Map
 
     render_pre_list_message: ->
-        <div>
-            This is your list of account access SSH keys. Remove keys you do not recognize.
+        <div style={marginTop:'10px', marginBottom:'10px', color:'#444'}>
+            SSH keys listed here allow you to connect from your computer via
+            SSH to <b><i>all projects</i></b> on which
+            you are an owner or collaborator.  Alternatively, set SSH keys that
+            grant access only to a project in the settings for that project.
         </div>
 
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col md=8>
+                    {@render_pre_list_message()}
                     <SSHKeyList
                         ssh_keys   = {@props.ssh_keys}
                         user_map   = {@props.user_map}
