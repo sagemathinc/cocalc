@@ -35,7 +35,9 @@ exports.SSHKeysPage = rclass
                         add_ssh_key = {@actions('account').add_ssh_key}
                         style       = {marginBottom:'0px'}
                         />
-                    Check out <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key">this</a> guide on generating SSH keys.
+                    <div style={marginTop:'10px'}>
+                        <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">How to create SSH Keys...</a>
+                    </div>
                 </Col>
             </Row>
         </div>
