@@ -975,6 +975,10 @@ exports.site_settings_conf =
         name    : "Commercial UI elements ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
+    kucalc:
+        name    : "KuCalc UI elements ('yes' or 'no')"
+        desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
+        default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
