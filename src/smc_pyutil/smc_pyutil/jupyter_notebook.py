@@ -60,9 +60,6 @@ def server_setup():
         base_url = ''
         ip = '127.0.0.1'
 
-if __name__ == '__main__':
-    command_line_setup()
-
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
     while True:
