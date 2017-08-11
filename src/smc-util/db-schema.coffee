@@ -196,6 +196,9 @@ schema.accounts =
             type : 'array'
             pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
+        ssh_keys :
+            type : 'map'
+            desc : 'Map from ssh key fingerprints to ssh key objects.'
         api_key :
             type : 'string'
             desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
@@ -258,6 +261,7 @@ schema.accounts =
                 profile :
                     image       : undefined
                     color       : undefined
+                ssh_keys        : {}
         set :
             fields :
                 account_id      : 'account_id'
@@ -270,6 +274,7 @@ schema.accounts =
                 evaluate_key    : true
                 font_size       : true
                 profile         : true
+                ssh_keys        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # Hook to truncate some text fields to at most 254 characters, to avoid
                 # further trouble down the line.

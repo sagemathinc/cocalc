@@ -3,12 +3,14 @@
 ###
 
 async = require('async')
+immutable = require('immutable')
 
 {Actions, Store, Table, redux}  = require('./smc-react')
 
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
+{defaults, required} = misc
 
 help = ->
     return redux.getStore('customize').get('help_email')
@@ -178,6 +180,22 @@ class AccountActions extends Actions
 
     set_active_tab: (tab) =>
         @setState(active_page : tab)
+
+    # Add an ssh key for this user, with the given fingerprint, title, and value
+    add_ssh_key: (opts) =>
+        opts = defaults opts,
+            fingerprint : required
+            title       : required
+            value       : required
+        store = @redux.getStore('account')
+        ssh_keys = store.get('ssh_keys') ? immutable.Map()
+        opts.creation_date = new Date() - 0
+        ssh_keys = ssh_keys.set(opts.fingerprint, immutable.Map(opts))
+        @redux.getTable('account').set(ssh_keys:ssh_keys)
+
+    # Delete the ssh key with given fingerprint for this user.
+    delete_ssh_key: (fingerprint) =>
+        @redux.getTable('account').set(ssh_keys:{"#{fingerprint}":null})
 
 # Register account actions
 actions = redux.createActions('account', AccountActions)

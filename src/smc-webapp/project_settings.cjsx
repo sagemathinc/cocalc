@@ -38,6 +38,7 @@ misc                 = require('smc-util/misc')
 
 {HelpEmailLink}   = require('./customize')
 {ShowSupportLink} = require('./support')
+{SSHKeyAdder, SSHKeyList} = require('./widget-ssh-keys/main')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -583,7 +584,6 @@ JupyterServerPanel = rclass
                 </b>
             </span>
         </ProjectSettingsPanel>
-
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -592,7 +592,8 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project : rtypes.object.isRequired
+        project   : rtypes.object.isRequired
+        allow_ssh : rtypes.bool
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -695,8 +696,8 @@ ProjectControlPanel = rclass
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
             If your project is not working, please create a <ShowSupportLink />.
-            <hr />
-            {@ssh_notice()}
+            {<hr /> if @props.allow_ssh}
+            {@ssh_notice() if @props.allow_ssh}
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
@@ -980,11 +981,44 @@ CollaboratorsPanel = rclass
             <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
         </ProjectSettingsPanel>
 
+SSHPanel = rclass
+    displayName: 'ProjectSettings-SSHPanel'
+
+    propTypes :
+        project    : rtypes.immutable.Map.isRequired
+        user_map   : rtypes.immutable.Map
+        account_id : rtypes.string
+
+    render_how_to: ->
+        project_id = @props.project.get('project_id')
+        host = @props.project.get('host')?.get('host')
+        if host?
+            <div>
+                To SSH into your project, use the following <span style={color:'#666'}>username@host:</span>
+                {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
+                <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+            </div>
+
+    render: ->
+        <SSHKeyList
+            user_map   = {@props.user_map}
+            ssh_keys   = {@props.project.get('ssh_keys')}
+            delete_key = {@actions('projects').delete_project_ssh_key.bind(null, @props.project.get('project_id'))}
+        >
+            <SSHKeyAdder
+                add_ssh_key  = {@actions('projects').add_project_ssh_key.bind(null, @props.project.get('project_id'))}
+                toggleable   = {true}
+                style        = {marginBottom:'10px'}
+                account_id   = {@props.account_id} />
+            {@render_how_to()}
+        </SSHKeyList>
+
 ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
         project_id    : rtypes.string.isRequired
+        account_id    : rtypes.string.isRequired
         project       : rtypes.immutable.Map.isRequired
         user_map      : rtypes.immutable.Map.isRequired
         customer      : rtypes.object
@@ -996,6 +1030,8 @@ ProjectSettingsBody = rclass ({name}) ->
         account :
             get_total_upgrades : rtypes.func
             groups : rtypes.array
+        customize :
+            kucalc : rtypes.string
         projects :
             get_course_info : rtypes.func
             get_total_upgrades_you_have_applied : rtypes.func
@@ -1046,13 +1082,15 @@ ProjectSettingsBody = rclass ({name}) ->
                         total_project_quotas                 = {total_project_quotas}
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} />
+                    <HideDeletePanel key='hidedelete' project={@props.project} />
+                    {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
+
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel   key='control'       project={@props.project} />
-                    <SageWorksheetPanel    key='worksheet'     project={@props.project} />
-                    <JupyterServerPanel    key='jupyter'        project_id={@props.project_id} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
+                    <SageWorksheetPanel  key='worksheet' project={@props.project} />
+                    <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
             </Row>
         </div>
@@ -1070,6 +1108,7 @@ exports.ProjectSettings = rclass ({name}) ->
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
             user_type       : rtypes.string    # needed for projects get_my_group call in render
+            account_id      : rtypes.string
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
 
@@ -1122,6 +1161,7 @@ exports.ProjectSettings = rclass ({name}) ->
                 {@render_admin_message() if @state.admin_project?}
                 <ProjectSettingsBody
                     project_id    = {@props.project_id}
+                    account_id    = {@props.account_id}
                     project       = {project}
                     user_map      = {@props.user_map}
                     customer      = {@props.customer}

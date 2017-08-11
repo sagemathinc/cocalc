@@ -104,6 +104,26 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    add_project_ssh_key: (project_id, opts) =>
+        new_project_map = store.get('project_map').setIn([project_id, 'ssh_keys', "#{opts.fingerprint}"], immutable.Map(opts))
+        @setState(project_map: new_project_map)
+        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
+
+        #TODO create entry in the project's log
+        #@redux.getProjectActions(project_id).log
+        #    event       : 'ssh_key_add'
+        #    description : description
+
+    delete_project_ssh_key: (project_id, fingerprint) =>
+        new_project_map = store.get('project_map').deleteIn([project_id, 'ssh_keys', fingerprint])
+        @setState(project_map: new_project_map)
+        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
+
+        #TODO create entry in the project's log
+        #@redux.getProjectActions(project_id).log
+        #    event       : 'set'
+        #    description : description
+
     # Apply default upgrades -- if available -- to the given project.
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
