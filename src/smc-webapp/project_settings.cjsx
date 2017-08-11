@@ -584,16 +584,52 @@ JupyterServerPanel = rclass
                 </b>
             </span>
         </ProjectSettingsPanel>
-
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
-        restart : false
+        restart  : false
+        show_ssh : false
 
-    propTypes:
-        project  : rtypes.object.isRequired
-        show_ssh : rtypes.bool
+    propTypes :
+        project   : rtypes.object.isRequired
+        allow_ssh : rtypes.bool
+
+    open_authorized_keys: (e) ->
+        e.preventDefault()
+        project_id = @props.project.get('project_id')
+        async.series([
+            (cb) =>
+                project_tasks(project_id).ensure_directory_exists
+                    path : '.ssh'
+                    cb   : cb
+            (cb) =>
+                @actions(project_id: project_id).open_file
+                    path       : '.ssh/authorized_keys'
+                    foreground : true
+                cb()
+        ])
+
+    ssh_notice: ->
+        project_id = @props.project.get('project_id')
+        host = @props.project.get('host')?.get('host')
+        if host?
+            if @state.show_ssh
+                <div>
+                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+                    <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+                    <Icon name='life-ring'/> How to create SSH keys</a>
+                </div>
+            else
+                <Row>
+                    <Col sm=12>
+                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
+                            <Icon name='terminal' /> SSH into your project...
+                        </Button>
+                    </Col>
+                </Row>
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -660,6 +696,8 @@ ProjectControlPanel = rclass
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
             If your project is not working, please create a <ShowSupportLink />.
+            {<hr /> if @props.allow_ssh}
+            {@ssh_notice() if @props.allow_ssh}
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
@@ -1050,7 +1088,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} show_ssh={@props.kucalc is 'yes'} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc is 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
