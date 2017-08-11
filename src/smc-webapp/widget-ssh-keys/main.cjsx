@@ -225,14 +225,15 @@ exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
     propTypes:
-        user_map : rtypes.immutable.Map
-        ssh_keys : rtypes.immutable.List
+        user_map   : rtypes.immutable.Map
+        ssh_keys   : rtypes.immutable.Map
+        delete_key : rtypes.func
 
     getDefaultProps: ->
         # TODO: Remove when keys are passed from parent
         placeholder1 = immutable.Map
             title         : "john@desktop"
-            fingerprint   : '4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92'
+            fingerprint   : "4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92"
             creator_id    : "6f5e76e1-9fda-4829-b947-fac2bb6f9ca9"
             creation_date : '1995-12-17T03:24:00'
             last_use_date : '2012-12-17T03:24:00'
@@ -244,14 +245,14 @@ exports.SSHKeyList = rclass
             creation_date : '2002-12-17T03:24:00'
             last_use_date : '2016-12-17T03:24:00'
 
-        return ssh_keys : immutable.List([placeholder1, placeholder2])
+        return ssh_keys : immutable.Map({"4c:c8:9f:65:01:3f:0a:6f:63:a2:77:d4:8a:59:8d:92":placeholder1, "19:a3:c3:8a:91:19:92:26:97:50:01:bd:f3:1d:36:65":placeholder2})
 
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
             {@props.children}
             <Panel style={marginBottom:'0px'} >
                 <ListGroup fill={true}>
-                    {(<OneSSHKey ssh_key={ssh_key} delete={()=>console.log "TODO DELTE THE KEY"} key={ssh_key.get('fingerprint')} user_map={@props.user_map}/> for ssh_key in @props.ssh_keys.toArray())}
+                    {(<OneSSHKey ssh_key={ssh_key} delete={@props.delete_key} key={ssh_key.get('fingerprint')} user_map={@props.user_map}/> for ssh_key in @props.ssh_keys.toArray())}
                 </ListGroup>
             </Panel>
         </Panel>

@@ -104,6 +104,30 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    add_project_ssh_key: (project_id, opts) =>
+        console.log "TODO -- add project ssh key. Dummy func got", project_id, opts
+        return "nothing"
+        #new_ssh_key_list = store.get('ssh_keys').set("#{opts.fingerprint}":opts)
+
+        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
+
+        #TODO create entry in the project's log
+        #@redux.getProjectActions(project_id).log
+        #    event       : 'ssh_key_add'
+        #    description : description
+
+    delete_project_ssh_key: (project_id, fingerprint) =>
+        console.log "TODO -- delete project ssh key. Dummy func got", project_id, fingerprint
+        return "nothing"
+        #new_ssh_key_list = store.get('ssh_keys').delete(fingerprint)
+
+        #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
+
+        #TODO create entry in the project's log
+        #@redux.getProjectActions(project_id).log
+        #    event       : 'set'
+        #    description : description
+
     # Apply default upgrades -- if available -- to the given project.
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
@@ -683,6 +707,7 @@ class ProjectsStore extends Store
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects
+    ssh_keys      : immutable.Map()
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)

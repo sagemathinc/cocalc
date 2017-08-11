@@ -961,9 +961,13 @@ SSHPanel = rclass
             </div>
 
     render: ->
-        <SSHKeyList user_map={@props.user_map} ssh_keys={undefined} >
+        <SSHKeyList
+            user_map   = {@props.user_map}
+            ssh_keys   = {@props.project.get('ssh_keys')}
+            delete_key = {=>@actions('projects').delete_project_ssh_key.bind(null, @props.project.get('project_id'))}
+        >
             <SSHKeyAdder
-                add_ssh_key  = {(opts)=> console.log "TODO -- add project ssh key. Dummy func got", opts}
+                add_ssh_key  = {=>@actions('projects').add_project_ssh_key.bind(null, @props.project.get('project_id'))}
                 toggleable   = {true}
                 style        = {marginBottom:'10px'}
                 account_id   = {@props.account_id} />
@@ -1038,7 +1042,7 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
-                    <SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id}/>
+                    <SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} />
 
                 </Col>
                 <Col sm=6>
