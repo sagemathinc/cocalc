@@ -106,9 +106,8 @@ class ProjectsActions extends Actions
 
     add_project_ssh_key: (project_id, opts) =>
         console.log "TODO -- add project ssh key. Dummy func got", project_id, opts
-        return "nothing"
-        #new_ssh_key_list = store.get('ssh_keys').set("#{opts.fingerprint}":opts)
-
+        new_project_map = store.get('project_map').setIn([project_id, 'ssh_keys', "#{opts.fingerprint}"], immutable.Map(opts))
+        @setState(project_map: new_project_map)
         #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
 
         #TODO create entry in the project's log
@@ -118,9 +117,8 @@ class ProjectsActions extends Actions
 
     delete_project_ssh_key: (project_id, fingerprint) =>
         console.log "TODO -- delete project ssh key. Dummy func got", project_id, fingerprint
-        return "nothing"
-        #new_ssh_key_list = store.get('ssh_keys').delete(fingerprint)
-
+        new_project_map = store.get('project_map').deleteIn([project_id, 'ssh_keys', fingerprint])
+        @setState(project_map: new_project_map)
         #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
 
         #TODO create entry in the project's log
@@ -707,7 +705,6 @@ class ProjectsStore extends Store
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects
-    ssh_keys      : immutable.Map()
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)

@@ -964,10 +964,10 @@ SSHPanel = rclass
         <SSHKeyList
             user_map   = {@props.user_map}
             ssh_keys   = {@props.project.get('ssh_keys')}
-            delete_key = {=>@actions('projects').delete_project_ssh_key.bind(null, @props.project.get('project_id'))}
+            delete_key = {@actions('projects').delete_project_ssh_key.bind(null, @props.project.get('project_id'))}
         >
             <SSHKeyAdder
-                add_ssh_key  = {=>@actions('projects').add_project_ssh_key.bind(null, @props.project.get('project_id'))}
+                add_ssh_key  = {@actions('projects').add_project_ssh_key.bind(null, @props.project.get('project_id'))}
                 toggleable   = {true}
                 style        = {marginBottom:'10px'}
                 account_id   = {@props.account_id} />
