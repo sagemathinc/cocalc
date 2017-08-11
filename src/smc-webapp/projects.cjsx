@@ -105,7 +105,6 @@ class ProjectsActions extends Actions
             description : description
 
     add_project_ssh_key: (project_id, opts) =>
-        console.log "TODO -- add project ssh key. Dummy func got", project_id, opts
         new_project_map = store.get('project_map').setIn([project_id, 'ssh_keys', "#{opts.fingerprint}"], immutable.Map(opts))
         @setState(project_map: new_project_map)
         #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})
@@ -116,7 +115,6 @@ class ProjectsActions extends Actions
         #    description : description
 
     delete_project_ssh_key: (project_id, fingerprint) =>
-        console.log "TODO -- delete project ssh key. Dummy func got", project_id, fingerprint
         new_project_map = store.get('project_map').deleteIn([project_id, 'ssh_keys', fingerprint])
         @setState(project_map: new_project_map)
         #@redux.getTable('projects').set({project_id:project_id, ssh_keys:new_ssh_key_list})

@@ -229,6 +229,9 @@ exports.SSHKeyList = rclass
         ssh_keys   : rtypes.immutable.Map
         delete_key : rtypes.func
 
+    getDefaultProps: ->
+        ssh_keys : immutable.Map()
+
     render: ->
         <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
             {@props.children}
