@@ -3,6 +3,7 @@
 ###
 
 async = require('async')
+immutable = require('immutable')
 
 {Actions, Store, Table, redux}  = require('./smc-react')
 
@@ -178,6 +179,16 @@ class AccountActions extends Actions
 
     set_active_tab: (tab) =>
         @setState(active_page : tab)
+
+    add_ssh_key: (opts) =>
+        store = @redux.getStore('account')
+        new_other_settings = store.get('other_settings').setIn(['ssh_keys', opts.fingerprint], immutable.Map(opts))
+        @setState(other_settings: new_other_settings)
+
+    delete_ssh_key: (fingerprint) =>
+        store = @redux.getStore('account')
+        new_other_settings = store.get('other_settings').deleteIn(['ssh_keys',fingerprint])
+        @setState(other_settings: new_other_settings)
 
 # Register account actions
 actions = redux.createActions('account', AccountActions)

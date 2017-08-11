@@ -72,7 +72,7 @@ exports.AccountPage = rclass
             autosave                : rtypes.number
             font_size               : rtypes.number
             editor_settings         : rtypes.object
-            other_settings          : rtypes.object
+            other_settings          : rtypes.immutable.Map
             profile                 : rtypes.object
             groups                  : rtypes.array
             stripe_customer         : rtypes.object
@@ -104,7 +104,7 @@ exports.AccountPage = rclass
         <SSHKeysPage
             account_id = {@props.account_id}
             user_map   = {@props.user_map}
-            ssh_keys   = {immutable.List(@props.other_settings.ssh ? [])}
+            ssh_keys   = {@props.other_settings.get('ssh_keys')}
         />
 
     render_account_settings: ->
@@ -122,7 +122,7 @@ exports.AccountPage = rclass
             autosave        = {@props.autosave}
             font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
-            other_settings  = {@props.other_settings}
+            other_settings  = {@props.other_settings.toJS()}
             groups          = {@props.groups} />
 
     render_landing_page: ->

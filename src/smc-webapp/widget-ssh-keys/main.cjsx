@@ -32,26 +32,20 @@ parse_key = (value) ->
 
     return {value, type, pubkey, source, comments}
 
-lib_is_valid = (key) ->
-    ret = true
-    console.log "TODO: lib_is_valid called. Returning #{ret}"
-    return ret
-
 validate_key = (value) ->
     key = {value, type, pubkey, source, comments} = parse_key(value)
     if type not in ALLOWED_SSH_TYPES
         key.error = "Type not supported"
-    else if not lib_is_valid(value)
-        key.error = "Invalid key"
+    # TODO: Use some validation library.
     return key
 
 exports.SSHKeyAdder = rclass
     displayName: 'SSH-Key-Adder'
 
     propTypes:
-        add_ssh_key  : rtypes.func     # See arg signature at end of @submit_form
+        add_ssh_key  : rtypes.func.isRequired  # See arg signature at end of @submit_form
         account_id   : rtypes.string
-        toggleable   : rtypes.bool     # If it should be a button
+        toggleable   : rtypes.bool             # If it should be a button
 
     getInitialState: ->
         key_title  : ""

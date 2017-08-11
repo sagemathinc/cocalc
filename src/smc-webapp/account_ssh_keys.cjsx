@@ -12,7 +12,7 @@ exports.SSHKeysPage = rclass
     propTypes:
         account_id : rtypes.string.isRequired
         user_map   : rtypes.immutable.Map
-        ssh_keys   : rtypes.immutable.List
+        ssh_keys   : rtypes.immutable.Map
 
     render_pre_list_message: ->
         <div>
@@ -23,11 +23,18 @@ exports.SSHKeysPage = rclass
         <div style={marginTop:'1em'}>
             <Row>
                 <Col md=8>
-                    {#TODO: Pass down the ssh_keys}
-                    <SSHKeyList ssh_keys={undefined} user_map={@props.user_map} pre_list={@render_pre_list_message()}/>
+                    <SSHKeyList
+                        ssh_keys   = {@props.ssh_keys}
+                        user_map   = {@props.user_map}
+                        pre_list   = {@render_pre_list_message()}
+                        delete_key = {@actions('account').delete_ssh_key} />
                 </Col>
                 <Col md=4>
-                    <SSHKeyAdder account_id={@props.account_id} submit_key={()=>console.log "TODO..."} style={marginBottom:'0px'}/>
+                    <SSHKeyAdder
+                        account_id  = {@props.account_id}
+                        add_ssh_key = {@actions('account').add_ssh_key}
+                        style       = {marginBottom:'0px'}
+                        />
                     Check out <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key">this</a> guide on generating SSH keys.
                 </Col>
             </Row>
