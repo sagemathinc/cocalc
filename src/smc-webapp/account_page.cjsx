@@ -44,6 +44,8 @@ exports.AccountPage = rclass
             project_map             : rtypes.immutable.Map
         users :
             user_map                : rtypes.immutable.Map
+        customize :
+            kucalc                  : rtypes.string
         account :
             account_id              : rtypes.string
             active_page             : rtypes.string
@@ -153,9 +155,10 @@ exports.AccountPage = rclass
         v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
             {@render_upgrades() if @props.active_page == 'upgrades'}
         </Tab>
-        v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
-            {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
-        </Tab>
+        if @props.kucalc is 'yes'
+            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
+                {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
+            </Tab>
         v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
             {<SupportPage/> if @props.active_page == 'support'}
         </Tab>

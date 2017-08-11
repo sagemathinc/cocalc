@@ -183,11 +183,15 @@ class AccountActions extends Actions
     add_ssh_key: (opts) =>
         store = @redux.getStore('account')
         new_other_settings = store.get('other_settings').setIn(['ssh_keys', opts.fingerprint], immutable.Map(opts))
+        # Probably right? :
+        # @redux.getTable('account').set("other_settings": new_other_settings)
         @setState(other_settings: new_other_settings)
 
     delete_ssh_key: (fingerprint) =>
         store = @redux.getStore('account')
         new_other_settings = store.get('other_settings').deleteIn(['ssh_keys',fingerprint])
+        # Probably right? :
+        # @redux.getTable('account').set("other_settings": new_other_settings)
         @setState(other_settings: new_other_settings)
 
 # Register account actions

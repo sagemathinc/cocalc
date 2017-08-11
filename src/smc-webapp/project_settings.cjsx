@@ -592,7 +592,8 @@ ProjectControlPanel = rclass
         restart : false
 
     propTypes:
-        project : rtypes.object.isRequired
+        project  : rtypes.object.isRequired
+        show_ssh : rtypes.bool
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -991,6 +992,8 @@ ProjectSettingsBody = rclass ({name}) ->
         account :
             get_total_upgrades : rtypes.func
             groups : rtypes.array
+        customize :
+            kucalc : rtypes.string
         projects :
             get_course_info : rtypes.func
             get_total_upgrades_you_have_applied : rtypes.func
@@ -1042,12 +1045,12 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
-                    <SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} />
+                    {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc is 'yes'}
 
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} />
+                    <ProjectControlPanel key='control' project={@props.project} show_ssh={@props.kucalc is 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
