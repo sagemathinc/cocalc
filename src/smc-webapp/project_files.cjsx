@@ -2170,8 +2170,8 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_deleted()}
             {@render_error()}
             {@render_activity()}
-            <div style={display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'stretch'}>
-                <div style={flex: '0 1 25%'}>
+            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                <div style={flex: '1 0 25%', marginRight: '10px', minWidth: '20em'}>
                     <ProjectFilesSearch
                         project_id          = {@props.project_id}
                         key                 = {@props.current_path}
@@ -2187,17 +2187,17 @@ exports.ProjectFiles = rclass ({name}) ->
                         public_view         = {public_view} />
                 </div>
                 {<div
-                    style={flex: '0 1 auto', marginLeft: '10px'}
+                    style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
                     className='cc-project-files-create-dropdown' >
                         {@render_new_file()}
                 </div> if not public_view}
-                <div style={flex: '5 1 auto', marginLeft: '10px'}>
+                <div style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </div>
-                {<div style={flex: '0 1 auto', marginLeft: '10px'}>
+                {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
                     <UsersViewing project_id={@props.project_id} />
                 </div> if not public_view}
-                {<div style={flex: '1 0 auto'}>
+                {<div style={flex: '1 0 auto', marginBottom:'15px'}>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         current_path = {@props.current_path}
