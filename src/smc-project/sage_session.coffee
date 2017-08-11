@@ -25,7 +25,7 @@ blobs  = require('./blobs')
 # connection requests, after we restart it.  It can
 # take a while, since it pre-imports the sage library
 # at startup, before forking.
-SAGE_SERVER_MAX_STARTUP_TIME_S = 30
+SAGE_SERVER_MAX_STARTUP_TIME_S = 60
 
 _restarting_sage_server = false
 _restarted_sage_server  = 0   # time when we last restarted it
