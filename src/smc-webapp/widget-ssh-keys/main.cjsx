@@ -196,7 +196,7 @@ OneSSHKey = rclass
                 <Col md=9>
                     <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
                     <span style={fontWeight:600}>Fingerprint: </span><code>{@props.ssh_key.get('fingerprint')}</code><br/>
-                    Added on {new Date(@props.ssh_key.get('last_use_date')).toLocaleDateString()}
+                    Added on {new Date(@props.ssh_key.get('creation_date')).toLocaleDateString()}
                     {@render_creator() if @props.ssh_key.get('creator_id')}
                     {@render_last_use() if @props.ssh_key.get('last_use_date')}
                 </Col>
