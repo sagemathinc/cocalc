@@ -128,7 +128,7 @@ exports.Icon = Icon = rclass
     render: ->
         {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'cc-'
+        if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
             classNames = "fa #{name}"
             # the cocalc icon font can't do any extra tricks
         else
