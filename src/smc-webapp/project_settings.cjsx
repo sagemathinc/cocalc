@@ -1083,12 +1083,12 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
-                    {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc is 'yes'}
+                    {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
 
                 </Col>
                 <Col sm=6>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc is 'yes'} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
