@@ -75,7 +75,7 @@ def command():
     port = random_port()  # time consuming!
     if project_id:
         b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
+        base = " --NotebookApp.base_url=%s "%(b)
     else:
         base = ''
 
