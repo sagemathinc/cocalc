@@ -71,40 +71,6 @@ exports.file_action_buttons = file_action_buttons =
             name : 'Download'
             icon : 'cloud-download'
 
-# One segment of the directory links at the top of the files listing.
-PathSegmentLink = rclass
-    displayName : 'ProjectFiles-PathSegmentLink'
-
-    propTypes :
-        path       : rtypes.string
-        display    : rtypes.oneOfType([rtypes.string, rtypes.object])
-        actions    : rtypes.object.isRequired
-        full_name  : rtypes.string
-        active     : rtypes.bool
-
-    getDefaultProps: ->
-        active     : false
-
-    styles :
-        cursor   : 'pointer'
-        fontSize : '18px'
-
-    handle_click: ->
-        @props.actions.open_directory(@props.path)
-
-    render_content: ->
-        if @props.full_name and @props.full_name isnt @props.display
-            <Tip tip={@props.full_name} placement='bottom' title='Full name'>
-                {@props.display}
-            </Tip>
-        else
-            return @props.display
-
-    render: ->
-        <Breadcrumb.Item onClick={@handle_click} active={@props.active}>
-            {@render_content()}
-        </Breadcrumb.Item>
-
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
 
@@ -688,11 +654,54 @@ FileListing = rclass
             {@render_no_files()}
         </Col>
 
+# One segment of the directory links at the top of the files listing.
+PathSegmentLink = rclass
+    displayName : 'ProjectFiles-PathSegmentLink'
+
+    propTypes :
+        path       : rtypes.string
+        display    : rtypes.oneOfType([rtypes.string, rtypes.object])
+        actions    : rtypes.object.isRequired
+        full_name  : rtypes.string
+        history    : rtypes.bool
+        active     : rtypes.bool
+
+    getDefaultProps: ->
+        active     : false
+
+    handle_click: ->
+        @props.actions.open_directory(@props.path)
+
+    render_content: ->
+        if @props.full_name and @props.full_name isnt @props.display
+            <Tip tip={@props.full_name} placement='bottom' title='Full name'>
+                {@props.display}
+            </Tip>
+        else
+            return @props.display
+
+    style: ->
+        if @props.history
+            return {color: '#a0a0a0'}
+        else if @props.active
+            return {color: COLORS.BS_BLUE_BGRND}
+        {}
+
+    render: ->
+        <Breadcrumb.Item
+            onClick    = {@handle_click}
+            active     = {@props.active}
+            style      = {@style()} >
+                {@render_content()}
+        </Breadcrumb.Item>
+
+# This path consists of several PathSegmentLinks
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
 
     propTypes :
         current_path : rtypes.string
+        history_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     make_path: ->
@@ -705,15 +714,18 @@ ProjectFilesPath = rclass
         if root
             path = path[1..]
         path_segments = path.split('/')
-        for segment, i in path_segments
+        history_segments = @props.history_path.split('/')
+        for segment, i in history_segments
             is_last = i == path_segments.length - 1
+            is_history = i >= path_segments.length
             v.push <PathSegmentLink
-                    path      = {path_segments[..i].join('/')}
+                    path      = {history_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
                     key       = {i+1}
                     actions   = {@props.actions}
-                    active    = {is_last} />
+                    active    = {is_last}
+                    history   = {is_history} />
         return v
 
     render: ->
@@ -1861,6 +1873,7 @@ exports.ProjectFiles = rclass ({name}) ->
         "#{name}" :
             active_file_sort    : rtypes.object
             current_path        : rtypes.string
+            history_path        : rtypes.string
             activity            : rtypes.object
             page_number         : rtypes.number
             file_action         : rtypes.string
@@ -2191,8 +2204,13 @@ exports.ProjectFiles = rclass ({name}) ->
                     className='cc-project-files-create-dropdown' >
                         {@render_new_file()}
                 </div> if not public_view}
-                <div style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
-                    <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
+                <div
+                    className = 'cc-project-files-path'
+                    style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                    <ProjectFilesPath
+                        current_path = {@props.current_path}
+                        history_path = {@props.history_path}
+                        actions      = {@props.actions} />
                 </div>
                 {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
                     <UsersViewing project_id={@props.project_id} />
