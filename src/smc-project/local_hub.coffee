@@ -31,6 +31,7 @@ os      = require('os')
 net     = require('net')
 uuid    = require('uuid')
 winston = require('winston')
+request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 # Set the log level
@@ -163,6 +164,27 @@ terminate_session = (socket, mesg) ->
         console_sessions.terminate_session(sid, cb)
     else
         cb()
+
+# Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
+# If we recieve some information, exit with status code 99.
+init_gce_firewall_test = ->
+    test_firewall = ->
+        request = require('request')
+        request(
+            timeout : 3000
+            headers :
+              'Metadata-Flavor' : 'Google'
+            uri: 'http://metadata.google.internal/computeMetadata/v1/'
+            method: 'GET'
+        , (err, res, body) ->
+            if err? and err.code == 'ETIMEDOUT'
+                winston.debug('test_firewall: timeout -> no action')
+            else
+                winston.warn('test_firewall: request went through -> exiting with code 99')
+                process.exit(99)
+        )
+    test_firewall()
+    setInterval(test_firewall, 60 * 1000)
 
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
@@ -316,9 +338,12 @@ program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
+    .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
 
+if program.test_firewall
+    init_gce_firewall_test()
