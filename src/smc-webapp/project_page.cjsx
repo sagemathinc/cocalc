@@ -38,7 +38,7 @@ Draggable = require('react-draggable')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project_settings')
 {ProjectStore}     = require('./project_store')
-{DiskSpaceWarning} = require('./project_warnings')
+{DiskSpaceWarning, RamWarning} = require('./project_warnings')
 
 project_file = require('./project_file')
 {file_associations} = require('./editor')
@@ -550,6 +550,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             style.paddingTop = '5px'
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
+            <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
