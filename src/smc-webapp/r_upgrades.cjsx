@@ -159,7 +159,10 @@ exports.UpgradesPage = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        console.log "TODO: Actually remove all upgrades"
+        upgraded_projects = @props.redux.getStore('projects').get_projects_upgraded_by()
+        # TODO: Make async in case of many many projects
+        for project_id, upgrades of upgraded_projects
+            @actions('projects').clear_project_upgrades(project_id)
         @setState(expand_reset_all_projects:false)
 
     render_header: ->
