@@ -8,5 +8,5 @@
 
 exports.UpgradeRestartWarning = ({style}) ->
     <Alert style={style}>
-        Adjustments to a project's upgrades will restart the project. Progress on running computations may be lost.
+        Adjustments to a project's upgrades will restart the project. Running computations will be terminated.
     </Alert>
