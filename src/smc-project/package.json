@@ -20,6 +20,7 @@
     "node-cleanup": "^2.1.2",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",
+    "request": "^2",
     "serve-index": "^1.7.2",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
