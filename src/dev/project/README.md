@@ -4,6 +4,14 @@ Scripts for doing development of SMC inside of an SMC project.
 
 **Requirement:** 1.5GB RAM and 1GB disk space
 
+## Setup
+
+Run `npm run make` inside the `src/` subdirectory.
+This will install all the dependencies and does some additional setup.
+
+If you ever need to update dependencies or think there is a problem with them,
+just run `npm run clean` to get rid of them and run `npm run make` again.
+
 ## The servers
 
 Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
