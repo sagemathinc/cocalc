@@ -3,6 +3,7 @@
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
+{UpgradeRestartWarning} = require('./upgrade_restart_warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -217,7 +218,8 @@ exports.UpgradesPage = rclass
 ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
     <Well style={marginBottom:'0px', marginTop:'10px', textAlign:'center'}>
         Are you sure you want to remove all your upgrades from all projects?<br/>
-        You will have all your upgrades available to use.
+        You will have all your upgrades available to use.<br/>
+        <UpgradeRestartWarning style={display:'inline-block', marginBottom:'5px'} />
         <ButtonToolbar>
             <Button bsStyle='warning' onClick={on_confirm}>
                 Yes, remove all upgrades.
