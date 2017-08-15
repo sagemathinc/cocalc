@@ -16,7 +16,7 @@ ports = util.get_ports()
 base_url = util.base_url()
 hostname = socket.gethostname()
 
-cmd = "service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
+cmd = "cd ../../&& . smc-env &&  service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
     hostname      = hostname,
     base_url      = base_url,
     hub_port      = ports['hub'])
