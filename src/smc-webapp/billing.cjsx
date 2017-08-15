@@ -729,11 +729,11 @@ PlanInfo = rclass
     render_plan_info_line: (name, value, data) ->
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
+                <span style={fontWeight:'bold',color:'#444'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
                 </span>
                 <Space/>
-                <span style={color:'#999'}>
+                <span style={color:'#666'}>
                     {data.display}
                 </span>
             </Tip>

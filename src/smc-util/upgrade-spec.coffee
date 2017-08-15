@@ -32,26 +32,24 @@ upgrades = exports.upgrades = {}
 # these are the base quotas -- keep req_* commented out until they are also in params below.
 # They are for future use for k8s
 exports.DEFAULT_QUOTAS =
-    disk_quota  : 3000
-    #req_cores   : 0.01
-    #req_memory  : 160
-    cores       : 1
-    memory      : 1000
-    cpu_shares  : 256
-    mintime     : 3600   # hour
-    network     : 0
-    member_host : 0
+    disk_quota     : 3000
+    cores          : 1
+    cpu_shares     : 0
+    memory         : 1000
+    memory_request : 0
+    mintime        : 1800   # hour
+    network        : 0
+    member_host    : 0
 
 upgrades.max_per_project =
-    disk_quota : 50000
-    #req_cores  : 1
-    #req_memory : 4000
-    memory     : 8000
-    cores      : 4
-    network    : 1
-    cpu_shares : 2048
-    mintime    : 24*3600*90
-    member_host : 1
+    disk_quota     : 50000
+    memory         : 8000
+    memory_request : 8000
+    cores          : 4
+    network        : 1
+    cpu_shares     : 2048
+    mintime        : 24*3600*90
+    member_host    : 1
 
 # In the params listed below you *MUST* define all of display, display_unit,
 # display_factor, pricing_unit, pricing_factor, input_type, and desc!   This
@@ -67,32 +65,41 @@ upgrades.params =
         input_type     : 'number'
         desc           : 'The maximum amount of disk space (in MB) that a project may use.'
     memory :
-        display        : 'Memory'
+        display        : 'Shared RAM'
         unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
         pricing_unit   : 'GB'
         pricing_factor : 1/1000
         input_type     : 'number'
-        desc           : 'The maximum amount of memory that all processes in a project may use in total.'
+        desc           : 'Upper bound on RAM that all processes in a project may use in total (shared with other projects; not guaranteed).'
+    memory_request :
+        display        : 'Dedicated RAM'
+        unit           : 'MB'
+        display_unit   : 'MB'
+        display_factor : 1
+        pricing_unit   : 'GB'
+        pricing_factor : 1/1000
+        input_type     : 'number'
+        desc           : "Guaranteed minimum amount of RAM that is dedicated to your project."
     cores :
-        display        : 'CPU cores'
+        display        : 'Shared CPU'
         unit           : 'core'
         display_unit   : 'core'
         display_factor : 1
         pricing_unit   : 'core'
         pricing_factor : 1
         input_type     : 'number'
-        desc           : 'The maximum number of CPU cores that a project may use.'
+        desc           : 'Upper bound on the number of shared CPU cores that your project may use (shared with other projects; not guaranteed).'
     cpu_shares :
-        display        : 'CPU shares'
-        unit           : 'share'
-        display_unit   : 'share'
-        display_factor : 1/256
-        pricing_unit   : 'share'
-        pricing_factor : 1/256
+        display        : 'Dedicated CPU'
+        unit           : 'core'
+        display_unit   : 'core'
+        display_factor : 1/1024
+        pricing_unit   : 'core'
+        pricing_factor : 1/1024
         input_type     : 'number'
-        desc           : 'Relative priority of this project versus other projects running on the same computer.'
+        desc           : 'Guaranteed minimum number of CPU cores that are dedicated to your project.'
     mintime :
         display        : 'Idle timeout'
         unit           : 'second'
@@ -104,29 +111,31 @@ upgrades.params =
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
         display        : 'Internet access'
-        unit           : 'upgrade'
-        display_unit   : 'upgrade'
+        unit           : 'project'
+        display_unit   : 'project'
         display_factor : 1
-        pricing_unit   : 'upgrade'
+        pricing_unit   : 'project'
         pricing_factor : 1
         input_type     : 'checkbox'
         desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
         display        : 'Member hosting'
-        unit           : 'upgrade'
-        display_unit   : 'upgrade'
+        unit           : 'project'
+        display_unit   : 'project'
         display_factor : 1
-        pricing_unit   : 'upgrade'
+        pricing_unit   : 'project'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Moves this project to a members-only server, which has less competition for resources.'
+        desc           : 'Runs this project on a member-only host that is NOT pre-emptible; it will not be randomly rebooted and has less users.'
 
-upgrades.field_order = ['member_host', 'network', 'mintime', 'memory', 'disk_quota', 'cpu_shares', 'cores']
+upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
+                        'memory', 'memory_request',
+                        'cores', 'cpu_shares']
 
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
-                              ['small_course', 'medium_course', 'large_course']]
+                               ['small_course', 'medium_course', 'large_course']]
 
 upgrades.period_names =
     month  : 'month'
@@ -145,13 +154,14 @@ membership.professional =    # a user that has a professional membership
         year   : 999
     cancel_at_period_end : false
     benefits :
-        cores       : 5
-        cpu_shares  : 128*20
-        disk_quota  : 5000*20
-        member_host : 2*20
-        memory      : 3000*20
-        mintime     : 24*3600*20
-        network     : 10*20
+        cores          : 5
+        cpu_shares     : 1024
+        disk_quota     : 5000*20
+        member_host    : 2*20
+        memory         : 3000*20
+        memory_request : 1000*8
+        mintime        : 24*3600*20
+        network        : 10*20
 
 membership.premium =    # a user that has a premium membership
     icon  : 'battery-three-quarters'
@@ -160,13 +170,14 @@ membership.premium =    # a user that has a premium membership
         year   : 499
     cancel_at_period_end : false
     benefits :
-        cores       : 2
-        cpu_shares  : 128*8
-        disk_quota  : 5000*8
-        member_host : 2*8
-        memory      : 3000*8
-        mintime     : 24*3600*8
-        network     : 10*8
+        cores          : 2
+        cpu_shares     : 512
+        disk_quota     : 5000*8
+        member_host    : 2*8
+        memory         : 3000*8
+        memory_request : 1000*4
+        mintime        : 24*3600*8
+        network        : 10*8
 
 membership.standard =   # a user that has a standard membership
     icon  : 'battery-quarter'
@@ -175,13 +186,14 @@ membership.standard =   # a user that has a standard membership
         year   : 79
     cancel_at_period_end : false
     benefits :
-        cores       : 0
-        cpu_shares  : 128
-        disk_quota  : 5000
-        member_host : 2
-        memory      : 3000
-        mintime     : 24*3600
-        network     : 20
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 5000
+        member_host    : 2
+        memory         : 3000
+        memory_request : 0
+        mintime        : 24*3600
+        network        : 20
 
 
 membership.large_course =
@@ -191,11 +203,13 @@ membership.large_course =
         year1  : 2499
     cancel_at_period_end : true
     benefits :
-        cores       : 0
-        cpu_shares  : 0
-        disk_quota  : 0
-        member_host : 250
-        network     : 500
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 250
+        network        : 250
 
 membership.medium_course =
     icon  : 'battery-three-quarters'
@@ -204,11 +218,13 @@ membership.medium_course =
         year1  : 999
     cancel_at_period_end : true
     benefits :
-        cores       : 0
-        cpu_shares  : 0
-        disk_quota  : 0
-        member_host : 70
-        network     : 140
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 70
+        network        : 70
 
 membership.small_course =
     icon  : 'battery-quarter'
@@ -217,11 +233,13 @@ membership.small_course =
         year1  : 499
     cancel_at_period_end : true
     benefits :
-        cores       : 0
-        cpu_shares  : 0
-        disk_quota  : 0
-        member_host : 25
-        network     : 50
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 25
+        network        : 25
 
 membership.student_course =
     icon  : 'graduation-cap'
@@ -229,8 +247,10 @@ membership.student_course =
         month4 : 9
     cancel_at_period_end : true
     benefits :
-        cores       : 0
-        cpu_shares  : 0
-        disk_quota  : 0
-        member_host : 1
-        network     : 1
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 1
+        network        : 1
