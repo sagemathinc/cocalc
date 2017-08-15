@@ -317,13 +317,17 @@ program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
 
 
+
+if program.kucalc
+    exports.IN_KUCALC = true
+    if program.test_firewall
+        require('./kucalc').init_gce_firewall_test(winston)
+
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
-
-if program.test_firewall
-    require('./kucalc').init_gce_firewall_test(winston)

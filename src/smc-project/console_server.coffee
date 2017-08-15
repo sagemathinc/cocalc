@@ -81,11 +81,11 @@ secret_token = undefined
 
 read_token = (cb) ->
     f = (cb) ->
-        fs.exists secret_token_filename, (exists) ->
+        fs.exists secret_token_filename(), (exists) ->
             if not exists
                 cb("secret token file does not exist")
             else
-                secret_token = fs.readFileSync(secret_token_filename).toString()
+                secret_token = fs.readFileSync(secret_token_filename()).toString()
                 cb()
     misc.retry_until_success
         f        : f

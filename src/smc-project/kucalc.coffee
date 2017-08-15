@@ -6,7 +6,9 @@ async = require('async')
 
 misc_node = require('smc-util-node/misc_node')
 
-exports.IN_KUCALC = process.env.COCALC_USERNAME == 'user'
+# This gets **changed** to true in local_hub.coffee, if a certain
+# command line flag is passed in.
+exports.IN_KUCALC = false
 
 exports.init = (client) ->
     # update project status every 30s
