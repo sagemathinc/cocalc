@@ -180,6 +180,8 @@ init_gce_firewall_test = ->
             if err? and err.code == 'ETIMEDOUT'
                 winston.debug('test_firewall: timeout -> no action')
             else
+                winston.warn('test_firwall', res)
+                winston.warn('test_firwall', body)
                 winston.warn('test_firewall: request went through -> exiting with code 99')
                 process.exit(99)
         )
@@ -340,6 +342,7 @@ program.usage('[?] [options]')
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
+
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
