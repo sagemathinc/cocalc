@@ -321,12 +321,11 @@ program.usage('[?] [options]')
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
 
-
-
 if program.kucalc
-    exports.IN_KUCALC = true
+    kucalc = require('./kucalc')
+    kucalc.IN_KUCALC = true
     if program.test_firewall
-        require('./kucalc').init_gce_firewall_test(winston)
+        kucalc.init_gce_firewall_test(winston)
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
