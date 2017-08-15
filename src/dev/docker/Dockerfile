@@ -144,6 +144,22 @@ COPY kernels/ir/Rprofile.site /usr/local/sage/local/lib/R/etc/Rprofile.site
 # Build a UTF-8 locale, so that tmux works -- see https://unix.stackexchange.com/questions/277909/updated-my-arch-linux-server-and-now-i-get-tmux-need-utf-8-locale-lc-ctype-bu
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
+# Install Julia
+RUN cd /tmp \
+ && wget https://julialang-s3.julialang.org/bin/linux/x64/0.6/julia-0.6.0-linux-x86_64.tar.gz \
+ && echo 3a27ea78b06f46701dc4274820d9853789db205bce56afdc7147f7bd6fa83e41 julia-0.6.0-linux-x86_64.tar.gz | sha256sum -c \
+ && tar xf julia-0.6.0-linux-x86_64.tar.gz -C /opt \
+ && rm  -f julia-0.6.0-linux-x86_64.tar.gz \
+ && ln -s /opt/julia-903644385b/bin/julia /usr/local/bin
+
+# Install IJulia kernel
+RUN echo '\
+ENV["JUPYTER"] = "/usr/local/bin/jupyter"; \
+ENV["JULIA_PKGDIR"] = "/opt/julia-903644385b/share/julia/site"; \
+Pkg.init(); \
+Pkg.add("IJulia");' | julia \
+ && mv -i "$HOME/.local/share/jupyter/kernels/julia-0.6" "/usr/local/share/jupyter/kernels/"
+
 
 ### Configuration
 
