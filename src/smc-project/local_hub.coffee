@@ -114,6 +114,7 @@ common = require('./common')
 json = common.json
 
 INFO = undefined
+hub_client = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
@@ -141,9 +142,8 @@ init_info_json = (cb) ->
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    fs.writeFileSync(filename, misc.to_json(INFO))
-
-init_info_json()
+    exports.client = hub_client = new Client(INFO.project_id)
+    fs.writeFile(filename, misc.to_json(INFO), cb)
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -237,8 +237,6 @@ project, which will cause it to make another local_hub server, separate
 from the one you just started running.
 ###
 
-exports.client = hub_client = new Client(INFO.project_id)
-
 start_tcp_server = (secret_token, port, cb) ->
     # port: either numeric or 'undefined'
     if not secret_token?
@@ -284,6 +282,8 @@ start_server = (tcp_port, raw_port, cb) ->
     if program.console_port
         console_sessions.set_port(program.console_port)
     async.series([
+        (cb) ->
+            init_info_json(cb)
         (cb) ->
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
