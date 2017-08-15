@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd $SALVUS_ROOT
 
-# quick: do not care about the additional extra static pages (use w-full if you need them)
+. smc-env
 
-npm run webpack-watch-quick-map
+npm run webpack-watch
 
