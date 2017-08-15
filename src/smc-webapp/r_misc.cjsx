@@ -23,6 +23,7 @@ async = require('async')
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
+{UpgradeRestartWarning} = require('./upgrade_restart_warning')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -1616,6 +1617,7 @@ exports.UpgradeAdjustor = rclass
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
+                <UpgradeRestartWarning />
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
                     <Button
