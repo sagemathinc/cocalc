@@ -130,13 +130,6 @@ RUN \
   && cp -rv /usr/local/sage/local/share/texmf/tex/latex/sagetex/ /usr/share/texmf/tex/latex/ \
   && texhash
 
-COPY login.defs /etc/login.defs
-COPY login /etc/defaults/login
-COPY nginx.conf /etc/nginx/sites-available/default
-COPY haproxy.conf /etc/haproxy/haproxy.cfg
-COPY run.py /root/run.py
-COPY bashrc /root/.bashrc
-
 RUN echo "umask 077" >> /etc/bash.bashrc
 
 # Install R Jupyter Kernel package into R itself (so R kernel works)
@@ -150,6 +143,16 @@ COPY kernels/ir/Rprofile.site /usr/local/sage/local/lib/R/etc/Rprofile.site
 
 # Build a UTF-8 locale, so that tmux works -- see https://unix.stackexchange.com/questions/277909/updated-my-arch-linux-server-and-now-i-get-tmux-need-utf-8-locale-lc-ctype-bu
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
+
+
+### Configuration
+
+COPY login.defs /etc/login.defs
+COPY login /etc/defaults/login
+COPY nginx.conf /etc/nginx/sites-available/default
+COPY haproxy.conf /etc/haproxy/haproxy.cfg
+COPY run.py /root/run.py
+COPY bashrc /root/.bashrc
 
 CMD /root/run.py
 
