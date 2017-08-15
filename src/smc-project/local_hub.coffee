@@ -47,6 +47,9 @@ misc_node   = require('smc-util-node/misc_node')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
+# Functionality special to the KuCalc environment.
+kucalc = require('./kucalc')
+
 # The raw http server
 raw_server = require('./raw_server')
 
@@ -114,7 +117,7 @@ INFO = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
-    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+    if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
         username   = process.env.COCALC_USERNAME
     else
@@ -322,7 +325,6 @@ program.usage('[?] [options]')
     .parse(process.argv)
 
 if program.kucalc
-    kucalc = require('./kucalc')
     kucalc.IN_KUCALC = true
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)

@@ -210,7 +210,11 @@ start_server = (cb) ->
 
 program.usage('[?] [options]')
     .option('--port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
     .parse(process.argv)
+
+if program.kucalc
+    require('./kucalc').IN_KUCALC = true
 
 start_server (err) ->
     if err
