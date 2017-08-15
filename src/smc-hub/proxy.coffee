@@ -42,7 +42,9 @@ hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
 
-DEBUG2 = false
+DEBUG2 = process.env.COCALC_DEBUG2?
+if DEBUG2
+    winston.debug("COCALC_DEBUG2 env variable is set: enabling very verbose logging for the proxy server")
 
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
