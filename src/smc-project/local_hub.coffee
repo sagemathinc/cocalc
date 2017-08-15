@@ -165,29 +165,6 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-# Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
-# If we recieve some information, exit with status code 99.
-init_gce_firewall_test = ->
-    test_firewall = ->
-        request = require('request')
-        request(
-            timeout : 3000
-            headers :
-              'Metadata-Flavor' : 'Google'
-            uri: 'http://metadata.google.internal/computeMetadata/v1/'
-            method: 'GET'
-        , (err, res, body) ->
-            if err? and err.code == 'ETIMEDOUT'
-                winston.debug('test_firewall: timeout -> no action')
-            else
-                winston.warn('test_firwall', res)
-                winston.warn('test_firwall', body)
-                winston.warn('test_firewall: request went through -> exiting with code 99')
-                process.exit(99)
-        )
-    test_firewall()
-    setInterval(test_firewall, 60 * 1000)
-
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
     #dbg = (m) -> winston.debug("handle_mesg: #{m}")
@@ -349,4 +326,4 @@ start_server program.tcp_port, program.raw_port, (err) ->
         process.exit(1)
 
 if program.test_firewall
-    init_gce_firewall_test()
+    require('./kucalc').init_gce_firewall_test(winston)
