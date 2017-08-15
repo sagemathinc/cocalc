@@ -290,7 +290,6 @@ exports.init_http_proxy_server = (opts) ->
                         setTimeout((->delete _target_cache[key]), 15000)
             )
 
-    #proxy = http_proxy.createProxyServer(ws:true)
     proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
@@ -300,29 +299,30 @@ exports.init_http_proxy_server = (opts) ->
             res.end('')
             return
 
-        #buffer = http_proxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+        if DEBUG2
+            # for low level debugging
+            dbg = (args...) ->
+                winston.debug("http_proxy_server('#{req_url}'):", args...)
+        else
+            dbg = ->
 
-        dbg = (m) ->
-            ## for low level debugging
-            if DEBUG2
-                winston.debug("http_proxy_server(#{req_url}): #{m}")
-        dbg('got request')
+        dbg('got request', req.url)
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(base_url + 'remember_me')
 
         if not remember_me?
-            # before giving an error, check on possibility that file is public
+            dbg('before giving an error, check on possibility that file is public')
             public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
                     res.end("Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> with cookies enabled, then refresh this page.")
-
             return
 
         target remember_me, req_url, (err, location) ->
-            dbg("got target: #{misc.walltime(tm)}")
+            dbg("got target: #{misc.walltime(tm)}", location)
             if err
+                dbg("error so check if public")
                 public_raw req_url, query, res, (err, is_public) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
@@ -330,25 +330,25 @@ exports.init_http_proxy_server = (opts) ->
                         res.end("Access denied. Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
+                dbg("target", t)
                 if proxy_cache[t]?
-                    # we already have the proxy server for this remote location in the cache, so use it.
+                    dbg("we already have the proxy server for this remote location in the cache, so use it.")
                     proxy = proxy_cache[t]
-                    dbg("used cached proxy object: #{misc.walltime(tm)}")
                 else
-                    dbg("make a new proxy server connecting to this remote location")
+                    dbg("make a new proxy server connected to this remote location")
                     proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:3000)
                     # and cache it.
                     proxy_cache[t] = proxy
                     dbg("created new proxy: #{misc.walltime(tm)}")
                     # setup error handler, so that if something goes wrong with this proxy (it will,
-                    # e.g., on project restart), we properly invalidate it.
+                    # e.g., on project restart, say), we properly invalidate it.
                     proxy.on "error", (e) ->
                         dbg("http proxy error -- #{e}")
                         delete proxy_cache[t]
                         invalidate_target_cache(remember_me, req_url)
-                    #proxy.on 'proxyRes', (res) ->
-                    #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
-
+                    if DEBUG2
+                        proxy.on 'proxyRes', (res) ->
+                            dbg("(mark: #{misc.walltime(tm)}) got response from the target")
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
