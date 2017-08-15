@@ -149,7 +149,7 @@ COPY kernels /usr/local/share/jupyter/kernels
 COPY kernels/ir/Rprofile.site /usr/local/sage/local/lib/R/etc/Rprofile.site
 
 # Build a UTF-8 locale, so that tmux works -- see https://unix.stackexchange.com/questions/277909/updated-my-arch-linux-server-and-now-i-get-tmux-need-utf-8-locale-lc-ctype-bu
-RUN apt -y install locales && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
 CMD /root/run.py
 
