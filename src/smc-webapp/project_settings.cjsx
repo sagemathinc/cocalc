@@ -618,7 +618,7 @@ ProjectControlPanel = rclass
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@ssh.cocalc.com"} </pre>
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
@@ -994,7 +994,7 @@ SSHPanel = rclass
         <div>
             To SSH into your project, use the following <span style={color:'#666'}>username@host:</span>
             {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-            <pre>{"#{misc.replace_all(project_id, '-', '')}@cocalc.ssh.com"} </pre>
+            <pre>{"#{misc.replace_all(project_id, '-', '')}@ssh.cocalc.com"} </pre>
         </div>
 
     add_ssh_key: (opts) ->
