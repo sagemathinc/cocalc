@@ -58,6 +58,7 @@ exports.SSHKeyAdder = rclass
         @setState
             key_title  : ""
             key_value  : ""
+            error      : undefined
             show_panel : not @props.toggleable
 
     trigger_error: (err) ->
