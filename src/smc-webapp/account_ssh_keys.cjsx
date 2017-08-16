@@ -25,8 +25,8 @@ exports.SSHKeysPage = rclass
     help: ->
         <div>
             To SSH into a project, use the following <span style={color:'#666'}>username@host:</span>
-            <pre>[projectIdWithoutDashes]@ssh.sagemath.com </pre>
-            Where <code>[projectIdWithoutDashes]</code> looks like 92234d528a1c4e63bde3f2727f5ab8b1.
+            <pre>[projectIdWithoutDashes]@ssh.cocalc.com </pre>
+            A project's Id can be found in it's settings panel.
         </div>
 
     render: ->
