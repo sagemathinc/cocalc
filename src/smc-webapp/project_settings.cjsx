@@ -152,7 +152,12 @@ QuotaConsole = rclass
             # amount given by free project
             upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
 
-        <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
+        <LabeledRow
+            label = {<Tip title={params_data.display}
+            tip   = {params_data.desc}>{params_data.display}</Tip>}
+            key   = {params_data.display}
+            style = {borderBottom:'1px solid #ccc'}
+            >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -296,8 +301,11 @@ QuotaConsole = rclass
                 view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
             memory      :
-                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> shared RAM memory available - <b>{memory} MB</b> used</span>
                 edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+            memory_request :
+                view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
+                edit : <span><b>{@render_input('memory_request')} MB</b> RAM memory available</span>
             cores       :
                 view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>

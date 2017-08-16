@@ -452,7 +452,7 @@ exports.LabeledRow = LabeledRow = rclass
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
-            <Col xs={12-@props.label_cols}>
+            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
                 {@props.children}
             </Col>
         </Row>
@@ -1589,10 +1589,10 @@ exports.UpgradeAdjustor = rclass
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
                 <hr/>
                 <Row>
-                    <Col md=1>
+                    <Col md=2>
                         <b style={fontSize:'12pt'}>Quota</b>
                     </Col>
-                    <Col md=5>
+                    <Col md=4>
                         <Button
                             bsSize  = 'xsmall'
                             onClick = {@max_upgrades}
