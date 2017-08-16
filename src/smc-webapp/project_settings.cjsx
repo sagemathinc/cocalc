@@ -647,9 +647,6 @@ ProjectControlPanel = rclass
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
 
-    save_project: ->
-        @actions('projects').save_project(@props.project.get('project_id'))
-
     stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
 
@@ -682,9 +679,6 @@ ProjectControlPanel = rclass
             </Button>
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
                 <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
-            </Button>
-            <Button bsStyle='success' disabled={'save' not in commands} onClick={(e)=>e.preventDefault(); @save_project()}>
-                <Icon name={COMPUTE_STATES.saving.icon} /> Save
             </Button>
         </ButtonToolbar>
 
