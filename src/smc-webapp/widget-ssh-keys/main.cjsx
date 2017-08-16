@@ -234,6 +234,7 @@ OneSSHKey = rclass
         </ListGroupItem>
 
 # Children are rendered above the list of SSH Keys
+# Takes an optional Help string or node to render as a help modal
 exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
