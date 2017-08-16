@@ -63,6 +63,9 @@ exports.start_raw_server = (opts) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
+            {init_health_metrics} = require('./kucalc')
+            init_health_metrics(raw_server)
+
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
 

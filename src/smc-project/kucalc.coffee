@@ -114,4 +114,19 @@ exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
     setInterval(test_firewall, interval_ms)
     return
 
+# called inside raw_server
+exports.init_health_metrics = (raw_server) ->
+    return if not exports.IN_KUCALC
 
+    # Setup health and metrics (no url base prefix needed)
+    raw_server.use '/health', (req, res) ->
+        res.setHeader("Content-Type", "text/plain")
+        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
+        res.send('OK')
+
+    # prometheus text format -- https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
+    raw_server.use '/metrics', (req, res) ->
+        res.setHeader("Content-Type", "text/plain; version=0.0.4")
+        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
+        {get_bugs_total} = require('./local_hub')
+        res.send("kucalc_project_bugs_total #{get_bugs_total()}\n")
