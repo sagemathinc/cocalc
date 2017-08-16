@@ -15,6 +15,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {upload_endpoint} = require('./upload')
 
+kucalc = require('./kucalc')
+
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -63,8 +65,9 @@ exports.start_raw_server = (opts) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
-            {init_health_metrics} = require('./kucalc')
-            init_health_metrics(raw_server)
+            if kucalc.IN_KUCALC
+                # Add a /health handler, which is used as a health check for Kubernetes.
+                kucalc.init_health_metrics(raw_server)
 
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
