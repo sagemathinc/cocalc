@@ -310,8 +310,8 @@ QuotaConsole = rclass
                 view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
-                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
+                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'core')}</b>
             mintime     :
                 view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
@@ -620,7 +620,7 @@ ProjectControlPanel = rclass
 
     ssh_notice: ->
         project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
+        host = @props.project.get('host')?.get('host') ? 'ssh.cocalc.com'
         if host?
             if @state.show_ssh
                 <div>
