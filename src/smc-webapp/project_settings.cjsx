@@ -620,13 +620,13 @@ ProjectControlPanel = rclass
 
     ssh_notice: ->
         project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host') ? 'ssh.cocalc.com'
+        host = @props.project.get('host')?.get('host')
         if host?
             if @state.show_ssh
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
@@ -688,6 +688,13 @@ ProjectControlPanel = rclass
             </Button>
         </ButtonToolbar>
 
+    show_host: ->
+        host = @props.project.get('host')?.get('host')
+        if host
+            <LabeledRow key='host' label='Host'>
+                <pre>{host}.sagemath.com</pre>
+            </LabeledRow>
+
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
             <LabeledRow key='state' label='State'>
@@ -700,9 +707,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            <LabeledRow key='host' label='Host'>
-                <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
-            </LabeledRow>
+            {@show_host()}
             If your project is not working, please create a <ShowSupportLink />.
             {<hr /> if @props.allow_ssh}
             {@ssh_notice() if @props.allow_ssh}
@@ -997,16 +1002,6 @@ SSHPanel = rclass
         user_map   : rtypes.immutable.Map
         account_id : rtypes.string
 
-    render_how_to: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            <div>
-                To SSH into your project, use the following <span style={color:'#666'}>username@host:</span>
-                {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
-            </div>
-
     add_ssh_key: (opts) ->
         opts.project_id = @props.project.get('project_id')
         @actions('projects').add_ssh_key_to_project(opts)
@@ -1016,19 +1011,32 @@ SSHPanel = rclass
             fingerprint : fingerprint
             project_id  : @props.project.get('project_id')
 
+    render_ssh_notice: ->
+        user = misc.replace_all(@props.project.get('project_id'), '-', '')
+        addr = "#{user}@ssh.cocalc.com"
+        <div>
+            <span>Use the following username@host:</span>
+            <pre>{addr}</pre>
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+                <Icon name='life-ring'/> How to create SSH keys
+            </a>
+        </div>
+
     render: ->
-        <SSHKeyList
-            user_map   = {@props.user_map}
-            ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
-            delete_key = {@delete_ssh_key}
-        >
-            <SSHKeyAdder
-                add_ssh_key  = {@add_ssh_key}
-                toggleable   = {true}
-                style        = {marginBottom:'10px'}
-                account_id   = {@props.account_id} />
-            {@render_how_to()}
-        </SSHKeyList>
+        <div>
+            <SSHKeyList
+                user_map   = {@props.user_map}
+                ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
+                delete_key = {@delete_ssh_key}
+            >
+                <SSHKeyAdder
+                    add_ssh_key  = {@add_ssh_key}
+                    toggleable   = {true}
+                    style        = {marginBottom:'10px'}
+                    account_id   = {@props.account_id} />
+            {@render_ssh_notice()}
+            </SSHKeyList>
+        </div>
 
 ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'

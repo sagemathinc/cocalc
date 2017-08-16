@@ -20,6 +20,7 @@ exports.SSHKeysPage = rclass
             SSH to <b><i>all projects</i></b> on which
             you are an owner or collaborator.  Alternatively, set SSH keys that
             grant access only to a project in the settings for that project.
+            See the SSH part of the settings page in a project for further instructions.
         </div>
 
     render: ->
