@@ -6,7 +6,9 @@ async = require('async')
 
 misc_node = require('smc-util-node/misc_node')
 
-exports.IN_KUCALC = process.env.COCALC_USERNAME == 'user'
+# This gets **changed** to true in local_hub.coffee, if a certain
+# command line flag is passed in.
+exports.IN_KUCALC = false
 
 exports.init = (client) ->
     # update project status every 30s
@@ -78,3 +80,38 @@ disk_usage = (path, cb) ->
                 cb(err)
             else
                 cb(undefined, parseInt(out.stdout))
+
+
+# Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
+# If we recieve some information, exit with status code 99.
+exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
+    if not exports.IN_KUCALC
+        logger?.warn("not running firewall test -- not in kucalc")
+        return
+    URI = 'http://metadata.google.internal/computeMetadata/v1/'
+    test_firewall = ->
+        logger?.log("test_firewall")
+        request = require('request')
+        request(
+            timeout : 3000
+            headers :
+              'Metadata-Flavor' : 'Google'
+            uri: URI
+            method: 'GET'
+        , (err, res, body) ->
+            if err?.code == 'ETIMEDOUT'
+                logger?.log('test_firewall: timeout -> no action')
+            else
+                logger?.warn('test_firewall', res)
+                logger?.warn('test_firewall', body)
+                if res? or body?
+                    logger?.warn('test_firewall: request went through and got a response -> exiting with code 99')
+                    process.exit(99)
+                else
+                    logger?.warn('test_firewall: request went through with no response -> no action')
+        )
+    test_firewall()
+    setInterval(test_firewall, interval_ms)
+    return
+
+

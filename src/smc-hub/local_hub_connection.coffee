@@ -525,7 +525,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         socket = _socket
                         cb()
                     else
-                        @dbg("failed so get address of a working local hub")
+                        @dbg("failed to get address of a working local hub")
                         @project (err, project) =>
                             if err
                                 cb(err)

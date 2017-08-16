@@ -47,6 +47,9 @@ misc_node   = require('smc-util-node/misc_node')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
+# Functionality special to the KuCalc environment.
+kucalc = require('./kucalc')
+
 # The raw http server
 raw_server = require('./raw_server')
 
@@ -111,10 +114,11 @@ common = require('./common')
 json = common.json
 
 INFO = undefined
+hub_client = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
-    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+    if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
         username   = process.env.COCALC_USERNAME
     else
@@ -138,9 +142,8 @@ init_info_json = (cb) ->
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    fs.writeFileSync(filename, misc.to_json(INFO))
-
-init_info_json()
+    exports.client = hub_client = new Client(INFO.project_id)
+    fs.writeFile(filename, misc.to_json(INFO), cb)
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -164,27 +167,6 @@ terminate_session = (socket, mesg) ->
         console_sessions.terminate_session(sid, cb)
     else
         cb()
-
-# Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
-# If we recieve some information, exit with status code 99.
-init_gce_firewall_test = ->
-    test_firewall = ->
-        request = require('request')
-        request(
-            timeout : 3000
-            headers :
-              'Metadata-Flavor' : 'Google'
-            uri: 'http://metadata.google.internal/computeMetadata/v1/'
-            method: 'GET'
-        , (err, res, body) ->
-            if err? and err.code == 'ETIMEDOUT'
-                winston.debug('test_firewall: timeout -> no action')
-            else
-                winston.warn('test_firewall: request went through -> exiting with code 99')
-                process.exit(99)
-        )
-    test_firewall()
-    setInterval(test_firewall, 60 * 1000)
 
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
@@ -255,8 +237,6 @@ project, which will cause it to make another local_hub server, separate
 from the one you just started running.
 ###
 
-exports.client = hub_client = new Client(INFO.project_id)
-
 start_tcp_server = (secret_token, port, cb) ->
     # port: either numeric or 'undefined'
     if not secret_token?
@@ -303,6 +283,8 @@ start_server = (tcp_port, raw_port, cb) ->
         console_sessions.set_port(program.console_port)
     async.series([
         (cb) ->
+            init_info_json(cb)
+        (cb) ->
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
@@ -338,12 +320,15 @@ program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
+
+if program.kucalc
+    kucalc.IN_KUCALC = true
+    if program.test_firewall
+        kucalc.init_gce_firewall_test(winston)
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
-
-if program.test_firewall
-    init_gce_firewall_test()
