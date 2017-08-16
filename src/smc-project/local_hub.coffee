@@ -16,6 +16,9 @@ doing a lot of IO-based things is what Node.JS is good at.
 
 require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
 
+
+BUG_COUNTER = 0
+
 process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")
     winston.debug("Uncaught exception: " + err)
@@ -23,6 +26,10 @@ process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")
     if console? and console.trace?
         console.trace()
+    BUG_COUNTER += 1
+
+exports.get_bugs_total = ->
+    return BUG_COUNTER
 
 path    = require('path')
 async   = require('async')
