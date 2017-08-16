@@ -159,7 +159,7 @@ membership.professional =    # a user that has a professional membership
         disk_quota     : 5000*20
         member_host    : 2*20
         memory         : 3000*20
-        memory_request : 1000*8
+        memory_request : 1000*4
         mintime        : 24*3600*20
         network        : 10*20
 
@@ -175,7 +175,7 @@ membership.premium =    # a user that has a premium membership
         disk_quota     : 5000*8
         member_host    : 2*8
         memory         : 3000*8
-        memory_request : 1000*4
+        memory_request : 1000*2
         mintime        : 24*3600*8
         network        : 10*8
 
