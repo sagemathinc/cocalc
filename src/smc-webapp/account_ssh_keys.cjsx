@@ -22,6 +22,13 @@ exports.SSHKeysPage = rclass
             grant access only to a project in the settings for that project.
         </div>
 
+    help: ->
+        <div>
+            To SSH into a project, use the following <span style={color:'#666'}>username@host:</span>
+            <pre>[projectIdWithoutDashes]@ssh.cocalc.com </pre>
+            A project's Id can be found in it's settings panel.
+        </div>
+
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
@@ -31,7 +38,8 @@ exports.SSHKeysPage = rclass
                         ssh_keys   = {@props.ssh_keys}
                         user_map   = {@props.user_map}
                         pre_list   = {@render_pre_list_message()}
-                        delete_key = {@actions('account').delete_ssh_key} />
+                        delete_key = {@actions('account').delete_ssh_key}
+                        help       = {@help()} />
                 </Col>
                 <Col md=4>
                     <SSHKeyAdder

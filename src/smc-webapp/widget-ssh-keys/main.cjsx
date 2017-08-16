@@ -6,7 +6,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
-{Icon, TimeAgo} = require('../r_misc')
+{Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
 {User} = require('../users')
 
 # Sibling Libraries
@@ -58,6 +58,7 @@ exports.SSHKeyAdder = rclass
         @setState
             key_title  : ""
             key_value  : ""
+            error      : undefined
             show_panel : not @props.toggleable
 
     trigger_error: (err) ->
@@ -234,6 +235,7 @@ OneSSHKey = rclass
         </ListGroupItem>
 
 # Children are rendered above the list of SSH Keys
+# Takes an optional Help string or node to render as a help modal
 exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
@@ -241,9 +243,18 @@ exports.SSHKeyList = rclass
         user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.Map
         delete_key : rtypes.func
+        help       : rtypes.oneOfType([rtypes.string, rtypes.element])
 
     getDefaultProps: ->
         ssh_keys : immutable.Map()
+
+    render_header: ->
+        <h3>
+            <Icon name='list-ul' /> SSH Keys <Space/>
+            {<HelpIcon title='Using SSH Keys'>
+                {@props.help}
+            </HelpIcon> if @props.help?}
+        </h3>
 
     render_keys: ->
         v = []
@@ -260,7 +271,7 @@ exports.SSHKeyList = rclass
         return v
 
     render: ->
-        <Panel header={<h2> <Icon name='list-ul' /> SSH Keys</h2>}>
+        <Panel header={@render_header()}>
             {@props.children}
             <Panel style={marginBottom:'0px'} >
                 <ListGroup fill={true}>
