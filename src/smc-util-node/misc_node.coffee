@@ -252,10 +252,6 @@ exports.connect_to_locked_socket = (opts) ->
         cb("connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: #{port}")
         return
 
-    if not misc.is_string(token)
-        cb("connect_to_locked_socket -- secret token (='#{token}') must be a string")
-        return
-
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 
