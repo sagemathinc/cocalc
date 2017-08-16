@@ -31,6 +31,8 @@ exports.compute_client = (db, logger) ->
 
 class Dbg extends EventEmitter
 
+project_cache = {}
+
 class Client
     constructor: (@database, @logger) ->
         @dbg("constructor")()
@@ -47,23 +49,50 @@ class Client
         opts = defaults opts,
             project_id : required
             cb         : required
-        @dbg("project")("project_id=#{opts.project_id}")
-        @database.synctable
-            table    : 'projects'
-            columns  : ['state', 'status', 'action_request']
-            where    :
-                project_id : opts.project_id
-            cb       : (err, synctable) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, new Project(@, opts.project_id, synctable, @logger))
+        dbg = @dbg("project('#{opts.project_id}')")
+        P = project_cache[opts.project_id]
+        if P?
+            dbg('in cache')
+            if P.is_ready
+                opts.cb(undefined, P)
+            else
+                P.once 'ready', (err) ->
+                    opts.cb(err, P)
+            return
+        dbg("not in cache, so creating")
+        P = project_cache[opts.project_id] = new Project(@, opts.project_id, @logger, @database)
+        P.once 'ready', ->
+            opts.cb(undefined, P)
 
 class Project extends EventEmitter
-    constructor: (@client, @project_id, @synctable, @logger) ->
+    constructor: (@client, @project_id, @logger, @database) ->
         @host = "project-#{@project_id}"
-        @dbg('constructor')
-        @synctable.on 'change', => @emit('change')
+        dbg = @dbg('constructor')
+        dbg("initializing")
+
+        # It's *critical* that idle_timeout_s be used below, since I haven't
+        # come up with any good way to "garbage collect" ProjectClient objects,
+        # due to the async complexity of everything.
+        # ** TODO: IMPORTANT - idle_timeout_s is NOT IMPLEMENTED in postgres-synctable yet! **
+        @database.synctable
+            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation;
+                                      # but short enough that connections get freed up.
+            table          : 'projects'
+            columns        : ['state', 'status', 'action_request']
+            where          : {"project_id = $::UUID" : @project_id}
+            where_function : (project_id) =>
+                return project_id == @project_id  # fast easy test for matching
+            cb             : (err, synctable) =>
+                if err
+                    dbg("error creating synctable ", err)
+                    @emit("ready", err)
+                    @close()
+                else
+                    dbg("successfully created synctable; now ready")
+                    @is_ready = true
+                    @synctable = synctable
+                    @synctable.on 'change', => @emit('change')
+                    @emit("ready")
 
     # Get the current data about the project from the database.
     get: (field) =>
@@ -90,13 +119,24 @@ class Project extends EventEmitter
         else
             return (args...) => @logger.debug("kucalc.Project('#{@project_id}').#{f}", args...)
 
-    close: () =>
+    # free -- stop listening for status updates from the database and broadcasting
+    # updates about this project.
+    # NOTE: as of writing this line, this free is never called by hub, and idle_timeout_s
+    # is used instead below (of course, free could be used by maintenance operations).
+    free: () =>
+        # Ensure that next time this project gets requested, a fresh one is created, rather than
+        # this cached one, which has been free'd up, and will no longer work.
+        delete project_cache[@project_id]
+        # Close the changefeed, so get no further data from database.
         @synctable?.close()
         delete @synctable
         delete @logger
         delete @project_id
         delete @compute_server
         delete @host
+        delete @is_ready
+        # Make sure nothing else reacts to changes on this ProjectClient, since they won't happen.
+        @removeAllListeners()
 
     state: (opts) =>
         opts = defaults opts,
