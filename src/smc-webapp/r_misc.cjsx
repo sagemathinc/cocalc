@@ -21,7 +21,7 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
@@ -463,40 +463,36 @@ help_text =
   borderRadius   : '5px'
   margin         : '5px'
 
-exports.Help = rclass
+exports.HelpIcon = rclass
     displayName : 'Misc-Help'
 
     propTypes :
-        button_label : rtypes.string.isRequired
         title        : rtypes.string.isRequired
 
     getDefaultProps: ->
-        button_label : 'Help'
         title        : 'Help'
 
     getInitialState: ->
         closed : true
 
-    render_title: ->
-        <span>
-            {@props.title}
-        </span>
+    close: ->
+        @setState(closed : true)
 
     render: ->
         if @state.closed
-            <div>
-                <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
-            </div>
-        else
-            <Well style={width:500, zIndex:10, boxShadow:'3px 3px 3px #aaa', position:'absolute'} className='well'>
-                <a href='' style={float:'right'} onClick={(e)=>e.preventDefault();@setState(closed:true)}><Icon name='times'/></a>
-                <h4>{@props.title}
-                </h4>
-                <div style={help_text}>
+            <a onClick={(e)=>e.preventDefault();@setState(closed:false)}><Icon style={color:'#5bc0de'} name='question-circle'/></a>
+        else if not @state.closed
+            <Modal show={not @state.closed} onHide={@close}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{@props.title}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
                     {@props.children}
-                </div>
-            </Well>
-
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button onClick={@close}>Close</Button>
+                </Modal.Footer>
+            </Modal>
 
 ###
 # Customized TimeAgo support
