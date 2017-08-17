@@ -69,5 +69,5 @@ exports.RamWarning = rclass ({name}) ->
             return null
 
         <Alert bsStyle='danger' style={alert_style}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running out of RAM. Please increase the quota in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a> or else suffer?
+            <Icon name='exclamation-triangle' /> WARNING: This project is running out of RAM.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes.
         </Alert>
