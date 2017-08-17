@@ -56,18 +56,18 @@ exports.RamWarning = rclass ({name}) ->
 
     render: ->
         if not require('./customize').commercial
-            return null
+            return <span />
         quotas = @props.get_total_project_quotas(@props.project_id)
         project_status = @props.project_map?.get(@props.project_id)?.get('status')
         if not quotas?.memory? or not project_status?
-            return null
+            return <span />
         else
             rss = project_status.get('memory')?.get('rss')
             if not rss
-                return
+                return <span />
             memory = Math.round(rss/1000)
         if quotas.memory > memory + 5
-            return null
+            return <span />
 
         <Alert bsStyle='danger' style={alert_style}>
             <Icon name='exclamation-triangle' /> WARNING: This project is running low on RAM memory.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes.
