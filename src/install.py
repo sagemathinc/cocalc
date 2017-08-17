@@ -81,7 +81,13 @@ def install_webapp(*args):
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
         wtype = 'debug' if args[0].debug else 'production'
-        print("Building {wtype} webpack -- this should take up to 5 minutes".format(wtype=wtype))
+        if args[0].debug:
+            wtype = 'debug'
+            est   = 1
+        else:
+            wtype = 'production'
+            est   = 5
+        print("Building {wtype} webpack -- this should take up to {est} minutes".format(wtype=wtype, est=est))
         cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
         nothing = False
 
