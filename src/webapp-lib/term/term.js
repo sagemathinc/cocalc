@@ -2578,6 +2578,9 @@ Terminal.prototype.nextStop = function(x) {
 };
 
 Terminal.prototype.eraseRight = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
@@ -2593,6 +2596,9 @@ Terminal.prototype.eraseRight = function(x, y) {
 };
 
 Terminal.prototype.eraseLeft = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
