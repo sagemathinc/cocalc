@@ -41,7 +41,7 @@ exports.DiskSpaceWarning = rclass ({name}) ->
 
 
 exports.RamWarning = rclass ({name}) ->
-    displayName : 'DiskSpaceWarning'
+    displayName : 'RAMWarning'
 
     reduxProps :
         projects :
@@ -63,11 +63,12 @@ exports.RamWarning = rclass ({name}) ->
             return null
         else
             rss = project_status.get('memory')?.get('rss')
-            if rss?
-                memory = Math.round(rss/1000)
-        if quotas.memory - 5 > memory
+            if not rss
+                return
+            memory = Math.round(rss/1000)
+        if quotas.memory > memory + 5
             return null
 
         <Alert bsStyle='danger' style={alert_style}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running out of RAM.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes.
+            <Icon name='exclamation-triangle' /> WARNING: This project is running low on RAM memory.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes.
         </Alert>
