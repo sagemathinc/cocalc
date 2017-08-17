@@ -3072,10 +3072,10 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
-    // if (this.lines.length <= row) {
-    //     continue;
-    // }
+    // sometimes, row is too large
+    if (row >= this.lines.length) {
+        continue;
+    }
     // Question: How can you possibly have a problem because of running that code? It seems
     // like if you don't have that commented out code, then the next line would
     // cause a traceback? Answer: well, those tracebacks are there right now.
