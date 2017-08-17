@@ -272,11 +272,20 @@ class Console extends EventEmitter
         @resize_terminal()
         @config_session()
 
+    set_state_connected: =>
+        @element.find(".webapp-console-terminal").css('opacity':'1')
+        @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+
+    set_state_disconnected:  =>
+        @element.find(".webapp-console-terminal").css('opacity':'.5')
+        @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+
     config_session: () =>
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
             # console.log("terminal got #{data.length} characters -- '#{data}'")
             @_got_remote_data = new Date()
+            @set_state_connected()  # connected if we are getting data.
             if @_rendering_is_paused
                 @_render_buffer += data
             else
@@ -288,8 +297,7 @@ class Console extends EventEmitter
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
             @_reconnecting = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'.5')
-            @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+            @set_state_disconnected()
 
         @session.on 'reconnect', () =>
             delete @_reconnecting
@@ -297,8 +305,7 @@ class Console extends EventEmitter
             @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'1')
-            @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+            @set_state_connected()
             @reset()
             if @session.init_history?
                 #console.log("writing history")
