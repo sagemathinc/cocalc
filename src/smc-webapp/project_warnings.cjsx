@@ -70,5 +70,5 @@ exports.RamWarning = rclass ({name}) ->
             return <span />
 
         <Alert bsStyle='danger' style={alert_style}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running low on RAM memory.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes.
+            <Icon name='exclamation-triangle' /> WARNING: This project is running low on RAM memory.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes. (Memory usage is updated about once per minute.)
         </Alert>
