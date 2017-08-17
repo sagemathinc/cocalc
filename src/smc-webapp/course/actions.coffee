@@ -486,7 +486,7 @@ exports.CourseActions = class CourseActions extends Actions
         @redux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
             @clear_activity(id)
             if err
-                @set_error("error creating student project -- #{err}")
+                @set_error("error creating student project for #{store.get_student_name(student_id)} -- #{err}")
             else
                 @_set
                     create_project : null
