@@ -54,6 +54,7 @@
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
     "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-debug": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true webpack --debug --progress --colors",
     "webpack-production": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; NODE_ENV=production webpack --progress --colors",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
