@@ -31,6 +31,7 @@ misc = require('smc-util/misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 {COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
+{BASE_URL} = require('misc_page')
 
 # List item style
 li_style =
@@ -186,7 +187,7 @@ SUPPORT_LINKS =
         link :  <span>Courses using <SiteName/></span>
     cocalc_api :
         icon : 'gears'
-        href : 'https://cocalc.com/doc/api.html'
+        href : "#{BASE_URL}/doc/api.html"
         link :  <span><SiteName/> API</span>
 
 CONNECT_LINKS =
@@ -275,7 +276,7 @@ ABOUT_LINKS =
     legal :
         icon : 'cc-icon-section'
         link : 'Terms of Service, Pricing, Copyright and Privacy policies'
-        href : '/policies/index.html'
+        href : "#{BASE_URL}/policies/index.html"
     developers :
         icon : 'keyboard-o'
         text : <span>
