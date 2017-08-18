@@ -362,4 +362,9 @@ if fullscreen_query_value
         redux.getActions('page').set_fullscreen('default')
 
 # configure the session
-redux.getActions('page').set_session(misc_page.get_query_param('session'))
+# This makes it so the default session is 'default' and there is no
+# way to NOT have a session.
+session = misc_page.get_query_param('session') ? 'default'
+# This would make it so there is no session if you don't explicitly set ?session= in the URL.
+#session = misc_page.get_query_param('session')
+redux.getActions('page').set_session()
