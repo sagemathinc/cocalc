@@ -184,6 +184,10 @@ SUPPORT_LINKS =
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
         link :  <span>Courses using <SiteName/></span>
+    cocalc_api :
+        icon : 'gears'
+        href : 'https://cocalc.com/doc/api.html'
+        link :  <span><SiteName/> API</span>
 
 CONNECT_LINKS =
     support_mailing_list :
