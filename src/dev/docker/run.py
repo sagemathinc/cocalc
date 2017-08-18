@@ -89,7 +89,15 @@ def root_ssh_keys():
     run("cp -v /root/.ssh/id_ecdsa.pub /root/.ssh/authorized_keys")
 
 def start_hub():
-    run(". smc-env && hub start --host=localhost --port 5000 --proxy_port 5001 --update --single --logfile /var/log/hub.log --pidfile /root/hub.pid &", path='/cocalc/src')
+    run(". smc-env && hub start \
+            --host=localhost \
+            --port 5000 \
+            --proxy_port 5001 \
+            --update \
+            --single \
+            --logfile /var/log/hub.log \
+            --pidfile /run/hub.pid &", \
+        path='/cocalc/src')
 
 def postgres_perms():
     run("mkdir -p /projects/postgres && chown -R sage. /projects/postgres && chmod og-rwx -R /projects/postgres")
@@ -122,7 +130,7 @@ def tail_logs():
     run("tail -f /var/log/compute.log /var/log/compute.err /cocalc/logs/*")
 
 def main():
-    self_signed_cert('/nopassphrase.pem')
+    self_signed_cert('/run/haproxy.pem')
     init_projects_path()
     start_services()
     root_ssh_keys()
