@@ -274,7 +274,7 @@ exports.SSHKeyList = rclass
         v.sort (a,b) ->
             if a.date? and b.date?
                 return -misc.cmp(a.date, b.date)
-            if a.date and b.date?
+            if a.date and not b.date?
                 return -1
             if b.date and not a.date?
                 return +1
