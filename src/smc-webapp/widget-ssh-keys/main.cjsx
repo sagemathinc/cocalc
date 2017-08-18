@@ -181,7 +181,6 @@ OneSSHKey = rclass
 
     propTypes:
         ssh_key  : rtypes.immutable.Map.isRequired
-        user_map : rtypes.immutable.Map
         delete   : rtypes.func
 
     getInitialState: ->
@@ -240,7 +239,6 @@ exports.SSHKeyList = rclass
     displayName: 'SSH-Key-List'
 
     propTypes:
-        user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.Map
         delete_key : rtypes.func
         help       : rtypes.oneOfType([rtypes.string, rtypes.element])
@@ -258,17 +256,30 @@ exports.SSHKeyList = rclass
 
     render_keys: ->
         v = []
+
         @props.ssh_keys.forEach (ssh_key, fingerprint) =>
             if not ssh_key
                 return
             ssh_key = ssh_key.set('fingerprint', fingerprint)
-            v.push <OneSSHKey
+            v.push
+                date      : ssh_key.get('last_use_date')
+                fp        : fingerprint
+                component : <OneSSHKey
                     ssh_key  = {ssh_key}
                     delete   = {@props.delete_key}
                     key      = {fingerprint}
-                    user_map = {@props.user_map}
                 />
-        return v
+            return
+        # sort in reverse order by last_use_date, then by fingerprint
+        v.sort (a,b) ->
+            if a.date? and b.date?
+                return -misc.cmp(a.date, b.date)
+            if a.date and b.date?
+                return -1
+            if b.date and not a.date?
+                return +1
+            return misc.cmp(a.fp, b.fp)
+        return (x.component for x in v)
 
     render: ->
         <Panel header={@render_header()}>

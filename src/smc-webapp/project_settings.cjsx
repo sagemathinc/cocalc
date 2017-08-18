@@ -1019,7 +1019,6 @@ SSHPanel = rclass
     render: ->
         <div>
             <SSHKeyList
-                user_map   = {@props.user_map}
                 ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
                 delete_key = {@delete_ssh_key}
             >

@@ -106,7 +106,6 @@ exports.AccountPage = rclass
     render_ssh_keys_page: ->
         <SSHKeysPage
             account_id = {@props.account_id}
-            user_map   = {@props.user_map}
             ssh_keys   = {@props.ssh_keys}
         />
 

@@ -11,7 +11,6 @@ misc = require('smc-util/misc')
 exports.SSHKeysPage = rclass
     propTypes:
         account_id : rtypes.string.isRequired
-        user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.Map
 
     render_pre_list_message: ->
@@ -38,7 +37,6 @@ exports.SSHKeysPage = rclass
                     {@render_pre_list_message()}
                     <SSHKeyList
                         ssh_keys   = {@props.ssh_keys}
-                        user_map   = {@props.user_map}
                         pre_list   = {@render_pre_list_message()}
                         delete_key = {@actions('account').delete_ssh_key}
                         help       = {@help()} />
