@@ -110,6 +110,7 @@ class Console extends EventEmitter
         @path = @opts.path
 
         @mark_file_use = debounce(@mark_file_use, 3000)
+        @resize        = debounce(@resize, 500)
 
         @_project_actions = redux.getProjectActions(@project_id)
 
@@ -117,6 +118,8 @@ class Console extends EventEmitter
         # editor is focused.  This impacts the cursor, and also whether
         # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
+
+        @allow_resize = true
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
@@ -292,7 +295,7 @@ class Console extends EventEmitter
                 @render(data)
 
             if @_needs_resize
-                @resize()
+                @resize(true)
 
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
@@ -338,7 +341,7 @@ class Console extends EventEmitter
             @append_to_value(@session.init_history)
 
         @terminal.showCursor()
-        @resize()
+        @resize(true)
 
     render: (data) =>
         #console.log "render '#{data}'"
@@ -461,6 +464,7 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown")
+        @allow_resize = true
 
         if @_ignore
             # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
@@ -503,7 +507,7 @@ class Console extends EventEmitter
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         @element.find(".webapp-console-font-indicator-size").text(@opts.font.size)
         @element.find(".webapp-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
-        @resize()
+        @resize(true)
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
@@ -598,18 +602,22 @@ class Console extends EventEmitter
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
         @element.find("a[href=\"#increase-font\"]").click () =>
+            @allow_resize = true
             @_increase_font_size()
             return false
 
         @element.find("a[href=\"#decrease-font\"]").click () =>
+            @allow_resize = true
             @_decrease_font_size()
             return false
 
         @element.find("a[href=\"#refresh\"]").click () =>
+            @allow_resize = true
             @session?.reconnect()
             return false
 
         @element.find("a[href=\"#paste\"]").click () =>
+            @allow_resize = true
             id = uuid()
             s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
@@ -814,7 +822,7 @@ class Console extends EventEmitter
             top       : "3.5em"
             bottom    : 1
 
-        @resize()
+        @resize(false)
 
     # exit fullscreen mode
     exit_fullscreen: () =>
@@ -823,7 +831,7 @@ class Console extends EventEmitter
                 position : 'relative'
                 top      : 0
                 width    : "100%"
-        @resize()
+        @resize(false)
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
@@ -833,7 +841,11 @@ class Console extends EventEmitter
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then resize the renderer and the
     # remote PTY.
-    resize: () =>
+    resize: (internal) =>
+        if internal and not @allow_resize
+            return
+        @allow_resize = false
+
         if not @session?
             # don't bother if we don't even have a remote connection
             # FUTURE: could queue this up to send
