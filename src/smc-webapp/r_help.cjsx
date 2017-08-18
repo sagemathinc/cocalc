@@ -23,6 +23,12 @@
 # Help Page
 ###
 
+if global['BACKEND']  # set in ./render.coffee
+    BASE_URL = require('smc-util/theme').DOMAIN_NAME
+else
+    # browser
+    {BASE_URL} = require('./misc_page')
+
 $ = window.$
 misc = require('smc-util/misc')
 {React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
@@ -31,7 +37,6 @@ misc = require('smc-util/misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 {COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
-{BASE_URL} = require('misc_page')
 
 # List item style
 li_style =
