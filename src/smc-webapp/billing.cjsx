@@ -441,7 +441,7 @@ AddPaymentMethod = rclass
                 </Col>
             </Row>
             <div style={color:"#666", marginTop:'15px'}>
-                (PayPal or wire transfers are also possible -- email <HelpEmailLink/>.)
+                (PayPal or wire transfers for non-recurring subscriptions above $50 are also possible. Please email <HelpEmailLink/>.)
             </div>
         </div>
 
@@ -1806,7 +1806,8 @@ BillingPage = rclass
                     purchase or renew your subscriptions.  Without a credit card
                     any current subscriptions will run to completion, but will not renew.
                     If you have any questions about subscriptions or billing (e.g., about
-                    using PayPal or wire transfers instead), please email <HelpEmailLink /> immediately.
+                    using PayPal or wire transfers for non-recurring subscriptions above $50,
+                    please email <HelpEmailLink /> immediately.
                 </span>
 
         else if subs == 0
