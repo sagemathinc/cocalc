@@ -190,7 +190,7 @@ OneSSHKey = rclass
         d = @props.ssh_key.get('last_use_date')
         if d
             <div style={color:'#1e7e34'}>
-                Last used within <TimeAgo date={new Date(d)} />
+                Last used <TimeAgo date={new Date(d)} />
             </div>
         else
             <div style={color:'#333'}>
