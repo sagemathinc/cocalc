@@ -365,6 +365,9 @@ if fullscreen_query_value
 # This makes it so the default session is 'default' and there is no
 # way to NOT have a session.
 session = misc_page.get_query_param('session') ? 'default'
-# This would make it so there is no session if you don't explicitly set ?session= in the URL.
-#session = misc_page.get_query_param('session')
-redux.getActions('page').set_session()
+if fullscreen_query_value == 'kiosk'
+    # never have a session in kiosk mode, since you can't access the other files.
+    session = undefined
+
+redux.getActions('page').set_session(session)
+
