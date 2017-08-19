@@ -6,18 +6,25 @@ Initially only the simplest possible client-side implementation.
 
 {throttle} = require('underscore')
 misc = require('smc-util/misc')
+{webapp_client} = require('./webapp_client')
 
 exports.session_manager = (name, redux) ->
     return new SessionManager(name, redux)
 
 class SessionManager
     constructor: (@name, @redux) ->
-        #if DEBUG then console.log 'session manager', @name
+        if webapp_client.account_id
+            @init_local_storage()
+        else
+            webapp_client.on 'signed_in', =>
+                @init_local_storage()
+        @save = throttle(@save, 1000)
+
+    init_local_storage: =>
         {APP_BASE_URL} = require('misc_page')
         prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
-        @_local_storage_name = "session#{prefix}.#{@name}"
-        #if DEBUG then console.log '_local_storage_name: ', @_local_storage_name
-        @save = throttle(@save, 1000)
+        @_local_storage_name = "session#{prefix}.#{webapp_client.account_id}.#{@name}"
+        @restore()
 
     save: =>
         if @_ignore
@@ -27,11 +34,13 @@ class SessionManager
         return
 
     _save_to_local_storage: =>
-        if not @_state?
+        if not @_state? or not @_local_storage_name?
             return
         localStorage[@_local_storage_name] = JSON.stringify(@_state)
 
     restore: =>
+        if not @_local_storage_name?
+            return
         @_load_from_local_storage()
         try
             @_ignore = true # don't want to save state **while** restoring it, obviously.
@@ -42,6 +51,8 @@ class SessionManager
         return
 
     _load_from_local_storage: =>
+        if not @_local_storage_name?
+            return
         try
             @_state = JSON.parse(localStorage[@_local_storage_name])
         catch
@@ -58,7 +69,7 @@ get_session_state = (redux) ->
 restore_session_state = (redux, state) ->
     if not state?
         return
-    
+
     page = redux.getActions('page')
     for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
         page.close_project_tab(project_id)

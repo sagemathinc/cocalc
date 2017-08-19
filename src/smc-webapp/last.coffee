@@ -47,8 +47,6 @@ if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_
 else
     redux.getActions('page').set_active_tab('account')
 
-redux.getActions('page')?.restore_session()
-
 client = webapp_client
 if client._connected
     # These events below currently (due to not having finished the react rewrite)
