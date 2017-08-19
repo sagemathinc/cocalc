@@ -291,11 +291,6 @@ class Project extends EventEmitter
                 else
                     opts.cb(undefined, address)
 
-    ###
-    LATER
-    ###
-
-
     # this is a no-op for Kubernetes; this was only used for serving
     # some static websites, e.g., wstein.org, so may evolve into that...
     save: (opts) =>
@@ -311,10 +306,10 @@ class Project extends EventEmitter
             path              : ""
             target_project_id : ""
             target_path       : ""        # path into project; if "", defaults to path above.
-            overwrite_newer   : false     # if true, newer files in target are copied over (otherwise, uses rsync's --update)
-            delete_missing    : false     # if true, delete files in dest path not in source, **including** newer files
-            backup            : false     # make backup files
-            exclude_history   : false
+            overwrite_newer   : undefined # if true, newer files in target are copied over (otherwise, uses rsync's --update)
+            delete_missing    : undefined # if true, delete files in dest path not in source, **including** newer files
+            backup            : undefined # make backup files
+            exclude_history   : undefined
             timeout           : 5*60
             bwlimit           : undefined
             cb                : undefined
@@ -324,7 +319,26 @@ class Project extends EventEmitter
             opts.target_project_id = @project_id
         if not opts.target_path
             opts.target_path = opts.path
-        opts.cb?("copy_path -- not implemented")
+        @database._query
+            query  : "INSERT INTO copy_paths VALUES"
+            values :
+                "id                ::UUID"      : misc.uuid()
+                "time              ::TIMESTAMP" : new Date()
+                "source_project_id ::UUID"      : @project_id
+                "source_path       ::TEXT"      : opts.path
+                "target_project_id ::UUID"      : opts.target_project_id
+                "target_path       ::TEXT"      : opts.target_path
+                "overwrite_newer   ::BOOLEAN"   : opts.overwrite_newer
+                "delete_missing    ::BOOLEAN"   : opts.delete_missing
+                "backup            ::BOOLEAN"   : opts.backup
+                "bwlimit           ::TEXT"      : opts.bwlimit
+                "timeout           ::DOUBLE"    : opts.timeout
+            cb: opts.cb
+
+    ###
+    LATER
+    ###
+
 
     directory_listing: (opts) =>
         opts = defaults opts,
