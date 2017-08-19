@@ -33,11 +33,39 @@ class Dbg extends EventEmitter
 
 project_cache = {}
 
+
+
 class Client
     constructor: (@database, @logger) ->
         @dbg("constructor")()
         if not @database?
             throw Error("database must be defined")
+
+    copy_paths_synctable: (cb) =>
+        if @_synctable
+            cb(undefined, @_synctable)
+            return
+        if @_synctable_cbs?
+            @_synctable_cbs.push(cb)
+            return
+        @_synctable_cbs = [cb]
+        @database.synctable
+            table    : 'copy_paths'
+            columns  : ['id', 'started', 'error', 'finished']
+            where    :
+                "time > $::TIMESTAMP": new Date()
+            where_function : ->
+                # Whenever anything *changes* in this table, we are interested in it, so no need
+                # to do a query to decide.
+                return true
+            cb       : (err, synctable) =>
+                for cb in @_synctable_cbs
+                    if err
+                        cb(err)
+                    else
+                        cb(undefined, synctable)
+                @_synctable = synctable
+                delete @_synctable_cbs
 
     dbg: (f) =>
         if not @logger?
@@ -311,29 +339,60 @@ class Project extends EventEmitter
             backup            : undefined # make backup files
             exclude_history   : undefined
             timeout           : 5*60
-            bwlimit           : undefined
+            bwlimit           : '5MB'
             cb                : undefined
-        dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
-        dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
             opts.target_project_id = @project_id
         if not opts.target_path
             opts.target_path = opts.path
-        @database._query
-            query  : "INSERT INTO copy_paths"
-            values :
-                "id                ::UUID"      : misc.uuid()
-                "time              ::TIMESTAMP" : new Date()
-                "source_project_id ::UUID"      : @project_id
-                "source_path       ::TEXT"      : opts.path
-                "target_project_id ::UUID"      : opts.target_project_id
-                "target_path       ::TEXT"      : opts.target_path
-                "overwrite_newer   ::BOOLEAN"   : opts.overwrite_newer
-                "delete_missing    ::BOOLEAN"   : opts.delete_missing
-                "backup            ::BOOLEAN"   : opts.backup
-                "bwlimit           ::TEXT"      : opts.bwlimit
-                "timeout           ::NUMERIC"   : opts.timeout
-            cb: opts.cb
+        synctable = undefined
+        id = misc.uuid()
+        dbg = @dbg("copy_path('#{opts.path}', id='#{id}')")
+        dbg("copy a path using rsync from one project to another")
+        async.series([
+            (cb) =>
+                dbg("get synctable")
+                @client.copy_paths_synctable (err, s) =>
+                    synctable = s; cb(err)
+            (cb) =>
+                dbg('write query requesting the copy to the database')
+                @database._query
+                    query  : "INSERT INTO copy_paths"
+                    values :
+                        "id                ::UUID"      : id
+                        "time              ::TIMESTAMP" : new Date()
+                        "source_project_id ::UUID"      : @project_id
+                        "source_path       ::TEXT"      : opts.path
+                        "target_project_id ::UUID"      : opts.target_project_id
+                        "target_path       ::TEXT"      : opts.target_path
+                        "overwrite_newer   ::BOOLEAN"   : opts.overwrite_newer
+                        "delete_missing    ::BOOLEAN"   : opts.delete_missing
+                        "backup            ::BOOLEAN"   : opts.backup
+                        "bwlimit           ::TEXT"      : opts.bwlimit
+                        "timeout           ::NUMERIC"   : opts.timeout
+                    cb: cb
+            (cb) =>
+                if synctable.getIn(['id', 'finished'])
+                    dbg("copy instantly finished")
+                    # no way this ever happens - the server can't be that fast.
+                    # but just in case, logically we have to check this case.
+                    cb()
+                    return
+                dbg('wait for copy to finish')
+                f = (id) =>
+                    obj = synctable.get(id)
+                    if obj.get('started')
+                        dbg("copy started...")
+                    if obj.get('finished')
+                        dbg("copy finished!")
+                        synctable.removeListener('change', f)
+                        cb(obj.get('error'))
+                synctable.on('change', f)
+        ], (err) ->
+            dbg('done', err)
+            synctable?.close()
+            opts.cb?(err)
+        )
 
     ###
     LATER
