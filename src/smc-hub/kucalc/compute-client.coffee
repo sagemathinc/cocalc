@@ -381,6 +381,7 @@ class Project extends EventEmitter
                 dbg('waiting for copy to finish...')
                 f = (id) =>
                     obj = synctable.get(id)
+                    dbg("got change", id, obj?.toJS?(), obj)
                     if obj?.get('started')
                         dbg("copy started...")
                     if obj?.get('finished')
