@@ -320,7 +320,7 @@ class Project extends EventEmitter
         if not opts.target_path
             opts.target_path = opts.path
         @database._query
-            query  : "INSERT INTO copy_paths VALUES"
+            query  : "INSERT INTO copy_paths"
             values :
                 "id                ::UUID"      : misc.uuid()
                 "time              ::TIMESTAMP" : new Date()
@@ -332,7 +332,7 @@ class Project extends EventEmitter
                 "delete_missing    ::BOOLEAN"   : opts.delete_missing
                 "backup            ::BOOLEAN"   : opts.backup
                 "bwlimit           ::TEXT"      : opts.bwlimit
-                "timeout           ::DOUBLE"    : opts.timeout
+                "timeout           ::NUMERIC"   : opts.timeout
             cb: opts.cb
 
     ###
