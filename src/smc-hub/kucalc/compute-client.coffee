@@ -381,9 +381,9 @@ class Project extends EventEmitter
                 dbg('wait for copy to finish')
                 f = (id) =>
                     obj = synctable.get(id)
-                    if obj.get('started')
+                    if obj?.get('started')
                         dbg("copy started...")
-                    if obj.get('finished')
+                    if obj?.get('finished')
                         dbg("copy finished!")
                         synctable.removeListener('change', f)
                         cb(obj.get('error'))
