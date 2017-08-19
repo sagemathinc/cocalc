@@ -915,7 +915,7 @@ schema.public_paths =
 ###
 Requests and status related to copying files between projects.
 ###
-schema.copy_files =
+schema.copy_paths =
     primary_key : 'id'
     fields:
         id                 :
