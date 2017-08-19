@@ -378,7 +378,7 @@ class Project extends EventEmitter
                     # but just in case, logically we have to check this case.
                     cb()
                     return
-                dbg('wait for copy to finish')
+                dbg('waiting for copy to finish...')
                 f = (id) =>
                     obj = synctable.get(id)
                     if obj?.get('started')
@@ -390,7 +390,6 @@ class Project extends EventEmitter
                 synctable.on('change', f)
         ], (err) ->
             dbg('done', err)
-            synctable?.close()
             opts.cb?(err)
         )
 
