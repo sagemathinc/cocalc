@@ -346,8 +346,8 @@ class Project extends EventEmitter
         if not opts.target_path
             opts.target_path = opts.path
         synctable = undefined
-        id = misc.uuid()
-        dbg = @dbg("copy_path('#{opts.path}', id='#{id}')")
+        copy_id = misc.uuid()
+        dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
         dbg("copy a path using rsync from one project to another")
         async.series([
             (cb) =>
@@ -359,7 +359,7 @@ class Project extends EventEmitter
                 @database._query
                     query  : "INSERT INTO copy_paths"
                     values :
-                        "id                ::UUID"      : id
+                        "id                ::UUID"      : copy_id
                         "time              ::TIMESTAMP" : new Date()
                         "source_project_id ::UUID"      : @project_id
                         "source_path       ::TEXT"      : opts.path
@@ -372,23 +372,22 @@ class Project extends EventEmitter
                         "timeout           ::NUMERIC"   : opts.timeout
                     cb: cb
             (cb) =>
-                if synctable.getIn(['id', 'finished'])
+                if synctable.getIn([copy_id, 'finished'])
                     dbg("copy instantly finished")
                     # no way this ever happens - the server can't be that fast.
                     # but just in case, logically we have to check this case.
                     cb()
                     return
                 dbg('waiting for copy to finish...')
-                f = (id) =>
-                    obj = synctable.get(id)
-                    dbg("got change", id, obj?.toJS?(), obj)
+                handle_change = =>
+                    obj = synctable.get(copy_id)
                     if obj?.get('started')
                         dbg("copy started...")
                     if obj?.get('finished')
                         dbg("copy finished!")
-                        synctable.removeListener('change', f)
+                        synctable.removeListener('change', handle_change)
                         cb(obj.get('error'))
-                synctable.on('change', f)
+                synctable.on('change', handle_change)
         ], (err) ->
             dbg('done', err)
             opts.cb?(err)
