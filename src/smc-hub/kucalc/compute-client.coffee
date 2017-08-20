@@ -420,15 +420,6 @@ class Project extends EventEmitter
         dbg("read a file or directory from disk")  # directories get zip'd
         opts.cb?("read_file -- not implemented")
 
-    get_quotas: (opts) =>
-        opts = defaults opts,
-            cb           : required
-        dbg = @dbg("get_quotas")
-        dbg("lookup project quotas in the database")
-        @compute_server.database.get_project_quotas
-            project_id : @project_id
-            cb         : opts.cb
-
     ###
     set_all_quotas ensures that if the project is running and the quotas
     (except idle_timeout) have changed, then the project is restarted.
@@ -442,7 +433,7 @@ class Project extends EventEmitter
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
         # 2. If quotas differ, restarts project.
-        @compute_server.database.get_project
+        @database.get_project
             project_id : @project_id
             columns    : ['state', 'users', 'settings', 'run_quota']
             cb         : (err, x) =>

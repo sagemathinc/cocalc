@@ -1,17 +1,17 @@
 misc = require('smc-util/misc')
 
-exports.quota = (settings, users, defaults) ->
+exports.quota = (settings, users) ->
     # so can assume defined below
     settings ?= {}
     users    ?= {}
     defaults ?= {}
 
-    quota = misc.defaults defaults,
+    quota =
         network        : false
         member_host    : false
         disk_quota     : 3000
         memory_limit   : 1000        # default upper bound on RAM in MB
-        memory_request : 125         # default guaranteed RAM in MB
+        memory_request : 100         # default guaranteed RAM in MB
         cpu_limit      : 1           # default upper bound on cpu
         cpu_request    : 0           # default guaranteed min cpu
 
