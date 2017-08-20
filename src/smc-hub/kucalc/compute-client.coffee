@@ -33,7 +33,7 @@ exports.get_json = get_json = (url, cb) ->
     request.get url, (err, response, body) ->
         if err
             cb(err)
-        else if response.statusCode == 200
+        else if response.statusCode != 200
             cb("ERROR: statusCode #{response.statusCode}")
         else
             try
