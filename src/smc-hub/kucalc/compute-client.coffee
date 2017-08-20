@@ -441,7 +441,7 @@ class Project extends EventEmitter
                     dbg("error -- #{err}")
                     opts.cb(err)
                     return
-                if state.state not in ['running', 'starting']
+                if x.state.state not in ['running', 'starting']
                     dbg("not running")
                     opts.cb()
                     return
