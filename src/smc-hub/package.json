@@ -43,6 +43,7 @@
     "prometheus-gc-stats": "^0.3.0",
     "random-key": "^0.3.2",
     "read": "^1.0.5",
+    "request": "^2.81.0",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
     "sendgrid": "^4.7.1",

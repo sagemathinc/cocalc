@@ -21,11 +21,25 @@ SAGE_SERVER_PORT    = 6002
 CONSOLE_SERVER_PORT = 6003
 
 {EventEmitter} = require('events')
+
+request = require('request')
 async = require('async')
 underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
+
+exports.get_json = get_json = (url, cb) ->
+    request.get url, (err, response, body) ->
+        if err
+            cb(err)
+        else if response.statusCode == 200
+            cb("ERROR: statusCode #{response.statusCode}")
+        else
+            try
+                cb(undefined, JSON.parse(body))
+            catch e
+                cb("ERROR: invalid JSON -- #{e} -- '#{body}'")
 
 exports.compute_client = (db, logger) ->
     return new Client(db, logger)
@@ -132,7 +146,7 @@ class Project extends EventEmitter
             return t
 
     getIn: (v) =>
-        return @get().getIn(v)
+        return @get()?.getIn(v)
 
     _action_request: =>
         x = @get('action_request')?.toJS()
@@ -240,7 +254,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'open'
-            goal   : (project) => (project.getIn(['state', 'state']) ? 'closed') != 'closed'
+            goal   : (project) => (project?.getIn(['state', 'state']) ? 'closed') != 'closed'
             cb     : opts.cb
 
     start: (opts) =>
@@ -251,7 +265,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'start'
-            goal   : (project) -> project.getIn(['state', 'state']) == 'running'
+            goal   : (project) -> project?.getIn(['state', 'state']) == 'running'
             cb     : opts.cb
 
     stop: (opts) =>
@@ -261,7 +275,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'stop'
-            goal   : (project) -> project.getIn(['state', 'state']) in ['opened', 'closed']
+            goal   : (project) -> project?.getIn(['state', 'state']) in ['opened', 'closed']
             cb     : opts.cb
 
     restart: (opts) =>
@@ -287,7 +301,7 @@ class Project extends EventEmitter
         dbg()
         @_action
             action : 'close'
-            goal   : (project) -> project.getIn(['state', 'state']) == 'closed'
+            goal   : (project) -> project?.getIn(['state', 'state']) == 'closed'
             cb     : opts.cb
 
     move: (opts) =>
@@ -394,27 +408,42 @@ class Project extends EventEmitter
             opts.cb?(err)
         )
 
-    ###
-    LATER
-    ###
-
     directory_listing: (opts) =>
         opts = defaults opts,
-            path      : ''
-            hidden    : false
-            time      : false        # sort by timestamp, with newest first?
-            start     : 0
-            limit     : -1
-            cb        : undefined
+            path   : ''
+            hidden : false        # used
+            time   : undefined    # ignored/deprecated
+            start  : undefined    # ignored/deprecated
+            limit  : undefined    # ignored/deprecated
+            cb     : required
         dbg = @dbg("directory_listing")
         dbg()
-        opts.cb?("directory_listing -- not implemented")
+        listing = undefined
+        async.series([
+            (cb) =>
+                dbg("starting project if necessary...")
+                @start(cb:cb)
+            (cb) =>
+                url = "http://project-#{@project_id}:6001/.smc/directory_listing/#{opts.path}"
+                dbg("fetching listing from '#{url}'")
+                if opts.hidden
+                    url += '?hidden=true'
+                misc.retry_until_success
+                    f        : (cb) =>
+                        get_json url, (err, x) =>
+                            dbg('fetch returned ', err, x)
+                            listing = x
+                            cb(err)
+                    max_time : 30000
+        ], (err) =>
+            opts.cb(err, listing)
+        )
 
     read_file: (opts) =>
         opts = defaults opts,
             path    : required
             maxsize : 3000000    # maximum file size in bytes to read
-            cb      : undefined   # cb(err, Buffer)
+            cb      : required   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file or directory from disk")  # directories get zip'd
         opts.cb?("read_file -- not implemented")
