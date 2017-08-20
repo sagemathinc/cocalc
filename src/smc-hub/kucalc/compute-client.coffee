@@ -445,7 +445,7 @@ class Project extends EventEmitter
                     dbg("not running")
                     opts.cb()
                     return
-                cur = quota.quota(x.settings, x.users)
+                cur = quota(x.settings, x.users)
                 if underscore.isEqual(x.run_quota, cur)
                     dbg("running, but no quotas changed")
                     opts.cb()
