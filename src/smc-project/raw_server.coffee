@@ -13,6 +13,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {jupyter_router} = require('./jupyter/jupyter')
 
+{directory_listing_router} = require('./directory-listing')
+
 {upload_endpoint} = require('./upload')
 
 kucalc = require('./kucalc')
@@ -71,6 +73,10 @@ exports.start_raw_server = (opts) ->
 
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
+
+            # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
+            # to the hub (at least in KuCalc).
+            raw_server.use(base, directory_listing_router(express))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))

@@ -398,7 +398,6 @@ class Project extends EventEmitter
     LATER
     ###
 
-
     directory_listing: (opts) =>
         opts = defaults opts,
             path      : ''
