@@ -40,6 +40,7 @@ exports.get_json = get_json = (url, cb) ->
                 cb(undefined, JSON.parse(body))
             catch e
                 cb("ERROR: invalid JSON -- #{e} -- '#{body}'")
+    return
 
 exports.compute_client = (db, logger) ->
     return new Client(db, logger)

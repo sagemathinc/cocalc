@@ -1388,8 +1388,10 @@ class exports.Client extends EventEmitter
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
+        dbg = @dbg('mesg_public_get_directory_listing')
         for k in ['path', 'project_id']
             if not mesg[k]?
+                dbg("missing stuff in message")
                 @error_to_client(id:mesg.id, error:"must specify #{k}")
                 return
 
@@ -1400,23 +1402,28 @@ class exports.Client extends EventEmitter
         listing  = undefined
         async.series([
             (cb) =>
+                dbg("checking for public path")
                 @database.has_public_path
                     project_id : mesg.project_id
                     cb         : (err, is_public) =>
                         if err
+                            dbg("error checking -- #{err}")
                             cb(err)
                         else if not is_public
+                            dbg("no public paths at all -- deny all listings")
                             cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
                             cb()
             (cb) =>
+                dbg("get the project")
                 @compute_server.project
                     project_id : mesg.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("get the directory listing")
                 project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
@@ -1426,6 +1433,7 @@ class exports.Client extends EventEmitter
                     cb      : (err, x) =>
                         listing = x; cb(err)
             (cb) =>
+                dbg("filtering out public paths from listing")
                 @database.filter_public_paths
                     project_id : mesg.project_id
                     path       : mesg.path
@@ -1434,8 +1442,10 @@ class exports.Client extends EventEmitter
                         listing = x; cb(err)
         ], (err) =>
             if err
+                dbg("something went wrong -- #{err}")
                 @error_to_client(id:mesg.id, error:err)
             else
+                dbg("it worked; telling client")
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
 
