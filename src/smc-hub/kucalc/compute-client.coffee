@@ -34,7 +34,7 @@ class Dbg extends EventEmitter
 
 project_cache = {}
 
-
+quota_compute = require('./quota')
 
 class Client
     constructor: (@database, @logger) ->
@@ -445,7 +445,7 @@ class Project extends EventEmitter
                     dbg("not running")
                     opts.cb()
                     return
-                cur = quota(x.settings, x.users)
+                cur = quota_compute.quota(x.settings, x.users)
                 if underscore.isEqual(x.run_quota, cur)
                     dbg("running, but no quotas changed")
                     opts.cb()
