@@ -425,7 +425,7 @@ class Project extends EventEmitter
                 @start(cb:cb)
             (cb) =>
                 # TODO: This URL is obviously very specific to KuCalc -- hardcoded port and base url.
-                url = "http://project-#{@project_id}:6001/{@project_id}/raw/.smc/directory_listing/#{opts.path}"
+                url = "http://project-#{@project_id}:6001/#{@project_id}/raw/.smc/directory_listing/#{opts.path}"
                 dbg("fetching listing from '#{url}'")
                 if opts.hidden
                     url += '?hidden=true'
