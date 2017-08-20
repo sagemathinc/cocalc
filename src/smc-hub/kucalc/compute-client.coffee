@@ -424,17 +424,20 @@ class Project extends EventEmitter
                 dbg("starting project if necessary...")
                 @start(cb:cb)
             (cb) =>
-                url = "http://project-#{@project_id}:6001/.smc/directory_listing/#{opts.path}"
+                # TODO: This URL is obviously very specific to KuCalc -- hardcoded port and base url.
+                url = "http://project-#{@project_id}:6001/{@project_id}/raw/.smc/directory_listing/#{opts.path}"
                 dbg("fetching listing from '#{url}'")
                 if opts.hidden
                     url += '?hidden=true'
                 misc.retry_until_success
-                    f        : (cb) =>
+                    f           : (cb) =>
                         get_json url, (err, x) =>
                             dbg('fetch returned ', err, x)
                             listing = x
                             cb(err)
-                    max_time : 30000
+                    max_time    : 30000
+                    start_delay : 2000
+                    max_delay   : 7000
         ], (err) =>
             opts.cb(err, listing)
         )
@@ -445,7 +448,7 @@ class Project extends EventEmitter
             maxsize : 3000000    # maximum file size in bytes to read
             cb      : required   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
-        dbg("read a file or directory from disk")  # directories get zip'd
+        dbg("read a file or directory from disk")
         opts.cb?("read_file -- not implemented")
 
     ###
