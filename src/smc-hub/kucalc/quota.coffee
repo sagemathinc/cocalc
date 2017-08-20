@@ -4,7 +4,6 @@ exports.quota = (settings, users) ->
     # so can assume defined below
     settings ?= {}
     users    ?= {}
-    defaults ?= {}
 
     quota =
         network        : false
