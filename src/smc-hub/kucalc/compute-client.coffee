@@ -463,14 +463,28 @@ class Project extends EventEmitter
         content = undefined
         async.series([
             (cb) =>
-                dbg("starting project if necessary...")
-                @start(cb:cb)
-            (cb) ->
+                # (this also starts the project)
                 # TODO: get listing and confirm size
                 # TODO - obviusly we should just stream... so there is much less of a limit... though
                 # limits are good, as this frickin' costs!
-                cb()
-            (cb) ->
+                {dir, base} = require('path').parse(opts.path)
+                if not base
+                    cb("not a file -- '#{base}'")
+                    return
+                @directory_listing
+                    path   : dir
+                    hidden : true
+                    cb     : (err, listing) =>
+                        if err
+                            cb(err)
+                        else
+                            for x in listing?.files ? []
+                                if x.name == base
+                                    if x.size <= opts.maxsize
+                                        cb()
+                                        return
+                        cb('file too big or not found in listing')
+            (cb) =>
                 url = "http://project-#{@project_id}:6001/#{@project_id}/raw/#{opts.path}"
                 dbg("fetching file from '#{url}'")
                 misc.retry_until_success
@@ -482,7 +496,7 @@ class Project extends EventEmitter
                     start_delay : 2000
                     max_delay   : 7000
                     cb          : cb
-        ], (err) ->
+        ], (err) =>
             opts.cb(err, content)
         )
 
