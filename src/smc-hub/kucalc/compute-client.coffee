@@ -22,6 +22,7 @@ CONSOLE_SERVER_PORT = 6003
 
 {EventEmitter} = require('events')
 async = require('async')
+underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -428,30 +429,38 @@ class Project extends EventEmitter
             project_id : @project_id
             cb         : opts.cb
 
-    set_member_host: (opts) =>
-        opts = defaults opts,
-            member_host : required
-            cb          : required
-        # Ensure that member_host is a boolean for below; it is an integer -- 0 or >= 1 -- elsewhere.  But below
-        # we very explicitly assume it is boolean (due to coffeescript not doing coercion).
-        opts.member_host =  opts.member_host > 0
-        dbg = @dbg("set_member_host(member_host=#{opts.member_host})")
-        dbg()
-        opts.cb() # TODO
-
-    set_quotas: (opts) =>
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network',
-                                     'mintime', 'member_host', 'cb'])
-        dbg = @dbg("set_quotas")
-        dbg()
-        opts.cb() # TODO
-
+    ###
+    set_all_quotas ensures that if the project is running and the quotas
+    (except idle_timeout) have changed, then the project is restarted.
+    ###
     set_all_quotas: (opts) =>
         opts = defaults opts,
             cb : required
         dbg = @dbg("set_all_quotas")
         dbg()
-        opts.cb() # TODO
+        # 1. Get data about project from the database, namely:
+        #     - is project currently running (if not, nothing to do)
+        #     - if running, what quotas it was started with and what its quotas are now
+        # 2. If quotas differ, restarts project.
+        @compute_server.database.get_project
+            project_id : @project_id
+            columns    : ['state', 'users', 'settings', 'run_quota']
+            cb         : (err, x) =>
+                if err
+                    dbg("error -- #{err}")
+                    opts.cb(err)
+                    return
+                if state.state not in ['running', 'starting']
+                    dbg("not running")
+                    opts.cb()
+                    return
+                cur = quota.quota(x.settings, x.users)
+                if underscore.isEqual(x.run_quota, cur)
+                    dbg("running, but no quotas changed")
+                    opts.cb()
+                else
+                    dbg('running and a quota changed; restart')
+                    @restart(cb:opts.cb)
 
 
 

@@ -718,9 +718,6 @@ schema.projects =
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
             date : ['pay']
-        run :
-            type : 'boolean'
-            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
         storage_server :
             type : 'integer'
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
@@ -739,6 +736,9 @@ schema.projects =
         idle_timeout :
             type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
+        run_quota :
+            type : 'map'
+            desc : 'If project is running, this is the quota that it is running with.'
 
     pg_indexes : [
         'last_edited',
