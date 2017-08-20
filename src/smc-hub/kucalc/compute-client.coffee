@@ -42,6 +42,16 @@ exports.get_json = get_json = (url, cb) ->
                 cb("ERROR: invalid JSON -- #{e} -- '#{body}'")
     return
 
+exports.get_file = get_file = (url, cb) ->
+    request.get url, (err, response, body) ->
+        if err
+            cb(err)
+        else if response.statusCode != 200
+            cb("ERROR: statusCode #{response.statusCode}")
+        else
+            cb(undefined, body)
+    return
+
 exports.compute_client = (db, logger) ->
     return new Client(db, logger)
 
@@ -446,11 +456,35 @@ class Project extends EventEmitter
     read_file: (opts) =>
         opts = defaults opts,
             path    : required
-            maxsize : 3000000    # maximum file size in bytes to read
+            maxsize : 5000000    # maximum file size in bytes to read
             cb      : required   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
-        dbg("read a file or directory from disk")
-        opts.cb?("read_file -- not implemented")
+        dbg("read a file from disk")
+        content = undefined
+        async.series([
+            (cb) =>
+                dbg("starting project if necessary...")
+                @start(cb:cb)
+            (cb) ->
+                # TODO: get listing and confirm size
+                # TODO - obviusly we should just stream... so there is much less of a limit... though
+                # limits are good, as this frickin' costs!
+                cb()
+            (cb) ->
+                url = "http://project-#{@project_id}:6001/#{@project_id}/raw/#{opts.path}"
+                dbg("fetching file from '#{url}'")
+                misc.retry_until_success
+                    f           : (cb) =>
+                        get_file url, (err, x) =>
+                            content = x
+                            cb(err)
+                    max_time    : 30000
+                    start_delay : 2000
+                    max_delay   : 7000
+                    cb          : cb
+        ], (err) ->
+            opts.cb(err, content)
+        )
 
     ###
     set_all_quotas ensures that if the project is running and the quotas

@@ -1467,8 +1467,9 @@ class exports.Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            # since this is get_text_file
-                            data = data.toString('utf-8')
+                            # since this maybe be a Buffer... (depending on backend)
+                            if Buffer.isBuffer(data)
+                                data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
     mesg_copy_public_path_between_projects: (mesg) =>
