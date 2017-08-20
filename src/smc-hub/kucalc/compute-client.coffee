@@ -433,12 +433,12 @@ class Project extends EventEmitter
                 misc.retry_until_success
                     f           : (cb) =>
                         get_json url, (err, x) =>
-                            dbg('fetch returned ', err, x)
                             listing = x
                             cb(err)
                     max_time    : 30000
                     start_delay : 2000
                     max_delay   : 7000
+                    cb          : cb
         ], (err) =>
             opts.cb(err, listing)
         )
