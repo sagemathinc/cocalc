@@ -43,7 +43,7 @@ exports.get_json = get_json = (url, cb) ->
     return
 
 exports.get_file = get_file = (url, cb) ->
-    request.get url, (err, response, body) ->
+    request.get url, {encoding: null}, (err, response, body) ->
         if err
             cb(err)
         else if response.statusCode != 200
