@@ -638,14 +638,18 @@ class ProjectActions extends Actions
         # get_my_group is defined.
         id = misc.uuid()
         @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        async.waterfall([
+        my_group = undefined
+        the_listing = undefined
+        async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : cb
-            (group, cb) =>
+                    cb      : (err, group) =>
+                        my_group = group
+                        cb(err)
+            (cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -655,16 +659,18 @@ class ProjectActions extends Actions
                     path       : path
                     hidden     : true
                     max_time_s : 120  # keep trying for up to 2 minutes
-                    group      : group
-                    cb         : cb
-        ], (err, listing) =>
+                    group      : my_group
+                    cb         : (err, listing) =>
+                        the_listing = listing
+                        cb(err)
+        ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
             #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
             # done! releasing lock, then executing callback(s)
             cbs = @_set_directory_files_lock[_key]
@@ -1710,6 +1716,10 @@ get_directory_listing = (opts) ->
     {webapp_client} = require('./webapp_client')
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
+        # Also, make sure project starts running, in case it isn't.
+        state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
+        if state != 'running'
+            redux.getActions('projects').start_project(opts.project_id)
     else
         method = webapp_client.public_project_directory_listing
     listing     = undefined
