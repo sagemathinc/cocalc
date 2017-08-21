@@ -16,7 +16,7 @@ class SessionManager
         if webapp_client.account_id
             @init_local_storage()
         else
-            webapp_client.on 'signed_in', =>
+            webapp_client.once 'signed_in', =>
                 @init_local_storage()
         @save = throttle(@save, 1000)
 
