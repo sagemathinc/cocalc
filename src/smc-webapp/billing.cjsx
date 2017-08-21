@@ -36,7 +36,7 @@ load_stripe = (cb) ->
     if Stripe?
         cb()
     else
-        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support; make sure your browser is not blocking stripe.com.'))
 
 last_subscription_attempt = null
 
