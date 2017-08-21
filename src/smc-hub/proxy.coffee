@@ -285,7 +285,7 @@ exports.init_http_proxy_server = (opts) ->
                         # This helps enormously when there is a burst of requests.
                         # Also if project restarts the raw port will change and we don't want to have
                         # fix this via getting an error.
-                        setTimeout((->delete _target_cache[key]), 15000)
+                        setTimeout((->delete _target_cache[key]), 3*60000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)
@@ -415,7 +415,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb(err)
                             else
                                 public_paths = public_raw_paths_cache[project_id] = paths
-                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
+                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 3*60000)  # cache a few seconds
                                 cb()
             (cb) ->
                 #winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")

@@ -915,9 +915,7 @@ class exports.Connection extends EventEmitter
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
-
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
-
         opts.cb?(false, {url:url})
         return url
 
@@ -1310,40 +1308,26 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : '.'
-            time       : false
-            start      : 0
-            limit      : 999999999 # effectively unlimited by default -- get what you can in the time you have...
             timeout    : 60
             hidden     : false
             cb         : required
-
-        args = []
-        if opts.time
-            args.push("--time")
+        base = window?.app_base_url ? '' # will be defined in web browser
+        if opts.path[0] == '/'
+            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
+        url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
         if opts.hidden
-            args.push("--hidden")
-        args.push("--limit")
-        args.push(opts.limit)
-        args.push("--start")
-        args.push(opts.start)
-        if opts.path == ""
-            opts.path = "."
-        args.push('--')
-        args.push(opts.path)
-
-        @exec
-            project_id : opts.project_id
-            command    : 'smc-ls'
-            args       : args
-            timeout    : opts.timeout
-            cb         : (err, output) ->
-                if err
-                    opts.cb(err)
-                else if output.exit_code
-                    opts.cb(output.stderr)
-                else
-                    v = JSON.parse(output.stdout)
-                    opts.cb(err, v)
+            url += '?hidden=true'
+        files = undefined
+        misc.retry_until_success
+            cb        : (err) -> opts.cb(err, files)
+            max_time  : opts.timeout * 1000
+            max_delay : 3000
+            f         : (cb) ->
+                req = $.getJSON url, (data) ->
+                    files = data
+                    cb(undefined, data)
+                req.fail (err) ->
+                    cb(err)
 
     project_get_state: (opts) =>
         opts = defaults opts,

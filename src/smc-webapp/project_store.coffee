@@ -210,17 +210,29 @@ class ProjectActions extends Actions
             status : undefined    # status update message during the activity -- description of progress
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
+
+        @_pending_activity ?= {}
+        if @_pending_activity[opts.id]?
+            # Don't due it.
+            clearTimeout(@_pending_activity[opts.id])
+            delete @_pending_activity[opts.id]
+
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implemenation of above specified API is VERY minimal for
+        # Actual implementation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
-            x[opts.id] = opts.status
-            @setState(activity: x)
+            # Wait a little before showing status, since it can be annoying seeing constant flickers for
+            # things that only take a few hundred ms.
+            f = =>
+                delete @_pending_activity[opts.id]
+                x[opts.id] = opts.status
+                @setState(activity: x)
+            @_pending_activity[opts.id] = setTimeout(f, 1000)
         if opts.error?
             error = opts.error
             if error == ''

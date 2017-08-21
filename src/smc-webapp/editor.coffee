@@ -1357,7 +1357,7 @@ class CodeMirrorEditor extends FileEditor
         if ext != 'sagews'
             console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
-    
+
         async.series([
             (cb) =>
                 @save(cb)
