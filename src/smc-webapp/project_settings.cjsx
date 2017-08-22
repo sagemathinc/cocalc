@@ -275,7 +275,7 @@ QuotaConsole = rclass
         if not disk
             return
         <span>
-            (<Space/> <b>{disk} MB</b> used)
+            <Space/> (<b>{disk} MB</b> used)
         </span>
 
     render_memory_used: (memory) ->
