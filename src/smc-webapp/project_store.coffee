@@ -670,7 +670,9 @@ class ProjectActions extends Actions
             #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(the_listing.files))
+            if err and not misc.is_string(err)
+                err = misc.to_json(err)
+            map = store.directory_listings.set(path, if err then err else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
             # done! releasing lock, then executing callback(s)
             cbs = @_set_directory_files_lock[_key]
@@ -1731,15 +1733,20 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 15
             cb         : (err, x) ->
-                if typeof(err) == 'string' and err.indexOf('error: no such path') != -1
-                    # In this case, the call itself is successful, even when it returns an error; it told
-                    # us there is no such file.
-                    listing_err = err
-                    listing = x
-                    cb()
-                else
-                    listing = x
+                if err
                     cb(err)
+                else
+                    if x?.error
+                        if x.error.code == 'ENOENT'
+                            listing_err = 'no_dir'
+                        else if x.error.code == 'ENOTDIR'
+                            listing_err = 'not_a_dir'
+                        else
+                            listing_err = x.error
+                        cb()
+                    else
+                        listing = x
+                        cb()
 
     misc.retry_until_success
         f        : f

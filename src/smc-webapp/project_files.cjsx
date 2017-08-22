@@ -2045,7 +2045,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
             if @props.redux.getStore('account')?.is_logged_in()
@@ -2061,10 +2061,9 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
-            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
-                when '"not_public"'
+                when 'not_public'
                     e = @render_access_error()
                 when 'no_dir'
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
@@ -2076,7 +2075,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 else
                     if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
-                        e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
