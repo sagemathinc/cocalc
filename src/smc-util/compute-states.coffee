@@ -31,7 +31,7 @@ Here's a picture of the finite state machine defined below:
                              /|\                          /|\
                               |                            |
                              \|/                          \|/
-                           [saving]                     [saving]
+                      [saving]  [pending]               [saving]
 
 The icon names below refer to font-awesome, and are used in the UI.
 
@@ -57,6 +57,15 @@ exports.COMPUTE_STATES =
             close : 'closing'
             save  : 'saving'
         commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
+
+    pending:
+        desc     : 'There are not enough resources currently available to run your project.  Reduce dedicated resources, pay for members only hosting, or contact support.'
+        icon     : 'pause-circle'
+        display  : 'Pending'
+        stable   : true
+        to       :
+            stop : 'stopping'
+        command : ['stop']
 
     running:
         desc     : 'The project is opened, running, and ready to be used.'
