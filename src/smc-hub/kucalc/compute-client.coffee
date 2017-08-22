@@ -521,8 +521,8 @@ class Project extends EventEmitter
                     dbg("error -- #{err}")
                     opts.cb(err)
                     return
-                if x.state.state not in ['running', 'starting']
-                    dbg("not running")
+                if x.state.state not in ['running', 'starting', 'pending']
+                    dbg("project not active")
                     opts.cb()
                     return
                 cur = quota_compute.quota(x.settings, x.users)
