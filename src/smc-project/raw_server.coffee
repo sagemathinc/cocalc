@@ -13,7 +13,11 @@ misc_node = require('smc-util-node/misc_node')
 
 {jupyter_router} = require('./jupyter/jupyter')
 
+{directory_listing_router} = require('./directory-listing')
+
 {upload_endpoint} = require('./upload')
+
+kucalc = require('./kucalc')
 
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
@@ -63,8 +67,16 @@ exports.start_raw_server = (opts) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
+            if kucalc.IN_KUCALC
+                # Add a /health handler, which is used as a health check for Kubernetes.
+                kucalc.init_health_metrics(raw_server)
+
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
+
+            # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
+            # to the hub (at least in KuCalc).
+            raw_server.use(base, directory_listing_router(express))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))

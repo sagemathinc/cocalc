@@ -11,7 +11,6 @@ misc = require('smc-util/misc')
 exports.SSHKeysPage = rclass
     propTypes:
         account_id : rtypes.string.isRequired
-        user_map   : rtypes.immutable.Map
         ssh_keys   : rtypes.immutable.Map
 
     render_pre_list_message: ->
@@ -20,6 +19,15 @@ exports.SSHKeysPage = rclass
             SSH to <b><i>all projects</i></b> on which
             you are an owner or collaborator.  Alternatively, set SSH keys that
             grant access only to a project in the settings for that project.
+            See the SSH part of the settings page in a project for further instructions.
+        </div>
+
+    help: ->
+        <div>
+            To SSH into a project, use the following <span style={color:'#666'}>username@host:</span>
+            <pre>[projectIdWithoutDashes]@ssh.cocalc.com </pre>
+            The project id without dashes can be found in the part of project settings about SSH keys.
+            To SSH between projects, use <pre>[projectIdWithoutDashes]@ssh</pre>
         </div>
 
     render: ->
@@ -29,9 +37,9 @@ exports.SSHKeysPage = rclass
                     {@render_pre_list_message()}
                     <SSHKeyList
                         ssh_keys   = {@props.ssh_keys}
-                        user_map   = {@props.user_map}
                         pre_list   = {@render_pre_list_message()}
-                        delete_key = {@actions('account').delete_ssh_key} />
+                        delete_key = {@actions('account').delete_ssh_key}
+                        help       = {@help()} />
                 </Col>
                 <Col md=4>
                     <SSHKeyAdder

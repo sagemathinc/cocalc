@@ -210,17 +210,29 @@ class ProjectActions extends Actions
             status : undefined    # status update message during the activity -- description of progress
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
+
+        @_pending_activity ?= {}
+        if @_pending_activity[opts.id]?
+            # Don't due it.
+            clearTimeout(@_pending_activity[opts.id])
+            delete @_pending_activity[opts.id]
+
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implemenation of above specified API is VERY minimal for
+        # Actual implementation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
-            x[opts.id] = opts.status
-            @setState(activity: x)
+            # Wait a little before showing status, since it can be annoying seeing constant flickers for
+            # things that only take a few hundred ms.
+            f = =>
+                delete @_pending_activity[opts.id]
+                x[opts.id] = opts.status
+                @setState(activity: x)
+            @_pending_activity[opts.id] = setTimeout(f, 1000)
         if opts.error?
             error = opts.error
             if error == ''
@@ -626,14 +638,18 @@ class ProjectActions extends Actions
         # get_my_group is defined.
         id = misc.uuid()
         @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        async.waterfall([
+        my_group = undefined
+        the_listing = undefined
+        async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : cb
-            (group, cb) =>
+                    cb      : (err, group) =>
+                        my_group = group
+                        cb(err)
+            (cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -643,16 +659,20 @@ class ProjectActions extends Actions
                     path       : path
                     hidden     : true
                     max_time_s : 120  # keep trying for up to 2 minutes
-                    group      : group
-                    cb         : cb
-        ], (err, listing) =>
+                    group      : my_group
+                    cb         : (err, listing) =>
+                        the_listing = listing
+                        cb(err)
+        ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
             #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            if err and not misc.is_string(err)
+                err = misc.to_json(err)
+            map = store.directory_listings.set(path, if err then err else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
             # done! releasing lock, then executing callback(s)
             cbs = @_set_directory_files_lock[_key]
@@ -1698,6 +1718,10 @@ get_directory_listing = (opts) ->
     {webapp_client} = require('./webapp_client')
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
+        # Also, make sure project starts running, in case it isn't.
+        state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
+        if state != 'running'
+            redux.getActions('projects').start_project(opts.project_id)
     else
         method = webapp_client.public_project_directory_listing
     listing     = undefined
@@ -1709,15 +1733,20 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 15
             cb         : (err, x) ->
-                if typeof(err) == 'string' and err.indexOf('error: no such path') != -1
-                    # In this case, the call itself is successful, even when it returns an error; it told
-                    # us there is no such file.
-                    listing_err = err
-                    listing = x
-                    cb()
-                else
-                    listing = x
+                if err
                     cb(err)
+                else
+                    if x?.error
+                        if x.error.code == 'ENOENT'
+                            listing_err = 'no_dir'
+                        else if x.error.code == 'ENOTDIR'
+                            listing_err = 'not_a_dir'
+                        else
+                            listing_err = x.error
+                        cb()
+                    else
+                        listing = x
+                        cb()
 
     misc.retry_until_success
         f        : f
