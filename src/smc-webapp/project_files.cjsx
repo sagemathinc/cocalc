@@ -2136,7 +2136,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_project_state: (project_state) ->
         <div style={fontSize:'40px', textAlign:'center', color:'#666666'} >
-            <ProjectState state={project_state} />
+            <ProjectState state={project_state} show_desc={true} />
             <br/>
             {@render_start_project_button(project_state)}
         </div>

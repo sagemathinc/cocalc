@@ -1210,13 +1210,25 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state : rtypes.string
+        state     : rtypes.string
+        show_desc : rtypes.bool
 
     getDefaultProps: ->
-        state : 'unknown'
+        state     : 'unknown'
+        show_desc : false
 
     render_spinner:  ->
         <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+
+    render_desc: (desc) ->
+        if not @props.show_desc
+            return
+        <span>
+            <br/>
+            <span style={fontSize:'11pt'}>
+                {desc}
+            </span>
+        </span>
 
     render: ->
         s = COMPUTE_STATES[@props.state]
@@ -1225,10 +1237,7 @@ exports.ProjectState = rclass
         {display, desc, icon, stable} = s
         <span>
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
-            <br/>
-            <span style={fontSize:'11pt'}>
-                {desc}
-            </span>
+            {@render_desc(desc)}
         </span>
 
 
