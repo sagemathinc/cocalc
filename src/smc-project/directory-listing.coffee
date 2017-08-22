@@ -32,7 +32,8 @@ directory_listing_http_server = (base, router) ->
 
     return router
 
-HOME = process.env.HOME
+# SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
+HOME = process.env.SMC_LOCAL_HUB_HOME ? process.env.HOME
 
 exports.get_listing = (path, hidden, cb) ->
     dir = HOME + '/' + path
