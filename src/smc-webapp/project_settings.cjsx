@@ -102,6 +102,7 @@ QuotaConsole = rclass
         project_id                   : rtypes.string.isRequired
         project_settings             : rtypes.object            # settings contains the base values for quotas
         project_status               : rtypes.object
+        project_state                : rtypes.string            # opened, running, starting, stopping, etc.  -- only show memory usage when project_state == 'running'
         user_map                     : rtypes.object.isRequired
         quota_params                 : rtypes.object.isRequired # from the schema
         account_groups               : rtypes.array.isRequired
@@ -270,6 +271,20 @@ QuotaConsole = rclass
                 style    = {@admin_input_validation_styles(@state[label])}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
+    render_disk_used: (disk) ->
+        if not disk
+            return
+        <span>
+            (<Space/> <b>{disk} MB</b> used)
+        </span>
+
+    render_memory_used: (memory) ->
+        if @props.project_state not in ['running', 'saving']
+            return
+        <span>
+            <Space/> (<b>{memory} MB</b> used)
+        </span>
+
     render: ->
         settings     = @props.project_settings
         if not settings?
@@ -298,14 +313,14 @@ QuotaConsole = rclass
         # the keys in quotas have to match those in PROJECT_UPGRADES.field_order
         quotas =
             disk_quota  :
-                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk usage limit {@render_disk_used(disk)}</span>
+                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space limit <Space/> {@render_disk_used(disk)}</span>
             memory      :
-                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> shared RAM memory available - <b>{memory} MB</b> used</span>
-                edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> shared RAM memory limit {@render_memory_used(memory)}</span>
+                edit : <span><b>{@render_input('memory')} MB</b> RAM memory limit {@render_memory_used(memory)} </span>
             memory_request :
                 view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
-                edit : <span><b>{@render_input('memory_request')} MB</b> RAM memory available</span>
+                edit : <span><b>{@render_input('memory_request')} MB</b> dedicated RAM memory</span>
             cores       :
                 view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
@@ -378,6 +393,7 @@ UsagePanel = rclass
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
                 project_status               = {@props.project.get('status')}
+                project_state                = {@props.project.get('state')?.get('state')}
                 user_map                     = {@props.user_map}
                 quota_params                 = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 account_groups               = {@props.account_groups}
