@@ -22,6 +22,11 @@ exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Porta
 exports.HELP_EMAIL           = 'help@sagemath.com'
 exports.TWITTER_HANDLE       = 'co_calc'   # without the @
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
+exports.BILLING_ADDRESS      = '''
+                               1212 East Barclay Court
+                               Seattle, WA 98122, USA
+                               '''
+exports.BILLING_TAXID        = 'TAX EIN: 47-3015407'
 exports.COPYRIGHT_AGENT_HTML = '''
                                William Stein (Copyright Agent)<br>
                                c/o SageMath, Inc.<br>

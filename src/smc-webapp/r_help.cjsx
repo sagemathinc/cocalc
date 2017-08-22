@@ -23,6 +23,12 @@
 # Help Page
 ###
 
+if global['BACKEND']  # set in ./render.coffee
+    BASE_URL = require('smc-util/theme').DOMAIN_NAME
+else
+    # browser
+    {BASE_URL} = require('./misc_page')
+
 $ = window.$
 misc = require('smc-util/misc')
 {React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
@@ -184,6 +190,10 @@ SUPPORT_LINKS =
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
         link :  <span>Courses using <SiteName/></span>
+    cocalc_api :
+        icon : 'gears'
+        href : "#{BASE_URL}/doc/api.html"
+        link :  <span><SiteName/> API</span>
 
 CONNECT_LINKS =
     support_mailing_list :
@@ -271,7 +281,7 @@ ABOUT_LINKS =
     legal :
         icon : 'cc-icon-section'
         link : 'Terms of Service, Pricing, Copyright and Privacy policies'
-        href : '/policies/index.html'
+        href : "#{BASE_URL}/policies/index.html"
     developers :
         icon : 'keyboard-o'
         text : <span>

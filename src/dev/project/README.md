@@ -22,9 +22,6 @@ Explicitly start each of the following scripts in their own terminal session (th
 
 - `./start_hub.py`
 
-## Docker-only special instructions
-
-If you're using the [CoCalc Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md), run the script `./start_hub_in_docker.py` instead.  This is the same except that it listens on localhost instead.  (It's also critical that you're using Docker via https, not http.)
 
 ## Information
 
@@ -37,11 +34,6 @@ If you want, you can start several different services at once
     ./tmux-start-all
 
 to create a single tmux session with each of the servers running.
-
-## Important -- shared ports
-
-In case one of the ports you're using gets **stolen by some other user**, one of the above servers will fail to start.  You can fix this by typing `rm ports/*` then restarting all of the above servers.  This will assign them new random available ports.  Type `./info.py` to find out where your SMC server moved to.
-
 
 ## Changing the web frontend
 

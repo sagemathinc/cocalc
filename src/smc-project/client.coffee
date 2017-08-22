@@ -91,6 +91,9 @@ class exports.Client extends EventEmitter
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
+            # always make verbose in kucalc, since logs are taken care of by the k8s
+            # logging infrastructure...
+            DEBUG = true
 
     ###
     _test_ping: () =>

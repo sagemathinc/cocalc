@@ -81,11 +81,11 @@ secret_token = undefined
 
 read_token = (cb) ->
     f = (cb) ->
-        fs.exists secret_token_filename, (exists) ->
+        fs.exists secret_token_filename(), (exists) ->
             if not exists
                 cb("secret token file does not exist")
             else
-                secret_token = fs.readFileSync(secret_token_filename).toString()
+                secret_token = fs.readFileSync(secret_token_filename()).toString()
                 cb()
     misc.retry_until_success
         f        : f
@@ -210,7 +210,11 @@ start_server = (cb) ->
 
 program.usage('[?] [options]')
     .option('--port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
     .parse(process.argv)
+
+if program.kucalc
+    require('./kucalc').IN_KUCALC = true
 
 start_server (err) ->
     if err
