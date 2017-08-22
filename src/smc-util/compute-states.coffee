@@ -59,7 +59,7 @@ exports.COMPUTE_STATES =
         commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     pending:
-        desc     : 'Insufficient resources to run your project.  Reduce dedicated RAM or CPU, pay for members only hosting, or contact support.'
+        desc     : 'Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.'
         icon     : 'times-rectangle'
         display  : 'Pending'
         stable   : true
