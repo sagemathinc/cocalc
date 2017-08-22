@@ -1223,9 +1223,13 @@ exports.ProjectState = rclass
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
-        <Tip title={display} tip={desc}>
+        <span>
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
-        </Tip>
+            <br/>
+            <span style={fontSize:'11pt'}>
+                {desc}
+            </span>
+        </span>
 
 
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted

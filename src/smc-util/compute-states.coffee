@@ -39,7 +39,7 @@ The icon names below refer to font-awesome, and are used in the UI.
 
 exports.COMPUTE_STATES =
     closed:
-        desc     : 'None of the files, users, etc. for this project are on the compute server.'
+        desc     : 'Project is in cold storage, and will take longer than normal to start.'
         icon     : 'stop'     # font awesome icon
         display  : 'Offline'  # displayed name for users
         stable   : true
@@ -48,7 +48,7 @@ exports.COMPUTE_STATES =
         commands : ['open', 'move', 'status', 'destroy', 'mintime']
 
     opened:
-        desc     : 'All files and snapshots are ready to use and the project user has been created, but the project is not running.'
+        desc     : 'Project is available and ready to start.'
         icon     : 'stop'
         display  : 'Stopped'
         stable   : true
@@ -59,8 +59,8 @@ exports.COMPUTE_STATES =
         commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     pending:
-        desc     : 'There are not enough resources currently available to run your project.  Reduce dedicated resources, pay for members only hosting, or contact support.'
-        icon     : 'pause-circle'
+        desc     : 'Insufficient resources to run your project.  Reduce dedicated RAM or CPU, pay for members only hosting, or contact support.'
+        icon     : 'times-rectangle'
         display  : 'Pending'
         stable   : true
         to       :
@@ -68,7 +68,7 @@ exports.COMPUTE_STATES =
         command : ['stop']
 
     running:
-        desc     : 'The project is opened, running, and ready to be used.'
+        desc     : 'Project is running.'
         icon     : 'edit'
         display  : 'Running'
         stable   : true
@@ -78,7 +78,7 @@ exports.COMPUTE_STATES =
         commands : ['stop', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     saving:
-        desc     : 'The project is being copied to a central file server for longterm storage.'
+        desc     : 'Project is being copied to a central file server for longterm storage.'
         icon     : 'save'
         display  : 'Saving to server'
         to       : {}
@@ -86,7 +86,7 @@ exports.COMPUTE_STATES =
         commands : ['address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     closing:
-        desc     : 'The project is in the process of being closed, so the latest changes are being saved to the server and all processes are being killed.'
+        desc     : 'Project is in the process of being closed.'
         icon     : 'close'
         display  : 'Closing'
         to       : {}
@@ -94,7 +94,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     opening:
-        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc. This could take up to 10 minutes depending on the size of your project.'
+        desc     : 'Project is being copied from cold storage, which may take several minutes depending on how many files you have.'
         icon     : 'gears'
         display  : 'Opening'
         to       : {}
@@ -102,7 +102,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     starting:
-        desc     : 'The project is starting up and getting ready to be used.'
+        desc     : 'Project is starting up.'
         icon     : 'flash'
         display  : 'Starting'
         to       :
@@ -111,7 +111,7 @@ exports.COMPUTE_STATES =
         commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
-        desc     : 'All processes associated to the project are being killed.'
+        desc     : 'Project is stopping.'
         icon     : 'hand-stop-o'
         display  : 'Stopping'
         to       :
