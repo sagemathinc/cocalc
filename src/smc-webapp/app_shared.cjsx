@@ -461,9 +461,9 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p>Upcoming <strong><a target='_blank' href={more_url}>Kubernetes Migration</a></strong>!
-                {' '}The entire CoCalc infrastructure will be upgraded soon.
-                {' '}<a target='_blank' href={more_url}>Read more...</a></p>
+                <p><b>CoCalc <a target='_blank' href={more_url}>migrated to Kubernetes</a></b>.
+                {' '}Please report any issues.
+                {' '}<a target='_blank' href={more_url}>More information...</a></p>
             </Col>
             <Col sm={3}>
                 <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
