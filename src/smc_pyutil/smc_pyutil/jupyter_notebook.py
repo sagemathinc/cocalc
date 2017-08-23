@@ -169,7 +169,7 @@ def action(mode):
             c = "ps -u`whoami` -o pid,cmd|grep '/usr/local/bin/jupyter-notebook'"
             for s in os.popen(c).read().splitlines():
                 v = s.split()
-                if len(v) < 2 or v[1].split('/')[-1] != 'python':
+                if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):
                     continue
                 p = int(v[0])
                 if "port=%s"%port not in s:
