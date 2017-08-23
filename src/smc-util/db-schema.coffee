@@ -244,7 +244,7 @@ schema.accounts =
                     page_size         : 50
                     standby_timeout_m : 10
                     default_file_sort : 'time'
-                    show_global_info  : true
+                    show_global_info2 : null
                 first_name      : ''
                 last_name       : ''
                 terminal        :
