@@ -35,13 +35,14 @@ update_project_status = (client, cb) ->
         cb?(err)
     )
 
-compute_status = (cb) ->
+exports.compute_status = compute_status = (cb) ->
     status = {memory:{rss:0}, disk_MB:0}
     async.parallel([
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
-            compute_status_memory(status, cb)
+            #compute_status_memory(status, cb)
+            cgroup_memstats(status, cb)
         (cb) ->
             compute_status_tmp(status, cb)
     ], (err) ->
@@ -70,6 +71,49 @@ compute_status_memory = (status, cb) ->
             else
                 status.memory.rss += parseInt(out.stdout)
                 cb()
+
+# this grabs the memory stats directly from the sysfs cgroup files
+# the usage is compensated by the cache usage in the stat file ...
+cgroup_memstats = (status, cb) ->
+    async.parallel({
+
+        cache : (cb) ->
+            fs.readFile '/sys/fs/cgroup/memory/memory.stat', 'utf8', (err, data) ->
+                if err
+                    cb(err, 0)
+                    return
+                for line in data.split('\n')
+                    [key, value] = line.split(' ')
+                    if key == 'cache'
+                        cb(null, parseInt(value))
+                        return
+                    cb('entry "cache" not found', 0)
+
+        limit : (cb) ->
+            fs.readFile '/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8', (err, data) ->
+                if err
+                    cb(err, 0)
+                else
+                    value = parseInt(data.split('\n')[0])
+                    cb(null, value)
+
+        usage : (cb) ->
+            fs.readFile '/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf8', (err, data) ->
+                if err
+                    cb(err, 0)
+                else
+                    value = parseInt(data.split('\n')[0])
+                    cb(null, value)
+
+    }, (err, res) ->
+        if err
+            cb(err)
+        else
+            status.memory.rss += (res.usage - res.cache) / 1024
+            status.memory.limit = res.limit / 1024
+            cb()
+    )
+
 
 disk_usage = (path, cb) ->
     misc_node.execute_code
