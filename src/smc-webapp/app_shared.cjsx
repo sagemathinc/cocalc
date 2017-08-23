@@ -444,10 +444,10 @@ exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
     dismiss: ->
-        redux.getTable('account').set(other_settings:{show_global_info:false})
+        redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/CoCalc'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -461,11 +461,12 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p>Welcome to <strong>CoCalc</strong>! SageMathCloud outgrew itself and changed its name.
-                {' '}<a target='_blank' href={more_url}>Read more...</a></p>
+                <p>Upcoming <strong><a target='_blank' href={more_url}>Kubernetes Migration</a></strong>!
+                {' '}The CoCalc website will be upgraded soon.
+                </p>
             </Col>
             <Col sm={3}>
                 <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
-                    onClick={@dismiss}>Dismiss and hide</Button>
+                    onClick={@dismiss}>Close</Button>
             </Col>
         </Row>
