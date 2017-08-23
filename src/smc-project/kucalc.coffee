@@ -2,6 +2,7 @@
 Some code specific to running a project in the KuCalc environment.
 ###
 
+fs = require('fs')
 async = require('async')
 
 misc_node = require('smc-util-node/misc_node')
