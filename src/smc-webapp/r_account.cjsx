@@ -974,6 +974,10 @@ OtherSettings = rclass
         other_settings : rtypes.object
         redux          : rtypes.object
 
+    reduxProps :
+        account :
+            is_global_info_visible : rtypes.func
+
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
@@ -1006,9 +1010,9 @@ OtherSettings = rclass
                 Mask files: grey-out files in the files viewer that you probably do not want to open
             </Checkbox>
             <Checkbox
-                checked  = {@props.other_settings.show_global_info}
-                ref      = 'show_global_info'
-                onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
+                checked  = {@props.is_global_info_visible()}
+                ref      = 'show_global_info2'
+                onChange = {(e)=>@on_change('show_global_info2', if e.target.checked then null else webapp_client.server_time())}
             >
                 Show global information: if enabled, a dismissible banner is visible on top
             </Checkbox>

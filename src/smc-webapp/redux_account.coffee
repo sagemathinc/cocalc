@@ -257,11 +257,19 @@ class AccountStore extends Store
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
+    is_global_info_visible: =>
+        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
+        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
+        sgi2 = @getIn(['other_settings', 'show_global_info2'])
+        if sgi2 == 'loading'   # unknown state, right after opening the application
+            return false
+        return not sgi2?   # undefined means to show the banner, for now
+
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-# ... except for show_global_info
-init.other_settings.show_global_info = false
+# ... except for show_global_info2 (null or a timestamp)
+init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 

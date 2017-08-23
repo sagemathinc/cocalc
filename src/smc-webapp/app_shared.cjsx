@@ -444,10 +444,10 @@ exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
     dismiss: ->
-        redux.getTable('account').set(other_settings:{show_global_info:false})
+        redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/CoCalc'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -461,7 +461,8 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p>Welcome to <strong>CoCalc</strong>! SageMathCloud outgrew itself and changed its name.
+                <p>Upcoming <strong><a target='_blank' href={more_url}>Kubernetes Migration</a></strong>!
+                {' '}The entire CoCalc infrastructure will be upgraded soon.
                 {' '}<a target='_blank' href={more_url}>Read more...</a></p>
             </Col>
             <Col sm={3}>

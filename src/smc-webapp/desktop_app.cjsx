@@ -92,6 +92,7 @@ Page = rclass
             user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
             other_settings : rtypes.object
+            is_global_info_visible : rtypes.func
         support :
             show : rtypes.bool
 
@@ -197,7 +198,7 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
-        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen) and @props.is_logged_in()
+        show_global_info = @props.is_global_info_visible() and (not @props.fullscreen) and @props.is_logged_in()
 
         style_top_bar =
             display       : 'flex'
