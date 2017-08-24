@@ -69,7 +69,7 @@ exports.start_raw_server = (opts) ->
 
             if kucalc.IN_KUCALC
                 # Add a /health handler, which is used as a health check for Kubernetes.
-                kucalc.init_health_metrics(raw_server)
+                kucalc.init_health_metrics(raw_server, project_id)
 
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))

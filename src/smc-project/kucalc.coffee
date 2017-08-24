@@ -5,6 +5,7 @@ Some code specific to running a project in the KuCalc environment.
 fs = require('fs')
 async = require('async')
 
+misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
 # This gets **changed** to true in local_hub.coffee, if a certain
@@ -160,8 +161,12 @@ exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
     return
 
 # called inside raw_server
-exports.init_health_metrics = (raw_server) ->
+exports.init_health_metrics = (raw_server, project_id) ->
     return if not exports.IN_KUCALC
+    # uniquely identifies this instance of the local hub
+    session_id = misc.uuid()
+    # record when this instance started
+    start_ts   = (new Date()).getTime()
 
     # Setup health and metrics (no url base prefix needed)
     raw_server.use '/health', (req, res) ->
@@ -174,4 +179,12 @@ exports.init_health_metrics = (raw_server) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
         res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
         {get_bugs_total} = require('./local_hub')
-        res.send("kucalc_project_bugs_total #{get_bugs_total()}\n")
+        labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
+        res.send("""
+        # HELP kucalc_project_bugs_total The total number of caught bugs.
+        # TYPE kucalc_project_bugs_total counter
+        kucalc_project_bugs_total{#{labels}} #{get_bugs_total()}
+        # HELP kucalc_project_start_time when the project/session started
+        # TYPE kucalc_project_start_time counter
+        kucalc_project_start_time{#{labels}} #{start_ts}
+        """)
