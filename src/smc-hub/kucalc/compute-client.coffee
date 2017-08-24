@@ -118,25 +118,25 @@ class Client
         P.once 'ready', ->
             opts.cb(undefined, P)
 
+# NOTE: I think (and am assuming) that EventEmitter aspect of Project is NOT used in KuCalc by any
+# client code.
 class Project extends EventEmitter
     constructor: (@client, @project_id, @logger, @database) ->
         @host = "project-#{@project_id}"
         dbg = @dbg('constructor')
         dbg("initializing")
 
-        # It's *critical* that idle_timeout_s be used below, since I haven't
-        # come up with any good way to "garbage collect" ProjectClient objects,
-        # due to the async complexity of everything.
-        # ** TODO: IMPORTANT - idle_timeout_s is NOT IMPLEMENTED in postgres-synctable yet! **
+        # By definition "idle" means not working on any tasks.
+        @free_check = setInterval((=>@free_if_idle()), 5*60*1000)
+        @_task()
         @database.synctable
-            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation;
-                                      # but short enough that connections get freed up.
             table          : 'projects'
             columns        : ['state', 'status', 'action_request']
             where          : {"project_id = $::UUID" : @project_id}
             where_function : (project_id) =>
                 return project_id == @project_id  # fast easy test for matching
             cb             : (err, synctable) =>
+                @_done()
                 if err
                     dbg("error creating synctable ", err)
                     @emit("ready", err)
@@ -147,6 +147,19 @@ class Project extends EventEmitter
                     @synctable = synctable
                     @synctable.on 'change', => @emit('change')
                     @emit("ready")
+
+    free_if_idle: =>
+        @dbg('free_if_idle')(@idle)
+        if @idle <= 0
+            @free()
+
+    _task: =>
+        @idle += 1
+        @dbg('_task')(@idle)
+
+    _done: =>
+        @idle -= 1
+        @dbg('_done')(@idle)
 
     # Get the current data about the project from the database.
     get: (field) =>
@@ -175,9 +188,12 @@ class Project extends EventEmitter
 
     # free -- stop listening for status updates from the database and broadcasting
     # updates about this project.
-    # NOTE: as of writing this line, this free is never called by hub, and idle_timeout_s
-    # is used instead below (of course, free could be used by maintenance operations).
     free: () =>
+        @dbg('free')()
+        delete @idle
+        if @free_check?
+            clearInterval(@free_check)
+            delete @free_check
         # Ensure that next time this project gets requested, a fresh one is created, rather than
         # this cached one, which has been free'd up, and will no longer work.
         delete project_cache[@project_id]
@@ -228,16 +244,19 @@ class Project extends EventEmitter
 
         if opts.goal?
             dbg("start waiting for goal to be satisfied")
+            @_task()
             @synctable.wait
                 until   : () =>
                     return opts.goal(@get())
                 timeout : opts.timeout_s
                 cb      : (err) =>
+                    @_done()
                     dbg("done waiting for goal #{err}")
                     opts.cb?(err)
                     delete opts.cb
 
         dbg("request action to happen")
+        @_done()
         @_query
             jsonb_set :
                 action_request :
@@ -246,6 +265,7 @@ class Project extends EventEmitter
                     started  : undefined
                     finished : undefined
             cb          : (err) =>
+                @_task()
                 if err
                     dbg('action request failed')
                     opts.cb?(err)
@@ -375,6 +395,7 @@ class Project extends EventEmitter
         copy_id = misc.uuid()
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
         dbg("copy a path using rsync from one project to another")
+        @_task()
         async.series([
             (cb) =>
                 dbg("get synctable")
@@ -415,6 +436,7 @@ class Project extends EventEmitter
                         cb(obj.get('error'))
                 synctable.on('change', handle_change)
         ], (err) ->
+            @_done()
             dbg('done', err)
             opts.cb?(err)
         )
@@ -430,6 +452,7 @@ class Project extends EventEmitter
         dbg = @dbg("directory_listing")
         dbg()
         listing = undefined
+        @_task()
         async.series([
             (cb) =>
                 dbg("starting project if necessary...")
@@ -450,6 +473,7 @@ class Project extends EventEmitter
                     max_delay   : 7000
                     cb          : cb
         ], (err) =>
+            @_done()
             opts.cb(err, listing)
         )
 
@@ -461,6 +485,7 @@ class Project extends EventEmitter
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file from disk")
         content = undefined
+        @_task()
         async.series([
             (cb) =>
                 # (this also starts the project)
@@ -497,6 +522,7 @@ class Project extends EventEmitter
                     max_delay   : 7000
                     cb          : cb
         ], (err) =>
+            @_done()
             opts.cb(err, content)
         )
 
@@ -513,10 +539,12 @@ class Project extends EventEmitter
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
         # 2. If quotas differ, restarts project.
+        @_task()
         @database.get_project
             project_id : @project_id
             columns    : ['state', 'users', 'settings', 'run_quota']
             cb         : (err, x) =>
+                @_done()
                 if err
                     dbg("error -- #{err}")
                     opts.cb(err)
