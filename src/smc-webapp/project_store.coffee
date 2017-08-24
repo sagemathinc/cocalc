@@ -625,7 +625,7 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
+        @set_activity(id:id, status:"scanning '#{misc.trunc_middle(path,30)}'")
         my_group = undefined
         the_listing = undefined
         async.series([
@@ -1715,6 +1715,7 @@ get_directory_listing = (opts) ->
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
+        #console.log 'get_directory_listing.f ', opts.path
         method
             project_id : opts.project_id
             path       : opts.path
@@ -1741,7 +1742,8 @@ get_directory_listing = (opts) ->
         max_time    : opts.max_time_s * 1000
         start_delay : 3000
         max_delay   : 5000
-        #log      : console.log
+        #log       : console.log
         cb          : (err) ->
+            #console.log opts.path, 'get_directory_listing.success or timeout', err
             opts.cb(err ? listing_err, listing)
 

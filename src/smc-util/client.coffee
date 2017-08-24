@@ -1315,11 +1315,20 @@ class exports.Connection extends EventEmitter
         if opts.path[0] == '/'
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
+        url += "?random=#{Math.random()}"
         if opts.hidden
-            url += '?hidden=true'
-        req = $.getJSON url, (data) ->
-            opts.cb(undefined, data)
-        req.fail(opts.cb)
+            url += '&hidden=true'
+        #console.log(url)
+        req = $.ajax
+            dataType : "json"
+            url      : url
+            timeout  : 3000
+            success  : (data) ->
+                #console.log('success')
+                opts.cb(undefined, data)
+        req.fail (err) ->
+            #console.log('fail')
+            opts.cb(err)
 
     project_get_state: (opts) =>
         opts = defaults opts,
