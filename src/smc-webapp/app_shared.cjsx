@@ -467,6 +467,6 @@ exports.GlobalInformationMessage = rclass
             </Col>
             <Col sm={3}>
                 <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
-                    onClick={@dismiss}>Dismiss and hide</Button>
+                    onClick={@dismiss}>Close</Button>
             </Col>
         </Row>

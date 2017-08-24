@@ -110,25 +110,14 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("getting deployed running project")
 
     project: (cb) =>
-        if @_project?
-            cb(undefined, @_project)
-        else
-            @compute_server.project
-                project_id : @project_id
-                cb         : (err, project) =>
-                    if err
-                        cb(err)
-                    else
-                        @_project = project
-                        @_project.on 'host_changed', (new_host) =>
-                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
-                            @free_resources()
-                        cb(undefined, project)
+        @compute_server.project
+            project_id : @project_id
+            cb         : cb
 
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
+            winston.debug("local_hub(#{@project_id}: #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,

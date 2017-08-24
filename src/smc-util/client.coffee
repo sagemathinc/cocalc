@@ -1308,26 +1308,27 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : '.'
-            timeout    : 60
+            timeout    : 60         # ignored
             hidden     : false
             cb         : required
         base = window?.app_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
+        url += "?random=#{Math.random()}"
         if opts.hidden
-            url += '?hidden=true'
-        files = undefined
-        misc.retry_until_success
-            cb        : (err) -> opts.cb(err, files)
-            max_time  : opts.timeout * 1000
-            max_delay : 3000
-            f         : (cb) ->
-                req = $.getJSON url, (data) ->
-                    files = data
-                    cb(undefined, data)
-                req.fail (err) ->
-                    cb(err)
+            url += '&hidden=true'
+        #console.log(url)
+        req = $.ajax
+            dataType : "json"
+            url      : url
+            timeout  : 3000
+            success  : (data) ->
+                #console.log('success')
+                opts.cb(undefined, data)
+        req.fail (err) ->
+            #console.log('fail')
+            opts.cb(err)
 
     project_get_state: (opts) =>
         opts = defaults opts,

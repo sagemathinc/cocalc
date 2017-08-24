@@ -166,9 +166,13 @@ exports.init_http_proxy_server = (opts) ->
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_access
-                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for this long)
+                    setTimeout(f, 1000*60*7)
+                    # access lasts 7 minutes (i.e., if you revoke privs to a user they
+                    # could still hit the port for this long)
                 else
-                    setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
+                    setTimeout(f, 1000*10)
+                    # not having access lasts 10 seconds -- maybe they weren't logged in yet..., so don't
+                    # have things broken forever!
                 opts.cb(err, has_access)
 
     _target_cache = {}
@@ -285,7 +289,7 @@ exports.init_http_proxy_server = (opts) ->
                         # This helps enormously when there is a burst of requests.
                         # Also if project restarts the raw port will change and we don't want to have
                         # fix this via getting an error.
-                        setTimeout((->delete _target_cache[key]), 3*60000)
+                        setTimeout((->delete _target_cache[key]), 7*60*1000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)
@@ -415,7 +419,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb(err)
                             else
                                 public_paths = public_raw_paths_cache[project_id] = paths
-                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 3*60000)  # cache a few seconds
+                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 3*60*1000)  # cache a few seconds
                                 cb()
             (cb) ->
                 #winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")

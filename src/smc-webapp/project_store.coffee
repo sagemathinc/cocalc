@@ -210,29 +210,17 @@ class ProjectActions extends Actions
             status : undefined    # status update message during the activity -- description of progress
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
-
-        @_pending_activity ?= {}
-        if @_pending_activity[opts.id]?
-            # Don't due it.
-            clearTimeout(@_pending_activity[opts.id])
-            delete @_pending_activity[opts.id]
-
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implementation of above specified API is VERY minimal for
+        # Actual implementyation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
-            # Wait a little before showing status, since it can be annoying seeing constant flickers for
-            # things that only take a few hundred ms.
-            f = =>
-                delete @_pending_activity[opts.id]
-                x[opts.id] = opts.status
-                @setState(activity: x)
-            @_pending_activity[opts.id] = setTimeout(f, 1000)
+            x[opts.id] = opts.status
+            @setState(activity: x)
         if opts.error?
             error = opts.error
             if error == ''
@@ -637,7 +625,7 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
+        @set_activity(id:id, status:"scanning '#{misc.trunc_middle(path,30)}'")
         my_group = undefined
         the_listing = undefined
         async.series([
@@ -658,7 +646,7 @@ class ProjectActions extends Actions
                     project_id : @project_id
                     path       : path
                     hidden     : true
-                    max_time_s : 120  # keep trying for up to 2 minutes
+                    max_time_s : 60  # keep trying for up to a minute
                     group      : my_group
                     cb         : (err, listing) =>
                         the_listing = listing
@@ -1727,11 +1715,12 @@ get_directory_listing = (opts) ->
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
+        #console.log 'get_directory_listing.f ', opts.path
         method
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 15
+            timeout    : 30
             cb         : (err, x) ->
                 if err
                     cb(err)
@@ -1749,9 +1738,12 @@ get_directory_listing = (opts) ->
                         cb()
 
     misc.retry_until_success
-        f        : f
-        max_time : opts.max_time_s * 1000
-        #log      : console.log
-        cb       : (err) ->
+        f           : f
+        max_time    : opts.max_time_s * 1000
+        start_delay : 3000
+        max_delay   : 5000
+        #log       : console.log
+        cb          : (err) ->
+            #console.log opts.path, 'get_directory_listing.success or timeout', err
             opts.cb(err ? listing_err, listing)
 

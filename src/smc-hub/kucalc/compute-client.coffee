@@ -118,25 +118,28 @@ class Client
         P.once 'ready', ->
             opts.cb(undefined, P)
 
+# NOTE: I think (and am assuming) that EventEmitter aspect of Project is NOT used in KuCalc by any
+# client code.
 class Project extends EventEmitter
     constructor: (@client, @project_id, @logger, @database) ->
         @host = "project-#{@project_id}"
         dbg = @dbg('constructor')
         dbg("initializing")
 
-        # It's *critical* that idle_timeout_s be used below, since I haven't
-        # come up with any good way to "garbage collect" ProjectClient objects,
-        # due to the async complexity of everything.
-        # ** TODO: IMPORTANT - idle_timeout_s is NOT IMPLEMENTED in postgres-synctable yet! **
+        # We debounce the free function (which cleans everything up).
+        # Every time we're doing something, we call @active();
+        # once we DON'T call it for a few minutes, the project
+        # is **then** freed, because that's how debounce works.
+        @active = underscore.debounce(@free, 10*60*1000)
+        @active()
         @database.synctable
-            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation;
-                                      # but short enough that connections get freed up.
             table          : 'projects'
             columns        : ['state', 'status', 'action_request']
             where          : {"project_id = $::UUID" : @project_id}
             where_function : (project_id) =>
                 return project_id == @project_id  # fast easy test for matching
             cb             : (err, synctable) =>
+                @active()
                 if err
                     dbg("error creating synctable ", err)
                     @emit("ready", err)
@@ -175,9 +178,12 @@ class Project extends EventEmitter
 
     # free -- stop listening for status updates from the database and broadcasting
     # updates about this project.
-    # NOTE: as of writing this line, this free is never called by hub, and idle_timeout_s
-    # is used instead below (of course, free could be used by maintenance operations).
     free: () =>
+        @dbg('free')()
+        delete @idle
+        if @free_check?
+            clearInterval(@free_check)
+            delete @free_check
         # Ensure that next time this project gets requested, a fresh one is created, rather than
         # this cached one, which has been free'd up, and will no longer work.
         delete project_cache[@project_id]
@@ -228,16 +234,20 @@ class Project extends EventEmitter
 
         if opts.goal?
             dbg("start waiting for goal to be satisfied")
+            @active()
             @synctable.wait
                 until   : () =>
+                    @active()
                     return opts.goal(@get())
                 timeout : opts.timeout_s
                 cb      : (err) =>
+                    @active()
                     dbg("done waiting for goal #{err}")
                     opts.cb?(err)
                     delete opts.cb
 
         dbg("request action to happen")
+        @active()
         @_query
             jsonb_set :
                 action_request :
@@ -246,6 +256,7 @@ class Project extends EventEmitter
                     started  : undefined
                     finished : undefined
             cb          : (err) =>
+                @active()
                 if err
                     dbg('action request failed')
                     opts.cb?(err)
@@ -375,12 +386,14 @@ class Project extends EventEmitter
         copy_id = misc.uuid()
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
         dbg("copy a path using rsync from one project to another")
+        @active()
         async.series([
             (cb) =>
                 dbg("get synctable")
                 @client.copy_paths_synctable (err, s) =>
                     synctable = s; cb(err)
             (cb) =>
+                @active()
                 dbg('write query requesting the copy to the database')
                 @database._query
                     query  : "INSERT INTO copy_paths"
@@ -398,6 +411,7 @@ class Project extends EventEmitter
                         "timeout           ::NUMERIC"   : opts.timeout
                     cb: cb
             (cb) =>
+                @active()
                 if synctable.getIn([copy_id, 'finished'])
                     dbg("copy instantly finished")
                     # no way this ever happens - the server can't be that fast.
@@ -415,6 +429,7 @@ class Project extends EventEmitter
                         cb(obj.get('error'))
                 synctable.on('change', handle_change)
         ], (err) ->
+            @active()
             dbg('done', err)
             opts.cb?(err)
         )
@@ -442,6 +457,7 @@ class Project extends EventEmitter
                     url += '?hidden=true'
                 misc.retry_until_success
                     f           : (cb) =>
+                        @active()
                         get_json url, (err, x) =>
                             listing = x
                             cb(err)
@@ -450,6 +466,7 @@ class Project extends EventEmitter
                     max_delay   : 7000
                     cb          : cb
         ], (err) =>
+            @active()
             opts.cb(err, listing)
         )
 
@@ -461,6 +478,7 @@ class Project extends EventEmitter
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file from disk")
         content = undefined
+        @active()
         async.series([
             (cb) =>
                 # (this also starts the project)
@@ -489,6 +507,7 @@ class Project extends EventEmitter
                 dbg("fetching file from '#{url}'")
                 misc.retry_until_success
                     f           : (cb) =>
+                        @active()
                         get_file url, (err, x) =>
                             content = x
                             cb(err)
@@ -497,6 +516,7 @@ class Project extends EventEmitter
                     max_delay   : 7000
                     cb          : cb
         ], (err) =>
+            @active()
             opts.cb(err, content)
         )
 
@@ -513,10 +533,12 @@ class Project extends EventEmitter
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
         # 2. If quotas differ, restarts project.
+        @active()
         @database.get_project
             project_id : @project_id
             columns    : ['state', 'users', 'settings', 'run_quota']
             cb         : (err, x) =>
+                @active()
                 if err
                     dbg("error -- #{err}")
                     opts.cb(err)

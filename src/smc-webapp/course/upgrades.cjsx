@@ -30,6 +30,8 @@ schema = require('smc-util/schema')
 
 {Icon, Loading, NoUpgrades, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
 
+{UpgradeRestartWarning} = require('../upgrade_restart_warning')
+
 {Alert, Button, ButtonToolbar, Checkbox,
  FormGroup, FormControl, Panel, Row, Col} = require('react-bootstrap')
 
@@ -232,6 +234,7 @@ exports.StudentProjectUpgrades = rclass
             {@render_upgrade_heading(num_projects)}
             <hr/>
             {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
+            <UpgradeRestartWarning />
             {@render_upgrade_submit_buttons()}
             <div style={marginTop:'15px', color: '#333'}>
                 {@render_upgrade_plan()}

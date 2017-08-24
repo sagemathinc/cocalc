@@ -1014,7 +1014,7 @@ OtherSettings = rclass
                 ref      = 'show_global_info2'
                 onChange = {(e)=>@on_change('show_global_info2', if e.target.checked then null else webapp_client.server_time())}
             >
-                Show global information: if enabled, a dismissible banner is visible on top
+                Show global information: if enabled, an orange information banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
