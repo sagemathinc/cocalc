@@ -263,7 +263,11 @@ class AccountStore extends Store
         sgi2 = @getIn(['other_settings', 'show_global_info2'])
         if sgi2 == 'loading'   # unknown state, right after opening the application
             return false
-        return not sgi2?   # undefined means to show the banner, for now
+        if not sgi2?           # not set means there is no timestamp → show banner
+            return true
+        sgi2_dt = new Date(sgi2)
+        start_dt = new Date('2017-08-26T13:00:00.000Z')
+        return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
