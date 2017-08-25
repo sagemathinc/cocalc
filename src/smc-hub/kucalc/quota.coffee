@@ -36,11 +36,12 @@ exports.quota = (settings, users) ->
     # elevated quota for docker container (fuse mounting and maybe more ...)
     if settings.privileged
         quota.privileged = true
-    else
-        for _, val of users
-            if val?.upgrades?.privileged
-                quota.privileged = true
-                break
+    # user-upgrades are disabled on purpose (security concerns and not implemented)!
+    #else
+    #    for _, val of users
+    #        if val?.upgrades?.privileged
+    #            quota.privileged = true
+    #            break
 
     # disk space quota in MB
     if settings.disk_quota
