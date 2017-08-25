@@ -493,7 +493,7 @@ exports.CourseActions = class CourseActions extends Actions
                     project_id     : project_id
                     table          : 'students'
                     student_id     : student_id
-                @configure_project(student_id)
+                @configure_project(student_id, undefined, project_id)
             delete @_creating_student_project
             queue.shift()
             if queue.length > 0
@@ -636,7 +636,8 @@ exports.CourseActions = class CourseActions extends Actions
                 @redux.getActions('projects').set_project_course_info(student_project_id,
                         store.get('course_project_id'), store.get('course_filename'), pay, student_account_id, student_email_address)
 
-    configure_project: (student_id, do_not_invite_student_by_email) =>
+    configure_project: (student_id, do_not_invite_student_by_email, student_project_id) =>
+        # student_project_id is optional. Will be used instead of from student_id store if provided.
         # Configure project for the given student so that it has the right title,
         # description, and collaborators for belonging to the indicated student.
         # - Add student and collaborators on project containing this course to the new project.
@@ -644,7 +645,7 @@ exports.CourseActions = class CourseActions extends Actions
         # - Set the title to [Student name] + [course title] and description to course description.
         store = @get_store()
         return if not store?
-        student_project_id = store.getIn(['students', student_id, 'project_id'])
+        student_project_id = student_project_id ? store.getIn(['students', student_id, 'project_id'])
         if not student_project_id?
             @create_student_project(student_id)
         else
