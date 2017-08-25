@@ -46,7 +46,8 @@ exports.get_listing = (path, hidden, cb) ->
 
         get_metadata = (file, cb) ->
             obj = {name:file}
-            fs.stat dir + '/' + file, (err, stats) ->
+            # use lstat instead of stat so it works on symlinks too
+            fs.lstat dir + '/' + file, (err, stats) ->
                 if err
                     obj.error = err
                 else
