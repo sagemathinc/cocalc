@@ -108,6 +108,7 @@ class Client
         if P?
             dbg('in cache')
             if P.is_ready
+                P.active()
                 opts.cb(undefined, P)
             else
                 P.once 'ready', (err) ->

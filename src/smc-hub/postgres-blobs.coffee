@@ -9,7 +9,10 @@ LICENSE   : AGPLv3
 # Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
-BLOB_GCLOUD_BUCKET = 'smc-blobs'
+# If this env variable begins with a / it is assumed to be a path in the filesystem,
+# e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
+# If it is gs:// then it is a google cloud storage bucket.
+COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
 
 async   = require('async')
 snappy  = require('snappy')
@@ -22,6 +25,8 @@ misc_node = require('smc-util-node/misc_node')
 required = defaults.required
 
 {expire_time, one_result, all_results, PostgreSQL} = require('./postgres')
+
+{filesystem_bucket} = require('./filesystem-bucket')
 
 class exports.PostgreSQL extends PostgreSQL
     save_blob: (opts) =>
@@ -174,8 +179,14 @@ class exports.PostgreSQL extends PostgreSQL
                     blob = x.blob
                     cb()
                 else if x.gcloud
+                    if not COCALC_BLOB_STORE?
+                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
+                        return
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
-                    @gcloud().bucket(name: x.gcloud).read
+                    # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
+                    # across multiple buckets... as it isn't needed because buckets are infinite, and it
+                    # is potentially confusing to manage.
+                    @blob_store().read
                         name : opts.uuid
                         cb   : (err, _blob) =>
                             if err
@@ -190,7 +201,8 @@ class exports.PostgreSQL extends PostgreSQL
                                         set   : {blob : blob}
                                         where : "id = $::UUID" : opts.uuid
                 else
-                    # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
+                    # blob not local and not in gcloud -- this shouldn't happen
+                    # (just view this as "expired" by not setting blob)
                     cb()
             (cb) =>
                 if not blob? or not x?.compress?
@@ -231,17 +243,30 @@ class exports.PostgreSQL extends PostgreSQL
     gcloud: () =>
         return @_gcloud ?= require('./smc_gcloud').gcloud()
 
+    blob_store: (bucket=COCALC_BLOB_STORE) =>
+        if misc.startswith(bucket, 'gs://')
+            # Google Cloud Storage -- only works if hub has full direct gcloud storage API access, so
+            # NOT in KuCalc or Docker or really anywhere anymore...
+            return @gcloud().bucket(name: bucket.slice('gs://'.length))
+        else
+            # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
+            # a single big local filesystem -- etc. -- we don't care.
+            return filesystem_bucket(name: bucket)
+
     # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
     # been uploaded there.
     copy_blob_to_gcloud: (opts) =>
         opts = defaults opts,
-            uuid   : required  # uuid=sha1-based uuid coming from blob
-            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            uuid   : required   # uuid=sha1-based uuid coming from blob
+            bucket : COCALC_BLOB_STORE # name of bucket
             force  : false      # if true, upload even if already uploaded
             remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb?("uuid is invalid")
+            return
+        if not opts.bucket
+            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
             return
         x = undefined
         async.series([
@@ -269,7 +294,7 @@ class exports.PostgreSQL extends PostgreSQL
                     # blob already deleted locally
                     cb(); return
                 # upload to Google cloud storage
-                @gcloud().bucket(name:opts.bucket).write
+                @blob_store(opts.bucket).write
                     name    : opts.uuid
                     content : x.blob
                     cb      : cb
@@ -298,7 +323,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     I have not written code to restore from these tarballs.  Assuming the database has been restored,
     so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
-    then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
+    then copy their contents straight into the COCALC_BLOB_STORE, and that’s it.
     If we don't have the blobs table in the DB, make dummy entries from the blob names in the tarballs.
     ###
     backup_blobs_to_tarball: (opts) =>
@@ -395,7 +420,7 @@ class exports.PostgreSQL extends PostgreSQL
     ###
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
-            bucket    : BLOB_GCLOUD_BUCKET # name of bucket
+            bucket    : COCALC_BLOB_STORE
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
             throttle  : 0                  # wait this many seconds between uploads
@@ -505,7 +530,7 @@ class exports.PostgreSQL extends PostgreSQL
     close_blob: (opts) =>
         opts = defaults opts,
             uuid   : required   # uuid=sha1-based from blob
-            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            bucket : COCALC_BLOB_STORE
             cb     : undefined   # cb(err)
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb?("uuid is invalid")
@@ -808,11 +833,11 @@ class exports.PostgreSQL extends PostgreSQL
                         gcloud = x
                         cb(err)
             (cb) =>
-                if not gcloud
+                if not gcloud or not COCALC_BLOB_STORE
                     cb()
                     return
                 dbg("delete from gcloud")
-                @gcloud().bucket(name:gcloud).delete
+                @blob_store(name:gcloud).delete
                     name : opts.uuid
                     cb   : cb
             (cb) =>
