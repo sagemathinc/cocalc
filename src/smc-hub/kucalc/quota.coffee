@@ -13,6 +13,7 @@ exports.quota = (settings, users) ->
         memory_request : 100         # default guaranteed RAM in MB
         cpu_limit      : 1           # default upper bound on cpu
         cpu_request    : 0           # default guaranteed min cpu
+        privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
 
     # network access
     if settings.network  # free admin-set
@@ -30,6 +31,15 @@ exports.quota = (settings, users) ->
         for _,val of users
             if val?.upgrades?.member_host
                 quota.member_host = true
+                break
+
+    # elevated quota for docker container (fuse mounting and maybe more ...)
+    if settings.privileged
+        quota.privileged = true
+    else
+        for _, val of users
+            if val?.upgrades?.privileged
+                quota.privileged = true
                 break
 
     # disk space quota in MB
