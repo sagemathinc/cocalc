@@ -243,7 +243,9 @@ class exports.PostgreSQL extends PostgreSQL
     gcloud: () =>
         return @_gcloud ?= require('./smc_gcloud').gcloud()
 
-    blob_store: (bucket=COCALC_BLOB_STORE) =>
+    blob_store: (bucket) =>
+        if not bucket
+            bucket = COCALC_BLOB_STORE
         if misc.startswith(bucket, 'gs://')
             # Google Cloud Storage -- only works if hub has full direct gcloud storage API access, so
             # NOT in KuCalc or Docker or really anywhere anymore...
@@ -837,7 +839,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
                     return
                 dbg("delete from gcloud")
-                @blob_store(name:gcloud).delete
+                @blob_store(gcloud).delete
                     name : opts.uuid
                     cb   : cb
             (cb) =>

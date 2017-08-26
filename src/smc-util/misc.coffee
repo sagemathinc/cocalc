@@ -60,7 +60,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
+# It is false if s is not a string.
 exports.startswith = (s, x) ->
+    if typeof(s) != 'string'
+        return false
     if typeof(x) == "string"
         return s?.indexOf(x) == 0
     else
