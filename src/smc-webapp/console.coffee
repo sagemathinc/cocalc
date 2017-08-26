@@ -424,8 +424,11 @@ class Console extends EventEmitter
                 @pause_rendering(true)
             return false
 
-        e = @element.find(".webapp-console-terminal")
 
+        ###
+        # these all seriously messs up copy paste -- let the user explicitly pause if they want.
+
+        e = @element.find(".webapp-console-terminal")
         e.mousedown () =>
             @pause_rendering(false)
 
@@ -441,6 +444,7 @@ class Console extends EventEmitter
         e.on 'copy', =>
             @unpause_rendering()
             setTimeout(@focus, 0)  # must happen in next cycle or copy will not work due to loss of focus.
+        ###
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
