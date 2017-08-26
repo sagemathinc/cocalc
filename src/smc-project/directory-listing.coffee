@@ -35,7 +35,27 @@ directory_listing_http_server = (base, router) ->
 # SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
 HOME = process.env.SMC_LOCAL_HUB_HOME ? process.env.HOME
 
+misc_node = require('smc-util-node/misc_node')
+
+# We temporarily use the old cc-ls python script until the pure node get_listing0 below,
+# which is 100x faster, works in all cases: symlinks, bad timestamps, etc.
 exports.get_listing = (path, hidden, cb) ->
+    dir = HOME + '/' + path
+    if hidden
+        args = ['--hidden', dir]
+    else
+        args = [dir]
+    misc_node.execute_code
+        command : "cc-ls"
+        args    : args
+        bash    : false
+        cb      : (err, out) ->
+            if err
+                cb(err)
+            else
+                cb(undefined, JSON.parse(out?.stdout))
+
+exports.get_listing0 = (path, hidden, cb) ->
     dir = HOME + '/' + path
     fs.readdir dir, (err, files) ->
         if err
