@@ -24,11 +24,19 @@ directory_listing_http_server = (base, router) ->
     router.get base + '*', (req, res) ->
         path = decodeURI(req.path.slice(base.length).trim())
         hidden = req.query.hidden
+
+        exports.get_listing1 path, hidden, (err, listing) ->
+            if err
+                res.json({error:err})
+            else
+                res.json(listing)
+        ###
         exports.get_listing path, hidden, (err, info) ->
             if err
                 res.json({error:err})
             else
                 res.json({files:info})
+        ###
 
     return router
 
@@ -39,7 +47,7 @@ misc_node = require('smc-util-node/misc_node')
 
 # We temporarily use the old cc-ls python script until the pure node get_listing0 below,
 # which is 100x faster, works in all cases: symlinks, bad timestamps, etc.
-exports.get_listing = (path, hidden, cb) ->
+exports.get_listing1 = (path, hidden, cb) ->
     dir = HOME + '/' + path
     if hidden
         args = ['--hidden', dir]
