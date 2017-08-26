@@ -429,7 +429,7 @@ class Project extends EventEmitter
                         synctable.removeListener('change', handle_change)
                         cb(obj.get('error'))
                 synctable.on('change', handle_change)
-        ], (err) ->
+        ], (err) =>
             @active()
             dbg('done', err)
             opts.cb?(err)

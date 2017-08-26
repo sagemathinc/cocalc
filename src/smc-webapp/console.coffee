@@ -426,7 +426,7 @@ class Console extends EventEmitter
 
 
         ###
-        # these all seriously messs up copy paste -- let the user explicitly pause if they want.
+        # these all seriously mess up copy paste -- let the user explicitly pause if they want.
 
         e = @element.find(".webapp-console-terminal")
         e.mousedown () =>
