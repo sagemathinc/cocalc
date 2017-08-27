@@ -502,7 +502,7 @@ class Project extends EventEmitter
                                     if x.size <= opts.maxsize
                                         cb()
                                         return
-                        cb('file too big or not found in listing')
+                            cb('file too big or not found in listing')
             (cb) =>
                 url = "http://project-#{@project_id}:6001/#{@project_id}/raw/#{opts.path}"
                 dbg("fetching file from '#{url}'")
