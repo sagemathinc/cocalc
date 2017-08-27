@@ -398,8 +398,8 @@ exports.init_express_http_server = (opts) ->
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
-                                    # also delete after a few seconds
-                                    setTimeout((-> delete proxy_cache[key]), 10000)
+                                    # also delete eventually (1 hour)
+                                    setTimeout((-> delete proxy_cache[key]), 1000*60*60)
 
         raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
         app.get( raw_regexp, dev_proxy_raw)

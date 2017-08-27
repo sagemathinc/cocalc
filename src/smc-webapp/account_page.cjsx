@@ -20,6 +20,7 @@
 ###############################################################################
 
 misc = require('smc-util/misc')
+immutable = require('immutable')
 
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
@@ -31,6 +32,7 @@ require('./redux_account')
 {BillingPageRedux}                       = require('./billing')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
+{SSHKeysPage}                            = require('./account_ssh_keys')
 {Icon}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
@@ -40,7 +42,12 @@ exports.AccountPage = rclass
     reduxProps :
         projects :
             project_map             : rtypes.immutable.Map
+        users :
+            user_map                : rtypes.immutable.Map
+        customize :
+            kucalc                  : rtypes.string
         account :
+            account_id              : rtypes.string
             active_page             : rtypes.string
             strategies              : rtypes.array
             sign_up_error           : rtypes.object
@@ -67,10 +74,11 @@ exports.AccountPage = rclass
             autosave                : rtypes.number
             font_size               : rtypes.number
             editor_settings         : rtypes.object
-            other_settings          : rtypes.object
+            other_settings          : rtypes.immutable.Map
             profile                 : rtypes.object
             groups                  : rtypes.array
             stripe_customer         : rtypes.object
+            ssh_keys                : rtypes.immutable.Map
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -95,8 +103,11 @@ exports.AccountPage = rclass
             stripe_customer = {@props.stripe_customer}
             project_map     = {@props.project_map} />
 
-    render_support: ->
-        <SupportPage />
+    render_ssh_keys_page: ->
+        <SSHKeysPage
+            account_id = {@props.account_id}
+            ssh_keys   = {@props.ssh_keys}
+        />
 
     render_account_settings: ->
         <AccountSettingsTop
@@ -113,7 +124,7 @@ exports.AccountPage = rclass
             autosave        = {@props.autosave}
             font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
-            other_settings  = {@props.other_settings}
+            other_settings  = {@props.other_settings.toJS()}
             groups          = {@props.groups} />
 
     render_landing_page: ->
@@ -144,8 +155,12 @@ exports.AccountPage = rclass
         v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
             {@render_upgrades() if @props.active_page == 'upgrades'}
         </Tab>
+        if @props.kucalc is 'yes'
+            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
+                {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
+            </Tab>
         v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
-            {@render_support() if @props.active_page == 'support'}
+            {<SupportPage/> if @props.active_page == 'support'}
         </Tab>
         return v
 

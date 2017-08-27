@@ -147,10 +147,14 @@ class Project(object):
                  project_id,          # v4 uuid string
                  dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
                  projects      = PROJECTS,
-                 single        = False
+                 single        = False,
+                 kucalc        = False
                 ):
         self._dev    = dev
         self._single = single
+        self._kucalc = kucalc
+        if kucalc:
+            projects = '/home'
         check_uuid(project_id)
         if not os.path.exists(projects):
             if self._dev:
@@ -159,7 +163,10 @@ class Project(object):
                 raise RuntimeError("mount point %s doesn't exist"%projects)
         self.project_id    = project_id
         self._projects     = projects
-        self.project_path  = os.path.join(self._projects, project_id)
+        if self._kucalc:
+            self.project_path = os.environ['HOME']
+        else:
+            self.project_path = os.path.join(self._projects, project_id)
         self.smc_path      = os.path.join(self.project_path, '.smc')
         self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
@@ -612,7 +619,6 @@ class Project(object):
             except:
                 return -1
 
-
         try:
             listdir = os.listdir(abspath)
         except:
@@ -910,13 +916,15 @@ def main():
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects', 'single']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects', 'single', 'kucalc']]
             out = []
             errors = False
+            if args.kucalc:
+                args.project_id = [os.environ['COCALC_PROJECT_ID']]
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects, single=args.single), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects, single=args.single, kucalc=args.kucalc), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -932,7 +940,7 @@ def main():
                 print json.dumps(out)
             if errors:
                 sys.exit(1)
-        subparser.add_argument("project_id", help="UUID of project", type=str, nargs="+")
+        subparser.add_argument("project_id", help="UUID of project", type=str, nargs="*")
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
@@ -941,6 +949,9 @@ def main():
 
     parser.add_argument("--single", default=False, action="store_const", const=True,
                         help="mode where everything runs on the same machine; no storage tiers; all projects assumed opened by default.")
+
+    parser.add_argument("--kucalc", default=False, action="store_const", const=True,
+                        help="run inside a project container inside KuCalc")
 
     parser.add_argument("--projects", help="/projects mount point [default: '/projects']",
                         dest="projects", default='/projects', type=str)

@@ -104,6 +104,33 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    add_ssh_key_to_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+            title       : required
+            value       : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}":
+                            title         : opts.title
+                            value         : opts.value
+                            creation_date : new Date() - 0
+
+    delete_ssh_key_from_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}": null
+
     # Apply default upgrades -- if available -- to the given project.
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be

@@ -39,7 +39,7 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
+        print "Usage: %s [start/stop/status] normal Jupyter notebook options..."%sys.argv[0]
         print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         sys.exit(1)
 
@@ -60,9 +60,6 @@ def server_setup():
         base_url = ''
         ip = '127.0.0.1'
 
-if __name__ == '__main__':
-    command_line_setup()
-
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
     while True:
@@ -75,7 +72,7 @@ def command():
     port = random_port()  # time consuming!
     if project_id:
         b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
+        base = " --NotebookApp.base_url=%s "%(b)
     else:
         base = ''
 
@@ -172,7 +169,7 @@ def action(mode):
             c = "ps -u`whoami` -o pid,cmd|grep '/usr/local/bin/jupyter-notebook'"
             for s in os.popen(c).read().splitlines():
                 v = s.split()
-                if len(v) < 2 or v[1].split('/')[-1] != 'python':
+                if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):
                     continue
                 p = int(v[0])
                 if "port=%s"%port not in s:
@@ -207,16 +204,6 @@ def action(mode):
         except:
             pass
         return
-
-    elif mode == 'run':
-        print cmd + '\n\n'
-        print "*"*80 + '\n'
-        print "  The IPython Notebook server is running at \n"
-        print "      https://cocalc.com%s\n"%base
-        print "  All collaborators on this project may access the notebook at the"
-        print "  above SSL-encrypted URL, but nobody else can access it."
-        print '\n\n' + "*"*80 + '\n\n'
-        os.system(cmd + "  2>&1 | grep -v running ")
 
     elif mode == 'restart':
         action('stop')

@@ -362,4 +362,12 @@ if fullscreen_query_value
         redux.getActions('page').set_fullscreen('default')
 
 # configure the session
-redux.getActions('page').set_session(misc_page.get_query_param('session'))
+# This makes it so the default session is 'default' and there is no
+# way to NOT have a session.
+session = misc_page.get_query_param('session') ? 'default'
+if fullscreen_query_value == 'kiosk'
+    # never have a session in kiosk mode, since you can't access the other files.
+    session = undefined
+
+redux.getActions('page').set_session(session)
+

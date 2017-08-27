@@ -80,8 +80,15 @@ def install_webapp(*args):
         install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
-        print("Building production webpack -- grab a coffee, this will take about 5 minutes")
-        cmd("npm --loglevel=warn run webpack-production")
+        wtype = 'debug' if args[0].debug else 'production'
+        if args[0].debug:
+            wtype = 'debug'
+            est   = 1
+        else:
+            wtype = 'production'
+            est   = 5
+        print("Building {wtype} webpack -- this should take up to {est} minutes".format(wtype=wtype, est=est))
+        cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
         nothing = False
 
     if 'pull' == action:
@@ -126,6 +133,7 @@ def main():
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
     parser_webapp.add_argument('action', help='either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works', choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.add_argument("--debug", action="store_true", help="if set, build debug version of code (rather than production)")
     parser_webapp.set_defaults(func = install_webapp)
 
     parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')

@@ -36,7 +36,7 @@ load_stripe = (cb) ->
     if Stripe?
         cb()
     else
-        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support; make sure your browser is not blocking stripe.com.'))
 
 last_subscription_attempt = null
 
@@ -441,7 +441,7 @@ AddPaymentMethod = rclass
                 </Col>
             </Row>
             <div style={color:"#666", marginTop:'15px'}>
-                (PayPal or wire transfers are also possible -- email <HelpEmailLink/>.)
+                (PayPal or wire transfers for non-recurring subscriptions above $50 are also possible. Please email <HelpEmailLink/>.)
             </div>
         </div>
 
@@ -729,11 +729,11 @@ PlanInfo = rclass
     render_plan_info_line: (name, value, data) ->
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
+                <span style={fontWeight:'bold',color:'#444'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
                 </span>
                 <Space/>
-                <span style={color:'#999'}>
+                <span style={color:'#666'}>
                     {data.display}
                 </span>
             </Tip>
@@ -945,7 +945,7 @@ ConfirmPaymentMethod = rclass
             <p>The initial payment will be processed with the card below.</p>
             <p>Future payments will be made with your default card<Space/>
             <b>at the time of renewal</b>.
-            Changing your default card right before renewal will cause the <Space/>
+            Changing your default card right before renewal will cause the<Space/>
             new default to be charged instead of the previous one.</p>
         </span>
 
@@ -1806,7 +1806,8 @@ BillingPage = rclass
                     purchase or renew your subscriptions.  Without a credit card
                     any current subscriptions will run to completion, but will not renew.
                     If you have any questions about subscriptions or billing (e.g., about
-                    using PayPal or wire transfers instead), please email <HelpEmailLink /> immediately.
+                    using PayPal or wire transfers for non-recurring subscriptions above $50,
+                    please email <HelpEmailLink /> immediately.
                 </span>
 
         else if subs == 0

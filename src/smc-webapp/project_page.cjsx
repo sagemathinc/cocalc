@@ -31,13 +31,14 @@ feature = require('./feature')
 Draggable = require('react-draggable')
 
 # SMC Libraries
-{SideChat}        = require('./side_chat')
-{ProjectFiles}    = require('./project_files')
-{ProjectNew}      = require('./project_new')
-{ProjectLog}      = require('./project_log')
-{ProjectSearch}   = require('./project_search')
-{ProjectSettings} = require('./project_settings')
-{ProjectStore}    = require('./project_store')
+{SideChat}         = require('./side_chat')
+{ProjectFiles}     = require('./project_files')
+{ProjectNew}       = require('./project_new')
+{ProjectLog}       = require('./project_log')
+{ProjectSearch}    = require('./project_search')
+{ProjectSettings}  = require('./project_settings')
+{ProjectStore}     = require('./project_store')
+{DiskSpaceWarning, RamWarning} = require('./project_warnings')
 
 project_file = require('./project_file')
 {file_associations} = require('./editor')
@@ -174,7 +175,7 @@ SortableNav = SortableContainer(NavWrapper)
 FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
 
-    reduxProps :
+    reduxProps:
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -185,15 +186,15 @@ FreeProjectWarning = rclass ({name}) ->
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
 
-    propTypes :
+    propTypes:
         project_id : rtypes.string
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
             @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
-    extra : (host, internet) ->
+    extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
@@ -209,7 +210,7 @@ FreeProjectWarning = rclass ({name}) ->
             </ul>
         </div>
 
-    render : ->
+    render: ->
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -548,6 +549,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         if not @props.fullscreen
             style.paddingTop = '5px'
         <div className='container-content' style={style}>
+            <DiskSpaceWarning project_id={@props.project_id} />
+            <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
@@ -663,6 +666,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
+            <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>

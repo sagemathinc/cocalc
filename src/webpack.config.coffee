@@ -113,7 +113,6 @@ DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
-QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
@@ -446,10 +445,9 @@ else
         #linkFilesIntoTargetPlugin,
     ])
 
-if not QUICK_BUILD or PRODMODE
-    plugins = plugins.concat(staticPages)
-    plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
-    # video chat plugins would be added here
+plugins = plugins.concat(staticPages)
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
+# video chat plugins would be added here
 
 if PRODMODE
     console.log "production mode: enabling compression"

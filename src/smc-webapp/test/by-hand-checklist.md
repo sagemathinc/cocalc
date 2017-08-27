@@ -74,8 +74,32 @@ We will make all these tests be automated eventually. For now, at least figure o
 ### Project
 - make a new project
 - add other user as a collaborator
-- create files of the following types: sagews worksheet, jupyter notebook, latex document, terminal, task list, chatroom, course, markdown file (.md), media wiki file (.wiki), html file (.html).
-- verify for each file just created that basic editing works, with sync (have other user also open all the files and test back and forth):  here there are tons of details about *HOW* to do this to actually test their functionality....
+    - does removing a user work?
+    - invitation emails? (requires to have setup sendgrid api keys)
+- create files of the following types:
+    - sagews worksheet
+        - plotting? @interact in sage?
+        - also test printing to html
+    - jupyter notebook
+        - modern jupyter2: default, test executing, do kernels show up, switch between them, ...
+        - classical: does switching between modern and classical work?
+        - saving as html or pdf works
+    - latex document:
+        - preview shows up
+        - sagetex works
+        - forward/inverse search
+        - create a `*.rnw` file and test the additional R code processing in latex
+    - terminal
+    - task list
+    - chatroom
+    - course: for details, see next section!
+    - editor with preview
+        - markdown file (.md)
+        - `*.rmd` file similar to `*.rnw`
+        - media wiki file (.wiki)
+        - html file
+- verify for each file just created that basic editing works
+- verify that sync works (have other user also open all the files and test back and forth):  here there are tons of details about *HOW* to do this to actually test their functionality....
 
 #### Course
 - open .course file in a project
@@ -126,7 +150,6 @@ Click the Log button to bring up the log
 - enable each checkbox on the right and re-search
 
 ### Project settings
-
 - change project title/settings and see that the change appears on the main projects list and also in the list, etc. for different user with same project open
 - restart project server, stop it, and save it.
 - click "ssh into your project..." (and also test the link to open authorized_keys)
